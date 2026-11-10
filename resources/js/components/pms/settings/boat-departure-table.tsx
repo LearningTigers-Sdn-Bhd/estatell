@@ -202,15 +202,18 @@ export function BoatDepartureTable({
                             </TableCell>
                             <TableCell>
                                 {(() => {
-                                    // The one in charge shows after an anchor, then the assistants.
-                                    const [inCharge, ...assistants] =
+                                    // "Awang (in charge), Daus": the one in charge first, then the assistants.
+                                    const [first, ...others] =
                                         departure.crewNames;
                                     const crewText = [
-                                        inCharge ? `⚓ ${inCharge}` : null,
-                                        ...assistants,
+                                        first !== undefined &&
+                                        departure.inChargeId !== null
+                                            ? `${first} (in charge)`
+                                            : first,
+                                        ...others,
                                     ]
                                         .filter(Boolean)
-                                        .join(' · ');
+                                        .join(', ');
                                     const text = [
                                         departure.defaultBoatName,
                                         crewText,

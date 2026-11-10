@@ -712,6 +712,30 @@ function tripOf(
     };
 }
 
+/**
+ * The second line of a sailing header: "Boat 1 · In charge: Din · Crew: Razak". Plain words, so staff need not guess
+ * a symbol. "No boat or crew set" when neither is.
+ */
+function crewText(group: Group): string {
+    if (
+        group.boat === null &&
+        group.inCharge === null &&
+        group.assistants.length === 0
+    ) {
+        return 'No boat or crew set';
+    }
+
+    return [
+        group.boat ?? 'No boat',
+        group.inCharge ? `In charge: ${group.inCharge}` : null,
+        group.assistants.length > 0
+            ? `Crew: ${group.assistants.join(', ')}`
+            : null,
+    ]
+        .filter(Boolean)
+        .join(' · ');
+}
+
 /** "Cancel the 06:00 trip", with "(all boats)" when the departure runs more than one boat that date. */
 function cancelLabel(group: Group): string {
     return `Cancel the ${group.time} trip${group.departureBoats > 1 ? ' (all boats)' : ''}`;
@@ -864,12 +888,7 @@ function GroupSection({
         .map((row) => row.key);
     const pickedCount = selectable.filter((key) => selected.has(key)).length;
     const over = group.seats !== null && group.taken > group.seats;
-    const crewText = [
-        group.inCharge ? `⚓ ${group.inCharge}` : null,
-        ...group.assistants,
-    ]
-        .filter(Boolean)
-        .join(' · ');
+    const crewLine = crewText(group);
 
     if (group.cancelled) {
         return (
@@ -894,30 +913,55 @@ function GroupSection({
 
     return (
         <section className="flex flex-col overflow-hidden rounded-lg border">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-muted/50 px-3 py-2">
-                {canSelect && selectable.length > 0 && (
-                    <Checkbox
-                        aria-label={`Select all rows in ${group.title}`}
-                        checked={pickedCount === selectable.length}
-                        indeterminate={
-                            pickedCount > 0 && pickedCount < selectable.length
-                        }
-                        onCheckedChange={(on) => onSelect(selectable, on)}
-                    />
+            <div className="flex items-start gap-3 bg-muted/50 px-3 py-2">
+                {(canSelect || isNotSet) && (
+                    <span className="flex h-5 w-4 shrink-0 items-center">
+                        {isNotSet ? (
+                            <TriangleAlert
+                                aria-hidden
+                                className="size-4 text-warning"
+                            />
+                        ) : (
+                            <Checkbox
+                                aria-label={`Select all rows in ${group.title}`}
+                                checked={
+                                    selectable.length > 0 &&
+                                    pickedCount === selectable.length
+                                }
+                                indeterminate={
+                                    pickedCount > 0 &&
+                                    pickedCount < selectable.length
+                                }
+                                disabled={selectable.length === 0}
+                                onCheckedChange={(on) =>
+                                    onSelect(selectable, on)
+                                }
+                            />
+                        )}
+                    </span>
                 )}
-                {isNotSet && (
-                    <TriangleAlert
-                        aria-hidden
-                        className="size-4 text-warning"
-                    />
-                )}
-                <h2 className="text-sm font-medium">
-                    {isSailing
-                        ? `${group.directionLabel} · ${group.times}`
-                        : group.title}
-                </h2>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <div className="flex flex-wrap items-baseline gap-x-3">
+                        <h2 className="text-sm font-medium">
+                            {isSailing
+                                ? `${group.directionLabel} · ${group.leavesAt} → ${group.arrivesAt}${group.timeChanged ? ' (changed)' : ''}`
+                                : group.title}
+                        </h2>
+                        {isSailing && group.pickupPoint && (
+                            <span className="text-sm text-muted-foreground">
+                                {group.pickupPoint}
+                            </span>
+                        )}
+                    </div>
+                    {isSailing && (
+                        <p className="text-sm text-muted-foreground">
+                            {group.isExtra ? 'Extra trip · ' : ''}
+                            {crewLine}
+                        </p>
+                    )}
+                </div>
                 {isMixed && (
-                    <span className="ml-auto text-sm text-muted-foreground">
+                    <span className="shrink-0 text-sm text-muted-foreground">
                         {group.rows.length === 1
                             ? '1 room'
                             : `${group.rows.length} rooms`}{' '}
@@ -925,14 +969,7 @@ function GroupSection({
                     </span>
                 )}
                 {isSailing && (
-                    <span className="text-sm text-muted-foreground">
-                        {group.isExtra ? 'Extra trip · ' : ''}
-                        {[group.boat, crewText].filter(Boolean).join(' · ') ||
-                            'No boat set'}
-                    </span>
-                )}
-                {isSailing && (
-                    <span className="ml-auto flex items-center gap-1">
+                    <span className="flex shrink-0 items-center gap-1">
                         <StatusBadge
                             status={{
                                 value: over ? 'over' : 'seats',

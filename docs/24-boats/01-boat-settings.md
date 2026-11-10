@@ -80,16 +80,16 @@ Settings › Boats
 
 Boat in                                                                                                            [+ Add departure]
  Available  Leaves  Arrives  Pick-up point       Seats  Default boat & crew             Fare                 Meals ⓘ
- [●  ]      09:00   09:45    Kuala Besut jetty   20     MV Sand Bay 1 · ⚓ Awang · Daus  Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
- [●  ]      13:00   13:45    Kuala Besut jetty   20     MV Sand Bay 2 · ⚓ Din · Razak   Speedboat · RM35.00  Lunch · Dinner              ⋯
+ [●  ]      09:00   09:45    Kuala Besut jetty   20     MV Sand Bay 1 · Awang (in charge), Daus Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
+ [●  ]      13:00   13:45    Kuala Besut jetty   20     MV Sand Bay 2 · Din (in charge), Razak   Speedboat · RM35.00  Lunch · Dinner              ⋯
  [  ○]      16:00   16:45    Kuala Besut jetty   —      —                               No fare              Dinner                      ⋯   (muted)
 
 Boat out                                                                                                           [+ Add departure]
- [●  ]      08:00   08:45    Resort jetty        20     MV Sand Bay 1 · ⚓ Awang · Daus  Speedboat · RM35.00  Breakfast                   ⋯
+ [●  ]      08:00   08:45    Resort jetty        20     MV Sand Bay 1 · Awang (in charge), Daus Speedboat · RM35.00  Breakfast                   ⋯
  [●  ]      12:00   12:45    Resort jetty        —      MV Sea Eagle                    Ferry · RM25.00      Breakfast                   ⋯
 ```
 
-- **Default boat & crew** shows the boat, then ⚓ and the crew member in charge, then the assistants. "—" when none is set.
+- **Default boat & crew** shows the boat, then the crew member in charge with "(in charge)", then the assistants: "MV Sand Bay 1 · Awang (in charge), Daus". "—" when none is set.
 
 - Two tables, Boat in then Boat out, each sorted by **Leaves**. There is no manual order, as with meal periods.
 - Unavailable rows stay in place and are muted. There is no separate inactive list.

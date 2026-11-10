@@ -9,7 +9,7 @@ namespace App\Services\Boats;
 class SailingLabels
 {
     /**
-     * "Boat in · 09:00 Kuala Besut jetty → 09:45 (changed) · MV Sand Bay 2 · ⚓ Din · Razak". The direction shows with
+     * "Boat in · 09:00 Kuala Besut jetty → 09:45 (changed) · MV Sand Bay 2 · Din (in charge), Razak". The direction shows with
      * `$withDirection`. The title ends after the times when no boat or crew is set.
      */
     public function title(DateSailing $sailing, bool $withDirection = false): string
@@ -35,14 +35,14 @@ class SailingLabels
         return $sailing->boat?->name;
     }
 
-    /** "⚓ Din · Razak": the one in charge first, then the assistants. Null with nobody on the crew. */
+    /** "Din (in charge), Razak": the one in charge first, then the assistants. Null with nobody on the crew. */
     public function crew(DateSailing $sailing): ?string
     {
         $names = array_filter([
-            $sailing->inCharge() === null ? null : '⚓ '.$sailing->inCharge()->name,
+            $sailing->inCharge() === null ? null : __(':name (in charge)', ['name' => $sailing->inCharge()->name]),
             ...$sailing->assistants()->pluck('name')->all(),
         ]);
 
-        return $names === [] ? null : implode(' · ', $names);
+        return $names === [] ? null : implode(', ', $names);
     }
 }

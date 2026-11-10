@@ -105,6 +105,8 @@ isMain: boolean,
 departureBoats: number,
 leavesAt: string | null,
 arrivesAt: string | null,
+pickupPoint: string | null,
+timeChanged: boolean,
 boatId: number | null,
 inChargeId: number | null,
 assistantIds: number[],
@@ -149,16 +151,6 @@ propertyTime: string,
 pickupPoint: string | null,
 seats: number | null,
 };
-export type BoatDepartureRunData = {
-departureId: number,
-label: string,
-direction: string,
-boatId: number | null,
-crew: string | null,
-defaultBoatId: number | null,
-defaultCrew: string | null,
-isOverridden: boolean,
-};
 export type BoatFareAgeGroupData = {
 ageGroupId: number,
 label: string,
@@ -183,16 +175,6 @@ usedBy: number,
 childrenSummary: string,
 taxes: App.Data.Catalogues.ChargeItemTaxData[],
 childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
-};
-export type BoatMainSailingData = {
-departureId: number,
-label: string,
-direction: string,
-boatId: number | null,
-inChargeId: number | null,
-assistantIds: number[],
-isStored: boolean,
-otherBoats: number,
 };
 export type BoatPickData = {
 key: string,

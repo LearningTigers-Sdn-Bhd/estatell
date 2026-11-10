@@ -38,7 +38,7 @@ One row per trip: Confirmed, CheckedIn and CheckedOut units whose trip is on the
 | Children    | `children`    | Yes             |                                                                                                        |
 | Total       | `total`       | Yes             | Adults + children                                                                                      |
 | Boat        | `boat`        | Yes             | The sailing's boat ([Boats and crew](#boats-and-crew)), or "Own boat", "Charter"                       |
-| Crew        | `crew`        | Yes             | The sailing's crew: ⚓ the person in charge first, then the assistants                                 |
+| Crew        | `crew`        | Yes             | The sailing's crew, the person in charge first: "Din (in charge), Razak"                               |
 | Tick        | `tick`        | Yes             | The Arrived or Left box on the board ([Tick](#tick)); "Yes" in the spreadsheet                         |
 | Reservation | `reservation` | No              | Reservation number                                                                                     |
 | Note        | `note`        | No              | The trip note                                                                                          |
@@ -52,7 +52,7 @@ One row per trip: Confirmed, CheckedIn and CheckedOut units whose trip is on the
 
 Each section is one [sailing](04-sailings.md): one boat on one date. A departure that runs two boats on a date has two sections, each with its own boat, crew and rows.
 
-- The section title reads "Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · ⚓ Din · Razak". A changed time adds "(changed)". With no boat or crew set, the title ends after the times.
+- The section title reads "Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · Din (in charge), Razak". A changed time adds "(changed)". With no boat or crew set, the title ends after the times.
 - A cancelled sailing on the date is left out. A sailing with guests cannot be cancelled ([Cancel](04-sailings.md#cancel)).
 - Staff set boats, crew and times on the [Boat Trips board](05-boats-board.md).
 - The section labels come from `SailingLabels` (`app/Services/Boats/`), so the board, the PDF and the spreadsheet name them the same way.

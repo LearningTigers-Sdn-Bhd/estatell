@@ -455,7 +455,7 @@ test('a printed row names its guest, agent, pax, boat, crew and tick', function 
     expect($row->lead_guest)->toBe('Lead Guest')
         ->and($row->total)->toBe(3)
         ->and($row->boat)->toBe('SA10716')
-        ->and($row->crew)->toBe('⚓ Awang · Daus')
+        ->and($row->crew)->toBe('Awang (in charge), Daus')
         ->and($row->ticked)->toBeTrue()
         ->and($captured->data['sections'][0]['pax'])->toBe(3);
 });

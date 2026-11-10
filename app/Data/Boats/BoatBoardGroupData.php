@@ -12,7 +12,8 @@ use Spatie\LaravelData\Data;
  * sailings on the date, so Default shows) and `canRemove` (an added boat or an extra trip with no guests). `cancelled` shows the
  * departure muted with Undo; `departureGuests` is every guest booked on the departure that date (Cancel trip is refused while
  * any); `isExtra` marks an extra trip; `isMain` marks the main sailing of a departure, the only group with Cancel trip;
- * `departureBoats` counts the departure's running boats that date, so Cancel trip says "(all boats)"; `leavesAt` and `arrivesAt` fill the Change time Dialog. `taken` counts the guests of the
+ * `departureBoats` counts the departure's running boats that date, so Cancel trip says "(all boats)"; `leavesAt` and `arrivesAt` fill the Change time Dialog and the header, with
+ * `pickupPoint` (the jetty) and `timeChanged` (the date has its own time). `taken` counts the guests of the
  * rows. See docs/24-boats/05-boats-board.md.
  */
 class BoatBoardGroupData extends Data
@@ -46,6 +47,8 @@ class BoatBoardGroupData extends Data
         public int $departureBoats,
         public ?string $leavesAt,
         public ?string $arrivesAt,
+        public ?string $pickupPoint,
+        public bool $timeChanged,
         public ?int $boatId,
         public ?int $inChargeId,
         public array $assistantIds,

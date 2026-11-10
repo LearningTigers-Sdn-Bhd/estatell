@@ -41,7 +41,7 @@ test('a date with no rows runs as the timetable: the in-memory main sailing has 
         ->and($main->inCharge()->name)->toBe('Din')
         ->and($main->assistants()->pluck('name')->all())->toBe(['Razak'])
         ->and([$main->leavesAt, $main->arrivesAt, $main->timeChanged, $main->seats])->toBe(['09:00', '09:45', false, 12])
-        ->and(app(SailingLabels::class)->title($main, true))->toBe('Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 1 · ⚓ Din · Razak');
+        ->and(app(SailingLabels::class)->title($main, true))->toBe('Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 1 · Din (in charge), Razak');
 });
 
 test('trips with no sailing are on the main sailing, and a moved trip is on its own sailing', function () {
@@ -357,12 +357,12 @@ test('the manifest has a section per sailing, with its own seats', function () {
 
     expect($rows)->toHaveCount(3)
         ->and(array_map(fn ($section) => [$section->title, $section->subtotal], $sections))->toBe([
-            ['09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 1 · ⚓ Din · Razak', '2 / 12 seats'],
-            ['09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · ⚓ Razak', '3 / 8 seats'],
+            ['09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 1 · Din (in charge), Razak', '2 / 12 seats'],
+            ['09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · Razak (in charge)', '3 / 8 seats'],
             ['11:00 Kuala Besut jetty → 11:45', '2 / 20 seats'],
         ])
         ->and(collect($rows)->pluck('boat')->all())->toBe(['MV Sand Bay 1', 'MV Sand Bay 2', null])
-        ->and(collect($rows)->pluck('crew')->all())->toBe(['⚓ Din · Razak', '⚓ Razak', null]);
+        ->and(collect($rows)->pluck('crew')->all())->toBe(['Din (in charge), Razak', 'Razak (in charge)', null]);
 });
 
 test('the database refuses a job with a departure, a guest sailing with no direction and a second one in charge', function () {

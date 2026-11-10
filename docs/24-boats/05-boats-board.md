@@ -23,23 +23,31 @@ Boat Trips                                       [Columns]  [Export Boat Manifes
  All   Boat in   Boat out   Others
  ───
 
-[ ] Boat out · 08:00 Resort jetty → 08:45 · MV Sand Bay 1 · ⚓ Awang · Daus        6 / 20  ⋯
+[ ] Boat out · 08:00 → 08:45   Resort jetty                                       6 / 20 seats  ⋯
+    MV Sand Bay 1 · In charge: Awang · Crew: Daus
      Room  Lead guest     Agent          Phone          Pax     Note              Left
  [ ] 101   Tan Wei Ming   Direct booking 012-111 2222   2A 1C   [             ]   ✓ Left [Undo]
  [ ] 104   Sarah Lee      Agoda          —              2A 0C   [Early ferry  ]   [Mark left]
 
-[ ] Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 1 · ⚓ Awang · Daus     5 / 20  ⋯
+[ ] Boat in · 09:00 → 09:45   Kuala Besut jetty                                  5 / 20 seats  ⋯
+    MV Sand Bay 1 · In charge: Awang · Crew: Daus
  [ ] 102   Ahmad Faiz     Borneo Tours   013-333 4444   2A 0C   [             ]   [Mark arrived]
  [ ] 103   Lee Family     Direct booking 016-555 6666   2A 1C   [             ]   [Mark arrived]
 
-[ ] Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · ⚓ Din · Razak      9 / 12  ⋯
+[ ] Boat in · 09:00 → 09:45   Kuala Besut jetty                                  9 / 12 seats  ⋯
+    MV Sand Bay 2 · In charge: Din · Crew: Razak
  [✓] 205   Ahmad Faiz     Borneo Tours   013-333 4444   4A 2C   [             ]   [Mark arrived]
  [✓] 206   Lim Family     Borneo Tours   019-777 8888   3A 0C   [             ]   [Mark arrived]
 
-    Boat out · 14:30 → 15:00 (changed) · MV Sand Bay 2 · ⚓ Din                  0 / 12  ⋯
+[-] Boat out · 14:30 → 15:00 (changed)                                          0 / 12 seats  ⋯
+    MV Sand Bay 2 · In charge: Din
      No guests.
 
-    Boat in · 16:00 Kuala Besut jetty · Cancelled                                [Undo]   (muted)
+[-] Boat in · 16:00 → 16:45   Kuala Besut jetty                                  0 / 20 seats  ⋯
+    No boat or crew set
+     No guests.
+
+    Boat in · 16:00 Kuala Besut jetty · Cancelled                             [Undo]   (muted)
 
   ⚠ Boat not set: follow up
      302   Ong Siew Lan   Direct booking 012-999 0000   2A 0C   Not set · 15:00  [Set boat]
@@ -59,8 +67,8 @@ The **Others** tab:
  [ ] 301   Lim Family     Borneo Tours   Out · 11:30     3A 0C   [Own speedboat ]   [Mark left]
 
     Boat jobs
-     11:00  Diesel   MV Sand Bay 2 · ⚓ Razak   4 drums                          Done [ ]
-     15:30  Linen    MV Sand Bay 1 · ⚓ Daus                                     Done [✓]
+     11:00  Diesel   MV Sand Bay 2 · Razak (in charge)  4 drums                         Done [ ]
+     15:30  Linen    MV Sand Bay 1 · Daus (in charge)                                   Done [✓]
 ```
 
 - Groups come in this order, as on the PDF: one group per [sailing](04-sailings.md) in time order across both directions, then **Charter**, then **Own boat**, then Boat jobs, then Boat not set.
@@ -75,7 +83,8 @@ The **Others** tab:
 
 - **Export Boat Manifest** exports what the open tab shows. On Others, the PDF prints only the Charter and Own boat blocks.
 - **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction and the time ("In · 10:30"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. Charter and Own boat always show on All and Others, even with no rooms: "No charter trips." or "No own boat trips." under the header. Only a date with no group at all shows the page empty state instead.
-- The group header shows the direction, time, jetty, boat, ⚓ the person in charge, the assistants and the seat count. Over the limit uses the warning tone.
+- The group header has two lines. The first: the direction, the leave and arrive times ("(changed)" when the date has its own time), the jetty, then the seat count and ⋯ on the right. Over the limit uses the warning tone. The second, muted: the boat, "In charge:" and "Crew:" in plain words ("MV Sand Bay 1 · In charge: Awang · Crew: Daus"), or "No boat or crew set". An extra trip starts it with "Extra trip ·".
+- Every group keeps the tick box space, so the titles line up. A group with no guests shows the box disabled ([-] above). Boat not set shows its warning icon there.
 - The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It is a button, not a box: **Mark arrived** or **Mark left** opens an AlertDialog ("Mark 102 · Hanami Saki as arrived?"), then saves. A ticked row shows "✓ Arrived" or "✓ Left" with **Undo**, which asks the same way ("Mark 102 · Hanami Saki as not arrived?"). A user without `reservations.manage` sees the text only.
 - **Note** is a text field in every guest row, as the remark on Housekeeping. It saves when it loses focus or on Enter; Escape puts the old text back. It is the trip's `note` (at most 255 characters), the same note the Change boat Dialog shows for Charter and Own boat. `SetBoatTripNote` saves it and logs `reservation.boat_trip_note_set` on the reservation. It keeps the tick. A user without `reservations.manage` sees the text only.
 - **Set boat** on a Boat not set row opens the reservation page's boat Change Dialog for that unit and direction.
