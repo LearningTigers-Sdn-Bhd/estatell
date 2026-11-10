@@ -42,12 +42,12 @@ class TodayBookings
                 reference: $reservation->reference,
                 created: $reservation->created_at->setTimezone($timeZone)->format('H:i'),
                 rooms: (int) $reservation->units_count,
-                arrival: $reservation->units_min_arrival_date,
-                departure: $reservation->units_max_departure_date,
+                arrival: $reservation->getAttribute('units_min_arrival_date'),
+                departure: $reservation->getAttribute('units_max_departure_date'),
                 url: route('reservations.show', ['property' => $property->code, 'reservation' => $reservation->id], false),
             ))->all();
 
-        return new TodayBookingsData($rows, $total, $date->toDateString());
+        return new TodayBookingsData(array_values($rows), $total, $date->toDateString());
     }
 
     /** @return Builder<Reservation> */
