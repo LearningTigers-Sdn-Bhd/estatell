@@ -124,12 +124,12 @@ enum ReportKey: string
 
     /**
      * The sort the page and the exports use when none is given or the sort column is hidden: a column key, with a
-     * leading `-` for descending.
+     * leading `-` for descending. Payments sorts by the date its `dateBasis` filters on.
      */
-    public function defaultSort(?ReportGroup $group = null): string
+    public function defaultSort(?ReportGroup $group = null, PaymentDateBasis $dateBasis = PaymentDateBasis::Posted): string
     {
         return match ($this) {
-            self::Payments => $group === ReportGroup::Staff ? 'staff' : 'date',
+            self::Payments => $group === ReportGroup::Staff ? 'staff' : ($dateBasis === PaymentDateBasis::Received ? 'received_on' : 'date'),
             self::Arrivals => 'arrival',
             self::Departures => 'departure',
             self::InHouse => 'room',
@@ -513,14 +513,21 @@ enum ReportKey: string
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
             ],
             self::Payments => [
-                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('date', __('Posted on'), ColumnAlign::Left, true),
+                new ReportColumn('received_on', __('Received on'), ColumnAlign::Left, true),
                 new ReportColumn('receipt', __('Receipt no.'), ColumnAlign::Left, true),
+                new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
                 new ReportColumn('payer', __('Reservation / company'), ColumnAlign::Left, true),
+                new ReportColumn('folio', __('Folio no.'), ColumnAlign::Left, true),
+                new ReportColumn('invoice', __('Invoice no.'), ColumnAlign::Left, true),
+                new ReportColumn('guest', __('Guest / company'), ColumnAlign::Left, true),
                 new ReportColumn('method', __('Method'), ColumnAlign::Left, true),
+                new ReportColumn('remarks', __('Reference / notes'), ColumnAlign::Left, true),
+                new ReportColumn('reference', __('Reference'), ColumnAlign::Left, false),
+                new ReportColumn('notes', __('Notes'), ColumnAlign::Left, false),
                 new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
                 new ReportColumn('staff', __('Staff'), ColumnAlign::Left, true),
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
-                new ReportColumn('reference', __('Reference'), ColumnAlign::Left, false),
                 new ReportColumn('refund_of', __('Original receipt'), ColumnAlign::Left, false),
             ],
             self::FolioLedger => [

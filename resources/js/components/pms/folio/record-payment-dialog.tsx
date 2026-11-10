@@ -11,8 +11,15 @@ import {
     useFormOptions,
 } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { DateText } from '@/components/pms/date-text';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { store as storeOnFolio } from '@/routes/reservations/folios/payments';
 import { quote as quoteRoute } from '@/routes/reservations/payments';
 import { store as storeOnUnit } from '@/routes/reservations/units/payments';
@@ -83,6 +90,8 @@ function RecordPaymentForm({
                 : '',
         reference: '',
         service_date: options.businessDate ?? '',
+        received_on: options.businessDate ?? '',
+        notes: '',
     });
     const { data, errors } = form;
 
@@ -98,6 +107,7 @@ function RecordPaymentForm({
                 previous.payment_method_id ||
                 String(options.methods[0]?.id ?? ''),
             service_date: previous.service_date || options.businessDate || '',
+            received_on: previous.received_on || options.businessDate || '',
         }));
         // Runs once, when the options arrive. Later changes are the user's.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,6 +156,8 @@ function RecordPaymentForm({
             ...values,
             reference: needsReference ? values.reference : '',
             service_date: oldSystem ? values.service_date : '',
+            // An Old system payment is received on its old system date.
+            received_on: oldSystem ? '' : values.received_on,
             idempotency_key: key,
         }));
         form.post(
@@ -234,6 +246,34 @@ function RecordPaymentForm({
                 />
                 <FieldError>{errors.amount}</FieldError>
             </Field>
+            {!oldSystem && (
+                <Field data-invalid={!!errors.received_on}>
+                    <FieldLabel htmlFor="payment-received-on">
+                        Received on
+                    </FieldLabel>
+                    <DatePicker
+                        id="payment-received-on"
+                        variant="dropdown"
+                        value={data.received_on}
+                        onChange={(value) => form.setData('received_on', value)}
+                        max={options.businessDate ?? undefined}
+                        aria-invalid={!!errors.received_on}
+                    />
+                    <FieldDescription>
+                        The day the money came in.
+                        {options.businessDate !== null &&
+                            data.received_on !== '' &&
+                            data.received_on < options.businessDate && (
+                                <>
+                                    {' '}
+                                    Posts on{' '}
+                                    <DateText date={options.businessDate} />.
+                                </>
+                            )}
+                    </FieldDescription>
+                    <FieldError>{errors.received_on}</FieldError>
+                </Field>
+            )}
             {oldSystem && (
                 <Field data-invalid={!!errors.service_date}>
                     <FieldLabel htmlFor="payment-service-date">
@@ -272,6 +312,20 @@ function RecordPaymentForm({
                     <FieldError>{errors.reference}</FieldError>
                 </Field>
             )}
+            <Field data-invalid={!!errors.notes}>
+                <FieldLabel htmlFor="payment-notes">Notes</FieldLabel>
+                <Textarea
+                    id="payment-notes"
+                    maxLength={500}
+                    rows={2}
+                    value={data.notes}
+                    onChange={(event) =>
+                        form.setData('notes', event.target.value)
+                    }
+                    aria-invalid={!!errors.notes}
+                />
+                <FieldError>{errors.notes}</FieldError>
+            </Field>
             {oldSystem && (
                 <p className="text-sm text-muted-foreground">
                     An advance tied to a booking goes on its folio. Money not

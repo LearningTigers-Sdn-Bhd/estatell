@@ -6,6 +6,7 @@ use App\Data\Property\CurrencyData;
 use App\Data\Reports\PaymentRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\PageOrientation;
+use App\Enums\PaymentDateBasis;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use App\Models\Property;
@@ -35,7 +36,7 @@ class PaymentsReportPage
         [$rows, $sort] = $this->reportPage->paginate(
             rows: $allRows,
             sort: $sort,
-            defaultSort: $key->defaultSort($filters->group),
+            defaultSort: $key->defaultSort($filters->group, $filters->dateBasis),
             columnKeys: $layout->visibleKeys(),
             page: $page,
             path: $path,
@@ -57,6 +58,8 @@ class PaymentsReportPage
             'staff' => $filters->staff === null ? '' : (string) $filters->staff,
             'staffOptions' => $this->report->staffOptions($property, $filters),
             'refundsOnly' => $filters->refundsOnly,
+            'dateBasis' => $filters->dateBasis->value,
+            'dateBasisOptions' => PaymentDateBasis::options(),
             'currency' => CurrencyData::forProperty($property),
         ];
     }

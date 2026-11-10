@@ -18,7 +18,15 @@
         <tr class="rule"><td class="label">{{ __('Reference') }}</td><td>{{ $receipt->reference }}</td></tr>
     @endif
     <tr class="rule"><td class="label">{{ __('Purpose') }}</td><td>{{ $receipt->purpose }}</td></tr>
-    <tr class="rule"><td class="label">{{ __('Received') }}</td><td>{{ $receipt->receivedAt }}</td></tr>
+    @if ($receipt->receivedOn !== null)
+        <tr class="rule"><td class="label">{{ __('Received on') }}</td><td>{{ $receipt->receivedOn }}</td></tr>
+        <tr class="rule"><td class="label">{{ __('Recorded') }}</td><td>{{ $receipt->receivedAt }}</td></tr>
+    @else
+        <tr class="rule"><td class="label">{{ __('Received') }}</td><td>{{ $receipt->receivedAt }}</td></tr>
+    @endif
+    @if ($receipt->notes !== null)
+        <tr class="rule"><td class="label">{{ __('Notes') }}</td><td>{{ $receipt->notes }}</td></tr>
+    @endif
 </table>
 
 <table class="gap-24">

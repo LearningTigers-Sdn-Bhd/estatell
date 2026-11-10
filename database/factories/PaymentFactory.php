@@ -32,6 +32,7 @@ class PaymentFactory extends Factory
             'purpose' => PaymentPurpose::Settlement,
             'status' => PaymentStatus::Completed,
             'reference' => null,
+            'received_on' => fn (): string => now()->toDateString(),
             'refund_of_id' => null,
             'receipt_number' => fn (): string => 'R-'.fake()->unique()->numerify('######'),
             'folio_line_id' => fn (array $attributes): int => FolioLine::factory()->payment($attributes['amount'])->create([

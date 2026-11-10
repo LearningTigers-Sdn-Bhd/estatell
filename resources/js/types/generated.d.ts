@@ -1158,6 +1158,8 @@ unitId: number | null,
 unitNightId: number | null,
 postedDate: string | null,
 methodType: string | null,
+receivedOn: string | null,
+notes: string | null,
 };
 export type ManualFolioOptionData = {
 id: number,
@@ -2085,6 +2087,8 @@ allowOtaCollected: boolean,
 issueReceipt: boolean,
 guestPaysTaxes: boolean,
 allowOnline: boolean,
+receivedOn: string | null,
+notes: string | null,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -3381,6 +3385,12 @@ amount: string,
 reference: string | null,
 refund_of: string | null,
 staff_id: number,
+received_on: string,
+room: string | null,
+guest: string,
+notes: string | null,
+folio: string | null,
+invoice: string | null,
 };
 export type PoliceReportRow = {
 key: string,
@@ -3434,6 +3444,7 @@ bucket: App.Enums.ChargeBucket | null,
 search: string | null,
 bothDirections: boolean,
 boatNotSet: boolean,
+dateBasis: App.Enums.PaymentDateBasis,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -4709,6 +4720,7 @@ export type PartnerStatus = 'invited' | 'active' | 'suspended';
 export type PasscodeKind = 'generated' | 'custom';
 export type PasscodeMode = 'generated' | 'custom';
 export type PasscodeStatus = 'pending' | 'active' | 'failed' | 'revoked' | 'expired';
+export type PaymentDateBasis = 'posted' | 'received';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system' | 'online';
 export type PaymentProofStatus = 'submitted' | 'accepted' | 'rejected';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';

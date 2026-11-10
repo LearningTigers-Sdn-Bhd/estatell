@@ -37,6 +37,8 @@ class PaymentResult
 
     public const REFUSAL_SERVICE_DATE_INVALID = 'service_date_invalid';
 
+    public const REFUSAL_RECEIVED_ON_IN_FUTURE = 'received_on_in_future';
+
     public const REFUSAL_REFUND_METHOD_MISMATCH = 'refund_method_mismatch';
 
     public const REFUSAL_OTHER_METHOD_NOT_ALLOWED = 'other_method_not_allowed';

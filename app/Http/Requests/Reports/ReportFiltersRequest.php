@@ -5,6 +5,7 @@ namespace App\Http\Requests\Reports;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
 use App\Enums\ChargeBucket;
+use App\Enums\PaymentDateBasis;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use App\Enums\TabbedReport;
@@ -29,7 +30,7 @@ use LogicException;
  * A report that filters by transaction code (`ReportKey::hasCodeFilter()`) also takes `code`, which must be a code of
  * the property. Other reports ignore `code`.
  * A report with payment filters (`ReportKey::hasPaymentFilters()`) also takes `staff`, which must be a user of the
- * property, and `refunds` (1 for refunds only). Other reports ignore them.
+ * property, `refunds` (1 for refunds only) and `dates` (`posted` or `received`). Other reports ignore them.
  * A report with charge filters (`ReportKey::hasChargeFilters()`, Daily report › Charges) also takes `bucket` (a
  * `ChargeBucket`) and `search` (at most 100 characters). Other reports ignore them.
  * A report with a foreign filter (`ReportKey::hasForeignFilter()`, the Police report) also takes `foreign` (1 for foreign
@@ -64,6 +65,7 @@ class ReportFiltersRequest extends FormRequest
             ...($this->reportKey()->hasPaymentFilters() ? [
                 'staff' => ['nullable', 'integer', Rule::exists('users', 'id')->where('property_id', $this->property()->id)],
                 'refunds' => ['nullable', 'boolean'],
+                'dates' => ['nullable', Rule::enum(PaymentDateBasis::class)],
             ] : []),
             ...($this->reportKey()->hasForeignFilter() ? ['foreign' => ['nullable', 'boolean']] : []),
             ...($this->reportKey()->hasBoatNotSetFilter() ? ['no_boat' => ['nullable', 'boolean']] : []),
@@ -145,7 +147,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
         }
 
         $from = $this->input('from');
@@ -155,7 +157,7 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
     }
 
     /**
@@ -218,6 +220,14 @@ class ReportFiltersRequest extends FormRequest
     private function staff(): ?int
     {
         return $this->reportKey()->hasPaymentFilters() && $this->filled('staff') ? $this->integer('staff') : null;
+    }
+
+    /**
+     * The date basis of Payments: `dates` in the URL, or Posted.
+     */
+    private function dateBasis(): PaymentDateBasis
+    {
+        return $this->reportKey()->hasPaymentFilters() ? ($this->enum('dates', PaymentDateBasis::class) ?? PaymentDateBasis::Posted) : PaymentDateBasis::Posted;
     }
 
     private function refundsOnly(): bool
