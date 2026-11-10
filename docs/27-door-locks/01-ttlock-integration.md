@@ -21,6 +21,10 @@ Give each checked-in stay a PIN for its room door, and take it away when the gue
 - Pennant feature `DoorLocks` (`door-locks`), off by default, turned on per property by a platform admin like Boats and Accounting.
 - When off, the door lock routes return 404, the sidebar item is hidden and no listener does anything.
 
+## Settings page lists
+
+The TTLock tab on Settings > Door locks shows locks as a table with the room link, health and an actions menu. Both lists page on the server, 10 a page: locks on `ttlocks_page` (search in `ttlock_search`) and PINs on `pins_page`, newest first. The PIN form and the gateway notice read a lean list of every TTLock lock (`lockOptions`), so they do not depend on the page showing. The PIN Status column is capped in width and long errors wrap in full.
+
 ## Gateway rules
 
 A gateway is a small TTLock device that connects a Bluetooth lock to the internet. Source: TTLock docs, [Passcode](https://euopen.ttlock.com/documentPages/htmlPages/userGuide/passcodeEn.html) and [Gateway](https://euopen.ttlock.com/documentPages/htmlPages/userGuide/gatewayEn.html) guides.

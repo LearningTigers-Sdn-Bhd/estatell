@@ -30,8 +30,9 @@ class CreateKeyportJob
             return __('That lock does not use key cards.');
         }
 
-        // Only the lock of the room the stay sleeps in. A lock id from the request must never reach another room's door.
-        if (! $this->stayLocks->currentElock($unit)->contains('id', $lock->id)) {
+        // Only the lock of the room the stay sleeps in. A lock id from the request must never reach another room's door. The one
+        // exception is erasing a card this stay itself made at that lock, so a guest who moved room can have the old card wiped.
+        if (! $this->stayLocks->currentElock($unit)->contains('id', $lock->id) && ($type !== KeyportJobType::Erase || $this->lastSerial($unit, $lock) === null)) {
             return __('That lock is not in this stay\'s room.');
         }
 

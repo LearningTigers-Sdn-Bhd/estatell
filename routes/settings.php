@@ -270,7 +270,10 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [KeyportSettingsController::class, 'index'])->name('index');
         Route::post('codes', [KeyportSettingsController::class, 'storeCode'])->name('codes.store');
         Route::post('devices/{keyportDevice}/revoke', [KeyportSettingsController::class, 'revokeDevice'])->name('devices.revoke');
+        Route::delete('devices/{keyportDevice}', [KeyportSettingsController::class, 'destroyDevice'])->name('devices.destroy');
         Route::post('locks', [KeyportSettingsController::class, 'storeLock'])->name('locks.store');
+        Route::put('locks/{doorLock}', [KeyportSettingsController::class, 'updateLock'])->name('locks.update');
+        Route::delete('locks/{doorLock}', [KeyportSettingsController::class, 'destroyLock'])->name('locks.destroy');
         Route::post('jobs/{keyportJob}/cancel', [KeyportSettingsController::class, 'cancelJob'])->name('jobs.cancel');
     });
 

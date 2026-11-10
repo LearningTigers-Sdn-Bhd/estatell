@@ -10,7 +10,7 @@ use Spatie\LaravelData\Data;
 class UnitKeyCardsData extends Data
 {
     /**
-     * @param  list<array{id: int, name: string, hasCard: bool}>  $locks
+     * @param  list<array{id: int, name: string, hasCard: bool, stale: bool, previous: bool}>  $locks
      * @param  list<KeyportJobRowData>  $jobs
      */
     public function __construct(

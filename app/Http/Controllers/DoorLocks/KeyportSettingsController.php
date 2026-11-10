@@ -5,13 +5,12 @@ namespace App\Http\Controllers\DoorLocks;
 use App\Actions\DoorLocks\AddElockLock;
 use App\Actions\DoorLocks\CancelKeyportJob;
 use App\Actions\DoorLocks\CreateKeyportPairingCode;
+use App\Actions\DoorLocks\RemoveElockLock;
 use App\Actions\DoorLocks\RevokeKeyportDevice;
-use App\Data\DoorLocks\DoorLockData;
-use App\Data\Keyport\KeyportDeviceData;
-use App\Data\Keyport\KeyportJobRowData;
-use App\Enums\LockProvider;
+use App\Actions\DoorLocks\UpdateElockLock;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Keyport\StoreElockLockRequest;
+use App\Models\DoorLock;
 use App\Models\KeyportDevice;
 use App\Models\KeyportJob;
 use App\Models\Property;
@@ -19,22 +18,18 @@ use App\Models\Room;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
 
 /**
- * Settings > Door locks > Keyport: the front-desk PCs, the eLock locks and the latest key card jobs. See docs/27-door-locks/02-keyport.md.
+ * Keyport actions on the Door locks page (eLock tab): pair or revoke a front-desk PC, add an eLock lock, cancel a card job. See docs/27-door-locks/02-keyport.md.
  */
 class KeyportSettingsController extends Controller
 {
-    public function index(Property $property): Response
+    /**
+     * Key cards now live on the Door locks page. This URL stays so old links and bookmarks still work.
+     */
+    public function index(Property $property): RedirectResponse
     {
-        return Inertia::render('settings/keyport/index', [
-            'devices' => $property->keyportDevices()->latest('id')->get()->map(KeyportDeviceData::fromModel(...)),
-            'locks' => $property->doorLocks()->ofProvider(LockProvider::ELock)->with('room')->orderBy('name')->get()->map(DoorLockData::fromModel(...)),
-            'rooms' => Room::query()->where('property_id', $property->id)->whereNull('archived_at')->orderBy('position')->orderBy('number')->get(['id', 'number'])
-                ->map(fn (Room $room): array => ['value' => (string) $room->id, 'label' => $room->number])->values(),
-            'jobs' => $property->keyportJobs()->with('doorLock')->latest('id')->limit(30)->get()->map(KeyportJobRowData::fromModel(...)),
-        ]);
+        return to_route('settings.door-locks.edit', $property);
     }
 
     /**
@@ -47,7 +42,7 @@ class KeyportSettingsController extends Controller
             'expiresAt' => now()->addMinutes(config()->integer('keyport.pairing_minutes'))->toIso8601String(),
         ]);
 
-        return to_route('settings.keyport.index', $property);
+        return to_route('settings.door-locks.edit', $property);
     }
 
     public function revokeDevice(Request $request, Property $property, KeyportDevice $keyportDevice, RevokeKeyportDevice $revokeKeyportDevice): RedirectResponse
@@ -59,7 +54,50 @@ class KeyportSettingsController extends Controller
             ? ['type' => 'error', 'message' => __('That computer is already revoked.')]
             : ['type' => 'success', 'message' => __('Computer revoked.')]);
 
-        return to_route('settings.keyport.index', $property);
+        return to_route('settings.door-locks.edit', $property);
+    }
+
+    /**
+     * Remove a revoked PC from the list. Only revoked ones: removing a live PC would hide a token that still works. Its jobs keep
+     * their history (the job's device link is set to null).
+     */
+    public function destroyDevice(Request $request, Property $property, KeyportDevice $keyportDevice): RedirectResponse
+    {
+        if ($keyportDevice->revoked_at === null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Revoke the computer first, then remove it.')]);
+        } else {
+            activity()->performedOn($keyportDevice)->causedBy($request->user())->event('door-locks.keyport-removed')
+                ->withProperties(['property_id' => $property->id])->log('Keyport computer removed from the list');
+            $keyportDevice->delete();
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Computer removed.')]);
+        }
+
+        return to_route('settings.door-locks.edit', $property);
+    }
+
+    public function updateLock(StoreElockLockRequest $request, Property $property, DoorLock $doorLock, UpdateElockLock $updateElockLock): RedirectResponse
+    {
+        $room = $request->filled('room_id') ? Room::query()->where('property_id', $property->id)->find($request->integer('room_id')) : null;
+        $updated = ($request->filled('room_id') && $room === null)
+            ? false
+            : $updateElockLock($request->user(), $doorLock, (string) $request->input('name'), (string) $request->input('lock_no'), $room);
+
+        Inertia::flash('toast', $updated
+            ? ['type' => 'success', 'message' => __('Lock saved.')]
+            : ['type' => 'error', 'message' => __('That lock number is already used, or the room is not available or already has a lock.')]);
+
+        return to_route('settings.door-locks.edit', $property);
+    }
+
+    public function destroyLock(Request $request, Property $property, DoorLock $doorLock, RemoveElockLock $removeElockLock): RedirectResponse
+    {
+        $reason = $removeElockLock($request->user(), $doorLock);
+
+        Inertia::flash('toast', $reason === null
+            ? ['type' => 'success', 'message' => __('Lock removed.')]
+            : ['type' => 'error', 'message' => $reason]);
+
+        return to_route('settings.door-locks.edit', $property);
     }
 
     public function storeLock(StoreElockLockRequest $request, Property $property, AddElockLock $addElockLock): RedirectResponse
@@ -73,7 +111,7 @@ class KeyportSettingsController extends Controller
             ? ['type' => 'success', 'message' => __('Lock added.')]
             : ['type' => 'error', 'message' => __('That lock number is already used, or the room is not available or already has a lock.')]);
 
-        return to_route('settings.keyport.index', $property);
+        return to_route('settings.door-locks.edit', $property);
     }
 
     public function cancelJob(Request $request, Property $property, KeyportJob $keyportJob, CancelKeyportJob $cancelKeyportJob): RedirectResponse

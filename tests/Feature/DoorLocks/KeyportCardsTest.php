@@ -15,6 +15,7 @@ use App\Models\KeyportJob;
 use App\Models\Property;
 use App\Models\Room;
 use App\Services\DoorLocks\StayLocks;
+use App\Services\Keyport\UnitKeyCards;
 use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/KeyportSetup.php';
@@ -155,4 +156,30 @@ it('refuses a lock outside the stay room, a guest who is not checked in, and a k
     $other = keyportElockSetup();
 
     expect(app(CreateKeyportJob::class)($other['owner'], $other['unit'], $other['lock'], KeyportJobType::Issue, 'checkin:1:1'))->toBeString();
+});
+
+it('lets staff erase the old card after a room move, but never issue at the old lock', function () {
+    ['owner' => $owner, 'property' => $property, 'lock' => $old, 'unit' => $unit] = keyportElockSetup();
+    $issued = app(CreateKeyportJob::class)($owner, $unit, $old, KeyportJobType::Issue);
+    $issued->forceFill(['status' => KeyportJobStatus::Succeeded, 'serial' => 'A1B2C3D4', 'finished_at' => now()])->save();
+
+    $newRoom = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    DoorLock::factory()->elock('1.1.102')->for($property)->create(['room_id' => $newRoom->id]);
+    $unit->nights()->update(['room_id' => $newRoom->id]);
+
+    $panel = app(UnitKeyCards::class)->forUnit($unit->refresh());
+    expect(collect($panel->locks)->firstWhere('id', $old->id)['previous'])->toBeTrue()
+        ->and(app(CreateKeyportJob::class)($owner, $unit, $old, KeyportJobType::Issue))->toBeString()
+        ->and(app(CreateKeyportJob::class)($owner, $unit, $old, KeyportJobType::Erase))->toBeInstanceOf(KeyportJob::class);
+});
+
+it('flags a card whose end date no longer matches the stay', function () {
+    ['owner' => $owner, 'lock' => $lock, 'unit' => $unit] = keyportElockSetup();
+    $issued = app(CreateKeyportJob::class)($owner, $unit, $lock, KeyportJobType::Issue);
+    $issued->forceFill(['status' => KeyportJobStatus::Succeeded, 'serial' => 'A1B2C3D4', 'finished_at' => now()])->save();
+
+    expect(app(UnitKeyCards::class)->forUnit($unit->refresh())->locks[0]['stale'])->toBeFalse();
+
+    $unit->update(['departure_date' => '2026-10-18']);
+    expect(app(UnitKeyCards::class)->forUnit($unit->refresh())->locks[0]['stale'])->toBeTrue();
 });

@@ -95,36 +95,63 @@ export function KeyCards({
                             >
                                 <span className="min-w-0 flex-1 truncate font-medium">
                                     {lock.name}
+                                    {lock.previous && (
+                                        <span className="ml-2 font-normal text-muted-foreground">
+                                            Old room
+                                        </span>
+                                    )}
+                                    {lock.stale && (
+                                        <span className="ml-2 font-normal text-warning">
+                                            Dates changed
+                                        </span>
+                                    )}
                                 </span>
-                                <Button
-                                    size="sm"
-                                    disabled={!cards.canMake || busy || sending}
-                                    onClick={() =>
-                                        ask(lock.id, 'guest_card.issue')
-                                    }
-                                >
-                                    {lock.hasCard
-                                        ? 'Make another card'
-                                        : 'Make key card'}
-                                </Button>
+                                {!lock.previous && (
+                                    <Button
+                                        size="sm"
+                                        variant={
+                                            lock.stale ? 'outline' : 'default'
+                                        }
+                                        disabled={
+                                            !cards.canMake || busy || sending
+                                        }
+                                        onClick={() =>
+                                            ask(lock.id, 'guest_card.issue')
+                                        }
+                                    >
+                                        {lock.hasCard
+                                            ? 'Make another card'
+                                            : 'Make key card'}
+                                    </Button>
+                                )}
                                 {lock.hasCard && (
                                     <>
+                                        {!lock.previous && (
+                                            <Button
+                                                size="sm"
+                                                variant={
+                                                    lock.stale
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                disabled={busy || sending}
+                                                onClick={() =>
+                                                    ask(
+                                                        lock.id,
+                                                        'guest_card.rewrite',
+                                                    )
+                                                }
+                                            >
+                                                Update dates
+                                            </Button>
+                                        )}
                                         <Button
                                             size="sm"
-                                            variant="outline"
-                                            disabled={busy || sending}
-                                            onClick={() =>
-                                                ask(
-                                                    lock.id,
-                                                    'guest_card.rewrite',
-                                                )
+                                            variant={
+                                                lock.previous
+                                                    ? 'default'
+                                                    : 'ghost'
                                             }
-                                        >
-                                            Update dates
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
                                             disabled={busy || sending}
                                             onClick={() =>
                                                 ask(lock.id, 'guest_card.erase')
