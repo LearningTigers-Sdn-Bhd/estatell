@@ -74,7 +74,7 @@ class ReservationUnitController extends Controller
      */
     public function storeGuest(AttachGuestRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, AddGuestToUnit $addGuest, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $addGuest($request->user(), $property, $unit, $request->filled('guest_id') ? $request->integer('guest_id') : null, $request->profile(), $request->boolean('update_profile'));
+        $result = $addGuest($request->user(), $property, $unit, $request->filled('guest_id') ? $request->integer('guest_id') : null, $request->profile(), $request->boolean('update_profile'), $request->identityData());
 
         if ($result->isRefused()) {
             return back(fallback: $this->page($property, $reservation))->withErrors($refusals->errors((string) $result->refusal));
@@ -96,7 +96,7 @@ class ReservationUnitController extends Controller
     {
         $guest = $unit->guests()->where('guest_id', $guestId)->with('guest')->firstOrFail()->guest;
 
-        $saved = $updateGuest($request->user(), $guest, $request->profile(), array_values($guest->tags()->pluck('name')->all()));
+        $saved = $updateGuest($request->user(), $guest, $request->profile(), array_values($guest->tags()->pluck('name')->all()), $request->identityData(), identityDocumentId: $request->identityDocumentId());
 
         Inertia::flash('toast', $saved
             ? ['type' => 'success', 'message' => __(':name saved.', ['name' => $request->input('full_name')])]
@@ -112,7 +112,7 @@ class ReservationUnitController extends Controller
     public function replaceGuest(AttachGuestRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, int $guestId, ReplaceUnitGuest $replaceGuest, ReservationRefusals $refusals): RedirectResponse
     {
         $occupant = $unit->guests()->where('guest_id', $guestId)->with('guest')->firstOrFail();
-        $result = $replaceGuest($request->user(), $property, $unit, $occupant, $request->filled('guest_id') ? $request->integer('guest_id') : null, $request->profile(), $request->boolean('update_profile'));
+        $result = $replaceGuest($request->user(), $property, $unit, $occupant, $request->filled('guest_id') ? $request->integer('guest_id') : null, $request->profile(), $request->boolean('update_profile'), $request->identityData());
 
         if ($result->isRefused()) {
             return back(fallback: $this->page($property, $reservation))->withErrors($refusals->errors((string) $result->refusal));

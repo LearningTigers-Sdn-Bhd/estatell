@@ -42,12 +42,14 @@ export function useGuestMykadRow({
     target,
     apply,
     onFilled,
+    withIdentity = false,
 }: {
     rowKey: string;
     values: CardFields | null;
     target: MykadTargetControls;
     apply: (fields: CardFields) => void;
     onFilled: () => void;
+    withIdentity?: boolean;
 }) {
     const [before, setBefore] = useState<CardFields | null>(null);
     const active = target.activeKey === rowKey;
@@ -62,7 +64,7 @@ export function useGuestMykadRow({
             }
 
             setBefore((current) => current ?? pickCardFields(values));
-            apply(fieldsFromCard(card));
+            apply(fieldsFromCard(card, withIdentity));
             onFilled();
             target.moveOn();
         },

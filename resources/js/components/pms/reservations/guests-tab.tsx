@@ -80,6 +80,8 @@ export function GuestsTab({
     units,
     canManage,
     canManageGuests,
+    canViewDocuments,
+    identityDocumentTypes,
     countries,
     genders,
     locales,
@@ -94,6 +96,8 @@ export function GuestsTab({
     units: Unit[];
     canManage: boolean;
     canManageGuests: boolean;
+    canViewDocuments: boolean;
+    identityDocumentTypes: EnumOption[];
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
@@ -365,6 +369,10 @@ export function GuestsTab({
                                     key={replacing.key}
                                     reservationId={reservationId}
                                     draft={replacing}
+                                    canViewDocuments={canViewDocuments}
+                                    identityDocumentTypes={
+                                        identityDocumentTypes
+                                    }
                                     units={openUnits}
                                     full={new Set()}
                                     showUnit={false}
@@ -388,6 +396,8 @@ export function GuestsTab({
                                 rowId={key}
                                 reservationId={reservationId}
                                 row={row}
+                                canViewDocuments={canViewDocuments}
+                                identityDocumentTypes={identityDocumentTypes}
                                 showUnit={showUnit}
                                 canAdd={canAdd}
                                 canEdit={
@@ -436,6 +446,8 @@ export function GuestsTab({
                             key={draft.key}
                             reservationId={reservationId}
                             draft={draft}
+                            canViewDocuments={canViewDocuments}
+                            identityDocumentTypes={identityDocumentTypes}
                             showUnit={showUnit}
                             units={openUnits}
                             full={fullUnitIds(guests, drafts, units, draft.key)}

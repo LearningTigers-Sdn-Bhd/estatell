@@ -2,21 +2,22 @@
 
 namespace App\Http\Requests\Reservations;
 
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Enums\PermissionEnum;
 use App\Http\Requests\Guests\GuestProfileRules;
+use App\Http\Requests\Guests\GuestRequest;
 use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
-class AttachGuestRequest extends FormRequest
+class AttachGuestRequest extends GuestRequest
 {
     /**
      * The `can:reservations.manage` route middleware authorizes this request.
      */
     public function authorize(): bool
     {
-        return true;
+        return parent::authorize();
     }
 
     /**
@@ -28,6 +29,9 @@ class AttachGuestRequest extends FormRequest
     public function rules(): array
     {
         return [
+            ...parent::rules(),
+            'identity_document_id' => ['prohibited'],
+            'identity_photo' => ['prohibited'],
             'guest_id' => ['nullable', 'integer'],
             'update_profile' => ['nullable', 'boolean'],
             ...GuestProfileRules::for($this->phoneRegion(), nameRequired: false),
@@ -58,6 +62,11 @@ class AttachGuestRequest extends FormRequest
         return $this->changesProfile()
             ? GuestProfileRules::attributes($this->safe()->except(['guest_id', 'update_profile']), $this->phoneRegion())
             : [];
+    }
+
+    public function identityData(): ?IdentityDocumentInputData
+    {
+        return $this->changesProfile() ? parent::identityData() : null;
     }
 
     /**

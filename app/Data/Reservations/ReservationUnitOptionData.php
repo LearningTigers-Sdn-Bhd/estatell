@@ -26,6 +26,7 @@ class ReservationUnitOptionData extends Data
         public BadgeData $status,
         public string $arrival,
         public string $departure,
+        public string $occupancy,
     ) {}
 
     public static function fromModel(ReservationUnit $unit, ?string $assigned, ?string $primaryGuest = null): self
@@ -41,6 +42,8 @@ class ReservationUnitOptionData extends Data
             status: BadgeData::fromUnitStatus($unit->status),
             arrival: $unit->arrival_date->toDateString(),
             departure: $unit->departure_date->toDateString(),
+            occupancy: trans_choice(':count adult|:count adults', $unit->adults)
+                .($unit->children > 0 ? ' · '.trans_choice(':count child|:count children', $unit->children) : ''),
         );
     }
 }

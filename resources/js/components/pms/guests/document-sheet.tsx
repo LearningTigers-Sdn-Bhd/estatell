@@ -39,7 +39,10 @@ import { Spinner } from '@/components/ui/spinner';
 import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
 import { reveal, scan, store, update } from '@/routes/guests/documents';
 
-type Guest = App.Data.Guests.GuestData;
+type Guest = Pick<
+    App.Data.Guests.GuestData,
+    'id' | 'fullName' | 'nationalityCode'
+>;
 type Document = App.Data.Guests.GuestIdentityDocumentData;
 
 export type DocumentFormOptions = {
@@ -93,7 +96,11 @@ function DocumentSheetForm({
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
 
-        const visit = { forceFormData: true, onSuccess: onClose };
+        const visit = {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: onClose,
+        };
 
         if (document) {
             form.transform((fields) => ({ ...fields, _method: 'put' }));
@@ -428,7 +435,10 @@ export function DocumentSheet({
                             ? `Edit ${document.typeLabel}`
                             : 'Add ID document'}
                     </SheetTitle>
-                    <SheetDescription>{guest.fullName}</SheetDescription>
+                    <SheetDescription>
+                        {guest.fullName}. Type the passport or IC number below.
+                        A MyKad reader is optional.
+                    </SheetDescription>
                 </SheetHeader>
                 {document ? (
                     <EditDocumentSheetForm

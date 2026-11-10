@@ -12,12 +12,16 @@ const CARD_FIELDS = [
     'city',
     'state',
     'country_code',
+    'identity',
 ] as const;
 
 /** The guest fields a MyKad fills. Phone, email, Stays in and notes are not on the card. */
 export type CardFields = Pick<BookingGuest, (typeof CARD_FIELDS)[number]>;
 
-export function fieldsFromCard(card: MyKadData): CardFields {
+export function fieldsFromCard(
+    card: MyKadData,
+    withIdentity = false,
+): CardFields {
     return {
         full_name: card.name,
         nationality_code: 'MY',
@@ -29,6 +33,16 @@ export function fieldsFromCard(card: MyKadData): CardFields {
         city: card.city,
         state: card.state,
         country_code: 'MY',
+        ...(withIdentity
+            ? {
+                  identity: {
+                      identity_document_id: '',
+                      identity_type: 'mykad',
+                      identity_number: card.formatted_ic || card.ic_number,
+                      identity_country_code: 'MY',
+                  },
+              }
+            : {}),
     };
 }
 

@@ -4195,6 +4195,7 @@ cardUnitGuestId: number | null,
 billing: string | null,
 canBill: boolean,
 guest: App.Data.Guests.GuestOptionData | null,
+documents: App.Data.Guests.GuestIdentityDocumentData[],
 };
 export type ReservationListItemData = {
 id: number,
@@ -4311,6 +4312,7 @@ label: string,
 status: App.Data.Shared.BadgeData,
 arrival: string,
 departure: string,
+occupancy: string,
 };
 export type RoomTypeOptionData = {
 id: number,

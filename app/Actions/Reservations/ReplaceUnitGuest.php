@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Enums\RegistrationCardStatus;
 use App\Enums\UnitStatus;
 use App\Models\Property;
@@ -29,12 +30,12 @@ class ReplaceUnitGuest
      *
      * @param  array<string, mixed>  $profile  Validated profile fields, the phone number in E.164.
      */
-    public function __invoke(User $actor, Property $property, ReservationUnit $unit, UnitGuest $occupant, ?int $guestId, array $profile = [], bool $updateProfile = false): AttachGuestResult
+    public function __invoke(User $actor, Property $property, ReservationUnit $unit, UnitGuest $occupant, ?int $guestId, array $profile = [], bool $updateProfile = false, ?IdentityDocumentInputData $identity = null): AttachGuestResult
     {
         DB::beginTransaction();
 
         try {
-            $result = $this->run($actor, $property, $unit, $occupant, $guestId, $profile, $updateProfile);
+            $result = $this->run($actor, $property, $unit, $occupant, $guestId, $profile, $updateProfile, $identity);
         } catch (Throwable $exception) {
             DB::rollBack();
 
@@ -55,7 +56,7 @@ class ReplaceUnitGuest
     /**
      * @param  array<string, mixed>  $profile
      */
-    private function run(User $actor, Property $property, ReservationUnit $unit, UnitGuest $occupant, ?int $guestId, array $profile, bool $updateProfile): AttachGuestResult
+    private function run(User $actor, Property $property, ReservationUnit $unit, UnitGuest $occupant, ?int $guestId, array $profile, bool $updateProfile, ?IdentityDocumentInputData $identity): AttachGuestResult
     {
         $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
         $row = $locked->guests()->whereKey($occupant->id)->first();
@@ -74,7 +75,7 @@ class ReplaceUnitGuest
             return AttachGuestResult::refused(AttachGuestResult::REFUSAL_HAS_REGISTRATION_CARD);
         }
 
-        $guest = ($this->resolveGuest)($actor, $property, $guestId, $profile, $updateProfile);
+        $guest = ($this->resolveGuest)($actor, $property, $guestId, $profile, $updateProfile, $identity);
 
         if ($guest instanceof AttachGuestResult) {
             return $guest;

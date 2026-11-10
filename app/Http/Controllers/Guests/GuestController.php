@@ -85,22 +85,7 @@ class GuestController extends Controller
 
     public function store(GuestRequest $request, Property $property, CreateGuest $createGuest): RedirectResponse
     {
-        $guest = $createGuest($request->user(), $property, $request->profileAttributes(), $request->tagNames());
-
-        if ($request->filled('identity_number')) {
-            $type = $request->string('identity_type')->value() ?: 'mykad';
-            $doc = $guest->documents()->firstOrNew(['type' => $type]);
-            $doc->number = $request->string('identity_number')->value();
-            $doc->issuing_country_code = $request->string('identity_country_code')->value() ?: 'MY';
-            $doc->save();
-
-            if ($request->filled('identity_photo')) {
-                $doc->clearMediaCollection(GuestIdentityDocument::FRONT_SCAN);
-                $doc->addMediaFromBase64($request->string('identity_photo')->value())
-                    ->usingFileName('mykad_portrait.jpg')
-                    ->toMediaCollection(GuestIdentityDocument::FRONT_SCAN);
-            }
-        }
+        $guest = $createGuest($request->user(), $property, $request->profileAttributes(), $request->tagNames(), $request->identityData(), $request->identityPhoto());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name added.', ['name' => $guest->full_name])]);
 
@@ -118,6 +103,7 @@ class GuestController extends Controller
 
         return $this->renderTab($request->user(), $guest, 'details', [
             'formOptions' => $canEdit ? $this->formOptions($property) : null,
+            ...($withIdNumbers && $guest->anonymized_at === null ? $this->documentProps($request->user(), $property, $guest) : []),
             'duplicates' => array_map(
                 fn (array $match): GuestMatchData => GuestMatchData::fromMatch($match),
                 $guestMatcher->forGuest($guest->load('documents'), $withIdNumbers),
@@ -141,12 +127,20 @@ class GuestController extends Controller
      * Guest page, Documents tab. Documents load only here, with masked numbers. The sheet form gets the full number
      * from the logged `reveal` request, never from page props.
      */
-    public function documents(Request $request, Property $property, Guest $guest, PropertyToday $propertyToday): Response
+    public function documents(Request $request, Property $property, Guest $guest): Response
     {
-        $today = $propertyToday->date($property)->toDateString();
-        $canManage = $request->user()->can(PermissionEnum::GuestsManage->value);
+        return $this->renderTab($request->user(), $guest, 'documents', $this->documentProps($request->user(), $property, $guest));
+    }
 
-        return $this->renderTab($request->user(), $guest, 'documents', [
+    /**
+     * @return array<string, mixed>
+     */
+    private function documentProps(User $user, Property $property, Guest $guest): array
+    {
+        $today = app(PropertyToday::class)->date($property)->toDateString();
+        $canManage = $user->can(PermissionEnum::GuestsManage->value) && $guest->anonymized_at === null;
+
+        return [
             'documentFormOptions' => $canManage ? [
                 'types' => IdentityDocumentType::options(),
                 'countries' => app(CountryOptions::class)->options(),
@@ -155,27 +149,12 @@ class GuestController extends Controller
             'documents' => $guest->documents()->with('media')->orderBy('id')->get()
                 ->map(fn (GuestIdentityDocument $document): GuestIdentityDocumentData => GuestIdentityDocumentData::fromModel($document, $today))
                 ->all(),
-        ]);
+        ];
     }
 
     public function update(GuestRequest $request, Property $property, Guest $guest, UpdateGuest $updateGuest): RedirectResponse
     {
-        $saved = $updateGuest($request->user(), $guest, $request->profileAttributes(), $request->tagNames());
-
-        if ($request->filled('identity_number')) {
-            $type = $request->string('identity_type')->value() ?: 'mykad';
-            $doc = $guest->documents()->firstOrNew(['type' => $type]);
-            $doc->number = $request->string('identity_number')->value();
-            $doc->issuing_country_code = $request->string('identity_country_code')->value() ?: 'MY';
-            $doc->save();
-
-            if ($request->filled('identity_photo')) {
-                $doc->clearMediaCollection(GuestIdentityDocument::FRONT_SCAN);
-                $doc->addMediaFromBase64($request->string('identity_photo')->value())
-                    ->usingFileName('mykad_portrait.jpg')
-                    ->toMediaCollection(GuestIdentityDocument::FRONT_SCAN);
-            }
-        }
+        $saved = $updateGuest($request->user(), $guest, $request->profileAttributes(), $request->tagNames(), $request->identityData(), $request->identityPhoto(), $request->identityDocumentId());
 
         $guest->refresh();
 
@@ -230,10 +209,13 @@ class GuestController extends Controller
      */
     private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = []): Response
     {
-        $guest->load(['tags', 'property', 'documents.media']);
+        $guest->load(['tags', 'property']);
+        if ($user->can(PermissionEnum::GuestsViewDocuments->value)) {
+            $guest->loadMissing('documents.media');
+        }
 
         return Inertia::render('guests/show', [
-            'guest' => GuestData::fromModel($guest),
+            'guest' => GuestData::fromModel($guest, $user->can(PermissionEnum::GuestsViewDocuments->value)),
             'tab' => $tab,
             'canManage' => $user->can(PermissionEnum::GuestsManage->value),
             'canBlacklist' => $user->can(PermissionEnum::GuestsBlacklist->value),

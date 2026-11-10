@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Data\Guests\GuestIdentityDocumentData;
 use App\Data\Guests\GuestOptionData;
 use App\Data\Reservations\ReservationGuestData;
 use App\Data\Reservations\ReservationUnitOptionData;
@@ -9,8 +10,11 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\UnitStatus;
 use App\Models\Folio;
+use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Reservation;
 use App\Models\UnitGuest;
+use App\Services\Property\PropertyToday;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,18 +27,25 @@ class ReservationGuestRows
      * @param  list<ReservationUnitOptionData>  $units
      * @return list<ReservationGuestData>
      */
-    public function rows(Reservation $reservation, array $units, bool $canViewGuest, bool $canOpenCard = false, bool $canBill = false): array
+    public function rows(Reservation $reservation, array $units, bool $canViewGuest, bool $canOpenCard = false, bool $canBill = false, bool $canViewDocuments = false): array
     {
         $options = collect($units)->keyBy('id');
         $occupants = UnitGuest::query()
             ->whereIn('reservation_unit_id', array_keys($options->all()))
-            ->with('guest')
+            ->with($canViewDocuments ? ['guest.documents.media'] : ['guest'])
             ->orderBy('reservation_unit_id')
             ->orderByDesc('is_primary')
             ->orderBy('id')
             ->get()
             ->groupBy('reservation_unit_id');
         $booker = $reservation->booker;
+        $today = app(PropertyToday::class)->date($reservation->property)->toDateString();
+        if ($canViewDocuments) {
+            $booker->loadMissing('documents.media');
+        }
+        $documents = fn (Guest $guest): array => $canViewDocuments && $canViewGuest && $guest->anonymized_at === null
+            ? array_values($guest->documents->sortBy('id')->map(fn (GuestIdentityDocument $document): GuestIdentityDocumentData => GuestIdentityDocumentData::fromModel($document, $today))->all())
+            : [];
         $bookerStays = $occupants->flatten()->contains(fn (UnitGuest $unitGuest): bool => $unitGuest->guest_id === $booker->id);
         $folios = Folio::query()
             ->where('reservation_id', $reservation->id)
@@ -47,7 +58,7 @@ class ReservationGuestRows
         $rows = [];
 
         if (! $bookerStays) {
-            $rows[] = new ReservationGuestData($canViewGuest ? $booker->id : null, $booker->full_name, $canViewGuest ? $booker->phone : null, null, null, null, [__('Booker')], guest: $canViewGuest ? GuestOptionData::fromModel($booker) : null);
+            $rows[] = new ReservationGuestData($canViewGuest ? $booker->id : null, $booker->full_name, $canViewGuest ? $booker->phone : null, null, null, null, [__('Booker')], guest: $canViewGuest ? GuestOptionData::fromModel($booker) : null, documents: $documents($booker));
         }
 
         foreach ($options as $unitId => $unit) {
@@ -78,6 +89,7 @@ class ReservationGuestRows
                         && in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true)
                         && $this->billable($unitGuest, $unitFolios->get($unitId), $ownFolioGuestIds),
                     guest: $canViewGuest ? GuestOptionData::fromModel($unitGuest->guest) : null,
+                    documents: $documents($unitGuest->guest),
                 );
             }
         }
