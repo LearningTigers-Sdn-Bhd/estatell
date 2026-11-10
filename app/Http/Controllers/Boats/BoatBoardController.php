@@ -33,7 +33,7 @@ class BoatBoardController extends Controller
 
         return Inertia::render('boats/index', [
             'date' => $date->toDateString(),
-            'businessDate' => $businessDate->toDateString(),
+            'today' => $businessDate->toDateString(),
             'isPast' => $date->toDateString() < $businessDate->toDateString(),
             'direction' => $request->direction(),
             'groups' => $board->groups($property, $date, $request->direction()),

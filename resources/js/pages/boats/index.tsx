@@ -59,7 +59,7 @@ type Row = App.Data.Reports.BoatManifestRow;
 
 type Props = {
     date: string;
-    businessDate: string;
+    today: string;
     isPast: boolean;
     direction: 'in' | 'out' | 'both';
     groups: Group[];
@@ -115,7 +115,7 @@ function paxText(row: Row): string {
 
 export default function BoatsIndex({
     date,
-    businessDate,
+    today,
     isPast,
     direction,
     groups,
@@ -345,7 +345,7 @@ export default function BoatsIndex({
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => visit({ date: businessDate })}
+                                onClick={() => visit({ date: today })}
                             >
                                 Today
                             </Button>
@@ -353,7 +353,7 @@ export default function BoatsIndex({
                                 type="button"
                                 variant="outline"
                                 onClick={() =>
-                                    visit({ date: shiftDay(businessDate, 1) })
+                                    visit({ date: shiftDay(today, 1) })
                                 }
                             >
                                 Tomorrow
