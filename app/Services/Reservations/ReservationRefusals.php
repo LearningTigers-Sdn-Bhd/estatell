@@ -12,6 +12,7 @@ use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\GroupAddOnResult;
+use App\Actions\Reservations\GroupNightPriceResult;
 use App\Actions\Reservations\GroupUpdateResult;
 use App\Actions\Reservations\NightPriceResult;
 use App\Actions\Reservations\ReservationResult;
@@ -105,6 +106,28 @@ class ReservationRefusals
         $field = (string) array_key_first($errors);
 
         return in_array($field, ['night_ids', 'price', 'reason'], true) ? $errors : [self::FORM => $errors[$field]];
+    }
+
+    /**
+     * The errors to flash back to the group Change price Dialog. The price and the reason keep their fields; any other
+     * refusal is a form error that starts with the unit label, so staff know which room to fix.
+     *
+     * @return array<string, string>
+     */
+    public function groupNightPriceErrors(string $code, ?string $unit = null): array
+    {
+        if ($code === GroupNightPriceResult::REFUSAL_NO_UNITS) {
+            return ['unit_ids' => __('Tick at least one unit.')];
+        }
+
+        $errors = $this->nightPriceErrors($code);
+        $field = (string) array_key_first($errors);
+
+        if (in_array($field, ['price', 'reason'], true)) {
+            return $errors;
+        }
+
+        return [self::FORM => $unit === null ? $errors[$field] : $unit.': '.$errors[$field]];
     }
 
     /**

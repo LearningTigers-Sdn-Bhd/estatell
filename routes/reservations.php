@@ -133,6 +133,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('check-out', [ReservationGroupCheckOutController::class, 'store'])->name('check-out.store');
             });
 
+            Route::middleware('can:'.PermissionEnum::ReservationsChangePrice->value)->group(function () {
+                Route::post('night-price/preview', [ReservationNightPriceController::class, 'groupPreview'])->name('night-price.preview');
+                Route::post('night-price', [ReservationNightPriceController::class, 'groupStore'])->name('night-price');
+            });
+
             Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
                 Route::post('check-in-all/preview', [ReservationUnitStayController::class, 'checkInAllPreview'])->name('check-in-all-preview');
                 Route::post('check-in-all', [ReservationUnitStayController::class, 'checkInAll'])->name('check-in-all');

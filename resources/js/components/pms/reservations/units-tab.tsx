@@ -196,13 +196,13 @@ export function UnitsList({
 }
 
 /**
- * The Units tab: the panel of the open unit. The unit list is a separate slot of the workspace. `viewToggle` is the
- * All / Grouped toggle of a group, shown above the panel.
+ * The Units tab: the panel of the open unit. The unit list is a separate slot of the workspace. `toolbar` sits above
+ * the panel: the All / Grouped toggle of a group on the left and the summary toggle on the right.
  */
 export function UnitsTab({
     reservationId,
     unit,
-    viewToggle,
+    toolbar,
     doorPins,
     keyCards,
     lockProviders = [],
@@ -216,7 +216,7 @@ export function UnitsTab({
 }: {
     reservationId: number;
     unit: Unit | null;
-    viewToggle?: ReactNode;
+    toolbar?: ReactNode;
     doorPins: App.Data.DoorLocks.UnitDoorPinsData | null;
     keyCards: App.Data.Keyport.UnitKeyCardsData | null;
     lockProviders?: string[];
@@ -247,9 +247,9 @@ export function UnitsTab({
 
     return (
         <div className="flex flex-col gap-4">
-            {viewToggle !== undefined && (
+            {toolbar !== undefined && (
                 <div className="flex items-center justify-between gap-3">
-                    {viewToggle}
+                    {toolbar}
                 </div>
             )}
             <div className="flex flex-wrap items-center justify-between gap-3 ps-3 pt-2">

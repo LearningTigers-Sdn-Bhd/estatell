@@ -1,12 +1,11 @@
 import { useForm } from '@inertiajs/react';
-import { Receipt } from 'lucide-react';
 import { DatePicker } from '@/components/pms/date-picker';
-import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
-import { MultiCombobox } from '@/components/pms/multi-combobox';
+import { GroupPreviewPanel } from '@/components/pms/reservations/group-preview-panel';
+import { MultiSelectWithAll } from '@/components/pms/reservations/multi-select-with-all';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import {
     KEEP_OPTIONS,
@@ -31,7 +30,6 @@ type ChargeItem = App.Data.Reservations.ChargeItemOptionData;
 type Preview = App.Data.Reservations.GroupAddOnPreviewData;
 
 const NIGHTLY = ['per_night', 'per_guest_night'];
-const ALL = 'all';
 
 type Props = {
     open: boolean;
@@ -45,85 +43,52 @@ type Props = {
     currency: App.Data.Property.CurrencyData | null;
 };
 
-function PreviewPanel({
+function AddOnPreview({
     preview,
     currency,
 }: {
     preview: Preview | null;
     currency: App.Data.Property.CurrencyData | null;
 }) {
-    const lines = preview?.lines ?? [];
-
     return (
-        <div className="flex min-w-0 flex-col gap-2 rounded-lg border bg-muted p-3">
-            <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-medium">Preview</span>
-                {preview !== null && (
-                    <span className="text-xs text-muted-foreground">
-                        {lines.length} {lines.length === 1 ? 'unit' : 'units'}
-                    </span>
-                )}
-            </div>
-            {preview === null ? (
-                <div className="flex flex-1 items-center justify-center">
-                    <EmptyState
-                        icon={Receipt}
-                        title="No preview yet"
-                        description="Pick a charge item to see what each unit gets."
+        <GroupPreviewPanel
+            columns="grid-cols-[minmax(0,1fr)_3.5rem_3.5rem_5rem]"
+            head={['Unit', 'Guests', 'Nights', 'Total']}
+            rows={
+                preview === null
+                    ? null
+                    : preview.lines.map((line) => ({
+                          key: line.unitId,
+                          cells: [
+                              line.label,
+                              line.guests,
+                              line.nights ?? '—',
+                              line.total === null ? (
+                                  <span className="text-muted-foreground">
+                                      {line.note ?? '—'}
+                                  </span>
+                              ) : (
+                                  <MoneyText
+                                      amount={line.total}
+                                      currency={currency}
+                                      plain
+                                  />
+                              ),
+                          ],
+                      }))
+            }
+            total={{
+                label: 'Total before tax',
+                value: (
+                    <MoneyText
+                        amount={preview?.total ?? '0'}
+                        currency={currency}
                     />
-                </div>
-            ) : (
-                <div className="flex flex-col overflow-hidden rounded-md border bg-background text-sm">
-                    <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem_5rem] gap-2 border-b px-2 py-1.5 font-medium">
-                        <span>Unit</span>
-                        <span className="text-right">Guests</span>
-                        <span className="text-right">Nights</span>
-                        <span className="text-right">Total</span>
-                    </div>
-                    <div className="max-h-56 divide-y overflow-y-auto">
-                        {lines.map((line) => (
-                            <div
-                                key={line.unitId}
-                                className="grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem_5rem] gap-2 px-2 py-1.5"
-                            >
-                                <span className="truncate">{line.label}</span>
-                                <span className="text-right tabular-nums">
-                                    {line.guests}
-                                </span>
-                                <span className="text-right tabular-nums">
-                                    {line.nights ?? '—'}
-                                </span>
-                                <span className="text-right tabular-nums">
-                                    {line.total === null ? (
-                                        <span className="text-muted-foreground">
-                                            {line.note ?? '—'}
-                                        </span>
-                                    ) : (
-                                        <MoneyText
-                                            amount={line.total}
-                                            currency={currency}
-                                            plain
-                                        />
-                                    )}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-2 border-t bg-muted/50 px-2 py-1.5 font-medium">
-                        <span>Total before tax</span>
-                        <span className="text-right tabular-nums">
-                            <MoneyText
-                                amount={preview.total}
-                                currency={currency}
-                            />
-                        </span>
-                    </div>
-                </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-                Tax is added when it posts to the folio.
-            </p>
-        </div>
+                ),
+            }}
+            emptyDescription="Pick a charge item to see what each unit gets."
+            note="Tax is added when it posts to the folio."
+        />
     );
 }
 
@@ -142,9 +107,9 @@ function AddAddOnForm({
     const isGroup = units.length > 1;
     const unitIds = units.map((one) => one.id);
     const form = useForm({
-        unit_ids: (initialUnitIds ?? unitIds)
-            .filter((id) => unitIds.includes(id))
-            .map(String),
+        unit_ids: (initialUnitIds ?? unitIds).filter((id) =>
+            unitIds.includes(id),
+        ),
         charge_item_id: '',
         quantity: '1',
         service_date: '',
@@ -154,10 +119,7 @@ function AddAddOnForm({
     const item = chargeItems.find(
         (one) => String(one.id) === data.charge_item_id,
     );
-    const picked = units.filter((one) =>
-        data.unit_ids.includes(String(one.id)),
-    );
-    const allPicked = isGroup && picked.length === units.length;
+    const picked = units.filter((one) => data.unit_ids.includes(one.id));
     const isNightly = item !== undefined && NIGHTLY.includes(item.chargingUnit);
     const showAmount =
         item !== undefined &&
@@ -179,38 +141,6 @@ function AddAddOnForm({
     );
     const arrivals = picked.map((one) => one.arrival).sort();
     const departures = picked.map((one) => one.departure).sort();
-    const unitItems = [
-        { value: ALL, label: `All units (${units.length})` },
-        ...units.map((one) => ({ value: String(one.id), label: one.label })),
-    ];
-
-    const pickUnits = (next: string[]) => {
-        if (next.includes(ALL) && !allPicked) {
-            form.setData('unit_ids', unitIds.map(String));
-
-            return;
-        }
-
-        if (allPicked) {
-            const chosen = next.filter((value) => value !== ALL);
-
-            // From All units, picking one unit keeps only that unit; removing the All chip clears the pick.
-            form.setData(
-                'unit_ids',
-                next.includes(ALL)
-                    ? chosen.filter((value) => !data.unit_ids.includes(value))
-                    : [],
-            );
-
-            return;
-        }
-
-        form.setData(
-            'unit_ids',
-            next.filter((value) => value !== ALL),
-        );
-    };
-
     const submit = () => {
         const single = picked.length === 1 ? picked[0] : null;
 
@@ -236,16 +166,18 @@ function AddAddOnForm({
             {isGroup && (
                 <Field data-invalid={!!errors.unit_ids}>
                     <FieldLabel htmlFor="add-on-unit_ids">Units</FieldLabel>
-                    <MultiCombobox
+                    <MultiSelectWithAll
                         id="add-on-unit_ids"
                         name="unit_ids"
-                        items={unitItems}
-                        value={allPicked ? [ALL] : data.unit_ids}
-                        onValueChange={pickUnits}
+                        choices={units}
+                        allLabel="All units"
                         placeholder="Choose the units, e.g. F1, F2"
                         emptyLabel="No matching units."
+                        value={data.unit_ids}
+                        onValueChange={(value) =>
+                            form.setData('unit_ids', value)
+                        }
                         invalid={!!errors.unit_ids}
-                        maxChips={2}
                     />
                     <FieldError>{errors.unit_ids}</FieldError>
                 </Field>
@@ -370,7 +302,7 @@ function AddAddOnForm({
             {isGroup ? (
                 <div className="grid gap-4 lg:min-h-80 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-6">
                     {inputs}
-                    <PreviewPanel
+                    <AddOnPreview
                         preview={item === undefined ? null : preview}
                         currency={currency}
                     />

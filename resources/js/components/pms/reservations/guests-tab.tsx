@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { emptyGuest } from '@/components/pms/reservations/booking-guests';
@@ -16,6 +16,7 @@ import {
 import { MoveGuestDialog } from '@/components/pms/reservations/move-guest-dialog';
 import type { MovingGuest } from '@/components/pms/reservations/move-guest-dialog';
 import type { GuestsView } from '@/components/pms/reservations/use-guests-view';
+import { SummaryToggle } from '@/components/pms/reservations/summary-toggle';
 import { ViewChoiceToggle } from '@/components/pms/reservations/view-choice-toggle';
 import {
     DraftGuestRow,
@@ -37,11 +38,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldDescription } from '@/components/ui/field';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { billToGuest } from '@/routes/reservations/units';
 import { destroy as removeGuest } from '@/routes/reservations/units/guests';
@@ -162,7 +158,6 @@ export function GuestsTab({
     );
     const empty = unitsWithoutGuest(guests, drafts);
     const inUnit = shownRows.filter((row) => row.name !== null).length;
-    const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
     const addDraft = (unitId: number | null = null) => {
         if (drafts.length >= MAX_DRAFTS) {
@@ -301,26 +296,10 @@ export function GuestsTab({
                 )}
                 <div className="flex items-center gap-2">
                     {canManage && canManageGuests && <MyKadScanner />}
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    aria-label={summaryLabel}
-                                    aria-pressed={summaryHidden}
-                                    onClick={onToggleSummary}
-                                />
-                            }
-                        >
-                            {summaryHidden ? (
-                                <PanelRightOpen />
-                            ) : (
-                                <PanelRightClose />
-                            )}
-                        </TooltipTrigger>
-                        <TooltipContent>{summaryLabel}</TooltipContent>
-                    </Tooltip>
+                    <SummaryToggle
+                        hidden={summaryHidden}
+                        onToggle={onToggleSummary}
+                    />
                 </div>
             </div>
             <div className="rounded-lg border text-sm">

@@ -76,10 +76,9 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 
 | From                                                                | Units picked when it opens                                 |
 | ------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Units tab, All view: tick rows, **Add add-on** in the bulk bar      | The ticked units                                           |
 | [Add-ons tab](06-reservation-page.md#add-ons-tab): **+ Add add-on** | **All units** on a group, the one unit on a single booking |
 
-Both need `reservations.manage`.
+It needs `reservations.manage`. The Units tab has no Add add-on: the group add-on starts here only.
 
 #### Dialog
 

@@ -336,16 +336,14 @@ test('the All view rows carry each unit with its guests, stay, plan and room tot
         ->where('unitRows.0.ratePlan', $first->ratePlan->name)
         ->where('unitRows.0.total', '300.00')
         ->where('unitRows.0.status.label', 'Confirmed')
-        ->where('unitRows.0.selectable', true)
         ->where('unitRows.1.nightCount', 2)
         ->where('unitRows.1.ratePlan', 'Several plans')
         ->where('unitRows.1.total', '184.00')
         ->where('unitRows.1.primaryGuest', null)
-        ->where('unitRows.2.status.label', 'Cancelled')
-        ->where('unitRows.2.selectable', false));
+        ->where('unitRows.2.status.label', 'Cancelled'));
 });
 
-test('the All view tick boxes follow the change price permission', function () {
+test('the All view Change price button follows the change price permission', function () {
     [$user, $property] = pageStaffWith(['reservations.view']);
     $reservation = pageReservation($property);
     pageUnit($reservation);

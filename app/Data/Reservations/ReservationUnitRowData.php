@@ -3,7 +3,6 @@
 namespace App\Data\Reservations;
 
 use App\Data\Shared\BadgeData;
-use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\UnitNight;
 use App\Services\Reservations\StayLabel;
@@ -14,7 +13,7 @@ use Spatie\LaravelData\Data;
  * One row of the All view on the Units tab. Expects `ratePlan`, `nights` and `dayUse` to be loaded, and takes the
  * label, room and primary guest from the unit's `ReservationUnitOptionData`. `ratePlan` reads "Several plans" when the
  * nights have more than one plan. `total` is the sum of the night amounts (or the day use price), before tax and folio
- * discounts. `selectable` is false for a Cancelled or NoShow unit, which no bulk action applies to.
+ * discounts.
  */
 class ReservationUnitRowData extends Data
 {
@@ -32,7 +31,6 @@ class ReservationUnitRowData extends Data
         public string $ratePlan,
         public string $total,
         public BadgeData $status,
-        public bool $selectable,
     ) {}
 
     public static function fromModel(ReservationUnit $unit, ReservationUnitOptionData $option): self
@@ -57,7 +55,6 @@ class ReservationUnitRowData extends Data
                 ->toScale(2)
                 ->__toString(),
             status: $option->status,
-            selectable: ! in_array($unit->status, [UnitStatus::Cancelled, UnitStatus::NoShow], true),
         );
     }
 }

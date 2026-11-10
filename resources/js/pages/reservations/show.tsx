@@ -20,6 +20,7 @@ import { useGuestsView } from '@/components/pms/reservations/use-guests-view';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
 import { Workspace } from '@/components/pms/workspace';
+import { SummaryToggle } from '@/components/pms/reservations/summary-toggle';
 import { UnitsAllTable } from '@/components/pms/reservations/units-all-table';
 import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
 import { useViewChoice } from '@/components/pms/reservations/use-view-choice';
@@ -207,6 +208,9 @@ export default function ReservationShow({
                 allLabel="All units"
             />
         ) : undefined;
+    const summaryToggle = (
+        <SummaryToggle hidden={summaryHidden} onToggle={toggleSummary} />
+    );
     const openUnit = (unitId: number) => {
         setUnitsView('grouped');
         router.get(
@@ -368,7 +372,9 @@ export default function ReservationShow({
                         asideLabel="Reservation summary"
                         list={list}
                         hideAside={
-                            (tab === 'folio' || tab === 'guests') &&
+                            (tab === 'folio' ||
+                                tab === 'guests' ||
+                                tab === 'units') &&
                             summaryHidden
                         }
                         aside={
@@ -450,10 +456,9 @@ export default function ReservationShow({
                                 reservationId={reservation.id}
                                 rows={unitRows}
                                 units={units}
-                                canManage={canManage}
-                                chargeItems={chargeItems}
+                                canChangePrice={canChangePrice}
                                 toggle={unitsToggle}
-                                canSelect={canManage || canChangePrice}
+                                summaryToggle={summaryToggle}
                                 autoAssignRooms={autoAssignRooms}
                                 currency={currency}
                                 onOpenUnit={openUnit}
@@ -462,7 +467,12 @@ export default function ReservationShow({
                             <UnitsTab
                                 reservationId={reservation.id}
                                 unit={unit}
-                                viewToggle={unitsToggle}
+                                toolbar={
+                                    <>
+                                        {unitsToggle ?? <span />}
+                                        {summaryToggle}
+                                    </>
+                                }
                                 doorPins={doorPins}
                                 keyCards={keyCards}
                                 lockProviders={lockProviders}

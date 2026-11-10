@@ -4026,6 +4026,21 @@ settleMaster: boolean,
 masterAfter: string | null,
 onePayment: string | null,
 };
+export type GroupNightPricePreviewData = {
+lines: App.Data.Reservations.GroupNightPricePreviewLineData[],
+difference: string | null,
+hadDiscount: boolean,
+};
+export type GroupNightPricePreviewLineData = {
+unitId: number,
+label: string,
+nights: number,
+was: string | null,
+wasHigh: string | null,
+charged: number,
+difference: string | null,
+error: string | null,
+};
 export type MoveTargetData = {
 rowKey: string,
 roomTypeId: number,
@@ -4340,7 +4355,6 @@ stayLabel: string | null,
 ratePlan: string,
 total: string,
 status: App.Data.Shared.BadgeData,
-selectable: boolean,
 };
 export type RoomTypeOptionData = {
 id: number,

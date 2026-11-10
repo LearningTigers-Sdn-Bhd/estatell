@@ -132,7 +132,7 @@ class ReservationController extends Controller
 
     /**
      * Reservation page, Units tab. `?unit=` picks the unit panel, and an unknown unit falls back to the first.
-     * `unitRows` feeds the All view, and `canChangePrice` its tick boxes.
+     * `unitRows` feeds the All view, and `canChangePrice` its Change price button.
      */
     public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu, ReservationUnitRows $unitRows): Response
     {

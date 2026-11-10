@@ -1,13 +1,11 @@
-import { Plus } from 'lucide-react';
+import { Tag } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { BulkActionBar } from '@/components/pms/bulk-action-bar';
-import { AddAddOnDialog } from '@/components/pms/reservations/add-add-on-dialog';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { ChangeGroupPriceDialog } from '@/components/pms/reservations/change-group-price-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Table,
     TableBody,
@@ -21,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 type Row = App.Data.Reservations.ReservationUnitRowData;
 
-const OPEN = ['confirmed', 'checked_in'];
+const PRICEABLE = ['confirmed', 'checked_in', 'checked_out'];
 
 function roomText(row: Row, autoAssignRooms: boolean): string {
     return row.assigned ?? (autoAssignRooms ? 'At check-in' : 'Not assigned');
@@ -63,80 +61,69 @@ function sumTotals(rows: Row[]): string {
 }
 
 /**
- * The All view of the Units tab: one table of every unit, a footer with the totals, and tick boxes for the group
- * actions in the bulk bar. A row click opens the unit in Grouped view. Below `md` each row is a card.
+ * The All view of the Units tab: a toolbar (the All / Grouped toggle, Change price for the group and the summary
+ * toggle), one table of every unit and a footer with the totals. A row click opens the unit in Grouped view. Below
+ * `md` each row is a card.
  */
 export function UnitsAllTable({
     reservationId,
     rows,
     units,
     toggle,
-    canSelect,
-    canManage,
-    chargeItems,
+    summaryToggle,
+    canChangePrice,
     autoAssignRooms,
     currency,
     onOpenUnit,
 }: {
     reservationId: number;
     rows: Row[];
-    /** The unit list, for the add-on Dialog. */
+    /** The unit list, for the labels in the Change price Dialog. */
     units: App.Data.Reservations.ReservationUnitOptionData[];
-    /** Shows Add add-on in the bulk bar (`reservations.manage`). */
-    canManage: boolean;
-    chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
-    /** The All / Grouped toggle, shown above the table. */
+    /** The All / Grouped toggle, on the left of the toolbar. */
     toggle: ReactNode;
-    canSelect: boolean;
+    /** The hide summary button, on the right of the toolbar. */
+    summaryToggle: ReactNode;
+    /** Shows Change price (`reservations.change-price`). */
+    canChangePrice: boolean;
     autoAssignRooms: boolean;
     currency: App.Data.Property.CurrencyData | null;
     onOpenUnit: (unitId: number) => void;
 }) {
-    const [selected, setSelected] = useState<number[]>([]);
-    const [addingAddOn, setAddingAddOn] = useState(false);
-    const openUnits = units.filter((unit) => OPEN.includes(unit.status.value));
-    const selectable = rows
-        .filter((row) => row.selectable)
+    const [changingPrice, setChangingPrice] = useState(false);
+    const priceableIds = rows
+        .filter(
+            (row) => row.nightCount > 0 && PRICEABLE.includes(row.status.value),
+        )
         .map((row) => row.id);
-    const ticked = selected.filter((id) => selectable.includes(id));
-    const allTicked =
-        selectable.length > 0 && ticked.length === selectable.length;
+    const priceable = units
+        .filter((unit) => priceableIds.includes(unit.id))
+        .map((unit) => ({ id: unit.id, label: unit.label }));
     const roomNights = rows.reduce((sum, row) => sum + row.nightCount, 0);
-    const toggleRow = (id: number, checked: boolean) =>
-        setSelected((current) =>
-            checked
-                ? [...current.filter((one) => one !== id), id]
-                : current.filter((one) => one !== id),
-        );
     const summary = `${rows.length} ${rows.length === 1 ? 'unit' : 'units'} · ${roomNights} room ${roomNights === 1 ? 'night' : 'nights'}`;
 
     return (
-        <div className="flex min-h-full flex-col gap-4">
+        <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
                 {toggle}
+                <div className="flex items-center gap-2">
+                    {canChangePrice && priceable.length > 0 && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setChangingPrice(true)}
+                        >
+                            <Tag data-icon="inline-start" />
+                            Change price
+                        </Button>
+                    )}
+                    {summaryToggle}
+                </div>
             </div>
 
             <div className="hidden rounded-lg border md:block">
                 <Table>
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                            {canSelect && (
-                                <TableHead className="w-10">
-                                    <Checkbox
-                                        aria-label="Tick every unit"
-                                        checked={allTicked}
-                                        indeterminate={
-                                            ticked.length > 0 && !allTicked
-                                        }
-                                        disabled={selectable.length === 0}
-                                        onCheckedChange={(checked) =>
-                                            setSelected(
-                                                checked ? selectable : [],
-                                            )
-                                        }
-                                    />
-                                </TableHead>
-                            )}
                             <TableHead>Room</TableHead>
                             <TableHead>Guest</TableHead>
                             <TableHead className="text-right">Pax</TableHead>
@@ -152,33 +139,9 @@ export function UnitsAllTable({
                         {rows.map((row) => (
                             <TableRow
                                 key={row.id}
-                                data-state={
-                                    ticked.includes(row.id)
-                                        ? 'selected'
-                                        : undefined
-                                }
                                 className="cursor-pointer"
                                 onClick={() => onOpenUnit(row.id)}
                             >
-                                {canSelect && (
-                                    <TableCell
-                                        onClick={(event) =>
-                                            event.stopPropagation()
-                                        }
-                                    >
-                                        {row.selectable && (
-                                            <Checkbox
-                                                aria-label={`Tick ${row.roomType} · ${roomText(row, autoAssignRooms)}`}
-                                                checked={ticked.includes(
-                                                    row.id,
-                                                )}
-                                                onCheckedChange={(checked) =>
-                                                    toggleRow(row.id, checked)
-                                                }
-                                            />
-                                        )}
-                                    </TableCell>
-                                )}
                                 <TableCell>
                                     <span className="text-muted-foreground">
                                         {row.roomType} ·
@@ -217,7 +180,6 @@ export function UnitsAllTable({
                     </TableBody>
                     <TableFooter>
                         <TableRow className="hover:bg-transparent">
-                            {canSelect && <TableCell />}
                             <TableCell colSpan={5}>{summary}</TableCell>
                             <TableCell className="text-right tabular-nums">
                                 <MoneyText
@@ -233,25 +195,10 @@ export function UnitsAllTable({
 
             <ul className="flex flex-col divide-y rounded-lg border md:hidden">
                 {rows.map((row) => (
-                    <li key={row.id} className="flex items-start gap-3 p-3">
-                        {canSelect && (
-                            <span className="pt-0.5">
-                                {row.selectable ? (
-                                    <Checkbox
-                                        aria-label={`Tick ${row.roomType} · ${roomText(row, autoAssignRooms)}`}
-                                        checked={ticked.includes(row.id)}
-                                        onCheckedChange={(checked) =>
-                                            toggleRow(row.id, checked)
-                                        }
-                                    />
-                                ) : (
-                                    <span className="block size-4" />
-                                )}
-                            </span>
-                        )}
+                    <li key={row.id}>
                         <button
                             type="button"
-                            className="flex min-w-0 flex-1 flex-col gap-1 text-left text-sm"
+                            className="flex w-full min-w-0 flex-col gap-1 p-3 text-left text-sm"
                             onClick={() => onOpenUnit(row.id)}
                         >
                             <span className="flex items-center justify-between gap-2">
@@ -292,29 +239,12 @@ export function UnitsAllTable({
                 </li>
             </ul>
 
-            <BulkActionBar
-                count={ticked.length}
-                onClear={() => setSelected([])}
-                stackOnMobile
-            >
-                {canManage && openUnits.length > 0 && (
-                    <Button
-                        variant="outline"
-                        onClick={() => setAddingAddOn(true)}
-                    >
-                        <Plus data-icon="inline-start" />
-                        Add add-on
-                    </Button>
-                )}
-            </BulkActionBar>
-            {canManage && openUnits.length > 0 && (
-                <AddAddOnDialog
-                    open={addingAddOn}
-                    onOpenChange={setAddingAddOn}
+            {canChangePrice && priceable.length > 0 && (
+                <ChangeGroupPriceDialog
+                    open={changingPrice}
+                    onOpenChange={setChangingPrice}
                     reservationId={reservationId}
-                    units={openUnits}
-                    initialUnitIds={ticked}
-                    chargeItems={chargeItems}
+                    units={priceable}
                     currency={currency}
                 />
             )}

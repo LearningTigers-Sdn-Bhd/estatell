@@ -19,7 +19,7 @@ Both show to users with `reservations.change-price`, for a unit that is Confirme
 
 ```
 ┌ Change price · Room 101 · Tan Wei Ming ───────────────────┐
-│ Nights   ☑ 13 Oct (charged)  ☑ 14 Oct  ☑ 15 Oct           │
+│ Nights   [ All nights (3)                           ▾ ]   │
 │ New price per night   [ 220.00 ]   was 250.00             │
 │ Reason                [ Corporate rate agreed          ]  │
 │                                                           │
@@ -31,6 +31,7 @@ Both show to users with `reservations.change-price`, for a unit that is Confirme
 └───────────────────────────────────────────────────────────┘
 ```
 
+- **Nights** is a multi-select (`MultiSelectWithAll`, shared with the group Dialogs) with **All nights (N)** first. A charged night reads "13 Oct 2026 (charged)". The nights ticked on the night table, or the one night of Correct price…, are picked when it opens. Price and Reason have examples as placeholders.
 - **One price per night**, applied to every ticked night. "was" shows the current `amount` (the lowest and highest when the ticked nights differ). A total spread over nights is not offered: it makes odd cents. The booking form keeps its total override.
 - **Reason** is required (up to 500 characters).
 - **Difference**: the change in what the guest pays, with tax, from the read-only preview (`NightPriceChangePreview`, 300 ms after a change).
@@ -89,12 +90,13 @@ Both show to users with `reservations.change-price`, for a unit that is Confirme
 
 ### Entry
 
-Units tab, All view: tick rows, then **Change price** in the bulk bar (see [All and Grouped views](06-reservation-page.md#all-and-grouped-views)). It shows to users with `reservations.change-price` when at least one ticked unit is Confirmed, CheckedIn or CheckedOut. Changing the price of single nights stays in the unit panel (Grouped view).
+Units tab, All view: **Change price** in the toolbar, left of the hide summary button (see [All and Grouped views](06-reservation-page.md#all-and-grouped-views)). It shows to users with `reservations.change-price` when at least one unit is Confirmed, CheckedIn or CheckedOut and has nights. Changing the price of single nights stays in the unit panel (Grouped view).
 
 ### Dialog
 
 ```
-┌ Change price · 5 units ───────────────────────────────────┐
+┌ Change price ─────────────────────────────────────────────┐
+│ Units                 [ All units (5)                ▾ ]  │
 │ New price per night   [ 600.00 ]                          │
 │ Reason                [ Agent group rate               ]  │
 │                                                           │
@@ -107,9 +109,12 @@ Units tab, All view: tick rows, then **Change price** in the bulk bar (see [All 
 └───────────────────────────────────────────────────────────┘
 ```
 
-- Every night of each ticked unit gets the new price, so units with different dates each keep their own nights.
-- **Was** is the unit's current price per night (lowest and highest when its nights differ). **Difference** is with tax, from `NightPriceChangePreview::preview()` for each unit (300 ms after a change).
-- A unit with a charged night adds the line "Charged nights are reversed and charged again." under the table.
+- The layout is the two-column Dialog of the [group add-on](04-add-ons.md#dialog) (`size="lg"`): Price and Reason on the left, the shared Preview panel (`GroupPreviewPanel`) on the right, one column below `lg`.
+- **Units** is the shared `UnitsMultiSelect` of the group add-on, with **All units (N)** first and every unit that can change picked when the Dialog opens. Only units that are Confirmed, CheckedIn or CheckedOut and have nights are offered.
+- Every night of each picked unit gets the new price, so units with different dates each keep their own nights. The button reads "Change 5 units".
+- **Was** is the unit's current price per night (lowest and highest when its nights differ). **Difference** is with tax, from `GroupNightPricePreview`, which runs `NightPriceChangePreview::preview()` for each unit with all its nights (300 ms after a change). The total shows once every unit has one.
+- A refusal in the preview (a closed folio, a quote refusal) lists "Unit: message" under the fields and keeps **Change** off.
+- The note under the table says the difference includes tax, and adds "Charged nights are reversed and charged again." when a unit has one.
 - Units at different prices (two room types): run it once per room type.
 - Price 0, the reason and the discount note follow the single-unit Dialog.
 
