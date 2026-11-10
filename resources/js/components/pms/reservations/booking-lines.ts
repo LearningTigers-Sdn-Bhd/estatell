@@ -14,6 +14,11 @@ export type BookingAddOn = {
     service_date: string;
     /** Client only: put there by the form for a charge item that is added to every new booking. */
     auto?: boolean;
+    /**
+     * Client only: the id of an All lines row. Every line holds a copy with the same id, so the request, the quote and
+     * the walk-in payment send it with each line, while the Add-ons table shows it once.
+     */
+    shared?: string;
 };
 
 export type BookingLine = {
@@ -435,7 +440,7 @@ export function bookingSeats(
 function sendableAddOns(addOns: BookingAddOn[]) {
     return addOns
         .filter((addOn) => addOn.charge_item_id !== '')
-        .map(({ auto: _auto, ...rest }) => rest);
+        .map(({ auto: _auto, shared: _shared, ...rest }) => rest);
 }
 
 /** The request the form posts: the client-only key is dropped and a dorm line sends its beds, not adults and children. */
@@ -487,6 +492,98 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
             };
         }),
     };
+}
+
+/** The All lines rows, once each, read from the first line (every line holds the same copies). */
+export function sharedAddOns(lines: BookingLine[]): BookingAddOn[] {
+    return (lines[0]?.add_ons ?? []).filter((addOn) => addOn.shared);
+}
+
+/** A new line gets a copy of every All lines row. */
+export function withSharedAddOns(
+    lines: BookingLine[],
+    line: BookingLine,
+): BookingLine {
+    return {
+        ...line,
+        add_ons: [
+            ...line.add_ons,
+            ...sharedAddOns(lines).map((addOn) => ({ ...addOn })),
+        ],
+    };
+}
+
+/** Changes an All lines row on every line. */
+export function updateSharedAddOn(
+    lines: BookingLine[],
+    shared: string,
+    patch: Partial<BookingAddOn>,
+): BookingLine[] {
+    return lines.map((line) => ({
+        ...line,
+        add_ons: line.add_ons.map((addOn) =>
+            addOn.shared === shared ? { ...addOn, ...patch } : addOn,
+        ),
+    }));
+}
+
+/** Removes an All lines row from every line. */
+export function removeSharedAddOn(
+    lines: BookingLine[],
+    shared: string,
+): BookingLine[] {
+    return lines.map((line) => ({
+        ...line,
+        add_ons: line.add_ons.filter((addOn) => addOn.shared !== shared),
+    }));
+}
+
+/**
+ * Turns one line's add-on into an All lines row: it leaves that line and every line gets a copy under a new id. An
+ * automatic row stops being automatic.
+ */
+export function shareAddOn(
+    lines: BookingLine[],
+    from: number,
+    position: number,
+    id: string,
+): BookingLine[] {
+    const picked = lines[from]?.add_ons[position];
+
+    if (picked === undefined) {
+        return lines;
+    }
+
+    const copy: BookingAddOn = { ...picked, auto: false, shared: id };
+
+    return lines.map((line, index) => ({
+        ...line,
+        add_ons: [
+            ...(index === from
+                ? line.add_ons.filter((_, at) => at !== position)
+                : line.add_ons),
+            { ...copy },
+        ],
+    }));
+}
+
+/** Turns an All lines row back into an ordinary row of one line. */
+export function unshareAddOn(
+    lines: BookingLine[],
+    shared: string,
+    to: number,
+): BookingLine[] {
+    const row = sharedAddOns(lines).find((addOn) => addOn.shared === shared);
+
+    if (row === undefined) {
+        return lines;
+    }
+
+    const { shared: _shared, ...plain } = row;
+
+    return removeSharedAddOn(lines, shared).map((line, index) =>
+        index === to ? { ...line, add_ons: [...line.add_ons, plain] } : line,
+    );
 }
 
 /** Moves one add-on from a line to the end of another line, in one change so neither line is left stale. */
