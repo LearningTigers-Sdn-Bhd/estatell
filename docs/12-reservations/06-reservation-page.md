@@ -480,3 +480,5 @@ One checklist item per commit, in this order:
 - The booking workspace had 9 tabs and a 2,300-line `WorkspacePresenter`. estatell starts with 4 tabs, and each later module adds its own tab with its own controller method and Data class.
 - The wastays front desk had 5 tabs, each with its own table and card partial. estatell has one card and one set of columns; the tabs only filter by status.
 - wastays showed a left rail only on some tabs. estatell shows a left rail on two tabs, only for 2 or more entries: the unit list on the Units tab and the folio list on the Folio tab ([Folio page](../13-folio/05-folio-page.md#folio-rail)).
+
+The Choose unit list shows booked occupancy beside every unit (for example, **2 adults · 1 child**), so staff can compare units without opening them. The mobile unit selector includes the same count.

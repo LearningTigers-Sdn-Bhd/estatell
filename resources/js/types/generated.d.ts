@@ -4210,6 +4210,7 @@ label: string,
 status: App.Data.Shared.BadgeData,
 arrival: string,
 departure: string,
+occupancy: string,
 };
 export type RoomTypeOptionData = {
 id: number,
