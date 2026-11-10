@@ -6,7 +6,12 @@ import { MoneyInput } from '@/components/pms/money-input';
 import {
     moveAddOn,
     removeAddOn,
+    removeSharedAddOn,
     roomTypeOf,
+    shareAddOn,
+    sharedAddOns,
+    unshareAddOn,
+    updateSharedAddOn,
 } from '@/components/pms/reservations/booking-lines';
 import type {
     BookingAddOn,
@@ -23,6 +28,16 @@ type Discount = App.Data.Reservations.DiscountOptionData;
 type Errors = Record<string, string | undefined>;
 
 const NIGHTLY = ['per_night', 'per_guest_night'];
+/** The Line select value of an All lines row. */
+const ALL_LINES = 'all';
+
+let sharedCount = 0;
+
+function nextSharedId(): string {
+    sharedCount += 1;
+
+    return `all-${sharedCount}`;
+}
 
 /** Line, charge item, quantity, service date, amount and remove. */
 const ADD_ON_COLUMNS =
@@ -83,7 +98,7 @@ function ExtrasTable({
 function AddOnRow({
     id,
     addOn,
-    lineIndex,
+    lineValue,
     lines,
     options,
     chargeItems,
@@ -97,7 +112,8 @@ function AddOnRow({
 }: {
     id: string;
     addOn: BookingAddOn;
-    lineIndex: number;
+    /** The line index as text, or `all` for an All lines row. */
+    lineValue: string;
     lines: BookingLine[];
     options: Options;
     chargeItems: ChargeItem[];
@@ -106,7 +122,7 @@ function AddOnRow({
     currency: App.Data.Property.CurrencyData | null;
     error?: string;
     onChange: (patch: Partial<BookingAddOn>) => void;
-    onMove: (toLine: number) => void;
+    onMove: (toLine: string) => void;
     onRemove: () => void;
 }) {
     const item = chargeItems.find(
@@ -129,12 +145,15 @@ function AddOnRow({
                 ) : (
                     <EnumSelect
                         id={`${id}-line`}
-                        options={lines.map((line, index) => ({
-                            value: String(index),
-                            label: lineTitle(line, index, options),
-                        }))}
-                        value={String(lineIndex)}
-                        onValueChange={(value) => onMove(Number(value))}
+                        options={[
+                            { value: ALL_LINES, label: 'All lines' },
+                            ...lines.map((line, index) => ({
+                                value: String(index),
+                                label: lineTitle(line, index, options),
+                            })),
+                        ]}
+                        value={lineValue}
+                        onValueChange={onMove}
                     />
                 )}
             </Field>
@@ -250,7 +269,8 @@ function AddOnRow({
 
 /**
  * The Add-ons tab: one flat table for all lines, one row for each add-on, with the line in the first column. The line
- * select moves an add-on to another line. A dorm line gives every bed the same add-ons. The prices are the server's,
+ * select moves an add-on to another line, or to All lines: one row that every line gets (each line holds a copy, so
+ * the request does not change). A dorm line gives every bed the same add-ons. The prices are the server's,
  * shown in the rate cell and the summary. The footer adds a row for the first line.
  */
 export function BookingAddOnsSection({
@@ -276,13 +296,28 @@ export function BookingAddOnsSection({
 }) {
     const noRoomType = lines.every((line) => line.room_type_id === '');
     const rows = lines.flatMap((line, lineIndex) =>
-        line.add_ons.map((addOn, position) => ({
-            addOn,
-            lineIndex,
-            position,
-        })),
+        line.add_ons.flatMap((addOn, position) =>
+            // With one line left, an All lines row is an ordinary row of that line.
+            addOn.shared && lines.length > 1
+                ? []
+                : [{ addOn, lineIndex, position }],
+        ),
     );
-    const total = rows.length;
+    const shared = lines.length > 1 ? sharedAddOns(lines) : [];
+    const total = rows.length + shared.length;
+    const hasPlainRow = (lineIndex: number) =>
+        lines[lineIndex].add_ons.some(
+            (addOn) => !addOn.shared || lines.length === 1,
+        );
+    // A line-level add-on error shows under the line's first own row, or under the first All lines row, naming the line.
+    const sharedError = lines
+        .map((_, lineIndex) =>
+            !hasPlainRow(lineIndex) && errors[`lines.${lineIndex}.add_ons`]
+                ? `Line ${lineIndex + 1}: ${errors[`lines.${lineIndex}.add_ons`]}`
+                : null,
+        )
+        .filter((message) => message !== null)
+        .join(' ');
 
     return (
         <ExtrasTable
@@ -326,7 +361,7 @@ export function BookingAddOnsSection({
                 </>
             }
         >
-            {rows.length === 0 &&
+            {total === 0 &&
                 (noRoomType ? (
                     <NoLines />
                 ) : (
@@ -345,7 +380,7 @@ export function BookingAddOnsSection({
                     key={`${lines[lineIndex].key}-${position}`}
                     id={`extras-${lineIndex}-${position}`}
                     addOn={addOn}
-                    lineIndex={lineIndex}
+                    lineValue={String(lineIndex)}
                     lines={lines}
                     options={options}
                     chargeItems={chargeItems}
@@ -353,7 +388,8 @@ export function BookingAddOnsSection({
                     departure={departure}
                     currency={currency}
                     error={
-                        position === 0
+                        rows.find((row) => row.lineIndex === lineIndex)
+                            ?.position === position
                             ? errors[`lines.${lineIndex}.add_ons`]
                             : undefined
                     }
@@ -383,7 +419,21 @@ export function BookingAddOnsSection({
                         });
                     }}
                     onMove={(to) =>
-                        onLinesChange(moveAddOn(lines, lineIndex, position, to))
+                        onLinesChange(
+                            to === ALL_LINES
+                                ? shareAddOn(
+                                      lines,
+                                      lineIndex,
+                                      position,
+                                      nextSharedId(),
+                                  )
+                                : moveAddOn(
+                                      lines,
+                                      lineIndex,
+                                      position,
+                                      Number(to),
+                                  ),
+                        )
                     }
                     onRemove={() => {
                         const next = removeAddOn(lines[lineIndex], position);
@@ -393,6 +443,49 @@ export function BookingAddOnsSection({
                             declined_auto_add_ons: next.declined_auto_add_ons,
                         });
                     }}
+                />
+            ))}
+            {shared.map((addOn, index) => (
+                <AddOnRow
+                    key={addOn.shared}
+                    id={`extras-${addOn.shared}`}
+                    addOn={addOn}
+                    lineValue={ALL_LINES}
+                    lines={lines}
+                    options={options}
+                    chargeItems={chargeItems}
+                    arrival={arrival}
+                    departure={departure}
+                    currency={currency}
+                    error={
+                        index === 0 && sharedError !== ''
+                            ? sharedError
+                            : undefined
+                    }
+                    onChange={(patch) =>
+                        onLinesChange(
+                            updateSharedAddOn(
+                                lines,
+                                addOn.shared as string,
+                                patch,
+                            ),
+                        )
+                    }
+                    onMove={(to) =>
+                        to !== ALL_LINES &&
+                        onLinesChange(
+                            unshareAddOn(
+                                lines,
+                                addOn.shared as string,
+                                Number(to),
+                            ),
+                        )
+                    }
+                    onRemove={() =>
+                        onLinesChange(
+                            removeSharedAddOn(lines, addOn.shared as string),
+                        )
+                    }
                 />
             ))}
         </ExtrasTable>

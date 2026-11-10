@@ -53,7 +53,7 @@ class ReservationActivityLog
 
     /**
      * The latest price override of a unit: the one logged when the unit was added, or a later Change price. Its reason
-     * (null when none was given) and who set it. Null when the unit has none.
+     * (null when none or only blank text was given) and who set it. Null when the unit has none.
      *
      * @return array{reason: ?string, by: ?string}|null
      */
@@ -75,7 +75,7 @@ class ReservationActivityLog
 
         $reason = $activity->properties->get($activity->event === 'reservation.unit_added' ? 'override_reason' : 'reason');
 
-        return ['reason' => $reason === null ? null : (string) $reason, 'by' => $this->causerName($activity->causer)];
+        return ['reason' => trim((string) $reason) === '' ? null : (string) $reason, 'by' => $this->causerName($activity->causer)];
     }
 
     /**

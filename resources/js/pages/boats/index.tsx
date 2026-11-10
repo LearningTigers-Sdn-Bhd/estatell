@@ -828,6 +828,7 @@ function tripOf(
         time: row.mode === 'scheduled' ? null : row.unit_time,
         note: row.note,
         summary: row.departure,
+        short: row.departure,
     };
 }
 

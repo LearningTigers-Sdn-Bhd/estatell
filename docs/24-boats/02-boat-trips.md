@@ -112,16 +112,17 @@ Boat out  [Not set ▾]
 
 ## Reservation page
 
-The unit panel gets a **Boat** detail row under Stay, with the `ship` icon:
+The unit panel gets a **Boat** detail row under Stay, with the `ship` icon, on one line:
 
 ```
-Boat   In   Scheduled · 09:00 Kuala Besut → 09:45            [Change]
-       Out  Own boat · 11:30 · Guest's own speedboat           [Change]
+Boat   In 09:00 boat ✎ · Out Own 11:30 ✎
 ```
 
-- **Change** opens a Dialog (`FormOverlay`, `md`) for that direction with the booking form's boat select: one list of Not set, the available departures with seats, Charter and Own boat, then **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out". The [Boat Trips board](05-boats-board.md#row-menu) opens the same Dialog from **⋯ › Change boat** and **Set boat**.
-- **Change** shows only while `SetBoatTrip` would accept the unit (Boat in while Confirmed, Boat out while Confirmed or CheckedIn) and the user has `reservations.manage`. Otherwise the row is read only. The server sends this as `canSetBoatIn` and `canSetBoatOut` (`BoatTripAccess`), and never for a day use unit.
-- A trip on a departure that is now unavailable shows on the row with "unavailable". Change lists only available departures, so staff pick another.
+- Each direction shows its short text (`UnitBoatTripData::$short`): a scheduled boat by the time it leaves ("09:00 boat"), so Boat in does not repeat the arrival time that Stay shows; a charter or own boat by the unit's time ("Charter 10:30", "Own 11:30"); or "Not set". The full line ("Scheduled boat · 09:00 Kuala Besut → 09:45") is its tooltip (`summary`). The place is left out to keep the row short (Sand Bay feedback 2).
+- The Units tab All view shows the same short texts as a second line under Stay: "In 09:00 boat · Out Own 11:30". It is read only; a row click opens the unit to change it.
+- **✎** (an icon button, "Change boat in" or "Change boat out") opens a Dialog (`FormOverlay`, `md`) for that direction with the booking form's boat select: one list of Not set, the available departures with seats, Charter and Own boat, then **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out". The [Boat Trips board](05-boats-board.md#row-menu) opens the same Dialog from **⋯ › Change boat** and **Set boat**.
+- **✎** shows only while `SetBoatTrip` would accept the unit (Boat in while Confirmed, Boat out while Confirmed or CheckedIn) and the user has `reservations.manage`. Otherwise the row is read only. The server sends this as `canSetBoatIn` and `canSetBoatOut` (`BoatTripAccess`), and never for a day use unit.
+- A trip on a departure that is now unavailable shows on the row with "unavailable" in the warning colour. The Dialog lists only available departures, so staff pick another.
 - **⋯ More › Set boats** on the reservation header opens one Dialog with Boat in and Boat out for **every open unit** (Confirmed and CheckedIn). Boat in is read only on a CheckedIn unit. Day use units are left out. `SetBoatTrips` (`PUT …/reservations/{reservation}/boat-trips`, `reservations.boat-trips.set-many`) locks every departure involved (shared, by id), then the units (by id), and calls `SetBoatTrip` or `ClearBoatTrip` per unit and direction in one transaction. One refusal saves nothing and names the unit ("Double · 104: …"). Afterwards each unit can still differ.
 - Trip changes show on the Activity tab with the `ship` icon.
 

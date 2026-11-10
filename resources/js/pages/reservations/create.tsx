@@ -43,6 +43,7 @@ import {
     addDays,
     beforeGoLiveRange,
     bookingPayload,
+    withSharedAddOns,
     bookingSeats,
     autoAddOns,
     emptyLine,
@@ -1961,10 +1962,13 @@ export default function ReservationCreate({
                                                                 'lines',
                                                                 [
                                                                     ...data.lines,
-                                                                    emptyLine(
-                                                                        autoAddOns(
-                                                                            chargeItems,
-                                                                            data.stay_type,
+                                                                    withSharedAddOns(
+                                                                        data.lines,
+                                                                        emptyLine(
+                                                                            autoAddOns(
+                                                                                chargeItems,
+                                                                                data.stay_type,
+                                                                            ),
                                                                         ),
                                                                     ),
                                                                 ],

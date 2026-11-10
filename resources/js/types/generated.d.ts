@@ -248,6 +248,7 @@ departureAvailable: boolean,
 time: string | null,
 note: string | null,
 summary: string,
+short: string,
 };
 }
 namespace BookingEngine {
@@ -3939,6 +3940,18 @@ id: number,
 label: string,
 reason: string | null,
 };
+export type GroupAddOnPreviewData = {
+lines: App.Data.Reservations.GroupAddOnPreviewLineData[],
+total: string,
+};
+export type GroupAddOnPreviewLineData = {
+unitId: number,
+label: string,
+guests: number,
+nights: number | null,
+total: string | null,
+note: string | null,
+};
 export type GroupCheckOutDoneData = {
 checkedOut: number,
 settled: number,
@@ -4033,6 +4046,21 @@ roomsSettled: number,
 settleMaster: boolean,
 masterAfter: string | null,
 onePayment: string | null,
+};
+export type GroupNightPricePreviewData = {
+lines: App.Data.Reservations.GroupNightPricePreviewLineData[],
+difference: string | null,
+hadDiscount: boolean,
+};
+export type GroupNightPricePreviewLineData = {
+unitId: number,
+label: string,
+nights: number,
+was: string | null,
+wasHigh: string | null,
+charged: number,
+difference: string | null,
+error: string | null,
 };
 export type MoveTargetData = {
 rowKey: string,
@@ -4333,6 +4361,23 @@ status: App.Data.Shared.BadgeData,
 arrival: string,
 departure: string,
 occupancy: string,
+};
+export type ReservationUnitRowData = {
+id: number,
+roomType: string,
+assigned: string | null,
+primaryGuest: string | null,
+adults: number,
+children: number,
+arrival: string,
+departure: string,
+nightCount: number,
+stayLabel: string | null,
+ratePlan: string,
+total: string,
+status: App.Data.Shared.BadgeData,
+boatIn: string | null,
+boatOut: string | null,
 };
 export type RoomTypeOptionData = {
 id: number,

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { CellAction } from './bookable-cell';
 import type { CardControls } from './card-controls';
 import type { RoomDay, RoomDayStay } from './room-day';
-import { PaxCount } from './pax-count';
+import { PaxCount } from '@/components/pms/pax-count';
 import { HOUSEKEEPING } from './room-row';
 
 type BadgeData = App.Data.Shared.BadgeData;
