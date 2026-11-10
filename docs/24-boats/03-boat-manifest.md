@@ -83,7 +83,7 @@ unit_boat_trips (adds)   ticked_at (nullable), ticked_by (nullable, FK users, nu
 - The header is "{PROPERTY} MANIFEST" and the date.
 - One block per sailing, in time order, both directions by default. Red for Boat out, green for Boat in: the time ("0800"), the jetty (`pickup_point`), then No, Guest, Agent, PAX, BOAT, Crew (the person in charge red, assistants blue) and Tick, and a "4 PAX" subtotal.
 - A sailing that carries nobody prints with its boat and crew and a "-" row, so the crew still has a sheet.
-- Charter, then Own boat, come next, per direction (Charter first since 2026-11-10, to match the board), with the first departure's jetty. Then a grey **Boat jobs** block (Time, Job, Boat, Crew, Note, Done). An amber **Boat not set** block comes last.
+- Charter, then Own boat, come next, per direction (Charter first since 2026-11-10, to match the board), with the first departure's jetty. When a mode has no trips that date, it still prints as one empty grey block (band "IN OR OUT", jetty "-"), like an empty departure, so the sheet matches the board. Boat in and Boat out exports leave them out. Then a grey **Boat jobs** block (Time, Job, Boat, Crew, Note, Done). An amber **Boat not set** block comes last.
 - A block never splits across pages (`page-break-inside: avoid`). There is no page break between departures, so a normal day fits on one page.
 - Ticking rows on the board prints only the blocks of those rows.
 - The saved column layout does not change the sheet. It changes Excel and CSV only.

@@ -434,5 +434,7 @@ test('a cancelled sailing is left out of the printed sheet, and an empty sailing
     expect(collect($data['sections'])->map(fn (array $section): array => [$section['heading'], $section['boat'], collect($section['crew'])->pluck('name')->all()])->all())->toBe([
         ['0900', 'MV Sand Bay 1', ['Din', 'Razak']],
         ['0900', 'MV Sand Bay 2', ['Razak']],
+        ['CHARTER', 'Charter', []],
+        ['OWN BOAT', 'Own boat', []],
     ]);
 });

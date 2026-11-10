@@ -418,7 +418,7 @@ test('the PDF is landscape, whatever the saved layout says, and bands every depa
         ->and($captured->data['sections'][4]['jetty'])->toBe($empty->pickup_point);
 });
 
-test('the board tabs export their own rows: scheduled boats on Boat in and Boat out, Charter and Own boat on Others', function () {
+test('the board tabs export their own rows: scheduled boats on Boat in and Boat out, Charter and Own boat on Others, an empty one as a blank block', function () {
     [$manager, $property] = manifestSetup();
     $departure = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
     manifestDeparture($property, BoatDirection::In, '11:00:00', '11:45:00');
@@ -428,8 +428,10 @@ test('the board tabs export their own rows: scheduled boats on Boat in and Boat 
 
     $this->actingAs($manager)->post(manifestUrl($property).'/pdf', ['date' => '2026-10-20', 'direction' => 'both', 'boat_group' => 'other'])->assertOk();
 
-    expect(collect($captured->data['sections'])->pluck('heading')->all())->toBe(['CHARTER'])
-        ->and($captured->data['sections'][0]['rows'][0]->key)->toBe($charter->id);
+    expect(collect($captured->data['sections'])->map(fn (array $section): array => [$section['kind'], $section['heading'], count($section['rows'])])->all())
+        ->toBe([['in', 'CHARTER', 1], ['other', 'OWN BOAT', 0]])
+        ->and($captured->data['sections'][0]['rows'][0]->key)->toBe($charter->id)
+        ->and($captured->data['sections'][1]['band'])->toBe('In or out');
 
     $this->post(manifestUrl($property).'/pdf', ['date' => '2026-10-20', 'direction' => 'in', 'boat_group' => 'scheduled'])->assertOk();
 

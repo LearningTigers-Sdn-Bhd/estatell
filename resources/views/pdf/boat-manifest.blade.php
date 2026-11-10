@@ -8,7 +8,7 @@
      * @var bool $selectedOnly
      * @var list<array{band: string, kind: string, heading: string, jetty: ?string, boat: ?string, crew: list<array{name: string, in_charge: bool}>, rows: list<\App\Data\Reports\BoatManifestRow>, pax: int}> $sections
      */
-    $bands = ['out' => '#ea3323', 'in' => '#9dc384', 'not_set' => '#fbbf24'];
+    $bands = ['out' => '#ea3323', 'in' => '#9dc384', 'other' => '#d9d9d9', 'not_set' => '#fbbf24'];
     $upper = fn (?string $text): string => mb_strtoupper((string) $text);
 @endphp
 

@@ -272,14 +272,21 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
             }
         }
 
-        foreach ($directions as $direction) {
-            foreach ([BoatMode::Charter, BoatMode::Own] as $mode) {
+        foreach ([BoatMode::Charter, BoatMode::Own] as $mode) {
+            $printed = false;
+
+            foreach ($directions as $direction) {
                 $group = $rowsByGroup[$direction->value.'-'.$mode->value] ?? [];
 
                 if ($group !== []) {
                     $jetty = $departures->firstWhere('direction', $direction)?->pickup_point;
                     $sections[] = $this->printSection($direction->value, mb_strtoupper($mode->label()), $jetty, $group, $mode->label(), []);
+                    $printed = true;
                 }
+            }
+
+            if (! $printed && $filters->boatGroup !== 'scheduled') {
+                $sections[] = $this->printSection('other', mb_strtoupper($mode->label()), null, [], $mode->label(), []);
             }
         }
 
@@ -302,7 +309,7 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
     private function printSection(string $kind, string $heading, ?string $jetty, array $rows, ?string $boat, array $crew): array
     {
         return [
-            'band' => BoatDirection::tryFrom($kind)?->label() ?? __('Boat not set'),
+            'band' => BoatDirection::tryFrom($kind)?->label() ?? ($kind === 'other' ? __('In or out') : __('Boat not set')),
             'kind' => $kind,
             'heading' => $heading,
             'jetty' => $jetty,
