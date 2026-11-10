@@ -10,7 +10,7 @@ A departure is the timetable: it runs every day at the same time. A **sailing** 
 - An extra trip that is not on the timetable.
 - A **boat job** that carries no guests: diesel, linen, supplies, staff.
 
-Staff change sailings on the [Boats board](05-boats-board.md). Needs the `Boats` feature.
+Staff change sailings on the [Boat Trips board](05-boats-board.md). Needs the `Boats` feature.
 
 ## Data model
 

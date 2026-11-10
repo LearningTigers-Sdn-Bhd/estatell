@@ -26,7 +26,7 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 - **No time column.** The time is the unit's `arrival_time` (In) or `departure_time` (Out) ([Expected times](../12-reservations/01-reservation-shape.md#expected-times)). One fact, one place.
 - `boat_trip_add_ons` links a trip to the fare add-on rows it created. A fare with child prices writes several rows (adults, and one per charged age group), so it is a link table, not one column. Boats owns it, so `unit_add_ons` does not change. Like `unit_add_ons`, it has no `property_id`: it is always reached through its trip, which is property scoped (an exception to the models rule).
 - A unit with no trip row means "not set yet".
-- **`boat_departure_id` is what was booked; `boat_sailing_id` is the boat it actually goes on.** Null means the date's main sailing of that departure ([Sailings](04-sailings.md#main-sailing)). Only the [Boats board](05-boats-board.md) sets it. The fare, the activity text and the pickers read the departure; the board, the manifest, seats and the unit time read the sailing.
+- **`boat_departure_id` is what was booked; `boat_sailing_id` is the boat it actually goes on.** Null means the date's main sailing of that departure ([Sailings](04-sailings.md#main-sailing)). Only the [Boat Trips board](05-boats-board.md) sets it. The fare, the activity text and the pickers read the departure; the board, the manifest, seats and the unit time read the sailing.
 
 ## Enums
 
@@ -115,7 +115,7 @@ Boat   In   Scheduled · 09:00 Kuala Besut → 09:45            [Change]
        Out  Own boat · 11:30 · Guest's own speedboat           [Change]
 ```
 
-- **Change** opens a Dialog (`FormOverlay`, `md`) for that direction with the booking form's boat select: one list of Not set, the available departures with seats, Charter and Own boat, then **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out".
+- **Change** opens a Dialog (`FormOverlay`, `md`) for that direction with the booking form's boat select: one list of Not set, the available departures with seats, Charter and Own boat, then **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out". The [Boat Trips board](05-boats-board.md#row-menu) opens the same Dialog from **⋯ › Change boat** and **Set boat**.
 - **Change** shows only while `SetBoatTrip` would accept the unit (Boat in while Confirmed, Boat out while Confirmed or CheckedIn) and the user has `reservations.manage`. Otherwise the row is read only. The server sends this as `canSetBoatIn` and `canSetBoatOut` (`BoatTripAccess`), and never for a day use unit.
 - A trip on a departure that is now unavailable shows on the row with "unavailable". Change lists only available departures, so staff pick another.
 - **⋯ More › Set boats** on the reservation header opens one Dialog with Boat in and Boat out for **every open unit** (Confirmed and CheckedIn). Boat in is read only on a CheckedIn unit. Day use units are left out. `SetBoatTrips` (`PUT …/reservations/{reservation}/boat-trips`, `reservations.boat-trips.set-many`) locks every departure involved (shared, by id), then the units (by id), and calls `SetBoatTrip` or `ClearBoatTrip` per unit and direction in one transaction. One refusal saves nothing and names the unit ("Double · 104: …"). Afterwards each unit can still differ.

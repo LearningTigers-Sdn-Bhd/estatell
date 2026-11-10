@@ -1,4 +1,4 @@
-# Boats board
+# Boat Trips board
 
 ## Purpose
 
@@ -10,14 +10,15 @@ Needs the `Boats` feature.
 
 ## Where it lives
 
-- Front desk sidebar, after Housekeeping: **Boats** (icon `ship`), when the feature is on and the user has `reservations.view`.
+- Front desk sidebar, after Housekeeping: **Boat Trips** (icon `ship`), when the feature is on and the user has `reservations.view`. The page title and the browser tab say **Boat Trips** too.
+- Only the words staff see say Boat Trips. The URL, the route names and the **Boats** settings tab keep their names.
 - `GET /p/{code}/boats` (`boats.index`). Query: `date` (default the business date) and `direction` (`in`, `out`, `both`; default `both`).
 - Archetype: Board, with grouped tables as on Housekeeping ([Page archetypes](../design-system/04-page-archetypes.md)).
 
 ## Layout
 
 ```
-Boats                                         [+ Trip or job]  [Export Boat Manifest ▾]
+Boat Trips                                    [+ Trip or job]  [Export Boat Manifest ▾]
 [◀] Tue 11 Nov [▶]  [Today] [Tomorrow]     [ Boat in | Boat out | Both ]
 
 [ ] Boat out · 08:00 Resort jetty → 08:45 · MV Sand Bay 1 · ⚓ Awang · Daus     6 / 20  ⋯
@@ -38,8 +39,13 @@ Boats                                         [+ Trip or job]  [Export Boat Mani
 
     Boat in · 16:00 Kuala Besut jetty · Cancelled                             [Undo]   (muted)
 
-    Charter and own boat
- [ ] 301   Wong Mei       Agoda          —              2A 0C   Charter 10:30   [ ]
+[ ] Charter                                                         2 rooms · 4 pax
+     Room  Lead guest     Agent          Trip                           Pax     Done
+ [ ] 205   Wong Mei       Agoda          In · 10:30 · Wedding party     2A 0C   [ ]
+ [ ] 104   Sarah Lee      Direct booking Out · 15:00                    2A 0C   [ ]
+
+[ ] Own boat                                                        1 room · 3 pax
+ [ ] 301   Lim Family     Borneo Tours   Out · 11:30 · Own speedboat    3A 0C   [ ]
 
     Boat jobs
      11:00  Diesel   MV Sand Bay 2 · ⚓ Razak   4 drums                          Done [ ]
@@ -51,12 +57,27 @@ Boats                                         [+ Trip or job]  [Export Boat Mani
                 ┌ 2 selected   [Move to ▾]  [Mark arrived]  [Export ▾]  ✕ ┐
 ```
 
-- Groups come in time order across both directions, as on the manifest: one group per [sailing](04-sailings.md), then Charter and own boat, then Boat jobs, then Boat not set.
+- Groups come in this order, as on the PDF: one group per [sailing](04-sailings.md) in time order across both directions, then **Charter**, then **Own boat**, then Boat jobs, then Boat not set.
+- **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction, the time and the note ("In · 10:30 · Wedding party"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. An empty Charter or Own boat group is hidden.
 - The group header shows the direction, time, jetty, boat, ⚓ the person in charge, the assistants and the seat count. Over the limit uses the warning tone.
 - The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It saves at once, like the housekeeping status.
 - **Set boat** on a Boat not set row opens the reservation page's boat Change Dialog for that unit and direction.
 - At phone width each group becomes a card list: room, guest and pax on the first line, agent and phone on the second, the tick on the right.
 - Past dates are read only except the ticks. Their ⋯ menus and **+ Trip or job** are hidden.
+
+## Row menu
+
+The **⋯** at the end of each guest row (sailing, Charter and Own boat groups):
+
+| Item             | Shows when                                      | Does                                                                                                                                                                                                               |
+| ---------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Change boat      | `reservations.manage`, and the date is not past | Opens the reservation page's boat **Change** Dialog for that unit and direction ([Reservation page](02-boat-trips.md#reservation-page)): Not set, the departures with seats, Charter, Own boat, then Time and Note |
+| Open reservation | Always                                          | Goes to the reservation page                                                                                                                                                                                       |
+
+- **Change boat** is how staff set Charter or Own boat from this page. It reuses the Dialog and `SetBoatTrip`, so there is no new logic. After saving, the row moves to its new group.
+- **+ Trip or job** stays for boats the resort runs. It does not offer Charter or Own boat, because those belong to one room.
+- **Move to** in the bulk bar stays for moving several rooms between scheduled sailings.
+- Boat not set rows keep their **Set boat** button, which opens the same Dialog.
 
 ## Group menu
 
@@ -84,7 +105,11 @@ Change boat and crew · Boat in 09:00 · 11 Nov     ×
                                 [Cancel] [Save]
 ```
 
-A Dialog (`FormOverlay`, `sm`). The selects work as in the departure Sheet ([Add or edit departure](01-boat-settings.md#add-or-edit-departure)).
+A Dialog (`FormOverlay`, `sm`). The selects work as in the departure Sheet ([Add or edit departure](01-boat-settings.md#add-or-edit-departure)), with each crew member's phone under the name.
+
+### Crew pickers
+
+**In charge** and **Assistants** show each crew member's phone (`boat_crew_members.phone`) as a muted second line under the name. A crew member with no phone shows the name only. This applies to Change boat and crew, Trip or job and the departure Sheet in Settings. No schema change.
 
 ### Trip or job
 
@@ -165,6 +190,7 @@ A `{sailing}` or `{departure}` of another property is a 404. A `{sailing}` of th
 
 ## Empty states
 
+- Departures on the timetable but no guests: each sailing group shows "No guests.". Staff can still set the boat and crew and export the sheet for the crew. Charter, Own boat and Boat not set are hidden.
 - No sailings, jobs or trips on the date: "No boats on 11 Nov." with **+ Trip or job**.
 - No departures at all: "No departures yet" and "Add departures in Settings, Boats.", with **Open Boats settings** for users with `settings.manage`.
 

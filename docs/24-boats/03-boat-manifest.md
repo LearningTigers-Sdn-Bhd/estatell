@@ -4,7 +4,7 @@
 
 One list per boat for the jetty and the boat crew: who travels on each sailing of a date, with head counts. The front desk also sees the charter and own-boat trips and the boat jobs of the day.
 
-The manifest is **not a page**. It is the rows, the tick and the printed sheet behind the [Boats board](05-boats-board.md), the only boat page. Staff see, tick, print and export the manifest from the board's **Export Boat Manifest ▾** menu ([Export](05-boats-board.md#export-boat-manifest)).
+The manifest is **not a page**. It is the rows, the tick and the printed sheet behind the [Boat Trips board](05-boats-board.md), the only boat page. Staff see, tick, print and export the manifest from the board's **Export Boat Manifest ▾** menu ([Export](05-boats-board.md#export-boat-manifest)).
 
 Needs the `Boats` feature.
 
@@ -18,7 +18,7 @@ Needs the `Boats` feature.
 
 - There is no `reports.boat-manifest` page and no sidebar entry. `listedInReportsMenu()` stays false. Its old URL is a 404.
 - The board's export routes and the shared layout routes return 404 when the Boats feature is off (`boats` middleware, `ReportKey::feature()`, `EnsureReportIsAvailable`).
-- The rows are not paged and keep their order (sailing time, then sailing id; Charter and Own by unit time, then jobs by time, last). Each Charter and Own row's time is the unit's `arrival_time` (In) or `departure_time` (Out).
+- The rows are not paged and keep their order (sailing time, then sailing id; then Charter, then Own, each by unit time; then jobs by time, last). Each Charter and Own row's time is the unit's `arrival_time` (In) or `departure_time` (Out).
 - **Direction:** Boat in, Boat out, Both, from the board's toggle group. **Both** (`direction=both` or no direction, `ReportFilters::$bothDirections`) lists every sailing of the date in time order, as Sand Bay's sheet does (08:00 out, 09:00 in, 14:30 out…), and each section title starts with "Boat out · " or "Boat in · ".
 
 ## Rows
@@ -44,7 +44,7 @@ One row per trip: Confirmed, CheckedIn and CheckedOut units whose trip is on the
 | Note        | `note`        | No              | The trip note                                                                                          |
 
 - **Lead guest only.** The manifest never lists every guest and never shows identity numbers.
-- Rows come grouped by sailing in time order. Charter and Own rows come last, in a group headed "Charter and own boat".
+- Rows come grouped by sailing in time order. Then two groups: **Charter**, then **Own boat**, each with its rows of both directions.
 - Each sailing has a subtotal row: "14 / 20 seats" (or "14" with no limit), with the sailing's seats ([Seats](04-sailings.md#seats)). Over the limit uses the warning tone.
 - The total row sums adults, children and total for the whole date and direction.
 
@@ -54,12 +54,12 @@ Each section is one [sailing](04-sailings.md): one boat on one date. A departure
 
 - The section title reads "Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · ⚓ Din · Razak". A changed time adds "(changed)". With no boat or crew set, the title ends after the times.
 - A cancelled sailing on the date is left out. A sailing with guests cannot be cancelled ([Cancel](04-sailings.md#cancel)).
-- Staff set boats, crew and times on the [Boats board](05-boats-board.md).
+- Staff set boats, crew and times on the [Boat Trips board](05-boats-board.md).
 - The section labels come from `SailingLabels` (`app/Services/Boats/`), so the board, the PDF and the spreadsheet name them the same way.
 
 ## Boat jobs
 
-Sailings of kind Job ([Jobs](04-sailings.md#jobs)) come in a last group **Boat jobs**, after Charter and own boat and before Boat not set. They have their own columns in that group: Time, Job, Boat, Crew, Note and Done ("Yes" in the spreadsheet). They have no guests, so they add nothing to the totals. The Direction filter does not hide them.
+Sailings of kind Job ([Jobs](04-sailings.md#jobs)) come in a last group **Boat jobs**, after Own boat and before Boat not set. They have their own columns in that group: Time, Job, Boat, Crew, Note and Done ("Yes" in the spreadsheet). They have no guests, so they add nothing to the totals. The Direction filter does not hide them.
 
 ## Tick
 
@@ -83,11 +83,11 @@ unit_boat_trips (adds)   ticked_at (nullable), ticked_by (nullable, FK users, nu
 - The header is "{PROPERTY} MANIFEST" and the date.
 - One block per sailing, in time order, both directions by default. Red for Boat out, green for Boat in: the time ("0800"), the jetty (`pickup_point`), then No, Guest, Agent, PAX, BOAT, Crew (the person in charge red, assistants blue) and Tick, and a "4 PAX" subtotal.
 - A sailing that carries nobody prints with its boat and crew and a "-" row, so the crew still has a sheet.
-- Own boat, then Charter, come next, per direction, with the first departure's jetty. Then a grey **Boat jobs** block (Time, Job, Boat, Crew, Note, Done). An amber **Boat not set** block comes last.
+- Charter, then Own boat, come next, per direction (Charter first since 2026-11-10, to match the board), with the first departure's jetty. Then a grey **Boat jobs** block (Time, Job, Boat, Crew, Note, Done). An amber **Boat not set** block comes last.
 - A block never splits across pages (`page-break-inside: avoid`). There is no page break between departures, so a normal day fits on one page.
 - Ticking rows on the board prints only the blocks of those rows.
 - The saved column layout does not change the sheet. It changes Excel and CSV only.
 
 ## Permissions
 
-Export needs `reservations.view` through the board's routes ([Boats board](05-boats-board.md#routes)). Columns need `settings.manage`.
+Export needs `reservations.view` through the board's routes ([Boat Trips board](05-boats-board.md#routes)). Columns need `settings.manage`.

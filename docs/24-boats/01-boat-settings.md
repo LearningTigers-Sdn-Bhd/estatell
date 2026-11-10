@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Island and jetty properties (Perhentian, Redang, Tioman, Semporna) bring guests in and out by boat. Boat settings hold the **departures** (the timetable: when each boat leaves and arrives), the **fares** (the one-way price per guest, and the charter charge), the **boats** and the **crew**. Staff then pick a departure for each room on a booking (see [Boat trips](02-boat-trips.md)), and run each date on the [Boats board](05-boats-board.md).
+Island and jetty properties (Perhentian, Redang, Tioman, Semporna) bring guests in and out by boat. Boat settings hold the **departures** (the timetable: when each boat leaves and arrives), the **fares** (the one-way price per guest, and the charter charge), the **boats** and the **crew**. Staff then pick a departure for each room on a booking (see [Boat trips](02-boat-trips.md)), and run each date on the [Boat Trips board](05-boats-board.md).
 
 ## Feature flag
 
@@ -30,7 +30,7 @@ boat_departure_crew  id, boat_departure_id → boat_departures (cascade),
                      UNIQUE (boat_departure_id) WHERE in_charge
 ```
 
-- One row is the **timetable**: a departure that runs every day at that time. A single date can differ (a second boat, another time, a cancelled trip, an extra trip). That lives in [sailings](04-sailings.md), changed on the [Boats board](05-boats-board.md), never on the timetable. Seasonal closures (the east coast monsoon, November to February) use the property's closed dates or room blocks, not boat settings.
+- One row is the **timetable**: a departure that runs every day at that time. A single date can differ (a second boat, another time, a cancelled trip, an extra trip). That lives in [sailings](04-sailings.md), changed on the [Boat Trips board](05-boats-board.md), never on the timetable. Seasonal closures (the east coast monsoon, November to February) use the property's closed dates or room blocks, not boat settings.
 - **Default boat and crew** prefill each date's first sailing. The crew is a list of [crew members](#crew-tab) with one **in charge** (the skipper). `boat_departure_crew` replaces the old free-text `default_crew` column (see [Migration](04-sailings.md#migration)).
 - `leaves_at` and `arrives_at` are times of day in the property time zone. A departure cannot cross midnight.
 - For **Boat in**, `leaves_at` is at the jetty and `arrives_at` is at the property. For **Boat out**, `leaves_at` is at the property and `arrives_at` is at the jetty.
@@ -158,11 +158,12 @@ Fare           [Speedboat · RM35.00       ▾]
 Default boat   [MV Sand Bay 1             ▾]
 In charge      [Awang                     ▾]
 Assistants     [Daus ×]                    ▾
-               Prefill each date on the Boats board.
+               Prefill each date on the Boat Trips board.
                               [Cancel] [Add departure]
 ```
 
 - **Default boat** lists available boats and **None**. **In charge** and **Assistants** list available crew members. The current values show even when they are now unavailable, so an edit does not drop them.
+- Each crew option shows the crew member's phone as a muted second line under the name, when one is saved. The Boat Trips board's crew pickers do the same.
 - **Assistants** is a multiselect (`Combobox` with chips) and leaves out the person in charge. Assistants without anyone in charge are refused: "Pick who is in charge first."
 - With no boats or no crew yet, the select says "No boats yet. Add one on the Boats tab." (or "Crew tab").
 
@@ -288,7 +289,7 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 
 ## Boats tab
 
-`BoatController` (`settings.manage`): the boats the property runs, picked for each [sailing](04-sailings.md) on the Boats board.
+`BoatController` (`settings.manage`): the boats the property runs, picked for each [sailing](04-sailings.md) on the Boat Trips board.
 
 ```
 boats    id, property_id, name (≤ 60, unique per property ignoring case), registration (nullable, ≤ 30),
@@ -309,10 +310,10 @@ Boats                                                         [+ Add boat]
 
 - A data table sorted by name. Unavailable rows stay in place and are muted.
 - The first column is the **Available** switch, as on Departures. It sends the row with the new `active` value at once. Toast: "MV Sand Bay 2 is available." or "… is unavailable." An unavailable boat leaves the pickers; sailings that already use it keep it and still show its name.
-- **Seats** is the boat's own limit. It counts on the Boats board when a departure runs more than one boat ([Seats](04-sailings.md#seats)). "—" for no limit.
+- **Seats** is the boat's own limit. It counts on the Boat Trips board when a departure runs more than one boat ([Seats](04-sailings.md#seats)). "—" for no limit.
 - **Add boat** and ✎ open a Dialog (`FormOverlay`, `sm`): Name, Registration (optional), Seats (optional). A new boat starts available. The switch is only on the table.
 - `SaveBoat` adds or changes a boat and logs `boat.created` or `boat.updated`. A boat is never deleted; turn it off instead.
-- Empty state: "No boats yet. Add the boats you run, so the Boats board can name the boat of each sailing."
+- Empty state: "No boats yet. Add the boats you run, so the Boat Trips board can name the boat of each sailing."
 
 ## Crew tab
 
