@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
+import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { BookingBoatsDialog } from '@/components/pms/portal/booking-boats-dialog';
 import { BookingCancelActions } from '@/components/pms/portal/booking-cancel-actions';
 import { BookingGuestsSheet } from '@/components/pms/portal/booking-guests-sheet';
@@ -42,7 +43,7 @@ export default function PortalBookingShow({
 }) {
     const [editing, setEditing] = useState(false);
     const [editingBoats, setEditingBoats] = useState(false);
-    const [boatSaves, setBoatSaves] = useState(0);
+    const boatFormKey = useFreshOnOpen(editingBoats);
     const canChangeBoats = boatSetup.some(
         (unit) => unit.canSetBoatIn || unit.canSetBoatOut,
     );
@@ -154,20 +155,15 @@ export default function PortalBookingShow({
                     </section>
                 )}
 
-                {editingBoats && (
-                    <BookingBoatsDialog
-                        key={boatSaves}
-                        open
-                        onOpenChange={(next) => {
-                            setEditingBoats(next);
-                            setBoatSaves((value) => value + 1);
-                        }}
-                        propertyCode={propertyCode}
-                        reservationId={booking.id}
-                        units={boatSetup}
-                        departures={boatDepartures}
-                    />
-                )}
+                <BookingBoatsDialog
+                    key={boatFormKey}
+                    open={editingBoats}
+                    onOpenChange={setEditingBoats}
+                    propertyCode={propertyCode}
+                    reservationId={booking.id}
+                    units={boatSetup}
+                    departures={boatDepartures}
+                />
 
                 <section className="flex flex-col gap-3">
                     <h2 className="text-base font-medium">Rooms</h2>

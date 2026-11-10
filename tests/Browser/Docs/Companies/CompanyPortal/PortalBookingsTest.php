@@ -5,6 +5,7 @@ use App\Actions\Portal\RequestPortalCancellation;
 use App\Data\Portal\NewPortalBookingData;
 use App\Data\Portal\NewPortalGuestData;
 use App\Data\Portal\NewPortalLineData;
+use App\Features\Boats;
 use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\RatePlan;
@@ -13,6 +14,7 @@ use App\Models\RoomType;
 use App\Services\Portal\PortalBookingQuote;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 
 beforeEach(function () {
     $this->company = $this->signInAsCompanyPortalUser();
@@ -132,4 +134,27 @@ test('a portal booking at the front desk', function () {
         ->wait(1);
 
     $this->shoot($page, 'portal-bookings-front-desk', badges: ['Company / Travel agent', 'BT-2026-118']);
+});
+
+test('the boats dialog can cancel save and reopen without blocking the booking', function () {
+    Feature::for($this->property)->activate(Boats::class);
+    $reservation = portalBookingsBook($this->company, $this->link, '2026-10-28', 2, 'BOAT-CLOSE', 'Boat Dialog Guest');
+
+    $page = $this->open(route('portal.bookings.show', [$this->property->code, $reservation]))
+        ->click('Set boats')
+        ->assertSee('Save boats')
+        ->click('Cancel')
+        ->assertDontSee('Save boats')
+        ->click('Set boats')
+        ->assertSee('Save boats')
+        ->click('Save boats')
+        ->assertDontSee('Save boats')
+        ->click('[data-slot="toast"]:not([data-ending-style]):has-text("Boats saved.") [data-slot="toast-close"]')
+        ->click('Set boats')
+        ->assertSee('Save boats')
+        ->click('[role="dialog"] [data-slot="dialog-close"]:has-text("Close")')
+        ->assertDontSee('Save boats')
+        ->click('Edit guests')
+        ->assertSee('Save guests')
+        ->assertNoJavaScriptErrors();
 });
