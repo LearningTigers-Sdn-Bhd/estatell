@@ -60,10 +60,15 @@ function BoatTripForm({
     const inChargeOptions: EnumOption[] = people.map((member) => ({
         value: String(member.id),
         label: member.name,
+        description: member.phone ?? undefined,
     }));
     const assistantOptions = people
         .filter((member) => String(member.id) !== form.data.in_charge_id)
-        .map((member) => ({ value: String(member.id), label: member.name }));
+        .map((member) => ({
+            value: String(member.id),
+            label: member.name,
+            description: member.phone ?? undefined,
+        }));
 
     const submit = () =>
         form.post(store.url(), {

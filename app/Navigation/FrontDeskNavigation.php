@@ -57,7 +57,7 @@ class FrontDeskNavigation
                     active: request()->routeIs('housekeeping.*'),
                 ) : null,
                 $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
-                    title: __('Boats'),
+                    title: __('Boat Trips'),
                     href: route('boats.index', ['property' => $property->code], absolute: false),
                     icon: 'ship',
                     active: request()->routeIs('boats.*'),
@@ -83,12 +83,6 @@ class FrontDeskNavigation
                     href: route('guests.index', ['property' => $property->code], absolute: false),
                     icon: 'users',
                     active: request()->routeIs('guests.*'),
-                ) : null,
-                $user->can(PermissionEnum::ReportsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
-                    title: __('Boat manifest'),
-                    href: route('reports.boat-manifest', ['property' => $property->code], absolute: false),
-                    icon: 'ship',
-                    active: request()->routeIs('reports.boat-manifest'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Operations'), items: array_values(array_filter([

@@ -1,10 +1,9 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ChevronLeft,
     ChevronRight,
     Ellipsis,
     Plus,
-    Printer,
     Ship,
     TriangleAlert,
 } from 'lucide-react';
@@ -16,8 +15,10 @@ import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
+import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
@@ -48,11 +49,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { index } from '@/routes/boats';
+import { index, pdf, spreadsheet } from '@/routes/boats';
 import { cancel, reset } from '@/routes/boats/departures';
 import { destroy } from '@/routes/boats/sailings';
-import { move, tick } from '@/routes/boats/trips';
-import { pdf } from '@/routes/reports';
+import { move, setTick as setTickRoute, tick } from '@/routes/boats/trips';
+import { show } from '@/routes/reservations';
 
 type Group = App.Data.Boats.BoatBoardGroupData;
 type Row = App.Data.Reports.BoatManifestRow;
@@ -67,7 +68,9 @@ type Props = {
     boats: App.Data.Boats.BoatData[];
     crew: App.Data.Boats.BoatCrewMemberData[];
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
-    can: { manage: boolean; export: boolean };
+    layout: App.Data.Reports.ReportLayoutData;
+    orientationOptions: EnumOption[];
+    can: { manage: boolean; columns: boolean };
     settingsUrl: string | null;
 };
 
@@ -123,6 +126,8 @@ export default function BoatsIndex({
     boats,
     crew,
     boatDepartures,
+    layout,
+    orientationOptions,
     can,
     settingsUrl,
 }: Props) {
@@ -139,6 +144,8 @@ export default function BoatsIndex({
         open: boolean;
     } | null>(null);
     const [busy, setBusy] = useState(false);
+    const [layoutDraft, setLayoutDraft] =
+        useState<App.Data.Reports.ReportLayoutData | null>(null);
     const lastView = useRef(`${date}|${direction}`);
 
     // A new date or direction is a new list: drop the old ticks.
@@ -234,9 +241,9 @@ export default function BoatsIndex({
         });
 
     const setTick = (row: Row, ticked: boolean) =>
-        router.post(
-            tick.url(),
-            { trip_ids: [row.key], ticked },
+        router.put(
+            setTickRoute.url({ trip: row.key }),
+            { ticked },
             { preserveScroll: true, preserveState: true },
         );
 
@@ -256,16 +263,16 @@ export default function BoatsIndex({
     };
 
     const allLeaving = pickedRows.every((item) => item.row.direction === 'out');
-    const exportDates = { date, direction };
+    const exportDates = useMemo(() => ({ date, direction }), [date, direction]);
     const manage = can.manage && !isPast;
 
     return (
         <>
-            <Head title="Boats" />
+            <Head title="Boat Trips" />
 
             <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
-                    title="Boats"
+                    title="Boat Trips"
                     description="The boats of one date: who goes on which boat, the crew in charge, and who has arrived or left."
                     actions={
                         hasDepartures ? (
@@ -279,12 +286,20 @@ export default function BoatsIndex({
                                         Trip or job
                                     </Button>
                                 )}
-                                {can.export && (
-                                    <PrintButton
-                                        date={date}
-                                        direction={direction}
-                                    />
-                                )}
+                                <ReportExportMenu
+                                    report="boat-manifest"
+                                    label="Export Boat Manifest"
+                                    dates={exportDates}
+                                    sort={MANIFEST_SORT}
+                                    rowKeys={[]}
+                                    pdfUrl={pdf.url()}
+                                    spreadsheetUrl={spreadsheet.url()}
+                                    onColumns={
+                                        can.columns
+                                            ? () => setLayoutDraft(layout)
+                                            : undefined
+                                    }
+                                />
                             </>
                         ) : undefined
                     }
@@ -469,15 +484,15 @@ export default function BoatsIndex({
                     >
                         {allLeaving ? 'Mark left' : 'Mark arrived'}
                     </Button>
-                    {can.export && (
-                        <ReportExportMenu
-                            report="boat-manifest"
-                            dates={exportDates}
-                            sort={MANIFEST_SORT}
-                            rowKeys={picked.map(String)}
-                            side="top"
-                        />
-                    )}
+                    <ReportExportMenu
+                        report="boat-manifest"
+                        dates={exportDates}
+                        sort={MANIFEST_SORT}
+                        rowKeys={picked.map(String)}
+                        pdfUrl={pdf.url()}
+                        spreadsheetUrl={spreadsheet.url()}
+                        side="top"
+                    />
                 </BulkActionBar>
             </div>
 
@@ -563,6 +578,26 @@ export default function BoatsIndex({
                 </AlertDialogContent>
             </AlertDialog>
 
+            {can.columns && layoutDraft && (
+                <ReportLayoutSheet
+                    open
+                    onOpenChange={(next) => {
+                        if (!next) {
+                            setLayoutDraft(null);
+                        }
+                    }}
+                    report="boat-manifest"
+                    reportLabel="Boat manifest"
+                    saved={layout}
+                    draft={layoutDraft}
+                    onDraftChange={setLayoutDraft}
+                    orientations={orientationOptions}
+                    dates={exportDates}
+                    onDone={() => setLayoutDraft(null)}
+                    description="Choose the columns, in the order they show, and how each aligns. Columns change Excel and CSV only. The PDF is a fixed sheet."
+                />
+            )}
+
             {setBoat && (
                 <ChangeBoatTripDialog
                     open={setBoat.open}
@@ -578,8 +613,8 @@ export default function BoatsIndex({
                         id: setBoat.row.reservation_unit_id ?? 0,
                         roomType: setBoat.row.unit,
                         primaryGuest: setBoat.row.lead_guest,
-                        boatIn: null,
-                        boatOut: null,
+                        boatIn: tripOf(setBoat.row, 'in'),
+                        boatOut: tripOf(setBoat.row, 'out'),
                         arrival: date,
                         departure: date,
                         arrivalTime: setBoat.row.unit_time ?? '',
@@ -594,34 +629,36 @@ export default function BoatsIndex({
 }
 
 BoatsIndex.layout = {
-    breadcrumbs: [{ title: 'Boats', href: index() }],
+    breadcrumbs: [{ title: 'Boat Trips', href: index() }],
 };
+
+/**
+ * The trip a row already has, so the Change boat Dialog opens on it. A Boat not set row has none.
+ */
+function tripOf(
+    row: Row,
+    direction: 'in' | 'out',
+): App.Data.Boats.UnitBoatTripData | null {
+    if (row.not_set || row.direction !== direction || row.mode === null) {
+        return null;
+    }
+
+    return {
+        direction,
+        mode: row.mode as App.Data.Boats.UnitBoatTripData['mode'],
+        modeLabel: row.mode,
+        boatDepartureId: row.boat_departure_id,
+        departureAvailable: true,
+        time: row.mode === 'scheduled' ? null : row.unit_time,
+        note: row.note,
+        summary: row.departure,
+    };
+}
 
 function seatsText(group: Group): string {
     return group.seats === null
         ? `${group.taken}`
         : `${group.taken} / ${group.seats}`;
-}
-
-function PrintButton({ date, direction }: { date: string; direction: string }) {
-    const { csrfToken } = usePage().props;
-
-    return (
-        <form
-            method="post"
-            action={pdf.url({ report: 'boat-manifest' })}
-            target="_blank"
-        >
-            <input type="hidden" name="_token" value={csrfToken as string} />
-            <input type="hidden" name="date" value={date} />
-            <input type="hidden" name="direction" value={direction} />
-            <input type="hidden" name="sort" value={MANIFEST_SORT} />
-            <Button type="submit" variant="outline">
-                <Printer data-icon="inline-start" />
-                Print
-            </Button>
-        </form>
-    );
 }
 
 function GroupMenu({
@@ -757,6 +794,9 @@ function GroupSection({
 }) {
     const isSailing = group.kind === 'sailing';
     const isNotSet = group.kind === 'not_set';
+    const isMixed = group.kind === 'charter' || group.kind === 'own';
+    const hasMenu = !isNotSet;
+    const pax = group.rows.reduce((sum, row) => sum + row.total, 0);
     const selectable = group.rows
         .filter((row) => !row.not_set)
         .map((row) => row.key);
@@ -814,6 +854,14 @@ function GroupSection({
                         ? `${group.directionLabel} · ${group.times}`
                         : group.title}
                 </h2>
+                {isMixed && (
+                    <span className="ml-auto text-sm text-muted-foreground">
+                        {group.rows.length === 1
+                            ? '1 room'
+                            : `${group.rows.length} rooms`}{' '}
+                        · {pax} pax
+                    </span>
+                )}
                 {isSailing && (
                     <span className="text-sm text-muted-foreground">
                         {group.isExtra ? 'Extra trip · ' : ''}
@@ -860,13 +908,23 @@ function GroupSection({
                                     <TableHead>Lead guest</TableHead>
                                     <TableHead>Agent</TableHead>
                                     <TableHead>Phone</TableHead>
+                                    {isMixed && <TableHead>Trip</TableHead>}
                                     <TableHead>Pax</TableHead>
-                                    <TableHead>Note</TableHead>
+                                    {!isMixed && <TableHead>Note</TableHead>}
                                     <TableHead className="text-right">
                                         {isNotSet
                                             ? ''
-                                            : tickLabel(group.direction)}
+                                            : isMixed
+                                              ? 'Done'
+                                              : tickLabel(group.direction)}
                                     </TableHead>
+                                    {hasMenu && (
+                                        <TableHead className="w-10">
+                                            <span className="sr-only">
+                                                Actions
+                                            </span>
+                                        </TableHead>
+                                    )}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -892,26 +950,25 @@ function GroupSection({
                                         )}
                                         <TableCell className="font-medium tabular-nums">
                                             {row.unit}
-                                            {!isSailing && (
-                                                <div className="text-xs font-normal text-muted-foreground">
-                                                    {row.direction === 'in'
-                                                        ? 'Boat in'
-                                                        : 'Boat out'}{' '}
-                                                    · {row.departure}
-                                                </div>
-                                            )}
                                         </TableCell>
                                         <TableCell>{row.lead_guest}</TableCell>
                                         <TableCell>{row.agent}</TableCell>
                                         <TableCell className="tabular-nums">
                                             {row.phone ?? '—'}
                                         </TableCell>
+                                        {isMixed && (
+                                            <TableCell>
+                                                {tripText(row)}
+                                            </TableCell>
+                                        )}
                                         <TableCell className="tabular-nums">
                                             {paxText(row)}
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {row.note}
-                                        </TableCell>
+                                        {!isMixed && (
+                                            <TableCell className="text-muted-foreground">
+                                                {row.note}
+                                            </TableCell>
+                                        )}
                                         <TableCell className="text-right">
                                             <RowEnd
                                                 row={row}
@@ -921,6 +978,15 @@ function GroupSection({
                                                 onSetBoat={onSetBoat}
                                             />
                                         </TableCell>
+                                        {hasMenu && (
+                                            <TableCell>
+                                                <RowMenu
+                                                    row={row}
+                                                    canChangeBoat={menu}
+                                                    onChangeBoat={onSetBoat}
+                                                />
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -948,12 +1014,10 @@ function GroupSection({
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground">
                                         {[
-                                            !isSailing
-                                                ? `${row.direction === 'in' ? 'Boat in' : 'Boat out'} · ${row.departure}`
-                                                : null,
+                                            isMixed ? tripText(row) : null,
                                             row.agent,
                                             row.phone,
-                                            row.note,
+                                            isMixed ? null : row.note,
                                         ]
                                             .filter(Boolean)
                                             .join(' · ')}
@@ -966,12 +1030,77 @@ function GroupSection({
                                     onTick={onTick}
                                     onSetBoat={onSetBoat}
                                 />
+                                {hasMenu && (
+                                    <RowMenu
+                                        row={row}
+                                        canChangeBoat={menu}
+                                        onChangeBoat={onSetBoat}
+                                    />
+                                )}
                             </li>
                         ))}
                     </ul>
                 </>
             )}
         </section>
+    );
+}
+
+/** Charter and Own boat rows mix both directions, so the Trip column says which: "In · 10:30 · Wedding party". */
+function tripText(row: Row): string {
+    return [row.direction === 'in' ? 'In' : 'Out', row.unit_time, row.note]
+        .filter(Boolean)
+        .join(' · ');
+}
+
+function RowMenu({
+    row,
+    canChangeBoat,
+    onChangeBoat,
+}: {
+    row: Row;
+    canChangeBoat: boolean;
+    onChangeBoat: (row: Row) => void;
+}) {
+    if (row.not_set) {
+        return null;
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Actions for ${row.lead_guest}`}
+                    />
+                }
+            >
+                <Ellipsis />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44">
+                {canChangeBoat && (
+                    <DropdownMenuItem onClick={() => onChangeBoat(row)}>
+                        Change boat
+                    </DropdownMenuItem>
+                )}
+                {row.reservation_id !== null && (
+                    <DropdownMenuItem
+                        render={
+                            <Link
+                                href={show.url({
+                                    reservation: row.reservation_id,
+                                })}
+                            />
+                        }
+                    >
+                        Open reservation
+                    </DropdownMenuItem>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 

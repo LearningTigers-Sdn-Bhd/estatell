@@ -72,7 +72,7 @@ test('admins and staff of suspended properties get no staff navigation', functio
         ->assertInertia(fn (Assert $page) => $page->where('navigation', null));
 });
 
-test('front desk navigation puts house status under housekeeping in rooms group, and boat manifest under guests with boats feature', function () {
+test('front desk navigation puts house status and Boat Trips under rooms, and no Boat manifest entry', function () {
     $staff = User::factory()->owner()->create();
     $code = $staff->property->code;
 
@@ -96,18 +96,20 @@ test('front desk navigation puts house status under housekeeping in rooms group,
     $this->actingAs($staff)
         ->get(route('dashboard', $code))
         ->assertInertia(function (Assert $page) use ($code) {
+            $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
             $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
 
-            expect(collect($guests['items'])->pluck('title')->all())->toBe(['Guests', 'Boat manifest'])
-                ->and($guests['items'][1])->toMatchArray([
-                    'title' => 'Boat manifest',
-                    'href' => "/p/{$code}/reports/boat-manifest",
+            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'Boat Trips', 'House status'])
+                ->and($rooms['items'][2])->toMatchArray([
+                    'title' => 'Boat Trips',
+                    'href' => "/p/{$code}/boats",
                     'icon' => 'ship',
-                ]);
+                ])
+                ->and(collect($guests['items'])->pluck('title')->all())->toBe(['Guests']);
         });
 });
 
-test('house status and boat manifest keep front-desk navigation context and mark their items active', function () {
+test('house status and Boat Trips keep front-desk navigation context and mark their items active', function () {
     $staff = User::factory()->owner()->create();
     $property = $staff->property;
     PropertySetting::factory()->for($property)->create();
@@ -126,12 +128,12 @@ test('house status and boat manifest keep front-desk navigation context and mark
         });
 
     $this->actingAs($staff)
-        ->get(route('reports.boat-manifest', $code))
+        ->get(route('boats.index', $code))
         ->assertInertia(function (Assert $page) {
-            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
-            $boatManifestItem = collect($guests['items'])->firstWhere('title', 'Boat manifest');
+            $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
+            $boatTripsItem = collect($rooms['items'])->firstWhere('title', 'Boat Trips');
 
             expect($page->toArray()['props']['navigation']['active'])->toBe('front-desk')
-                ->and($boatManifestItem['active'])->toBeTrue();
+                ->and($boatTripsItem['active'])->toBeTrue();
         });
 });

@@ -37,13 +37,15 @@ function boardViewer(array $setup, array $permissions = ['reservations.view']): 
     return User::factory()->for($setup['property'])->withPermissions($permissions)->create();
 }
 
-test('the board lists the sailings in time order across both directions, then charter, then boat not set', function () {
+test('the board lists the sailings in time order across both directions, then charter, then own boat, then boat not set', function () {
     $setup = sailingSetup();
     sailingTrip($setup, $setup['departure']);
     sailingTrip($setup, $setup['other']);
     boardOutTrip($setup);
     $charterUnit = sailingUnit($setup['property']);
     UnitBoatTrip::factory()->charter()->create(['property_id' => $setup['property']->id, 'reservation_unit_id' => $charterUnit->id]);
+    $ownUnit = sailingUnit($setup['property'], ['arrival_time' => '10:30:00']);
+    UnitBoatTrip::factory()->own()->create(['property_id' => $setup['property']->id, 'reservation_unit_id' => $ownUnit->id]);
     sailingUnit($setup['property'], ['arrival_date' => '2026-10-20']);
 
     $this->actingAs($setup['owner'])->get(boardUrl($setup))
@@ -61,15 +63,18 @@ test('the board lists the sailings in time order across both directions, then ch
             ->where('groups.1.taken', 2)
             ->where('groups.1.seats', 12)
             ->where('groups.2.time', '11:00')
-            ->where('groups.3.kind', 'front_desk')
-            ->where('groups.4.kind', 'not_set')
-            ->has('groups', 5));
+            ->where('groups.3.kind', 'charter')
+            ->where('groups.3.title', 'Charter')
+            ->where('groups.4.kind', 'own')
+            ->where('groups.4.title', 'Own boat')
+            ->where('groups.5.kind', 'not_set')
+            ->has('groups', 6));
 
     $this->get(boardUrl($setup, ['direction' => 'in']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('direction', 'in')
             ->where('groups.0.time', '09:00')
-            ->has('groups', 4));
+            ->has('groups', 5));
 
     $this->get(boardUrl($setup, ['direction' => 'out']))
         ->assertInertia(fn (Assert $page) => $page
@@ -121,8 +126,8 @@ test('the sidebar entry, the page and every change follow the Boats feature and 
         ->flatMap(fn ($context) => collect($context['groups'])->flatMap(fn ($group) => $group['items']))
         ->pluck('title');
 
-    expect($titles($this->actingAs($viewer)->get(route('dashboard', $setup['property']->code))))->toContain('Boats')
-        ->and($titles($this->actingAs($nobody)->get(route('dashboard', $setup['property']->code))))->not->toContain('Boats');
+    expect($titles($this->actingAs($viewer)->get(route('dashboard', $setup['property']->code))))->toContain('Boat Trips')->not->toContain('Boat manifest')
+        ->and($titles($this->actingAs($nobody)->get(route('dashboard', $setup['property']->code))))->not->toContain('Boat Trips');
 
     $this->actingAs($viewer)->get(boardUrl($setup))->assertOk();
     $this->actingAs($nobody)->get(boardUrl($setup))->assertForbidden();
@@ -136,7 +141,7 @@ test('the sidebar entry, the page and every change follow the Boats feature and 
 
     Feature::for($setup['property'])->deactivate(Boats::class);
     $this->actingAs($setup['owner'])->get(boardUrl($setup))->assertNotFound();
-    expect($titles($this->get(route('dashboard', $setup['property']->code))))->not->toContain('Boats');
+    expect($titles($this->get(route('dashboard', $setup['property']->code))))->not->toContain('Boat Trips');
 });
 
 test('a sailing, departure or trip of another property is a 404', function () {
@@ -300,16 +305,67 @@ test('a past date is read only for boats and crew, but the ticks still work', fu
     expect($trip->refresh()->ticked_at)->not->toBeNull();
 });
 
-test('the manifest sends no Boats and crew panel props and its sailings route is gone', function () {
+test('the Boat manifest page, its sidebar entry and its tick route are gone', function () {
     $setup = sailingSetup();
-    sailingTrip($setup, $setup['departure']);
+    $trip = sailingTrip($setup, $setup['departure']);
+    $code = $setup['property']->code;
 
-    $this->actingAs($setup['owner'])->get(route('reports.boat-manifest', [$setup['property']->code, 'date' => '2026-10-20']))
+    $this->actingAs($setup['owner'])->get("/p/{$code}/reports/boat-manifest?date=2026-10-20")->assertNotFound();
+    $this->put("/p/{$code}/reports/boat-manifest/trips/{$trip->id}/tick", ['ticked' => true])->assertNotFound();
+
+    expect(Route::has('reports.boat-manifest'))->toBeFalse()
+        ->and(Route::has('reports.boat-manifest.tick'))->toBeFalse()
+        ->and(Route::has('reports.boat-manifest.sailings'))->toBeFalse();
+});
+
+test('the single tick is boats.trips.set-tick, needs reservations.manage and keeps to the property', function () {
+    $setup = sailingSetup();
+    $foreign = sailingSetup();
+    $trip = sailingTrip($setup, $setup['departure']);
+    $foreignTrip = sailingTrip($foreign, $foreign['departure']);
+    $code = $setup['property']->code;
+
+    expect(route('boats.trips.set-tick', [$code, $trip->id], false))->toBe("/p/{$code}/boats/trips/{$trip->id}/tick");
+
+    $this->actingAs(boardViewer($setup))->put(route('boats.trips.set-tick', [$code, $trip->id]), ['ticked' => true])->assertForbidden();
+    expect($trip->refresh()->ticked_at)->toBeNull();
+
+    $this->actingAs($setup['owner'])->put(route('boats.trips.set-tick', [$code, $trip->id]), ['ticked' => true])->assertRedirect();
+    expect($trip->refresh()->ticked_at)->not->toBeNull();
+
+    $this->put(route('boats.trips.set-tick', [$code, $trip->id]), ['ticked' => false])->assertRedirect();
+    expect($trip->refresh()->ticked_at)->toBeNull();
+
+    $this->put(route('boats.trips.set-tick', [$code, $foreignTrip->id]), ['ticked' => true])->assertNotFound();
+    expect($foreignTrip->refresh()->ticked_at)->toBeNull();
+});
+
+test('the board sends the crew phone for the pickers, the manifest layout for Columns, and who may edit the columns', function () {
+    $setup = sailingSetup();
+    $setup['din']->update(['phone' => '012-111 2222']);
+    $setup['razak']->update(['phone' => null]);
+    $viewer = boardViewer($setup);
+
+    $this->actingAs($setup['owner'])->get(boardUrl($setup))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('reports/boat-manifest')
-            ->missing('sailings')
-            ->missing('boats')
-            ->missing('crew'));
+            ->where('crew', fn ($crew) => collect($crew)->pluck('phone', 'name')->all() === ['Din' => '012-111 2222', 'Razak' => null])
+            ->where('layout.columns.0.key', 'departure')
+            ->where('can.columns', true)
+            ->where('can.manage', true)
+            ->has('orientationOptions'));
 
-    expect(Route::has('reports.boat-manifest.sailings'))->toBeFalse();
+    $this->actingAs($viewer)->get(boardUrl($setup))
+        ->assertInertia(fn (Assert $page) => $page->where('can.columns', false)->where('can.manage', false));
+});
+
+test('departures with no guests show their groups, and the Charter, Own boat and Boat not set groups stay hidden', function () {
+    $setup = sailingSetup();
+
+    $this->actingAs($setup['owner'])->get(boardUrl($setup, ['direction' => 'in']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('groups', 2)
+            ->where('groups.0.kind', 'sailing')
+            ->where('groups.0.rows', [])
+            ->where('groups.1.kind', 'sailing')
+            ->where('groups.1.rows', []));
 });

@@ -78,6 +78,8 @@ type Props = {
     dates: Record<string, string>;
     /** Called after Save or Reset worked, to close the sheet without the discard question. */
     onDone: () => void;
+    /** Replaces the default line under the title, for a board whose table does not follow the draft. */
+    description?: string;
     /** Extra buttons next to Reset and Preview, for example Match screen on the Housekeeping board. */
     footerActions?: ReactNode;
 };
@@ -162,6 +164,7 @@ export function ReportLayoutSheet({
     orientations,
     dates,
     onDone,
+    description,
     footerActions,
 }: Props) {
     const { csrfToken } = usePage().props;
@@ -264,7 +267,10 @@ export function ReportLayoutSheet({
                 open={open}
                 onOpenChange={onOpenChange}
                 title={`Layout · ${reportLabel}`}
-                description="Choose the paper orientation and the columns, in the order they show, and how each aligns. The table behind this panel shows your changes."
+                description={
+                    description ??
+                    'Choose the paper orientation and the columns, in the order they show, and how each aligns. The table behind this panel shows your changes.'
+                }
                 errors={errors}
                 dirty={dirty}
                 discardTitle="Discard layout changes?"

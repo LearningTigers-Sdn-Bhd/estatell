@@ -6,7 +6,7 @@ use App\Data\Reports\BoatManifestRow;
 use Spatie\LaravelData\Data;
 
 /**
- * One group of the Boats board: a sailing (`kind` sailing), the charter and own boat trips (`front_desk`) or the units with
+ * One group of the Boats board: a sailing (`kind` sailing), the charter trips (`charter`), the own boat trips (`own`) or the units with
  * no boat set (`not_set`). A sailing group names its boat, crew, time and seats, and carries what the group menu needs:
  * `departureId` and `sailingId` (null for the main sailing that is not stored yet), `hasStored` (the departure has stored
  * sailings on the date, so Default shows) and `canRemove` (an added boat or an extra trip with no guests). `cancelled` shows the

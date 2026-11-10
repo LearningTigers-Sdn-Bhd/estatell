@@ -181,6 +181,7 @@ function BoatDepartureForm({
         ...offeredCrew.map((member) => ({
             value: String(member.id),
             label: crewLabel(member),
+            description: member.phone ?? undefined,
         })),
     ];
     const assistantOptions = offeredCrew
@@ -188,6 +189,7 @@ function BoatDepartureForm({
         .map((member) => ({
             value: String(member.id),
             label: crewLabel(member),
+            description: member.phone ?? undefined,
         }));
 
     const submit = () => {

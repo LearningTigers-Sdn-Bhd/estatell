@@ -6,13 +6,14 @@ use App\Data\Boats\BoatBoardGroupData;
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Models\BoatDeparture;
 use App\Models\Property;
 use App\Services\Reports\BoatManifestReport;
 use Carbon\CarbonImmutable;
 
 /**
- * The groups of the Boats board for one date and direction: one per sailing in time order, then the charter and own boat
+ * The groups of the Boats board for one date and direction: one per sailing in time order, then the charter trips, the own boat
  * trips, then the units with no boat set. It reads the same rows as the Boat manifest (`BoatManifestReport`) and the same
  * sailings (`DateSailings`). Reads only. See docs/24-boats/05-boats-board.md.
  */
@@ -40,13 +41,15 @@ class BoatBoard
         ));
 
         $bySailing = [];
-        $frontDesk = [];
+        $charter = [];
+        $own = [];
         $notSet = [];
 
         foreach ($rows as $row) {
             match (true) {
                 $row->not_set => $notSet[] = $row,
-                $row->sailing_key === null => $frontDesk[] = $row,
+                $row->sailing_key === null && $row->mode === BoatMode::Charter->value => $charter[] = $row,
+                $row->sailing_key === null => $own[] = $row,
                 default => $bySailing[$row->sailing_key][] = $row,
             };
         }
@@ -80,8 +83,12 @@ class BoatBoard
             $groups[] = $this->sailingGroup($sailing, $group, $sailing->departure === null ? false : ($stored[$sailing->departure->id] ?? false), $guestsByDeparture[$sailing->departure?->id] ?? 0);
         }
 
-        if ($frontDesk !== []) {
-            $groups[] = $this->plainGroup('front-desk', 'front_desk', __('Charter and own boat'), $frontDesk);
+        if ($charter !== []) {
+            $groups[] = $this->plainGroup('charter', 'charter', BoatMode::Charter->label(), $charter);
+        }
+
+        if ($own !== []) {
+            $groups[] = $this->plainGroup('own', 'own', BoatMode::Own->label(), $own);
         }
 
         if ($notSet !== []) {

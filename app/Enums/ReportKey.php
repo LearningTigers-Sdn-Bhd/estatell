@@ -675,7 +675,7 @@ enum ReportKey: string
     /**
      * Whether the report is listed in the Reports sidebar. Housekeeping tasks is the board's print sheet, opened from
      * the Housekeeping page, and has no page of its own. The tabs of a `TabbedReport` are reached through that page,
-     * except Payments, which keeps its own entry. House status and Boat manifest sit in the Front desk sidebar.
+     * except Payments, which keeps its own entry. House status sits in the Front desk sidebar. Boat manifest is the export key of the Boat Trips board and has no page.
      */
     public function listedInReportsMenu(): bool
     {

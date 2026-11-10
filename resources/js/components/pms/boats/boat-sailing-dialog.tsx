@@ -76,12 +76,14 @@ function BoatSailingForm({
     const inChargeOptions: EnumOption[] = people.map((member) => ({
         value: String(member.id),
         label: personLabel(member),
+        description: member.phone ?? undefined,
     }));
     const assistantOptions = people
         .filter((member) => String(member.id) !== form.data.in_charge_id)
         .map((member) => ({
             value: String(member.id),
             label: personLabel(member),
+            description: member.phone ?? undefined,
         }));
 
     const submit = () => {
