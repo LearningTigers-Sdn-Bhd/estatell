@@ -3,11 +3,11 @@
 namespace App\Http\Middleware;
 
 use App\Enums\KeyportApiError;
+use App\Enums\LockProvider;
 use App\Features\DoorLocks;
 use App\Models\KeyportDevice;
 use Closure;
 use Illuminate\Http\Request;
-use Laravel\Pennant\Feature;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -33,7 +33,7 @@ class AuthenticateKeyportDevice
             return KeyportApiError::Unauthorized->response();
         }
 
-        if (! Feature::for($device->property)->active(DoorLocks::class)) {
+        if (! DoorLocks::allows($device->property, LockProvider::ELock)) {
             return KeyportApiError::DoorLocksDisabled->response();
         }
 

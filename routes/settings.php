@@ -218,16 +218,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
     Route::prefix('door-locks')->name('door-locks.')->middleware(['door-locks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [DoorLockSettingsController::class, 'edit'])->name('edit');
-        Route::put('/', [DoorLockSettingsController::class, 'update'])->name('update');
-        Route::post('test', [DoorLockSettingsController::class, 'test'])->name('test');
-        Route::post('sync', [DoorLockSettingsController::class, 'sync'])->name('sync');
-        Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link');
-        Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock');
-        Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock');
-        Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health');
-        Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store');
-        Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke');
-        Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry');
+        Route::put('/', [DoorLockSettingsController::class, 'update'])->name('update')->middleware('door-locks:ttlock');
+        Route::post('test', [DoorLockSettingsController::class, 'test'])->name('test')->middleware('door-locks:ttlock');
+        Route::post('sync', [DoorLockSettingsController::class, 'sync'])->name('sync')->middleware('door-locks:ttlock');
+        Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health')->middleware('door-locks:ttlock');
+        Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store')->middleware('door-locks:ttlock');
+        Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke')->middleware('door-locks:ttlock');
+        Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry')->middleware('door-locks:ttlock');
     });
 
     Route::prefix('booking-website')->name('booking-website.')->middleware('booking-engine')->scopeBindings()->group(function () {
@@ -266,7 +266,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         });
     });
 
-    Route::prefix('keyport')->name('keyport.')->middleware(['door-locks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+    Route::prefix('keyport')->name('keyport.')->middleware(['door-locks:elock', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [KeyportSettingsController::class, 'index'])->name('index');
         Route::post('codes', [KeyportSettingsController::class, 'storeCode'])->name('codes.store');
         Route::post('devices/{keyportDevice}/revoke', [KeyportSettingsController::class, 'revokeDevice'])->name('devices.revoke');

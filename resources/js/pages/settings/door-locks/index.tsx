@@ -158,6 +158,7 @@ export default function DoorLocksIndex({
     passcodeKinds,
     locks,
     rooms,
+    providers,
     lockTotal,
     lockSearch,
     lockOptions,
@@ -167,6 +168,7 @@ export default function DoorLocksIndex({
     connection: App.Data.DoorLocks.DoorLockConnectionData | null;
     passcodeModes: { value: string; label: string; description: string }[];
     passcodeKinds: { value: string; label: string }[];
+    providers: string[];
     lockTotal: number;
     lockSearch: string;
     lockOptions: { value: string; label: string; hasGateway: boolean }[];
@@ -193,10 +195,13 @@ export default function DoorLocksIndex({
         >;
     };
 }) {
-    // A property with only eLock locks opens on that tab. Both kinds can live side by side.
-    const [view, setView] = useState<'ttlock' | 'elock'>(
+    // The admin chooses the providers per property. With both, a property with only eLock locks opens on that tab.
+    const hasTtlock = providers.includes('ttlock');
+    const hasElock = providers.includes('elock');
+    const [chosen, setView] = useState<'ttlock' | 'elock'>(
         lockTotal === 0 && keyport.lockTotal > 0 ? 'elock' : 'ttlock',
     );
+    const view = !hasElock ? 'ttlock' : !hasTtlock ? 'elock' : chosen;
     const [sheetOpen, setSheetOpen] = useState(false);
     const [lockQuery, setLockQuery] = useState(lockSearch);
 
@@ -261,21 +266,23 @@ export default function DoorLocksIndex({
                     description="Give each checked-in stay a PIN or key card for its room door, and take it away at check-out."
                 />
 
-                <Tabs
-                    value={view}
-                    onValueChange={(value) =>
-                        setView(value === 'elock' ? 'elock' : 'ttlock')
-                    }
-                >
-                    <TabsList>
-                        <TabsTrigger value="ttlock">
-                            TTLock ({lockTotal})
-                        </TabsTrigger>
-                        <TabsTrigger value="elock">
-                            eLock ({keyport.lockTotal})
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                {hasTtlock && hasElock && (
+                    <Tabs
+                        value={view}
+                        onValueChange={(value) =>
+                            setView(value === 'elock' ? 'elock' : 'ttlock')
+                        }
+                    >
+                        <TabsList>
+                            <TabsTrigger value="ttlock">
+                                TTLock ({lockTotal})
+                            </TabsTrigger>
+                            <TabsTrigger value="elock">
+                                eLock ({keyport.lockTotal})
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                )}
 
                 {view === 'elock' ? (
                     <KeyportSection

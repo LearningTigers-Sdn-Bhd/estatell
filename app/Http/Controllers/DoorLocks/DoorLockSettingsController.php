@@ -21,6 +21,7 @@ use App\Enums\LockProvider;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeMode;
 use App\Enums\PasscodeStatus;
+use App\Features\DoorLocks;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DoorLocks\IssuePasscodeRequest;
 use App\Http\Requests\DoorLocks\SaveDoorLockConnectionRequest;
@@ -51,6 +52,8 @@ class DoorLockSettingsController extends Controller
         $ttlocks = $property->doorLocks()->ofProvider(LockProvider::TTLock);
 
         return Inertia::render('settings/door-locks/index', [
+            // The providers the admin turned on for this property. The page shows only these.
+            'providers' => array_map(fn (LockProvider $provider): string => $provider->value, DoorLocks::providers($property)),
             'connection' => $connection === null ? null : DoorLockConnectionData::fromModel($connection),
             'passcodeModes' => PasscodeMode::options(),
             'passcodeKinds' => array_map(fn (PasscodeKind $kind): array => ['value' => $kind->value, 'label' => $kind->label()], PasscodeKind::cases()),

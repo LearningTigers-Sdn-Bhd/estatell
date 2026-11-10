@@ -3,6 +3,8 @@
 use App\Actions\DoorLocks\CreateKeyportJob;
 use App\Enums\KeyportJobStatus;
 use App\Enums\KeyportJobType;
+use App\Events\StayCheckedIn;
+use App\Features\DoorLocks;
 use App\Models\DoorLock;
 use App\Models\KeyportDevice;
 use App\Models\KeyportJob;
@@ -11,6 +13,7 @@ use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/KeyportSetup.php';
 
@@ -193,4 +196,31 @@ it('never edits or removes a lock of another property', function () {
     $this->actingAs($owner)->delete(route('settings.keyport.locks.destroy', [$property, $foreign]))->assertNotFound();
     $this->actingAs($owner)->put(route('settings.keyport.locks.update', [$property, $foreign]), ['name' => 'X', 'lock_no' => '1.1.150', 'room_id' => ''])->assertNotFound();
     expect($foreign->fresh())->not->toBeNull();
+});
+
+it('keeps eLock routes, card jobs and the Keyport API closed when the property uses only TTLock', function () {
+    ['owner' => $owner, 'property' => $property, 'unit' => $unit] = keyportElockSetup();
+    Feature::for($property)->activate(DoorLocks::class, ['ttlock']);
+    $token = 'kp_live_'.str_repeat('a', 40);
+    KeyportDevice::factory()->for($property)->withToken($token)->create();
+
+    $this->actingAs($owner)->post(route('settings.keyport.codes.store', $property))->assertNotFound();
+    $this->actingAs($owner)->get(route('settings.door-locks.edit', $property))
+        ->assertInertia(fn (Assert $page) => $page->where('providers', ['ttlock']));
+
+    StayCheckedIn::dispatch($property->id, $unit->id);
+    expect(KeyportJob::query()->count())->toBe(0);
+
+    $this->postJson(route('keyport.jobs.claim'), [], keyportHeaders($token))->assertForbidden()->assertJsonPath('error.code', 'door_locks_disabled');
+});
+
+it('keeps TTLock routes closed when the property uses only eLock', function () {
+    ['owner' => $owner, 'property' => $property] = keyportElockSetup();
+    Feature::for($property)->activate(DoorLocks::class, ['elock']);
+
+    $this->actingAs($owner)->post(route('settings.door-locks.sync', $property))->assertNotFound();
+    $this->actingAs($owner)->post(route('settings.door-locks.passcodes.store', $property))->assertNotFound();
+    $this->actingAs($owner)->get(route('settings.door-locks.edit', $property))
+        ->assertInertia(fn (Assert $page) => $page->where('providers', ['elock']));
+    $this->actingAs($owner)->post(route('settings.keyport.codes.store', $property))->assertRedirect();
 });

@@ -39,7 +39,7 @@ enum PlatformFeature: string
             self::ChannelManager => __('Connect this property to a channel manager and sync OTAs.'),
             self::Boats => __('Boat departures, fares and boat trips for island and jetty properties.'),
             self::AccountingIntegration => __('Push each closed business date to the property\'s accounting software.'),
-            self::DoorLocks => __('Issue and remove TTLock door PINs for each stay.'),
+            self::DoorLocks => __('Door locks for each stay: TTLock PINs and cards from the cloud, and eLock key cards written at the front desk. Choose which the property uses.'),
             self::Kiosks => __('Self check-in kiosks: pairing, settings and the kiosk API for this property.'),
             self::BookingEngine => __('Let guests book and pay online, on a booking website or through the API.'),
         };

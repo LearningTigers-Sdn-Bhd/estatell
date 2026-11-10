@@ -20,6 +20,7 @@ use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
 use App\Enums\Locale;
+use App\Enums\LockProvider;
 use App\Enums\ManualFolioReason;
 use App\Enums\PaymentMethodType;
 use App\Enums\PermissionEnum;
@@ -151,7 +152,7 @@ class ReservationController extends Controller
      */
     private function keyCards(User $user, Property $property, ReservationUnit $unit): ?UnitKeyCardsData
     {
-        if (! Feature::for($property)->active(DoorLocks::class)
+        if (! DoorLocks::allows($property, LockProvider::ELock)
             || ! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
             return null;
         }
@@ -164,7 +165,7 @@ class ReservationController extends Controller
      */
     private function doorPins(User $user, Property $property, ReservationUnit $unit): ?UnitDoorPinsData
     {
-        if (! Feature::for($property)->active(DoorLocks::class)
+        if (! DoorLocks::allows($property, LockProvider::TTLock)
             || ! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
             return null;
         }

@@ -28,6 +28,8 @@ The eLock tab pages its lists on the server: locks (10 a page, `locks_page`, sea
 
 Staff can edit an eLock lock (name, number, room) and remove it from the row menu. Edit refuses a number or room another lock has. Remove is refused while a card job waits at the lock or a checked-in guest holds a card for it. Cards already written keep the old number after an edit, and are not erased by a remove.
 
+Keyport is available only when the admin turned on the eLock provider for the property (see the feature gate in `01-ttlock-integration.md`).
+
 ## One provider for each lock
 
 `door_locks.provider` is the only thing that decides how a lock works. Nothing is chosen per property or at run time, so a hotel can mix both.

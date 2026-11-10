@@ -2301,6 +2301,11 @@ feature: App.Enums.PlatformFeature,
 label: string,
 description: string,
 active: boolean,
+providers: string[] | null,
+providerOptions: {
+value: string,
+label: string,
+}[] | null,
 };
 export type ViewAsStaffData = {
 id: number,
