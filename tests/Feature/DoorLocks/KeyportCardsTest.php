@@ -183,3 +183,10 @@ it('flags a card whose end date no longer matches the stay', function () {
     $unit->update(['departure_date' => '2026-10-18']);
     expect(app(UnitKeyCards::class)->forUnit($unit->refresh())->locks[0]['stale'])->toBeTrue();
 });
+
+it('badges an eLock room on the stay page', function () {
+    ['owner' => $owner, 'unit' => $unit] = keyportElockSetup();
+
+    test()->actingAs($owner)->get(route('reservations.show', ['property' => $unit->property, 'reservation' => $unit->reservation_id, 'unit' => $unit->id]))
+        ->assertInertia(fn ($page) => $page->where('lockProviders', ['eLock']));
+});

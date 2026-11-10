@@ -46,6 +46,7 @@ use App\Services\Boats\BoatTripAccess;
 use App\Services\Boats\ReservationBoatSummary;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\DoorLocks\StayLocks;
 use App\Services\DoorLocks\UnitDoorPins;
 use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
@@ -142,9 +143,29 @@ class ReservationController extends Controller
                 'unit' => $data,
                 'doorPins' => $this->doorPins($request->user(), $property, $selected),
                 'keyCards' => $this->keyCards($request->user(), $property, $selected),
+                'lockProviders' => $this->lockProviders($request->user(), $property, $selected),
                 'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $property, $reservation, $single, $activityLog, $actionMenu)),
             ];
         });
+    }
+
+    /**
+     * Which lock systems open the room the unit sleeps in now, for a badge on the stay. Same staff and features as the PINs and cards.
+     *
+     * @return list<string>
+     */
+    private function lockProviders(User $user, Property $property, ReservationUnit $unit): array
+    {
+        if (! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
+            return [];
+        }
+
+        $stayLocks = app(StayLocks::class);
+
+        return array_values(array_filter([
+            DoorLocks::allows($property, LockProvider::TTLock) && $stayLocks->current($unit)->isNotEmpty() ? LockProvider::TTLock->label() : null,
+            DoorLocks::allows($property, LockProvider::ELock) && $stayLocks->currentElock($unit)->isNotEmpty() ? LockProvider::ELock->label() : null,
+        ]));
     }
 
     /**
