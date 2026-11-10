@@ -32,6 +32,8 @@ class HousekeepingRoomData extends Data
         public ?int $assignedTo,
         public ?string $assignedName,
         public ?string $guest,
+        public ?int $adults,
+        public ?int $children,
         public ?string $arrivalDate,
         public ?string $arrivalTime,
         public ?string $departureDate,
@@ -51,7 +53,7 @@ class HousekeepingRoomData extends Data
      * Expects `roomType`, `roomGroup` and `status.assignee` loaded.
      *
      * @param  list<HousekeepingBedBlockData>  $bedBlocks
-     * @param  array{guest: ?string, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool}  $stay
+     * @param  array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool}  $stay
      */
     public static function forRoom(
         Room $room,
@@ -92,6 +94,8 @@ class HousekeepingRoomData extends Data
             assignedTo: $roomStatus->assigned_to,
             assignedName: $roomStatus->assignee?->name,
             guest: $stay['guest'],
+            adults: $stay['adults'],
+            children: $stay['children'],
             arrivalDate: $stay['arrivalDate'],
             arrivalTime: $stay['arrivalTime'],
             departureDate: $stay['departureDate'],

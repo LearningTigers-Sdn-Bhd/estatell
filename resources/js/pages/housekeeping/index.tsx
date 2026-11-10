@@ -3,6 +3,7 @@ import {
     ArrowDown,
     ArrowUp,
     ArrowUpDown,
+    Baby,
     Ban,
     BedDouble,
     BedSingle,
@@ -16,6 +17,7 @@ import {
     Settings2,
     Star,
     StarOff,
+    User,
     UserRound,
     Wrench,
 } from 'lucide-react';
@@ -64,7 +66,7 @@ type Room = App.Data.Housekeeping.HousekeepingRoomData;
 type Staff = App.Data.Housekeeping.HousekeepingStaffData;
 type Badge = App.Data.Shared.BadgeData;
 type View = 'all' | 'group' | 'type';
-type Movement = '' | 'arrivals' | 'departures' | 'stayovers';
+type Movement = 'arrivals' | 'departures' | 'stayovers';
 type SortKey =
     | 'room'
     | 'status'
@@ -105,9 +107,15 @@ function matchesMovement(room: Room, movement: Movement): boolean {
             return room.departureTime !== null;
         case 'stayovers':
             return room.isStayOver;
-        default:
-            return true;
     }
+}
+
+/** No movement picked shows every room; otherwise a room shows when it matches any picked movement. */
+function matchesMovements(room: Room, movements: Movement[]): boolean {
+    return (
+        movements.length === 0 ||
+        movements.some((movement) => matchesMovement(room, movement))
+    );
 }
 
 function sortValue(room: Room, key: SortKey): string | null {
@@ -238,7 +246,7 @@ export default function HousekeepingIndex({
     const [view, setView] = useState<View>('group');
     const [statusFilter, setStatusFilter] = useState('');
     const [assignedFilter, setAssignedFilter] = useState('');
-    const [movement, setMovement] = useState<Movement>('');
+    const [movements, setMovements] = useState<Movement[]>([]);
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [remarkOpen, setRemarkOpen] = useState(false);
@@ -266,9 +274,9 @@ export default function HousekeepingIndex({
                         (assignedFilter === 'none'
                             ? room.assignedTo === null
                             : String(room.assignedTo) === assignedFilter)) &&
-                    matchesMovement(room, movement),
+                    matchesMovements(room, movements),
             ),
-        [rooms, sort, statusFilter, assignedFilter, movement],
+        [rooms, sort, statusFilter, assignedFilter, movements],
     );
 
     const selectableIds = useMemo(
@@ -595,22 +603,26 @@ export default function HousekeepingIndex({
                                     aria-label="Assigned to"
                                 />
                             )}
-                            <EnumSelect
-                                options={[
-                                    { value: 'arrivals', label: 'Arrivals' },
-                                    {
-                                        value: 'departures',
-                                        label: 'Departures',
-                                    },
-                                    { value: 'stayovers', label: 'Stay-overs' },
-                                ]}
-                                allLabel="All rooms"
-                                value={movement}
+                            <ToggleGroup
+                                multiple
+                                variant="outline"
+                                spacing={0}
+                                value={movements}
                                 onValueChange={(value) =>
-                                    setMovement(value as Movement)
+                                    setMovements(value as Movement[])
                                 }
                                 aria-label="Movement today"
-                            />
+                            >
+                                <ToggleGroupItem value="arrivals">
+                                    Arrivals
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="departures">
+                                    Departures
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="stayovers">
+                                    Stay-overs
+                                </ToggleGroupItem>
+                            </ToggleGroup>
                         </div>
 
                         {shown.length === 0 ? (
@@ -674,6 +686,7 @@ export default function HousekeepingIndex({
                                                 sort={sort}
                                                 onSort={cycleSort}
                                             />
+                                            <TableHead>Pax</TableHead>
                                             <SortHead
                                                 label="Arrival"
                                                 sortKey="arrival"
@@ -907,7 +920,7 @@ function GroupRows({
         <>
             {name !== null && (
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableCell colSpan={10}>
+                    <TableCell colSpan={11}>
                         <div className="flex items-center gap-3">
                             {can.update && (
                                 <Checkbox
@@ -1087,6 +1100,28 @@ function GroupRows({
                         <TableCell>
                             {room.guest ?? (
                                 <span className="text-muted-foreground">—</span>
+                            )}
+                        </TableCell>
+                        <TableCell>
+                            {room.adults === null ? (
+                                <span className="text-muted-foreground">—</span>
+                            ) : (
+                                <span className="flex items-center gap-3 text-sm tabular-nums">
+                                    <span
+                                        className="flex items-center gap-1"
+                                        aria-label={`${room.adults} adults`}
+                                    >
+                                        <User aria-hidden className="size-4" />
+                                        {room.adults}
+                                    </span>
+                                    <span
+                                        className="flex items-center gap-1"
+                                        aria-label={`${room.children ?? 0} children`}
+                                    >
+                                        <Baby aria-hidden className="size-4" />
+                                        {room.children ?? 0}
+                                    </span>
+                                </span>
                             )}
                         </TableCell>
                         <TableCell>

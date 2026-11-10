@@ -21,15 +21,16 @@ The system reason (see below) is not stored. It is worked out from the room and 
 - One row for each **active room** (archived rooms are left out) for the open business date (`CurrentBusinessDate`, or `PropertyToday` before business dates exist). There is no date picker, because only today can be worked on.
 - The server sends every row field. The browser sorts, filters and groups the rows it holds.
 
-| Field              | Source                                                                                             |
-| ------------------ | -------------------------------------------------------------------------------------------------- |
-| Room, group, type  | `rooms`, room group, room type                                                                     |
-| Status             | `room_statuses.status`, or **Blocked** (value `out_of_service`) when an open block covers the date |
-| Assigned           | `room_statuses.assigned_to`                                                                        |
-| Guest              | The primary guest of the unit that departs or stays in the room, else the one that arrives today   |
-| Arrival, Departure | The unit that arrives today and the unit that departs today: date and expected time (not actual)   |
-| Flags              | `is_priority`, `do_not_disturb_on` (today), `needs_maintenance`                                    |
-| Remark, reason     | `remark` written by staff, and the derived system reason                                           |
+| Field              | Source                                                                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Room, group, type  | `rooms`, room group, room type                                                                                                    |
+| Status             | `room_statuses.status`, or **Blocked** (value `out_of_service`) when an open block covers the date                                |
+| Assigned           | `room_statuses.assigned_to`                                                                                                       |
+| Guest              | The primary guest of tonight's unit: the one that stays over or arrives today, else the one that departs                          |
+| Pax                | Adults and children of tonight's party: every unit that stays over or arrives (a bed room adds them up), else the departing units |
+| Arrival, Departure | The unit that arrives today and the unit that departs today: date and expected time (not actual)                                  |
+| Flags              | `is_priority`, `do_not_disturb_on` (today), `needs_maintenance`                                                                   |
+| Remark, reason     | `remark` written by staff, and the derived system reason                                                                          |
 
 A room can have a departure and an arrival on the same day. Both show, each in its own column.
 
@@ -105,7 +106,7 @@ An open `room_blocks` row that covers the business date makes the room **Blocked
 | Part    | Behavior                                                                                                                                                                                                                                                                                                                 |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | View    | All, Grouped by room group, Grouped by room type. A group header shows the room count and the Dirty count, and can be collapsed.                                                                                                                                                                                         |
-| Filters | Status (including Blocked), Assigned (including Unassigned), and Arrivals today, Departures today, Stayovers.                                                                                                                                                                                                            |
+| Filters | Status (including Blocked), Assigned (including Unassigned), and a movement toggle: Arrivals, Departures and Stay-overs. Several can be on; a room shows when it matches any of them, and none on shows every room.                                                                                                      |
 | Sort    | Default **due**: departures by `departure_time`, then arrivals by `arrival_time`, then other rooms by room number. With boats, the boat order (see the Boats items in the checklist). A column header overrides it: click once for ascending, again for descending, a third time to go back to due. Empty cells go last. |
 | Browser | The view and collapsed groups are remembered in the browser. They are not saved on the server and are not part of the report layout.                                                                                                                                                                                     |
 

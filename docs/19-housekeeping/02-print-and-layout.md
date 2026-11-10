@@ -32,28 +32,31 @@ Let housekeeping print the board as a work sheet, and let a manager choose its c
 
 A merged column keeps its key, label and default visibility. Its split columns are new keys, hidden by default, right after it (see [Core reports](../22-reports/01-core-reports.md#registry)).
 
-| Key                 | Label          | Align | Visible | Split of    | Value type                       |
-| ------------------- | -------------- | ----- | ------- | ----------- | -------------------------------- |
-| `room`              | Room           | left  | ✓       | –           | text                             |
-| `room_group`        | Group          | left  | –       | –           | text                             |
-| `unit`              | Type / room    | left  | –       | –           | text                             |
-| `room_type`         | Room type      | left  | –       | `unit`      | text                             |
-| `status`            | Status         | left  | ✓       | –           | text (label)                     |
-| `assigned`          | Assigned       | left  | ✓       | –           | text                             |
-| `guest`             | Guest          | left  | ✓       | –           | text                             |
-| `arrival`           | Arrival        | left  | ✓       | –           | text (`12 Oct · 14:00`)          |
-| `arrival_date`      | Arrival date   | left  | –       | `arrival`   | date                             |
-| `arrival_time`      | Arrival time   | left  | –       | `arrival`   | `H:i`                            |
-| `departure`         | Departure      | left  | ✓       | –           | text                             |
-| `departure_date`    | Departure date | left  | –       | `departure` | date                             |
-| `departure_time`    | Departure time | left  | –       | `departure` | `H:i`                            |
-| `flags`             | Flags          | left  | ✓       | –           | text (`Priority · DND · Maint.`) |
-| `priority`          | Priority       | left  | –       | `flags`     | yes or empty                     |
-| `do_not_disturb`    | Do not disturb | left  | –       | `flags`     | yes or empty                     |
-| `needs_maintenance` | Maintenance    | left  | –       | `flags`     | yes or empty                     |
-| `remarks`           | Remarks        | left  | ✓       | –           | text (remark and reason)         |
-| `remark`            | Remark         | left  | –       | `remarks`   | text                             |
-| `system_reason`     | Reason         | left  | –       | `remarks`   | text                             |
+| Key                 | Label          | Align | Visible | Split of    | Value type                        |
+| ------------------- | -------------- | ----- | ------- | ----------- | --------------------------------- |
+| `room`              | Room           | left  | ✓       | –           | text                              |
+| `room_group`        | Group          | left  | –       | –           | text                              |
+| `unit`              | Type / room    | left  | –       | –           | text                              |
+| `room_type`         | Room type      | left  | –       | `unit`      | text                              |
+| `status`            | Status         | left  | ✓       | –           | text (label)                      |
+| `assigned`          | Assigned       | left  | ✓       | –           | text                              |
+| `guest`             | Guest          | left  | ✓       | –           | text                              |
+| `pax`               | Pax            | left  | ✓       | –           | text (`2 + 1`, adults + children) |
+| `adults`            | Adults         | right | –       | `pax`       | number                            |
+| `children`          | Children       | right | –       | `pax`       | number                            |
+| `arrival`           | Arrival        | left  | ✓       | –           | text (`12 Oct · 14:00`)           |
+| `arrival_date`      | Arrival date   | left  | –       | `arrival`   | date                              |
+| `arrival_time`      | Arrival time   | left  | –       | `arrival`   | `H:i`                             |
+| `departure`         | Departure      | left  | ✓       | –           | text                              |
+| `departure_date`    | Departure date | left  | –       | `departure` | date                              |
+| `departure_time`    | Departure time | left  | –       | `departure` | `H:i`                             |
+| `flags`             | Flags          | left  | ✓       | –           | text (`Priority · DND · Maint.`)  |
+| `priority`          | Priority       | left  | –       | `flags`     | yes or empty                      |
+| `do_not_disturb`    | Do not disturb | left  | –       | `flags`     | yes or empty                      |
+| `needs_maintenance` | Maintenance    | left  | –       | `flags`     | yes or empty                      |
+| `remarks`           | Remarks        | left  | ✓       | –           | text (remark and reason)          |
+| `remark`            | Remark         | left  | –       | `remarks`   | text                              |
+| `system_reason`     | Reason         | left  | –       | `remarks`   | text                              |
 
 - `arrival` and `departure` hold the date and time in one value, so a sort puts them in time order. A same-day turnover keeps both.
 - `room` and `status` stay visible: the Layout Sheet refuses a layout without at least one visible column, and the board needs both.

@@ -99,6 +99,31 @@ test('the board lists every active room with its status, stay and reason, depart
     expect($idle->status->status)->toBe(HousekeepingStatus::Inspected);
 });
 
+test('the guest and pax columns show tonight\'s party, or the departing one when nobody arrives', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $turnover = boardRoom($property, '201', HousekeepingStatus::Dirty);
+    $stayOver = boardRoom($property, '202', HousekeepingStatus::Dirty);
+    $leaving = boardRoom($property, '203', HousekeepingStatus::Dirty);
+    boardRoom($property, '204');
+
+    boardUnit($property, $turnover, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'adults' => 1, 'children' => 0], 'Leaving Guest', 'checkedIn');
+    boardUnit($property, $turnover, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14', 'adults' => 2, 'children' => 1], 'Arriving Family');
+    boardUnit($property, $stayOver, ['arrival_date' => '2026-10-11', 'departure_date' => '2026-10-14', 'adults' => 3, 'children' => 0], 'Staying Guest', 'checkedIn');
+    boardUnit($property, $leaving, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'adults' => 2, 'children' => 2], 'Departed Guest', 'checkedOut');
+
+    $rooms = fn (): array => collect(test()->actingAs($owner)->get(route('housekeeping.index', $property->code))->original->getData()['page']['props']['rooms'])
+        ->mapWithKeys(fn (array $room): array => [$room['number'] => [$room['guest'], $room['adults'], $room['children']]])
+        ->all();
+
+    expect($rooms())->toEqual([
+        '203' => ['Departed Guest', 2, 2],
+        '201' => ['Arriving Family', 2, 1],
+        '202' => ['Staying Guest', 3, 0],
+        '204' => [null, null, null],
+    ]);
+});
+
 test('the board orders departures by departure time, then arrivals by arrival time, then the rest by room', function () {
     $owner = User::factory()->owner()->create();
     $property = boardProperty($owner);
@@ -431,10 +456,11 @@ test('the board spreadsheet lists the rooms in due order with the saved layout',
 
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
-    expect($rows[0])->toBe(['Room', 'Status', 'Assigned', 'Guest', 'Arrival', 'Departure', 'Flags', 'Remarks'])
+    expect($rows[0])->toBe(['Room', 'Status', 'Assigned', 'Guest', 'Pax', 'Arrival', 'Departure', 'Flags', 'Remarks'])
         ->and(array_column($rows, 0))->toBe(['Room', '102', '101', '103'])
-        ->and($rows[1])->toBe(['102', 'Dirty', '', 'Departed Guest', '', '12 Oct · 11:00', 'Priority', 'Spill on rug · Checked out today'])
-        ->and($rows[2][4])->toBe('12 Oct · 14:30');
+        ->and($rows[1])->toBe(['102', 'Dirty', '', 'Departed Guest', '1 + 0', '', '12 Oct · 11:00', 'Priority', 'Spill on rug · Checked out today'])
+        ->and($rows[2][5])->toBe('12 Oct · 14:30')
+        ->and($rows[3][4])->toBe('');
 });
 
 test('the board export keeps only the selected rooms and drops another property\'s', function () {

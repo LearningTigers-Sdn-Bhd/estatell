@@ -10,7 +10,8 @@ use Spatie\LaravelData\Data;
  * One row of the housekeeping work sheet, one for each active room. The property names are the column keys of
  * `ReportKey::HousekeepingTasks`. `key` is the room id and `due` is the place of the room in the board order, so the
  * default sort `due` keeps departures first. `arrival` and `departure` hold `Y-m-d H:i` (the date alone without a
- * time), so a sort puts them in time order; the cells format them.
+ * time), so a sort puts them in time order; the cells format them. `adults` and `children` are the party sleeping in the
+ * room tonight (the departing one when nobody arrives), and `pax` prints them as "2 + 1".
  */
 class HousekeepingTaskRow extends Data implements ReportRow
 {
@@ -24,6 +25,8 @@ class HousekeepingTaskRow extends Data implements ReportRow
         public string $status,
         public ?string $assigned,
         public ?string $guest,
+        public ?int $adults,
+        public ?int $children,
         public ?string $arrival,
         public ?string $arrival_date,
         public ?string $arrival_time,
@@ -52,6 +55,9 @@ class HousekeepingTaskRow extends Data implements ReportRow
             'status' => $this->status,
             'assigned' => $this->assigned ?? '',
             'guest' => $this->guest ?? '',
+            'pax' => $this->adults === null ? '' : __(':adults + :children', ['adults' => $this->adults, 'children' => $this->children ?? 0]),
+            'adults' => $this->adults === null ? '' : (string) $this->adults,
+            'children' => $this->children === null ? '' : (string) $this->children,
             'arrival' => $this->moment($this->arrival_date, $this->arrival_time),
             'arrival_date' => $this->arrival_date === null ? '' : CarbonImmutable::parse($this->arrival_date)->format('j M Y'),
             'arrival_time' => $this->arrival_time ?? '',
@@ -75,6 +81,8 @@ class HousekeepingTaskRow extends Data implements ReportRow
     {
         return [
             ...$this->cells(),
+            'adults' => $this->adults ?? '',
+            'children' => $this->children ?? '',
             'arrival_date' => $this->arrival_date ?? '',
             'departure_date' => $this->departure_date ?? '',
         ];
@@ -101,6 +109,8 @@ class HousekeepingTaskRow extends Data implements ReportRow
             status: $room->status->label,
             assigned: $room->assignedName,
             guest: $room->guest,
+            adults: $room->adults,
+            children: $room->children,
             arrival: $room->arrivalDate === null ? null : trim("{$room->arrivalDate} {$room->arrivalTime}"),
             arrival_date: $room->arrivalDate,
             arrival_time: $room->arrivalTime,
