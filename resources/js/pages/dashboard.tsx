@@ -12,6 +12,10 @@ import { YoureLiveCard } from '@/components/pms/dashboard/youre-live-card';
 import { NightAuditSheet } from '@/components/pms/night-audit/night-audit-sheet';
 import { AuditDialogHost } from '@/components/pms/audit-dialog-host';
 import { TodoCard, TodoSkeleton } from '@/components/pms/dashboard/todo-card';
+import {
+    TodayBookingsCard,
+    TodayBookingsSkeleton,
+} from '@/components/pms/dashboard/today-bookings-card';
 import { TonightTile } from '@/components/pms/dashboard/tonight-tile';
 import { TilesSkeleton } from '@/components/pms/dashboard/tiles-skeleton';
 import { PerformanceTab } from '@/components/pms/dashboard/performance/performance-tab';
@@ -27,6 +31,7 @@ export default function Dashboard({
     youreLive,
     recommended,
     todo,
+    bookings,
     housekeeping,
     tab,
     period,
@@ -46,6 +51,7 @@ export default function Dashboard({
     /** Null for users without settings.manage, and when every item is done or dismissed. */
     recommended: App.Data.Onboarding.RecommendedChecklistData | null;
     todo?: App.Data.Dashboard.DashboardTodoData | null;
+    bookings?: App.Data.Dashboard.TodayBookingsData | null;
     housekeeping?: App.Data.Dashboard.HousekeepingTileData | null;
 }) {
     const [auditOpen, setAuditOpen] = useState(false);
@@ -54,6 +60,7 @@ export default function Dashboard({
     const [loadingKey, setLoadingKey] = useState<string | null>(null);
     const page = usePage();
     const hasTodo = todo !== null;
+    const hasBookings = bookings !== null;
     const hasTonight =
         can.canViewReservations && tiles !== null && tiles?.tonight !== null;
     const hasStats = tiles !== null || housekeeping !== null;
@@ -65,7 +72,7 @@ export default function Dashboard({
             only:
                 tab === 'performance'
                     ? ['performance', 'alert']
-                    : ['todo', 'tiles', 'housekeeping', 'alert'],
+                    : ['todo', 'bookings', 'tiles', 'housekeeping', 'alert'],
         });
     const closeAction = () => {
         setAction(null);
@@ -109,28 +116,46 @@ export default function Dashboard({
                 <div
                     className={cn(
                         'grid gap-3 xl:flex-1',
-                        hasTodo && hasSide && 'xl:grid-cols-3',
+                        (hasTodo || hasBookings) && hasSide && 'xl:grid-cols-3',
                     )}
                 >
-                    {hasTodo && (
+                    {(hasTodo || hasBookings) && (
                         <div
                             className={cn(
-                                'flex min-w-0 flex-col',
+                                'grid min-w-0 gap-3',
+                                hasTodo && hasBookings && 'md:grid-cols-2',
                                 hasSide && 'xl:col-span-2',
                             )}
                         >
-                            <Deferred data="todo" fallback={<TodoSkeleton />}>
-                                {todo && (
-                                    <TodoCard
-                                        todo={todo}
-                                        loadingKey={loadingKey}
-                                        onAction={(row) => {
-                                            setLoadingKey(row.key);
-                                            setAction(row.action);
-                                        }}
-                                    />
-                                )}
-                            </Deferred>
+                            {hasTodo && (
+                                <Deferred
+                                    data="todo"
+                                    fallback={<TodoSkeleton />}
+                                >
+                                    {todo && (
+                                        <TodoCard
+                                            todo={todo}
+                                            loadingKey={loadingKey}
+                                            onAction={(row) => {
+                                                setLoadingKey(row.key);
+                                                setAction(row.action);
+                                            }}
+                                        />
+                                    )}
+                                </Deferred>
+                            )}
+                            {hasBookings && (
+                                <Deferred
+                                    data="bookings"
+                                    fallback={<TodayBookingsSkeleton />}
+                                >
+                                    {bookings && (
+                                        <TodayBookingsCard
+                                            bookings={bookings}
+                                        />
+                                    )}
+                                </Deferred>
+                            )}
                         </div>
                     )}
                     {hasSide && (

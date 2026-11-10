@@ -2,6 +2,7 @@ import { Deferred } from '@inertiajs/react';
 import { MonthTile } from '@/components/pms/dashboard/month-tile';
 import { TilesSkeleton } from '@/components/pms/dashboard/tiles-skeleton';
 import { MovementCard } from '@/components/pms/dashboard/movement-card';
+import { NewBookingsTile } from '@/components/pms/dashboard/new-bookings-tile';
 import { HousekeepingTile } from '@/components/pms/dashboard/housekeeping-tile';
 
 /**
@@ -32,8 +33,13 @@ export function DashboardTiles({
                         {(tiles.arrivals || tiles.departures) && (
                             <MovementCard tiles={tiles} />
                         )}
+                        {tiles.newBookings && (
+                            <div className="order-3 min-w-0">
+                                <NewBookingsTile tile={tiles.newBookings} />
+                            </div>
+                        )}
                         {tiles.month && (
-                            <div className="order-4 min-w-0">
+                            <div className="order-5 min-w-0">
                                 <MonthTile tile={tiles.month} />
                             </div>
                         )}
@@ -41,7 +47,7 @@ export function DashboardTiles({
                 )}
             </Deferred>
             {housekeeping !== null && can.canViewHousekeeping && (
-                <div className="order-3 min-w-0">
+                <div className="order-4 min-w-0">
                     <Deferred
                         data="housekeeping"
                         fallback={<TilesSkeleton units={false} reports />}

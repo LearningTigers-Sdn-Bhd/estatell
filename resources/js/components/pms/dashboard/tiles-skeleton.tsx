@@ -29,9 +29,10 @@ export function TilesSkeleton({
                 <>
                     {cell('arrivals', 'order-1')}
                     {cell('departures', 'order-2')}
+                    {cell('new-bookings', 'order-3')}
                 </>
             )}
-            {reports && cell('month', 'order-4')}
+            {reports && cell('month', 'order-5')}
         </>
     );
 }
