@@ -6,6 +6,8 @@ use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyRateBasis;
 use App\Enums\PolicyScope;
 use App\Models\RoomRevenuePolicy;
+use App\Models\RoomRevenuePolicyStep;
+use Illuminate\Support\Collection;
 use Spatie\LaravelData\Data;
 
 /** One room revenue policy as the form edits it. */
@@ -17,7 +19,8 @@ class RoomRevenuePolicyData extends Data
         public ?string $percent,
         public ?PolicyRateBasis $percentBasis,
         public PolicyScope $appliesTo,
-        public ?int $freeUntilDays,
+        /** @var list<RoomRevenuePolicyStepData> The charge steps of a paid cancellation, most days first. Empty for other policies. */
+        public array $steps,
         public bool $ownTaxes,
         /** @var list<int> The taxes of the policy: its own when `ownTaxes`, otherwise the Taxes tab selection. */
         public array $taxIds,
@@ -27,8 +30,9 @@ class RoomRevenuePolicyData extends Data
 
     /**
      * @param  list<int>  $taxIds
+     * @param  Collection<int, RoomRevenuePolicyStep>  $steps
      */
-    public static function fromModel(RoomRevenuePolicy $policy, array $taxIds): self
+    public static function fromModel(RoomRevenuePolicy $policy, array $taxIds, Collection $steps): self
     {
         return new self(
             chargeMode: $policy->charge_mode,
@@ -36,7 +40,7 @@ class RoomRevenuePolicyData extends Data
             percent: $policy->percent,
             percentBasis: $policy->percent_basis,
             appliesTo: $policy->applies_to,
-            freeUntilDays: $policy->free_until_days,
+            steps: array_values($steps->map(fn (RoomRevenuePolicyStep $step): RoomRevenuePolicyStepData => RoomRevenuePolicyStepData::fromModel($step))->all()),
             ownTaxes: $policy->own_taxes,
             taxIds: $taxIds,
             textEn: $policy->text_en,

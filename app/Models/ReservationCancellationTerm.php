@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * The cancellation terms an online guest was promised, copied from the `CANCEL` policy when the booking is confirmed.
@@ -24,7 +25,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $percent
  * @property PolicyRateBasis|null $percent_basis
  * @property PolicyScope $applies_to
- * @property int|null $free_until_days
  * @property string $text_en
  * @property string $text_ms
  * @property CarbonImmutable|null $created_at
@@ -32,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 #[Fillable([
     'property_id', 'reservation_id', 'charge_mode', 'amount', 'percent', 'percent_basis', 'applies_to',
-    'free_until_days', 'text_en', 'text_ms',
+    'text_en', 'text_ms',
 ])]
 class ReservationCancellationTerm extends Model
 {
@@ -48,7 +48,6 @@ class ReservationCancellationTerm extends Model
             'percent' => 'decimal:2',
             'percent_basis' => PolicyRateBasis::class,
             'applies_to' => PolicyScope::class,
-            'free_until_days' => 'integer',
         ];
     }
 
@@ -62,5 +61,15 @@ class ReservationCancellationTerm extends Model
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /**
+     * The charge steps the guest was promised, most days first.
+     *
+     * @return HasMany<ReservationCancellationTermStep, $this>
+     */
+    public function steps(): HasMany
+    {
+        return $this->hasMany(ReservationCancellationTermStep::class)->orderByDesc('days_before');
     }
 }

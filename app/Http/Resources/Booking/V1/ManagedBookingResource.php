@@ -5,7 +5,9 @@ namespace App\Http\Resources\Booking\V1;
 use App\Models\BookingHold;
 use App\Models\GatewayRefund;
 use App\Models\ReservationCancellationTerm;
+use App\Models\ReservationCancellationTermStep;
 use App\Models\ReservationUnit;
+use App\Services\Catalogues\CancellationSteps;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,7 +28,7 @@ class ManagedBookingResource extends JsonResource
     {
         $hold = $this->resource;
         $reservation = $hold->reservation;
-        $terms = ReservationCancellationTerm::query()->where('property_id', $hold->property_id)->where('reservation_id', $reservation->id)->first();
+        $terms = ReservationCancellationTerm::query()->with('steps')->where('property_id', $hold->property_id)->where('reservation_id', $reservation->id)->first();
         $refund = GatewayRefund::query()
             ->where('property_id', $hold->property_id)
             ->whereHas('gatewayPayment', fn ($payment) => $payment->where('booking_hold_id', $hold->id))
@@ -48,7 +50,12 @@ class ManagedBookingResource extends JsonResource
             'amount_paid' => $hold->total_amount,
             'refund' => $refund === null ? null : ['status' => $refund->status->value, 'amount' => $refund->amount],
             'cancellation_terms' => $terms === null ? null : [
-                'free_until_days' => $terms->free_until_days,
+                'free_until_days' => app(CancellationSteps::class)->freeUntilDays($terms->steps),
+                'steps' => array_values($terms->steps->map(fn (ReservationCancellationTermStep $step): array => [
+                    'days_before' => $step->days_before,
+                    'amount' => $step->amount,
+                    'percent' => $step->percent,
+                ])->all()),
                 'text_en' => $terms->text_en,
                 'text_ms' => $terms->text_ms,
             ],

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * What a property charges for a no-show, a cancellation, an early departure or a late check-out.
@@ -20,11 +21,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $property_id
  * @property SystemTransactionCode $code
  * @property PolicyChargeMode $charge_mode
- * @property string|null $amount
+ * @property string|null $amount Empty on a paid cancellation: its charge is in `steps`.
  * @property string|null $percent
  * @property PolicyRateBasis|null $percent_basis
  * @property PolicyScope $applies_to
- * @property int|null $free_until_days
  * @property bool $own_taxes True when the policy code keeps its own taxes instead of following the Taxes tab.
  * @property string $text_en
  * @property string $text_ms
@@ -33,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 #[Fillable([
     'code', 'charge_mode', 'amount', 'percent', 'percent_basis', 'applies_to',
-    'free_until_days', 'own_taxes', 'text_en', 'text_ms',
+    'own_taxes', 'text_en', 'text_ms',
 ])]
 class RoomRevenuePolicy extends Model
 {
@@ -50,7 +50,6 @@ class RoomRevenuePolicy extends Model
             'percent' => 'decimal:2',
             'percent_basis' => PolicyRateBasis::class,
             'applies_to' => PolicyScope::class,
-            'free_until_days' => 'integer',
             'own_taxes' => 'boolean',
         ];
     }
@@ -59,5 +58,15 @@ class RoomRevenuePolicy extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * The charge steps of a paid cancellation, most days first.
+     *
+     * @return HasMany<RoomRevenuePolicyStep, $this>
+     */
+    public function steps(): HasMany
+    {
+        return $this->hasMany(RoomRevenuePolicyStep::class)->orderByDesc('days_before');
     }
 }

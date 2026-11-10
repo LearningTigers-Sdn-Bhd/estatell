@@ -67,6 +67,7 @@ The body of `offers` and `search` is the stay and the party of one room.
 - `pay_online` has `subtotal`, `taxes` and `total`. `pay_at_property` has `taxes` and `total`. A tax line has `name`, `amount` and `inclusive`. See [Taxes in the online total](03-checkout-and-hold.md#taxes-in-the-online-total).
 - A blocked offer has `blocked` with a stable `code` and a `message`, and no prices. The codes are `too_many_adults`, `too_many_children`, `restricted`, `not_available`, `pricing_unavailable`, a rate quote refusal such as `rate_missing`, and a tax refusal.
 - Cancellation terms come from the live `CANCEL` policy until a booking saves its own. See [Saved terms](05-cancel-and-refund.md#saved-terms).
+- Cancellation terms have `steps`: a list of `days_before`, `amount` and `percent`, most days first ([Cancellation steps](../06-catalogues/06-room-revenue.md#policies)). The older fields stay for clients that read them: `free_until_days` is the free window of the steps, and `amount` and `percent` are the first step that charges. A client that shows the charge reads `steps`.
 - `calendar` is a guide, one night at a time. A package plan opens a date but gives no nightly price. `offers` decides whether a stay can be booked.
 - `search` returns the lowest `pay_online` total, and leaves out a property with nothing to sell.
 

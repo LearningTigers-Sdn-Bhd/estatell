@@ -126,11 +126,12 @@ it('blocks an offer with a stable code', function (Closure $change, string $code
 it('returns the live cancellation terms', function () {
     $setup = bookingApiProperty();
     bookingMicrositeClient();
-    RoomRevenuePolicy::factory()->for($setup['property'])->fixed('75.00')->forCode(SystemTransactionCode::CancellationRevenue, PolicyScope::WholeStay)->create(['free_until_days' => 3, 'text_en' => 'Free until 3 days']);
+    RoomRevenuePolicy::factory()->for($setup['property'])->fixed('75.00')->forCode(SystemTransactionCode::CancellationRevenue, PolicyScope::WholeStay)->freeUntil(3)->create(['text_en' => 'Free until 3 days']);
 
     expect(bookingRoomOffer($setup)['cancellation_terms'])
         ->amount->toBe('75.00')
         ->free_until_days->toBe(3)
+        ->steps->toBe([['days_before' => 3, 'amount' => '0.00', 'percent' => null], ['days_before' => 0, 'amount' => '75.00', 'percent' => null]])
         ->text_en->toBe('Free until 3 days');
 });
 

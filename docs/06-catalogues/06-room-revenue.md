@@ -41,18 +41,22 @@ One row per property and code in `room_revenue_policies`, for `NO_SHOW`, `CANCEL
 ```
 room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mode (PolicyChargeMode),
                         amount (nullable), percent (nullable), percent_basis (PolicyRateBasis, nullable),
-                        applies_to (PolicyScope), free_until_days (nullable, Cancel only),
-                        own_taxes (bool, default false),
+                        applies_to (PolicyScope), own_taxes (bool, default false),
                         text_en, text_ms, timestamps
                         unique (property_id, code)
+
+room_revenue_policy_steps
+                        id, property_id, room_revenue_policy_id (cascade),
+                        days_before (0–365), amount (nullable), percent (nullable), timestamps
+                        unique (room_revenue_policy_id, days_before)
 ```
 
-| Field             | Values                                                                       |
-| ----------------- | ---------------------------------------------------------------------------- |
-| `charge_mode`     | Free, FixedAmount, Percentage                                                |
-| `percent_basis`   | BookedRate (`unit_nights.amount`), CurrentRate (a fresh quote)               |
-| `applies_to`      | FirstNight, WholeStay, UnusedNights, OneCharge                               |
-| `free_until_days` | Cancellation only: free when cancelled this many days or more before arrival |
+| Field           | Values                                                                  |
+| --------------- | ----------------------------------------------------------------------- |
+| `charge_mode`   | Free, FixedAmount, Percentage                                           |
+| `percent_basis` | BookedRate (`unit_nights.amount`), CurrentRate (a fresh quote)          |
+| `applies_to`    | FirstNight, WholeStay, UnusedNights, OneCharge                          |
+| `days_before`   | A step: the charge when cancelled this many days or more before arrival |
 
 | Policy          | Allowed `applies_to`                     |
 | --------------- | ---------------------------------------- |
@@ -64,7 +68,9 @@ room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mo
 - **Booked rate** is the stored nightly amount. **Current rate** is a quote for the same plan, room type and dates. When no current rate exists, the calculator falls back to the booked rate (to verify when built).
 - `PolicyChargeCalculator::calculate($policy, $unit, $newDeparture = null)` (`app/Services/Catalogues/`) reads the policy and the unit and returns a `PolicyCharge` (amount before tax, and whether the free window made it free). It does not post. A fixed amount is one charge. A percentage is taken of the booked nights chosen by `applies_to` (first night, all nights, the nights from `$newDeparture`, or the last night), rounded half up to the cent. Unused nights need `$newDeparture`, and the unit still holds its booked nights when it is called. The front desk Actions post it through `PostFolioCharge` with the policy's system code, so the taxes chosen on the Taxes tab apply. Each posting has a unique idempotency key.
 - A staff member with `front-desk.waive-fees` can choose **Do not charge** in the form. The reason is required and the choice is logged.
-- Free until: a cancellation made inside the window is free. Without it, every cancellation follows the charge settings.
+- **Cancellation steps.** A paid cancellation policy charges by steps, not one charge. Each step is "N or more days before arrival → charge". The charge is `percent` for Percentage and `amount` for Fixed amount; the policy row's own `amount` and `percent` stay empty. A step of 0 is free. The step with the most days that the cancellation reaches applies. Closer to arrival than the last step, the last step applies. Days count from the business date to the arrival date. A Free policy has no steps. Other policies have no steps and keep one charge.
+- Example (Sand Bay): 30 days → 30%, 15 days → 50%, 1 day → 75%, Whole stay. A cancellation 40 days out pays 30%, 20 days out 50%, on the arrival day 75%. The 100% no-show charge is on the No-show tab.
+- A free window is a 0 step: "30 days → 0%, 0 days → 50%" is free from 30 days out and 50% after. Where a free window is still shown (the Cancel dialogs, the booking API), it is the days of the top step when that step is 0, and every 0 step right under it.
 - Mapping from the old rules: no-show None is Free, FirstNight and FullStay are 100% of the booked rate; early departure ChargeUsedNights is Free and ChargeFull is 100% of the unused nights.
 - The policy applies at the moment of the action. A booking does not keep a copy of the policy, except a [booking engine booking](../29-booking-engine/05-cancel-and-refund.md#saved-terms), which keeps the cancellation terms the guest saw. A snapshot for other bookings waits for the confirmation document.
 - A late check-out is not charged by a catalogue item. The folio rule "charges from catalogue items only" is for manual posting.
@@ -72,13 +78,13 @@ room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mo
 
 ### Policy tab
 
-The tabs are at `/p/{code}/settings/room-revenue` (Taxes) and `/no-show`, `/cancellation`, `/early-departure` and `/late-checkout` under it (`settings.room-revenue.policies.show`, saved by `PUT` to the same URL as `.update`, previewed by `POST …/{tab}/preview` as `.preview`). `PolicyTab` maps the URL segment to the system code. A tab with one allowed scope (early departure, late check-out) sets it on the server. The preview prices a sample stay of 3 nights at 100.00 with the taxes of the code. It uses the booked rate, so a Current rate policy shows the same figures. A cancellation with a free window shows one case at the window and one a day later.
+The tabs are at `/p/{code}/settings/room-revenue` (Taxes) and `/no-show`, `/cancellation`, `/early-departure` and `/late-checkout` under it (`settings.room-revenue.policies.show`, saved by `PUT` to the same URL as `.update`, previewed by `POST …/{tab}/preview` as `.preview`). `PolicyTab` maps the URL segment to the system code. A tab with one allowed scope (early departure, late check-out) sets it on the server. The preview prices a sample stay of 3 nights at 100.00 with the taxes of the code. It uses the booked rate, so a Current rate policy shows the same figures. A cancellation shows one case per step, at its days, and one on the arrival day when the last step starts earlier.
 
 A wider editor sits on the left, with a compact **Example** on the right. The editor holds the charge, taxes and guest-facing policy text. The preview posts the unsaved form to a preview route and shows the server's numbers, with taxes. Saving needs `settings.manage`.
 
 - Charge choices sit in one row on larger screens and stack on mobile. Free hides the charge details. Fixed amount shows one amount charged once, without a scope selector. Percentage shows the rate basis, with a scope selector only when there is a choice. Early departure explains that it covers unused nights; late check-out explains that it covers one night.
-- Cancellation shows the **Free cancellation window** for a paid policy. Other policies hide it.
-- Charge details use three columns on wide screens: Percent, Rate basis and Applies to. Free cancellation window follows when present. They use two columns at intermediate widths and stack on mobile. A single allowed scope appears as help under Percent. The current-rate explanation appears only when Current rate is selected.
+- Cancellation shows the **Charge steps** table for a paid policy, in place of Percent or Amount (see [Charge steps table](#charge-steps-table)). Other policies have no steps.
+- Charge details use three columns on wide screens: Percent, Rate basis and Applies to. They use two columns at intermediate widths and stack on mobile. A single allowed scope appears as help under Percent. The current-rate explanation appears only when Current rate is selected.
 - The guest-facing policy keeps the language dropdown for English and Malay. The editor explains that changing the charge does not rewrite this text.
 - The **Example** title and sample-stay description sit inside one card. Cases have no nested cards or dividers. Each case explains the charge with server-provided arithmetic: unused nights for early departure, the percentage basis and multiplication, a fixed fee charged once, or why the charge is free. Paid cases show separate local and foreign breakdowns: charge excluding tax, each included or added tax, and the guest total. Included taxes are extracted before the breakdown, not added twice. A tax that does not apply says so. The browser formats the amounts but does not calculate them.
 - Pending edits show **Updating…** instead of old amounts. A failed preview shows a message instead of old amounts. Older responses cannot replace a newer example.
@@ -88,12 +94,40 @@ A wider editor sits on the left, with a compact **Example** on the right. The ed
 ```
 Cancellation                              Example
 Charge: Free / Fixed amount / Percentage  3 nights at MYR 100.00
-Percent / rate basis / scope              One case per cutoff
-Free cancellation window                  Charge before tax
+Rate basis / scope                        One case per step
+Charge steps                              Charge before tax
 Taxes                                     Local / foreign totals
 Guest-facing policy [Language ⌄]
 Unsaved changes                           [Save policy]
 ```
+
+#### Charge steps table
+
+```
+Charge steps
+┌──────────────────────────────┬─────────────────┬───┐
+│ Cancelled                    │ Charge          │   │
+├──────────────────────────────┼─────────────────┼───┤
+│ [ 30 ] days or more before   │ [ 30    ] %     │ ✕ │
+│ [ 15 ] days or more before   │ [ 50    ] %     │ ✕ │
+│ [ 1  ] day or more before    │ [ 75    ] %     │ ✕ │
+│ Less than 1 day              │ 75 %            │   │
+├──────────────────────────────┴─────────────────┴───┤
+│                                     [+ Add step]   │
+└────────────────────────────────────────────────────┘
+A step with 0 % is free. The guest pays the step that matches the
+day they cancel.
+```
+
+- Fixed amount uses the same table with an **Amount** column (`MYR [ 100.00 ]`), and hides Rate basis and Applies to, as today.
+- New rows have placeholders: "e.g. 30" days, "e.g. 50" % or "e.g. 100.00".
+- Rows sort by days, most days first, when a field loses focus.
+- The last row, "Less than N days", is read only: it repeats the last step's charge. It is hidden when the last step is 0 days.
+- ✕ is off when one step is left. At least one step is needed.
+- **+ Add step** sits in the table footer, one cell across all columns, on the right.
+- The table scrolls inside its card at phone width.
+- Validation: days 0 to 365, each days once ("Each step needs its own number of days."), percent 0 to 100, amount 0 or more.
+- Switching from Fixed amount to Percentage, or back, keeps the days and clears the charges.
 
 ### Day use tab
 
@@ -117,6 +151,8 @@ Both the Taxes tab and the policy tabs pick taxes with the same multiselect. Pos
 
 - A per-rate-plan override of the early departure policy.
 - A policy snapshot on the booking, with the confirmation document.
+- Steps for no-show. No-show is one charge.
+- Showing the steps on the booking microsite. The API sends them; the microsite still shows the policy text.
 - Whether a tax change reaches existing bookings needs the booking tax snapshot. It is decided in reservations.
 
 ## Lessons from wastays
