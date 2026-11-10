@@ -81,10 +81,17 @@ idleTimeoutSeconds: number,
 };
 }
 namespace Boats {
+export type BoatCrewMemberData = {
+id: number,
+name: string,
+phone: string | null,
+active: boolean,
+};
 export type BoatData = {
 id: number,
 name: string,
 registration: string | null,
+seats: number | null,
 active: boolean,
 };
 export type BoatDepartureData = {
@@ -99,6 +106,9 @@ fare: App.Data.Boats.BoatFareData | null,
 defaultBoatId: number | null,
 defaultBoatName: string | null,
 defaultCrew: string | null,
+inChargeId: number | null,
+assistantIds: number[],
+crewNames: string[],
 active: boolean,
 upcomingBookings: number,
 meals: string[],

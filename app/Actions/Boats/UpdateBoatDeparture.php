@@ -7,11 +7,12 @@ use App\Models\BoatDeparture;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\Boats\BoatTripUsage;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class UpdateBoatDeparture
 {
-    public function __construct(private BoatTripUsage $boatTripUsage) {}
+    public function __construct(private BoatTripUsage $boatTripUsage, private SyncBoatDepartureCrew $syncCrew) {}
 
     /**
      * Save a departure. The departure row is locked first, then the upcoming units of its trips, in id order (the same
@@ -20,13 +21,17 @@ class UpdateBoatDeparture
      * A direction change is refused while any trip uses the departure. A save that changes nothing is not logged. The
      * log counts the bookings whose times moved. See docs/24-boats/01-boat-settings.md#actions.
      *
-     * @param  array<string, mixed>  $attributes  Validated departure fields, the full row.
+     * @param  array<string, mixed>  $attributes  Validated departure fields, the full row. `in_charge_id` and `assistant_ids` set the
+     *                                            default crew; without them the crew stays as it is.
      */
     public function __invoke(User $actor, BoatDeparture $boatDeparture, array $attributes): BoatDepartureResult
     {
         return DB::transaction(function () use ($actor, $boatDeparture, $attributes): BoatDepartureResult {
             $boatDeparture = BoatDeparture::query()->lockForUpdate()->findOrFail($boatDeparture->id);
-            $before = $this->snapshot($boatDeparture);
+            $before = $this->snapshot($boatDeparture) + ['crew' => $this->crewSnapshot($boatDeparture)];
+            $setsCrew = array_key_exists('in_charge_id', $attributes) || array_key_exists('assistant_ids', $attributes);
+            $inChargeId = Arr::pull($attributes, 'in_charge_id');
+            $assistantIds = array_map('intval', Arr::pull($attributes, 'assistant_ids') ?? []);
             $oldPropertyTime = substr($boatDeparture->direction->propertyTime($boatDeparture), 0, 5);
 
             $direction = BoatDirection::tryFrom((string) ($attributes['direction'] ?? $boatDeparture->direction->value));
@@ -36,13 +41,21 @@ class UpdateBoatDeparture
             }
 
             $boatDeparture->fill($attributes);
-            $after = $this->snapshot($boatDeparture);
+            $after = $this->snapshot($boatDeparture) + [
+                'crew' => $setsCrew
+                    ? ['in_charge' => $inChargeId === null ? null : (int) $inChargeId, 'assistants' => collect($assistantIds)->diff([(int) $inChargeId])->unique()->sort()->values()->all()]
+                    : $before['crew'],
+            ];
 
             if ($after === $before) {
                 return BoatDepartureResult::done();
             }
 
             $boatDeparture->save();
+
+            if ($setsCrew && $after['crew'] !== $before['crew']) {
+                ($this->syncCrew)($boatDeparture, $after['crew']['in_charge'], $after['crew']['assistants']);
+            }
 
             $bookingsChanged = 0;
             $unitsChanged = 0;
@@ -91,6 +104,17 @@ class UpdateBoatDeparture
             'default_boat_id' => $boatDeparture->default_boat_id,
             'default_crew' => $boatDeparture->default_crew,
             'active' => $boatDeparture->active,
+        ];
+    }
+
+    /** @return array{in_charge: int|null, assistants: list<int>} */
+    private function crewSnapshot(BoatDeparture $boatDeparture): array
+    {
+        $crew = $boatDeparture->crew()->get();
+
+        return [
+            'in_charge' => $crew->first(fn ($member) => (bool) $member->pivot->in_charge)?->id,
+            'assistants' => $crew->reject(fn ($member) => (bool) $member->pivot->in_charge)->pluck('id')->sort()->values()->all(),
         ];
     }
 }

@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Accounting\AccountingSettingsController;
 use App\Http\Controllers\ApiAccess\KioskController;
 use App\Http\Controllers\Boats\BoatController;
+use App\Http\Controllers\Boats\BoatCrewController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\BookingEngine\BookingApiController;
@@ -177,7 +178,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('/', [BoatController::class, 'store'])->name('store');
             Route::put('{boat}', [BoatController::class, 'update'])->name('update');
         });
-        Route::put('boats/charter', [BoatController::class, 'charter'])->name('boats.charter');
+        Route::prefix('boats/crew')->name('boats.crew.')->group(function () {
+            Route::get('/', [BoatCrewController::class, 'index'])->name('index');
+            Route::post('/', [BoatCrewController::class, 'store'])->name('store');
+            Route::put('{crewMember}', [BoatCrewController::class, 'update'])->name('update');
+        });
+        Route::put('boats/charter', [BoatFareController::class, 'charter'])->name('boats.charter');
         Route::prefix('boats/fares')->name('boats.fares.')->group(function () {
             Route::get('/', [BoatFareController::class, 'index'])->name('index');
             Route::post('/', [BoatFareController::class, 'store'])->name('store');

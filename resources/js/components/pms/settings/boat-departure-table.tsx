@@ -201,21 +201,34 @@ export function BoatDepartureTable({
                                 )}
                             </TableCell>
                             <TableCell>
-                                {departure.defaultBoatName ||
-                                departure.defaultCrew ? (
-                                    <span>
-                                        {[
-                                            departure.defaultBoatName,
-                                            departure.defaultCrew,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                    </span>
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        —
-                                    </span>
-                                )}
+                                {(() => {
+                                    // The crew list shows the one in charge after an anchor, then the assistants. A departure
+                                    // not moved to the crew list yet still shows its old free-text crew.
+                                    const [inCharge, ...assistants] =
+                                        departure.inChargeId === null
+                                            ? [null, ...departure.crewNames]
+                                            : departure.crewNames;
+                                    const crewText = [
+                                        inCharge ? `⚓ ${inCharge}` : null,
+                                        ...assistants,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ');
+                                    const text = [
+                                        departure.defaultBoatName,
+                                        crewText || departure.defaultCrew,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ');
+
+                                    return text === '' ? (
+                                        <span className="text-muted-foreground">
+                                            —
+                                        </span>
+                                    ) : (
+                                        <span>{text}</span>
+                                    );
+                                })()}
                             </TableCell>
                             <TableCell>
                                 {departure.fare === null ? (

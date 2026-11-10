@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * One boat that runs every day at the same time, in one direction.
@@ -61,6 +62,20 @@ class BoatDeparture extends Model
     public function defaultBoat(): BelongsTo
     {
         return $this->belongsTo(Boat::class, 'default_boat_id');
+    }
+
+    /**
+     * The default crew: one member is in charge (`pivot->in_charge`), the rest are assistants.
+     *
+     * @return BelongsToMany<BoatCrewMember, $this>
+     */
+    public function crew(): BelongsToMany
+    {
+        return $this->belongsToMany(BoatCrewMember::class, 'boat_departure_crew', 'boat_departure_id', 'boat_crew_member_id')
+            ->withPivot('in_charge')
+            ->withTimestamps()
+            ->orderByDesc('boat_departure_crew.in_charge')
+            ->orderBy('boat_crew_members.name');
     }
 
     /** @param Builder<BoatDeparture> $query */

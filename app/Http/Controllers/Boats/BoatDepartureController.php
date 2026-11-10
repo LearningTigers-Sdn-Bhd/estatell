@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Boats;
 use App\Actions\Boats\CreateBoatDeparture;
 use App\Actions\Boats\DeleteBoatDeparture;
 use App\Actions\Boats\UpdateBoatDeparture;
+use App\Data\Boats\BoatCrewMemberData;
 use App\Data\Boats\BoatData;
 use App\Data\Boats\BoatDepartureData;
 use App\Data\Boats\BoatFareData;
@@ -15,6 +16,7 @@ use App\Enums\TransactionCategory;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Boats\BoatDepartureRequest;
 use App\Models\Boat;
+use App\Models\BoatCrewMember;
 use App\Models\BoatDeparture;
 use App\Models\ChargeItem;
 use App\Models\MealPeriod;
@@ -55,7 +57,7 @@ class BoatDepartureController extends Controller
 
         return Inertia::render('settings/boats/departures', [
             'departures' => $property->boatDepartures()
-                ->with(['chargeItem', 'defaultBoat'])
+                ->with(['chargeItem', 'defaultBoat', 'crew'])
                 ->ordered()
                 ->get()
                 ->map(fn (BoatDeparture $boatDeparture): BoatDepartureData => BoatDepartureData::fromModel(
@@ -78,6 +80,13 @@ class BoatDepartureController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(fn (Boat $boat): BoatData => BoatData::fromModel($boat))
+                ->all(),
+            'crew' => BoatCrewMember::query()
+                ->where('property_id', $property->id)
+                ->orderByDesc('active')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (BoatCrewMember $crewMember): BoatCrewMemberData => BoatCrewMemberData::fromModel($crewMember))
                 ->all(),
             'directions' => BoatDirection::options(),
             'currency' => CurrencyData::forProperty($property),

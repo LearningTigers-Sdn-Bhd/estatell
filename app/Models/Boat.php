@@ -16,11 +16,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $property_id
  * @property string $name
  * @property string|null $registration
+ * @property int|null $seats
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['name', 'registration', 'active'])]
+#[Fillable(['name', 'registration', 'seats', 'active'])]
 class Boat extends Model
 {
     /** @use HasFactory<BoatFactory> */
@@ -29,7 +30,7 @@ class Boat extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['active' => 'boolean'];
+        return ['seats' => 'integer', 'active' => 'boolean'];
     }
 
     /** @return BelongsTo<Property, $this> */

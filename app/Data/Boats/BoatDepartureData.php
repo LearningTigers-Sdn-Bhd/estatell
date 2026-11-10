@@ -28,13 +28,19 @@ class BoatDepartureData extends Data
         public ?int $defaultBoatId = null,
         public ?string $defaultBoatName = null,
         public ?string $defaultCrew = null,
+        public ?int $inChargeId = null,
+        /** @var list<int> */
+        public array $assistantIds = [],
+        /** @var list<string> The crew names for the table: the one in charge first, then the assistants. */
+        public array $crewNames = [],
         public bool $active = true,
         public int $upcomingBookings = 0,
         public array $meals = [],
     ) {}
 
     /**
-     * The departure's fare is loaded with `chargeItem`, even when that fare is no longer available.
+     * The departure's fare is loaded with `chargeItem`, even when that fare is no longer available. The default crew is loaded
+     * with `crew`, the one in charge first.
      *
      * @param  list<string>  $meals
      */
@@ -52,6 +58,9 @@ class BoatDepartureData extends Data
             defaultBoatId: $boatDeparture->default_boat_id,
             defaultBoatName: $boatDeparture->defaultBoat?->name,
             defaultCrew: $boatDeparture->default_crew,
+            inChargeId: $boatDeparture->crew->first(fn ($member) => (bool) $member->pivot->in_charge)?->id,
+            assistantIds: $boatDeparture->crew->reject(fn ($member) => (bool) $member->pivot->in_charge)->pluck('id')->values()->all(),
+            crewNames: $boatDeparture->crew->pluck('name')->values()->all(),
             active: $boatDeparture->active,
             upcomingBookings: $upcomingBookings,
             meals: $meals,
