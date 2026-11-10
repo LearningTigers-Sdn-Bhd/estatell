@@ -193,17 +193,19 @@ import { timeline } from '@/routes/front-desk';
 
 ## Company portal routes
 
-| URL                                   | Name                                            |
-| ------------------------------------- | ----------------------------------------------- |
-| `GET /portal`                         | `portal.index` (dashboard)                      |
-| `GET /portal/properties`              | `portal.properties`                             |
-| `GET /portal/{code}`                  | `portal.show`                                   |
-| `GET /portal/{code}/logo`             | `portal.logo` (property logo, for the switcher) |
-| `GET /portal/{code}/bookings`         | `portal.bookings.index`                         |
-| `GET /portal/{code}/bookings/new`     | `portal.bookings.create`                        |
-| `POST /portal/{code}/bookings/offers` | `portal.bookings.offers` (throttled)            |
-| `POST /portal/{code}/bookings`        | `portal.bookings.store` (throttled)             |
-| `GET /portal/{code}/bookings/{id}`    | `portal.bookings.show` (`whereNumber`)          |
+| URL                                         | Name                                            |
+| ------------------------------------------- | ----------------------------------------------- |
+| `GET /portal`                               | `portal.index` (dashboard)                      |
+| `GET /portal/properties`                    | `portal.properties`                             |
+| `GET /portal/{code}`                        | `portal.show`                                   |
+| `GET /portal/{code}/logo`                   | `portal.logo` (property logo, for the switcher) |
+| `GET /portal/{code}/bookings`               | `portal.bookings.index`                         |
+| `GET /portal/{code}/bookings/new`           | `portal.bookings.create`                        |
+| `POST /portal/{code}/bookings/offers`       | `portal.bookings.offers` (throttled)            |
+| `POST /portal/{code}/bookings`              | `portal.bookings.store` (throttled)             |
+| `GET /portal/{code}/bookings/{id}`          | `portal.bookings.show` (`whereNumber`)          |
+| `GET /portal/{code}/bookings/{id}/guests`   | `portal.bookings.guests` (`whereNumber`)        |
+| `GET /portal/{code}/bookings/{id}/payments` | `portal.bookings.payments` (`whereNumber`)      |
 
 `new` and `offers` do not clash with `{reservation}`, which only matches digits. The old `/portal/{code}/book` URLs return 404.
 

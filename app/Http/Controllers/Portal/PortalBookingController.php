@@ -19,11 +19,13 @@ use App\Http\Requests\Portal\UpdatePortalGuestsRequest;
 use App\Models\CompanyUser;
 use App\Models\PaymentProof;
 use App\Models\Property;
+use App\Models\Reservation;
 use App\Services\Guests\CountryOptions;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookings;
 use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\ReservationRefusals;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -55,31 +57,38 @@ class PortalBookingController extends Controller
     }
 
     /**
-     * One booking.
+     * One booking, Units tab: the rooms with their boats.
      */
     public function show(Request $request, Property $property, int $reservation, PortalBookings $bookings, AgentBill $agentBill): Response
     {
-        $link = $this->link($request);
-        $property->loadMissing('settings');
+        return $this->renderTab($request, $property, $reservation, 'units', $bookings, $agentBill, fn (CompanyUser $link, Reservation $booking): array => [
+            'boatDepartures' => $bookings->boatDepartures($property),
+            'boatSetup' => $bookings->boatSetup($link->company, $booking, $property),
+        ]);
+    }
 
-        $booking = $bookings->find($link->company, $reservation);
+    /**
+     * One booking, Guests tab: the guests under their rooms, with the Edit guests options.
+     */
+    public function guests(Request $request, Property $property, int $reservation, PortalBookings $bookings, AgentBill $agentBill): Response
+    {
+        return $this->renderTab($request, $property, $reservation, 'guests', $bookings, $agentBill, fn (): array => [
+            'idTypes' => IdentityDocumentType::options(),
+            'countries' => app(CountryOptions::class)->options(),
+        ]);
+    }
 
-        return Inertia::render('portal/bookings/show', [
-            'propertyCode' => $property->code,
-            'booking' => $bookings->detail($link->company, $booking, $property),
-            'paymentSchedule' => PaymentScheduleData::forReservation($booking),
-            'agentBill' => $agentBill->for($booking),
+    /**
+     * One booking, Payments tab: the bill, the payment schedule and the proofs sent.
+     */
+    public function payments(Request $request, Property $property, int $reservation, PortalBookings $bookings, AgentBill $agentBill): Response
+    {
+        return $this->renderTab($request, $property, $reservation, 'payments', $bookings, $agentBill, fn (CompanyUser $link, Reservation $booking): array => [
             'paymentProofs' => array_values(PaymentProof::query()->where('reservation_id', $booking->id)->with('uploader')->latest('id')->get()
                 ->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(
                     $proof,
                     route('portal.bookings.payment-proofs.file', ['property' => $property->code, 'reservation' => $booking->id, 'paymentProof' => $proof->id], absolute: false),
                 ))->all()),
-            'companySuspended' => $link->company->status === CompanyStatus::Suspended,
-            'idTypes' => IdentityDocumentType::options(),
-            'countries' => app(CountryOptions::class)->options(),
-            'boatDepartures' => $bookings->boatDepartures($property),
-            'boatSetup' => $bookings->boatSetup($link->company, $booking, $property),
-            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
@@ -117,7 +126,7 @@ class PortalBookingController extends Controller
         $link = $this->link($request);
         $result = $updateGuests($request->user(), $link, $bookings->find($link->company, $reservation), $request->guests());
 
-        return $this->back($property, $reservation, $result, __('Guests saved.'), $messages);
+        return $this->back($property, $reservation, $result, __('Guests saved.'), $messages, 'portal.bookings.guests');
     }
 
     /**
@@ -142,13 +151,42 @@ class PortalBookingController extends Controller
         return $this->back($property, $reservation, $result, __('We asked the property to cancel this booking.'), $messages);
     }
 
-    private function back(Property $property, int $reservation, PortalBookingResult $result, string $success, PortalBookingMessages $messages): RedirectResponse
+    /**
+     * The booking page with one tab open. Every tab gets the booking, the bill and the payment schedule for the header
+     * and the summary; `$tabProps` adds only the open tab's data.
+     *
+     * @param  'units'|'guests'|'payments'  $tab
+     * @param  Closure(CompanyUser, Reservation): array<string, mixed>  $tabProps
+     */
+    private function renderTab(Request $request, Property $property, int $reservation, string $tab, PortalBookings $bookings, AgentBill $agentBill, Closure $tabProps): Response
+    {
+        $link = $this->link($request);
+        $property->loadMissing('settings');
+
+        $booking = $bookings->find($link->company, $reservation);
+
+        return Inertia::render('portal/bookings/show', [
+            'tab' => $tab,
+            'propertyCode' => $property->code,
+            'booking' => $bookings->detail($link->company, $booking, $property),
+            'paymentSchedule' => PaymentScheduleData::forReservation($booking),
+            'agentBill' => $agentBill->for($booking),
+            'companySuspended' => $link->company->status === CompanyStatus::Suspended,
+            'currency' => CurrencyData::forProperty($property),
+            ...$tabProps($link, $booking),
+        ]);
+    }
+
+    /**
+     * Back to the booking's tab the change came from (`$route`), with a toast.
+     */
+    private function back(Property $property, int $reservation, PortalBookingResult $result, string $success, PortalBookingMessages $messages, string $route = 'portal.bookings.show'): RedirectResponse
     {
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $messages->message((string) $result->refusal)]
             : ['type' => 'success', 'message' => $success]);
 
-        return to_route('portal.bookings.show', ['property' => $property, 'reservation' => $reservation]);
+        return to_route($route, ['property' => $property, 'reservation' => $reservation]);
     }
 
     private function link(Request $request): CompanyUser

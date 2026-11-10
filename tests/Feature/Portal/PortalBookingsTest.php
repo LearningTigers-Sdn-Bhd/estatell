@@ -115,11 +115,13 @@ test('the detail shows rooms, plans, guests, add-ons, total and references and n
 
     $response->assertInertia(fn (Assert $page) => $page
         ->component('portal/bookings/show')
+        ->where('tab', 'units')
         ->where('booking.reference', $reservation->reference)
         ->where('booking.externalReference', 'BT-9')
         ->where('booking.total', '210.00')
         ->where('booking.units.0.ratePlan', $setup['plan']->name)
         ->where('booking.units.0.guestNames', ['Guest 1'])
+        ->where('booking.units.0.guestIds', [$reservation->booker_guest_id])
         ->where('booking.units.0.addOns.0.name', 'Cleaning fee')
         ->where('booking.units.0.nights', 2)
         ->where('booking.guests.0.fullName', 'Guest 1')
@@ -127,6 +129,40 @@ test('the detail shows rooms, plans, guests, add-ons, total and references and n
         ->where('companySuspended', false));
 
     expect($response->getContent())->not->toContain('staff only');
+});
+
+test('each tab sends the booking and only its own data', function () {
+    $setup = portalBookingSetup();
+    $reservation = portalMakeBooking($setup);
+    $params = ['property' => $setup['property'], 'reservation' => $reservation->id];
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', $params))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('tab', 'units')
+            ->where('booking.id', $reservation->id)
+            ->has('agentBill')
+            ->has('boatSetup')
+            ->missing('countries')
+            ->missing('paymentProofs'));
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.guests', $params))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('portal/bookings/show')
+            ->where('tab', 'guests')
+            ->where('booking.id', $reservation->id)
+            ->has('countries')
+            ->has('idTypes')
+            ->missing('boatSetup')
+            ->missing('paymentProofs'));
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', $params))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('portal/bookings/show')
+            ->where('tab', 'payments')
+            ->where('booking.id', $reservation->id)
+            ->has('paymentProofs', 0)
+            ->missing('boatSetup')
+            ->missing('countries'));
 });
 
 test('another company\'s or property\'s booking is a 404 on every page', function () {
@@ -140,6 +176,8 @@ test('another company\'s or property\'s booking is a 404 on every page', functio
         $params = ['property' => $setup['property'], 'reservation' => $reservation->id];
 
         $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', $params))->assertNotFound();
+        $this->actingAs($setup['portalUser'])->get(route('portal.bookings.guests', $params))->assertNotFound();
+        $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', $params))->assertNotFound();
         $this->actingAs($setup['portalUser'])->put(route('portal.bookings.guests.update', $params), $guest)->assertNotFound();
         $this->actingAs($setup['portalUser'])->post(route('portal.bookings.cancel', $params))->assertNotFound();
         $this->actingAs($setup['portalUser'])->post(route('portal.bookings.cancellation-request', $params))->assertNotFound();
@@ -184,7 +222,8 @@ describe('edit guests', function () {
             ->put(route('portal.bookings.guests.update', ['property' => $setup['property'], 'reservation' => $reservation->id]), ['guests' => [
                 ['guest_id' => $guest->id, 'full_name' => 'Tan Wei Ming', 'phone' => '012 345 6789', 'id_type' => 'mykad', 'id_number' => '900101-14-1234'],
             ]])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('portal.bookings.guests', ['property' => $setup['property'], 'reservation' => $reservation->id]));
 
         $guest->refresh();
 

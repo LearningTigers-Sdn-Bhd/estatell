@@ -228,7 +228,17 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 ```
 
 - 20 per page. Search by our reference or the company's reference.
-- Detail: rooms, plans, guests, add-ons, total and references. No folio internals and no staff notes.
+- Detail: rooms, plans, guests, add-ons, total and references. No folio internals, no staff notes and no room number.
+- **Detail layout:** the staff [reservation page](../12-reservations/06-reservation-page.md) layout: a header (reference, your reference, dates, unit count, status, Cancel or Request), link tabs and a summary card on the side. Each tab has its own URL and the server sends only its data. The header, the bill and the payment schedule come with every tab.
+
+| Tab      | URL                            | Content                                                                                                                                                                                     |
+| -------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Units    | `/portal/{code}/bookings/{id}` | The staff Units tab All view without the Room column: room type, lead guest, pax, stay with the boat line, rate plan with the add-ons, total (rooms and add-ons) and status. **Set boats**. |
+| Guests   | `.../bookings/{id}/guests`     | One row per guest with the room type they stay in, phone, nationality and the ID on file. A booker who does not stay comes last. **Edit guests**.                                           |
+| Payments | `.../bookings/{id}/payments`   | The bill (you pay, the guest pays), the payment schedule, the proofs sent and the upload form.                                                                                              |
+
+- The summary card shows the booker, You pay, Guest pays, Paid and Still to pay, the units and room nights, and the cancellation terms. There is no Folio or Activity tab.
+- Saving guests returns to the Guests tab and a payment proof to the Payments tab. Cancel and Request return to the Units tab.
 - **Set boats:** on the booking, per room, with a button to copy the first room to all. Boat in closes at check-in and Boat out at check-out, the same rule as staff (`SetBoatTrips`). A Suspended company is read only.
 - **Edit guests:** names, phone, nationality and ID of the booking's own guests, until check-in and not after the arrival date. Dates, rooms, plans and prices cannot change.
 - **Cancel:** whole reservation only. On or before `arrival_date - portal_cancel_cutoff_days` (the page shows the date), the company user cancels with no charge. After it, or when the cut-off is empty, they can only request, once. A request sets `cancellation_requested_at` and `cancellation_requested_by` and notifies the property. Staff decide on any charge in the [Cancel reservation](../18-front-desk/01-check-in-and-check-out.md#cancel-reservation) Dialog, which shows the request and resolves it. Changes to some rooms go through the property.
@@ -274,7 +284,9 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 /portal/{code}                         Dashboard for one property
 /portal/{code}/bookings                List (search by reference or company reference) [New booking]
 /portal/{code}/bookings/new            Stay → lines (rate plan → room type → rooms, pax) → guests → confirm
-/portal/{code}/bookings/{id}           Detail: [Edit guests] [Cancel] or [Request cancellation]
+/portal/{code}/bookings/{id}           Detail, Units tab: [Set boats] [Cancel] or [Request cancellation]
+/portal/{code}/bookings/{id}/guests    Detail, Guests tab: [Edit guests]
+/portal/{code}/bookings/{id}/payments  Detail, Payments tab: payment schedule and proof upload
 /portal/{code}/statements              AR invoices, payments, statement PDF (read-only)
 /portal/{code}/company                 Company details: contact, tax numbers and billing address (see below)
 /account/...                           Profile, password, 2FA (shared account pages)

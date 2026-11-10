@@ -1,45 +1,68 @@
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
+import { BedDouble, Users, Wallet } from 'lucide-react';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { BookingBoatsDialog } from '@/components/pms/portal/booking-boats-dialog';
 import { BookingCancelActions } from '@/components/pms/portal/booking-cancel-actions';
 import { BookingGuestsSheet } from '@/components/pms/portal/booking-guests-sheet';
+import { BookingGuestsTab } from '@/components/pms/portal/booking-guests-tab';
 import { BookingPaymentSection } from '@/components/pms/portal/booking-payment-section';
+import { BookingSummaryCard } from '@/components/pms/portal/booking-summary-card';
+import { BookingUnitsTable } from '@/components/pms/portal/booking-units-table';
 import { DateText } from '@/components/pms/date-text';
 import type { EnumOption } from '@/components/pms/enum-select';
-import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { TabLinks } from '@/components/pms/tab-links';
+import { Workspace } from '@/components/pms/workspace';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { index, show } from '@/routes/portal/bookings';
+import {
+    guests as guestsTab,
+    index,
+    payments as paymentsTab,
+    show,
+} from '@/routes/portal/bookings';
 
 type Booking = App.Data.Portal.PortalBookingData;
 
+type Tab = 'units' | 'guests' | 'payments';
+
+/**
+ * One booking of the company, laid out like the staff reservation page: a header, link tabs (Units, Guests, Payments)
+ * and a summary card on the side. The server sends only the open tab's data.
+ */
 export default function PortalBookingShow({
+    tab,
     booking,
     propertyCode,
     companySuspended,
-    idTypes,
-    countries,
-    boatDepartures,
-    boatSetup,
     currency,
     paymentSchedule,
     agentBill,
-    paymentProofs,
+    boatDepartures = [],
+    boatSetup = [],
+    idTypes = [],
+    countries = [],
+    paymentProofs = [],
 }: {
+    tab: Tab;
     booking: Booking;
     propertyCode: string;
     companySuspended: boolean;
-    idTypes: EnumOption[];
-    countries: EnumOption[];
-    boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
-    boatSetup: App.Data.Boats.BoatSetupUnitData[];
     currency: App.Data.Property.CurrencyData | null;
     paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
     agentBill: App.Data.Reservations.AgentBillData;
-    paymentProofs: App.Data.Payments.PaymentProofData[];
+    /** Units tab only. */
+    boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
+    /** Units tab only. */
+    boatSetup?: App.Data.Boats.BoatSetupUnitData[];
+    /** Guests tab only. */
+    idTypes?: EnumOption[];
+    /** Guests tab only. */
+    countries?: EnumOption[];
+    /** Payments tab only. */
+    paymentProofs?: App.Data.Payments.PaymentProofData[];
 }) {
     const [editing, setEditing] = useState(false);
     const [editingBoats, setEditingBoats] = useState(false);
@@ -48,20 +71,71 @@ export default function PortalBookingShow({
         (unit) => unit.canSetBoatIn || unit.canSetBoatOut,
     );
     const [saves, setSaves] = useState(0);
+    const key = { property: propertyCode, reservation: booking.id };
+
+    const tabs = [
+        {
+            value: 'units',
+            label: 'Units',
+            icon: BedDouble,
+            href: show.url(key),
+        },
+        {
+            value: 'guests',
+            label: 'Guests',
+            icon: Users,
+            href: guestsTab.url(key),
+        },
+        {
+            value: 'payments',
+            label: 'Payments',
+            icon: Wallet,
+            href: paymentsTab.url(key),
+        },
+    ];
 
     return (
         <>
             <Head title={booking.reference} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden">
                 <PageHeader
-                    title={booking.reference}
-                    description={booking.title}
+                    title={booking.title}
+                    description={
+                        <span className="flex flex-col gap-1">
+                            <span className="flex flex-wrap items-center gap-x-2">
+                                <span>
+                                    Ref:{' '}
+                                    <strong className="font-semibold text-foreground">
+                                        {booking.reference}
+                                    </strong>
+                                </span>
+                                {booking.externalReference && (
+                                    <span>
+                                        · Your ref:{' '}
+                                        <strong className="font-semibold text-foreground">
+                                            {booking.externalReference}
+                                        </strong>
+                                    </span>
+                                )}
+                            </span>
+                            <span className="flex flex-wrap items-center gap-x-2">
+                                <DateText date={booking.firstArrival} /> →{' '}
+                                <DateText date={booking.lastDeparture} />
+                                <span>
+                                    · {booking.units.length}{' '}
+                                    {booking.units.length === 1
+                                        ? 'unit'
+                                        : 'units'}
+                                </span>
+                            </span>
+                        </span>
+                    }
+                    badge={<StatusBadge status={booking.status} />}
                     back={{
                         href: index({ property: propertyCode }),
                         label: 'Bookings',
                     }}
-                    badge={<StatusBadge status={booking.status} />}
                     actions={
                         <BookingCancelActions
                             propertyCode={propertyCode}
@@ -80,188 +154,93 @@ export default function PortalBookingShow({
                     </Alert>
                 )}
 
-                {booking.cancelMode === 'free' && booking.freeUntil && (
-                    <p className="text-sm text-muted-foreground">
-                        Free cancellation until{' '}
-                        <DateText date={booking.freeUntil} />.
-                    </p>
-                )}
-
-                <dl className="grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <Fact label="Stay">
-                        <DateText date={booking.firstArrival} /> →{' '}
-                        <DateText date={booking.lastDeparture} />
-                    </Fact>
-                    <Fact label="Booker">{booking.bookerName}</Fact>
-                    <Fact label="Your reference">
-                        {booking.externalReference ?? '—'}
-                    </Fact>
-                    <Fact label="Total">
-                        <MoneyText
-                            amount={agentBill.total}
-                            currency={currency}
-                        />
-                    </Fact>
-                </dl>
-
-                <BookingPaymentSection
-                    propertyCode={propertyCode}
-                    reservationId={booking.id}
-                    schedule={paymentSchedule}
-                    bill={agentBill}
-                    proofs={paymentProofs}
-                    canUpload={
-                        !companySuspended &&
-                        paymentSchedule !== null &&
-                        paymentSchedule.stages.some(
-                            (stage) => stage.status !== 'paid',
-                        )
-                    }
-                    currency={currency}
-                />
-
-                {boatSetup.length > 0 && (
-                    <section className="flex max-w-3xl flex-col gap-3 rounded-lg border p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <h2 className="text-base font-medium">Boats</h2>
-                            {canChangeBoats && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setEditingBoats(true)}
-                                >
-                                    Set boats
-                                </Button>
-                            )}
-                        </div>
-                        <ul className="flex flex-col gap-2 text-sm">
-                            {boatSetup.map((unit) => (
-                                <li key={unit.id} className="flex flex-col">
-                                    <span className="font-medium">
-                                        {unit.label}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        Boat in:{' '}
-                                        {unit.boatIn?.summary ?? 'Not set'}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        Boat out:{' '}
-                                        {unit.boatOut?.summary ?? 'Not set'}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                )}
-
-                <BookingBoatsDialog
-                    key={boatFormKey}
-                    open={editingBoats}
-                    onOpenChange={setEditingBoats}
-                    propertyCode={propertyCode}
-                    reservationId={booking.id}
-                    units={boatSetup}
-                    departures={boatDepartures}
-                />
-
-                <section className="flex flex-col gap-3">
-                    <h2 className="text-base font-medium">Rooms</h2>
-                    <ul className="flex flex-col gap-3">
-                        {booking.units.map((unit) => (
-                            <li
-                                key={unit.id}
-                                className="flex flex-col gap-2 rounded-lg border p-3"
-                            >
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="flex flex-wrap items-center gap-2">
-                                        <span className="font-medium">
-                                            {unit.roomType}
-                                        </span>
-                                        <span className="text-sm text-muted-foreground">
-                                            {unit.ratePlan}
-                                        </span>
-                                        <StatusBadge status={unit.status} />
-                                    </span>
-                                    <MoneyText
-                                        amount={unit.total}
-                                        currency={currency}
-                                    />
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    <DateText date={unit.arrivalDate} /> →{' '}
-                                    <DateText date={unit.departureDate} />,{' '}
-                                    {unit.nights}{' '}
-                                    {unit.nights === 1 ? 'night' : 'nights'},{' '}
-                                    {unit.adults}{' '}
-                                    {unit.adults === 1 ? 'adult' : 'adults'}
-                                    {unit.children > 0 &&
-                                        `, ${unit.children} ${unit.children === 1 ? 'child' : 'children'}`}
-                                </p>
-                                {unit.guestNames.length > 0 && (
-                                    <p className="text-sm">
-                                        Guest: {unit.guestNames.join(', ')}
-                                    </p>
-                                )}
-                                {unit.addOns.length > 0 && (
-                                    <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
-                                        {unit.addOns.map((addOn, position) => (
-                                            <li
-                                                key={position}
-                                                className="flex justify-between gap-2"
-                                            >
-                                                <span>
-                                                    {addOn.name}
-                                                    {addOn.quantity > 1 &&
-                                                        ` × ${addOn.quantity}`}
-                                                </span>
-                                                <MoneyText
-                                                    amount={addOn.total}
-                                                    currency={currency}
-                                                />
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-
-                <section className="flex flex-col gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-base font-medium">Guests</h2>
-                        {booking.canEditGuests && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setEditing(true)}
-                            >
-                                Edit guests
-                            </Button>
+                <TabLinks
+                    tabs={tabs}
+                    activeTab={tab}
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
+                >
+                    <Workspace
+                        asideLabel="Booking summary"
+                        aside={
+                            <BookingSummaryCard
+                                booking={booking}
+                                bill={agentBill}
+                                schedule={paymentSchedule}
+                                currency={currency}
+                            />
+                        }
+                    >
+                        {tab === 'guests' ? (
+                            <BookingGuestsTab
+                                booking={booking}
+                                countries={countries}
+                                toolbar={
+                                    booking.canEditGuests && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setEditing(true)}
+                                        >
+                                            Edit guests
+                                        </Button>
+                                    )
+                                }
+                            />
+                        ) : tab === 'payments' ? (
+                            <BookingPaymentSection
+                                propertyCode={propertyCode}
+                                reservationId={booking.id}
+                                schedule={paymentSchedule}
+                                bill={agentBill}
+                                proofs={paymentProofs}
+                                canUpload={
+                                    !companySuspended &&
+                                    paymentSchedule !== null &&
+                                    paymentSchedule.stages.some(
+                                        (stage) => stage.status !== 'paid',
+                                    )
+                                }
+                                currency={currency}
+                            />
+                        ) : (
+                            <BookingUnitsTable
+                                units={booking.units}
+                                boats={boatSetup}
+                                total={booking.total}
+                                currency={currency}
+                                toolbar={
+                                    canChangeBoats && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setEditingBoats(true)
+                                            }
+                                        >
+                                            Set boats
+                                        </Button>
+                                    )
+                                }
+                            />
                         )}
-                    </div>
-                    <ul className="flex flex-col gap-1 text-sm">
-                        {booking.guests.map((guest) => (
-                            <li key={guest.guestId}>
-                                <span className="font-medium">
-                                    {guest.fullName}
-                                </span>
-                                <span className="text-muted-foreground">
-                                    {guest.phone && `, ${guest.phone}`}
-                                    {guest.idTypeLabel &&
-                                        `, ${guest.idTypeLabel} on file`}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                    <p className="text-sm text-muted-foreground">
-                        Changes to dates, rooms or only some rooms go through
-                        the property.
-                    </p>
-                </section>
+                    </Workspace>
+                </TabLinks>
 
-                {booking.canEditGuests && (
+                {tab === 'units' && boatSetup.length > 0 && (
+                    <BookingBoatsDialog
+                        key={boatFormKey}
+                        open={editingBoats}
+                        onOpenChange={setEditingBoats}
+                        propertyCode={propertyCode}
+                        reservationId={booking.id}
+                        units={boatSetup}
+                        departures={boatDepartures}
+                    />
+                )}
+
+                {tab === 'guests' && booking.canEditGuests && (
                     <BookingGuestsSheet
                         key={saves}
                         open={editing}
@@ -279,25 +258,11 @@ export default function PortalBookingShow({
     );
 }
 
-function Fact({
-    label,
-    children,
-}: {
-    label: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="flex flex-col gap-1 rounded-lg border p-3">
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm">{children}</dd>
-        </div>
-    );
-}
-
 PortalBookingShow.layout = (props: {
     propertyCode: string;
     booking: Booking;
 }) => ({
+    variant: 'fixed',
     breadcrumbs: [
         { title: 'Bookings', href: index({ property: props.propertyCode }) },
         {

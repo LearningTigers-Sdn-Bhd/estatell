@@ -50,7 +50,9 @@ function proofUpload(array $setup, Reservation $reservation, User $user, array $
 test('an agent sends a payment proof on its booking, and the schedule shows it as received', function () {
     [$setup, $reservation] = proofBooking();
 
-    proofUpload($setup, $reservation, $setup['portalUser'])->assertSessionHasNoErrors();
+    proofUpload($setup, $reservation, $setup['portalUser'])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('portal.bookings.payments', ['property' => $setup['property'], 'reservation' => $reservation->id]));
 
     $proof = PaymentProof::query()->sole();
     expect($proof->status)->toBe(PaymentProofStatus::Submitted)
@@ -59,7 +61,7 @@ test('an agent sends a payment proof on its booking, and the schedule shows it a
         ->and($proof->getFirstMedia(PaymentProof::FILE))->not->toBeNull()
         ->and(Activity::query()->where('event', 'payment_proof.uploaded')->count())->toBe(1);
 
-    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', ['property' => $setup['property'], 'reservation' => $reservation->id]))
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', ['property' => $setup['property'], 'reservation' => $reservation->id]))
         ->assertInertia(fn (Assert $page) => $page->where('paymentSchedule.stages.0.status', 'proof')->where('paymentProofs.0.reference', 'MBB-778812'));
 });
 
@@ -118,7 +120,7 @@ test('staff reject a proof with a reason the agent sees, and need payment.record
         ->and($proof->reject_reason)->toBe('Not in our account yet')
         ->and(Payment::query()->count())->toBe(0);
 
-    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', ['property' => $setup['property'], 'reservation' => $reservation->id]))
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', ['property' => $setup['property'], 'reservation' => $reservation->id]))
         ->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.rejectReason', 'Not in our account yet')->where('paymentSchedule.stages.0.status', 'due'));
 });
 

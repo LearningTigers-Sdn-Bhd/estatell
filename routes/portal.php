@@ -28,6 +28,8 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
             Route::get('/', [PortalBookingController::class, 'index'])->name('index');
             Route::get('new', [PortalBookController::class, 'create'])->name('create');
             Route::get('{reservation}', [PortalBookingController::class, 'show'])->whereNumber('reservation')->name('show');
+            Route::get('{reservation}/guests', [PortalBookingController::class, 'guests'])->whereNumber('reservation')->name('guests');
+            Route::get('{reservation}/payments', [PortalBookingController::class, 'payments'])->whereNumber('reservation')->name('payments');
             Route::put('{reservation}/guests', [PortalBookingController::class, 'updateGuests'])->whereNumber('reservation')->name('guests.update');
             Route::put('{reservation}/boats', [PortalBookingController::class, 'updateBoats'])->whereNumber('reservation')->name('boats.update');
             Route::get('{reservation}/payment-proofs/{paymentProof}', [PortalPaymentProofController::class, 'file'])->whereNumber('reservation')->name('payment-proofs.file');

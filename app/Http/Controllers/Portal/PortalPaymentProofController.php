@@ -29,7 +29,7 @@ class PortalPaymentProofController extends Controller
             ? ['type' => 'error', 'message' => __('This booking is closed. Contact the property.')]
             : ['type' => 'success', 'message' => __('Payment proof sent. The property will confirm the payment.')]);
 
-        return to_route('portal.bookings.show', ['property' => $property, 'reservation' => $reservation]);
+        return to_route('portal.bookings.payments', ['property' => $property, 'reservation' => $reservation]);
     }
 
     public function file(Request $request, Property $property, int $reservation, PaymentProof $paymentProof, PortalBookings $bookings): StreamedResponse

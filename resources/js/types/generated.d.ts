@@ -2566,6 +2566,7 @@ adults: number,
 children: number,
 status: App.Data.Shared.BadgeData,
 guestNames: string[],
+guestIds: number[],
 addOns: App.Data.Portal.PortalBookingAddOnData[],
 total: string,
 };
