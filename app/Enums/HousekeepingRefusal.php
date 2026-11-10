@@ -17,8 +17,8 @@ enum HousekeepingRefusal: string
         return match ($this) {
             self::OutOfService => __('Room :room is out of service.', ['room' => $room]),
             self::InvalidTransition => __('Room :room cannot move to that status.', ['room' => $room]),
-            self::CleaningInProgress => __('Room :room is already being cleaned. Record OUT first.', ['room' => $room]),
-            self::CleaningNotStarted => __('Room :room has no cleaning in progress. Record IN first.', ['room' => $room]),
+            self::CleaningInProgress => __('Room :room is already being cleaned. Tap Done first.', ['room' => $room]),
+            self::CleaningNotStarted => __('Room :room has no cleaning in progress. Tap Start first.', ['room' => $room]),
         };
     }
 }

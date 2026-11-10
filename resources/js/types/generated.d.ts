@@ -1579,6 +1579,7 @@ arrivalTime: string | null,
 departureDate: string | null,
 departureTime: string | null,
 isStayOver: boolean,
+stay: App.Data.Shared.BadgeData | null,
 isPriority: boolean,
 priorityNote: string | null,
 remark: string | null,
@@ -1608,6 +1609,7 @@ cleaning: App.Data.Housekeeping.RoomCleaningData | null,
 canStart: boolean,
 canFinish: boolean,
 canEdit: boolean,
+askHousekeeper: boolean,
 };
 }
 namespace Kiosk {
@@ -3267,6 +3269,7 @@ room_type: string,
 status: string,
 assigned: string | null,
 guest: string | null,
+stay: string | null,
 adults: number | null,
 children: number | null,
 arrival: string | null,
@@ -4694,6 +4697,7 @@ export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' 
 export type HousekeepingReason = 'departed' | 'stay_over';
 export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition' | 'cleaning_in_progress' | 'cleaning_not_started';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
+export type HousekeepingStay = 'due_out' | 'in_house' | 'checked_out' | 'arriving';
 export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';

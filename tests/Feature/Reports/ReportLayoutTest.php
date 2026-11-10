@@ -73,7 +73,7 @@ test('with no stored layout the resolver returns the code defaults', function ()
         ->and($layout->visibleKeys())->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'nights', 'unit', 'status', 'balance']);
 });
 
-test('stored columns keep their order, a new code column goes last and a stale key is ignored', function () {
+test('stored columns keep their order, a new code column goes after the column before it and a stale key is ignored', function () {
     [, $property] = reportSetup();
     storeLayout($property, [
         ['balance', true], ['stale_key', true], ['guest', false], ['reservation', true], ['phone', true],
@@ -364,7 +364,7 @@ test('the report view aligns the cells as the layout says', function () {
         ->and($html)->toContain('<th class="num">Nights</th>');
 });
 
-test('a layout stored before the split columns resolves with them appended hidden', function () {
+test('a layout stored before the split columns resolves with each one hidden right after its merged column', function () {
     [, $property] = reportSetup();
     $stored = ['reservation', 'guest', 'phone', 'arrival', 'nights', 'unit', 'guests', 'company', 'status', 'balance'];
     storeLayout($property, array_map(fn (string $key): array => [$key, in_array($key, ['phone', 'guests', 'company'], true) === false], $stored));
@@ -373,8 +373,7 @@ test('a layout stored before the split columns resolves with them appended hidde
     $keys = array_column($layout->columns, 'key');
     $visible = array_column($layout->columns, 'visible', 'key');
 
-    expect(array_slice($keys, 0, 10))->toBe($stored)
-        ->and(array_slice($keys, 10))->toBe(['arrival_time', 'room_type', 'room', 'adults', 'children'])
+    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'balance'])
         ->and($visible['room_type'] || $visible['room'] || $visible['adults'] || $visible['children'])->toBeFalse()
         ->and($visible['arrival_time'])->toBeTrue();
 });

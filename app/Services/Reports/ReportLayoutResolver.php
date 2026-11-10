@@ -15,9 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Merges the stored layout of a property with the columns in code. With no stored row the code defaults apply. Stored
- * columns keep their order; a column added in code later goes at the end with its default visibility, except a `tax:`
- * column, which goes before the stored column `ReportKey::taxColumnAnchor()` names (Adjustments or Total); a stored
- * key that code no longer has is ignored. It reads only. See docs/22-reports/01-core-reports.md.
+ * columns keep their order; a column added in code later goes right after the column before it in code order (at the
+ * start when it is first) with its default visibility, except a `tax:` column, which goes before the stored column
+ * `ReportKey::taxColumnAnchor()` names (Adjustments or Total); a stored key that code no longer has is ignored. It
+ * reads only. See docs/22-reports/01-core-reports.md.
  */
 class ReportLayoutResolver
 {
@@ -52,6 +53,13 @@ class ReportLayoutResolver
 
         $anchor = $layout->report_key->taxColumnAnchor();
         $columns = [];
+        $previousInCode = [];
+        $previous = null;
+
+        foreach ($codeColumns as $column) {
+            $previousInCode[$column->key] = $previous;
+            $previous = $column->key;
+        }
 
         foreach ($layout->columns as $stored) {
             /** @var ReportLayoutColumn $stored */
@@ -67,11 +75,32 @@ class ReportLayoutResolver
             if (str_starts_with($column->key, 'tax:')) {
                 array_splice($columns, $this->taxColumnPosition($columns, $anchor), 0, [$data]);
             } else {
-                $columns[] = $data;
+                array_splice($columns, $this->newColumnPosition($columns, $previousInCode[$column->key]), 0, [$data]);
             }
         }
 
         return new ReportLayoutData($layout->orientation, $columns);
+    }
+
+    /**
+     * Where a new column goes: right after the column before it in code order, or first when it has none. New columns
+     * are placed in code order, so a run of new columns keeps its order.
+     *
+     * @param  list<ReportLayoutColumnData>  $columns
+     */
+    private function newColumnPosition(array $columns, ?string $previousKey): int
+    {
+        if ($previousKey === null) {
+            return 0;
+        }
+
+        foreach ($columns as $index => $column) {
+            if ($column->key === $previousKey) {
+                return $index + 1;
+            }
+        }
+
+        return count($columns);
     }
 
     /**

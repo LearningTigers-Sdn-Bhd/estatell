@@ -6,6 +6,7 @@ use App\Data\Housekeeping\HousekeepingBedBlockData;
 use App\Data\Housekeeping\HousekeepingOutOfServiceData;
 use App\Data\Housekeeping\HousekeepingRoomData;
 use App\Enums\HousekeepingReason;
+use App\Enums\HousekeepingStay;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
@@ -68,7 +69,7 @@ class HousekeepingBoardBuilder
                 canInspect: $canInspect,
                 canBlock: $canBlock,
                 date: $dateString,
-                cleaning: $this->roomCleanings->state($room, $cleanings->get($room->id), $timeZone, $canUpdate, $canEditTimes, $wholeRoom !== null),
+                cleaning: $this->roomCleanings->state($room, $cleanings->get($room->id), $timeZone, $canUpdate, $canEditTimes, $wholeRoom !== null, $room->status->assigned_to !== null),
             );
 
             return ['row' => $row, 'due' => $wholeRoom !== null ? '3' : $stay['due']];
@@ -82,7 +83,7 @@ class HousekeepingBoardBuilder
     /**
      * Group the units that touch the date by the room they use that day.
      *
-     * @return Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool}, reason: ?HousekeepingReason, due: string}>
+     * @return Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}>
      */
     private function staysByRoom(Property $property, CarbonImmutable $date): Collection
     {
@@ -97,6 +98,8 @@ class HousekeepingBoardBuilder
                 'nights.bed',
                 'guests' => fn ($query) => $query->where('is_primary', true),
                 'guests.guest',
+                'reservation:id,booker_guest_id',
+                'reservation.booker:id,full_name',
             ])
             ->get();
 
@@ -124,7 +127,7 @@ class HousekeepingBoardBuilder
 
     /**
      * @param  list<array{unit: ReservationUnit, departing: bool}>  $entries
-     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool}, reason: ?HousekeepingReason, due: string}
+     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}
      */
     private function summarize(array $entries, CarbonImmutable $date): array
     {
@@ -145,6 +148,15 @@ class HousekeepingBoardBuilder
             default => null,
         };
 
+        // The departing guest still in the room comes first: housekeeping must not go in yet.
+        $stay = match (true) {
+            $departing !== null && $departing->status === UnitStatus::CheckedIn => HousekeepingStay::DueOut,
+            $present !== null || $arriving?->status === UnitStatus::CheckedIn => HousekeepingStay::InHouse,
+            $departing !== null => HousekeepingStay::CheckedOut,
+            $arriving !== null => HousekeepingStay::Arriving,
+            default => null,
+        };
+
         $due = match (true) {
             $departing !== null => '0'.substr($departing->departure_time, 0, 5),
             $arriving !== null => '1'.substr($arriving->arrival_time, 0, 5),
@@ -153,7 +165,8 @@ class HousekeepingBoardBuilder
 
         return [
             'view' => [
-                'guest' => $guestUnit?->guests->first()?->guest?->full_name,
+                // A unit without a primary guest is the booker's stay, as on the kiosk.
+                'guest' => $guestUnit === null ? null : ($guestUnit->guests->first()?->guest ?? $guestUnit->reservation->booker)?->full_name,
                 'adults' => (int) $party->sum('adults'),
                 'children' => (int) $party->sum('children'),
                 'arrivalDate' => $arriving?->arrival_date->toDateString(),
@@ -161,6 +174,7 @@ class HousekeepingBoardBuilder
                 'departureDate' => $departing?->departure_date->toDateString(),
                 'departureTime' => $departing === null ? null : substr($departing->departure_time, 0, 5),
                 'isStayOver' => $present !== null,
+                'stay' => $stay,
             ],
             'reason' => $reason,
             'due' => $due,
@@ -168,12 +182,12 @@ class HousekeepingBoardBuilder
     }
 
     /**
-     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool}, reason: ?HousekeepingReason, due: string}
+     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}
      */
     private function emptyStay(): array
     {
         return [
-            'view' => ['guest' => null, 'adults' => null, 'children' => null, 'arrivalDate' => null, 'arrivalTime' => null, 'departureDate' => null, 'departureTime' => null, 'isStayOver' => false],
+            'view' => ['guest' => null, 'adults' => null, 'children' => null, 'arrivalDate' => null, 'arrivalTime' => null, 'departureDate' => null, 'departureTime' => null, 'isStayOver' => false, 'stay' => null],
             'reason' => null,
             'due' => '2',
         ];

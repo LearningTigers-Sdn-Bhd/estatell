@@ -78,6 +78,8 @@ type Props = {
     dates: Record<string, string>;
     /** Called after Save or Reset worked, to close the sheet without the discard question. */
     onDone: () => void;
+    /** Extra buttons next to Reset and Preview, for example Match screen on the Housekeeping board. */
+    footerActions?: ReactNode;
 };
 
 const PREVIEW_FORM_ID = 'report-layout-preview';
@@ -160,6 +162,7 @@ export function ReportLayoutSheet({
     orientations,
     dates,
     onDone,
+    footerActions,
 }: Props) {
     const { csrfToken } = usePage().props;
     const [processing, setProcessing] = useState(false);
@@ -287,6 +290,7 @@ export function ReportLayoutSheet({
                                 Preview PDF
                                 <ExternalLink data-icon="inline-end" />
                             </Button>
+                            {footerActions}
                         </div>
                         <div className="flex gap-2">
                             <Button

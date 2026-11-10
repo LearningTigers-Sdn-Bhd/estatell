@@ -21,16 +21,17 @@ The system reason (see below) is not stored. It is worked out from the room and 
 - One row for each **active room** (archived rooms are left out) for the open business date (`CurrentBusinessDate`, or `PropertyToday` before business dates exist). There is no date picker, because only today can be worked on.
 - The server sends every row field. The browser sorts, filters and groups the rows it holds.
 
-| Field              | Source                                                                                                                            |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| Room, group, type  | `rooms`, room group, room type                                                                                                    |
-| Status             | `room_statuses.status`, or **Blocked** (value `out_of_service`) when an open block covers the date                                |
-| Assigned           | `room_statuses.assigned_to`                                                                                                       |
-| Guest              | The primary guest of tonight's unit: the one that stays over or arrives today, else the one that departs                          |
-| Pax                | Adults and children of tonight's party: every unit that stays over or arrives (a bed room adds them up), else the departing units |
-| Arrival, Departure | The unit that arrives today and the unit that departs today: date and expected time (not actual)                                  |
-| Flags              | `is_priority`, `do_not_disturb_on` (today), `needs_maintenance`                                                                   |
-| Remark, reason     | `remark` written by staff, and the derived system reason                                                                          |
+| Field              | Source                                                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Room, group, type  | `rooms`, room group, room type                                                                                                                                       |
+| Status             | `room_statuses.status`, or **Blocked** (value `out_of_service`) when an open block covers the date                                                                   |
+| Housekeeper        | `room_statuses.assigned_to` and the cleaning times, in one column (see [Cleaning times](03-cleaning-times.md))                                                       |
+| Guest              | The primary guest of tonight's unit (the one that stays over or arrives, else the one that departs), else its booker                                                 |
+| Reservation Status | `HousekeepingStay` badge in its own column after Guest, see below                                                                                                    |
+| Pax                | Adults and children of tonight's party: every unit that stays over or arrives (a bed room adds them up), else the departing units. Grey when the stay is Checked out |
+| Arrival, Departure | The unit that arrives today and the unit that departs today: date and expected time (not actual)                                                                     |
+| Flags              | `is_priority`, `do_not_disturb_on` (today), `needs_maintenance`                                                                                                      |
+| Remark, reason     | `remark` written by staff, and the derived system reason                                                                                                             |
 
 A room can have a departure and an arrival on the same day. Both show, each in its own column.
 
@@ -58,14 +59,30 @@ Sentences come from `lang/en.json` and `lang/ms.json`. A repeated click on a roo
 
 ## System reason
 
-`HousekeepingReason` is derived, read only and shown in grey under the remark while the room is **Dirty**:
+## Stay badge
+
+`HousekeepingStay` is derived, never stored, and shown as a badge in the **Reservation Status** column, after Guest. Its tones follow `UnitStatus`. The first match wins:
+
+| Badge       | Tone    | When                                                                 |
+| ----------- | ------- | -------------------------------------------------------------------- |
+| Due out     | Warning | A unit departs today and is still checked in. Do not go in yet       |
+| In house    | Success | A checked-in unit sleeps in the room tonight (stays over or arrived) |
+| Checked out | Neutral | A unit checked out of the room today. The room is free to clean      |
+| Arriving    | Info    | A confirmed unit arrives today                                       |
+| none        |         | No unit touches the room today                                       |
+
+On the board, Start on a Due out room is quiet (ghost) with the tooltip "Guest hasn't checked out". It still works, because some hotels clean early.
+
+## System reason
+
+`HousekeepingReason` is derived and read only. The board no longer shows it, because the stay badge says the same. It stays in the printed sheet and the spreadsheet remarks while the room is **Dirty**:
 
 | Reason    | When                                                     |
 | --------- | -------------------------------------------------------- |
 | Departed  | A unit checked out of the room on the business date      |
 | Stay-over | A checked-in unit sleeps in the room and does not depart |
 
-It disappears when the room is Clean, so it can never be stale. For a Blocked room the grey line shows the block reason and its notes instead.
+It disappears when the room is Clean, so it can never be stale. For a Blocked room the Notes cell shows the block notes.
 
 ## Remark
 
@@ -110,7 +127,20 @@ An open `room_blocks` row that covers the business date makes the room **Blocked
 | Sort    | Default **due**: departures by `departure_time`, then arrivals by `arrival_time`, then other rooms by room number. With boats, the boat order (see the Boats items in the checklist). A column header overrides it: click once for ascending, again for descending, a third time to go back to due. Empty cells go last. |
 | Browser | The view and collapsed groups are remembered in the browser. They are not saved on the server and are not part of the report layout.                                                                                                                                                                                     |
 
-The table on the board has fixed columns. The property layout (order, visibility, orientation) drives the printed sheet and the spreadsheet only, see [Print, export and layout](02-print-and-layout.md).
+## Columns
+
+The **Columns** menu on the board has two entries. They are two layouts, for different people:
+
+| Entry                   | Who                         | Affects                                   | Options                                                            | Saved in                                                       |
+| ----------------------- | --------------------------- | ----------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Screen columns…         | Everyone who sees the board | Only that viewer, in that browser         | On/off and order of the board columns. Room and Status stay on     | Browser storage (`housekeeping.screen-columns`), like the view |
+| Print & export columns… | `settings.manage`           | Every PDF and spreadsheet of the property | Everything, see [Print, export and layout](02-print-and-layout.md) | `report_layouts`                                               |
+
+- The board columns are Room, Status, Guest, Reservation Status, Pax, Arrival, Departure, Housekeeper and Notes. Their keys are the print column keys (`room`, `status`, `guest`, `stay`, `pax`, `arrival`, `departure`, `assigned`, `remarks`).
+- Both layouts start from the same defaults, so the board and the sheet match until someone changes one.
+- **Match screen** in the print sheet copies the viewer's screen order and on/off onto those print columns, in the places they hold. Print-only columns stay as they are. It changes the draft; Save stores it.
+- A screen column added in code later goes right after the column before it, as in the print layout.
+- The checkbox and the ⋯ menu are not columns and always show.
 
 ## Bulk bar
 
@@ -173,13 +203,12 @@ Front desk context > Housekeeping (`housekeeping.index`, `/p/{code}/housekeeping
 Housekeeping Tasks · Mon 12 Oct                          [ Columns ] [ Export v ]
 View: ( All ) ( Grouped by room group ) ( Grouped by room type )   Status v  Assigned v  Arr · Dep · Stay
 
- ☐  Room  Status               Assigned  Arrival       Departure     Flags   Remarks
+ ☐  Room  Status          Guest            Reservation     Pax    Arrival       Departure     Housekeeper                    Notes
  ▼ Floor 1                                                   6 rooms · 2 dirty
- ☑  101   [● Dirty ⌄]         Siti      12 Oct 14:00  12 Oct 11:00  ! Maint Extra towels
-                                                                              ↳ Departed
- ☐  102   [● Clean ⌄]         Aminah    –             –                     Add remark…
- ☐  103   [● Inspected ⌄]     Aminah    –             –
- –  203   [● Blocked]  –                 Maintenance · until 18 Oct            Aircon
+ ☑  101   [● Dirty ⌄]    Tan Mei Ling     [Checked out]   2 · 0  –             12 Oct 11:00  Siti · since 10:05  [Done]     Extra towels
+ ☐  102   [● Dirty ⌄]    Ahmad Faiz       [Due out]       1 · 0  –             12 Oct 12:00  [Aminah ▾]  (Start)            Add remark…
+ ☐  103   [● Clean ⌄]    Sarah Tan        [Arriving]      2 · 0  12 Oct 15:00  14 Oct 12:00  Aminah · 09:10–09:40 · 30 min
+ –  203   [● Blocked]    –                –               –      –             –             [Unassigned ▾]                 Aircon
 
  ╔═ 2 selected  [ Assign to v ] [ Mark clean ] [ Mark inspected ] [ Priority ] [ Add remark ] [ Print selected ] [ Clear ] ═╗
 ```

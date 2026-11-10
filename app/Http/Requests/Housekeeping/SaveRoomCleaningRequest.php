@@ -43,7 +43,7 @@ class SaveRoomCleaningRequest extends FormRequest
      */
     public function messages(): array
     {
-        return ['out_time.after_or_equal' => __('OUT cannot be before IN.')];
+        return ['out_time.after_or_equal' => __('Finished cannot be before Started.')];
     }
 
     public function housekeeper(): User
