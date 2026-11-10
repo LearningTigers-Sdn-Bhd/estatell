@@ -114,6 +114,16 @@ Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/
 - [x] `feat(rates): switch a booking to the group rate` — `rate_plans.group_rate_plan_id` (Larger bookings use on the Details tab, validated against the group rate's Min rooms), `groupRateSwitch()` and `switchGroupRates()` on the staff booking form and the agent portal, which also hides plans that do not fit the room count. Docs: [Rooms per booking](08-rates/01-rate-plans.md#rooms-per-booking).
 - [x] `feat(reservations): correct charged add-ons when guests change` — `PostedAddOnAdjustments` and the Extras already charged tick boxes in Change guests (charge the difference, or reverse and charge again; `folio.reverse` for reversals; `skip_add_ons` to do it by hand), OTA Modified revisions sync the guests through `ChangeUnitParty` (`channelRevision`), and OTA infants are children of 0. Docs: [Charged add-ons](12-reservations/14-change-guests.md#charged-add-ons), [Booking ingestion](21-channels/05-booking-ingestion.md).
 
+### Sand Bay feedback 2
+
+Branch `feat/group-unit-actions`. Planned on 2026-11-10: staff could change the price and add add-ons only one unit at a time. A mockup of the All view and the group add-on Dialog in the real theme is signed off before the first feature commit.
+
+- [x] `docs(reservations): plan group price, group add-ons and the units view` — the All and Grouped views, the group add-on, the group price and All lines on the booking form, and these items.
+- [ ] `feat(reservations): add the All and Grouped views to the Units tab` — the toggle (`reservations.units-view`), `ReservationUnitRowData` as `unitRows`, the All table with its footer and tick boxes, the `BulkActionBar` (actions come in the next items), mobile cards; an empty override reason is sent as null. Docs: [All and Grouped views](12-reservations/06-reservation-page.md#all-and-grouped-views).
+- [ ] `feat(reservations): add an add-on to several units` — `AddGroupAddOn`, `GroupAddOnResult`, `GroupAddOnPreview`, the two `reservations.add-ons` routes, the Units multi-select with All units, the preview table and the bulk bar action. Needs: the All and Grouped views. Docs: [Group add-on](12-reservations/04-add-ons.md#group-add-on).
+- [ ] `feat(reservations): change the price of several units` — `ChangeGroupNightPrice`, `GroupNightPriceResult`, the two `reservations.night-price` routes, the Dialog with one line per unit and the bulk bar action. Needs: the All and Grouped views. Docs: [Change the price of a group](12-reservations/09-change-night-price.md#change-the-price-of-a-group).
+- [ ] `feat(reservations): add an add-on to all lines on the booking form` — All lines in the Line select, copied into every line when the request is built; errors name the line. UI only. Can be dropped. Docs: [Booking form](12-reservations/05-booking-form.md).
+
 ## Next
 
 Needed for go-live.

@@ -83,6 +83,59 @@ Both show to users with `reservations.change-price`, for a unit that is Confirme
 
 `reservations.change-price` ("Change the price of booked nights"): Owner, Manager and Finance by default. Front desk does not get it by default: it has no `folio.reverse`, and changing a charged price reverses lines. A property can still give it to Front desk in the roles grid. A booking-time override still needs no permission; changing a price later touches revenue, so it has its own.
 
+## Change the price of a group
+
+**Status: planned** (Sand Bay feedback 2). Set one price per night on every night of several units at once, for a group rate agreed after booking.
+
+### Entry
+
+Units tab, All view: tick rows, then **Change price** in the bulk bar (see [All and Grouped views](06-reservation-page.md#all-and-grouped-views)). It shows to users with `reservations.change-price` when at least one ticked unit is Confirmed, CheckedIn or CheckedOut. Changing the price of single nights stays in the unit panel (Grouped view).
+
+### Dialog
+
+```
+┌ Change price · 5 units ───────────────────────────────────┐
+│ New price per night   [ 600.00 ]                          │
+│ Reason                [ Agent group rate               ]  │
+│                                                           │
+│ Unit                      Nights   Was        Difference  │
+│ Deluxe Twin · F1          1        684.00     −MYR 84.00  │
+│ Deluxe Twin · F2          1        684.00     −MYR 84.00  │
+│ …                                                         │
+│ Total difference                              −MYR 420.00 │
+│                                      [Cancel] [Change]    │
+└───────────────────────────────────────────────────────────┘
+```
+
+- Every night of each ticked unit gets the new price, so units with different dates each keep their own nights.
+- **Was** is the unit's current price per night (lowest and highest when its nights differ). **Difference** is with tax, from `NightPriceChangePreview::preview()` for each unit (300 ms after a change).
+- A unit with a charged night adds the line "Charged nights are reversed and charged again." under the table.
+- Units at different prices (two room types): run it once per room type.
+- Price 0, the reason and the discount note follow the single-unit Dialog.
+
+### `ChangeGroupNightPrice`
+
+`(User $actor, Reservation $reservation, list<int> $unitIds, string $price, string $reason): GroupNightPriceResult` in `app/Actions/Reservations/`.
+
+- One transaction. It locks the picked units in id order, then calls `ChangeNightPrice` once per unit with all of that unit's nights.
+- All or nothing: the first refusal rolls every unit back. `GroupNightPriceResult` holds the refusal code with the unit id and label, so the Dialog says "F3: The folio is closed."
+- A unit id that is not a unit of the reservation is ignored. No unit left is refused (`no_units_selected`).
+- Each unit keeps its own `reservation.night_price_changed` entry. No summary entry is written.
+
+### Routes
+
+| URL                                               | Name                               | Permission                  |
+| ------------------------------------------------- | ---------------------------------- | --------------------------- |
+| `POST …/{reservation}/night-price/preview` (JSON) | `reservations.night-price.preview` | `reservations.change-price` |
+| `POST …/{reservation}/night-price`                | `reservations.night-price`         | `reservations.change-price` |
+
+### Tests
+
+- Three units with different dates: each gets the price on its own nights.
+- A unit with a charged night is reversed and charged again under `:fix:1`; the others get `override_amount` only.
+- One refused unit (a closed folio) refuses the whole save, names the room and writes nothing.
+- Permission 403 and other-property 404.
+
 ## Tests
 
 - A Scheduled night gets the override and posts nothing; the audit later charges the new price.
