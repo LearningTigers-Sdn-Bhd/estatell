@@ -248,6 +248,7 @@ departureAvailable: boolean,
 time: string | null,
 note: string | null,
 summary: string,
+short: string,
 };
 }
 namespace BookingEngine {
@@ -4355,6 +4356,8 @@ stayLabel: string | null,
 ratePlan: string,
 total: string,
 status: App.Data.Shared.BadgeData,
+boatIn: string | null,
+boatOut: string | null,
 };
 export type RoomTypeOptionData = {
 id: number,

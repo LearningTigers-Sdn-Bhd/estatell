@@ -5,7 +5,7 @@ import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { HoverCardContent } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { show } from '@/routes/reservations';
-import { PaxCount } from './pax-count';
+import { PaxCount } from '@/components/pms/pax-count';
 import { dayAfter, dayLabel, nightCount, placeLabel } from './stay-places';
 
 type Room = App.Data.StayView.RoomRowData;

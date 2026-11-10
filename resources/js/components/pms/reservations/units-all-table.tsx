@@ -1,8 +1,9 @@
-import { Tag } from 'lucide-react';
+import { Ship, Tag } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { PaxCount } from '@/components/pms/pax-count';
 import { ChangeGroupPriceDialog } from '@/components/pms/reservations/change-group-price-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,16 @@ function Stay({ row }: { row: Row }) {
     );
 }
 
+/** The boat line under Stay: "In 06:00 boat · Out Own 11:30". Hidden on day use and with the Boats feature off. */
+function BoatLine({ row }: { row: Row }) {
+    return (
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+            <Ship aria-hidden className="size-3.5 shrink-0" />
+            In {row.boatIn ?? 'Not set'} · Out {row.boatOut ?? 'Not set'}
+        </span>
+    );
+}
+
 /**
  * Display sum of decimal strings, in cents, for the footer. The server sends each row's total.
  */
@@ -72,6 +83,7 @@ export function UnitsAllTable({
     toggle,
     summaryToggle,
     canChangePrice,
+    hasBoats,
     autoAssignRooms,
     currency,
     onOpenUnit,
@@ -86,6 +98,8 @@ export function UnitsAllTable({
     summaryToggle: ReactNode;
     /** Shows Change price (`reservations.change-price`). */
     canChangePrice: boolean;
+    /** Shows the boat line under Stay (the Boats feature). */
+    hasBoats: boolean;
     autoAssignRooms: boolean;
     currency: App.Data.Property.CurrencyData | null;
     onOpenUnit: (unitId: number) => void;
@@ -126,7 +140,7 @@ export function UnitsAllTable({
                         <TableRow className="hover:bg-transparent">
                             <TableHead>Room</TableHead>
                             <TableHead>Guest</TableHead>
-                            <TableHead className="text-right">Pax</TableHead>
+                            <TableHead>Pax</TableHead>
                             <TableHead>Stay</TableHead>
                             <TableHead>Rate plan</TableHead>
                             <TableHead className="text-right">
@@ -157,11 +171,18 @@ export function UnitsAllTable({
                                 >
                                     {row.primaryGuest ?? 'No primary guest'}
                                 </TableCell>
-                                <TableCell className="text-right tabular-nums">
-                                    {row.adults}/{row.children}
+                                <TableCell>
+                                    <PaxCount stay={row} />
                                 </TableCell>
                                 <TableCell className="tabular-nums">
-                                    <Stay row={row} />
+                                    <span className="flex flex-col gap-0.5">
+                                        <span>
+                                            <Stay row={row} />
+                                        </span>
+                                        {hasBoats && row.stayLabel === null && (
+                                            <BoatLine row={row} />
+                                        )}
+                                    </span>
                                 </TableCell>
                                 <TableCell className="max-w-40 truncate">
                                     {row.ratePlan}
@@ -215,12 +236,15 @@ export function UnitsAllTable({
                                         'text-muted-foreground',
                                 )}
                             >
-                                {row.primaryGuest ?? 'No primary guest'} ·{' '}
-                                {row.adults}/{row.children}
+                                {row.primaryGuest ?? 'No primary guest'}
                             </span>
+                            <PaxCount stay={row} size="sm" />
                             <span className="text-muted-foreground tabular-nums">
                                 <Stay row={row} />
                             </span>
+                            {hasBoats && row.stayLabel === null && (
+                                <BoatLine row={row} />
+                            )}
                             <span className="flex items-center justify-between gap-2">
                                 <span className="truncate text-muted-foreground">
                                     {row.ratePlan}

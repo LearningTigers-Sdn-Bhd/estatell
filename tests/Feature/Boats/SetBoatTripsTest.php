@@ -232,10 +232,14 @@ test('the reservation page gives the unit its boat trips and whether Change show
         ->assertInertia(fn (Assert $props) => $props
             ->where('hasBoats', true)
             ->where('unit.boatIn.summary', 'Scheduled boat · 09:00 Kuala Besut jetty → 09:45')
+            ->where('unit.boatIn.short', '09:00 boat')
             ->where('unit.boatIn.departureAvailable', true)
             ->where('unit.canSetBoatIn', true)
             ->where('unit.canSetBoatOut', true)
-            ->where('unit.boatOut', null));
+            ->where('unit.boatOut', null)
+            ->where('unitRows.0.boatIn', '09:00 boat')
+            ->where('unitRows.0.boatOut', null)
+            ->where('unitRows.2.boatIn', null));
 
     $this->actingAs($fixture['owner'])
         ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => inertia()->getVersion(), 'X-Inertia-Partial-Component' => 'reservations/show', 'X-Inertia-Partial-Data' => 'boatSetup'])
@@ -258,5 +262,6 @@ test('the reservation page sends no boat data and no Change while the feature is
         ->assertInertia(fn (Assert $props) => $props
             ->where('hasBoats', false)
             ->where('unit.boatIn', null)
-            ->where('unit.canSetBoatIn', false));
+            ->where('unit.canSetBoatIn', false)
+            ->where('unitRows.0.boatIn', null));
 });

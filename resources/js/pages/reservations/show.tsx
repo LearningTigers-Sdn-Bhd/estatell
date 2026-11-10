@@ -457,6 +457,7 @@ export default function ReservationShow({
                                 rows={unitRows}
                                 units={units}
                                 canChangePrice={canChangePrice}
+                                hasBoats={hasBoats}
                                 toggle={unitsToggle}
                                 summaryToggle={summaryToggle}
                                 autoAssignRooms={autoAssignRooms}

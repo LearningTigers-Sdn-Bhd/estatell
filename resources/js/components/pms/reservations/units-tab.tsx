@@ -3,6 +3,7 @@ import {
     BedDouble,
     CalendarDays,
     Info,
+    Pencil,
     Ship,
     Tag,
     User,
@@ -34,6 +35,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
@@ -296,52 +302,73 @@ export function UnitsTab({
                 </Detail>
                 {hasBoats && unit.stayType !== 'day_use' && (
                     <Detail icon={Ship} label="Boat">
-                        <div className="flex flex-col gap-1">
-                            {(['in', 'out'] as const).map((direction) => {
-                                const trip =
-                                    direction === 'in'
-                                        ? unit.boatIn
-                                        : unit.boatOut;
-                                const canSet =
-                                    direction === 'in'
-                                        ? unit.canSetBoatIn
-                                        : unit.canSetBoatOut;
+                        {(['in', 'out'] as const).map((direction, index) => {
+                            const trip =
+                                direction === 'in' ? unit.boatIn : unit.boatOut;
+                            const canSet =
+                                direction === 'in'
+                                    ? unit.canSetBoatIn
+                                    : unit.canSetBoatOut;
+                            const name = direction === 'in' ? 'In' : 'Out';
 
-                                return (
-                                    <div
-                                        key={direction}
-                                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
-                                    >
+                            return (
+                                <span
+                                    key={direction}
+                                    className="flex items-center gap-1"
+                                >
+                                    {index > 0 && (
+                                        <span className="pe-1 text-muted-foreground">
+                                            ·
+                                        </span>
+                                    )}
+                                    <span className="text-muted-foreground">
+                                        {name}
+                                    </span>
+                                    {trip === null ? (
                                         <span className="text-muted-foreground">
-                                            {direction === 'in' ? 'In' : 'Out'}
+                                            Not set
                                         </span>
-                                        <span>
-                                            {trip === null ? (
-                                                <span className="text-muted-foreground">
-                                                    Not set
-                                                </span>
-                                            ) : (
-                                                trip.summary
-                                            )}
-                                        </span>
-                                        {canSet && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setBoatChange({
-                                                        direction,
-                                                        open: true,
-                                                    })
+                                    ) : (
+                                        <Tooltip>
+                                            <TooltipTrigger
+                                                render={
+                                                    <span className="tabular-nums" />
                                                 }
                                             >
-                                                Change
-                                            </Button>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                                {trip.short}
+                                                {!trip.departureAvailable &&
+                                                    trip.boatDepartureId !==
+                                                        null && (
+                                                        <span className="text-warning-text">
+                                                            {' '}
+                                                            · unavailable
+                                                        </span>
+                                                    )}
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {trip.summary}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                    {canSet && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            aria-label={`Change boat ${direction}`}
+                                            title={`Change boat ${direction}`}
+                                            onClick={() =>
+                                                setBoatChange({
+                                                    direction,
+                                                    open: true,
+                                                })
+                                            }
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                    )}
+                                </span>
+                            );
+                        })}
                     </Detail>
                 )}
                 <div className="flex flex-wrap gap-x-6 gap-y-2">

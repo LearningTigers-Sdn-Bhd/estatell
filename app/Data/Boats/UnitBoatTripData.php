@@ -13,7 +13,9 @@ use Spatie\LaravelData\Data;
  * One direction of a unit's boat trip as the Boat row shows it. `summary` is the readable line: "Scheduled boat · 09:00
  * Kuala Besut → 09:45", or "Own boat · 11:30 · Guest's own speedboat". A trip on a departure that is no longer available
  * says "unavailable" and keeps its departure, so staff see it and pick another. `time` is the unit's time, read for a
- * charter or own boat trip only.
+ * charter or own boat trip only. `short` is the inline text of the Units tab: a scheduled boat by the time it leaves
+ * ("06:00 boat", so Boat in does not repeat the arrival time of Stay), a charter or own boat by the unit's time
+ * ("Charter 10:30", "Own 11:30"), with `summary` in its tooltip.
  */
 class UnitBoatTripData extends Data
 {
@@ -26,6 +28,7 @@ class UnitBoatTripData extends Data
         public ?string $time,
         public ?string $note,
         public string $summary,
+        public string $short,
     ) {}
 
     /**
@@ -70,6 +73,11 @@ class UnitBoatTripData extends Data
             time: $time,
             note: $trip->note,
             summary: implode(' · ', $parts),
+            short: match (true) {
+                $departure !== null => __(':time boat', ['time' => substr($departure->leaves_at, 0, 5)]),
+                $trip->mode === BoatMode::Charter => __('Charter :time', ['time' => $time]),
+                default => __('Own :time', ['time' => $time]),
+            },
         );
     }
 }

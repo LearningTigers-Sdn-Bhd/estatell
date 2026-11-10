@@ -2,7 +2,10 @@
 
 namespace App\Data\Reservations;
 
+use App\Data\Boats\UnitBoatTripData;
 use App\Data\Shared\BadgeData;
+use App\Enums\BoatDirection;
+use App\Enums\StayType;
 use App\Models\ReservationUnit;
 use App\Models\UnitNight;
 use App\Services\Reservations\StayLabel;
@@ -13,7 +16,9 @@ use Spatie\LaravelData\Data;
  * One row of the All view on the Units tab. Expects `ratePlan`, `nights` and `dayUse` to be loaded, and takes the
  * label, room and primary guest from the unit's `ReservationUnitOptionData`. `ratePlan` reads "Several plans" when the
  * nights have more than one plan. `total` is the sum of the night amounts (or the day use price), before tax and folio
- * discounts.
+ * discounts. `boatIn` and `boatOut` are the short boat texts (`UnitBoatTripData::$short`, "06:00 boat"), null when
+ * the unit has no trip that way, and always null when `boatTrips` is not loaded (the Boats feature is off) or on day
+ * use. Expects `boatTrips.boatDeparture` with the trips.
  */
 class ReservationUnitRowData extends Data
 {
@@ -31,6 +36,8 @@ class ReservationUnitRowData extends Data
         public string $ratePlan,
         public string $total,
         public BadgeData $status,
+        public ?string $boatIn = null,
+        public ?string $boatOut = null,
     ) {}
 
     public static function fromModel(ReservationUnit $unit, ReservationUnitOptionData $option): self
@@ -55,6 +62,17 @@ class ReservationUnitRowData extends Data
                 ->toScale(2)
                 ->__toString(),
             status: $option->status,
+            boatIn: self::boat($unit, BoatDirection::In),
+            boatOut: self::boat($unit, BoatDirection::Out),
         );
+    }
+
+    private static function boat(ReservationUnit $unit, BoatDirection $direction): ?string
+    {
+        if (! $unit->relationLoaded('boatTrips') || $unit->stay_type === StayType::DayUse) {
+            return null;
+        }
+
+        return UnitBoatTripData::forDirection($unit->boatTrips, $direction, $unit)?->short;
     }
 }

@@ -150,7 +150,7 @@ class ReservationController extends Controller
 
             return [
                 'unit' => $data,
-                'unitRows' => $unitRows->rows($unitModels, $units),
+                'unitRows' => $unitRows->rows($unitModels, $units, Feature::for($property)->active(Boats::class)),
                 'canChangePrice' => $request->user()->can(PermissionEnum::ReservationsChangePrice->value),
                 'doorPins' => $this->doorPins($request->user(), $property, $selected),
                 'keyCards' => $this->keyCards($request->user(), $property, $selected),
