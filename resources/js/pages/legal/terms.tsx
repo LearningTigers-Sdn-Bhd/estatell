@@ -97,7 +97,7 @@ const sections = [
         paragraphs: [
             'Unless your service agreement states otherwise, these terms are governed by the laws of Malaysia. Disputes are subject to the competent courts of Malaysia, without limiting mandatory protections or rights to bring claims available under applicable law. Please contact us first so we can try to resolve a concern.',
             'We may revise these terms to reflect changes in the website, services, or law and will update the date above. Material changes to an existing paid service are subject to the notice and acceptance requirements in your agreement and applicable law; publishing a website update does not override those requirements.',
-            'For questions about these terms, contact Jesselton Pixel Sdn. Bhd. at hello@estatell.com or +6011-6202 3988. Read our Privacy Policy for information about personal data.',
+            'For questions about these terms, contact Jesselton Pixel Sdn. Bhd. (202001041027) at hello@estatell.com or +6011-6202 3988. Read our Privacy Policy for information about personal data.',
         ],
     },
 ];

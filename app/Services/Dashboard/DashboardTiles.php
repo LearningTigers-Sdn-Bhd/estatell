@@ -34,6 +34,7 @@ class DashboardTiles
     public function __construct(
         private AvailabilityService $availability,
         private DailyRevenueQuery $revenue,
+        private TodayBookings $todayBookings,
     ) {}
 
     public function forDate(Property $property, CarbonImmutable $date, bool $units, bool $reports): DashboardTilesData
@@ -44,6 +45,7 @@ class DashboardTiles
             departures: $units ? $this->unitCount($property, 'departure_date', $date, UnitStatus::CheckedIn) : null,
             tonight: $units ? $this->tonight($property, $date) : null,
             month: $reports ? $this->month($property, $date) : null,
+            newBookings: $units ? $this->todayBookings->tile($property, $date) : null,
         );
     }
 
