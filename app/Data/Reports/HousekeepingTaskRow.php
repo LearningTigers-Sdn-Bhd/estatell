@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
  * `ReportKey::HousekeepingTasks`. `key` is the room id and `due` is the place of the room in the board order, so the
  * default sort `due` keeps departures first. `arrival` and `departure` hold `Y-m-d H:i` (the date alone without a
  * time), so a sort puts them in time order; the cells format them. `adults` and `children` are the party sleeping in the
- * room tonight (the departing one when nobody arrives), and `pax` prints them as "2 + 1". The columns follow the
+ * room tonight (the departing one when nobody arrives), and `pax` prints them as "2A 1C". The columns follow the
  * board: `assigned` is the Housekeeper cell (the cleaner and the times when a cleaning exists, else the assignee),
  * `stay` the Reservation Status badge, and `remarks` the Notes cell (flags and remark; the reason is its own column).
  */
@@ -59,7 +59,7 @@ class HousekeepingTaskRow extends Data implements ReportRow
             'assigned' => $this->assigned ?? '',
             'guest' => $this->guest ?? '',
             'stay' => $this->stay ?? '',
-            'pax' => $this->adults === null ? '' : __(':adults + :children', ['adults' => $this->adults, 'children' => $this->children ?? 0]),
+            'pax' => $this->adults === null ? '' : __(':adultsA :childrenC', ['adults' => $this->adults, 'children' => $this->children ?? 0]),
             'adults' => $this->adults === null ? '' : (string) $this->adults,
             'children' => $this->children === null ? '' : (string) $this->children,
             'arrival' => $this->moment($this->arrival_date, $this->arrival_time),

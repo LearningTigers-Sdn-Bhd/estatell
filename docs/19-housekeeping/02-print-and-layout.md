@@ -41,7 +41,7 @@ A merged column keeps its key. Its split columns are new keys, hidden by default
 | `status`            | Status             | left  | ✓       | –           | text (label)                                                           |
 | `guest`             | Guest              | left  | ✓       | –           | text                                                                   |
 | `stay`              | Reservation Status | left  | ✓       | –           | text (`HousekeepingStay` label)                                        |
-| `pax`               | Pax                | left  | ✓       | –           | text (`2 + 1`, adults + children)                                      |
+| `pax`               | Pax                | left  | ✓       | –           | text (`2A 1C`, adults and children)                                    |
 | `adults`            | Adults             | right | –       | `pax`       | number                                                                 |
 | `children`          | Children           | right | –       | `pax`       | number                                                                 |
 | `arrival`           | Arrival            | left  | ✓       | –           | text (`12 Oct · 14:00`)                                                |

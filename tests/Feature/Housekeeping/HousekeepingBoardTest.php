@@ -503,7 +503,7 @@ test('the board spreadsheet lists the rooms in due order with the board columns 
 
     expect($rows[0])->toBe(['Room', 'Status', 'Guest', 'Reservation Status', 'Pax', 'Arrival', 'Departure', 'Housekeeper', 'Notes'])
         ->and(array_column($rows, 0))->toBe(['Room', '102', '101', '103'])
-        ->and($rows[1])->toBe(['102', 'Dirty', 'Departed Guest', 'Checked out', '1 + 0', '', '12 Oct · 11:00', '', 'Priority · Spill on rug'])
+        ->and($rows[1])->toBe(['102', 'Dirty', 'Departed Guest', 'Checked out', '1A 0C', '', '12 Oct · 11:00', '', 'Priority · Spill on rug'])
         ->and($rows[2][5])->toBe('12 Oct · 14:30')
         ->and($rows[3][4])->toBe('');
 });
