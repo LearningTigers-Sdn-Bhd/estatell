@@ -2,13 +2,13 @@
 
 namespace App\Services\Kiosk;
 
+use App\Enums\LockProvider;
 use App\Enums\PasscodeStatus;
 use App\Features\DoorLocks;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\ReservationUnit;
 use App\Services\DoorLocks\StayLocks;
-use Laravel\Pennant\Feature;
 
 /**
  * Reads the door PIN a checked-in stay got from TTLock (`SyncStayPasscodes`, queued by the check-in), as the kiosk's
@@ -28,7 +28,7 @@ class KioskPin
     {
         $locks = $this->stayLocks->current($stay);
 
-        if (! Feature::for($stay->property)->active(DoorLocks::class) || $locks->isEmpty() || $stay->property->doorLockConnection?->enabled !== true) {
+        if (! DoorLocks::allows($stay->property, LockProvider::TTLock) || $locks->isEmpty() || $stay->property->doorLockConnection?->enabled !== true) {
             return KioskPinStatus::failed();
         }
 

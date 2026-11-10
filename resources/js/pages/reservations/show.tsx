@@ -69,6 +69,8 @@ type Props = {
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
     doorPins?: App.Data.DoorLocks.UnitDoorPinsData | null;
+    keyCards?: App.Data.Keyport.UnitKeyCardsData | null;
+    lockProviders?: string[];
     guests?: App.Data.Reservations.ReservationGuestData[];
     canManageGuests?: boolean;
     countries?: EnumOption[];
@@ -127,6 +129,8 @@ export default function ReservationShow({
     boatSetup,
     unit = null,
     doorPins = null,
+    keyCards = null,
+    lockProviders = [],
     guests = [],
     canManageGuests = false,
     countries = [],
@@ -409,6 +413,8 @@ export default function ReservationShow({
                                 reservationId={reservation.id}
                                 unit={unit}
                                 doorPins={doorPins}
+                                keyCards={keyCards}
+                                lockProviders={lockProviders}
                                 autoAssignRooms={autoAssignRooms}
                                 canWaiveFees={canWaiveFees}
                                 canOverrideRestrictions={

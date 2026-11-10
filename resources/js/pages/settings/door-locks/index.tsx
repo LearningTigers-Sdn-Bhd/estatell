@@ -1,18 +1,21 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     Activity,
-    BatteryMedium,
     CircleCheck,
     Clock,
     KeyRound,
     Lock,
+    MoreHorizontal,
     Plug,
     RefreshCw,
     Unlock,
-    Wifi,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+    PaginationFooter,
+    toPaginationData,
+} from '@/components/pms/pagination-footer';
+import { KeyportSection } from '@/components/pms/settings/keyport-section';
 import DoorLockSettingsController from '@/actions/App/Http/Controllers/DoorLocks/DoorLockSettingsController';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -27,21 +30,21 @@ import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Field,
     FieldError,
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -85,78 +88,62 @@ function clockText(seconds: number): { text: string; warn: boolean } {
     };
 }
 
-function HealthRow({
-    icon: Icon,
-    label,
-    value,
-    warn = false,
-}: {
-    icon: LucideIcon;
-    label: string;
-    value: string;
-    warn?: boolean;
-}) {
-    return (
-        <div className="flex items-center gap-2 text-sm">
-            <Icon aria-hidden className="size-4 text-muted-foreground" />
-            <span className="w-16 text-muted-foreground">{label}</span>
-            <span
-                className={cn(
-                    'tabular-nums',
-                    warn && 'font-medium text-warning',
-                )}
-            >
-                {value}
-            </span>
-        </div>
-    );
-}
-
-/** Battery, gateway and clock of a lock, as last read from TTLock. A lock with a gateway can be checked now with the button below. */
-function LockHealth({ lock }: { lock: App.Data.DoorLocks.DoorLockData }) {
+/** Battery, gateway, clock and last check of a lock as table cells, as last read from TTLock. */
+function LockHealthCells({ lock }: { lock: App.Data.DoorLocks.DoorLockData }) {
     const clock =
         lock.clockDriftSeconds === null
             ? null
             : clockText(lock.clockDriftSeconds);
-    const gateway =
-        lock.gatewayOnline === null
-            ? 'Not checked'
-            : `${lock.gatewayName ?? 'Gateway'} · ${lock.gatewayOnline ? 'online' : 'offline'}`;
+    const lowBattery = lock.batteryPercent !== null && lock.batteryPercent < 20;
 
     return (
-        <div className="flex flex-col gap-1.5">
-            <HealthRow
-                icon={BatteryMedium}
-                label="Battery"
-                value={
-                    lock.batteryPercent === null
-                        ? 'Unknown'
-                        : `${lock.batteryPercent}%`
-                }
-                warn={lock.batteryPercent !== null && lock.batteryPercent < 20}
-            />
-            {lock.hasGateway && (
-                <>
-                    <HealthRow
-                        icon={Wifi}
-                        label="Gateway"
-                        value={gateway}
-                        warn={lock.gatewayOnline === false}
-                    />
-                    <HealthRow
-                        icon={Clock}
-                        label="Clock"
-                        value={clock?.text ?? 'Not checked'}
-                        warn={clock?.warn}
-                    />
-                </>
-            )}
-            <p className="text-xs text-muted-foreground">
+        <>
+            <TableCell
+                className={cn(
+                    'tabular-nums',
+                    lowBattery && 'font-medium text-warning',
+                )}
+            >
+                {lock.batteryPercent === null ? '–' : `${lock.batteryPercent}%`}
+            </TableCell>
+            <TableCell>
+                {!lock.hasGateway ? (
+                    <span
+                        className="text-muted-foreground"
+                        title={GATEWAY_NOTE}
+                    >
+                        No gateway
+                    </span>
+                ) : lock.gatewayOnline === null ? (
+                    <span className="text-muted-foreground">Not checked</span>
+                ) : (
+                    <span
+                        className={cn(
+                            !lock.gatewayOnline && 'font-medium text-warning',
+                        )}
+                    >
+                        {lock.gatewayName ?? 'Gateway'} ·{' '}
+                        {lock.gatewayOnline ? 'online' : 'offline'}
+                    </span>
+                )}
+            </TableCell>
+            <TableCell
+                className={cn(clock?.warn && 'font-medium text-warning')}
+            >
+                {!lock.hasGateway
+                    ? '–'
+                    : (clock?.text ?? (
+                          <span className="text-muted-foreground">
+                              Not checked
+                          </span>
+                      ))}
+            </TableCell>
+            <TableCell className="hidden text-muted-foreground tabular-nums lg:table-cell">
                 {lock.healthCheckedAt === null
-                    ? 'Health not checked yet.'
-                    : `Checked ${when(lock.healthCheckedAt)}.`}
-            </p>
-        </div>
+                    ? 'Never'
+                    : when(lock.healthCheckedAt)}
+            </TableCell>
+        </>
     );
 }
 
@@ -171,21 +158,79 @@ export default function DoorLocksIndex({
     passcodeKinds,
     locks,
     rooms,
+    providers,
+    lockTotal,
+    lockSearch,
+    lockOptions,
     passcodes,
+    keyport,
 }: {
     connection: App.Data.DoorLocks.DoorLockConnectionData | null;
     passcodeModes: { value: string; label: string; description: string }[];
     passcodeKinds: { value: string; label: string }[];
-    locks: App.Data.DoorLocks.DoorLockData[];
+    providers: string[];
+    lockTotal: number;
+    lockSearch: string;
+    lockOptions: { value: string; label: string; hasGateway: boolean }[];
+    locks: Illuminate.LengthAwarePaginator<
+        number,
+        App.Data.DoorLocks.DoorLockData
+    >;
     rooms: { value: string; label: string }[];
-    passcodes: App.Data.DoorLocks.DoorPasscodeData[];
+    passcodes: Illuminate.LengthAwarePaginator<
+        number,
+        App.Data.DoorLocks.DoorPasscodeData
+    >;
+    keyport: {
+        devices: App.Data.Keyport.KeyportDeviceData[];
+        lockTotal: number;
+        lockSearch: string;
+        locks: Illuminate.LengthAwarePaginator<
+            number,
+            App.Data.DoorLocks.DoorLockData
+        >;
+        jobs: Illuminate.LengthAwarePaginator<
+            number,
+            App.Data.Keyport.KeyportJobRowData
+        >;
+    };
 }) {
+    // The admin chooses the providers per property. With both, a property with only eLock locks opens on that tab.
+    const hasTtlock = providers.includes('ttlock');
+    const hasElock = providers.includes('elock');
+    const [chosen, setView] = useState<'ttlock' | 'elock'>(
+        lockTotal === 0 && keyport.lockTotal > 0 ? 'elock' : 'ttlock',
+    );
+    const view = !hasElock ? 'ttlock' : !hasTtlock ? 'elock' : chosen;
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [lockQuery, setLockQuery] = useState(lockSearch);
+
+    // Search runs on the server so it covers every page. A short pause keeps it from firing on each key.
+    useEffect(() => {
+        if (lockQuery.trim() === lockSearch) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            router.get(
+                window.location.pathname,
+                { ttlock_search: lockQuery.trim() || undefined },
+                {
+                    only: ['locks', 'lockSearch'],
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                },
+            );
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [lockQuery, lockSearch]);
     const [mode, setMode] = useState(connection?.passcodeMode ?? 'generated');
     const lockGenerated = mode === 'generated';
     const action = useForm({});
     const pin = useForm({
-        door_lock_id: locks[0] ? String(locks[0].id) : '',
+        door_lock_id: lockOptions[0]?.value ?? '',
         kind: passcodeKinds[0]?.value ?? 'generated',
         label: '',
         code: '',
@@ -194,12 +239,12 @@ export default function DoorLocksIndex({
     });
     const pinErrors = pin.errors as Record<string, string | undefined>;
 
-    const selectedLock = locks.find(
-        (lock) => String(lock.id) === pin.data.door_lock_id,
+    const selectedLock = lockOptions.find(
+        (lock) => lock.value === pin.data.door_lock_id,
     );
     const needsGateway =
         pin.data.kind === 'custom' && selectedLock?.hasGateway === false;
-    const anyWithoutGateway = locks.some((lock) => !lock.hasGateway);
+    const anyWithoutGateway = lockOptions.some((lock) => !lock.hasGateway);
 
     const post = (url: string) => action.post(url, { preserveScroll: true });
 
@@ -218,451 +263,617 @@ export default function DoorLocksIndex({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title="Door locks"
-                    description="Give each checked-in stay a PIN for its room door, and take it away at check-out."
+                    description="Give each checked-in stay a PIN or key card for its room door, and take it away at check-out."
                 />
 
-                {connection?.signedIn && anyWithoutGateway && (
-                    <Alert>
-                        <AlertTitle>Some locks have no gateway</AlertTitle>
-                        <AlertDescription>
-                            {GATEWAY_NOTE} Custom PINs, remote unlock and
-                            removing a PIN before it ends need a TTLock gateway
-                            installed within range of the lock.
-                        </AlertDescription>
-                    </Alert>
+                {hasTtlock && hasElock && (
+                    <Tabs
+                        value={view}
+                        onValueChange={(value) =>
+                            setView(value === 'elock' ? 'elock' : 'ttlock')
+                        }
+                    >
+                        <TabsList>
+                            <TabsTrigger value="ttlock">
+                                TTLock ({lockTotal})
+                            </TabsTrigger>
+                            <TabsTrigger value="elock">
+                                eLock ({keyport.lockTotal})
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                 )}
 
-                <Card>
-                    <CardContent>
-                        <SettingsSection
-                            guardUnsavedChanges
-                            form={DoorLockSettingsController.update.form()}
-                            title="TTLock account"
-                            description="Sign in with the TTLock app account that owns the locks. The password is used once and is not saved."
-                            submitLabel="Save connection"
-                            contentClassName="grid gap-5 md:grid-cols-2"
-                            actions={
-                                <>
-                                    {connection?.signedIn ? (
-                                        <Badge variant="secondary">
-                                            <CircleCheck />
-                                            Signed in
-                                        </Badge>
-                                    ) : (
-                                        <Badge variant="outline">
-                                            Not signed in
-                                        </Badge>
+                {view === 'elock' ? (
+                    <KeyportSection
+                        devices={keyport.devices}
+                        locks={keyport.locks}
+                        lockTotal={keyport.lockTotal}
+                        lockSearch={keyport.lockSearch}
+                        rooms={rooms}
+                        jobs={keyport.jobs}
+                    />
+                ) : (
+                    <>
+                        {connection?.signedIn && anyWithoutGateway && (
+                            <Alert>
+                                <AlertTitle>
+                                    Some locks have no gateway
+                                </AlertTitle>
+                                <AlertDescription>
+                                    {GATEWAY_NOTE} Custom PINs, remote unlock
+                                    and removing a PIN before it ends need a
+                                    TTLock gateway installed within range of the
+                                    lock.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        <Card>
+                            <CardContent>
+                                <SettingsSection
+                                    guardUnsavedChanges
+                                    form={DoorLockSettingsController.update.form()}
+                                    title="TTLock account"
+                                    description="Sign in with the TTLock app account that owns the locks. The password is used once and is not saved."
+                                    submitLabel="Save connection"
+                                    contentClassName="grid gap-5 md:grid-cols-2"
+                                    actions={
+                                        <>
+                                            {connection?.signedIn ? (
+                                                <Badge variant="secondary">
+                                                    <CircleCheck />
+                                                    Signed in
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline">
+                                                    Not signed in
+                                                </Badge>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                disabled={
+                                                    connection === null ||
+                                                    action.processing
+                                                }
+                                                focusableWhenDisabled
+                                                onClick={() =>
+                                                    post(testConnection.url())
+                                                }
+                                            >
+                                                {action.processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <Plug />
+                                                )}
+                                                Test connection
+                                            </Button>
+                                        </>
+                                    }
+                                >
+                                    {(errors) => (
+                                        <>
+                                            <SettingsInput
+                                                name="ttlock_username"
+                                                label="TTLock username"
+                                                value={
+                                                    connection?.ttlockUsername ??
+                                                    ''
+                                                }
+                                                error={errors.ttlock_username}
+                                            />
+                                            <SettingsInput
+                                                name="ttlock_password"
+                                                label="TTLock password"
+                                                type="password"
+                                                value=""
+                                                placeholder={
+                                                    connection?.signedIn
+                                                        ? 'Signed in. Leave blank to keep it.'
+                                                        : 'Needed to sign in'
+                                                }
+                                                error={errors.ttlock_password}
+                                            />
+                                            <SettingsSelect
+                                                name="passcode_mode"
+                                                label="PIN for new stays"
+                                                value={
+                                                    connection?.passcodeMode ??
+                                                    'generated'
+                                                }
+                                                options={passcodeModes}
+                                                onValueChange={setMode}
+                                                description={
+                                                    passcodeModes.find(
+                                                        (option) =>
+                                                            option.value ===
+                                                            mode,
+                                                    )?.description
+                                                }
+                                                error={errors.passcode_mode}
+                                            />
+                                            <SettingsSelect
+                                                name="passcode_length"
+                                                label="PIN length"
+                                                value={String(
+                                                    connection?.passcodeLength ??
+                                                        6,
+                                                )}
+                                                options={PIN_LENGTHS}
+                                                disabled={lockGenerated}
+                                                description={
+                                                    lockGenerated
+                                                        ? 'Not used in Lock-generated mode. The lock decides the length.'
+                                                        : 'Under 6 digits is easier to guess.'
+                                                }
+                                                error={errors.passcode_length}
+                                            />
+                                            <SettingsSwitch
+                                                bordered
+                                                name="enabled"
+                                                label="Issue PINs automatically"
+                                                checked={
+                                                    connection?.enabled ?? false
+                                                }
+                                                description="A PIN is issued at check-in and removed at check-out, undo check-in and room move."
+                                                error={errors.enabled}
+                                            />
+                                            {connection?.lastError && (
+                                                <Alert
+                                                    variant="destructive"
+                                                    className="md:col-span-2"
+                                                >
+                                                    <AlertDescription>
+                                                        {connection.lastError}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                            {connection?.lastTestedAt && (
+                                                <p className="text-xs text-muted-foreground md:col-span-2">
+                                                    Last tested{' '}
+                                                    {when(
+                                                        connection.lastTestedAt,
+                                                    )}
+                                                    .
+                                                </p>
+                                            )}
+                                        </>
+                                    )}
+                                </SettingsSection>
+                            </CardContent>
+                        </Card>
+
+                        <section className="flex flex-col gap-4">
+                            <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                                <div className="min-w-0 space-y-1">
+                                    <h3 className="text-base font-medium">
+                                        Locks
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Link each lock to the room it opens.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {lockTotal > 10 && (
+                                        <Input
+                                            type="search"
+                                            aria-label="Search locks"
+                                            placeholder="Search lock or room"
+                                            value={lockQuery}
+                                            onChange={(event) =>
+                                                setLockQuery(event.target.value)
+                                            }
+                                            className="w-56"
+                                        />
                                     )}
                                     <Button
                                         type="button"
                                         variant="outline"
                                         disabled={
-                                            connection === null ||
+                                            !connection?.signedIn ||
                                             action.processing
                                         }
                                         focusableWhenDisabled
-                                        onClick={() =>
-                                            post(testConnection.url())
-                                        }
+                                        onClick={() => post(sync.url())}
                                     >
                                         {action.processing ? (
                                             <Spinner />
                                         ) : (
-                                            <Plug />
+                                            <RefreshCw />
                                         )}
-                                        Test connection
+                                        Sync locks from TTLock
                                     </Button>
-                                </>
-                            }
-                        >
-                            {(errors) => (
-                                <>
-                                    <SettingsInput
-                                        name="ttlock_username"
-                                        label="TTLock username"
-                                        value={connection?.ttlockUsername ?? ''}
-                                        error={errors.ttlock_username}
-                                    />
-                                    <SettingsInput
-                                        name="ttlock_password"
-                                        label="TTLock password"
-                                        type="password"
-                                        value=""
-                                        placeholder={
-                                            connection?.signedIn
-                                                ? 'Signed in. Leave blank to keep it.'
-                                                : 'Needed to sign in'
-                                        }
-                                        error={errors.ttlock_password}
-                                    />
-                                    <SettingsSelect
-                                        name="passcode_mode"
-                                        label="PIN for new stays"
-                                        value={
-                                            connection?.passcodeMode ??
-                                            'generated'
-                                        }
-                                        options={passcodeModes}
-                                        onValueChange={setMode}
-                                        description={
-                                            passcodeModes.find(
-                                                (option) =>
-                                                    option.value === mode,
-                                            )?.description
-                                        }
-                                        error={errors.passcode_mode}
-                                    />
-                                    <SettingsSelect
-                                        name="passcode_length"
-                                        label="PIN length"
-                                        value={String(
-                                            connection?.passcodeLength ?? 6,
-                                        )}
-                                        options={PIN_LENGTHS}
-                                        disabled={lockGenerated}
-                                        description={
-                                            lockGenerated
-                                                ? 'Not used in Lock-generated mode. The lock decides the length.'
-                                                : 'Under 6 digits is easier to guess.'
-                                        }
-                                        error={errors.passcode_length}
-                                    />
-                                    <SettingsSwitch
-                                        bordered
-                                        name="enabled"
-                                        label="Issue PINs automatically"
-                                        checked={connection?.enabled ?? false}
-                                        description="A PIN is issued at check-in and removed at check-out, undo check-in and room move."
-                                        error={errors.enabled}
-                                    />
-                                    {connection?.lastError && (
-                                        <Alert
-                                            variant="destructive"
-                                            className="md:col-span-2"
-                                        >
-                                            <AlertDescription>
-                                                {connection.lastError}
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-                                    {connection?.lastTestedAt && (
-                                        <p className="text-xs text-muted-foreground md:col-span-2">
-                                            Last tested{' '}
-                                            {when(connection.lastTestedAt)}.
+                                </div>
+                            </header>
+
+                            {lockTotal === 0 ? (
+                                <Card>
+                                    <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+                                        <Lock
+                                            aria-hidden
+                                            className="size-8 text-muted-foreground"
+                                        />
+                                        <p className="text-sm font-medium">
+                                            No locks yet
                                         </p>
-                                    )}
-                                </>
-                            )}
-                        </SettingsSection>
-                    </CardContent>
-                </Card>
-
-                <section className="flex flex-col gap-4">
-                    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-                        <div className="min-w-0 space-y-1">
-                            <h3 className="text-base font-medium">Locks</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Link each lock to the room it opens.
-                            </p>
-                        </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={
-                                !connection?.signedIn || action.processing
-                            }
-                            focusableWhenDisabled
-                            onClick={() => post(sync.url())}
-                        >
-                            {action.processing ? <Spinner /> : <RefreshCw />}
-                            Sync locks from TTLock
-                        </Button>
-                    </header>
-
-                    {locks.length === 0 ? (
-                        <Card>
-                            <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-                                <Lock
-                                    aria-hidden
-                                    className="size-8 text-muted-foreground"
-                                />
-                                <p className="text-sm font-medium">
-                                    No locks yet
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    Sign in above, then sync your locks.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            {locks.map((lock) => (
-                                <Card key={lock.id}>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Lock
-                                                aria-hidden
-                                                className="size-4 text-muted-foreground"
-                                            />
-                                            {lock.name}
-                                        </CardTitle>
-                                        <CardAction>
-                                            {lock.hasGateway ? (
-                                                <Badge variant="secondary">
-                                                    Gateway
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline">
-                                                    No gateway
-                                                </Badge>
-                                            )}
-                                        </CardAction>
-                                    </CardHeader>
-                                    <CardContent className="flex flex-col gap-4">
-                                        <LockHealth lock={lock} />
-                                        <Field>
-                                            <FieldLabel>Room</FieldLabel>
-                                            <EnumSelect
-                                                aria-label={`Room for ${lock.name}`}
-                                                options={rooms}
-                                                value={
-                                                    lock.roomId === null
-                                                        ? ''
-                                                        : String(lock.roomId)
-                                                }
-                                                allLabel="Not linked"
-                                                onValueChange={(value) =>
-                                                    router.put(
-                                                        DoorLockSettingsController.link.url(
-                                                            {
-                                                                doorLock:
-                                                                    lock.id,
-                                                            },
-                                                        ),
-                                                        {
-                                                            room_id:
-                                                                value === ''
-                                                                    ? null
-                                                                    : Number(
-                                                                          value,
-                                                                      ),
-                                                        },
-                                                        {
-                                                            preserveScroll: true,
-                                                        },
-                                                    )
-                                                }
-                                            />
-                                        </Field>
-                                        <div className="flex flex-wrap gap-2">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={action.processing}
-                                                focusableWhenDisabled
-                                                title={
-                                                    lock.hasGateway
-                                                        ? undefined
-                                                        : GATEWAY_NOTE
-                                                }
-                                                onClick={() =>
-                                                    post(
-                                                        DoorLockSettingsController.unlock.url(
-                                                            {
-                                                                doorLock:
-                                                                    lock.id,
-                                                            },
-                                                        ),
-                                                    )
-                                                }
-                                            >
-                                                <Unlock />
-                                                Unlock now
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={action.processing}
-                                                focusableWhenDisabled
-                                                title={
-                                                    lock.hasGateway
-                                                        ? undefined
-                                                        : GATEWAY_NOTE
-                                                }
-                                                onClick={() =>
-                                                    post(
-                                                        DoorLockSettingsController.clock.url(
-                                                            {
-                                                                doorLock:
-                                                                    lock.id,
-                                                            },
-                                                        ),
-                                                    )
-                                                }
-                                            >
-                                                <Clock />
-                                                Set clock
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={action.processing}
-                                                focusableWhenDisabled
-                                                onClick={() =>
-                                                    post(
-                                                        DoorLockSettingsController.health.url(
-                                                            {
-                                                                doorLock:
-                                                                    lock.id,
-                                                            },
-                                                        ),
-                                                    )
-                                                }
-                                            >
-                                                <Activity />
-                                                Check health
-                                            </Button>
-                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Sign in above, then sync your locks.
+                                        </p>
                                     </CardContent>
                                 </Card>
-                            ))}
-                        </div>
-                    )}
-                </section>
+                            ) : (
+                                <>
+                                    <div className="overflow-hidden rounded-lg border">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Lock</TableHead>
+                                                    <TableHead>Room</TableHead>
+                                                    <TableHead>
+                                                        Battery
+                                                    </TableHead>
+                                                    <TableHead>
+                                                        Gateway
+                                                    </TableHead>
+                                                    <TableHead>Clock</TableHead>
+                                                    <TableHead className="hidden lg:table-cell">
+                                                        Checked
+                                                    </TableHead>
+                                                    <TableHead className="w-10">
+                                                        <span className="sr-only">
+                                                            Actions
+                                                        </span>
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {locks.data.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell
+                                                            colSpan={7}
+                                                            className="text-muted-foreground"
+                                                        >
+                                                            No lock matches "
+                                                            {lockSearch}".
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    locks.data.map((lock) => (
+                                                        <TableRow key={lock.id}>
+                                                            <TableCell>
+                                                                <div className="flex items-center gap-2 font-medium">
+                                                                    <Lock
+                                                                        aria-hidden
+                                                                        className="size-4 shrink-0 text-muted-foreground"
+                                                                    />
+                                                                    <span className="truncate">
+                                                                        {
+                                                                            lock.name
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="w-40">
+                                                                <EnumSelect
+                                                                    aria-label={`Room for ${lock.name}`}
+                                                                    options={
+                                                                        rooms
+                                                                    }
+                                                                    value={
+                                                                        lock.roomId ===
+                                                                        null
+                                                                            ? ''
+                                                                            : String(
+                                                                                  lock.roomId,
+                                                                              )
+                                                                    }
+                                                                    allLabel="Not linked"
+                                                                    onValueChange={(
+                                                                        value,
+                                                                    ) =>
+                                                                        router.put(
+                                                                            DoorLockSettingsController.link.url(
+                                                                                {
+                                                                                    doorLock:
+                                                                                        lock.id,
+                                                                                },
+                                                                            ),
+                                                                            {
+                                                                                room_id:
+                                                                                    value ===
+                                                                                    ''
+                                                                                        ? null
+                                                                                        : Number(
+                                                                                              value,
+                                                                                          ),
+                                                                            },
+                                                                            {
+                                                                                preserveScroll: true,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </TableCell>
+                                                            <LockHealthCells
+                                                                lock={lock}
+                                                            />
+                                                            <TableCell className="text-right">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger
+                                                                        render={
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon-sm"
+                                                                                aria-label={`Actions for ${lock.name}`}
+                                                                            />
+                                                                        }
+                                                                    >
+                                                                        <MoreHorizontal />
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <DropdownMenuItem
+                                                                            disabled={
+                                                                                action.processing
+                                                                            }
+                                                                            title={
+                                                                                lock.hasGateway
+                                                                                    ? undefined
+                                                                                    : GATEWAY_NOTE
+                                                                            }
+                                                                            onClick={() =>
+                                                                                post(
+                                                                                    DoorLockSettingsController.unlock.url(
+                                                                                        {
+                                                                                            doorLock:
+                                                                                                lock.id,
+                                                                                        },
+                                                                                    ),
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <Unlock />
+                                                                            Unlock
+                                                                            now
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem
+                                                                            disabled={
+                                                                                action.processing
+                                                                            }
+                                                                            title={
+                                                                                lock.hasGateway
+                                                                                    ? undefined
+                                                                                    : GATEWAY_NOTE
+                                                                            }
+                                                                            onClick={() =>
+                                                                                post(
+                                                                                    DoorLockSettingsController.clock.url(
+                                                                                        {
+                                                                                            doorLock:
+                                                                                                lock.id,
+                                                                                        },
+                                                                                    ),
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <Clock />
+                                                                            Set
+                                                                            clock
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem
+                                                                            disabled={
+                                                                                action.processing
+                                                                            }
+                                                                            onClick={() =>
+                                                                                post(
+                                                                                    DoorLockSettingsController.health.url(
+                                                                                        {
+                                                                                            doorLock:
+                                                                                                lock.id,
+                                                                                        },
+                                                                                    ),
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <Activity />
+                                                                            Check
+                                                                            health
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                    <PaginationFooter
+                                        pagination={toPaginationData(
+                                            locks.meta,
+                                            'ttlocks_page',
+                                        )}
+                                    />
+                                </>
+                            )}
+                        </section>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Latest PINs</CardTitle>
-                        <CardDescription>
-                            The last 50. Read the PIN out to the guest.
-                        </CardDescription>
-                        <CardAction>
-                            <Button
-                                type="button"
-                                disabled={locks.length === 0}
-                                focusableWhenDisabled
-                                onClick={() => setSheetOpen(true)}
-                            >
-                                <KeyRound />
-                                Issue a PIN
-                            </Button>
-                        </CardAction>
-                    </CardHeader>
-                    <CardContent>
-                        {passcodes.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No PINs yet.
-                            </p>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>For</TableHead>
-                                        <TableHead>Lock</TableHead>
-                                        <TableHead>PIN</TableHead>
-                                        <TableHead>Valid</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">
-                                            <span className="sr-only">
-                                                Actions
-                                            </span>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {passcodes.map((passcode) => (
-                                        <TableRow key={passcode.id}>
-                                            <TableCell>
-                                                {passcode.label}
-                                                <span className="block text-xs text-muted-foreground">
-                                                    {passcode.kindLabel}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>
-                                                {passcode.lockName}
-                                            </TableCell>
-                                            <TableCell className="font-mono tabular-nums">
-                                                {passcode.code ?? '—'}
-                                            </TableCell>
-                                            <TableCell className="tabular-nums">
-                                                {when(passcode.startsAt)} to{' '}
-                                                {when(passcode.endsAt)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <StatusBadge
-                                                    status={passcode.status}
-                                                />
-                                                {passcode.error && (
-                                                    <span className="mt-1 block text-xs text-destructive">
-                                                        {passcode.error}
-                                                    </span>
-                                                )}
-                                                {passcode.revokeNote && (
-                                                    <span className="mt-1 block max-w-xs text-xs text-warning">
-                                                        {passcode.revokeNote}
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    {passcode.canRetry && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            disabled={
-                                                                action.processing
-                                                            }
-                                                            focusableWhenDisabled
-                                                            onClick={() =>
-                                                                post(
-                                                                    DoorLockSettingsController.retry.url(
-                                                                        {
-                                                                            doorPasscode:
-                                                                                passcode.id,
-                                                                        },
-                                                                    ),
-                                                                )
-                                                            }
+                        <section className="flex flex-col gap-4">
+                            <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                                <div className="min-w-0 space-y-1">
+                                    <h3 className="text-base font-medium">
+                                        PINs
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Newest first. Read the PIN out to the
+                                        guest.
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    disabled={lockOptions.length === 0}
+                                    focusableWhenDisabled
+                                    onClick={() => setSheetOpen(true)}
+                                >
+                                    <KeyRound />
+                                    Issue a PIN
+                                </Button>
+                            </header>
+                            {passcodes.meta.total === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No PINs yet.
+                                </p>
+                            ) : (
+                                <>
+                                    <div className="overflow-hidden rounded-lg border">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>For</TableHead>
+                                                    <TableHead>Lock</TableHead>
+                                                    <TableHead>PIN</TableHead>
+                                                    <TableHead>Valid</TableHead>
+                                                    <TableHead>
+                                                        Status
+                                                    </TableHead>
+                                                    <TableHead className="text-right">
+                                                        <span className="sr-only">
+                                                            Actions
+                                                        </span>
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {passcodes.data.map(
+                                                    (passcode) => (
+                                                        <TableRow
+                                                            key={passcode.id}
                                                         >
-                                                            Retry
-                                                        </Button>
-                                                    )}
-                                                    {passcode.canRevoke && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            disabled={
-                                                                action.processing
-                                                            }
-                                                            focusableWhenDisabled
-                                                            onClick={() =>
-                                                                post(
-                                                                    DoorLockSettingsController.revoke.url(
+                                                            <TableCell>
+                                                                {passcode.label}
+                                                                <span className="block text-xs text-muted-foreground">
+                                                                    {
+                                                                        passcode.kindLabel
+                                                                    }
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {
+                                                                    passcode.lockName
+                                                                }
+                                                            </TableCell>
+                                                            <TableCell className="font-mono tabular-nums">
+                                                                {passcode.code ??
+                                                                    '—'}
+                                                            </TableCell>
+                                                            <TableCell className="tabular-nums">
+                                                                {when(
+                                                                    passcode.startsAt,
+                                                                )}{' '}
+                                                                to{' '}
+                                                                {when(
+                                                                    passcode.endsAt,
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="max-w-72 whitespace-normal">
+                                                                <StatusBadge
+                                                                    status={
+                                                                        passcode.status
+                                                                    }
+                                                                />
+                                                                {passcode.error && (
+                                                                    <span
+                                                                        title={
+                                                                            passcode.error
+                                                                        }
+                                                                        className="mt-1 block text-xs break-words text-destructive"
+                                                                    >
                                                                         {
-                                                                            doorPasscode:
-                                                                                passcode.id,
-                                                                        },
-                                                                    ),
-                                                                )
-                                                            }
-                                                        >
-                                                            Revoke
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
+                                                                            passcode.error
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                                {passcode.revokeNote && (
+                                                                    <span
+                                                                        title={
+                                                                            passcode.revokeNote
+                                                                        }
+                                                                        className="mt-1 block text-xs break-words text-warning"
+                                                                    >
+                                                                        {
+                                                                            passcode.revokeNote
+                                                                        }
+                                                                    </span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="text-right whitespace-nowrap">
+                                                                <div className="flex justify-end gap-2">
+                                                                    {passcode.canRetry && (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            disabled={
+                                                                                action.processing
+                                                                            }
+                                                                            focusableWhenDisabled
+                                                                            onClick={() =>
+                                                                                post(
+                                                                                    DoorLockSettingsController.retry.url(
+                                                                                        {
+                                                                                            doorPasscode:
+                                                                                                passcode.id,
+                                                                                        },
+                                                                                    ),
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Retry
+                                                                        </Button>
+                                                                    )}
+                                                                    {passcode.canRevoke && (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            disabled={
+                                                                                action.processing
+                                                                            }
+                                                                            focusableWhenDisabled
+                                                                            onClick={() =>
+                                                                                post(
+                                                                                    DoorLockSettingsController.revoke.url(
+                                                                                        {
+                                                                                            doorPasscode:
+                                                                                                passcode.id,
+                                                                                        },
+                                                                                    ),
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Revoke
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ),
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                    <PaginationFooter
+                                        pagination={toPaginationData(
+                                            passcodes.meta,
+                                            'pins_page',
+                                        )}
+                                    />
+                                </>
+                            )}
+                        </section>
+                    </>
+                )}
             </div>
 
             <FormOverlay
@@ -686,10 +897,7 @@ export default function DoorLocksIndex({
                         <EnumSelect
                             id="door_lock_id"
                             name="door_lock_id"
-                            options={locks.map((lock) => ({
-                                value: String(lock.id),
-                                label: lock.name,
-                            }))}
+                            options={lockOptions}
                             value={pin.data.door_lock_id}
                             onValueChange={(value) =>
                                 pin.setData('door_lock_id', value)

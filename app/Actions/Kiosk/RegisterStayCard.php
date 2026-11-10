@@ -3,6 +3,7 @@
 namespace App\Actions\Kiosk;
 
 use App\Actions\DoorLocks\RegisterDoorCard;
+use App\Enums\LockProvider;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
 use App\Enums\UnitStatus;
@@ -14,7 +15,6 @@ use App\Services\DoorLocks\PasscodeWindow;
 use App\Services\DoorLocks\StayLocks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
-use Laravel\Pennant\Feature;
 
 class RegisterStayCard
 {
@@ -53,7 +53,7 @@ class RegisterStayCard
     {
         $stay->refresh();
 
-        if ($stay->status !== UnitStatus::CheckedIn || ! Feature::for($stay->property)->active(DoorLocks::class) || $stay->property->doorLockConnection?->enabled !== true) {
+        if ($stay->status !== UnitStatus::CheckedIn || ! DoorLocks::allows($stay->property, LockProvider::TTLock) || $stay->property->doorLockConnection?->enabled !== true) {
             return KioskCardResult::refused('lock_unavailable');
         }
 
