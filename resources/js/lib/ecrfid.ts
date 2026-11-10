@@ -137,6 +137,10 @@ export async function scanCardUid(
 
     const device = await pickReader(hid);
 
+    if (signal?.aborted) {
+        throw new DOMException('Cancelled', 'AbortError');
+    }
+
     if (!device.opened) {
         try {
             await device.open();
@@ -150,17 +154,31 @@ export async function scanCardUid(
         }
     }
 
+    if (signal?.aborted) {
+        await device.close().catch(() => undefined);
+        throw new DOMException('Cancelled', 'AbortError');
+    }
+
     onReady?.();
 
     const request = frame(INVENTORY.type, INVENTORY.code, [0]);
     const report = new Uint8Array(request);
 
     return new Promise<string>((resolve, reject) => {
+        let done = false;
         const finish = (result: () => void) => {
+            if (done) {
+                return;
+            }
+
+            done = true;
             clearInterval(poll);
             clearTimeout(timeout);
             device.removeEventListener('inputreport', onReport);
-            void device.close().finally(result);
+            void device
+                .close()
+                .catch(() => undefined)
+                .finally(result);
         };
         const onReport = (event: { data: DataView }) => {
             const uid = parseInventoryReport(

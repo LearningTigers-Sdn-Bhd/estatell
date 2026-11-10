@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\DoorLocks\SyncStayCards;
 use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Models\ReservationUnit;
 use Illuminate\Bus\Queueable;
@@ -56,7 +57,7 @@ class SyncStayPasscodesJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
     /**
      * Make the unit's PINs match its stay with `SyncStayPasscodes`. An error here never changes the stay.
      */
-    public function handle(SyncStayPasscodes $syncStayPasscodes): void
+    public function handle(SyncStayPasscodes $syncStayPasscodes, SyncStayCards $syncStayCards): void
     {
         $unit = ReservationUnit::query()->find($this->reservationUnitId);
 
@@ -65,5 +66,6 @@ class SyncStayPasscodesJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         $syncStayPasscodes($unit);
+        $syncStayCards($unit);
     }
 }

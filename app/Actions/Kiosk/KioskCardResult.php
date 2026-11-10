@@ -14,7 +14,7 @@ final readonly class KioskCardResult
     }
 
     /**
-     * @param  string  $code  `card_unknown` or `lock_unavailable`.
+     * @param  string  $code  `card_unknown`, `lock_unavailable`, or one of its causes that staff are told apart: `card_limit`, `card_in_use`, `gateway_required`. The kiosk answers all causes as `lock_unavailable`.
      */
     public static function refused(string $code): self
     {

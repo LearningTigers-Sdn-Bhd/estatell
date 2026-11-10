@@ -1,20 +1,13 @@
 import { router } from '@inertiajs/react';
 import { CreditCard } from 'lucide-react';
 import { useState } from 'react';
+import { when } from '@/components/pms/reservations/door-pins';
 import { ScanDoorCardButton } from '@/components/pms/reservations/scan-door-card-button';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { destroy } from '@/routes/reservations/units/door-cards';
 
 type Card = App.Data.DoorLocks.DoorCardData;
-
-const when = (iso: string) =>
-    new Date(iso).toLocaleString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
 
 function CardRow({
     card,

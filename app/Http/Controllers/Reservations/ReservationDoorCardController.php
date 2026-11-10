@@ -24,8 +24,11 @@ class ReservationDoorCardController extends Controller
         $result = $register($unit->load('property.settings', 'property.doorLockConnection'), $uid);
 
         Inertia::flash('toast', match (true) {
-            $result->refusal === null => ['type' => 'success', 'message' => __('Card added. It opens the door until :time.', ['time' => $result->validUntil->format('d M H:i')])],
+            $result->refusal === null => ['type' => 'success', 'message' => __('Card added. It opens the door until :time.', ['time' => $result->validUntil->setTimezone($unit->property->settings->time_zone ?? 'Asia/Kuala_Lumpur')->format('d M H:i')])],
             $result->refusal === 'card_unknown' => ['type' => 'error', 'message' => __('The reader gave a card number the lock does not accept. Scan the card again.')],
+            $result->refusal === 'card_limit' => ['type' => 'error', 'message' => __('This stay already has 4 cards on a lock. Remove one first.')],
+            $result->refusal === 'card_in_use' => ['type' => 'error', 'message' => __('This card is already registered for another stay on the lock. Remove it there first.')],
+            $result->refusal === 'gateway_required' => ['type' => 'error', 'message' => __('The lock has no gateway, so cards cannot be added from here.')],
             default => ['type' => 'error', 'message' => __('The lock did not take the card. Check the guest is checked in, the gateway is online, and the card is not on another stay.')],
         });
 

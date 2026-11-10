@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { CreditCard, Plus, Usb } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,8 +32,14 @@ export function ScanDoorCardButton({
     const [phase, setPhase] = useState<Phase>('connect');
     const [error, setError] = useState<string | null>(null);
     const controller = useRef<AbortController | null>(null);
+    // The server and the first client render say "no", so the page hydrates the same everywhere.
+    const supported = useSyncExternalStore(
+        () => () => undefined,
+        hidSupported,
+        () => false,
+    );
 
-    if (!hidSupported()) {
+    if (!supported) {
         return null;
     }
 
@@ -52,6 +58,10 @@ export function ScanDoorCardButton({
             const uid = await scanCardUid(current.signal, () =>
                 setPhase('scanning'),
             );
+            if (current.signal.aborted) {
+                return;
+            }
+
             setPhase('sending');
             router.post(
                 store.url({ reservation: reservationId, unit: unitId }),
