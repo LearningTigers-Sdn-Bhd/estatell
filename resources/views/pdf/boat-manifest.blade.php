@@ -55,7 +55,7 @@
                 <tr class="band" style="{{ $band }}"><td>{{ $upper($section['band']) }}</td><td colspan="6">{{ $section['heading'] }}</td></tr>
                 <tr class="band" style="{{ $band }}"><td>{{ __('JETTY') }}</td><td colspan="6">{{ $section['jetty'] === null ? '-' : $upper($section['jetty']) }}</td></tr>
                 <tr class="band" style="{{ $band }}">
-                    <th>{{ __('No') }}</th><th>{{ __('Guest') }}</th><th>{{ __('Agent') }}</th><th>{{ __('PAX') }}</th><th>{{ __('BOAT') }}</th><th>{{ __('Boat Asst') }}</th><th>{{ __('Tick') }}</th>
+                    <th>{{ __('No') }}</th><th>{{ __('Guest') }}</th><th>{{ __('Booking source') }}</th><th>{{ __('PAX') }}</th><th>{{ __('BOAT') }}</th><th>{{ __('Boat Asst') }}</th><th>{{ __('Tick') }}</th>
                 </tr>
                 @php $rows = $section['rows'] === [] ? [null] : $section['rows']; @endphp
                 @foreach ($rows as $row)

@@ -90,7 +90,7 @@ The **Others** tab:
 - The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It is a button, not a box: **Mark arrived** or **Mark left** opens an AlertDialog ("Mark 102 · Hanami Saki as arrived?"), then saves. A ticked row shows "✓ Arrived" or "✓ Left" with **Undo**, which asks the same way ("Mark 102 · Hanami Saki as not arrived?"). A user without `reservations.manage` sees the text only.
 - **Note** is a text field in every guest row, as the remark on Housekeeping. It saves when it loses focus or on Enter; Escape puts the old text back. It is the trip's `note` (at most 255 characters), the same note the Change boat Dialog shows for Charter and Own boat. `SetBoatTripNote` saves it and logs `reservation.boat_trip_note_set` on the reservation. It keeps the tick. A user without `reservations.manage` sees the text only.
 - **Set boat** on a Boat not set row opens the reservation page's boat Change Dialog for that unit and direction.
-- The **Booking source** column is the manifest's `agent` value: the company, else "Direct booking", else the source (Agoda). The printed sheet keeps the heading AGENT.
+- The **Booking source** column is the manifest's `agent` value: the company, else "Direct booking", else the source (Agoda).
 - At phone width each group becomes a card list: room, guest and pax on the first line, agent, phone and note on the second, the tick on the right. Pax shows as icons with counts (adults, children), as on Housekeeping.
 - Past dates are read only except the ticks and the notes. Their ⋯ menus and **+ Trip or job** are hidden.
 
