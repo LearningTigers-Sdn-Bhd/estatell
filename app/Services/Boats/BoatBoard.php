@@ -91,7 +91,13 @@ class BoatBoard
                 continue;
             }
 
-            $groups[] = $this->sailingGroup($sailing, $group, $sailing->departure === null ? false : ($stored[$sailing->departure->id] ?? false), $guestsByDeparture[$sailing->departure?->id] ?? 0);
+            $groups[] = $this->sailingGroup(
+                $sailing,
+                $group,
+                $sailing->departure === null ? false : ($stored[$sailing->departure->id] ?? false),
+                $guestsByDeparture[$sailing->departure?->id] ?? 0,
+                $sailing->departure === null ? 1 : count($this->visible($all[$sailing->departure->id] ?? [])),
+            );
         }
 
         if ($others || ($direction === 'both' && ($groups !== [] || $charter !== [] || $own !== [] || $notSet !== []))) {
@@ -143,7 +149,7 @@ class BoatBoard
     /**
      * @param  list<BoatManifestRow>  $rows
      */
-    private function sailingGroup(DateSailing $sailing, array $rows, bool $hasStored, int $departureGuests): BoatBoardGroupData
+    private function sailingGroup(DateSailing $sailing, array $rows, bool $hasStored, int $departureGuests, int $departureBoats): BoatBoardGroupData
     {
         $taken = array_sum(array_map(fn (BoatManifestRow $row): int => $row->total, $rows));
 
@@ -167,6 +173,8 @@ class BoatBoard
             cancelled: $sailing->cancelled,
             isExtra: $sailing->isExtra(),
             departureGuests: $departureGuests,
+            isMain: $sailing->isMain,
+            departureBoats: $departureBoats,
             leavesAt: $sailing->leavesAt,
             arrivesAt: $sailing->arrivesAt,
             boatId: $sailing->boat?->id,
@@ -201,6 +209,8 @@ class BoatBoard
             cancelled: false,
             isExtra: false,
             departureGuests: 0,
+            isMain: false,
+            departureBoats: 0,
             leavesAt: null,
             arrivesAt: null,
             boatId: null,

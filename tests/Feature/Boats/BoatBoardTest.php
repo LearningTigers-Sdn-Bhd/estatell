@@ -94,7 +94,7 @@ test('the board lists the sailings in time order across both directions, then ch
             ->has('groups', 2));
 });
 
-test('a sailing with no guests still shows, an added boat has its own group, and the date defaults to the business date', function () {
+test('a sailing with no guests still shows, an added boat has its own group and is not the main one, and the date defaults to the business date', function () {
     $setup = sailingSetup();
     $trip = sailingTrip($setup, $setup['departure']);
     $this->actingAs($setup['owner']);
@@ -110,7 +110,12 @@ test('a sailing with no guests still shows, an added boat has its own group, and
             ->where('groups.1.rows', [])
             ->where('groups.1.seats', 8)
             ->where('groups.1.canRemove', true)
-            ->where('groups.2.time', '11:00'));
+            ->where('groups.0.isMain', true)
+            ->where('groups.0.departureBoats', 2)
+            ->where('groups.1.isMain', false)
+            ->where('groups.2.time', '11:00')
+            ->where('groups.2.isMain', true)
+            ->where('groups.2.departureBoats', 1));
 
     $this->get(route('boats.index', $setup['property']->code))
         ->assertInertia(fn (Assert $page) => $page->where('date', '2026-10-10')->where('isPast', false));

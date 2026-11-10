@@ -589,6 +589,9 @@ export default function BoatsIndex({
                             {cancelGroup?.directionLabel?.toLowerCase()}?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
+                            {cancelGroup !== null &&
+                                cancelGroup.departureBoats > 1 &&
+                                `All ${cancelGroup.departureBoats} boats of this time stop. `}
                             It will not run on {dayLabel(date)} and leaves the
                             booking pickers for that date. You can undo this on
                             the board.
@@ -709,6 +712,11 @@ function tripOf(
     };
 }
 
+/** "Cancel the 06:00 trip", with "(all boats)" when the departure runs more than one boat that date. */
+function cancelLabel(group: Group): string {
+    return `Cancel the ${group.time} trip${group.departureBoats > 1 ? ' (all boats)' : ''}`;
+}
+
 function seatsText(group: Group): string {
     return group.seats === null
         ? `${group.taken}`
@@ -788,14 +796,14 @@ function GroupMenu({
                         Default
                     </DropdownMenuItem>
                 )}
-                {!group.isExtra && (
+                {group.isMain && !group.isExtra && (
                     <DropdownMenuItem
                         variant="destructive"
                         disabled={group.departureGuests > 0}
                         onClick={onCancel}
                     >
                         <span className="flex flex-col">
-                            Cancel trip
+                            {cancelLabel(group)}
                             {group.departureGuests > 0 && (
                                 <span className="text-xs font-normal text-muted-foreground">
                                     Move the {group.departureGuests}{' '}
