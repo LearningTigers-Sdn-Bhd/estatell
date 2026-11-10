@@ -5,6 +5,7 @@ use App\Actions\DoorLocks\SyncStayCards;
 use App\Enums\PasscodeStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\UnitStatus;
+use App\Events\StayCheckedOut;
 use App\Models\DoorCard;
 use App\Models\DoorLock;
 use App\Models\Room;
@@ -131,6 +132,19 @@ it('registers the card again with the new end after a date change', function () 
         ->and(DoorCard::query()->where('status', PasscodeStatus::Revoked)->count())->toBe(1)
         ->and(ttlockCalls('/v3/identityCard/delete'))->toBe(1)
         ->and(ttlockCalls('/v3/identityCard/add'))->toBe(2);
+});
+
+it('still removes the cards at check-out when auto-issuing PINs was switched off', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    $this->actingAs($owner)->post(doorCardUrl($unit), ['uid' => '0DD25CE7']);
+    $connection->update(['enabled' => false]);
+
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    StayCheckedOut::dispatch($property->id, $unit->id);
+
+    expect(DoorCard::query()->sole()->status)->toBe(PasscodeStatus::Revoked)->and(ttlockCalls('/v3/identityCard/delete'))->toBe(1);
 });
 
 it('does not add a fifth card to a lock', function () {

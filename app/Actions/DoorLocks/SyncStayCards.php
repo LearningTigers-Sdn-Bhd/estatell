@@ -29,9 +29,8 @@ class SyncStayCards
 
     public function __invoke(ReservationUnit $unit): void
     {
-        $connection = $unit->property->doorLockConnection;
-
-        if ($connection === null || ! $connection->enabled) {
+        // Not tied to "Issue PINs automatically": a card exists because staff or the kiosk added it, and must still end with the stay.
+        if ($unit->property->doorLockConnection === null) {
             return;
         }
 
