@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowUpRight,
+    Baby,
     Ban,
     Check,
     ChevronLeft,
@@ -17,6 +18,7 @@ import {
     Trash2,
     TriangleAlert,
     Undo2,
+    User,
     Users,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
@@ -149,8 +151,26 @@ function tickLabel(direction: string | null): string {
           : 'Arrived or left';
 }
 
-function paxText(row: Row): string {
-    return `${row.adults}A ${row.children}C`;
+/** Adults and children as icons with counts, as on Housekeeping. */
+function PaxIcons({ row }: { row: Row }) {
+    return (
+        <span className="flex shrink-0 items-center gap-3 text-sm tabular-nums">
+            <span
+                className="flex items-center gap-1"
+                aria-label={`${row.adults} ${row.adults === 1 ? 'adult' : 'adults'}`}
+            >
+                <User aria-hidden className="size-4" />
+                {row.adults}
+            </span>
+            <span
+                className="flex items-center gap-1"
+                aria-label={`${row.children} ${row.children === 1 ? 'child' : 'children'}`}
+            >
+                <Baby aria-hidden className="size-4" />
+                {row.children}
+            </span>
+        </span>
+    );
 }
 
 export default function BoatsIndex({
@@ -1100,8 +1120,8 @@ function GroupSection({
                                     {isMixed && (
                                         <TableCell>{tripText(row)}</TableCell>
                                     )}
-                                    <TableCell className="tabular-nums">
-                                        {paxText(row)}
+                                    <TableCell>
+                                        <PaxIcons row={row} />
                                     </TableCell>
                                     <TableCell className="min-w-48">
                                         {!row.not_set && (
@@ -1155,9 +1175,11 @@ function GroupSection({
                                 />
                             )}
                             <div className="flex min-w-0 flex-1 flex-col">
-                                <span className="truncate text-sm font-medium">
-                                    {row.unit} · {row.lead_guest} ·{' '}
-                                    {paxText(row)}
+                                <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                                    <span className="truncate">
+                                        {row.unit} · {row.lead_guest}
+                                    </span>
+                                    <PaxIcons row={row} />
                                 </span>
                                 <span className="truncate text-xs text-muted-foreground">
                                     {[
