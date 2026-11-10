@@ -67,8 +67,10 @@ test('the board lists the sailings in time order across both directions, then ch
             ->where('groups.3.title', 'Charter')
             ->where('groups.4.kind', 'own')
             ->where('groups.4.title', 'Own boat')
-            ->where('groups.5.kind', 'not_set')
-            ->has('groups', 6));
+            ->where('groups.5.kind', 'jobs')
+            ->where('groups.5.jobs', [])
+            ->where('groups.6.kind', 'not_set')
+            ->has('groups', 7));
 
     $this->get(boardUrl($setup, ['direction' => 'in']))
         ->assertInertia(fn (Assert $page) => $page
@@ -91,7 +93,8 @@ test('the board lists the sailings in time order across both directions, then ch
             ->where('groups.0.rows.0.reservation_unit_id', $charterUnit->id)
             ->where('groups.1.kind', 'own')
             ->where('groups.1.rows.0.reservation_unit_id', $ownUnit->id)
-            ->has('groups', 2));
+            ->where('groups.2.kind', 'jobs')
+            ->has('groups', 3));
 });
 
 test('a sailing with no guests still shows, an added boat has its own group and is not the main one, each boat and crew is sent, and the date defaults to the business date', function () {
@@ -380,7 +383,7 @@ test('the board sends the crew phone for the pickers, the manifest layout for Co
         ->assertInertia(fn (Assert $page) => $page->where('can.columns', false)->where('can.manage', false));
 });
 
-test('departures with no guests show their groups and empty Charter and Own boat groups, and Boat not set stays hidden', function () {
+test('departures with no guests show their groups and empty Charter, Own boat and Boat jobs groups, and Boat not set stays hidden', function () {
     $setup = sailingSetup();
 
     $this->actingAs($setup['owner'])->get(boardUrl($setup, ['direction' => 'in']))
@@ -388,7 +391,7 @@ test('departures with no guests show their groups and empty Charter and Own boat
 
     $this->get(boardUrl($setup))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('groups', 4)
+            ->has('groups', 5)
             ->where('groups.0.kind', 'sailing')
             ->where('groups.0.rows', [])
             ->where('groups.1.kind', 'sailing')
@@ -396,5 +399,7 @@ test('departures with no guests show their groups and empty Charter and Own boat
             ->where('groups.2.kind', 'charter')
             ->where('groups.2.rows', [])
             ->where('groups.3.kind', 'own')
-            ->where('groups.3.rows', []));
+            ->where('groups.3.rows', [])
+            ->where('groups.4.kind', 'jobs')
+            ->where('groups.4.jobs', []));
 });

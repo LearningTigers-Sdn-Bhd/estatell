@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Boats\BoatBoardController;
 use App\Http\Controllers\Boats\BoatBoardTripController;
 use App\Http\Controllers\Boats\BoatExportController;
+use App\Http\Controllers\Boats\BoatJobController;
 use App\Http\Controllers\Boats\BoatSailingController;
 use App\Http\Controllers\Boats\BoatTripNoteController;
 use App\Http\Controllers\Boats\BoatTripTickController;
@@ -26,6 +27,10 @@ Route::prefix('boats')->name('boats.')->middleware('boats')->group(function () {
         Route::post('trips/move', [BoatBoardTripController::class, 'move'])->name('trips.move');
         Route::post('trips/tick', [BoatBoardTripController::class, 'tick'])->name('trips.tick');
         Route::put('trips/{trip}/tick', BoatTripTickController::class)->whereNumber('trip')->name('trips.set-tick');
+        Route::post('jobs', [BoatJobController::class, 'store'])->name('jobs.store');
+        Route::put('jobs/{sailing}', [BoatJobController::class, 'update'])->whereNumber('sailing')->name('jobs.update');
+        Route::delete('jobs/{sailing}', [BoatJobController::class, 'destroy'])->whereNumber('sailing')->name('jobs.destroy');
+        Route::put('jobs/{sailing}/done', [BoatJobController::class, 'done'])->whereNumber('sailing')->name('jobs.done');
         Route::put('trips/{trip}/note', BoatTripNoteController::class)->whereNumber('trip')->name('trips.note');
     });
 });

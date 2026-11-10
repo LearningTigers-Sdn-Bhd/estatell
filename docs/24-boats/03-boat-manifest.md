@@ -59,7 +59,7 @@ Each section is one [sailing](04-sailings.md): one boat on one date. A departure
 
 ## Boat jobs
 
-Sailings of kind Job ([Jobs](04-sailings.md#jobs)) come in a last group **Boat jobs**, after Own boat and before Boat not set. They have their own columns in that group: Time, Job, Boat, Crew, Note and Done ("Yes" in the spreadsheet). They have no guests, so they add nothing to the totals. The Direction filter does not hide them.
+Sailings of kind Job ([Jobs](04-sailings.md#jobs)) come in a last group **Boat jobs**, after Own boat and before Boat not set. On the PDF they have their own columns: Time, Job, Boat, Crew, Note and Done. The spreadsheet adds one row per job after the guest rows: "Boat job · 16:00" in Departure, the job in Lead guest, then Boat, Crew, Note and Done ("Yes" in Tick). They have no guests, so they add nothing to the totals. Boat in and Boat out exports, and exports of ticked rows, leave them out.
 
 ## Tick
 

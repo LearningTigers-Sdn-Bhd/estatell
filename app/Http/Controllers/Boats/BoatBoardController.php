@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Boats;
 
 use App\Data\Boats\BoatCrewMemberData;
 use App\Data\Boats\BoatData;
+use App\Enums\BoatJobType;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
@@ -45,6 +46,7 @@ class BoatBoardController extends Controller
             'crew' => BoatCrewMember::query()->where('property_id', $property->id)->orderBy('name')->get()->map(fn (BoatCrewMember $member): BoatCrewMemberData => BoatCrewMemberData::fromModel($member))->all(),
             'boatDepartures' => Inertia::optional(fn () => $options->boatDepartures($property)),
             'boatPicks' => Inertia::optional(fn () => $board->picks($property, $date)),
+            'jobTypes' => BoatJobType::options(),
             'sailingCrews' => $hasDepartures ? $board->sailingCrews($property, $date) : [],
             'layout' => $layoutResolver->resolve($property, ReportKey::BoatManifest),
             'orientationOptions' => PageOrientation::options(),

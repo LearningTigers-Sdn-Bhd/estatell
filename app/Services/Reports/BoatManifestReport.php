@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Data\Boats\BoatJobData;
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportSection;
@@ -12,6 +13,7 @@ use App\Enums\StayType;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Models\BoatDeparture;
+use App\Models\BoatSailing;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
@@ -112,6 +114,30 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
         return $filters->boatGroup === null
             ? $rows
             : array_values(array_filter($rows, fn (BoatManifestRow $row): bool => $this->isOther($row) === ($filters->boatGroup === 'other')));
+    }
+
+    /**
+     * The boat jobs of the date for the spreadsheet, after the guest rows. Left out when rows are ticked (jobs have no
+     * tick box) and on the Boat in and Boat out tabs. See docs/24-boats/03-boat-manifest.md#boat-jobs.
+     *
+     * @param  list<int|string>|null  $rowKeys
+     * @return list<BoatManifestRow>
+     */
+    public function jobRows(Property $property, ReportFilters $filters, ?array $rowKeys = null): array
+    {
+        if ($rowKeys !== null || $filters->boatGroup === 'scheduled') {
+            return [];
+        }
+
+        return $this->jobs($property, $filters)->map(fn (BoatJobData $job): BoatManifestRow => BoatManifestRow::job($job))->all();
+    }
+
+    /** @return Collection<int, BoatJobData> */
+    private function jobs(Property $property, ReportFilters $filters): Collection
+    {
+        return $this->dateSailings->jobs($property, CarbonImmutable::parse($filters->from))
+            ->map(fn (BoatSailing $job): BoatJobData => BoatJobData::fromModel($job))
+            ->values();
     }
 
     /** A Charter or Own boat row: a trip with no sailing. The Others tab of the Boat Trips board keeps only these. */
@@ -232,7 +258,7 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
 
     /**
      * The sheet the boat crew work from: one band per sailing in time order, with an empty band for a sailing that
-     * carries nobody, then charter and own boat, then the rooms with no boat set.
+     * carries nobody, then charter and own boat, then the boat jobs (`jobs`), then the rooms with no boat set.
      *
      * @param  list<BoatManifestRow>  $rows
      * @return array<string, mixed>
@@ -290,6 +316,13 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
             }
         }
 
+        if ($filters->boatGroup !== 'scheduled') {
+            $sections[] = [
+                ...$this->printSection('job', mb_strtoupper(__('Boat jobs')), null, [], null, []),
+                'jobs' => $this->jobs($property, $filters)->all(),
+            ];
+        }
+
         if (isset($rowsByGroup['not-set'])) {
             $sections[] = $this->printSection('not_set', __('Follow up'), null, $rowsByGroup['not-set'], null, []);
         }
@@ -309,7 +342,11 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
     private function printSection(string $kind, string $heading, ?string $jetty, array $rows, ?string $boat, array $crew): array
     {
         return [
-            'band' => BoatDirection::tryFrom($kind)?->label() ?? ($kind === 'other' ? __('In or out') : __('Boat not set')),
+            'band' => BoatDirection::tryFrom($kind)?->label() ?? match ($kind) {
+                'other' => __('In or out'),
+                'job' => __('No guests'),
+                default => __('Boat not set'),
+            },
             'kind' => $kind,
             'heading' => $heading,
             'jetty' => $jetty,

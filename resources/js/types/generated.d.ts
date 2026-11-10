@@ -111,6 +111,7 @@ boatId: number | null,
 inChargeId: number | null,
 assistantIds: number[],
 rows: App.Data.Reports.BoatManifestRow[],
+jobs: App.Data.Boats.BoatJobData[],
 };
 export type BoatCrewMemberData = {
 id: number,
@@ -185,6 +186,20 @@ usedBy: number,
 childrenSummary: string,
 taxes: App.Data.Catalogues.ChargeItemTaxData[],
 childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
+};
+export type BoatJobData = {
+id: number,
+leavesAt: string,
+jobType: string,
+jobLabel: string,
+boatId: number | null,
+boat: string | null,
+inChargeId: number | null,
+inCharge: string | null,
+assistantIds: number[],
+assistants: string[],
+note: string | null,
+done: boolean,
 };
 export type BoatMainSailingData = {
 departureId: number,
@@ -4728,6 +4743,7 @@ export type AuditStepStatus = 'running' | 'completed' | 'failed';
 export type AuditTrigger = 'scheduled' | 'manual';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BoatDirection = 'in' | 'out';
+export type BoatJobType = 'diesel' | 'linen' | 'supplies' | 'staff' | 'maintenance' | 'other';
 export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookableOnlineResult = 'saved' | 'not-available' | 'last-plan';
 export type BookingClientType = 'microsite' | 'api-only' | 'demo';

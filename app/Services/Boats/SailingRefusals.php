@@ -22,6 +22,7 @@ class SailingRefusals
             SailingResult::REFUSAL_SAILING_IS_MAIN => __('The first boat of a departure cannot be removed. Use Default to go back to the timetable.'),
             SailingResult::REFUSAL_TIMES_INVALID => __('Arrives must be after Leaves.'),
             SailingResult::REFUSAL_TARGET_MISMATCH => __('Guests can only move to a boat on the same date and direction.'),
+            SailingResult::REFUSAL_JOB_DONE => __('This job is done. Untick Done first.'),
             SailingResult::REFUSAL_SAILING_NOT_FOUND => __('That boat is no longer there. Reload the page.'),
             default => $result->unitLabel !== null
                 ? $result->unitLabel.': '.current($this->refusals->boatTripErrors((string) $result->refusal))

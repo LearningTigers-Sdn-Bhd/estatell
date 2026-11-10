@@ -6,8 +6,8 @@ use App\Data\Reports\BoatManifestRow;
 use Spatie\LaravelData\Data;
 
 /**
- * One group of the Boats board: a sailing (`kind` sailing), the charter trips (`charter`), the own boat trips (`own`) or the units with
- * no boat set (`not_set`). A sailing group names its boat, crew, time and seats, and carries what the group menu needs:
+ * One group of the Boats board: a sailing (`kind` sailing), the charter trips (`charter`), the own boat trips (`own`), the boat
+ * jobs (`jobs`, with `jobs` set and no rows) or the units with no boat set (`not_set`). A sailing group names its boat, crew, time and seats, and carries what the group menu needs:
  * `departureId` and `sailingId` (null for the main sailing that is not stored yet), `hasStored` (the departure has stored
  * sailings on the date, so Reset to timetable shows) and `canRemove` (an added boat or an extra trip with no guests). `cancelled` shows the
  * departure muted with Undo; `departureGuests` is every guest booked on the departure that date (Cancel trip is refused while
@@ -22,6 +22,7 @@ class BoatBoardGroupData extends Data
      * @param  list<string>  $assistants
      * @param  list<int>  $assistantIds
      * @param  list<BoatManifestRow>  $rows
+     * @param  list<BoatJobData>  $jobs
      */
     public function __construct(
         public string $key,
@@ -53,5 +54,6 @@ class BoatBoardGroupData extends Data
         public ?int $inChargeId,
         public array $assistantIds,
         public array $rows,
+        public array $jobs = [],
     ) {}
 }

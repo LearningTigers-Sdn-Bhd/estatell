@@ -27,6 +27,8 @@ class SailingResult
 
     public const REFUSAL_TARGET_MISMATCH = 'target_mismatch';
 
+    public const REFUSAL_JOB_DONE = 'job_done';
+
     private function __construct(
         public readonly ?string $refusal = null,
         public readonly ?BoatSailing $sailing = null,

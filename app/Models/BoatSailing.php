@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BoatDirection;
+use App\Enums\BoatJobType;
 use App\Enums\SailingKind;
 use Carbon\CarbonImmutable;
 use Database\Factories\BoatSailingFactory;
@@ -29,7 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $arrives_at Time of day, HH:MM:SS.
  * @property string|null $pickup_point
  * @property int|null $boat_id
- * @property string|null $job_type
+ * @property BoatJobType|null $job_type
  * @property string|null $note
  * @property CarbonImmutable|null $cancelled_at
  * @property int|null $cancelled_by
@@ -51,6 +52,7 @@ class BoatSailing extends Model
             'date' => 'immutable_date',
             'kind' => SailingKind::class,
             'direction' => BoatDirection::class,
+            'job_type' => BoatJobType::class,
             'cancelled_at' => 'datetime',
             'done_at' => 'datetime',
         ];

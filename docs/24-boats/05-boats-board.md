@@ -84,7 +84,7 @@ The **Others** tab:
 | Boat out | The Boat out sailings, and the Boat out rows with no boat set |
 | Others   | Charter, Own boat and Boat jobs                               |
 
-- **Export Boat Manifest** exports what the open tab shows. On Others, the PDF prints only the Charter and Own boat blocks.
+- **Export Boat Manifest** exports what the open tab shows. On Others, the PDF prints only the Charter, Own boat and Boat jobs blocks.
 - **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction and the time ("In · 10:30"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. Charter and Own boat always show on All and Others, even with no rooms: the table header stays, with an `EmptyState` inside ("No charter trips." or "No own boat trips."). Only a date with no group at all shows the page empty state instead.
 - The group header has two lines. The first: the direction, the leave and arrive times ("(changed)" when the date has its own time), the jetty, then the seat count and ⋯ on the right. Over the limit uses the warning tone. The second, muted: the boat, "In charge:" and "Crew:" in plain words ("MV Sand Bay 1 · In charge: Awang · Crew: Daus"), or "No boat or crew set". An extra trip starts it with "Extra trip ·".
 - Every group keeps the tick box space, so the titles line up. A group with no guests shows the box disabled ([-] above). Boat not set shows its warning icon there.
@@ -123,7 +123,15 @@ The **⋯** on a sailing group header, for users with `reservations.manage`:
 | Cancel trip          | The main sailing of a departure               | Reads "Cancel the 06:00 trip", or "Cancel the 06:00 trip (all boats)" when the departure has more boats on the date. An AlertDialog, then `CancelDepartureDate`. With guests on any of its boats: "Move the 6 guests first." and the item is disabled |
 | Delete               | An extra trip with no guests                  | `RemoveSailing`                                                                                                                                                                                                                                       |
 
-Boat jobs have **Edit** and **Delete** instead, while not done.
+Boat jobs have **Edit** and **Delete** instead, while not done. Delete asks first in an AlertDialog ("Delete the 16:00 Maintenance job?").
+
+### Boat jobs group
+
+- Comes after Own boat on All and Others, and always shows there, even empty ("No boat jobs."). It is not on Boat in or Boat out.
+- Columns: Leaves, Job, Boat and crew, Note, Done. No tick box for the bulk bar.
+- **Done** works like the trip tick: a **Mark done** button opens an AlertDialog ("Mark the 16:00 Maintenance job as done?"), then saves (`SetBoatJobDone`). A done job shows "✓ Done" with **Undo**, which asks the same way. It works on past dates too. A user without `reservations.manage` sees the text only.
+- **Edit** opens the Trip or job Dialog with the job's values and no Type choice (`SaveBoatJob`).
+- A job's boat and crew count as busy at its leave time, so the Change boat and crew Dialog hides them for a sailing that leaves then.
 
 ### Change boat and crew
 

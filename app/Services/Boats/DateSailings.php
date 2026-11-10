@@ -174,6 +174,23 @@ class DateSailings
     }
 
     /**
+     * The boat jobs of the property on the date, by time, with their boat and crew. See docs/24-boats/04-sailings.md#jobs.
+     *
+     * @return Collection<int, BoatSailing>
+     */
+    public function jobs(Property $property, CarbonInterface $date): Collection
+    {
+        return BoatSailing::query()
+            ->where('property_id', $property->id)
+            ->whereDate('date', $date->toDateString())
+            ->where('kind', SailingKind::Job->value)
+            ->with(['boat', 'crew'])
+            ->orderBy('leaves_at')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
      * The sailing a trip is on: the one it was moved to, else the main sailing of its departure.
      *
      * @param  array<int, list<DateSailing>>  $sailingsByDeparture  From `forDate()`, for the trip's date.

@@ -2,6 +2,7 @@
 
 namespace App\Data\Reports;
 
+use App\Data\Boats\BoatJobData;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
 use App\Enums\BookingSourceType;
@@ -83,6 +84,33 @@ class BoatManifestRow extends Data implements ReportRow
             reservation_id: $unit->reservation_id,
             reservation_unit_id: $unit->id,
             unit_time: substr($direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time, 0, 5),
+        );
+    }
+
+    /**
+     * A boat job as a spreadsheet row, after the guest rows: the time and job in the Departure and Lead guest columns, its
+     * boat, crew and note, and Done in the Tick column. It carries no guests. Key 0: it is never ticked on the board.
+     */
+    public static function job(BoatJobData $job): self
+    {
+        return new self(
+            key: 0,
+            departure: __('Boat job · :time', ['time' => $job->leavesAt]),
+            unit: '',
+            lead_guest: $job->jobLabel,
+            agent: '',
+            phone: null,
+            adults: 0,
+            children: 0,
+            total: 0,
+            reservation: '',
+            note: $job->note,
+            boat_departure_id: null,
+            seats: null,
+            direction: '',
+            boat: $job->boat,
+            crew: $job->crewText(),
+            ticked: $job->done,
         );
     }
 

@@ -436,5 +436,6 @@ test('a cancelled sailing is left out of the printed sheet, and an empty sailing
         ['0900', 'MV Sand Bay 2', ['Razak']],
         ['CHARTER', 'Charter', []],
         ['OWN BOAT', 'Own boat', []],
+        ['BOAT JOBS', null, []],
     ]);
 });

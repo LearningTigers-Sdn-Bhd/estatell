@@ -412,13 +412,14 @@ test('the PDF is landscape, whatever the saved layout says, and bands every depa
             ['out', '1430', 1],
             ['in', 'CHARTER', 1],
             ['in', 'OWN BOAT', 1],
+            ['job', 'BOAT JOBS', 0],
         ])
         ->and($captured->data['sections'][3]['rows'][0]->key)->toBe($charterBoat->id)
         ->and($captured->data['sections'][4]['rows'][0]->key)->toBe($ownBoat->id)
         ->and($captured->data['sections'][4]['jetty'])->toBe($empty->pickup_point);
 });
 
-test('the board tabs export their own rows: scheduled boats on Boat in and Boat out, Charter and Own boat on Others, an empty one as a blank block', function () {
+test('the board tabs export their own rows: scheduled boats on Boat in and Boat out, Charter, Own boat and Boat jobs on Others, an empty one as a blank block', function () {
     [$manager, $property] = manifestSetup();
     $departure = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
     manifestDeparture($property, BoatDirection::In, '11:00:00', '11:45:00');
@@ -429,7 +430,7 @@ test('the board tabs export their own rows: scheduled boats on Boat in and Boat 
     $this->actingAs($manager)->post(manifestUrl($property).'/pdf', ['date' => '2026-10-20', 'direction' => 'both', 'boat_group' => 'other'])->assertOk();
 
     expect(collect($captured->data['sections'])->map(fn (array $section): array => [$section['kind'], $section['heading'], count($section['rows'])])->all())
-        ->toBe([['in', 'CHARTER', 1], ['other', 'OWN BOAT', 0]])
+        ->toBe([['in', 'CHARTER', 1], ['other', 'OWN BOAT', 0], ['job', 'BOAT JOBS', 0]])
         ->and($captured->data['sections'][0]['rows'][0]->key)->toBe($charter->id)
         ->and($captured->data['sections'][1]['band'])->toBe('In or out');
 
@@ -677,5 +678,5 @@ test('Boat in and out together lists every departure of the date in time order',
         ->and($filters->query(true)['direction'])->toBe('both');
 
     $this->actingAs($manager)->get(manifestUrl($property, '?date=2026-10-20&direction=both'))
-        ->assertInertia(fn (Assert $page) => $page->where('direction', 'both')->has('groups', 4)->where('groups.2.kind', 'charter')->where('groups.3.kind', 'own'));
+        ->assertInertia(fn (Assert $page) => $page->where('direction', 'both')->has('groups', 5)->where('groups.2.kind', 'charter')->where('groups.3.kind', 'own')->where('groups.4.kind', 'jobs'));
 });

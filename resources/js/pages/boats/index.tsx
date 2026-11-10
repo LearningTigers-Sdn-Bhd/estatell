@@ -22,6 +22,10 @@ import {
     Users,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import {
+    BoatJobsSection,
+    jobName,
+} from '@/components/pms/boats/boat-jobs-section';
 import { BoatNoteField } from '@/components/pms/boats/boat-note-field';
 import { BoatSailingDialog } from '@/components/pms/boats/boat-sailing-dialog';
 import {
@@ -71,12 +75,14 @@ import {
 } from '@/components/ui/table';
 import { index, pdf, spreadsheet } from '@/routes/boats';
 import { cancel, reset } from '@/routes/boats/departures';
+import { destroy as destroyJob } from '@/routes/boats/jobs';
 import { destroy } from '@/routes/boats/sailings';
 import { move, tick } from '@/routes/boats/trips';
 import { show } from '@/routes/reservations';
 
 type Group = App.Data.Boats.BoatBoardGroupData;
 type Row = App.Data.Reports.BoatManifestRow;
+type Job = App.Data.Boats.BoatJobData;
 
 type Props = {
     date: string;
@@ -90,6 +96,7 @@ type Props = {
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
     boatPicks?: App.Data.Boats.BoatPickData[];
     sailingCrews: App.Data.Boats.BoatSailingCrewData[];
+    jobTypes: EnumOption[];
     layout: App.Data.Reports.ReportLayoutData;
     orientationOptions: EnumOption[];
     can: { manage: boolean; columns: boolean };
@@ -103,7 +110,7 @@ const TABS = [
     { value: 'other', label: 'Others', icon: Sailboat },
 ] as const;
 
-/** The manifest filters of a tab: Boat in and Boat out export the scheduled boats only, Others only Charter and Own boat. */
+/** The manifest filters of a tab: Boat in and Boat out export the scheduled boats only, Others Charter, Own boat and the boat jobs. */
 function exportFilters(
     date: string,
     direction: Props['direction'],
@@ -185,6 +192,7 @@ export default function BoatsIndex({
     boatDepartures,
     boatPicks,
     sailingCrews,
+    jobTypes,
     layout,
     orientationOptions,
     can,
@@ -196,6 +204,9 @@ export default function BoatsIndex({
         group: Group;
     } | null>(null);
     const [tripOpen, setTripOpen] = useState(false);
+    const [editJob, setEditJob] = useState<Job | null>(null);
+    const [deleteJob, setDeleteJob] = useState<Job | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const [cancelGroup, setCancelGroup] = useState<Group | null>(null);
     const [cancelling, setCancelling] = useState(false);
     const [setBoat, setSetBoat] = useState<{
@@ -479,54 +490,74 @@ export default function BoatsIndex({
                                 />
                             ) : (
                                 <div className="flex flex-col gap-6">
-                                    {groups.map((group) => (
-                                        <GroupSection
-                                            key={group.key}
-                                            group={group}
-                                            selected={selected}
-                                            onSelect={toggle}
-                                            canSelect={can.manage}
-                                            canTick={can.manage}
-                                            menu={manage}
-                                            date={date}
-                                            onTick={setTick}
-                                            onChange={() =>
-                                                setDialog({
-                                                    mode: 'change',
-                                                    group,
-                                                })
-                                            }
-                                            onAdd={() =>
-                                                setDialog({
-                                                    mode: 'add',
-                                                    group,
-                                                })
-                                            }
-                                            onTime={() =>
-                                                setDialog({
-                                                    mode: 'time',
-                                                    group,
-                                                })
-                                            }
-                                            onCancel={() =>
-                                                setCancelGroup(group)
-                                            }
-                                            onUndo={() =>
-                                                router.put(
-                                                    cancel.url({
-                                                        departure:
-                                                            group.departureId!,
-                                                    }),
-                                                    { date, cancelled: false },
-                                                    { preserveScroll: true },
-                                                )
-                                            }
-                                            onSetBoat={(row) =>
-                                                setSetBoat({ row, open: true })
-                                            }
-                                            canSetBoat={manage}
-                                        />
-                                    ))}
+                                    {groups.map((group) =>
+                                        group.kind === 'jobs' ? (
+                                            <BoatJobsSection
+                                                key={group.key}
+                                                jobs={group.jobs}
+                                                alignWithTicks={can.manage}
+                                                canTick={can.manage}
+                                                canManage={manage}
+                                                onEdit={setEditJob}
+                                                onDelete={setDeleteJob}
+                                            />
+                                        ) : (
+                                            <GroupSection
+                                                key={group.key}
+                                                group={group}
+                                                selected={selected}
+                                                onSelect={toggle}
+                                                canSelect={can.manage}
+                                                canTick={can.manage}
+                                                menu={manage}
+                                                date={date}
+                                                onTick={setTick}
+                                                onChange={() =>
+                                                    setDialog({
+                                                        mode: 'change',
+                                                        group,
+                                                    })
+                                                }
+                                                onAdd={() =>
+                                                    setDialog({
+                                                        mode: 'add',
+                                                        group,
+                                                    })
+                                                }
+                                                onTime={() =>
+                                                    setDialog({
+                                                        mode: 'time',
+                                                        group,
+                                                    })
+                                                }
+                                                onCancel={() =>
+                                                    setCancelGroup(group)
+                                                }
+                                                onUndo={() =>
+                                                    router.put(
+                                                        cancel.url({
+                                                            departure:
+                                                                group.departureId!,
+                                                        }),
+                                                        {
+                                                            date,
+                                                            cancelled: false,
+                                                        },
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    )
+                                                }
+                                                onSetBoat={(row) =>
+                                                    setSetBoat({
+                                                        row,
+                                                        open: true,
+                                                    })
+                                                }
+                                                canSetBoat={manage}
+                                            />
+                                        ),
+                                    )}
                                 </div>
                             )}
                         </TabLinks>
@@ -605,8 +636,66 @@ export default function BoatsIndex({
                     dateLabel={dayLabel(date)}
                     boats={boats}
                     crew={crew}
+                    jobTypes={jobTypes}
                 />
             )}
+
+            {editJob && (
+                <BoatTripDialog
+                    open
+                    onOpenChange={(open) => !open && setEditJob(null)}
+                    date={date}
+                    dateLabel={dayLabel(date)}
+                    boats={boats}
+                    crew={crew}
+                    jobTypes={jobTypes}
+                    job={editJob}
+                />
+            )}
+
+            <AlertDialog
+                open={deleteJob !== null}
+                onOpenChange={(open) => !open && setDeleteJob(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Delete the {deleteJob ? jobName(deleteJob) : ''}{' '}
+                            job?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            It leaves the board and the manifest for{' '}
+                            {dayLabel(date)}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep job</AlertDialogCancel>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={deleting}
+                            focusableWhenDisabled
+                            onClick={() =>
+                                deleteJob !== null &&
+                                router.delete(
+                                    destroyJob.url({ sailing: deleteJob.id }),
+                                    {
+                                        preserveScroll: true,
+                                        onStart: () => setDeleting(true),
+                                        onFinish: () => {
+                                            setDeleting(false);
+                                            setDeleteJob(null);
+                                        },
+                                    },
+                                )
+                            }
+                        >
+                            {deleting && <Spinner data-icon="inline-start" />}
+                            Delete job
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog
                 open={cancelGroup !== null}

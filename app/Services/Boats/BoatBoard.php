@@ -3,6 +3,7 @@
 namespace App\Services\Boats;
 
 use App\Data\Boats\BoatBoardGroupData;
+use App\Data\Boats\BoatJobData;
 use App\Data\Boats\BoatPickData;
 use App\Data\Boats\BoatSailingCrewData;
 use App\Data\Reports\BoatManifestRow;
@@ -10,13 +11,14 @@ use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
 use App\Models\BoatDeparture;
+use App\Models\BoatSailing;
 use App\Models\Property;
 use App\Services\Reports\BoatManifestReport;
 use Carbon\CarbonImmutable;
 
 /**
  * The groups of the Boats board for one date and direction: one per sailing in time order, then the charter trips, the own boat
- * trips, then the units with no boat set. Charter and Own boat always show, even empty, unless the date has no group at all
+ * trips, the boat jobs, then the units with no boat set. Charter, Own boat and Boat jobs always show, even empty, unless the date has no group at all
  * (the page then shows its empty state). Boat not set shows only with rows. It reads the same rows as the Boat manifest (`BoatManifestReport`) and the same
  * sailings (`DateSailings`). Reads only. See docs/24-boats/05-boats-board.md.
  */
@@ -30,7 +32,7 @@ class BoatBoard
 
     /**
      * The groups of one tab: `both` (All), `in` or `out` (the sailings of that direction and its rows with no boat set) or
-     * `other` (Charter and Own boat, shown even when empty).
+     * `other` (Charter, Own boat and Boat jobs, shown even when empty).
      *
      * @param  'in'|'out'|'both'|'other'  $direction
      * @return list<BoatBoardGroupData>
@@ -101,9 +103,12 @@ class BoatBoard
             );
         }
 
-        if ($others || ($direction === 'both' && ($groups !== [] || $charter !== [] || $own !== [] || $notSet !== []))) {
+        $jobs = $both ? $this->dateSailings->jobs($property, $date) : collect();
+
+        if ($others || ($direction === 'both' && ($groups !== [] || $charter !== [] || $own !== [] || $notSet !== [] || $jobs->isNotEmpty()))) {
             $groups[] = $this->plainGroup('charter', 'charter', BoatMode::Charter->label(), $charter);
             $groups[] = $this->plainGroup('own', 'own', BoatMode::Own->label(), $own);
+            $groups[] = $this->plainGroup('jobs', 'jobs', __('Boat jobs'), [], $jobs->map(fn (BoatSailing $job): BoatJobData => BoatJobData::fromModel($job))->values()->all());
         }
 
         if ($notSet !== []) {
@@ -143,8 +148,8 @@ class BoatBoard
     }
 
     /**
-     * The boat and crew of every running sailing of the date, both directions and extra trips included, whatever tab is
-     * open. Reads the sailings only, not the guests.
+     * The boat and crew of every running sailing of the date, both directions, extra trips and boat jobs included, whatever
+     * tab is open. Reads the sailings only, not the guests.
      *
      * @return list<BoatSailingCrewData>
      */
@@ -155,6 +160,7 @@ class BoatBoard
             ->merge($this->dateSailings->extras($property, $date))
             ->reject(fn (DateSailing $sailing): bool => $sailing->cancelled)
             ->map(fn (DateSailing $sailing): BoatSailingCrewData => BoatSailingCrewData::fromSailing($sailing))
+            ->merge($this->dateSailings->jobs($property, $date)->map(fn (BoatSailing $job): BoatSailingCrewData => BoatSailingCrewData::fromJob($job)))
             ->values()
             ->all();
     }
@@ -206,8 +212,9 @@ class BoatBoard
 
     /**
      * @param  list<BoatManifestRow>  $rows
+     * @param  list<BoatJobData>  $jobs
      */
-    private function plainGroup(string $key, string $kind, string $title, array $rows): BoatBoardGroupData
+    private function plainGroup(string $key, string $kind, string $title, array $rows, array $jobs = []): BoatBoardGroupData
     {
         return new BoatBoardGroupData(
             key: $key,
@@ -239,6 +246,7 @@ class BoatBoard
             inChargeId: null,
             assistantIds: [],
             rows: $rows,
+            jobs: $jobs,
         );
     }
 }
