@@ -1,9 +1,12 @@
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { BulkActionBar } from '@/components/pms/bulk-action-bar';
+import { AddAddOnDialog } from '@/components/pms/reservations/add-add-on-dialog';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Table,
@@ -17,6 +20,8 @@ import {
 import { cn } from '@/lib/utils';
 
 type Row = App.Data.Reservations.ReservationUnitRowData;
+
+const OPEN = ['confirmed', 'checked_in'];
 
 function roomText(row: Row, autoAssignRooms: boolean): string {
     return row.assigned ?? (autoAssignRooms ? 'At check-in' : 'Not assigned');
@@ -62,14 +67,24 @@ function sumTotals(rows: Row[]): string {
  * actions in the bulk bar. A row click opens the unit in Grouped view. Below `md` each row is a card.
  */
 export function UnitsAllTable({
+    reservationId,
     rows,
+    units,
     toggle,
     canSelect,
+    canManage,
+    chargeItems,
     autoAssignRooms,
     currency,
     onOpenUnit,
 }: {
+    reservationId: number;
     rows: Row[];
+    /** The unit list, for the add-on Dialog. */
+    units: App.Data.Reservations.ReservationUnitOptionData[];
+    /** Shows Add add-on in the bulk bar (`reservations.manage`). */
+    canManage: boolean;
+    chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     /** The All / Grouped toggle, shown above the table. */
     toggle: ReactNode;
     canSelect: boolean;
@@ -78,6 +93,8 @@ export function UnitsAllTable({
     onOpenUnit: (unitId: number) => void;
 }) {
     const [selected, setSelected] = useState<number[]>([]);
+    const [addingAddOn, setAddingAddOn] = useState(false);
+    const openUnits = units.filter((unit) => OPEN.includes(unit.status.value));
     const selectable = rows
         .filter((row) => row.selectable)
         .map((row) => row.id);
@@ -280,8 +297,27 @@ export function UnitsAllTable({
                 onClear={() => setSelected([])}
                 stackOnMobile
             >
-                {null}
+                {canManage && openUnits.length > 0 && (
+                    <Button
+                        variant="outline"
+                        onClick={() => setAddingAddOn(true)}
+                    >
+                        <Plus data-icon="inline-start" />
+                        Add add-on
+                    </Button>
+                )}
             </BulkActionBar>
+            {canManage && openUnits.length > 0 && (
+                <AddAddOnDialog
+                    open={addingAddOn}
+                    onOpenChange={setAddingAddOn}
+                    reservationId={reservationId}
+                    units={openUnits}
+                    initialUnitIds={ticked}
+                    chargeItems={chargeItems}
+                    currency={currency}
+                />
+            )}
         </div>
     );
 }

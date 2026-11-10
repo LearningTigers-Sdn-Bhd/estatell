@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reservations\ArrivalImportController;
 use App\Http\Controllers\Reservations\BookingSummaryController;
+use App\Http\Controllers\Reservations\ReservationAddOnController;
 use App\Http\Controllers\Reservations\ReservationBoatTripController;
 use App\Http\Controllers\Reservations\ReservationBookerController;
 use App\Http\Controllers\Reservations\ReservationBookingController;
@@ -181,6 +182,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
         Route::middleware('boats')->put('boat-trips', [ReservationBoatTripController::class, 'setMany'])->name('boat-trips.set-many');
         Route::post('cancel/preview', [ReservationUnitStayController::class, 'cancelAllPreview'])->name('cancel-preview');
         Route::post('cancel', [ReservationUnitStayController::class, 'cancelAll'])->name('cancel');
+        Route::post('add-ons/preview', [ReservationAddOnController::class, 'preview'])->name('add-ons.preview');
+        Route::post('add-ons', [ReservationAddOnController::class, 'store'])->name('add-ons.store');
 
         Route::prefix('units')->name('units.')->group(function () {
             Route::post('/', [ReservationUnitController::class, 'store'])->name('store');

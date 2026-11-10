@@ -447,7 +447,11 @@ export default function ReservationShow({
                             <ActivityTab activity={activity} />
                         ) : unitsAll ? (
                             <UnitsAllTable
+                                reservationId={reservation.id}
                                 rows={unitRows}
+                                units={units}
+                                canManage={canManage}
+                                chargeItems={chargeItems}
                                 toggle={unitsToggle}
                                 canSelect={canManage || canChangePrice}
                                 autoAssignRooms={autoAssignRooms}

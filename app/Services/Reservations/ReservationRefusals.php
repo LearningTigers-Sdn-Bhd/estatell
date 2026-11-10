@@ -11,6 +11,7 @@ use App\Actions\Reservations\ArrivalImportResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
+use App\Actions\Reservations\GroupAddOnResult;
 use App\Actions\Reservations\GroupUpdateResult;
 use App\Actions\Reservations\NightPriceResult;
 use App\Actions\Reservations\ReservationResult;
@@ -51,6 +52,31 @@ class ReservationRefusals
             GroupUpdateResult::REFUSAL_MASTER_HAS_PAYMENTS => ['billing_mode' => __('The Master folio holds :amount in payments. Refund it before changing the billing mode.', ['amount' => $amount])],
             default => [self::FORM => __('This change was refused.')],
         };
+    }
+
+    /**
+     * The errors to flash back to the group add-on Dialog. A refusal that depends on the unit (closed, its stay, its
+     * dates) is a form error that starts with the unit label, so staff know which room to fix. The others belong to a
+     * field, as for one unit.
+     *
+     * @return array<string, string>
+     */
+    public function groupAddOnErrors(string $code, ?string $unit = null): array
+    {
+        $message = match ($code) {
+            GroupAddOnResult::REFUSAL_NO_UNITS => __('Pick at least one unit.'),
+            AddOnResult::REFUSAL_UNIT_NOT_OPEN => __('This unit is closed, so it cannot change.'),
+            AddOnResult::REFUSAL_NIGHTLY_ITEM_FOR_DAY_USE => __('A nightly item cannot be added to a day use unit.'),
+            AddOnResult::REFUSAL_SERVICE_DATE_OUTSIDE_STAY => __('The service date is not within this stay.'),
+            AddOnResult::REFUSAL_SERVICE_DATE_IN_PAST => __('The date or the nights of this stay are already past.'),
+            default => null,
+        };
+
+        if ($message === null) {
+            return $this->errors($code);
+        }
+
+        return [self::FORM => $unit === null ? $message : $unit.': '.$message];
     }
 
     /**

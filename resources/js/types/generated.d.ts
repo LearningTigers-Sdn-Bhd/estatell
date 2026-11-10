@@ -3919,6 +3919,18 @@ id: number,
 label: string,
 reason: string | null,
 };
+export type GroupAddOnPreviewData = {
+lines: App.Data.Reservations.GroupAddOnPreviewLineData[],
+total: string,
+};
+export type GroupAddOnPreviewLineData = {
+unitId: number,
+label: string,
+guests: number,
+nights: number | null,
+total: string | null,
+note: string | null,
+};
 export type GroupCheckOutDoneData = {
 checkedOut: number,
 settled: number,
