@@ -11,7 +11,9 @@ use App\Models\UnitBoatTrip;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -51,7 +53,8 @@ class BoatTripUsage
             ->whereIn('id', UnitBoatTrip::query()
                 ->select('reservation_unit_id')
                 ->where('boat_departure_id', $boatDeparture->id)
-                ->where('direction', $boatDeparture->direction->value))
+                ->where('direction', $boatDeparture->direction->value)
+                ->whereNotExists($this->sailingWithOwnTime($boatDeparture)))
             ->whereIn('status', array_map(fn ($status): string => $status->value, $boatDeparture->direction->unitStatuses()))
             ->whereDate($boatDeparture->direction->tripDateColumn(), '>=', $businessDate->toDateString())
             ->orderBy('id');
@@ -61,6 +64,34 @@ class BoatTripUsage
         }
 
         return $query->get();
+    }
+
+    /**
+     * The trips whose sailing has a time of its own keep it when the timetable changes, so they are not "upcoming" for a
+     * time move. A trip is on the sailing it was moved to, else on the main sailing (the lowest id) of its departure and
+     * date. See docs/24-boats/04-sailings.md#times.
+     *
+     * @return Closure(Builder): void
+     */
+    private function sailingWithOwnTime(BoatDeparture $boatDeparture): Closure
+    {
+        $timeColumn = $boatDeparture->direction === BoatDirection::In ? 'arrives_at' : 'leaves_at';
+        $dateColumn = $boatDeparture->direction->tripDateColumn();
+
+        return function ($query) use ($timeColumn, $dateColumn): void {
+            $query->selectRaw('1')
+                ->from('boat_sailings as own_time')
+                ->whereColumn('own_time.boat_departure_id', 'unit_boat_trips.boat_departure_id')
+                ->whereNotNull("own_time.{$timeColumn}")
+                ->whereRaw("own_time.date = (select unit_date.{$dateColumn} from reservation_units as unit_date where unit_date.id = unit_boat_trips.reservation_unit_id)")
+                ->where(function ($on) {
+                    $on->whereColumn('own_time.id', 'unit_boat_trips.boat_sailing_id')
+                        ->orWhere(function ($main) {
+                            $main->whereNull('unit_boat_trips.boat_sailing_id')
+                                ->whereRaw('own_time.id = (select min(first_sailing.id) from boat_sailings as first_sailing where first_sailing.boat_departure_id = own_time.boat_departure_id and first_sailing.date = own_time.date)');
+                        });
+                });
+        };
     }
 
     /** How many distinct reservations the upcoming units belong to. Used for "5 upcoming bookings". */

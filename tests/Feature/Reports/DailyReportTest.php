@@ -192,7 +192,7 @@ test('the cashier tab is the Payments report with the staff summary as the defau
         ->where('group', 'staff')
         ->where('sort', 'staff')
         ->where('breakdown.title', 'Cash-up by staff')
-        ->has('layout.columns', 9)
+        ->has('layout.columns', 16)
         ->where('rows.meta.total', 3)
         ->where('totals.figures.amount', '250.00'));
 

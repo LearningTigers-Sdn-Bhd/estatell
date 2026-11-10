@@ -37,6 +37,7 @@ export default function RoomRevenueDayUse({
     currency: App.Data.Property.CurrencyData;
 }) {
     const http = useHttp<Selection, Preview>({ tax_ids: taxIds });
+    const previewHttp = useHttp<Selection, Preview>({ tax_ids: taxIds });
     const guard = useUnsavedChanges(http.isDirty);
     const [preview, setPreview] = useState(savedPreview);
     const [saving, setSaving] = useState(false);
@@ -59,11 +60,15 @@ export default function RoomRevenueDayUse({
             return;
         }
 
+        const payload = http.data;
         const timer = window.setTimeout(() => {
             previewedKey.current = key;
-            http.post(previewRoute.url(), {
-                onSuccess: (response) => setPreview(response),
-            }).catch(() => undefined);
+            previewHttp.transform(() => payload);
+            previewHttp
+                .post(previewRoute.url(), {
+                    onSuccess: (response) => setPreview(response),
+                })
+                .catch(() => undefined);
         }, 250);
 
         return () => window.clearTimeout(timer);
@@ -142,7 +147,7 @@ export default function RoomRevenueDayUse({
                                 preview={preview}
                                 offTaxes={offTaxes}
                                 money={money}
-                                loading={http.processing}
+                                loading={previewHttp.processing}
                             />
                         </div>
                         <div className="flex justify-end">

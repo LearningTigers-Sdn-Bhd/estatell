@@ -62,9 +62,9 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 
 - Guests are never shared across properties. A guest of another property returns 404.
 - Phone numbers are validated and normalized to E.164 with `propaganistas/laravel-phone`. A number typed without a country code is read as a number of the property's country (Malaysia if unset). A number with a country code is accepted from any country.
-- `PhoneInput` has a country picker with flags. It starts on the property's country, formats the number as it is typed, and shows an error after the first blur once the number is edited. It uses `libphonenumber-js` and sends E.164 when the number is valid. These checks are for the user: the server still decides. A saved number that is not edited is posted unchanged.
+- `PhoneInput` has a country picker with flags. It starts on the property's country, formats the number as it is typed, also for an edit in the middle (the cursor stays after the same digit), and shows a number typed without its leading 0 (`11 2293 3232` after +60) in the international grouping. It shows an error after the first blur once the number is edited, or at once when the number is too long to ever be valid. A valid number shows a check icon and an error shows a warning icon in the same place. It uses `libphonenumber-js` and sends E.164 when the number is valid. These checks are for the user: the server still decides. A saved number that is not edited is posted unchanged.
 - Email and phone stay plaintext for search and notifications. Rely on database encryption at rest.
-- ID documents have their own Documents tab. See [Identity documents](02-identity-documents.md).
+- Details has one **IC / Passport number** field with its type selector inside, saved with the profile. Scans and additional IDs stay on the Documents tab. Manual entry needs no reader. See [Identity documents](02-identity-documents.md).
 - A guest merged into another guest is hidden from the list and redirects to the survivor. See [Matching and merging](03-matching-and-merging.md).
 - The profile rules live in `GuestProfileRules`, shared by `GuestRequest` and the booking form (the form's fields are `GuestDetailsFields`).
 - `GuestPicker` and `guests.search` come with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab).

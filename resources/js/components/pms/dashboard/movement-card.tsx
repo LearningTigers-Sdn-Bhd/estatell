@@ -1,6 +1,6 @@
 import { LogIn, LogOut } from 'lucide-react';
 import { UnitCountTile } from '@/components/pms/dashboard/unit-count-tile';
-import { arrivals, departures } from '@/routes/reports';
+import { index } from '@/routes/reservations';
 
 export function MovementCard({
     tiles,
@@ -17,7 +17,7 @@ export function MovementCard({
                         tile: tiles.arrivals,
                         icon: LogIn,
                         tone: 'primary',
-                        route: arrivals,
+                        status: 'arrivals',
                     },
                     {
                         title: 'Departures',
@@ -25,16 +25,16 @@ export function MovementCard({
                         tile: tiles.departures,
                         icon: LogOut,
                         tone: 'warning',
-                        route: departures,
+                        status: 'departures',
                     },
                 ] as const
             ).map(
-                ({ title, action, tile, icon, route, tone }, index) =>
+                ({ title, action, tile, icon, status, tone }, position) =>
                     tile && (
                         <div
                             key={title}
                             className={
-                                index === 0
+                                position === 0
                                     ? 'order-1 min-w-0'
                                     : 'order-2 min-w-0'
                             }
@@ -45,11 +45,8 @@ export function MovementCard({
                                 tile={tile}
                                 icon={icon}
                                 tone={tone}
-                                href={route.url(undefined, {
-                                    query: {
-                                        from: tiles.date,
-                                        to: tiles.date,
-                                    },
+                                href={index.url(undefined, {
+                                    query: { filter: { status } },
                                 })}
                             />
                         </div>

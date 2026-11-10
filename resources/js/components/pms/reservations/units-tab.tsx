@@ -18,7 +18,9 @@ import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
+import { DoorCards } from '@/components/pms/reservations/door-cards';
 import { DoorPins } from '@/components/pms/reservations/door-pins';
+import { KeyCards } from '@/components/pms/reservations/key-cards';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -113,7 +115,7 @@ export function UnitsList({
                     aria-label="Choose unit"
                     options={units.map((option) => ({
                         value: String(option.id),
-                        label: `${option.label} · ${option.status.label} · ${option.primaryGuest ?? 'No primary guest'}`,
+                        label: `${option.label} · ${option.status.label} · ${option.primaryGuest ?? 'No primary guest'} · ${option.occupancy}`,
                     }))}
                     value={String(activeUnitId)}
                     onValueChange={(value) =>
@@ -143,27 +145,48 @@ export function UnitsList({
                             option.id === activeUnitId ? 'true' : undefined
                         }
                         className={cn(
-                            'flex flex-col rounded-lg border px-3 py-2 text-sm hover:bg-muted',
+                            'flex min-w-0 flex-col rounded-lg border px-3 py-2 text-sm text-foreground hover:bg-muted',
                             option.id === activeUnitId &&
                                 'border-primary bg-muted',
                         )}
                     >
-                        <span className="font-medium">{option.roomType}</span>
+                        <span className="font-medium break-words">
+                            {option.roomType}
+                        </span>
                         <span
                             className={cn(
-                                'truncate',
-                                option.primaryGuest === null &&
-                                    'text-muted-foreground',
+                                'mt-1 line-clamp-2 break-words',
+                                option.primaryGuest === null && 'italic',
                             )}
+                            title={option.primaryGuest ?? undefined}
                         >
                             {option.primaryGuest ?? 'No primary guest'}
                         </span>
-                        <span className="text-muted-foreground">
-                            {option.assigned ??
-                                (autoAssignRooms
-                                    ? 'At check-in'
-                                    : 'Not assigned')}{' '}
-                            · {option.status.label}
+                        <span className="mt-2 flex flex-col gap-1.5 border-t pt-2 text-xs">
+                            <span className="flex items-center gap-1.5 tabular-nums">
+                                <Users
+                                    aria-hidden
+                                    className="size-3.5 shrink-0"
+                                />
+                                {option.occupancy}
+                            </span>
+                            <span className="flex items-center justify-between gap-2">
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                    <BedDouble
+                                        aria-hidden
+                                        className="size-3.5 shrink-0"
+                                    />
+                                    <span className="truncate">
+                                        {option.assigned ??
+                                            (autoAssignRooms
+                                                ? 'At check-in'
+                                                : 'Not assigned')}
+                                    </span>
+                                </span>
+                                <span className="shrink-0">
+                                    <StatusBadge status={option.status} />
+                                </span>
+                            </span>
                         </span>
                     </Link>
                 ))}
@@ -179,6 +202,8 @@ export function UnitsTab({
     reservationId,
     unit,
     doorPins,
+    keyCards,
+    lockProviders = [],
     autoAssignRooms,
     canWaiveFees,
     canOverrideRestrictions,
@@ -190,6 +215,8 @@ export function UnitsTab({
     reservationId: number;
     unit: Unit | null;
     doorPins: App.Data.DoorLocks.UnitDoorPinsData | null;
+    keyCards: App.Data.Keyport.UnitKeyCardsData | null;
+    lockProviders?: string[];
     autoAssignRooms: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
@@ -311,7 +338,14 @@ export function UnitsTab({
                 )}
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                     <Detail icon={BedDouble} label="Room">
-                        {roomText(unit, autoAssignRooms)}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>{roomText(unit, autoAssignRooms)}</span>
+                            {lockProviders.map((provider) => (
+                                <Badge key={provider} variant="outline">
+                                    {provider}
+                                </Badge>
+                            ))}
+                        </div>
                     </Detail>
                     <Detail icon={Users} label="Guests">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -331,6 +365,21 @@ export function UnitsTab({
                 {doorPins !== null && (
                     <DoorPins
                         pins={doorPins}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
+                {doorPins !== null &&
+                    (doorPins.canAddCard || doorPins.cards.length > 0) && (
+                        <DoorCards
+                            cards={doorPins.cards}
+                            reservationId={reservationId}
+                            unitId={unit.id}
+                        />
+                    )}
+                {keyCards !== null && (
+                    <KeyCards
+                        cards={keyCards}
                         reservationId={reservationId}
                         unitId={unit.id}
                     />

@@ -3,6 +3,7 @@ import {
     ArrowDown,
     ArrowUp,
     ArrowUpDown,
+    Baby,
     Ban,
     BedDouble,
     BedSingle,
@@ -12,20 +13,34 @@ import {
     ClipboardCheck,
     MoonStar,
     MessageSquarePlus,
+    Monitor,
     MoreHorizontal,
+    Pencil,
+    Printer,
     Settings2,
     Star,
     StarOff,
+    User,
     UserRound,
     Wrench,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
 import { BulkRemarkDialog } from '@/components/pms/housekeeping/bulk-remark-dialog';
-import { CleaningCell } from '@/components/pms/housekeeping/cleaning-cell';
+import {
+    CleaningCell,
+    CleaningTimesDialog,
+} from '@/components/pms/housekeeping/cleaning-cell';
+import { ScreenColumnsSheet } from '@/components/pms/housekeeping/screen-columns-sheet';
+import { useScreenColumns } from '@/components/pms/housekeeping/use-screen-columns';
+import type {
+    ScreenColumn,
+    ScreenColumnKey,
+} from '@/components/pms/housekeeping/use-screen-columns';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
@@ -59,12 +74,13 @@ import {
     status,
 } from '@/routes/housekeeping/rooms';
 import { index as roomBlocks } from '@/routes/front-desk/room-blocks';
+import { cn } from '@/lib/utils';
 
 type Room = App.Data.Housekeeping.HousekeepingRoomData;
 type Staff = App.Data.Housekeeping.HousekeepingStaffData;
 type Badge = App.Data.Shared.BadgeData;
 type View = 'all' | 'group' | 'type';
-type Movement = '' | 'arrivals' | 'departures' | 'stayovers';
+type Movement = 'arrivals' | 'departures' | 'stayovers';
 type SortKey =
     | 'room'
     | 'status'
@@ -87,6 +103,8 @@ type Props = {
 };
 
 const OUT_OF_SERVICE = 'out_of_service';
+const DUE_OUT: App.Enums.HousekeepingStay = 'due_out';
+const CHECKED_OUT: App.Enums.HousekeepingStay = 'checked_out';
 
 /** Icon colours that match the tone of the status badge the action produces. */
 const toneText: Record<App.Enums.Tone, string> = {
@@ -105,9 +123,15 @@ function matchesMovement(room: Room, movement: Movement): boolean {
             return room.departureTime !== null;
         case 'stayovers':
             return room.isStayOver;
-        default:
-            return true;
     }
+}
+
+/** No movement picked shows every room; otherwise a room shows when it matches any picked movement. */
+function matchesMovements(room: Room, movements: Movement[]): boolean {
+    return (
+        movements.length === 0 ||
+        movements.some((movement) => matchesMovement(room, movement))
+    );
 }
 
 function sortValue(room: Room, key: SortKey): string | null {
@@ -224,6 +248,42 @@ function StayCell({
     );
 }
 
+/**
+ * The print layout with the screen columns applied: the print columns the board also has take the screen order (in
+ * the places they hold now) and the screen on/off. Print-only columns stay where and as they are.
+ */
+function matchScreen(
+    layout: App.Data.Reports.ReportLayoutData,
+    screen: ScreenColumn[],
+): App.Data.Reports.ReportLayoutData {
+    const screenKeys: string[] = screen.map((column) => column.key);
+    const shared = layout.columns.filter((column) =>
+        screenKeys.includes(column.key),
+    );
+    const inScreenOrder = [...shared].sort(
+        (a, b) => screenKeys.indexOf(a.key) - screenKeys.indexOf(b.key),
+    );
+    let next = 0;
+
+    return {
+        ...layout,
+        columns: layout.columns.map((column) => {
+            if (!screenKeys.includes(column.key)) {
+                return column;
+            }
+
+            const placed = inScreenOrder[next++];
+
+            return {
+                ...placed,
+                visible:
+                    screen.find((item) => item.key === placed.key)?.visible ??
+                    placed.visible,
+            };
+        }),
+    };
+}
+
 export default function HousekeepingIndex({
     date,
     rooms,
@@ -238,13 +298,18 @@ export default function HousekeepingIndex({
     const [view, setView] = useState<View>('group');
     const [statusFilter, setStatusFilter] = useState('');
     const [assignedFilter, setAssignedFilter] = useState('');
-    const [movement, setMovement] = useState<Movement>('');
+    const [movements, setMovements] = useState<Movement[]>([]);
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [remarkOpen, setRemarkOpen] = useState(false);
     const [sort, setSort] = useState<Sort>(null);
     const [layoutDraft, setLayoutDraft] =
         useState<App.Data.Reports.ReportLayoutData | null>(null);
+    const [screenColumns, setScreenColumns] = useScreenColumns();
+    const [screenColumnsOpen, setScreenColumnsOpen] = useState(false);
+    const visibleColumns = screenColumns
+        .filter((column) => column.visible)
+        .map((column) => column.key);
 
     function cycleSort(key: SortKey) {
         setSort((current) =>
@@ -266,9 +331,9 @@ export default function HousekeepingIndex({
                         (assignedFilter === 'none'
                             ? room.assignedTo === null
                             : String(room.assignedTo) === assignedFilter)) &&
-                    matchesMovement(room, movement),
+                    matchesMovements(room, movements),
             ),
-        [rooms, sort, statusFilter, assignedFilter, movement],
+        [rooms, sort, statusFilter, assignedFilter, movements],
     );
 
     const selectableIds = useMemo(
@@ -528,16 +593,43 @@ export default function HousekeepingIndex({
                     actions={
                         rooms.length === 0 ? undefined : (
                             <>
-                                {canEditLayout && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setLayoutDraft(layout)}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                            />
+                                        }
                                     >
                                         <Settings2 data-icon="inline-start" />
                                         Columns
-                                    </Button>
-                                )}
+                                        <ChevronDown data-icon="inline-end" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="end"
+                                        className="min-w-56"
+                                    >
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                setScreenColumnsOpen(true)
+                                            }
+                                        >
+                                            <Monitor />
+                                            Screen columns…
+                                        </DropdownMenuItem>
+                                        {canEditLayout && (
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    setLayoutDraft(layout)
+                                                }
+                                            >
+                                                <Printer />
+                                                Print & export columns…
+                                            </DropdownMenuItem>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                                 <ReportExportMenu
                                     report="housekeeping-tasks"
                                     dates={exportDates}
@@ -595,22 +687,26 @@ export default function HousekeepingIndex({
                                     aria-label="Assigned to"
                                 />
                             )}
-                            <EnumSelect
-                                options={[
-                                    { value: 'arrivals', label: 'Arrivals' },
-                                    {
-                                        value: 'departures',
-                                        label: 'Departures',
-                                    },
-                                    { value: 'stayovers', label: 'Stay-overs' },
-                                ]}
-                                allLabel="All rooms"
-                                value={movement}
+                            <ToggleGroup
+                                multiple
+                                variant="outline"
+                                spacing={0}
+                                value={movements}
                                 onValueChange={(value) =>
-                                    setMovement(value as Movement)
+                                    setMovements(value as Movement[])
                                 }
                                 aria-label="Movement today"
-                            />
+                            >
+                                <ToggleGroupItem value="arrivals">
+                                    Arrivals
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="departures">
+                                    Departures
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="stayovers">
+                                    Stay-overs
+                                </ToggleGroupItem>
+                            </ToggleGroup>
                         </div>
 
                         {shown.length === 0 ? (
@@ -650,44 +746,90 @@ export default function HousekeepingIndex({
                                                     />
                                                 </TableHead>
                                             )}
-                                            <SortHead
-                                                label="Room"
-                                                sortKey="room"
-                                                sort={sort}
-                                                onSort={cycleSort}
-                                            />
-                                            <SortHead
-                                                label="Status"
-                                                sortKey="status"
-                                                sort={sort}
-                                                onSort={cycleSort}
-                                            />
-                                            <SortHead
-                                                label="Assigned"
-                                                sortKey="assigned"
-                                                sort={sort}
-                                                onSort={cycleSort}
-                                            />
-                                            <SortHead
-                                                label="Guest"
-                                                sortKey="guest"
-                                                sort={sort}
-                                                onSort={cycleSort}
-                                            />
-                                            <SortHead
-                                                label="Arrival"
-                                                sortKey="arrival"
-                                                sort={sort}
-                                                onSort={cycleSort}
-                                            />
-                                            <SortHead
-                                                label="Departure"
-                                                sortKey="departure"
-                                                sort={sort}
-                                                onSort={cycleSort}
-                                            />
-                                            <TableHead>Cleaning</TableHead>
-                                            <TableHead>Notes</TableHead>
+                                            {visibleColumns.map((key) => (
+                                                <Fragment key={key}>
+                                                    {
+                                                        {
+                                                            room: (
+                                                                <SortHead
+                                                                    label="Room"
+                                                                    sortKey="room"
+                                                                    sort={sort}
+                                                                    onSort={
+                                                                        cycleSort
+                                                                    }
+                                                                />
+                                                            ),
+                                                            status: (
+                                                                <SortHead
+                                                                    label="Status"
+                                                                    sortKey="status"
+                                                                    sort={sort}
+                                                                    onSort={
+                                                                        cycleSort
+                                                                    }
+                                                                />
+                                                            ),
+                                                            guest: (
+                                                                <SortHead
+                                                                    label="Guest"
+                                                                    sortKey="guest"
+                                                                    sort={sort}
+                                                                    onSort={
+                                                                        cycleSort
+                                                                    }
+                                                                />
+                                                            ),
+                                                            stay: (
+                                                                <TableHead>
+                                                                    Reservation
+                                                                    Status
+                                                                </TableHead>
+                                                            ),
+                                                            pax: (
+                                                                <TableHead>
+                                                                    Pax
+                                                                </TableHead>
+                                                            ),
+                                                            arrival: (
+                                                                <SortHead
+                                                                    label="Arrival"
+                                                                    sortKey="arrival"
+                                                                    sort={sort}
+                                                                    onSort={
+                                                                        cycleSort
+                                                                    }
+                                                                />
+                                                            ),
+                                                            departure: (
+                                                                <SortHead
+                                                                    label="Departure"
+                                                                    sortKey="departure"
+                                                                    sort={sort}
+                                                                    onSort={
+                                                                        cycleSort
+                                                                    }
+                                                                />
+                                                            ),
+                                                            assigned: (
+                                                                <SortHead
+                                                                    label="Housekeeper"
+                                                                    sortKey="assigned"
+                                                                    sort={sort}
+                                                                    onSort={
+                                                                        cycleSort
+                                                                    }
+                                                                />
+                                                            ),
+                                                            remarks: (
+                                                                <TableHead>
+                                                                    Notes
+                                                                </TableHead>
+                                                            ),
+                                                        }[key]
+                                                    }
+                                                </Fragment>
+                                            ))}
                                             <TableHead className="w-10">
                                                 <span className="sr-only">
                                                     Row actions
@@ -709,6 +851,7 @@ export default function HousekeepingIndex({
                                                 dirtyLabel={dirtyBadge?.label}
                                                 can={can}
                                                 staffOptions={staffOptions}
+                                                columns={visibleColumns}
                                                 onMove={(room, move) =>
                                                     send(room, move.value, move)
                                                 }
@@ -849,8 +992,29 @@ export default function HousekeepingIndex({
                     orientations={orientationOptions}
                     dates={exportDates}
                     onDone={() => setLayoutDraft(null)}
+                    footerActions={
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                                setLayoutDraft(
+                                    matchScreen(layoutDraft, screenColumns),
+                                )
+                            }
+                        >
+                            <Monitor data-icon="inline-start" />
+                            Match screen
+                        </Button>
+                    }
                 />
             )}
+
+            <ScreenColumnsSheet
+                open={screenColumnsOpen}
+                onOpenChange={setScreenColumnsOpen}
+                columns={screenColumns}
+                onChange={setScreenColumns}
+            />
 
             <BulkRemarkDialog
                 open={remarkOpen}
@@ -871,6 +1035,7 @@ function GroupRows({
     dirtyLabel,
     can,
     staffOptions,
+    columns,
     onMove,
     onAssign,
     onPriority,
@@ -888,6 +1053,7 @@ function GroupRows({
     dirtyLabel?: string;
     can: Props['can'];
     staffOptions: { value: string; label: string }[];
+    columns: ScreenColumnKey[];
     onMove: (room: Room, move: Badge) => void;
     onAssign: (room: Room, value: string) => void;
     onPriority: (room: Room) => void;
@@ -897,6 +1063,10 @@ function GroupRows({
     onRemark: (room: Room, value: string) => void;
     onMaintenance: (room: Room, needsMaintenance: boolean) => void;
 }) {
+    const [editingTimes, setEditingTimes] = useState<Room | null>(null);
+    const housekeepers = staffOptions.filter(
+        (option) => option.value !== 'none',
+    );
     const dirty = rooms.filter((room) => room.status.value === 'dirty').length;
     const selectableIds = rooms
         .filter((room) => room.status.value !== OUT_OF_SERVICE)
@@ -907,7 +1077,7 @@ function GroupRows({
         <>
             {name !== null && (
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableCell colSpan={10}>
+                    <TableCell colSpan={columns.length + 2}>
                         <div className="flex items-center gap-3">
                             {can.update && (
                                 <Checkbox
@@ -946,317 +1116,432 @@ function GroupRows({
                 </TableRow>
             )}
             {!collapsed &&
-                rooms.map((room) => (
-                    <TableRow
-                        key={room.id}
-                        className={
-                            room.isPriority
-                                ? 'bg-warning/10 hover:bg-warning/15'
-                                : undefined
-                        }
-                    >
-                        {can.update && (
-                            <TableCell>
-                                {room.status.value !== OUT_OF_SERVICE && (
-                                    <Checkbox
-                                        aria-label={`Select room ${room.number}`}
-                                        checked={selected.has(room.id)}
-                                        onCheckedChange={(on) =>
-                                            onSelect([room.id], on)
-                                        }
-                                    />
-                                )}
-                            </TableCell>
-                        )}
-                        <TableCell className="font-medium tabular-nums">
-                            <span className="inline-flex items-center gap-1.5">
-                                {room.number}
-                                {room.isPriority && (
-                                    <Star
-                                        role="img"
-                                        aria-label="Priority"
-                                        className="size-3.5 fill-current text-warning"
-                                    />
-                                )}
-                            </span>
-                            <div className="text-xs font-normal text-muted-foreground">
-                                {room.roomTypeName}
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            {room.moves.length > 0 ? (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger
-                                        render={
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                                                aria-label={`Change status of room ${room.number}, now ${room.status.label}`}
-                                            />
-                                        }
-                                    >
-                                        <StatusBadge
-                                            status={room.status}
-                                            size="lg"
-                                        />
-                                        <ChevronDown
-                                            aria-hidden
-                                            className="size-3.5 text-muted-foreground"
-                                        />
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start">
-                                        {room.moves.map((move) => (
-                                            <DropdownMenuItem
-                                                key={move.value}
-                                                aria-label={`Change to ${move.label}`}
-                                                onClick={() =>
-                                                    onMove(room, move)
-                                                }
-                                            >
-                                                <StatusBadge
-                                                    status={move}
-                                                    size="lg"
-                                                />
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            ) : (
-                                <StatusBadge status={room.status} size="lg" />
-                            )}
-                            {room.outOfService && (
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                    {room.outOfService.reasonLabel} until{' '}
-                                    <DateText date={room.outOfService.endsOn} />
-                                </div>
-                            )}
-                            {(room.needsMaintenance ||
-                                room.bedBlocks.length > 0) && (
-                                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                    {room.needsMaintenance && (
-                                        <StatusBadge
-                                            status={{
-                                                value: 'needs_maintenance',
-                                                label: 'Needs maintenance',
-                                                tone: 'warning',
-                                            }}
-                                            icon={Wrench}
+                rooms.map((room) => {
+                    const cells: Record<ScreenColumnKey, ReactNode> = {
+                        room: (
+                            <TableCell className="font-medium tabular-nums">
+                                <span className="inline-flex items-center gap-1.5">
+                                    {room.number}
+                                    {room.isPriority && (
+                                        <Star
+                                            role="img"
+                                            aria-label="Priority"
+                                            className="size-3.5 fill-current text-warning"
                                         />
                                     )}
-                                    {room.bedBlocks.map((block) => (
-                                        <span
-                                            key={block.bedLabel}
-                                            title={`${block.reasonLabel} until ${block.endsOn}`}
+                                </span>
+                                <div className="text-xs font-normal text-muted-foreground">
+                                    {room.roomTypeName}
+                                </div>
+                            </TableCell>
+                        ),
+                        status: (
+                            <TableCell>
+                                {room.moves.length > 0 ? (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger
+                                            render={
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                                    aria-label={`Change status of room ${room.number}, now ${room.status.label}`}
+                                                />
+                                            }
                                         >
                                             <StatusBadge
-                                                status={{
-                                                    value: 'bed_blocked',
-                                                    label: `Bed ${block.bedLabel} blocked`,
-                                                    tone: 'neutral',
-                                                }}
-                                                icon={BedSingle}
+                                                status={room.status}
+                                                size="lg"
                                             />
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </TableCell>
-                        <TableCell>
-                            {can.update ? (
-                                <EnumSelect
-                                    options={staffOptions}
-                                    allLabel="Unassigned"
-                                    value={
-                                        room.assignedTo === null
-                                            ? ''
-                                            : String(room.assignedTo)
-                                    }
-                                    onValueChange={(value) =>
-                                        onAssign(room, value)
-                                    }
-                                    aria-label={`Assign room ${room.number}`}
-                                />
-                            ) : (
-                                (room.assignedName ?? (
+                                            <ChevronDown
+                                                aria-hidden
+                                                className="size-3.5 text-muted-foreground"
+                                            />
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start">
+                                            {room.moves.map((move) => (
+                                                <DropdownMenuItem
+                                                    key={move.value}
+                                                    aria-label={`Change to ${move.label}`}
+                                                    onClick={() =>
+                                                        onMove(room, move)
+                                                    }
+                                                >
+                                                    <StatusBadge
+                                                        status={move}
+                                                        size="lg"
+                                                    />
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                ) : (
+                                    <StatusBadge
+                                        status={room.status}
+                                        size="lg"
+                                    />
+                                )}
+                                {room.outOfService && (
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                        {room.outOfService.reasonLabel} until{' '}
+                                        <DateText
+                                            date={room.outOfService.endsOn}
+                                        />
+                                    </div>
+                                )}
+                                {(room.needsMaintenance ||
+                                    room.bedBlocks.length > 0) && (
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                        {room.needsMaintenance && (
+                                            <StatusBadge
+                                                status={{
+                                                    value: 'needs_maintenance',
+                                                    label: 'Needs maintenance',
+                                                    tone: 'warning',
+                                                }}
+                                                icon={Wrench}
+                                            />
+                                        )}
+                                        {room.bedBlocks.map((block) => (
+                                            <span
+                                                key={block.bedLabel}
+                                                title={`${block.reasonLabel} until ${block.endsOn}`}
+                                            >
+                                                <StatusBadge
+                                                    status={{
+                                                        value: 'bed_blocked',
+                                                        label: `Bed ${block.bedLabel} blocked`,
+                                                        tone: 'neutral',
+                                                    }}
+                                                    icon={BedSingle}
+                                                />
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </TableCell>
+                        ),
+                        guest: (
+                            <TableCell>
+                                {room.guest ?? (
                                     <span className="text-muted-foreground">
                                         —
                                     </span>
-                                ))
-                            )}
-                        </TableCell>
-                        <TableCell>
-                            {room.guest ?? (
-                                <span className="text-muted-foreground">—</span>
-                            )}
-                        </TableCell>
-                        <TableCell>
-                            <StayCell
-                                date={room.arrivalDate}
-                                time={room.arrivalTime}
-                            />
-                        </TableCell>
-                        <TableCell>
-                            <StayCell
-                                date={room.departureDate}
-                                time={room.departureTime}
-                            />
-                        </TableCell>
-                        <TableCell>
-                            <CleaningCell
-                                state={room.cleaning}
-                                staffOptions={staffOptions.filter(
-                                    (option) => option.value !== 'unassigned',
                                 )}
-                            />
-                        </TableCell>
-                        <TableCell>
-                            <div className="flex flex-col gap-1 text-sm">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {room.isPriority && (
-                                        <span className="inline-flex items-center gap-1 text-warning">
-                                            <Star
+                            </TableCell>
+                        ),
+                        stay: (
+                            <TableCell>
+                                {room.stay ? (
+                                    <StatusBadge status={room.stay} />
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        —
+                                    </span>
+                                )}
+                            </TableCell>
+                        ),
+                        pax: (
+                            <TableCell>
+                                {room.adults === null ? (
+                                    <span className="text-muted-foreground">
+                                        —
+                                    </span>
+                                ) : (
+                                    <span
+                                        className={cn(
+                                            'flex items-center gap-3 text-sm tabular-nums',
+                                            room.stay?.value === CHECKED_OUT &&
+                                                'text-muted-foreground',
+                                        )}
+                                    >
+                                        <span
+                                            className="flex items-center gap-1"
+                                            aria-label={`${room.adults} adults`}
+                                        >
+                                            <User
                                                 aria-hidden
-                                                className="size-3.5"
+                                                className="size-4"
                                             />
-                                            Priority
+                                            {room.adults}
                                         </span>
-                                    )}
-                                    {room.doNotDisturb && (
-                                        <span className="inline-flex items-center gap-1">
-                                            <MoonStar
+                                        <span
+                                            className="flex items-center gap-1"
+                                            aria-label={`${room.children ?? 0} children`}
+                                        >
+                                            <Baby
                                                 aria-hidden
-                                                className="size-3.5"
+                                                className="size-4"
                                             />
-                                            Do not disturb
+                                            {room.children ?? 0}
+                                        </span>
+                                    </span>
+                                )}
+                            </TableCell>
+                        ),
+                        arrival: (
+                            <TableCell>
+                                <StayCell
+                                    date={room.arrivalDate}
+                                    time={room.arrivalTime}
+                                />
+                            </TableCell>
+                        ),
+                        departure: (
+                            <TableCell>
+                                <StayCell
+                                    date={room.departureDate}
+                                    time={room.departureTime}
+                                />
+                            </TableCell>
+                        ),
+                        assigned: (
+                            <TableCell>
+                                <CleaningCell
+                                    state={room.cleaning}
+                                    staffOptions={housekeepers}
+                                    editInMenu
+                                    allowRestart={room.status.value === 'dirty'}
+                                    startWarning={
+                                        room.stay?.value === DUE_OUT
+                                            ? "Guest hasn't checked out"
+                                            : undefined
+                                    }
+                                    assignSlot={
+                                        can.update ? (
+                                            <EnumSelect
+                                                options={staffOptions}
+                                                allLabel="Unassigned"
+                                                value={
+                                                    room.assignedTo === null
+                                                        ? ''
+                                                        : String(
+                                                              room.assignedTo,
+                                                          )
+                                                }
+                                                onValueChange={(value) =>
+                                                    onAssign(room, value)
+                                                }
+                                                aria-label={`Assign room ${room.number}`}
+                                            />
+                                        ) : (
+                                            <span
+                                                className={cn(
+                                                    'text-sm',
+                                                    room.assignedName ===
+                                                        null &&
+                                                        'text-muted-foreground',
+                                                )}
+                                            >
+                                                {room.assignedName ??
+                                                    'Unassigned'}
+                                            </span>
+                                        )
+                                    }
+                                />
+                            </TableCell>
+                        ),
+                        remarks: (
+                            <TableCell>
+                                <div className="flex flex-col gap-1 text-sm">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {room.isPriority && (
+                                            <span className="inline-flex items-center gap-1 text-warning">
+                                                <Star
+                                                    aria-hidden
+                                                    className="size-3.5"
+                                                />
+                                                Priority
+                                            </span>
+                                        )}
+                                        {room.doNotDisturb && (
+                                            <span className="inline-flex items-center gap-1">
+                                                <MoonStar
+                                                    aria-hidden
+                                                    className="size-3.5"
+                                                />
+                                                Do not disturb
+                                            </span>
+                                        )}
+                                    </div>
+                                    {can.update ? (
+                                        <Input
+                                            key={`${room.id}:${room.remark ?? ''}`}
+                                            defaultValue={room.remark ?? ''}
+                                            maxLength={500}
+                                            placeholder="Add remark…"
+                                            aria-label={`Remark for room ${room.number}`}
+                                            onBlur={(event) =>
+                                                onRemark(
+                                                    room,
+                                                    event.target.value,
+                                                )
+                                            }
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.currentTarget.blur();
+                                                }
+
+                                                if (event.key === 'Escape') {
+                                                    event.currentTarget.value =
+                                                        room.remark ?? '';
+                                                    event.currentTarget.blur();
+                                                }
+                                            }}
+                                        />
+                                    ) : (
+                                        room.remark && (
+                                            <span>{room.remark}</span>
+                                        )
+                                    )}
+                                    {room.outOfService?.notes && (
+                                        <span className="text-muted-foreground">
+                                            {room.outOfService.notes}
                                         </span>
                                     )}
                                 </div>
-                                {can.update ? (
-                                    <Input
-                                        key={`${room.id}:${room.remark ?? ''}`}
-                                        defaultValue={room.remark ?? ''}
-                                        maxLength={500}
-                                        placeholder="Add remark…"
-                                        aria-label={`Remark for room ${room.number}`}
-                                        onBlur={(event) =>
-                                            onRemark(room, event.target.value)
-                                        }
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter') {
-                                                event.currentTarget.blur();
-                                            }
+                            </TableCell>
+                        ),
+                    };
 
-                                            if (event.key === 'Escape') {
-                                                event.currentTarget.value =
-                                                    room.remark ?? '';
-                                                event.currentTarget.blur();
+                    return (
+                        <TableRow
+                            key={room.id}
+                            className={
+                                room.isPriority
+                                    ? 'bg-warning/10 hover:bg-warning/15'
+                                    : undefined
+                            }
+                        >
+                            {can.update && (
+                                <TableCell>
+                                    {room.status.value !== OUT_OF_SERVICE && (
+                                        <Checkbox
+                                            aria-label={`Select room ${room.number}`}
+                                            checked={selected.has(room.id)}
+                                            onCheckedChange={(on) =>
+                                                onSelect([room.id], on)
                                             }
-                                        }}
-                                    />
-                                ) : (
-                                    room.remark && <span>{room.remark}</span>
-                                )}
-                                {room.outOfService?.notes && (
-                                    <span className="text-muted-foreground">
-                                        {room.outOfService.notes}
-                                    </span>
-                                )}
-                                {room.reason && (
-                                    <span className="text-muted-foreground">
-                                        {room.reason}
-                                    </span>
-                                )}
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            {(can.update || can.block) && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger
-                                        render={
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                aria-label={`Actions for room ${room.number}`}
-                                            />
-                                        }
-                                    >
-                                        <MoreHorizontal />
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        align="end"
-                                        className="min-w-56"
-                                    >
-                                        {can.update && (
-                                            <>
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        onPriority(room)
-                                                    }
-                                                >
-                                                    {room.isPriority ? (
-                                                        <StarOff />
-                                                    ) : (
-                                                        <Star />
-                                                    )}
-                                                    {room.isPriority
-                                                        ? 'Clear priority'
-                                                        : 'Set priority'}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => onDnd(room)}
-                                                >
-                                                    <MoonStar />
-                                                    {room.doNotDisturb
-                                                        ? 'Clear do not disturb'
-                                                        : 'Do not disturb today'}
-                                                </DropdownMenuItem>
-                                                {!room.needsMaintenance && (
+                                        />
+                                    )}
+                                </TableCell>
+                            )}
+                            {columns.map((key) => (
+                                <Fragment key={key}>{cells[key]}</Fragment>
+                            ))}
+                            <TableCell>
+                                {(can.update ||
+                                    can.block ||
+                                    room.cleaning.canEdit) && (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger
+                                            render={
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={`Actions for room ${room.number}`}
+                                                />
+                                            }
+                                        >
+                                            <MoreHorizontal />
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            align="end"
+                                            className="min-w-56"
+                                        >
+                                            {can.update && (
+                                                <>
                                                     <DropdownMenuItem
                                                         onClick={() =>
-                                                            onMaintenance(
-                                                                room,
-                                                                true,
-                                                            )
+                                                            onPriority(room)
                                                         }
                                                     >
-                                                        <Wrench />
-                                                        Needs maintenance
+                                                        {room.isPriority ? (
+                                                            <StarOff />
+                                                        ) : (
+                                                            <Star />
+                                                        )}
+                                                        {room.isPriority
+                                                            ? 'Clear priority'
+                                                            : 'Set priority'}
                                                     </DropdownMenuItem>
-                                                )}
-                                            </>
-                                        )}
-                                        {room.canDismissMaintenance && (
-                                            <DropdownMenuItem
-                                                onClick={() =>
-                                                    onMaintenance(room, false)
-                                                }
-                                            >
-                                                <CircleCheck />
-                                                Maintenance fixed
-                                            </DropdownMenuItem>
-                                        )}
-                                        {can.block && (
-                                            <>
-                                                <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            onDnd(room)
+                                                        }
+                                                    >
+                                                        <MoonStar />
+                                                        {room.doNotDisturb
+                                                            ? 'Clear do not disturb'
+                                                            : 'Do not disturb today'}
+                                                    </DropdownMenuItem>
+                                                    {!room.needsMaintenance && (
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                onMaintenance(
+                                                                    room,
+                                                                    true,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Wrench />
+                                                            Needs maintenance
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                </>
+                                            )}
+                                            {room.cleaning.canEdit && (
                                                 <DropdownMenuItem
-                                                    render={
-                                                        <Link
-                                                            href={roomBlocks()}
-                                                        />
+                                                    onClick={() =>
+                                                        setEditingTimes(room)
                                                     }
                                                 >
-                                                    <Ban />
-                                                    Block room…
+                                                    <Pencil />
+                                                    Correct cleaning times
                                                 </DropdownMenuItem>
-                                            </>
-                                        )}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            )}
-                        </TableCell>
-                    </TableRow>
-                ))}
+                                            )}
+                                            {room.canDismissMaintenance && (
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        onMaintenance(
+                                                            room,
+                                                            false,
+                                                        )
+                                                    }
+                                                >
+                                                    <CircleCheck />
+                                                    Maintenance fixed
+                                                </DropdownMenuItem>
+                                            )}
+                                            {can.block && (
+                                                <>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        render={
+                                                            <Link
+                                                                href={roomBlocks()}
+                                                            />
+                                                        }
+                                                    >
+                                                        <Ban />
+                                                        Block room…
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                )}
+                            </TableCell>
+                        </TableRow>
+                    );
+                })}
+            {editingTimes && (
+                <CleaningTimesDialog
+                    state={editingTimes.cleaning}
+                    staffOptions={housekeepers}
+                    onClose={() => setEditingTimes(null)}
+                />
+            )}
         </>
     );
 }

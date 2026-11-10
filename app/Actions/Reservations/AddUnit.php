@@ -295,7 +295,7 @@ class AddUnit
             $tripResult = ($this->setBoatTrip)($actor, $unit, $boatTrip);
 
             if ($tripResult->isRefused()) {
-                throw new ReservationRefused(ReservationResult::refused((string) $tripResult->refusal, $lineIndex, null, null, $boatTrip->direction->value));
+                throw new ReservationRefused(ReservationResult::refused((string) $tripResult->refusal, $lineIndex, null, $tripResult->detail, $boatTrip->direction->value));
             }
         }
 

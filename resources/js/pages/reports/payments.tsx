@@ -29,11 +29,25 @@ type Props = {
     staff: string;
     staffOptions: EnumOption[];
     refundsOnly: boolean;
+    dateBasis: App.Enums.PaymentDateBasis;
+    dateBasisOptions: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
 };
 
 const cells: ReportCells<Row> = {
     date: (row) => <DateText date={row.date} />,
+    received_on: (row) => <DateText date={row.received_on} />,
+    remarks: (row) =>
+        row.reference || row.notes ? (
+            <>
+                {row.reference}
+                {row.notes && (
+                    <span className="block text-xs text-muted-foreground">
+                        {row.notes}
+                    </span>
+                )}
+            </>
+        ) : null,
     payer: (row) => <span className="font-medium">{row.payer}</span>,
     status: (row) => <StatusBadge status={row.status} />,
     amount: (row, currency) => (
@@ -53,7 +67,7 @@ export default function PaymentsReport(props: Props) {
             {...props}
             report="payments"
             title="Payments"
-            description="Payments and refunds by business date, with city ledger payments. Only completed payments count in the totals; refunds are negative. Group by method or by staff for a cash-up."
+            description="Payments and refunds by posting date, or by the day the money came in, with city ledger payments. Only completed payments count in the totals; refunds are negative. Group by method or by staff for a cash-up."
             emptyIcon={CreditCard}
             emptyTitle="No payments in these dates"
             emptyDescription="Pick another range to see payments."

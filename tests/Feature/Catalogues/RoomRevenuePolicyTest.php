@@ -47,9 +47,9 @@ test('saving a percentage policy clears the amount and logs the change', functio
     $property = $staff->property;
     app(SeedRoomRevenuePolicies::class)($property);
 
-    $policy = app(SaveRoomRevenuePolicy::class)($property, $staff, SystemTransactionCode::CancellationRevenue, [
+    $policy = app(SaveRoomRevenuePolicy::class)($property, $staff, SystemTransactionCode::NoShowRevenue, [
         'charge_mode' => 'percentage', 'amount' => '99.00', 'percent' => '50', 'percent_basis' => 'booked_rate',
-        'applies_to' => 'whole_stay', 'free_until_days' => 2, 'text_en' => 'Pay half.', 'text_ms' => 'Bayar separuh.',
+        'applies_to' => 'whole_stay', 'text_en' => 'Pay half.', 'text_ms' => 'Bayar separuh.',
     ]);
 
     expect($policy->charge_mode)->toBe(PolicyChargeMode::Percentage)
@@ -57,25 +57,47 @@ test('saving a percentage policy clears the amount and logs the change', functio
         ->and($policy->percent)->toBe('50.00')
         ->and($policy->percent_basis)->toBe(PolicyRateBasis::BookedRate)
         ->and($policy->applies_to)->toBe(PolicyScope::WholeStay)
-        ->and($policy->free_until_days)->toBe(2)
         ->and($policy->text_ms)->toBe('Bayar separuh.');
     $this->assertDatabaseHas('activity_log', ['event' => 'room_revenue_policy.updated', 'causer_id' => $staff->id]);
 });
 
-test('saving a free or fixed policy clears the unused fields, and only cancellation keeps a free window', function () {
+test('saving a paid cancellation keeps its charge in steps, most days first, and logs them', function () {
+    $staff = User::factory()->owner()->create();
+    $property = $staff->property;
+    app(SeedRoomRevenuePolicies::class)($property);
+
+    $policy = app(SaveRoomRevenuePolicy::class)($property, $staff, SystemTransactionCode::CancellationRevenue, [
+        'charge_mode' => 'percentage', 'percent_basis' => 'booked_rate', 'applies_to' => 'whole_stay',
+        'steps' => [['days_before' => 1, 'percent' => '75'], ['days_before' => 30, 'percent' => '30'], ['days_before' => 15, 'percent' => '50', 'amount' => '9']],
+        'text_en' => 'Steps.', 'text_ms' => 'Langkah.',
+    ]);
+
+    expect($policy->amount)->toBeNull()
+        ->and($policy->percent)->toBeNull()
+        ->and($policy->steps()->get()->map(fn ($step) => [$step->days_before, $step->amount, $step->percent])->all())
+        ->toBe([[30, null, '30.00'], [15, null, '50.00'], [1, null, '75.00']]);
+    $this->assertDatabaseHas('activity_log', ['event' => 'room_revenue_policy.updated', 'causer_id' => $staff->id]);
+
+    app(SaveRoomRevenuePolicy::class)($property, $staff, SystemTransactionCode::CancellationRevenue, [
+        'charge_mode' => 'free', 'applies_to' => 'whole_stay', 'text_en' => 'Free.', 'text_ms' => 'Percuma.',
+    ]);
+
+    expect($policy->steps()->count())->toBe(0);
+});
+
+test('saving a free or fixed policy clears the unused fields', function () {
     $staff = User::factory()->owner()->create();
     $property = $staff->property;
     app(SeedRoomRevenuePolicies::class)($property);
 
     $fixed = app(SaveRoomRevenuePolicy::class)($property, $staff, SystemTransactionCode::NoShowRevenue, [
         'charge_mode' => 'fixed_amount', 'amount' => '40', 'percent' => '10', 'percent_basis' => 'current_rate',
-        'applies_to' => 'first_night', 'free_until_days' => 3, 'text_en' => 'Fee.', 'text_ms' => 'Yuran.',
+        'applies_to' => 'first_night', 'text_en' => 'Fee.', 'text_ms' => 'Yuran.',
     ]);
 
     expect($fixed->amount)->toBe('40.00')
         ->and($fixed->percent)->toBeNull()
-        ->and($fixed->percent_basis)->toBeNull()
-        ->and($fixed->free_until_days)->toBeNull();
+        ->and($fixed->percent_basis)->toBeNull();
 
     $free = app(SaveRoomRevenuePolicy::class)($property, $staff, SystemTransactionCode::NoShowRevenue, [
         'charge_mode' => 'free', 'amount' => '40', 'percent' => '10', 'percent_basis' => 'current_rate',

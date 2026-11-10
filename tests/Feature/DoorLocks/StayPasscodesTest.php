@@ -115,7 +115,7 @@ it('moves the PIN to the new room’s lock', function () {
         ->and(DoorPasscode::query()->where('status', PasscodeStatus::Revoked)->count())->toBe(1);
 });
 
-it('queues a sync from the stay events only when the feature and the connection are on', function () {
+it('queues a sync from the stay events only when the feature is on and a connection exists', function () {
     ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup();
     $unit = doorLockStay($property, $room);
     Queue::fake();
@@ -125,9 +125,14 @@ it('queues a sync from the stay events only when the feature and the connection 
     StayCheckedOut::dispatch($property->id, $unit->id);
     Queue::assertPushed(SyncStayPasscodesJob::class, 1); // unique by unit: the second event joins the first
 
+    // Auto-issuing off still queues the job: cards follow the stay, and the PIN sync does nothing by itself.
     $connection->update(['enabled' => false]);
     StayCheckedIn::dispatch($property->id, $unit->id + 1);
-    Queue::assertPushed(SyncStayPasscodesJob::class, 1);
+    Queue::assertPushed(SyncStayPasscodesJob::class, 2);
+
+    $connection->delete();
+    StayCheckedIn::dispatch($property->id, $unit->id + 2);
+    Queue::assertPushed(SyncStayPasscodesJob::class, 2);
 });
 
 it('keeps a failed TTLock call off the stay: the PIN is saved as Failed', function () {

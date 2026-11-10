@@ -121,6 +121,9 @@ class ReservationActivityLog
             'reservation.boat_trip_ticked' => $properties->get('ticked')
                 ? __(':direction: ticked on the manifest.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()])
                 : __(':direction: tick removed on the manifest.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()]),
+            'reservation.boat_trip_moved' => $properties->get('boat') === null
+                ? __(':direction: moved to the :time boat.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label(), 'time' => $properties->get('boat_time')])
+                : __(':direction: moved to :boat (:time).', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label(), 'boat' => $properties->get('boat'), 'time' => $properties->get('boat_time')]),
             'reservation.boat_trip_cleared' => __(':direction: not set.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()]),
             default => (string) $activity->description,
         };

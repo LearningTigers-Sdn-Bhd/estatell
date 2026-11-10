@@ -9,6 +9,7 @@ use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
+use App\Http\Controllers\Reservations\ReservationDoorCardController;
 use App\Http\Controllers\Reservations\ReservationDoorPinController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationFolioLineController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Reservations\ReservationFolioManualController;
 use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
+use App\Http\Controllers\Reservations\ReservationKeyCardController;
 use App\Http\Controllers\Reservations\ReservationNightPriceController;
 use App\Http\Controllers\Reservations\ReservationOldFolioController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
@@ -149,7 +151,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
                     Route::post('check-in/preview', [ReservationUnitStayController::class, 'checkInPreview'])->name('check-in-preview');
                     Route::post('check-in', [ReservationUnitStayController::class, 'checkIn'])->name('check-in');
-                    Route::post('door-pins/{doorPasscode}/replace', [ReservationDoorPinController::class, 'replace'])->middleware('door-locks')->name('door-pins.replace');
+                    Route::post('key-cards', [ReservationKeyCardController::class, 'store'])->middleware('door-locks:elock')->name('key-cards.store');
+                    Route::post('door-cards', [ReservationDoorCardController::class, 'store'])->middleware('door-locks:ttlock')->name('door-cards.store');
+                    Route::delete('door-cards/{doorCard}', [ReservationDoorCardController::class, 'destroy'])->middleware('door-locks:ttlock')->name('door-cards.destroy');
+                    Route::post('door-pins/{doorPasscode}/replace', [ReservationDoorPinController::class, 'replace'])->middleware('door-locks:ttlock')->name('door-pins.replace');
                 });
 
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {

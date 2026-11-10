@@ -18,6 +18,7 @@ import {
     planChoices,
     resolveChoice,
 } from '@/components/pms/stay-view/nightly-rate';
+import { useStayViewGrouping } from '@/components/pms/stay-view/use-stay-view-grouping';
 import { useStayViewPreferences } from '@/components/pms/stay-view/use-stay-view-preferences';
 import { timeline } from '@/routes/front-desk';
 
@@ -64,7 +65,7 @@ export default function Timeline({
     maxBlockNights: number;
 }) {
     const gridRef = useRef<DateGridHandle>(null);
-    const [filters, setFilters] = useState(initialFilters);
+    const [filters, setFilters] = useStayViewGrouping(initialFilters);
     const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
     const [blockCell, setBlockCell] = useState<BlockCell | null>(null);
     const [preferences, updatePreferences] = useStayViewPreferences();

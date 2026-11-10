@@ -55,7 +55,7 @@ class SettingsNavigation
                     title: __('Door locks'),
                     href: route('settings.door-locks.edit', ['property' => $property->code], absolute: false),
                     icon: 'lock',
-                    active: request()->routeIs('settings.door-locks.*'),
+                    active: request()->routeIs('settings.door-locks.*', 'settings.keyport.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Kiosks::class) ? new NavItemData(
                     title: __('Kiosks'),

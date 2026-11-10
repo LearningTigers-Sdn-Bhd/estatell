@@ -4,7 +4,8 @@ namespace App\Services\Payments;
 
 /**
  * Everything the receipt PDF shows, already formatted, so the Blade views do no lookups. Amounts are decimal strings
- * with two places. `surcharge` and `surchargeTax` are null when the payment had no fee.
+ * with two places. `surcharge` and `surchargeTax` are null when the payment had no fee. `receivedOn` is set only when the
+ * money came in on another day than the posting date; `receivedAt` is when staff recorded it.
  */
 class ReceiptDocument
 {
@@ -24,5 +25,7 @@ class ReceiptDocument
         public readonly ?string $surchargeTax,
         public readonly string $total,
         public readonly string $receivedBy,
+        public readonly ?string $receivedOn = null,
+        public readonly ?string $notes = null,
     ) {}
 }

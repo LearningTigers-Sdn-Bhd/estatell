@@ -1514,6 +1514,9 @@ export default function ReservationCreate({
                                                 )}
                                                 seats={boatInSeats.seats}
                                                 seatsLoaded={boatInSeats.loaded}
+                                                cancelled={
+                                                    boatInSeats.cancelled
+                                                }
                                                 bookingSeats={party}
                                                 error={errors.boat_in}
                                             />
@@ -1531,6 +1534,9 @@ export default function ReservationCreate({
                                                 seats={boatOutSeats.seats}
                                                 seatsLoaded={
                                                     boatOutSeats.loaded
+                                                }
+                                                cancelled={
+                                                    boatOutSeats.cancelled
                                                 }
                                                 bookingSeats={party}
                                                 error={errors.boat_out}

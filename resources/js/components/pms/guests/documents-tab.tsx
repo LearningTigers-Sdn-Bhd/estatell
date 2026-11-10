@@ -23,7 +23,10 @@ import { Spinner } from '@/components/ui/spinner';
 import { Form } from '@inertiajs/react';
 import { destroy, reveal, scan } from '@/routes/guests/documents';
 
-type Guest = App.Data.Guests.GuestData;
+type Guest = Pick<
+    App.Data.Guests.GuestData,
+    'id' | 'fullName' | 'nationalityCode'
+>;
 type Document = App.Data.Guests.GuestIdentityDocumentData;
 
 /**
@@ -195,7 +198,7 @@ export function DocumentsTab({
     const addButton = canManage ? (
         <Button onClick={() => openSheet(null)}>
             <Plus data-icon="inline-start" />
-            Add document
+            Add passport / IC
         </Button>
     ) : undefined;
 
@@ -215,7 +218,7 @@ export function DocumentsTab({
                 <EmptyState
                     icon={IdCard}
                     title="No ID documents yet"
-                    description="Add a MyKad or passport with its number and scans."
+                    description="Type a passport or IC number manually. A MyKad reader and scans are optional."
                     action={addButton}
                 />
                 {sheet}

@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Accounting\AccountingSettingsController;
 use App\Http\Controllers\ApiAccess\KioskController;
 use App\Http\Controllers\Boats\BoatController;
+use App\Http\Controllers\Boats\BoatCrewController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\BookingEngine\BookingApiController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
+use App\Http\Controllers\DoorLocks\KeyportSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
@@ -177,7 +179,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('/', [BoatController::class, 'store'])->name('store');
             Route::put('{boat}', [BoatController::class, 'update'])->name('update');
         });
-        Route::put('boats/charter', [BoatController::class, 'charter'])->name('boats.charter');
+        Route::prefix('boats/crew')->name('boats.crew.')->group(function () {
+            Route::get('/', [BoatCrewController::class, 'index'])->name('index');
+            Route::post('/', [BoatCrewController::class, 'store'])->name('store');
+            Route::put('{crewMember}', [BoatCrewController::class, 'update'])->name('update');
+        });
+        Route::put('boats/charter', [BoatFareController::class, 'charter'])->name('boats.charter');
         Route::prefix('boats/fares')->name('boats.fares.')->group(function () {
             Route::get('/', [BoatFareController::class, 'index'])->name('index');
             Route::post('/', [BoatFareController::class, 'store'])->name('store');
@@ -217,16 +224,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
     Route::prefix('door-locks')->name('door-locks.')->middleware(['door-locks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [DoorLockSettingsController::class, 'edit'])->name('edit');
-        Route::put('/', [DoorLockSettingsController::class, 'update'])->name('update');
-        Route::post('test', [DoorLockSettingsController::class, 'test'])->name('test');
-        Route::post('sync', [DoorLockSettingsController::class, 'sync'])->name('sync');
-        Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link');
-        Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock');
-        Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock');
-        Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health');
-        Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store');
-        Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke');
-        Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry');
+        Route::put('/', [DoorLockSettingsController::class, 'update'])->name('update')->middleware('door-locks:ttlock');
+        Route::post('test', [DoorLockSettingsController::class, 'test'])->name('test')->middleware('door-locks:ttlock');
+        Route::post('sync', [DoorLockSettingsController::class, 'sync'])->name('sync')->middleware('door-locks:ttlock');
+        Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health')->middleware('door-locks:ttlock');
+        Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store')->middleware('door-locks:ttlock');
+        Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke')->middleware('door-locks:ttlock');
+        Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry')->middleware('door-locks:ttlock');
     });
 
     Route::prefix('booking-website')->name('booking-website.')->middleware('booking-engine')->scopeBindings()->group(function () {
@@ -263,6 +270,17 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('api/return-addresses', [BookingApiController::class, 'storeReturnAddress'])->name('api.return-addresses.store');
             Route::delete('api/return-addresses/{bookingReturnAddress}', [BookingApiController::class, 'destroyReturnAddress'])->whereNumber('bookingReturnAddress')->name('api.return-addresses.destroy');
         });
+    });
+
+    Route::prefix('keyport')->name('keyport.')->middleware(['door-locks:elock', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('/', [KeyportSettingsController::class, 'index'])->name('index');
+        Route::post('codes', [KeyportSettingsController::class, 'storeCode'])->name('codes.store');
+        Route::post('devices/{keyportDevice}/revoke', [KeyportSettingsController::class, 'revokeDevice'])->name('devices.revoke');
+        Route::delete('devices/{keyportDevice}', [KeyportSettingsController::class, 'destroyDevice'])->name('devices.destroy');
+        Route::post('locks', [KeyportSettingsController::class, 'storeLock'])->name('locks.store');
+        Route::put('locks/{doorLock}', [KeyportSettingsController::class, 'updateLock'])->name('locks.update');
+        Route::delete('locks/{doorLock}', [KeyportSettingsController::class, 'destroyLock'])->name('locks.destroy');
+        Route::post('jobs/{keyportJob}/cancel', [KeyportSettingsController::class, 'cancelJob'])->name('jobs.cancel');
     });
 
     Route::prefix('accounting')->name('accounting.')->middleware(['accounting', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {

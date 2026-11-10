@@ -27,6 +27,12 @@ import { update as updateFeature } from '@/routes/admin/properties/features';
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type BookingEngineMode = App.Data.Platform.BookingEngineModeData;
 
+/** What each lock provider is, shown under its switch. */
+const providerNotes: Record<string, string> = {
+    ttlock: 'PINs and cards from the TTLock cloud.',
+    elock: 'Key cards written at the front desk with Estatell Keyport.',
+};
+
 /** What happens when an admin switches to each mode, shown in the confirm dialog. */
 const modeEffects: Record<string, string> = {
     'api-only':
@@ -161,18 +167,94 @@ export function PropertyFeatures({
             />
         );
 
-    const toggle = (feature: PropertyFeature['feature'], active: boolean) => {
+    const toggle = (
+        feature: PropertyFeature['feature'],
+        active: boolean,
+        providers?: string[],
+    ) => {
+        const item = features.find((entry) => entry.feature === feature);
+        // Turning Door locks on starts with every provider. The admin then narrows it.
+        const next =
+            providers ??
+            (item?.providerOptions
+                ? item.providerOptions.map((option) => option.value)
+                : undefined);
+
         router
             .optimistic<{ features: PropertyFeature[] }>((props) => ({
-                features: props.features.map((item) =>
-                    item.feature === feature ? { ...item, active } : item,
+                features: props.features.map((entry) =>
+                    entry.feature === feature
+                        ? { ...entry, active, providers: next ?? null }
+                        : entry,
                 ),
             }))
             .put(
                 updateFeature.url({ property: code, feature }),
-                { active },
+                next ? { active, providers: next } : { active },
                 { preserveScroll: true },
             );
+    };
+
+    const providerField = (item: PropertyFeature) => {
+        if (!item.providerOptions || !item.active) {
+            return null;
+        }
+
+        const on = item.providers ?? [];
+
+        return (
+            <div className="flex flex-col gap-4 border-l-2 pl-4">
+                {item.providerOptions.map((option) => {
+                    const enabled = on.includes(option.value);
+                    // The last provider on stays on. Turn Door locks off to stop using both.
+                    const last = enabled && on.length === 1;
+
+                    return (
+                        <Field key={option.value} orientation="horizontal">
+                            <FieldContent>
+                                <FieldLabel
+                                    htmlFor={`provider-${option.value}`}
+                                >
+                                    {option.label}
+                                </FieldLabel>
+                                <FieldDescription>
+                                    {providerNotes[option.value] ?? ''}
+                                    {!readOnly && last
+                                        ? ' At least one provider must stay on. Turn Door locks off to stop using both.'
+                                        : ''}
+                                </FieldDescription>
+                            </FieldContent>
+                            {readOnly ? (
+                                <Badge
+                                    variant={enabled ? 'secondary' : 'outline'}
+                                >
+                                    {enabled ? 'On' : 'Off'}
+                                </Badge>
+                            ) : (
+                                <Switch
+                                    id={`provider-${option.value}`}
+                                    checked={enabled}
+                                    disabled={last}
+                                    onCheckedChange={(checked) =>
+                                        toggle(
+                                            item.feature,
+                                            true,
+                                            checked
+                                                ? [...on, option.value]
+                                                : on.filter(
+                                                      (value) =>
+                                                          value !==
+                                                          option.value,
+                                                  ),
+                                        )
+                                    }
+                                />
+                            )}
+                        </Field>
+                    );
+                })}
+            </div>
+        );
     };
 
     if (readOnly) {
@@ -194,6 +276,8 @@ export function PropertyFeatures({
                             </Badge>
                         </Field>
                         {modeField(item)}
+                        {providerField(item)}
+                        {providerField(item)}
                     </Fragment>
                 ))}
                 <p className="text-sm text-muted-foreground">
@@ -225,6 +309,7 @@ export function PropertyFeatures({
                         />
                     </Field>
                     {modeField(item)}
+                    {providerField(item)}
                 </Fragment>
             ))}
         </FieldGroup>

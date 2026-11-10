@@ -1,22 +1,19 @@
 import { boats as boatsSettings } from '@/routes/settings';
-import { Head, useForm } from '@inertiajs/react';
-import { Pencil, Plus } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { Anchor, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { EmptyState } from '@/components/pms/empty-state';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
 import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Field,
-    FieldContent,
     FieldDescription,
     FieldError,
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
     Table,
@@ -26,11 +23,19 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { charter } from '@/routes/settings/boats';
+import { toast } from '@/components/ui/toast';
 import { store, update } from '@/routes/settings/boats/boats';
 
 type Boat = App.Data.Boats.BoatData;
-type Option = { value: string; label: string };
+
+/** The full row, so the update route can save it with a new `active`. */
+function boatValues(boat: Boat) {
+    return {
+        name: boat.name,
+        registration: boat.registration ?? '',
+        seats: boat.seats === null ? '' : String(boat.seats),
+    };
+}
 
 function BoatDialog({
     open,
@@ -41,11 +46,11 @@ function BoatDialog({
     onOpenChange: (open: boolean) => void;
     boat: Boat | null;
 }) {
-    const form = useForm({
-        name: boat?.name ?? '',
-        registration: boat?.registration ?? '',
-        active: boat?.active ?? true,
-    });
+    const form = useForm(
+        boat === null
+            ? { name: '', registration: '', seats: '' }
+            : boatValues(boat),
+    );
 
     const submit = () => {
         const options = {
@@ -78,7 +83,7 @@ function BoatDialog({
                 <Input
                     id="boat-name"
                     maxLength={60}
-                    placeholder="SA10716"
+                    placeholder="e.g. MV Sand Bay 1"
                     value={form.data.name}
                     onChange={(event) =>
                         form.setData('name', event.target.value)
@@ -98,6 +103,7 @@ function BoatDialog({
                 <Input
                     id="boat-registration"
                     maxLength={30}
+                    placeholder="e.g. SA10716"
                     value={form.data.registration}
                     onChange={(event) =>
                         form.setData('registration', event.target.value)
@@ -106,99 +112,72 @@ function BoatDialog({
                 />
                 <FieldError>{form.errors.registration}</FieldError>
             </Field>
-            <Field orientation="horizontal">
-                <Switch
-                    id="boat-active"
-                    checked={form.data.active}
-                    onCheckedChange={(checked) =>
-                        form.setData('active', checked)
+            <Field data-invalid={!!form.errors.seats}>
+                <FieldLabel htmlFor="boat-seats">Seats (optional)</FieldLabel>
+                <Input
+                    id="boat-seats"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    placeholder="e.g. 20"
+                    value={form.data.seats}
+                    onChange={(event) =>
+                        form.setData('seats', event.target.value)
                     }
+                    aria-invalid={!!form.errors.seats}
                 />
-                <FieldContent>
-                    <FieldLabel htmlFor="boat-active">In use</FieldLabel>
-                    <FieldDescription>
-                        Only boats in use can be picked on the manifest.
-                    </FieldDescription>
-                </FieldContent>
+                <FieldDescription>Leave empty for no limit.</FieldDescription>
+                <FieldError>{form.errors.seats}</FieldError>
             </Field>
         </FormOverlay>
     );
 }
 
-function CharterForm({
-    chargeItemId,
-    chargeItems,
-}: {
-    chargeItemId: number | null;
-    chargeItems: Option[];
-}) {
-    const form = useForm({
-        charge_item_id: chargeItemId === null ? '' : String(chargeItemId),
-    });
-
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
-        form.transform((data) => ({
-            charge_item_id:
-                data.charge_item_id === '' ? null : Number(data.charge_item_id),
-        }));
-        form.put(charter.url(), { preserveScroll: true });
-    };
-
-    return (
-        <form onSubmit={submit} className="flex flex-col gap-3">
-            <h2 className="text-base font-medium">Charter boat</h2>
-            <Field data-invalid={!!form.errors.charge_item_id}>
-                <FieldLabel htmlFor="charter-charge">
-                    Charge for a charter
-                </FieldLabel>
-                <div className="flex flex-wrap items-center gap-2">
-                    <EnumSelect
-                        id="charter-charge"
-                        className="w-64"
-                        options={chargeItems}
-                        allLabel="Nothing (charge by hand)"
-                        value={form.data.charge_item_id}
-                        onValueChange={(value) =>
-                            form.setData('charge_item_id', value)
-                        }
-                    />
-                    <Button
-                        type="submit"
-                        variant="outline"
-                        disabled={!form.isDirty || form.processing}
-                        focusableWhenDisabled
-                    >
-                        {form.processing && (
-                            <Spinner data-icon="inline-start" />
-                        )}
-                        Save
-                    </Button>
-                </div>
-                <FieldDescription>
-                    A Charter trip adds this item once to the room, for example
-                    Charter Boat. Changing or clearing the trip removes it while
-                    it is not charged.
-                </FieldDescription>
-                <FieldError>{form.errors.charge_item_id}</FieldError>
-            </Field>
-        </form>
-    );
-}
-
-export default function BoatsPage({
-    boats,
-    charterChargeItemId,
-    chargeItems,
-}: {
-    boats: Boat[];
-    charterChargeItemId: number | null;
-    chargeItems: Option[];
-}) {
+export default function BoatsPage({ boats }: { boats: Boat[] }) {
     const [dialog, setDialog] = useState<{ open: boolean; boat: Boat | null }>({
         open: false,
         boat: null,
     });
+    const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
+
+    const toggleActive = (boat: Boat, active: boolean) => {
+        const setToggling = (toggling: boolean) => {
+            setTogglingIds((current) => {
+                const next = new Set(current);
+
+                if (toggling) {
+                    next.add(boat.id);
+                } else {
+                    next.delete(boat.id);
+                }
+
+                return next;
+            });
+        };
+
+        router
+            .optimistic<{ boats: Boat[] }>((props) => ({
+                boats: props.boats.map((item) =>
+                    item.id === boat.id ? { ...item, active } : item,
+                ),
+            }))
+            .put(
+                update.url({ boat: boat.id }),
+                { ...boatValues(boat), active },
+                {
+                    preserveScroll: true,
+                    onStart: () => setToggling(true),
+                    onFinish: () => setToggling(false),
+                    onError: (errors) =>
+                        toast.add({
+                            title:
+                                Object.values(errors)[0] ??
+                                'The change could not be saved.',
+                            type: 'error',
+                        }),
+                },
+            );
+    };
 
     return (
         <>
@@ -207,7 +186,7 @@ export default function BoatsPage({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title="Boats"
-                    description="The boats you pick for each departure on the boat manifest, and what a charter costs."
+                    description="The boats you run, picked for each departure on the boat manifest."
                 />
 
                 <BoatSettingsTabs activeTab="boats">
@@ -225,73 +204,92 @@ export default function BoatsPage({
                             </Button>
                         </div>
 
-                        {boats.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No boats yet. Add the boats you run, so the
-                                manifest can name the boat of each departure.
-                            </p>
-                        ) : (
-                            <div className="overflow-auto rounded-lg border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Registration</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="w-12">
-                                                <span className="sr-only">
-                                                    Edit
-                                                </span>
-                                            </TableHead>
+                        <div className="overflow-auto rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-28">
+                                            Available
+                                        </TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Registration</TableHead>
+                                        <TableHead className="text-right">
+                                            Seats
+                                        </TableHead>
+                                        <TableHead className="w-12">
+                                            <span className="sr-only">
+                                                Edit
+                                            </span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {boats.length === 0 && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell colSpan={5}>
+                                                <EmptyState
+                                                    icon={Anchor}
+                                                    title="No boats yet."
+                                                    description="Add the boats you run, so the Boats board can name the boat of each sailing."
+                                                />
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {boats.map((boat) => (
-                                            <TableRow key={boat.id}>
-                                                <TableCell className="font-medium">
-                                                    {boat.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {boat.registration ?? '—'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {boat.active ? (
-                                                        <Badge variant="outline">
-                                                            In use
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="secondary">
-                                                            Not in use
-                                                        </Badge>
+                                    )}
+                                    {boats.map((boat) => (
+                                        <TableRow
+                                            key={boat.id}
+                                            className={
+                                                boat.active
+                                                    ? undefined
+                                                    : 'text-muted-foreground'
+                                            }
+                                        >
+                                            <TableCell>
+                                                <Switch
+                                                    size="sm"
+                                                    checked={boat.active}
+                                                    disabled={togglingIds.has(
+                                                        boat.id,
                                                     )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        aria-label={`Edit ${boat.name}`}
-                                                        onClick={() =>
-                                                            setDialog({
-                                                                open: true,
-                                                                boat,
-                                                            })
-                                                        }
-                                                    >
-                                                        <Pencil />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                                                    aria-label={`Make ${boat.name} ${boat.active ? 'unavailable' : 'available'}`}
+                                                    onCheckedChange={(active) =>
+                                                        toggleActive(
+                                                            boat,
+                                                            active,
+                                                        )
+                                                    }
+                                                />
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                                {boat.name}
+                                            </TableCell>
+                                            <TableCell>
+                                                {boat.registration ?? '—'}
+                                            </TableCell>
+                                            <TableCell className="text-right tabular-nums">
+                                                {boat.seats ?? '—'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={`Edit ${boat.name}`}
+                                                    onClick={() =>
+                                                        setDialog({
+                                                            open: true,
+                                                            boat,
+                                                        })
+                                                    }
+                                                >
+                                                    <Pencil />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </section>
-
-                    <CharterForm
-                        chargeItemId={charterChargeItemId}
-                        chargeItems={chargeItems}
-                    />
                 </BoatSettingsTabs>
             </div>
 

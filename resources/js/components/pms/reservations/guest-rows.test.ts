@@ -46,6 +46,7 @@ function unit(id: number, isBed = false, capacity = isBed ? 1 : 2): Unit {
         capacity,
         assigned: null,
         primaryGuest: null,
+        occupancy: '2 adults',
         label: `Unit ${id}`,
         status: badge('confirmed'),
         arrival: '2026-10-12',
@@ -70,6 +71,7 @@ function row(
         billing: null,
         canBill: false,
         guest: null,
+        documents: [],
     };
 }
 

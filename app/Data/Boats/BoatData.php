@@ -12,11 +12,12 @@ class BoatData extends Data
         public int $id,
         public string $name,
         public ?string $registration,
+        public ?int $seats,
         public bool $active,
     ) {}
 
     public static function fromModel(Boat $boat): self
     {
-        return new self($boat->id, $boat->name, $boat->registration, $boat->active);
+        return new self($boat->id, $boat->name, $boat->registration, $boat->seats, $boat->active);
     }
 }

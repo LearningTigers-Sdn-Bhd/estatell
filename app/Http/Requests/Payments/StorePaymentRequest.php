@@ -32,6 +32,8 @@ class StorePaymentRequest extends FormRequest
             'amount' => ['required', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
             'reference' => ['nullable', 'string', 'max:100'],
             'service_date' => ['nullable', 'string', 'max:10'],
+            'received_on' => ['nullable', 'date_format:Y-m-d'],
+            'notes' => ['nullable', 'string', 'max:500'],
             'idempotency_key' => ['required', 'uuid'],
         ];
     }
@@ -57,6 +59,8 @@ class StorePaymentRequest extends FormRequest
             idempotencyKey: $this->string('idempotency_key')->toString(),
             serviceDate: $this->filled('service_date') ? $this->string('service_date')->toString() : null,
             allowOtaCollected: true,
+            receivedOn: $this->filled('received_on') ? $this->string('received_on')->toString() : null,
+            notes: $this->filled('notes') ? $this->string('notes')->trim()->toString() : null,
         );
     }
 }

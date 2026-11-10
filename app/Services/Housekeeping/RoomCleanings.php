@@ -34,30 +34,32 @@ class RoomCleanings
             ->keyBy('room_id');
     }
 
-    public function state(Room $room, ?RoomCleaning $cleaning, string $timeZone, bool $canUpdate, bool $canEdit, bool $outOfService): RoomCleaningStateData
+    public function state(Room $room, ?RoomCleaning $cleaning, string $timeZone, bool $canUpdate, bool $canEdit, bool $outOfService, bool $hasAssignee): RoomCleaningStateData
     {
         $isOpen = $cleaning !== null && $cleaning->finished_at === null;
+        $canStart = $canUpdate && ! $isOpen && ! $outOfService;
 
         return new RoomCleaningStateData(
             roomId: $room->id,
             roomNumber: $room->number,
             cleaning: $cleaning === null ? null : RoomCleaningData::fromModel($cleaning, $timeZone),
-            canStart: $canUpdate && ! $isOpen && ! $outOfService,
+            canStart: $canStart,
             canFinish: $canUpdate && $isOpen,
             canEdit: $canEdit,
+            askHousekeeper: $canStart && $canEdit && ! $hasAssignee,
         );
     }
 
     /**
-     * Who IN is recorded for. Housekeeping record their own. Front office record it for the room's assignee when
-     * it has one, and can change it afterwards.
+     * Who Start is recorded for. Housekeeping record their own. Front office record it for the housekeeper they
+     * picked, else the room's assignee. Null when they picked nobody and the room has no assignee.
      */
-    public function housekeeperFor(User $actor, Room $room, bool $canEdit): User
+    public function housekeeperFor(User $actor, Room $room, bool $canEdit, ?User $picked): ?User
     {
         if (! $canEdit) {
             return $actor;
         }
 
-        return $room->loadMissing('status.assignee')->status->assignee ?? $actor;
+        return $picked ?? $room->loadMissing('status.assignee')->status->assignee;
     }
 }

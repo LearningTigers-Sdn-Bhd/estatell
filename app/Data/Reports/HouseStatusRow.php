@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
  * One tile of the House status report: a room on the date, in the group (boat time, room move, stay-over,
  * management) it belongs to. The property names are the column keys of `ReportKey::HouseStatus`. `kind` (out, in,
  * move_out, move_in, occ, management) sets its colour, `group_key` and `group_order` its group. `checked_out` strikes
- * a room that already left. `key` is `{kind}:{unit or block id}`. `cleaning` holds the housekeeper and the IN and OUT
+ * a room that already left. `key` is `{kind}:{unit or block id}`. `cleaning` holds the housekeeper and the started and finished
  * times of the room on the date, and is null for a tile with no room assigned.
  */
 class HouseStatusRow extends Data implements ReportRow

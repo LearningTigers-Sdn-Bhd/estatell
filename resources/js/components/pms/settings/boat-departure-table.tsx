@@ -201,21 +201,34 @@ export function BoatDepartureTable({
                                 )}
                             </TableCell>
                             <TableCell>
-                                {departure.defaultBoatName ||
-                                departure.defaultCrew ? (
-                                    <span>
-                                        {[
-                                            departure.defaultBoatName,
-                                            departure.defaultCrew,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                    </span>
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        —
-                                    </span>
-                                )}
+                                {(() => {
+                                    // "Awang (in charge), Daus": the one in charge first, then the assistants.
+                                    const [first, ...others] =
+                                        departure.crewNames;
+                                    const crewText = [
+                                        first !== undefined &&
+                                        departure.inChargeId !== null
+                                            ? `${first} (in charge)`
+                                            : first,
+                                        ...others,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(', ');
+                                    const text = [
+                                        departure.defaultBoatName,
+                                        crewText,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ');
+
+                                    return text === '' ? (
+                                        <span className="text-muted-foreground">
+                                            —
+                                        </span>
+                                    ) : (
+                                        <span>{text}</span>
+                                    );
+                                })()}
                             </TableCell>
                             <TableCell>
                                 {departure.fare === null ? (

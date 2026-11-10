@@ -6,9 +6,9 @@
      * @var string $sheetTitle
      * @var string $sheetDate
      * @var bool $selectedOnly
-     * @var list<array{band: string, kind: string, heading: string, jetty: ?string, boat: ?string, crew: ?string, rows: list<\App\Data\Reports\BoatManifestRow>, pax: int}> $sections
+     * @var list<array{band: string, kind: string, heading: string, jetty: ?string, boat: ?string, crew: list<array{name: string, in_charge: bool}>, rows: list<\App\Data\Reports\BoatManifestRow>, pax: int, jobs?: list<\App\Data\Boats\BoatJobData>}> $sections
      */
-    $bands = ['out' => '#ea3323', 'in' => '#9dc384', 'not_set' => '#fbbf24'];
+    $bands = ['out' => '#ea3323', 'in' => '#9dc384', 'other' => '#d9d9d9', 'job' => '#d9d9d9', 'not_set' => '#fbbf24'];
     $upper = fn (?string $text): string => mb_strtoupper((string) $text);
 @endphp
 
@@ -44,6 +44,40 @@
     @foreach ($sections as $section)
         @continue($selectedOnly && $section['rows'] === [])
         @php $band = 'background: '.$bands[$section['kind']].';'; @endphp
+        @if ($section['kind'] === 'job')
+            <div class="section">
+                <table class="manifest">
+                    <tr class="widths">
+                        @foreach ([8, 14, 18, 26, 28, 6] as $width)
+                            <td style="width: {{ $width }}%"></td>
+                        @endforeach
+                    </tr>
+                    <tr class="band" style="{{ $band }}"><td>{{ $upper($section['band']) }}</td><td colspan="5">{{ $section['heading'] }}</td></tr>
+                    <tr class="band" style="{{ $band }}">
+                        <th>{{ __('Time') }}</th><th>{{ __('Job') }}</th><th>{{ __('BOAT') }}</th><th>{{ __('Crew') }}</th><th>{{ __('Note') }}</th><th>{{ __('Done') }}</th>
+                    </tr>
+                    @forelse ($section['jobs'] as $job)
+                        <tr>
+                            <td>{{ str_replace(':', '', $job->leavesAt) }}</td>
+                            <td>{{ $upper($job->jobLabel) }}</td>
+                            <td>{{ $job->boat === null ? '-' : $upper($job->boat) }}</td>
+                            <td>
+                                @if ($job->inCharge !== null)<span class="crew-first">{{ $upper($job->inCharge) }}</span>@endif
+                                @foreach ($job->assistants as $assistant)
+                                    @if ($job->inCharge !== null || ! $loop->first)<strong> / </strong>@endif<span class="crew-next">{{ $upper($assistant) }}</span>
+                                @endforeach
+                                @if ($job->inCharge === null && $job->assistants === [])-@endif
+                            </td>
+                            <td>{{ $job->note ?? '-' }}</td>
+                            <td><span class="tick">{{ $job->done ? '☑' : '☐' }}</span></td>
+                        </tr>
+                    @empty
+                        <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td><span class="tick">☐</span></td></tr>
+                    @endforelse
+                </table>
+            </div>
+            @continue
+        @endif
         <div class="section">
             <table class="manifest">
                 {{-- dompdf ignores colgroup, and takes the column widths from the first row. --}}
@@ -55,14 +89,13 @@
                 <tr class="band" style="{{ $band }}"><td>{{ $upper($section['band']) }}</td><td colspan="6">{{ $section['heading'] }}</td></tr>
                 <tr class="band" style="{{ $band }}"><td>{{ __('JETTY') }}</td><td colspan="6">{{ $section['jetty'] === null ? '-' : $upper($section['jetty']) }}</td></tr>
                 <tr class="band" style="{{ $band }}">
-                    <th>{{ __('No') }}</th><th>{{ __('Guest') }}</th><th>{{ __('Agent') }}</th><th>{{ __('PAX') }}</th><th>{{ __('BOAT') }}</th><th>{{ __('Boat Asst') }}</th><th>{{ __('Tick') }}</th>
+                    <th>{{ __('No') }}</th><th>{{ __('Guest') }}</th><th>{{ __('Booking source') }}</th><th>{{ __('PAX') }}</th><th>{{ __('BOAT') }}</th><th>{{ __('Boat Asst') }}</th><th>{{ __('Tick') }}</th>
                 </tr>
                 @php $rows = $section['rows'] === [] ? [null] : $section['rows']; @endphp
                 @foreach ($rows as $row)
                     @php
-                        $crew = $row === null ? $section['crew'] : ($row->crew ?? $section['crew']);
                         $boat = $row === null ? $section['boat'] : ($row->boat ?? $section['boat']);
-                        $crewNames = $crew === null ? [] : array_values(array_filter(array_map('trim', explode('/', $crew))));
+                        $crewMembers = $section['crew'];
                     @endphp
                     <tr>
                         <td>{{ $loop->iteration }}</td>
@@ -71,8 +104,8 @@
                         <td>{{ $row === null ? '-' : __(':count PAX', ['count' => $row->total]) }}</td>
                         <td>{{ $boat === null ? '-' : $upper($boat) }}</td>
                         <td>
-                            @forelse ($crewNames as $name)
-                                @if (! $loop->first)<strong> / </strong>@endif<span class="{{ $loop->first ? 'crew-first' : 'crew-next' }}">{{ $upper($name) }}</span>
+                            @forelse ($crewMembers as $member)
+                                @if (! $loop->first)<strong> / </strong>@endif<span class="{{ $member['in_charge'] ? 'crew-first' : 'crew-next' }}">{{ $upper($member['name']) }}</span>
                             @empty
                                 -
                             @endforelse

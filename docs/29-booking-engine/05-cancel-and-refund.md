@@ -49,11 +49,15 @@ Today the policy applies at the moment of the action, and a booking keeps no cop
 reservation_cancellation_terms
     id, property_id, reservation_id (unique), charge_mode (PolicyChargeMode),
     amount (nullable), percent (nullable), percent_basis (PolicyRateBasis, nullable),
-    applies_to (PolicyScope), free_until_days (nullable),
-    text_en, text_ms, timestamps
+    applies_to (PolicyScope), text_en, text_ms, timestamps
+
+reservation_cancellation_term_steps
+    id, property_id, reservation_cancellation_term_id (cascade),
+    days_before, amount (nullable), percent (nullable), timestamps
+    unique (reservation_cancellation_term_id, days_before)
 ```
 
-- Written at [confirmation](04-payment.md#confirmation), from the `CANCEL` row in `room_revenue_policies`. Real columns, no jsonb.
+- Written at [confirmation](04-payment.md#confirmation), from the `CANCEL` row in `room_revenue_policies` and its [steps](../06-catalogues/06-room-revenue.md#policies). Real columns, no jsonb.
 - `CancellationPolicy` returns these terms when they exist, and the live policy otherwise. `CancelUnit` and the previews use it, so staff and portal bookings do not change.
 - A later change to the property's policy does not change these bookings.
 - The tax on the fee is not saved. It follows the live settings, because the law sets it and it is not a promise to the guest.

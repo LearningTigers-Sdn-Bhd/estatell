@@ -51,22 +51,28 @@ test('a new tax column goes last when the layout has no adjustments column', fun
     expect(resolvedKeys($layout, ['period', 'fees', 'tax:SST', 'adjustments']))->toBe(['period', 'fees', 'tax:SST', 'adjustments']);
 });
 
-test('other new columns still go last and stored tax columns keep their place', function () {
+test('other new columns go after the column before them in code and stored tax columns keep their place', function () {
     $layout = storedLayout(['tax:SST', 'period', 'adjustments', 'gone:x']);
 
     expect(resolvedKeys($layout, ['period', 'tax:SST', 'tax:TTX', 'adjustments', 'notes']))
         ->toBe(['tax:SST', 'period', 'tax:TTX', 'adjustments', 'notes']);
 });
 
-test('a new tax column goes before the stored total column on Daily charges', function () {
+test('a new tax column goes before the stored total column on Daily charges, and a new adjustments column after the column before it', function () {
     $layout = storedLayout(['date', 'base', 'total', 'staff'], ReportKey::DailyCharges);
 
     expect(resolvedKeys($layout, ['date', 'base', 'tax:SST', 'tax:TTX', 'adjustments', 'total', 'staff']))
-        ->toBe(['date', 'base', 'tax:SST', 'tax:TTX', 'total', 'staff', 'adjustments']);
+        ->toBe(['date', 'base', 'tax:SST', 'tax:TTX', 'adjustments', 'total', 'staff']);
 });
 
 test('a report without a tax anchor puts a new tax column last', function () {
     $layout = storedLayout(['period', 'adjustments'], ReportKey::Arrivals);
 
     expect(resolvedKeys($layout, ['period', 'tax:SST', 'adjustments']))->toBe(['period', 'adjustments', 'tax:SST']);
+});
+
+test('a new column goes right after the column before it in code, or first when it has none', function () {
+    $layout = storedLayout(['guest', 'room'], ReportKey::Arrivals);
+
+    expect(resolvedKeys($layout, ['reservation', 'guest', 'pax', 'adults', 'room']))->toBe(['reservation', 'guest', 'pax', 'adults', 'room']);
 });

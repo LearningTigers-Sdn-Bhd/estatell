@@ -6,6 +6,7 @@ use App\Enums\FolioStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
+use App\Enums\UnitMovement;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\Guest;
@@ -40,6 +41,8 @@ class ReservationDirectory
     public const int PER_PAGE = 24;
 
     public const string STAY_ALL = 'all';
+
+    public const string TAB_IN_HOUSE = 'in_house';
 
     /**
      * Sort names and the column each one sorts by.
@@ -111,11 +114,19 @@ class ReservationDirectory
             DB::raw('coalesce(ledger.billed, 0)::numeric(14, 2) as billed'),
             DB::raw('coalesce(ledger.balance, 0)::numeric(14, 2) as balance'),
         ]);
-        $this->applyStay($base, $this->stay($property, $request));
+        $movement = $this->movement($request);
+
+        if ($movement === null) {
+            $this->applyStay($base, $this->stay($property, $request));
+            $this->applyStatuses($base, $this->tab($request) === self::TAB_IN_HOUSE ? [ReservationStatus::InHouse] : $this->statuses($request));
+        } else {
+            $this->applyMovement($base, $movement, $this->defaultStayFrom($property));
+        }
 
         return QueryBuilder::for($base, $request)
             ->allowedFilters(
-                AllowedFilter::callback('status', fn (Builder $query, mixed $value) => $this->applyStatus($query, $value)),
+                AllowedFilter::callback('status', fn () => null),
+                AllowedFilter::callback('statuses', fn () => null),
                 AllowedFilter::callback('source', fn (Builder $query, mixed $value) => $this->applySource($query, $value)),
                 AllowedFilter::callback('search', fn (Builder $query, mixed $value) => $this->applySearch($query, $property, $value)),
                 AllowedFilter::callback('stay', fn () => null),
@@ -152,6 +163,82 @@ class ReservationDirectory
             ->pluck('total', 'status')
             ->map(fn (mixed $count): int => (int) $count)
             ->all();
+    }
+
+    /**
+     * One count per movement tab for the business date. They follow the search and source filters, not the stay
+     * filter, because a movement tab always shows the business date.
+     *
+     * @return array<string, int> By movement value
+     */
+    public function movementCounts(Property $property, Request $request): array
+    {
+        $date = $this->defaultStayFrom($property);
+        $counts = [];
+
+        foreach (UnitMovement::cases() as $movement) {
+            $query = $this->base($property);
+
+            $this->applySource($query, $request->input('filter.source'));
+            $this->applySearch($query, $property, $request->input('filter.search'));
+            $this->applyMovement($query, $movement, $date);
+
+            $counts[$movement->value] = $query->count();
+        }
+
+        return $counts;
+    }
+
+    /**
+     * The open tab: empty for All, a movement value (`arrivals`, `departures`) or `in_house`. Any other value opens All,
+     * so an old link to a status tab (`filter[status]=cancelled`) lands on All with that status ticked.
+     */
+    public function tab(Request $request): string
+    {
+        $value = $request->input('filter.status');
+
+        if (! is_string($value)) {
+            return '';
+        }
+
+        return UnitMovement::tryFrom($value) !== null || $value === self::TAB_IN_HOUSE ? $value : '';
+    }
+
+    /**
+     * The ticked statuses of the Status filter, from `filter[statuses]` (a comma list). Unknown values are ignored. An old
+     * status tab link (`filter[status]=confirmed`, `completed` or `cancelled`) ticks that status. Empty means every status.
+     *
+     * @return list<ReservationStatus>
+     */
+    public function statuses(Request $request): array
+    {
+        $value = $request->input('filter.statuses');
+        $values = is_array($value) ? $value : (is_string($value) ? explode(',', $value) : []);
+        $legacy = $request->input('filter.status');
+
+        if ($this->tab($request) === '' && is_string($legacy)) {
+            $values[] = $legacy;
+        }
+
+        $statuses = [];
+
+        foreach (ReservationStatus::cases() as $status) {
+            if (in_array($status->value, $values, true)) {
+                $statuses[] = $status;
+            }
+        }
+
+        return $statuses;
+    }
+
+    /**
+     * The movement tab of the request, or null for All and In house.
+     */
+    public function movement(Request $request): ?UnitMovement
+    {
+        $value = $request->input('filter.status');
+
+        return is_string($value) ? UnitMovement::tryFrom($value) : null;
     }
 
     /**
@@ -246,16 +333,31 @@ class ReservationDirectory
     }
 
     /**
+     * Keep the reservations with a unit that still has to make the move on the date. A group counts once.
+     *
      * @template TModel of Model
      *
      * @param  Builder<TModel>  $query
      */
-    private function applyStatus(Builder $query, mixed $value): void
+    private function applyMovement(Builder $query, UnitMovement $movement, CarbonImmutable $date): void
     {
-        $status = is_string($value) ? ReservationStatus::tryFrom($value) : null;
+        $query->whereExists(fn ($units) => $units->selectRaw('1')
+            ->from('reservation_units')
+            ->whereColumn('reservation_units.reservation_id', 'reservations.id')
+            ->whereDate('reservation_units.'.$movement->dateColumn(), $date->toDateString())
+            ->where('reservation_units.status', $movement->pendingStatus()->value));
+    }
 
-        if ($status !== null) {
-            $query->where('reservations.status', $status);
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @param  list<ReservationStatus>  $statuses  Empty keeps every status
+     */
+    private function applyStatuses(Builder $query, array $statuses): void
+    {
+        if ($statuses !== []) {
+            $query->whereIn('reservations.status', array_map(fn (ReservationStatus $status): string => $status->value, $statuses));
         }
     }
 

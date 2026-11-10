@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -23,12 +24,12 @@ class AddGuestToUnit
      *
      * @param  array<string, mixed>  $profile  Validated profile fields, the phone number in E.164.
      */
-    public function __invoke(User $actor, Property $property, ReservationUnit $unit, ?int $guestId, array $profile = [], bool $updateProfile = false): AttachGuestResult
+    public function __invoke(User $actor, Property $property, ReservationUnit $unit, ?int $guestId, array $profile = [], bool $updateProfile = false, ?IdentityDocumentInputData $identity = null): AttachGuestResult
     {
         DB::beginTransaction();
 
         try {
-            $guest = ($this->resolveGuest)($actor, $property, $guestId, $profile, $updateProfile);
+            $guest = ($this->resolveGuest)($actor, $property, $guestId, $profile, $updateProfile, $identity);
             $result = $guest instanceof AttachGuestResult ? $guest : ($this->attachGuest)($actor, $unit, $guest);
         } catch (Throwable $exception) {
             DB::rollBack();

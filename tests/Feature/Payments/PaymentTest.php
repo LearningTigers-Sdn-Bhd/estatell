@@ -141,6 +141,42 @@ test('a deposit on a unit with no folio creates the unit folio, a receipt number
         ->and(Activity::query()->where('event', 'payment.recorded')->count())->toBe(1);
 });
 
+test('a payment is received on the business date unless an earlier day is given, and notes are trimmed', function () {
+    $setup = paySetup();
+    $today = today()->toDateString();
+    $earlier = today()->subDays(9)->toDateString();
+
+    $default = payDeposit($setup)->payment;
+    $late = payDeposit($setup, ['receivedOn' => $earlier, 'notes' => '  Slip in WhatsApp  '])->payment;
+
+    expect($default->received_on->toDateString())->toBe($today)
+        ->and($default->notes)->toBeNull()
+        ->and($late->received_on->toDateString())->toBe($earlier)
+        ->and($late->notes)->toBe('Slip in WhatsApp')
+        ->and($late->folioLine->posting_date->toDateString())->toBe($today)
+        ->and($late->folioLine->service_date->toDateString())->toBe($today);
+});
+
+test('a payment received after the business date is refused and writes nothing', function () {
+    $setup = paySetup();
+
+    $result = payDeposit($setup, ['receivedOn' => today()->addDay()->toDateString()]);
+
+    expect($result->isRefused())->toBeTrue()
+        ->and($result->refusal)->toBe(PaymentResult::REFUSAL_RECEIVED_ON_IN_FUTURE)
+        ->and(payWritesCount())->toBe(0)
+        ->and(Activity::query()->where('event', 'payment.recorded')->count())->toBe(0);
+});
+
+test('a refund is received on the business date', function () {
+    $setup = paySetup();
+    $payment = payDeposit($setup, ['receivedOn' => today()->subDays(3)->toDateString()])->payment;
+
+    $refund = app(RefundPayment::class)($setup['actor'], $payment, '40.00', null, fake()->uuid())->payment;
+
+    expect($refund->received_on->toDateString())->toBe(today()->toDateString());
+});
+
 test('a second payment on the unit uses its folio, and receipt numbers follow the sequence', function () {
     $setup = paySetup();
 

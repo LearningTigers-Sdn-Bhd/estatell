@@ -21,10 +21,14 @@ class BoatRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $boat = $this->route('boat');
+
         $this->merge([
             'name' => trim((string) $this->input('name')),
             'registration' => filled($this->input('registration')) ? trim((string) $this->input('registration')) : null,
-            'active' => $this->boolean('active', true),
+            'seats' => filled($this->input('seats')) ? $this->input('seats') : null,
+            // The Dialog has no Available switch, so an edit that sends none keeps the boat's own state.
+            'active' => $this->boolean('active', $boat instanceof Boat ? $boat->active : true),
         ]);
     }
 
@@ -54,18 +58,20 @@ class BoatRequest extends FormRequest
                 },
             ],
             'registration' => ['nullable', 'string', 'max:30'],
+            'seats' => ['nullable', 'integer', 'min:1', 'max:9999'],
             'active' => ['boolean'],
         ];
     }
 
     /**
-     * @return array{name: string, registration: ?string, active: bool}
+     * @return array{name: string, registration: ?string, seats: ?int, active: bool}
      */
     public function boatAttributes(): array
     {
         return [
             'name' => (string) $this->validated('name'),
             'registration' => $this->validated('registration'),
+            'seats' => $this->validated('seats') === null ? null : (int) $this->validated('seats'),
             'active' => (bool) $this->validated('active'),
         ];
     }

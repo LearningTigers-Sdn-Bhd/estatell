@@ -31,7 +31,7 @@ class ReportExportController extends Controller
         $rowKeys = $request->rowKeys();
         $rows = $report->hasFixedOrder()
             ? $report->report()->rows($property, $filters, $rowKeys)
-            : $reportPage->sort($report->report()->rows($property, $filters, $rowKeys), $request->sortKey(), $report->defaultSort($filters->group), $layout->visibleKeys())[0];
+            : $reportPage->sort($report->report()->rows($property, $filters, $rowKeys), $request->sortKey(), $report->defaultSort($filters->group, $filters->dateBasis), $layout->visibleKeys())[0];
         $logIdentityExport($request->user(), $property, $report, $filters, $layout, $rows, null);
 
         return $reportPdf->make($property, $report, $filters, $layout, $rowKeys, $rows)->stream($reportPdf->filename($report, $filters));
@@ -47,7 +47,7 @@ class ReportExportController extends Controller
         $layout = $layoutResolver->resolve($property, $report);
         $rows = $report->hasFixedOrder()
             ? $report->report()->rows($property, $filters, $request->rowKeys())
-            : $reportPage->sort($report->report()->rows($property, $filters, $request->rowKeys()), $request->sortKey(), $report->defaultSort($filters->group), $layout->visibleKeys())[0];
+            : $reportPage->sort($report->report()->rows($property, $filters, $request->rowKeys()), $request->sortKey(), $report->defaultSort($filters->group, $filters->dateBasis), $layout->visibleKeys())[0];
 
         $logIdentityExport($request->user(), $property, $report, $filters, $layout, $rows, $format);
 

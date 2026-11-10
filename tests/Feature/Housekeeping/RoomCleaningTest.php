@@ -41,7 +41,7 @@ function cleaningUrl(array $setup, string $path): string
     return "/p/{$setup['property']->code}/housekeeping/rooms/{$setup['room']->id}/{$path}";
 }
 
-test('IN records the housekeeper and the time, and OUT ends it and makes a Dirty room Clean', function () {
+test('Start records the housekeeper and the time, and Done ends it and makes a Dirty room Clean', function () {
     $setup = cleaningSetup();
 
     $this->actingAs($setup['housekeeper'])->post(cleaningUrl($setup, 'cleaning/start'))->assertRedirect();
@@ -64,7 +64,7 @@ test('IN records the housekeeper and the time, and OUT ends it and makes a Dirty
         ->and(Activity::query()->where('event', 'room_status.changed')->count())->toBe(1);
 });
 
-test('OUT leaves a room that is already Clean or Inspected as it is', function (HousekeepingStatus $status) {
+test('Done leaves a room that is already Clean or Inspected as it is', function (HousekeepingStatus $status) {
     $setup = cleaningSetup();
     $setup['room']->status->forceFill(['status' => $status])->save();
 
@@ -99,7 +99,7 @@ test('a room can be cleaned twice on one day', function () {
     expect(RoomCleaning::query()->count())->toBe(2);
 });
 
-test('IN is refused on a blocked room', function () {
+test('Start is refused on a blocked room', function () {
     $setup = cleaningSetup();
     RoomBlock::factory()->create(['property_id' => $setup['property']->id, 'room_id' => $setup['room']->id, 'starts_on' => '2026-10-14', 'ends_on' => '2026-10-15']);
 
@@ -109,7 +109,7 @@ test('IN is refused on a blocked room', function () {
     expect(RoomCleaning::query()->count())->toBe(0);
 });
 
-test('front office IN names the room assignee; housekeeping IN always names themselves', function () {
+test('front office Start names the room assignee; housekeeping Start always names themselves and takes the room', function () {
     $setup = cleaningSetup();
     $setup['room']->status->forceFill(['assigned_to' => $setup['housekeeper']->id])->save();
 
@@ -118,8 +118,30 @@ test('front office IN names the room assignee; housekeeping IN always names them
     RoomCleaning::query()->delete();
 
     $colleague = User::factory()->for($setup['property'])->withPermissions([PermissionEnum::HousekeepingView, PermissionEnum::HousekeepingUpdate])->create();
-    $this->actingAs($colleague)->post(cleaningUrl($setup, 'cleaning/start'));
-    expect(RoomCleaning::query()->sole()->housekeeper_id)->toBe($colleague->id);
+    $this->actingAs($colleague)->post(cleaningUrl($setup, 'cleaning/start'), ['housekeeper_id' => $setup['housekeeper']->id]);
+
+    expect(RoomCleaning::query()->sole()->housekeeper_id)->toBe($colleague->id)
+        ->and($setup['room']->status->fresh()->assigned_to)->toBe($colleague->id)
+        ->and(Activity::query()->where('event', 'room_status.assigned')->count())->toBe(1);
+});
+
+test('front office must pick who is cleaning an unassigned room, and the pick becomes the assignee', function () {
+    $setup = cleaningSetup();
+
+    $this->actingAs($setup['frontOffice'])->post(cleaningUrl($setup, 'cleaning/start'))
+        ->assertSessionHasErrors('housekeeper_id');
+    expect(RoomCleaning::query()->count())->toBe(0);
+
+    $cannotClean = User::factory()->for($setup['property'])->withPermissions([PermissionEnum::HousekeepingView])->create();
+    $this->actingAs($setup['frontOffice'])->post(cleaningUrl($setup, 'cleaning/start'), ['housekeeper_id' => $cannotClean->id])
+        ->assertSessionHasErrors('housekeeper_id');
+    expect(RoomCleaning::query()->count())->toBe(0);
+
+    $this->actingAs($setup['frontOffice'])->post(cleaningUrl($setup, 'cleaning/start'), ['housekeeper_id' => $setup['housekeeper']->id])
+        ->assertSessionHasNoErrors();
+
+    expect(RoomCleaning::query()->sole()->housekeeper_id)->toBe($setup['housekeeper']->id)
+        ->and($setup['room']->status->fresh()->assigned_to)->toBe($setup['housekeeper']->id);
 });
 
 test('front office correct the housekeeper and times in the property time zone, and the log keeps the old values', function () {
@@ -237,10 +259,17 @@ test('the board shows the cleaning in the property time zone and what the viewer
             ->where('rooms.0.cleaning.cleaning.outTime', null)
             ->where('rooms.0.cleaning.canStart', false)
             ->where('rooms.0.cleaning.canFinish', true)
-            ->where('rooms.0.cleaning.canEdit', false));
+            ->where('rooms.0.cleaning.canEdit', false)
+            ->where('rooms.0.cleaning.askHousekeeper', false));
+
+    RoomCleaning::query()->delete();
 
     $this->actingAs($setup['frontOffice'])->get("/p/{$setup['property']->code}/housekeeping")
-        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.cleaning.canEdit', true));
+        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.cleaning.canEdit', true)
+            ->where('rooms.0.cleaning.askHousekeeper', true));
+
+    $this->actingAs($setup['housekeeper'])->get("/p/{$setup['property']->code}/housekeeping")
+        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.cleaning.askHousekeeper', false));
 });
 
 test('a cleaning left open on an earlier date still shows, so someone can record its OUT', function () {

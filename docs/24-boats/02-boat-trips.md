@@ -11,7 +11,8 @@ Needs the `Boats` feature (see [Boat settings](01-boat-settings.md#feature-flag)
 ```
 unit_boat_trips    id, property_id, reservation_unit_id, direction (BoatDirection),
                    mode (BoatMode), boat_departure_id null → boat_departures (restrict),
-                   note text null, timestamps
+                   boat_sailing_id null → boat_sailings (null on delete),
+                   note text null, ticked_at null, ticked_by null, timestamps
                    UNIQUE (reservation_unit_id, direction)
                    CHECK (mode = 'scheduled') = (boat_departure_id IS NOT NULL)
 
@@ -21,10 +22,11 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 ```
 
 - **One trip per unit per direction.** Trips are per unit, not per guest. A guest who travels apart from the rest of the room is booked as a separate unit.
-- **No date column.** A Boat in trip is on the unit's arrival date, and a Boat out trip is on its departure date. Changing dates, extending a stay or an early check-out moves the trip with the unit.
+- **No date column.** A Boat in trip is on the unit's arrival date, and a Boat out trip is on its departure date. Changing dates, extending a stay or an early check-out moves the trip with the unit. A sailing belongs to one date, so a trip whose date moves loses its `boat_sailing_id` and gets the main sailing's time on the new date (`SyncBoatTripsToStay`, called by the stay change Actions in the same transaction).
 - **No time column.** The time is the unit's `arrival_time` (In) or `departure_time` (Out) ([Expected times](../12-reservations/01-reservation-shape.md#expected-times)). One fact, one place.
 - `boat_trip_add_ons` links a trip to the fare add-on rows it created. A fare with child prices writes several rows (adults, and one per charged age group), so it is a link table, not one column. Boats owns it, so `unit_add_ons` does not change. Like `unit_add_ons`, it has no `property_id`: it is always reached through its trip, which is property scoped (an exception to the models rule).
 - A unit with no trip row means "not set yet".
+- **`boat_departure_id` is what was booked; `boat_sailing_id` is the boat it actually goes on.** Null means the date's main sailing of that departure ([Sailings](04-sailings.md#main-sailing)). Only the [Boat Trips board](05-boats-board.md) sets it (**Move to** and **Change boat**). The fare, the activity text and the pickers read the departure; the board, the manifest, seats and the unit time read the sailing.
 
 ## Enums
 
@@ -34,27 +36,34 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 
 ## Setting a trip
 
-`SetBoatTrip` (`app/Actions/Boats/`): `(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult`. `BoatTripData`: `direction`, `mode`, `boat_departure_id` (Scheduled), `time` (Charter and Own, `H:i`), `note` (optional). It takes a shared lock on the departure, then locks the unit row (the same order as `UpdateBoatDeparture`, so the two cannot deadlock), and does everything in one transaction:
+`SetBoatTrip` (`app/Actions/Boats/`): `(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult`. `BoatTripData`: `direction`, `mode`, `boat_departure_id` (Scheduled), `boat_sailing_id` (Scheduled, optional: the boat of that departure on the trip date, from the [Boat Trips board](05-boats-board.md#row-menu)), `time` (Charter and Own, `H:i`), `note` (optional). It takes a shared lock on the departure, then locks the unit row (the same order as `UpdateBoatDeparture`, so the two cannot deadlock), and does everything in one transaction:
 
 1. Writes or replaces the trip row.
 2. Sets the unit time:
 
 | Mode         | Boat in sets `arrival_time` to | Boat out sets `departure_time` to |
 | ------------ | ------------------------------ | --------------------------------- |
-| Scheduled    | the departure's `arrives_at`   | the departure's `leaves_at`       |
+| Scheduled    | the sailing's `arrives_at`     | the sailing's `leaves_at`         |
 | Charter, Own | the time staff typed           | the time staff typed              |
+
+The sailing's time is the timetable time unless the date has a changed time ([Sailing times](04-sailings.md#times)). `SetBoatTrip` reads it with `SailingTimes::forTrip()`. Changing a trip to another departure clears `boat_sailing_id`.
+
+When `boat_sailing_id` is sent, the trip goes on that boat: `boat_sailing_id` is stored (null for the main sailing) and the unit time is that boat's time. A boat that is not a running sailing of the departure on the trip date is refused (`departure_not_found`). Moving to another boat clears the tick, as `MoveBoatTrips` does.
+
+A Scheduled trip sent with no note keeps its note, so a note typed on the board survives a change of departure. Charter and Own save the note as sent.
 
 3. Syncs the fare (see [Fare](#fare)).
 4. Logs `reservation.boat_trip_set` on the reservation: "Boat in: Scheduled boat 09:00 (Kuala Besut jetty)."
 
-| Check, in order                                                                  | Refusal               |
-| -------------------------------------------------------------------------------- | --------------------- |
-| The `Boats` feature is on for the unit's property                                | `boats_off`           |
-| The unit is not day use ("Day use bookings have no boat trips.")                 | `day_use`             |
-| Boat in: the unit is Confirmed. Boat out: the unit is Confirmed or CheckedIn     | `unit_not_open`       |
-| Scheduled: the departure is available, of the property and of the same direction | `departure_not_found` |
-| Charter and Own: a time is given                                                 | `time_required`       |
-| The fare can be added (`AddUnitAddOn` accepts it)                                | `fare_not_found`      |
+| Check, in order                                                                                          | Refusal               |
+| -------------------------------------------------------------------------------------------------------- | --------------------- |
+| The `Boats` feature is on for the unit's property                                                        | `boats_off`           |
+| The unit is not day use ("Day use bookings have no boat trips.")                                         | `day_use`             |
+| Boat in: the unit is Confirmed. Boat out: the unit is Confirmed or CheckedIn                             | `unit_not_open`       |
+| Scheduled: the departure is available, of the property and of the same direction                         | `departure_not_found` |
+| Scheduled: the departure is not cancelled on the trip date ("The 09:00 boat in does not run on 12 Oct.") | `departure_cancelled` |
+| Charter and Own: a time is given                                                                         | `time_required`       |
+| The fare can be added (`AddUnitAddOn` accepts it)                                                        | `fare_not_found`      |
 
 - Seats are **never** a refusal. A full departure is a warning in the form (see [Seats](#seats)).
 - `ClearBoatTrip` removes the trip ("Not set"), with the same unit checks. It removes the unposted fare rows and leaves the unit time as it is. Logs `reservation.boat_trip_cleared`.
@@ -68,15 +77,16 @@ When the trip is Scheduled and its departure has a fare, the trip adds the fare 
 - **Child prices** apply: the rows split by age group as for any per-guest item.
 - **Package skip.** No fare is added when the unit's rate plan has an inclusion for the same charge item (an island package that includes the boat). The check reads the plan through a Rates service (`RatePlanIncludes::includesChargeItem`), not the Rates models. Any inclusion row counts, whatever its amount or dates. It is read when the trip is set; a later plan change does not re-sync fare rows.
 - **Changing or clearing a trip** first removes the trip's unposted fare rows with `RemoveUnitAddOn`, then adds the new fare if there is one. A posted fare row is kept, and its link stays. The success toast then says, as a warning: "The old fare is already posted. Reverse it on the folio if needed." (the Dialog closes on success; Set boats shows the same). The fix is `ReverseLine` on the folio. Nothing is reversed automatically.
-- **Charter** adds the property's charter charge once (`charter_charge_item_id`, set on the [Boats tab](01-boat-settings.md#boats-tab)), as an undated add-on linked to the trip in `boat_trip_add_ons`, so changing or clearing the trip removes it while it is not posted. With no item set, or when a posted charter charge is kept, nothing is added. **Own** adds nothing.
+- **Charter** adds the property's charter charge once (`charter_charge_item_id`, set on the [Fares tab](01-boat-settings.md#charter)), as an undated add-on linked to the trip in `boat_trip_add_ons`, so changing or clearing the trip removes it while it is not posted. With no item set, or when a posted charter charge is kept, nothing is added. **Own** adds nothing.
 - **Guest counts and stay changes** leave fare rows alone. Guest counts cannot change after booking, and stay changes leave undated rows as they are ([Add-ons rules](../12-reservations/04-add-ons.md#rules)), so fare rows keep their link. A future guest count change must link any new age-group fare row to its trip.
 - Cancel, no-show and reinstate treat fare rows like any add-on: they stay as history and come back on reinstate. With **Also remove add-ons**, unposted fare rows are removed with the others and their links go with them. Reinstate then brings back the trip without its fare; staff add it again with **Change**.
 - A departure's new fare applies to new trips only. Booked trips keep the fare rows they have.
 
 ## Seats
 
-- A departure's seat count for a date is the adults and children of every Confirmed, CheckedIn and CheckedOut unit with a Scheduled trip on that departure and date. Every guest takes a seat, infants included.
-- Pickers show "09:00 · 14 / 20 seats". Over the limit shows the count in the warning tone ("22 / 20") and the form says "This boat is over its 20 seats." Staff can still save.
+- A departure's seat count for a date is the adults and children of every Confirmed, CheckedIn and CheckedOut unit with a Scheduled trip on that departure and date, whichever of its sailings they are on. Every guest takes a seat, infants included.
+- The limit is the departure's seats, or the sum of its sailings' seats on a date with more than one boat ([Seats](04-sailings.md#seats)).
+- Pickers show "09:00 · 14 / 20 seats". A departure cancelled on the date is left out of the pickers for that date. Over the limit shows the count in the warning tone ("22 / 20") and the form says "This boat is over its 20 seats." Staff can still save.
 - A departure with no seat limit shows no count in the picker.
 - `BoatSeats` (`app/Services/Boats/`) counts for one date and one or more departures.
 
@@ -109,7 +119,7 @@ Boat   In   Scheduled · 09:00 Kuala Besut → 09:45            [Change]
        Out  Own boat · 11:30 · Guest's own speedboat           [Change]
 ```
 
-- **Change** opens a Dialog (`FormOverlay`, `md`) for that direction with the booking form's boat select: one list of Not set, the available departures with seats, Charter and Own boat, then **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out".
+- **Change** opens a Dialog (`FormOverlay`, `md`) for that direction with the booking form's boat select: one list of Not set, the available departures with seats, Charter and Own boat, then **Time** and **Note** for Charter and Own. The button is "Save boat in" or "Save boat out". The [Boat Trips board](05-boats-board.md#row-menu) opens the same Dialog from **⋯ › Change boat** and **Set boat**.
 - **Change** shows only while `SetBoatTrip` would accept the unit (Boat in while Confirmed, Boat out while Confirmed or CheckedIn) and the user has `reservations.manage`. Otherwise the row is read only. The server sends this as `canSetBoatIn` and `canSetBoatOut` (`BoatTripAccess`), and never for a day use unit.
 - A trip on a departure that is now unavailable shows on the row with "unavailable". Change lists only available departures, so staff pick another.
 - **⋯ More › Set boats** on the reservation header opens one Dialog with Boat in and Boat out for **every open unit** (Confirmed and CheckedIn). Boat in is read only on a CheckedIn unit. Day use units are left out. `SetBoatTrips` (`PUT …/reservations/{reservation}/boat-trips`, `reservations.boat-trips.set-many`) locks every departure involved (shared, by id), then the units (by id), and calls `SetBoatTrip` or `ClearBoatTrip` per unit and direction in one transaction. One refusal saves nothing and names the unit ("Double · 104: …"). Afterwards each unit can still differ.

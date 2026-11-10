@@ -1,5 +1,5 @@
-import { CheckIcon } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { CheckIcon, CircleAlertIcon } from 'lucide-react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CountryFlag } from '@/components/pms/country-flag';
 import type {
     PhoneInputLabels,
@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/input-group';
 import {
     formatPhone,
+    formatPhoneAt,
+    isPhoneTooLong,
     PHONE_ERROR_TEXT,
     phoneCountries,
     phoneError,
@@ -67,6 +69,8 @@ export default function PhoneField({
         [baseCountry, locale],
     );
     const inputRef = useRef<HTMLInputElement>(null);
+    // Where the cursor goes after the formatted number renders.
+    const caretRef = useRef<number | null>(null);
     const [phone, setPhone] = useState<PhoneParts>(() =>
         readPhoneValue(value, baseCountry),
     );
@@ -89,8 +93,13 @@ export default function PhoneField({
 
     const hasText = phone.text.trim() !== '';
     const isValid = toE164(phone.text, phone.country) !== null;
+    // A number too long to ever be valid shows its error at once; any other waits for the blur.
     const liveError =
-        edited && blurred && hasText && !isValid && !invalid
+        edited &&
+        (blurred || isPhoneTooLong(phone.text, phone.country)) &&
+        hasText &&
+        !isValid &&
+        !invalid
             ? phoneError(phone.text, phone.country, labels, locale)
             : null;
     const selected =
@@ -112,14 +121,27 @@ export default function PhoneField({
             return;
         }
 
-        // Formatting moves the cursor to the end, so an edit in the middle waits until the field loses focus.
-        const atEnd = event.target.selectionStart === next.length;
+        const formatted = formatPhoneAt(
+            next,
+            event.target.selectionStart ?? next.length,
+            phone.country,
+        );
 
-        update({
-            country: phone.country,
-            text: atEnd ? formatPhone(next, phone.country) : next,
-        });
+        caretRef.current = formatted.caret;
+        update({ country: phone.country, text: formatted.text });
     }
+
+    // React puts the cursor at the end when it replaces the text, so this puts it back.
+    useLayoutEffect(() => {
+        const input = inputRef.current;
+        const caret = caretRef.current;
+
+        if (input && caret !== null && input === document.activeElement) {
+            input.setSelectionRange(caret, caret);
+        }
+
+        caretRef.current = null;
+    });
 
     function changeCountry(next: PhoneCountry | null) {
         if (next) {
@@ -224,6 +246,14 @@ export default function PhoneField({
                 {edited && isValid && !invalid && (
                     <InputGroupAddon align="inline-end">
                         <CheckIcon aria-hidden className="text-success" />
+                    </InputGroupAddon>
+                )}
+                {(invalid || liveError) && (
+                    <InputGroupAddon align="inline-end">
+                        <CircleAlertIcon
+                            aria-hidden
+                            className="text-destructive"
+                        />
                     </InputGroupAddon>
                 )}
             </InputGroup>

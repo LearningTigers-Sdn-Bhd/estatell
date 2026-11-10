@@ -30,30 +30,34 @@ Let housekeeping print the board as a work sheet, and let a manager choose its c
 
 ## Columns
 
-A merged column keeps its key, label and default visibility. Its split columns are new keys, hidden by default, right after it (see [Core reports](../22-reports/01-core-reports.md#registry)).
+A merged column keeps its key. Its split columns are new keys, hidden by default, right after it (see [Core reports](../22-reports/01-core-reports.md#registry)). The defaults follow the board columns: `assigned` is now **Housekeeper**, `remarks` is now **Notes** (flags and remark), `stay` is new, and `flags` is hidden. A property's saved layout keeps its own choices; a new column joins it right after the column before it.
 
-| Key                 | Label          | Align | Visible | Split of    | Value type                       |
-| ------------------- | -------------- | ----- | ------- | ----------- | -------------------------------- |
-| `room`              | Room           | left  | ✓       | –           | text                             |
-| `room_group`        | Group          | left  | –       | –           | text                             |
-| `unit`              | Type / room    | left  | –       | –           | text                             |
-| `room_type`         | Room type      | left  | –       | `unit`      | text                             |
-| `status`            | Status         | left  | ✓       | –           | text (label)                     |
-| `assigned`          | Assigned       | left  | ✓       | –           | text                             |
-| `guest`             | Guest          | left  | ✓       | –           | text                             |
-| `arrival`           | Arrival        | left  | ✓       | –           | text (`12 Oct · 14:00`)          |
-| `arrival_date`      | Arrival date   | left  | –       | `arrival`   | date                             |
-| `arrival_time`      | Arrival time   | left  | –       | `arrival`   | `H:i`                            |
-| `departure`         | Departure      | left  | ✓       | –           | text                             |
-| `departure_date`    | Departure date | left  | –       | `departure` | date                             |
-| `departure_time`    | Departure time | left  | –       | `departure` | `H:i`                            |
-| `flags`             | Flags          | left  | ✓       | –           | text (`Priority · DND · Maint.`) |
-| `priority`          | Priority       | left  | –       | `flags`     | yes or empty                     |
-| `do_not_disturb`    | Do not disturb | left  | –       | `flags`     | yes or empty                     |
-| `needs_maintenance` | Maintenance    | left  | –       | `flags`     | yes or empty                     |
-| `remarks`           | Remarks        | left  | ✓       | –           | text (remark and reason)         |
-| `remark`            | Remark         | left  | –       | `remarks`   | text                             |
-| `system_reason`     | Reason         | left  | –       | `remarks`   | text                             |
+| Key                 | Label              | Align | Visible | Split of    | Value type                                                             |
+| ------------------- | ------------------ | ----- | ------- | ----------- | ---------------------------------------------------------------------- |
+| `room`              | Room               | left  | ✓       | –           | text                                                                   |
+| `room_group`        | Group              | left  | –       | –           | text                                                                   |
+| `unit`              | Type / room        | left  | –       | –           | text                                                                   |
+| `room_type`         | Room type          | left  | –       | `unit`      | text                                                                   |
+| `status`            | Status             | left  | ✓       | –           | text (label)                                                           |
+| `guest`             | Guest              | left  | ✓       | –           | text                                                                   |
+| `stay`              | Reservation Status | left  | ✓       | –           | text (`HousekeepingStay` label)                                        |
+| `pax`               | Pax                | left  | ✓       | –           | text (`2A 1C`, adults and children)                                    |
+| `adults`            | Adults             | right | –       | `pax`       | number                                                                 |
+| `children`          | Children           | right | –       | `pax`       | number                                                                 |
+| `arrival`           | Arrival            | left  | ✓       | –           | text (`12 Oct · 14:00`)                                                |
+| `arrival_date`      | Arrival date       | left  | –       | `arrival`   | date                                                                   |
+| `arrival_time`      | Arrival time       | left  | –       | `arrival`   | `H:i`                                                                  |
+| `departure`         | Departure          | left  | ✓       | –           | text                                                                   |
+| `departure_date`    | Departure date     | left  | –       | `departure` | date                                                                   |
+| `departure_time`    | Departure time     | left  | –       | `departure` | `H:i`                                                                  |
+| `assigned`          | Housekeeper        | left  | ✓       | –           | text (`Siti 10:05–10:40`, `Siti 10:05–` while open, else the assignee) |
+| `remarks`           | Notes              | left  | ✓       | –           | text (`Priority · Do not disturb · Needs maintenance · remark`)        |
+| `remark`            | Remark             | left  | –       | `remarks`   | text                                                                   |
+| `system_reason`     | Reason             | left  | –       | –           | text (`HousekeepingReason`, Dirty rooms only)                          |
+| `flags`             | Flags              | left  | –       | –           | text (`Priority · DND · Maint.`)                                       |
+| `priority`          | Priority           | left  | –       | `flags`     | yes or empty                                                           |
+| `do_not_disturb`    | Do not disturb     | left  | –       | `flags`     | yes or empty                                                           |
+| `needs_maintenance` | Maintenance        | left  | –       | `flags`     | yes or empty                                                           |
 
 - `arrival` and `departure` hold the date and time in one value, so a sort puts them in time order. A same-day turnover keeps both.
 - `room` and `status` stay visible: the Layout Sheet refuses a layout without at least one visible column, and the board needs both.
@@ -62,7 +66,7 @@ A merged column keeps its key, label and default visibility. Its split columns a
 
 ## Layout
 
-- The Columns button on the board (named for the print and export columns) opens the shared `ReportLayoutSheet` for `housekeeping-tasks`: order, visibility, alignment, orientation and Preview PDF.
+- **Columns › Print & export columns…** on the board opens the shared `ReportLayoutSheet` for `housekeeping-tasks`: order, visibility, alignment, orientation and Preview PDF. Its footer adds **Match screen** (see [Columns](01-room-status-board.md#columns)).
 - It shows for users with `settings.manage`. The shared routes `reports.layout.update`, `.destroy` and `.preview` need `reports.view` as well, and Owner and Manager have both.
 - The preview posts the `date` field and the server reads the rows again.
 - `ReportLayoutResolver` merges the stored layout with the columns in code, so adding a column later needs no data migration.

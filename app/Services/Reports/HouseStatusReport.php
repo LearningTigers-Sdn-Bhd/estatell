@@ -71,7 +71,7 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
         $roomsToday = $this->roomBox->assignmentsForUnitsOn($unitIds, $today);
         $roomsYesterday = $this->roomBox->assignmentsForUnitsOn($unitIds, $yesterday);
         $lastNight = $this->roomBox->lastNightAssignmentsForUnits($unitIds);
-        $rooms = Room::query()->where('property_id', $property->id)->with('roomType')->get();
+        $rooms = Room::query()->where('property_id', $property->id)->with(['roomType', 'status'])->get();
         $roomByNumber = $rooms->whereNull('archived_at')->keyBy('number');
         $remarks = RoomStatus::query()->whereIn('room_id', $rooms->modelKeys())->whereNotNull('remark')->pluck('remark', 'room_id');
         $trips = $boatsOn ? UnitBoatTrip::query()->whereIn('reservation_unit_id', $unitIds)->with('boatDeparture')->get()->groupBy('reservation_unit_id') : collect();
@@ -83,7 +83,7 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
         $canEditTimes = Auth::user()?->can(PermissionEnum::HousekeepingEditTimes->value) ?? false;
         $cleaningOf = fn (?Room $room, bool $blocked = false): ?RoomCleaningStateData => $room === null
             ? null
-            : $this->roomCleanings->state($room, $cleanings->get($room->id), $timeZone, $canUpdate, $canEditTimes, $blocked);
+            : $this->roomCleanings->state($room, $cleanings->get($room->id), $timeZone, $canUpdate, $canEditTimes, $blocked, $room->status?->assigned_to !== null);
 
         foreach ($units as $unit) {
             $flags = [...($items[$unit->id] ?? []), ...($this->isTourLeader($unit) ? ['TL'] : [])];

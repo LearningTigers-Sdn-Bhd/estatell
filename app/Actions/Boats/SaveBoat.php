@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\DB;
 class SaveBoat
 {
     /**
-     * Add a boat to the property, or change one (`$boat`): its name, registration and whether it can be picked. A boat
+     * Add a boat to the property, or change one (`$boat`): its name, registration, seats and whether it can be picked. A boat
      * is never deleted, so the runs that used it keep their name. Logs `boat.created` or `boat.updated`.
      *
-     * @param  array{name: string, registration: ?string, active: bool}  $attributes
+     * @param  array{name: string, registration: ?string, seats: ?int, active: bool}  $attributes
      */
     public function __invoke(User $actor, Property $property, array $attributes, ?Boat $boat = null): Boat
     {

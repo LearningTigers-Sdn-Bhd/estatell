@@ -1,3 +1,7 @@
+import {
+    GuestIdentityFields,
+    emptyGuestIdentity,
+} from '@/components/pms/guest-identity-fields';
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -23,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
+import { base64ToFile } from '@/hooks/use-mykad-reader';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { update } from '@/routes/guests';
 
@@ -37,6 +42,9 @@ type Props = {
     genders: EnumOption[];
     locales: EnumOption[];
     tags: Tag[];
+    canViewDocuments: boolean;
+    documents: App.Data.Guests.GuestIdentityDocumentData[];
+    identityTypes: EnumOption[];
 };
 
 /**
@@ -63,7 +71,17 @@ export function guestFormKey(guest: Guest): string {
     ]);
 }
 
-export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
+export function GuestForm({
+    guest,
+    countries,
+    genders,
+    locales,
+    tags,
+    canViewDocuments,
+    documents,
+    identityTypes,
+}: Props) {
+    const [identitySavedVersion, setIdentitySavedVersion] = useState(0);
     const [scannedPhoto, setScannedPhoto] = useState<string | null>(null);
     const form = useForm({
         full_name: guest.fullName ?? '',
@@ -80,10 +98,8 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
         postal_code: guest.postalCode ?? '',
         country_code: guest.countryCode ?? '',
         tags: (guest.tags ?? []).map((tag) => tag.name),
-        identity_number: '',
-        identity_type: 'mykad',
-        identity_country_code: 'MY',
-        identity_photo: '',
+        ...emptyGuestIdentity(guest.nationalityCode, documents[0]),
+        identity_photo: null as File | null,
     });
     const guard = useUnsavedChanges(form.isDirty);
     const { data, errors } = form;
@@ -102,12 +118,24 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
     const save = (onSaved?: () => void) => {
         const options = {
             onSuccess: () => {
-                form.setDefaults();
+                setIdentitySavedVersion((current) => current + 1);
+                form.setDefaults({
+                    ...form.data,
+                    identity_number: '',
+                    identity_document_id: '',
+                    identity_photo: null,
+                });
+                form.reset(
+                    'identity_number',
+                    'identity_document_id',
+                    'identity_photo',
+                );
                 onSaved?.();
             },
         };
 
-        form.put(update.url({ guest: guest.id }), options);
+        form.transform((fields) => ({ ...fields, _method: 'put' }));
+        form.post(update.url({ guest: guest.id }), options);
     };
 
     const text = (
@@ -146,7 +174,9 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                 <div className="flex flex-col gap-8">
                     <MyKadScanner
                         onScan={(card) => {
-                            setScannedPhoto(card.photo_base64);
+                            setScannedPhoto(
+                                canViewDocuments ? card.photo_base64 : null,
+                            );
                             form.setData({
                                 ...form.data,
                                 full_name: card.name,
@@ -159,14 +189,28 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                                 state: card.state,
                                 postal_code: card.postal_code,
                                 country_code: 'MY',
-                                identity_number:
-                                    card.formatted_ic || card.ic_number,
+                                identity_number: canViewDocuments
+                                    ? card.formatted_ic || card.ic_number
+                                    : '',
+                                identity_document_id: String(
+                                    documents.find(
+                                        (document) => document.type === 'mykad',
+                                    )?.id ?? '',
+                                ),
                                 identity_type: 'mykad',
                                 identity_country_code: 'MY',
-                                identity_photo: card.photo_base64 ?? '',
+                                identity_photo:
+                                    canViewDocuments && card.photo_base64
+                                        ? base64ToFile(
+                                              card.photo_base64,
+                                              'mykad_portrait.jpg',
+                                          )
+                                        : null,
                             });
                         }}
                     />
+                    <FieldError>{errors.identity_number}</FieldError>
+                    <FieldError>{errors.identity_photo}</FieldError>
                     {(scannedPhoto || guest.photoUrl) && (
                         <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-3 shadow-xs">
                             <img
@@ -209,6 +253,7 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                                     type: 'email',
                                     autoComplete: 'off',
                                 })}
+
                                 <Field data-invalid={!!errors.phone}>
                                     <FieldLabel htmlFor="phone">
                                         Phone
@@ -229,6 +274,34 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                                     <FieldError>{errors.phone}</FieldError>
                                 </Field>
                             </div>
+                            {canViewDocuments && (
+                                <GuestIdentityFields
+                                    guestId={guest.id}
+                                    savedVersion={identitySavedVersion}
+                                    document={documents[0]}
+                                    values={data}
+                                    types={identityTypes}
+                                    errors={errors}
+                                    disabled={form.processing}
+                                    onRemoved={() => {
+                                        form.clearErrors(
+                                            'identity_number',
+                                            'identity_type',
+                                            'identity_document_id',
+                                            'identity_country_code',
+                                            'identity_photo',
+                                        );
+                                        form.setData('identity_photo', null);
+                                        setScannedPhoto(null);
+                                    }}
+                                    onChange={(patch) =>
+                                        form.setData({
+                                            ...form.data,
+                                            ...patch,
+                                        })
+                                    }
+                                />
+                            )}
                             <DuplicateWarning criteria={checked} />
                         </FieldGroup>
                     </FieldSet>

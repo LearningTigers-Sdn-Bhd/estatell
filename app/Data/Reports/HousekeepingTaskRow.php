@@ -10,7 +10,10 @@ use Spatie\LaravelData\Data;
  * One row of the housekeeping work sheet, one for each active room. The property names are the column keys of
  * `ReportKey::HousekeepingTasks`. `key` is the room id and `due` is the place of the room in the board order, so the
  * default sort `due` keeps departures first. `arrival` and `departure` hold `Y-m-d H:i` (the date alone without a
- * time), so a sort puts them in time order; the cells format them.
+ * time), so a sort puts them in time order; the cells format them. `adults` and `children` are the party sleeping in the
+ * room tonight (the departing one when nobody arrives), and `pax` prints them as "2A 1C". The columns follow the
+ * board: `assigned` is the Housekeeper cell (the cleaner and the times when a cleaning exists, else the assignee),
+ * `stay` the Reservation Status badge, and `remarks` the Notes cell (flags and remark; the reason is its own column).
  */
 class HousekeepingTaskRow extends Data implements ReportRow
 {
@@ -24,6 +27,9 @@ class HousekeepingTaskRow extends Data implements ReportRow
         public string $status,
         public ?string $assigned,
         public ?string $guest,
+        public ?string $stay,
+        public ?int $adults,
+        public ?int $children,
         public ?string $arrival,
         public ?string $arrival_date,
         public ?string $arrival_time,
@@ -52,6 +58,10 @@ class HousekeepingTaskRow extends Data implements ReportRow
             'status' => $this->status,
             'assigned' => $this->assigned ?? '',
             'guest' => $this->guest ?? '',
+            'stay' => $this->stay ?? '',
+            'pax' => $this->adults === null ? '' : __(':adultsA :childrenC', ['adults' => $this->adults, 'children' => $this->children ?? 0]),
+            'adults' => $this->adults === null ? '' : (string) $this->adults,
+            'children' => $this->children === null ? '' : (string) $this->children,
             'arrival' => $this->moment($this->arrival_date, $this->arrival_time),
             'arrival_date' => $this->arrival_date === null ? '' : CarbonImmutable::parse($this->arrival_date)->format('j M Y'),
             'arrival_time' => $this->arrival_time ?? '',
@@ -75,6 +85,8 @@ class HousekeepingTaskRow extends Data implements ReportRow
     {
         return [
             ...$this->cells(),
+            'adults' => $this->adults ?? '',
+            'children' => $this->children ?? '',
             'arrival_date' => $this->arrival_date ?? '',
             'departure_date' => $this->departure_date ?? '',
         ];
@@ -91,6 +103,20 @@ class HousekeepingTaskRow extends Data implements ReportRow
             $room->needsMaintenance ? __('Maint.') : null,
         ]);
 
+        // The Notes cell spells the flags out, as the board does.
+        $notes = array_filter([
+            $room->isPriority ? __('Priority') : null,
+            $room->doNotDisturb ? __('Do not disturb') : null,
+            $room->needsMaintenance ? __('Needs maintenance') : null,
+            $room->remark,
+        ], fn (?string $part): bool => $part !== null && $part !== '');
+        $cleaning = $room->cleaning->cleaning;
+        $housekeeper = match (true) {
+            $cleaning === null => $room->assignedName,
+            $cleaning->outTime === null => "{$cleaning->housekeeperName} {$cleaning->inTime}–",
+            default => "{$cleaning->housekeeperName} {$cleaning->inTime}–{$cleaning->outTime}",
+        };
+
         return new self(
             key: $room->id,
             due: $due,
@@ -99,8 +125,11 @@ class HousekeepingTaskRow extends Data implements ReportRow
             unit: "{$room->roomTypeName} / {$room->number}",
             room_type: $room->roomTypeName,
             status: $room->status->label,
-            assigned: $room->assignedName,
+            assigned: $housekeeper,
             guest: $room->guest,
+            stay: $room->stay?->label,
+            adults: $room->adults,
+            children: $room->children,
             arrival: $room->arrivalDate === null ? null : trim("{$room->arrivalDate} {$room->arrivalTime}"),
             arrival_date: $room->arrivalDate,
             arrival_time: $room->arrivalTime,
@@ -111,7 +140,7 @@ class HousekeepingTaskRow extends Data implements ReportRow
             priority: $room->isPriority,
             do_not_disturb: $room->doNotDisturb,
             needs_maintenance: $room->needsMaintenance,
-            remarks: implode(' · ', array_filter([$room->remark, $room->reason], fn (?string $part): bool => $part !== null && $part !== '')),
+            remarks: implode(' · ', $notes),
             remark: $room->remark,
             system_reason: $room->reason,
         );

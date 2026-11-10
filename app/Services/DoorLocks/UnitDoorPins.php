@@ -2,12 +2,14 @@
 
 namespace App\Services\DoorLocks;
 
+use App\Data\DoorLocks\DoorCardData;
 use App\Data\DoorLocks\DoorPasscodeData;
 use App\Data\DoorLocks\LockWithoutPinData;
 use App\Data\DoorLocks\UnitDoorPinsData;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
 use App\Enums\UnitStatus;
+use App\Models\DoorCard;
 use App\Models\DoorPasscode;
 use App\Models\ReservationUnit;
 use Illuminate\Support\Collection;
@@ -45,7 +47,14 @@ class UnitDoorPins
                 ->all());
         }
 
-        if ($passcodes->isEmpty() && $locksWithoutPin === []) {
+        $cards = DoorCard::query()
+            ->where('reservation_unit_id', $unit->id)
+            ->whereIn('status', [PasscodeStatus::Pending, PasscodeStatus::Active, PasscodeStatus::Failed])
+            ->with('doorLock')
+            ->orderByDesc('id')
+            ->get();
+
+        if ($passcodes->isEmpty() && $locksWithoutPin === [] && $cards->isEmpty()) {
             return null;
         }
 
@@ -62,11 +71,13 @@ class UnitDoorPins
 
         return new UnitDoorPinsData(
             passcodes: array_values($passcodes->map(DoorPasscodeData::fromModel(...))->all()),
+            cards: array_values($cards->map(DoorCardData::fromModel(...))->all()),
             locksWithoutPin: $locksWithoutPin,
             sendNewPin: $sendNewPin,
             updating: $updating,
             making: $making,
             leavingIds: $leavingIds,
+            canAddCard: $current?->isNotEmpty() ?? false,
             syncing: $making || $updating || $leavingIds !== [] || $live->contains('status', PasscodeStatus::Pending),
         );
     }

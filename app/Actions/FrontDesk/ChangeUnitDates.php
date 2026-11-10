@@ -2,6 +2,7 @@
 
 namespace App\Actions\FrontDesk;
 
+use App\Actions\Boats\SyncBoatTripsToStay;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
@@ -37,6 +38,7 @@ class ChangeUnitDates
         private ProcessEarlyDeparture $processEarlyDeparture,
         private AddNightlyAddOnRows $addNightlyAddOnRows,
         private SyncReservationStatus $syncReservationStatus,
+        private SyncBoatTripsToStay $syncBoatTripsToStay,
     ) {}
 
     /**
@@ -179,6 +181,7 @@ class ChangeUnitDates
             $previousArrival = $locked->arrival_date->toDateString();
             $previousDeparture = $locked->departure_date->toDateString();
             $locked->forceFill(['arrival_date' => $newArrival, 'departure_date' => $newDeparture])->save();
+            ($this->syncBoatTripsToStay)($locked, $oldArrival->toDateString(), $oldDeparture->toDateString());
             event(ReservationChanged::forUnit($locked, $previousArrival, $previousDeparture));
 
             $unassigned = $this->addNights($locked, $roomType, $addedNights, $prices);

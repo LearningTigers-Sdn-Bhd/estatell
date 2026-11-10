@@ -7,13 +7,12 @@ use App\Actions\Housekeeping\FinishRoomCleaning;
 use App\Actions\Housekeeping\SaveRoomCleaning;
 use App\Actions\Housekeeping\StartRoomCleaning;
 use App\Enums\HousekeepingRefusal;
-use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Housekeeping\SaveRoomCleaningRequest;
+use App\Http\Requests\Housekeeping\StartRoomCleaningRequest;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomCleaning;
-use App\Services\Housekeeping\RoomCleanings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,14 +23,11 @@ use Inertia\Inertia;
  */
 class RoomCleaningController extends Controller
 {
-    public function start(Request $request, Property $property, Room $room, StartRoomCleaning $start, RoomCleanings $cleanings): RedirectResponse
+    public function start(StartRoomCleaningRequest $request, Property $property, Room $room, StartRoomCleaning $start): RedirectResponse
     {
         abort_if($room->archived_at !== null, 404);
 
-        $user = $request->user();
-        $housekeeper = $cleanings->housekeeperFor($user, $room, $user->can(PermissionEnum::HousekeepingEditTimes->value));
-
-        return $this->back($start($user, $room, $housekeeper), $room);
+        return $this->back($start($request->user(), $room, $request->housekeeper()), $room);
     }
 
     public function finish(Request $request, Property $property, Room $room, FinishRoomCleaning $finish): RedirectResponse

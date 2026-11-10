@@ -48,7 +48,8 @@ export function draftHasContent(draft: BookingGuest): boolean {
         draft.guest !== null ||
         draft.full_name.trim() !== '' ||
         draft.phone.trim() !== '' ||
-        draft.email.trim() !== ''
+        draft.email.trim() !== '' ||
+        (draft.identity?.identity_number.trim() ?? '') !== ''
     );
 }
 

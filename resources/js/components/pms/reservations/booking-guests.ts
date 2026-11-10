@@ -1,3 +1,4 @@
+import type { GuestIdentityValue } from '@/components/pms/guest-identity-fields';
 import { EMPTY_GUEST_DETAILS } from '@/components/pms/guests/guest-details-fields';
 import type { GuestDetails } from '@/components/pms/guests/guest-details-fields';
 import type { UnitOption } from '@/components/pms/reservations/booking-lines';
@@ -19,6 +20,7 @@ export type BookingGuest = GuestDetails & {
     phone: string;
     email: string;
     update_profile: boolean;
+    identity?: GuestIdentityValue;
     stays_in: string;
 };
 
@@ -44,9 +46,10 @@ export function emptyGuest(staysIn = '', nationalityCode = ''): BookingGuest {
 /** Links the tab to an existing guest and fills every field from that guest. */
 export function linkGuest(tab: BookingGuest, guest: GuestLink): BookingGuest {
     const { profile } = guest;
+    const { identity: _identity, ...unlinked } = tab;
 
     return {
-        ...tab,
+        ...unlinked,
         guest,
         update_profile: false,
         full_name: guest.fullName,
@@ -161,7 +164,7 @@ export function firstUnitWithSpace(
  */
 export function guestsPayload(tabs: BookingGuest[]) {
     return tabs.map((tab) => {
-        const { key: _key, guest, ...fields } = tab;
+        const { key: _key, guest, identity, ...fields } = tab;
 
         if (guest !== null && !tab.update_profile) {
             return {
@@ -173,6 +176,7 @@ export function guestsPayload(tabs: BookingGuest[]) {
 
         return {
             ...fields,
+            ...identity,
             guest_id: guest?.id ?? '',
         };
     });

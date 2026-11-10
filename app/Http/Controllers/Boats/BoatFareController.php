@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Boats;
 
 use App\Actions\Boats\CreateBoatFare;
+use App\Actions\Boats\SetCharterChargeItem;
 use App\Actions\Boats\UpdateBoatFare;
 use App\Data\Boats\BoatFareAgeGroupData;
 use App\Data\Boats\BoatFareRowData;
@@ -19,6 +20,7 @@ use App\Models\PropertyAgeGroup;
 use App\Models\Tax;
 use App\Services\Boats\BoatFareUsage;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -52,6 +54,14 @@ class BoatFareController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax))
+                ->all(),
+            'charterChargeItemId' => $property->settings->charter_charge_item_id,
+            'chargeItems' => $property->chargeItems()
+                ->active()
+                ->whereNotNull('default_amount')
+                ->ordered()
+                ->get()
+                ->map(fn (ChargeItem $item): array => ['value' => (string) $item->id, 'label' => $item->name])
                 ->all(),
             'pricings' => AgeBandPricing::options(),
             'chargingUnits' => ChargingUnit::options(),
@@ -98,5 +108,20 @@ class BoatFareController extends Controller
         }
 
         return to_route('settings.boats.fares.index', $property);
+    }
+
+    /** The Charter section of the Fares tab: the charge a Charter trip adds. */
+    public function charter(Request $request, Property $property, SetCharterChargeItem $setCharterChargeItem): RedirectResponse
+    {
+        $validated = $request->validate(['charge_item_id' => ['nullable', 'integer']]);
+        $itemId = isset($validated['charge_item_id']) ? (int) $validated['charge_item_id'] : null;
+
+        if (! $setCharterChargeItem($request->user(), $property, $itemId)) {
+            return back()->withErrors(['charge_item_id' => __('Pick an active charge item with a fixed price.')]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Charter boat charge saved.')]);
+
+        return back();
     }
 }

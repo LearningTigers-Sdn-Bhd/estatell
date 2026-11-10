@@ -2,7 +2,9 @@
 
 namespace App\Actions\Kiosk;
 
+use App\Actions\DoorLocks\DoorLockResult;
 use App\Actions\DoorLocks\RegisterDoorCard;
+use App\Enums\LockProvider;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
 use App\Enums\UnitStatus;
@@ -14,7 +16,6 @@ use App\Services\DoorLocks\PasscodeWindow;
 use App\Services\DoorLocks\StayLocks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
-use Laravel\Pennant\Feature;
 
 class RegisterStayCard
 {
@@ -53,7 +54,7 @@ class RegisterStayCard
     {
         $stay->refresh();
 
-        if ($stay->status !== UnitStatus::CheckedIn || ! Feature::for($stay->property)->active(DoorLocks::class) || $stay->property->doorLockConnection?->enabled !== true) {
+        if ($stay->status !== UnitStatus::CheckedIn || ! DoorLocks::allows($stay->property, LockProvider::TTLock) || $stay->property->doorLockConnection?->enabled !== true) {
             return KioskCardResult::refused('lock_unavailable');
         }
 
@@ -73,13 +74,17 @@ class RegisterStayCard
             $held = DoorCard::query()->where('reservation_unit_id', $stay->id)->where('door_lock_id', $lock->id)->whereIn('status', [PasscodeStatus::Pending, PasscodeStatus::Active]);
 
             if ($held->count() >= self::MAX_CARDS_PER_LOCK && ! $held->clone()->where('idempotency_key', $key)->exists()) {
-                return KioskCardResult::refused('lock_unavailable');
+                return KioskCardResult::refused('card_limit');
             }
 
             $result = ($this->registerDoorCard)($lock, $uid, $label, $startsAt, $endsAt, $key, $stay);
 
             if ($result->isRefused() || $result->card?->status !== PasscodeStatus::Active) {
-                return KioskCardResult::refused('lock_unavailable');
+                return KioskCardResult::refused(match ($result->refusal) {
+                    DoorLockResult::REFUSAL_CARD_IN_USE => 'card_in_use',
+                    DoorLockResult::REFUSAL_GATEWAY_REQUIRED => 'gateway_required',
+                    default => 'lock_unavailable',
+                });
             }
 
             $cards[] = $result->card;

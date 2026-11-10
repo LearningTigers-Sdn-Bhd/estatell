@@ -182,3 +182,13 @@ it('says the PINs are syncing after a check-out until they are revoked', functio
     app(SyncStayPasscodes::class)($unit->refresh());
     unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.syncing', false));
 });
+
+it('badges the lock system of the stay room', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    $other = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    $bare = doorLockStay($property, $other);
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('lockProviders', ['TTLock']));
+    unitPage($owner, $bare)->assertInertia(fn (Assert $page) => $page->where('lockProviders', []));
+});

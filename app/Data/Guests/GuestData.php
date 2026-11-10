@@ -44,13 +44,13 @@ class GuestData extends Data
         public ?string $photoUrl = null,
     ) {}
 
-    public static function fromModel(Guest $guest): self
+    public static function fromModel(Guest $guest, bool $canViewDocuments = false): self
     {
         $countries = app(CountryOptions::class);
 
-        $primaryDoc = $guest->relationLoaded('documents')
+        $primaryDoc = ! $canViewDocuments ? null : ($guest->relationLoaded('documents')
             ? $guest->documents->first(fn ($doc) => $doc->hasMedia(GuestIdentityDocument::FRONT_SCAN))
-            : $guest->documents()->with('media')->get()->first(fn ($doc) => $doc->hasMedia(GuestIdentityDocument::FRONT_SCAN));
+            : $guest->documents()->with('media')->get()->first(fn ($doc) => $doc->hasMedia(GuestIdentityDocument::FRONT_SCAN)));
 
         $photoUrl = $primaryDoc !== null
             ? route('guests.documents.scan', [
