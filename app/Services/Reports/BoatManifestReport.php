@@ -109,7 +109,15 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
 
         usort($rows, fn (BoatManifestRow $first, BoatManifestRow $second): int => $positions[$first->key] <=> $positions[$second->key]);
 
-        return $rows;
+        return $filters->boatGroup === null
+            ? $rows
+            : array_values(array_filter($rows, fn (BoatManifestRow $row): bool => $this->isOther($row) === ($filters->boatGroup === 'other')));
+    }
+
+    /** A Charter or Own boat row: a trip with no sailing. The Others tab of the Boat Trips board keeps only these. */
+    private function isOther(BoatManifestRow $row): bool
+    {
+        return ! $row->not_set && $row->sailing_key === null;
     }
 
     /**
@@ -256,7 +264,7 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
 
         $sections = [];
 
-        foreach ($sailings as $sailing) {
+        foreach ($filters->boatGroup === 'other' ? [] : $sailings as $sailing) {
             $group = $rowsByGroup[$sailing->key()] ?? [];
 
             if ($group !== [] || $sailing->departure === null || $sailing->departure->active) {

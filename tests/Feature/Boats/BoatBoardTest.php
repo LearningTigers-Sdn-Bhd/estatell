@@ -74,17 +74,24 @@ test('the board lists the sailings in time order across both directions, then ch
         ->assertInertia(fn (Assert $page) => $page
             ->where('direction', 'in')
             ->where('groups.0.time', '09:00')
-            ->has('groups', 5));
+            ->where('groups.1.time', '11:00')
+            ->where('groups.2.kind', 'not_set')
+            ->has('groups', 3));
 
     $this->get(boardUrl($setup, ['direction' => 'out']))
         ->assertInertia(fn (Assert $page) => $page
             ->where('groups.0.directionLabel', 'Boat out')
             ->where('groups.0.rows.0.direction', 'out')
-            ->where('groups.1.kind', 'charter')
-            ->where('groups.1.rows', [])
-            ->where('groups.2.kind', 'own')
-            ->where('groups.2.rows', [])
-            ->has('groups', 3));
+            ->has('groups', 1));
+
+    $this->get(boardUrl($setup, ['direction' => 'other']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('direction', 'other')
+            ->where('groups.0.kind', 'charter')
+            ->where('groups.0.rows.0.reservation_unit_id', $charterUnit->id)
+            ->where('groups.1.kind', 'own')
+            ->where('groups.1.rows.0.reservation_unit_id', $ownUnit->id)
+            ->has('groups', 2));
 });
 
 test('a sailing with no guests still shows, an added boat has its own group, and the date defaults to the business date', function () {
@@ -366,6 +373,9 @@ test('departures with no guests show their groups and empty Charter and Own boat
     $setup = sailingSetup();
 
     $this->actingAs($setup['owner'])->get(boardUrl($setup, ['direction' => 'in']))
+        ->assertInertia(fn (Assert $page) => $page->has('groups', 2));
+
+    $this->get(boardUrl($setup))
         ->assertInertia(fn (Assert $page) => $page
             ->has('groups', 4)
             ->where('groups.0.kind', 'sailing')

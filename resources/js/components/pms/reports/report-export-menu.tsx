@@ -6,7 +6,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
@@ -28,7 +27,6 @@ export function ReportExportMenu({
     pdfUrl,
     spreadsheetUrl,
     label = 'Export',
-    onColumns,
 }: {
     report: App.Enums.ReportKey;
     /** The date fields of the report page: `from` and `to`, or `date` for a report of one date. */
@@ -42,8 +40,6 @@ export function ReportExportMenu({
     spreadsheetUrl?: string;
     /** The button text. Default: Export. */
     label?: string;
-    /** Adds a Columns… item after a separator, for a board that edits the report's column layout. */
-    onColumns?: () => void;
 }) {
     const { csrfToken } = usePage().props;
     const formRef = useRef<HTMLFormElement>(null);
@@ -94,14 +90,6 @@ export function ReportExportMenu({
                     <DropdownMenuItem onClick={() => download('xlsx')}>
                         Excel
                     </DropdownMenuItem>
-                    {onColumns && (
-                        <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={onColumns}>
-                                Columns…
-                            </DropdownMenuItem>
-                        </>
-                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 

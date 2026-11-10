@@ -7,7 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * The query of the Boats board: `date` (default the business date) and `direction` (default both). The route checks `boats`
+ * The query of the Boats board: `date` (default the business date) and `direction`, the open tab: `both` (All, the
+ * default), `in`, `out` or `other` (Charter and Own boat). The route checks `boats`
  * and `reservations.view`.
  */
 class BoatBoardRequest extends FormRequest
@@ -24,7 +25,7 @@ class BoatBoardRequest extends FormRequest
     {
         return [
             'date' => ['nullable', 'date_format:Y-m-d'],
-            'direction' => ['nullable', Rule::in(['in', 'out', 'both'])],
+            'direction' => ['nullable', Rule::in(['in', 'out', 'both', 'other'])],
         ];
     }
 

@@ -27,18 +27,27 @@ class BoatBoard
     ) {}
 
     /**
-     * @param  'in'|'out'|'both'  $direction
+     * The groups of one tab: `both` (All), `in` or `out` (the sailings of that direction and its rows with no boat set) or
+     * `other` (Charter and Own boat, shown even when empty).
+     *
+     * @param  'in'|'out'|'both'|'other'  $direction
      * @return list<BoatBoardGroupData>
      */
     public function groups(Property $property, CarbonImmutable $date, string $direction): array
     {
-        $both = $direction === 'both';
+        $both = in_array($direction, ['both', 'other'], true);
+        $others = $direction === 'other';
         $directions = $both ? [BoatDirection::Out, BoatDirection::In] : [BoatDirection::from($direction)];
         $rows = $this->manifest->rows($property, new ReportFilters(
             from: $date->toDateString(),
             to: $date->toDateString(),
             direction: $both ? null : $directions[0],
             bothDirections: $both,
+            boatGroup: match ($direction) {
+                'both' => null,
+                'other' => 'other',
+                default => 'scheduled',
+            },
         ));
 
         $bySailing = [];
@@ -74,7 +83,7 @@ class BoatBoard
             ->sortBy(fn (DateSailing $sailing): array => [$sailing->leavesAt, $sailing->sortId()])
             ->values();
 
-        foreach ($sailings as $sailing) {
+        foreach ($others ? [] : $sailings as $sailing) {
             $group = $bySailing[$sailing->key()] ?? [];
 
             if ($group === [] && $sailing->departure !== null && ! $sailing->departure->active) {
@@ -84,7 +93,7 @@ class BoatBoard
             $groups[] = $this->sailingGroup($sailing, $group, $sailing->departure === null ? false : ($stored[$sailing->departure->id] ?? false), $guestsByDeparture[$sailing->departure?->id] ?? 0);
         }
 
-        if ($groups !== [] || $charter !== [] || $own !== [] || $notSet !== []) {
+        if ($others || ($direction === 'both' && ($groups !== [] || $charter !== [] || $own !== [] || $notSet !== []))) {
             $groups[] = $this->plainGroup('charter', 'charter', BoatMode::Charter->label(), $charter);
             $groups[] = $this->plainGroup('own', 'own', BoatMode::Own->label(), $own);
         }

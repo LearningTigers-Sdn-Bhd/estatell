@@ -73,7 +73,10 @@ class ReportFiltersRequest extends FormRequest
                 'bucket' => ['nullable', Rule::enum(ChargeBucket::class)],
                 'search' => ['nullable', 'string', 'max:100'],
             ] : []),
-            ...($this->reportKey()->hasDirectionFilter() ? ['direction' => ['nullable', Rule::in([...array_column(BoatDirection::cases(), 'value'), 'both'])]] : []),
+            ...($this->reportKey()->hasDirectionFilter() ? [
+                'direction' => ['nullable', Rule::in([...array_column(BoatDirection::cases(), 'value'), 'both'])],
+                'boat_group' => ['nullable', Rule::in(['scheduled', 'other'])],
+            ] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
     }
@@ -147,7 +150,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup());
         }
 
         $from = $this->input('from');
@@ -157,7 +160,7 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup());
     }
 
     /**
@@ -194,6 +197,21 @@ class ReportFiltersRequest extends FormRequest
         }
 
         return BoatDirection::tryFrom($this->string('direction')->toString()) ?? BoatDirection::In;
+    }
+
+    /**
+     * The rows of the Boat manifest a Boat Trips tab keeps: `scheduled` (Boat in, Boat out), `other` (Others) or null (all).
+     * Other reports ignore it.
+     */
+    private function boatGroup(): ?string
+    {
+        if (! $this->reportKey()->hasDirectionFilter()) {
+            return null;
+        }
+
+        $group = $this->string('boat_group')->toString();
+
+        return in_array($group, ['scheduled', 'other'], true) ? $group : null;
     }
 
     /**

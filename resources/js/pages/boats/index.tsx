@@ -3,7 +3,11 @@ import {
     ChevronLeft,
     ChevronRight,
     Ellipsis,
+    LogIn,
+    LogOut,
     Plus,
+    Sailboat,
+    Settings2,
     Ship,
     TriangleAlert,
 } from 'lucide-react';
@@ -21,6 +25,8 @@ import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { TabLinks } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -48,7 +54,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { index, pdf, spreadsheet } from '@/routes/boats';
 import { cancel, reset } from '@/routes/boats/departures';
 import { destroy } from '@/routes/boats/sailings';
@@ -62,7 +67,7 @@ type Props = {
     date: string;
     today: string;
     isPast: boolean;
-    direction: 'in' | 'out' | 'both';
+    direction: 'in' | 'out' | 'both' | 'other';
     groups: Group[];
     hasDepartures: boolean;
     boats: App.Data.Boats.BoatData[];
@@ -74,11 +79,28 @@ type Props = {
     settingsUrl: string | null;
 };
 
-const DIRECTIONS = [
-    { value: 'in', label: 'Boat in' },
-    { value: 'out', label: 'Boat out' },
-    { value: 'both', label: 'Both' },
-];
+const TABS = [
+    { value: 'both', label: 'All', icon: Ship },
+    { value: 'in', label: 'Boat in', icon: LogIn },
+    { value: 'out', label: 'Boat out', icon: LogOut },
+    { value: 'other', label: 'Others', icon: Sailboat },
+] as const;
+
+/** The manifest filters of a tab: Boat in and Boat out export the scheduled boats only, Others only Charter and Own boat. */
+function exportFilters(
+    date: string,
+    direction: Props['direction'],
+): Record<string, string> {
+    if (direction === 'both') {
+        return { date, direction };
+    }
+
+    if (direction === 'other') {
+        return { date, direction: 'both', boat_group: 'other' };
+    }
+
+    return { date, direction, boat_group: 'scheduled' };
+}
 
 const MANIFEST_SORT = 'departure';
 
@@ -157,17 +179,25 @@ export default function BoatsIndex({
         }
     }
 
+    const urlFor = (next: { date?: string; direction?: string }) =>
+        index.url(undefined, {
+            query: {
+                date: next.date ?? date,
+                direction: next.direction ?? direction,
+            },
+        });
+
     const visit = (next: { date?: string; direction?: string }) =>
         router.get(
-            index.url(undefined, {
-                query: {
-                    date: next.date ?? date,
-                    direction: next.direction ?? direction,
-                },
-            }),
+            urlFor(next),
             {},
             { preserveScroll: true, preserveState: true },
         );
+
+    const tabs: TabLink[] = TABS.map((tab) => ({
+        ...tab,
+        href: urlFor({ direction: tab.value }),
+    }));
 
     const rowsByKey = useMemo(() => {
         const map = new Map<number, { row: Row; group: Group }>();
@@ -263,7 +293,10 @@ export default function BoatsIndex({
     };
 
     const allLeaving = pickedRows.every((item) => item.row.direction === 'out');
-    const exportDates = useMemo(() => ({ date, direction }), [date, direction]);
+    const exportDates = useMemo(
+        () => exportFilters(date, direction),
+        [date, direction],
+    );
     const manage = can.manage && !isPast;
 
     return (
@@ -277,13 +310,14 @@ export default function BoatsIndex({
                     actions={
                         hasDepartures ? (
                             <>
-                                {manage && (
+                                {can.columns && (
                                     <Button
                                         type="button"
-                                        onClick={() => setTripOpen(true)}
+                                        variant="outline"
+                                        onClick={() => setLayoutDraft(layout)}
                                     >
-                                        <Plus data-icon="inline-start" />
-                                        Trip or job
+                                        <Settings2 data-icon="inline-start" />
+                                        Columns
                                     </Button>
                                 )}
                                 <ReportExportMenu
@@ -294,11 +328,6 @@ export default function BoatsIndex({
                                     rowKeys={[]}
                                     pdfUrl={pdf.url()}
                                     spreadsheetUrl={spreadsheet.url()}
-                                    onColumns={
-                                        can.columns
-                                            ? () => setLayoutDraft(layout)
-                                            : undefined
-                                    }
                                 />
                             </>
                         ) : undefined
@@ -373,86 +402,98 @@ export default function BoatsIndex({
                             >
                                 Tomorrow
                             </Button>
-                            <ToggleGroup
-                                variant="outline"
-                                spacing={0}
-                                value={[direction]}
-                                onValueChange={(next) =>
-                                    next[0] && visit({ direction: next[0] })
-                                }
-                                aria-label="Direction"
-                                className="ml-auto"
-                            >
-                                {DIRECTIONS.map((option) => (
-                                    <ToggleGroupItem
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </ToggleGroupItem>
-                                ))}
-                            </ToggleGroup>
+                            {manage && (
+                                <Button
+                                    type="button"
+                                    className="ml-auto"
+                                    onClick={() => setTripOpen(true)}
+                                >
+                                    <Plus data-icon="inline-start" />
+                                    Trip or job
+                                </Button>
+                            )}
                         </div>
 
-                        {groups.length === 0 ? (
-                            <EmptyState
-                                icon={Ship}
-                                title={`No boats on ${dayLabel(date)}.`}
-                                description="Pick another date or direction to see the boats."
-                                action={
-                                    manage ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setTripOpen(true)}
-                                        >
-                                            <Plus data-icon="inline-start" />
-                                            Trip or job
-                                        </Button>
-                                    ) : undefined
-                                }
-                            />
-                        ) : (
-                            <div className="flex flex-col gap-6">
-                                {groups.map((group) => (
-                                    <GroupSection
-                                        key={group.key}
-                                        group={group}
-                                        selected={selected}
-                                        onSelect={toggle}
-                                        canSelect={can.manage}
-                                        canTick={can.manage}
-                                        menu={manage}
-                                        date={date}
-                                        onTick={setTick}
-                                        onChange={() =>
-                                            setDialog({ mode: 'change', group })
-                                        }
-                                        onAdd={() =>
-                                            setDialog({ mode: 'add', group })
-                                        }
-                                        onTime={() =>
-                                            setDialog({ mode: 'time', group })
-                                        }
-                                        onCancel={() => setCancelGroup(group)}
-                                        onUndo={() =>
-                                            router.put(
-                                                cancel.url({
-                                                    departure:
-                                                        group.departureId!,
-                                                }),
-                                                { date, cancelled: false },
-                                                { preserveScroll: true },
-                                            )
-                                        }
-                                        onSetBoat={(row) =>
-                                            setSetBoat({ row, open: true })
-                                        }
-                                        canSetBoat={manage}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        <TabLinks
+                            tabs={tabs}
+                            activeTab={direction}
+                            className="flex flex-col gap-4"
+                            panelWidth="full"
+                            panelClassName="flex flex-col gap-4"
+                        >
+                            {groups.length === 0 ? (
+                                <EmptyState
+                                    icon={Ship}
+                                    title={`No boats on ${dayLabel(date)}.`}
+                                    description="Pick another date or tab to see the boats."
+                                    action={
+                                        manage ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setTripOpen(true)
+                                                }
+                                            >
+                                                <Plus data-icon="inline-start" />
+                                                Trip or job
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                />
+                            ) : (
+                                <div className="flex flex-col gap-6">
+                                    {groups.map((group) => (
+                                        <GroupSection
+                                            key={group.key}
+                                            group={group}
+                                            selected={selected}
+                                            onSelect={toggle}
+                                            canSelect={can.manage}
+                                            canTick={can.manage}
+                                            menu={manage}
+                                            date={date}
+                                            onTick={setTick}
+                                            onChange={() =>
+                                                setDialog({
+                                                    mode: 'change',
+                                                    group,
+                                                })
+                                            }
+                                            onAdd={() =>
+                                                setDialog({
+                                                    mode: 'add',
+                                                    group,
+                                                })
+                                            }
+                                            onTime={() =>
+                                                setDialog({
+                                                    mode: 'time',
+                                                    group,
+                                                })
+                                            }
+                                            onCancel={() =>
+                                                setCancelGroup(group)
+                                            }
+                                            onUndo={() =>
+                                                router.put(
+                                                    cancel.url({
+                                                        departure:
+                                                            group.departureId!,
+                                                    }),
+                                                    { date, cancelled: false },
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                            onSetBoat={(row) =>
+                                                setSetBoat({ row, open: true })
+                                            }
+                                            canSetBoat={manage}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </TabLinks>
                     </>
                 )}
 
