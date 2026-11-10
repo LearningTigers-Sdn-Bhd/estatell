@@ -25,7 +25,7 @@ Boat Trips                                       [Columns]  [Export Boat Manifes
 
 [ ] Boat out · 08:00 → 08:45   Resort jetty                                       6 / 20 seats  ⋯
     MV Sand Bay 1 · In charge: Awang · Crew: Daus
-     Room  Lead guest     Agent          Phone          Pax     Note              Left
+     Room  Lead guest     Source         Phone          Pax     Note              Left
  [ ] 101   Tan Wei Ming   Direct booking 012-111 2222   2A 1C   [             ]   ✓ Left [Undo]
  [ ] 104   Sarah Lee      Agoda          —              2A 0C   [Early ferry  ]   [Mark left]
 
@@ -41,12 +41,12 @@ Boat Trips                                       [Columns]  [Export Boat Manifes
 
 [-] Boat out · 14:30 → 15:00 (changed)                                          0 / 12 seats  ⋯
     MV Sand Bay 2 · In charge: Din
-     Room  Lead guest  Agent  Phone  Pax  Note  Left
+     Room  Lead guest  Source  Phone  Pax  Note  Left
           (no guests) No guests on this boat.
 
 [-] Boat in · 16:00 → 16:45   Kuala Besut jetty                                  0 / 20 seats  ⋯
     No boat or crew set
-     Room  Lead guest  Agent  Phone  Pax  Note  Arrived
+     Room  Lead guest  Source  Phone  Pax  Note  Arrived
           (no guests) No guests on this boat.
 
     Boat in · 16:00 Kuala Besut jetty · Cancelled                             [Undo]   (muted)
@@ -61,7 +61,7 @@ The **Others** tab:
 
 ```
 [ ] Charter                                                         2 rooms · 4 pax
-     Room  Lead guest     Agent          Trip            Pax     Note               Done
+     Room  Lead guest     Source         Trip            Pax     Note               Done
  [ ] 205   Wong Mei       Agoda          In · 10:30      2A 0C   [Wedding party ]   [Mark arrived]
  [ ] 104   Sarah Lee      Direct booking Out · 15:00     2A 0C   [              ]   [Mark left]
 
@@ -90,6 +90,7 @@ The **Others** tab:
 - The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It is a button, not a box: **Mark arrived** or **Mark left** opens an AlertDialog ("Mark 102 · Hanami Saki as arrived?"), then saves. A ticked row shows "✓ Arrived" or "✓ Left" with **Undo**, which asks the same way ("Mark 102 · Hanami Saki as not arrived?"). A user without `reservations.manage` sees the text only.
 - **Note** is a text field in every guest row, as the remark on Housekeeping. It saves when it loses focus or on Enter; Escape puts the old text back. It is the trip's `note` (at most 255 characters), the same note the Change boat Dialog shows for Charter and Own boat. `SetBoatTripNote` saves it and logs `reservation.boat_trip_note_set` on the reservation. It keeps the tick. A user without `reservations.manage` sees the text only.
 - **Set boat** on a Boat not set row opens the reservation page's boat Change Dialog for that unit and direction.
+- The **Booking source** column is the manifest's `agent` value: the company, else "Direct booking", else the source (Agoda). The printed sheet keeps the heading AGENT.
 - At phone width each group becomes a card list: room, guest and pax on the first line, agent, phone and note on the second, the tick on the right. Pax shows as icons with counts (adults, children), as on Housekeeping.
 - Past dates are read only except the ticks and the notes. Their ⋯ menus and **+ Trip or job** are hidden.
 

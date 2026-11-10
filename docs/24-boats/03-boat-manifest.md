@@ -27,21 +27,21 @@ One row per trip: Confirmed, CheckedIn and CheckedOut units whose trip is on the
 
 **Boat not set.** An overnight unit that arrives (Boat in, Confirmed) or leaves (Boat out, Confirmed or Checked in) on the date with no trip in that direction gets a row too, in a last section **Boat not set: follow up** (warning tone, printed by default), so the desk can call the guest or the agent. Its Departure reads "Not set · 15:00" (the unit's expected time). Its row key is negative (`BoatManifestRow::notSetKey()`: `-(unit id × 2)` for Boat in, `-(unit id × 2 + 1)` for Boat out), so it never meets a trip id.
 
-| Column      | Key           | Default visible | Content                                                                                                |
-| ----------- | ------------- | --------------- | ------------------------------------------------------------------------------------------------------ |
-| Departure   | `departure`   | Yes             | "09:00 Kuala Besut jetty → 09:45", or "Charter 10:30", "Own 11:30"                                     |
-| Room        | `unit`        | Yes             | Room number or bed (first night for Boat in, last night for Boat out), else the room type              |
-| Lead guest  | `lead_guest`  | Yes             | The unit's lead guest (the same rule as Arrivals), else the reservation's booker                       |
-| Agent       | `agent`       | Yes             | The reservation's company, else "Direct booking" (direct and walk-in), else the booking source (Agoda) |
-| Phone       | `phone`       | Yes             | The lead guest's phone                                                                                 |
-| Adults      | `adults`      | Yes             |                                                                                                        |
-| Children    | `children`    | Yes             |                                                                                                        |
-| Total       | `total`       | Yes             | Adults + children                                                                                      |
-| Boat        | `boat`        | Yes             | The sailing's boat ([Boats and crew](#boats-and-crew)), or "Own boat", "Charter"                       |
-| Crew        | `crew`        | Yes             | The sailing's crew, the person in charge first: "Din (in charge), Razak"                               |
-| Tick        | `tick`        | Yes             | The Arrived or Left box on the board ([Tick](#tick)); "Yes" in the spreadsheet                         |
-| Reservation | `reservation` | No              | Reservation number                                                                                     |
-| Note        | `note`        | No              | The trip note                                                                                          |
+| Column         | Key           | Default visible | Content                                                                                                                                                         |
+| -------------- | ------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Departure      | `departure`   | Yes             | "09:00 Kuala Besut jetty → 09:45", or "Charter 10:30", "Own 11:30"                                                                                              |
+| Room           | `unit`        | Yes             | Room number or bed (first night for Boat in, last night for Boat out), else the room type                                                                       |
+| Lead guest     | `lead_guest`  | Yes             | The unit's lead guest (the same rule as Arrivals), else the reservation's booker                                                                                |
+| Booking source | `agent`       | Yes             | The reservation's company, else "Direct booking" (direct and walk-in), else the booking source (Agoda). The PDF keeps the heading AGENT, as on Sand Bay's sheet |
+| Phone          | `phone`       | Yes             | The lead guest's phone                                                                                                                                          |
+| Adults         | `adults`      | Yes             |                                                                                                                                                                 |
+| Children       | `children`    | Yes             |                                                                                                                                                                 |
+| Total          | `total`       | Yes             | Adults + children                                                                                                                                               |
+| Boat           | `boat`        | Yes             | The sailing's boat ([Boats and crew](#boats-and-crew)), or "Own boat", "Charter"                                                                                |
+| Crew           | `crew`        | Yes             | The sailing's crew, the person in charge first: "Din (in charge), Razak"                                                                                        |
+| Tick           | `tick`        | Yes             | The Arrived or Left box on the board ([Tick](#tick)); "Yes" in the spreadsheet                                                                                  |
+| Reservation    | `reservation` | No              | Reservation number                                                                                                                                              |
+| Note           | `note`        | No              | The trip note                                                                                                                                                   |
 
 - **Lead guest only.** The manifest never lists every guest and never shows identity numbers.
 - Rows come grouped by sailing in time order. Then two groups: **Charter**, then **Own boat**, each with its rows of both directions.

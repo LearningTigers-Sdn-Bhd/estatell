@@ -1065,7 +1065,7 @@ function GroupSection({
                                 {canSelect && <TableHead className="w-8" />}
                                 <TableHead>Room</TableHead>
                                 <TableHead>Lead guest</TableHead>
-                                <TableHead>Agent</TableHead>
+                                <TableHead>Booking source</TableHead>
                                 <TableHead>Phone</TableHead>
                                 {isMixed && <TableHead>Trip</TableHead>}
                                 <TableHead>Pax</TableHead>
