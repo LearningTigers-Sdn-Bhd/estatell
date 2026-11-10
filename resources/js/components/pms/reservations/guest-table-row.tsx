@@ -309,6 +309,7 @@ export function SavedGuestRow({
             ? linkGuest(emptyGuest(), row.guest)
             : null,
     );
+    const [identitySavedVersion, setIdentitySavedVersion] = useState(0);
     const [identity, setIdentity] = useState(() =>
         emptyGuestIdentity(
             row.guest?.profile.nationalityCode ?? null,
@@ -452,6 +453,7 @@ export function SavedGuestRow({
                 onFinish: () => setProcessing(false),
                 onError: (found) => setErrors(found),
                 onSuccess: () => {
+                    setIdentitySavedVersion((current) => current + 1);
                     setErrors({});
                     setBase(values);
                     setIdentity((current) => ({
@@ -572,11 +574,16 @@ export function SavedGuestRow({
                                 {canViewDocuments && row.guest !== null && (
                                     <GuestIdentityFields
                                         guestId={row.guest.id}
+                                        savedVersion={identitySavedVersion}
                                         document={row.documents[0]}
                                         values={identity}
                                         types={identityDocumentTypes}
                                         errors={errors}
                                         disabled={processing}
+                                        onRemoved={() => {
+                                            setErrors({});
+                                            mykad.forget();
+                                        }}
                                         onChange={(patch) =>
                                             setIdentity((current) => ({
                                                 ...current,

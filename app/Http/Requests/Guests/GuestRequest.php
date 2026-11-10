@@ -52,6 +52,16 @@ class GuestRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'identity_number.required_with' => 'The ID number can\'t be left blank. To remove this ID, use the bin icon.',
+        ];
+    }
+
+    /**
      * The profile fields for the model, with the phone number in E.164.
      *
      * @return array<string, mixed>

@@ -81,6 +81,7 @@ export function GuestForm({
     documents,
     identityTypes,
 }: Props) {
+    const [identitySavedVersion, setIdentitySavedVersion] = useState(0);
     const [scannedPhoto, setScannedPhoto] = useState<string | null>(null);
     const form = useForm({
         full_name: guest.fullName ?? '',
@@ -117,6 +118,7 @@ export function GuestForm({
     const save = (onSaved?: () => void) => {
         const options = {
             onSuccess: () => {
+                setIdentitySavedVersion((current) => current + 1);
                 form.setDefaults({
                     ...form.data,
                     identity_number: '',
@@ -275,11 +277,23 @@ export function GuestForm({
                             {canViewDocuments && (
                                 <GuestIdentityFields
                                     guestId={guest.id}
+                                    savedVersion={identitySavedVersion}
                                     document={documents[0]}
                                     values={data}
                                     types={identityTypes}
                                     errors={errors}
                                     disabled={form.processing}
+                                    onRemoved={() => {
+                                        form.clearErrors(
+                                            'identity_number',
+                                            'identity_type',
+                                            'identity_document_id',
+                                            'identity_country_code',
+                                            'identity_photo',
+                                        );
+                                        form.setData('identity_photo', null);
+                                        setScannedPhoto(null);
+                                    }}
                                     onChange={(patch) =>
                                         form.setData({
                                             ...form.data,
