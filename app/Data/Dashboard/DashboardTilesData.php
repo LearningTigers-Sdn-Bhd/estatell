@@ -18,5 +18,6 @@ class DashboardTilesData extends Data
         public ?UnitCountTileData $departures,
         public ?TonightTileData $tonight,
         public ?MonthTileData $month,
+        public ?NewBookingsTileData $newBookings,
     ) {}
 }

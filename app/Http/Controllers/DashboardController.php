@@ -14,6 +14,7 @@ use App\Services\Dashboard\DashboardTiles;
 use App\Services\Dashboard\DashboardTodo;
 use App\Services\Dashboard\PerformancePeriod;
 use App\Services\Dashboard\PerformanceSummary;
+use App\Services\Dashboard\TodayBookings;
 use App\Services\Housekeeping\HousekeepingSummary;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Onboarding\RecommendedChecklist;
@@ -41,6 +42,7 @@ class DashboardController extends Controller
         YoureLiveSummary $youreLive,
         RecommendedChecklist $recommendedChecklist,
         DashboardTodo $todo,
+        TodayBookings $todayBookings,
         HousekeepingSummary $housekeeping,
         PerformanceSummary $performance,
     ): Response {
@@ -69,6 +71,9 @@ class DashboardController extends Controller
             'todo' => $date !== null && $access->canViewReservations
                 ? Inertia::defer(fn () => $todo->forDate($property, $date, $request->user()), 'todo')
                 : null,
+            'bookings' => $date !== null && $access->canViewReservations
+                ? Inertia::defer(fn () => $todayBookings->forDate($property, $date), 'bookings')
+                : null,
             'housekeeping' => $date !== null && $access->canViewHousekeeping
                 ? Inertia::defer(fn () => $housekeeping->forDate($property, $date), 'housekeeping')
                 : null,
@@ -93,6 +98,7 @@ class DashboardController extends Controller
             'performance' => Inertia::defer(fn () => $summary->forPeriod($property, $period), 'performance'),
             'tiles' => null,
             'todo' => null,
+            'bookings' => null,
             'housekeeping' => null,
         ]);
     }

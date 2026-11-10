@@ -948,6 +948,7 @@ arrivals: App.Data.Dashboard.UnitCountTileData | null,
 departures: App.Data.Dashboard.UnitCountTileData | null,
 tonight: App.Data.Dashboard.TonightTileData | null,
 month: App.Data.Dashboard.MonthTileData | null,
+newBookings: App.Data.Dashboard.NewBookingsTileData | null,
 };
 export type DashboardTodoData = {
 rows: App.Data.Dashboard.DashboardTodoRowData[],
@@ -988,6 +989,10 @@ currency: App.Data.Property.CurrencyData | null,
 posted: string,
 bookedNights: number,
 bookedAmount: string,
+};
+export type NewBookingsTileData = {
+bookings: number,
+rooms: number,
 };
 export type PerformanceChannelMixData = {
 nights: number,
@@ -1034,6 +1039,21 @@ previousDate: string | null,
 previousOccupancy: number | null,
 previousAdr: number | null,
 previousRevpar: number | null,
+};
+export type TodayBookingRowData = {
+id: number,
+guest: string,
+reference: string,
+created: string,
+rooms: number,
+arrival: string | null,
+departure: string | null,
+url: string,
+};
+export type TodayBookingsData = {
+rows: App.Data.Dashboard.TodayBookingRowData[],
+total: number,
+date: string,
 };
 export type TonightNightData = {
 date: string,
