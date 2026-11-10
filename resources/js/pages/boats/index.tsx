@@ -3,12 +3,15 @@ import {
     ChevronLeft,
     ChevronRight,
     Ellipsis,
+    Plus,
     Printer,
     Ship,
     TriangleAlert,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { BoatSailingDialog } from '@/components/pms/boats/boat-sailing-dialog';
+import { BoatTimeDialog } from '@/components/pms/boats/boat-time-dialog';
+import { BoatTripDialog } from '@/components/pms/boats/boat-trip-dialog';
 import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -17,6 +20,15 @@ import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -26,6 +38,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -36,7 +49,7 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { index } from '@/routes/boats';
-import { reset } from '@/routes/boats/departures';
+import { cancel, reset } from '@/routes/boats/departures';
 import { destroy } from '@/routes/boats/sailings';
 import { move, tick } from '@/routes/boats/trips';
 import { pdf } from '@/routes/reports';
@@ -115,9 +128,12 @@ export default function BoatsIndex({
 }: Props) {
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [dialog, setDialog] = useState<{
-        mode: 'change' | 'add';
+        mode: 'change' | 'add' | 'time';
         group: Group;
     } | null>(null);
+    const [tripOpen, setTripOpen] = useState(false);
+    const [cancelGroup, setCancelGroup] = useState<Group | null>(null);
+    const [cancelling, setCancelling] = useState(false);
     const [setBoat, setSetBoat] = useState<{
         row: Row;
         open: boolean;
@@ -173,6 +189,7 @@ export default function BoatsIndex({
         .filter(
             (group) =>
                 group.kind === 'sailing' &&
+                !group.cancelled &&
                 group.direction === sameDirection &&
                 !(pickedGroups.size === 1 && pickedGroups.has(group.key)),
         )
@@ -251,8 +268,24 @@ export default function BoatsIndex({
                     title="Boats"
                     description="The boats of one date: who goes on which boat, the crew in charge, and who has arrived or left."
                     actions={
-                        can.export && hasDepartures ? (
-                            <PrintButton date={date} direction={direction} />
+                        hasDepartures ? (
+                            <>
+                                {manage && (
+                                    <Button
+                                        type="button"
+                                        onClick={() => setTripOpen(true)}
+                                    >
+                                        <Plus data-icon="inline-start" />
+                                        Trip or job
+                                    </Button>
+                                )}
+                                {can.export && (
+                                    <PrintButton
+                                        date={date}
+                                        direction={direction}
+                                    />
+                                )}
+                            </>
                         ) : undefined
                     }
                 />
@@ -351,6 +384,18 @@ export default function BoatsIndex({
                                 icon={Ship}
                                 title={`No boats on ${dayLabel(date)}.`}
                                 description="Pick another date or direction to see the boats."
+                                action={
+                                    manage ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => setTripOpen(true)}
+                                        >
+                                            <Plus data-icon="inline-start" />
+                                            Trip or job
+                                        </Button>
+                                    ) : undefined
+                                }
                             />
                         ) : (
                             <div className="flex flex-col gap-6">
@@ -370,6 +415,20 @@ export default function BoatsIndex({
                                         }
                                         onAdd={() =>
                                             setDialog({ mode: 'add', group })
+                                        }
+                                        onTime={() =>
+                                            setDialog({ mode: 'time', group })
+                                        }
+                                        onCancel={() => setCancelGroup(group)}
+                                        onUndo={() =>
+                                            router.put(
+                                                cancel.url({
+                                                    departure:
+                                                        group.departureId!,
+                                                }),
+                                                { date, cancelled: false },
+                                                { preserveScroll: true },
+                                            )
                                         }
                                         onSetBoat={(row) =>
                                             setSetBoat({ row, open: true })
@@ -422,7 +481,17 @@ export default function BoatsIndex({
                 </BulkActionBar>
             </div>
 
-            {dialog && (
+            {dialog && dialog.mode === 'time' && (
+                <BoatTimeDialog
+                    open
+                    onOpenChange={(open) => !open && setDialog(null)}
+                    group={dialog.group}
+                    date={date}
+                    dateLabel={dayLabel(date)}
+                />
+            )}
+
+            {dialog && dialog.mode !== 'time' && (
                 <BoatSailingDialog
                     open
                     onOpenChange={(open) => !open && setDialog(null)}
@@ -434,6 +503,65 @@ export default function BoatsIndex({
                     crew={crew}
                 />
             )}
+
+            {tripOpen && (
+                <BoatTripDialog
+                    open
+                    onOpenChange={setTripOpen}
+                    date={date}
+                    dateLabel={dayLabel(date)}
+                    boats={boats}
+                    crew={crew}
+                />
+            )}
+
+            <AlertDialog
+                open={cancelGroup !== null}
+                onOpenChange={(open) => !open && setCancelGroup(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Cancel the {cancelGroup?.time}{' '}
+                            {cancelGroup?.directionLabel?.toLowerCase()}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            It will not run on {dayLabel(date)} and leaves the
+                            booking pickers for that date. You can undo this on
+                            the board.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep trip</AlertDialogCancel>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={cancelling}
+                            focusableWhenDisabled
+                            onClick={() =>
+                                cancelGroup?.departureId != null &&
+                                router.put(
+                                    cancel.url({
+                                        departure: cancelGroup.departureId,
+                                    }),
+                                    { date, cancelled: true },
+                                    {
+                                        preserveScroll: true,
+                                        onStart: () => setCancelling(true),
+                                        onFinish: () => {
+                                            setCancelling(false);
+                                            setCancelGroup(null);
+                                        },
+                                    },
+                                )
+                            }
+                        >
+                            {cancelling && <Spinner data-icon="inline-start" />}
+                            Cancel trip
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {setBoat && (
                 <ChangeBoatTripDialog
@@ -501,12 +629,20 @@ function GroupMenu({
     date,
     onChange,
     onAdd,
+    onTime,
+    onCancel,
 }: {
     group: Group;
     date: string;
     onChange: () => void;
     onAdd: () => void;
+    onTime: () => void;
+    onCancel: () => void;
 }) {
+    if (group.isExtra && !group.canRemove) {
+        return null;
+    }
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
@@ -522,13 +658,20 @@ function GroupMenu({
                 <Ellipsis />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-48">
-                <DropdownMenuItem onClick={onChange}>
-                    Change boat and crew
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onAdd}>Add boat</DropdownMenuItem>
-                {(group.canRemove || group.hasStored) && (
-                    <DropdownMenuSeparator />
+                {!group.isExtra && (
+                    <>
+                        <DropdownMenuItem onClick={onChange}>
+                            Change boat and crew
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={onTime}>
+                            Change time
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={onAdd}>
+                            Add boat
+                        </DropdownMenuItem>
+                    </>
                 )}
+                {!group.isExtra && <DropdownMenuSeparator />}
                 {group.canRemove && group.sailingId !== null && (
                     <DropdownMenuItem
                         onClick={() =>
@@ -538,7 +681,7 @@ function GroupMenu({
                             )
                         }
                     >
-                        Remove boat
+                        {group.isExtra ? 'Delete' : 'Remove boat'}
                     </DropdownMenuItem>
                 )}
                 {group.hasStored && group.departureId !== null && (
@@ -552,6 +695,26 @@ function GroupMenu({
                         }
                     >
                         Default
+                    </DropdownMenuItem>
+                )}
+                {!group.isExtra && (
+                    <DropdownMenuItem
+                        variant="destructive"
+                        disabled={group.departureGuests > 0}
+                        onClick={onCancel}
+                    >
+                        <span className="flex flex-col">
+                            Cancel trip
+                            {group.departureGuests > 0 && (
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    Move the {group.departureGuests}{' '}
+                                    {group.departureGuests === 1
+                                        ? 'guest'
+                                        : 'guests'}{' '}
+                                    first.
+                                </span>
+                            )}
+                        </span>
                     </DropdownMenuItem>
                 )}
             </DropdownMenuContent>
@@ -570,6 +733,9 @@ function GroupSection({
     onTick,
     onChange,
     onAdd,
+    onTime,
+    onCancel,
+    onUndo,
     onSetBoat,
     canSetBoat,
 }: {
@@ -583,6 +749,9 @@ function GroupSection({
     onTick: (row: Row, ticked: boolean) => void;
     onChange: () => void;
     onAdd: () => void;
+    onTime: () => void;
+    onCancel: () => void;
+    onUndo: () => void;
     onSetBoat: (row: Row) => void;
     canSetBoat: boolean;
 }) {
@@ -599,6 +768,27 @@ function GroupSection({
     ]
         .filter(Boolean)
         .join(' · ');
+
+    if (group.cancelled) {
+        return (
+            <section className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border bg-muted/30 px-3 py-2 text-muted-foreground">
+                <h2 className="text-sm font-medium">
+                    {group.directionLabel} · {group.times} · Cancelled
+                </h2>
+                {menu && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto"
+                        onClick={onUndo}
+                    >
+                        Undo
+                    </Button>
+                )}
+            </section>
+        );
+    }
 
     return (
         <section className="flex flex-col overflow-hidden rounded-lg border">
@@ -626,6 +816,7 @@ function GroupSection({
                 </h2>
                 {isSailing && (
                     <span className="text-sm text-muted-foreground">
+                        {group.isExtra ? 'Extra trip · ' : ''}
                         {[group.boat, crewText].filter(Boolean).join(' · ') ||
                             'No boat set'}
                     </span>
@@ -646,6 +837,8 @@ function GroupSection({
                                 date={date}
                                 onChange={onChange}
                                 onAdd={onAdd}
+                                onTime={onTime}
+                                onCancel={onCancel}
                             />
                         )}
                     </span>

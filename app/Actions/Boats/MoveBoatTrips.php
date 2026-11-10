@@ -59,23 +59,26 @@ class MoveBoatTrips
             $targetSailing = BoatSailing::query()
                 ->where('property_id', $property->id)
                 ->where('kind', SailingKind::Guests->value)
-                ->whereNotNull('boat_departure_id')
                 ->whereNull('cancelled_at')
                 ->find($sailingId);
             $departureId = $targetSailing?->boat_departure_id;
         }
 
+        $toExtra = $targetSailing !== null && $targetSailing->boat_departure_id === null;
         $departure = $departureId === null ? null : BoatDeparture::query()->where('property_id', $property->id)->find($departureId);
 
-        if ($departure === null) {
+        if ($departure === null && ! $toExtra) {
             return SailingResult::refused(SailingResult::REFUSAL_SAILING_NOT_FOUND);
         }
+
+        $direction = $toExtra ? $targetSailing->direction : $departure->direction;
 
         $dates = $trips->map(fn (UnitBoatTrip $trip): string => $trip->reservationUnit->{$trip->direction->tripDateColumn()}->toDateString())->unique();
         $date = $targetSailing?->date ?? CarbonImmutable::parse((string) $dates->first());
 
         if ($dates->count() !== 1 || $dates->first() !== $date->toDateString()
-            || $trips->contains(fn (UnitBoatTrip $trip): bool => $trip->direction !== $departure->direction)) {
+            || $trips->contains(fn (UnitBoatTrip $trip): bool => $trip->direction !== $direction)
+            || ($toExtra && $trips->contains(fn (UnitBoatTrip $trip): bool => $trip->boat_departure_id === null))) {
             return SailingResult::refused(SailingResult::REFUSAL_TARGET_MISMATCH);
         }
 
@@ -86,32 +89,41 @@ class MoveBoatTrips
         $failedUnit = null;
 
         try {
-            return DB::transaction(function () use ($actor, $property, $trips, $departure, $date, $targetSailing, &$failedUnit): SailingResult {
-                $departureIds = $trips->pluck('boat_departure_id')->push($departure->id)->filter()->unique()->sort()->values()->all();
+            return DB::transaction(function () use ($actor, $property, $trips, $departure, $direction, $date, $targetSailing, $toExtra, &$failedUnit): SailingResult {
+                $departureIds = $trips->pluck('boat_departure_id')->push($departure?->id)->filter()->unique()->sort()->values()->all();
                 BoatDeparture::query()->where('property_id', $property->id)->whereKey($departureIds)->orderBy('id')->lockForUpdate()->get();
                 BoatSailing::query()->where('property_id', $property->id)->whereIn('boat_departure_id', $departureIds)->whereDate('date', $date->toDateString())->orderBy('id')->lockForUpdate()->get();
                 $units = ReservationUnit::query()->with('reservation')->whereKey($trips->pluck('reservation_unit_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
 
+                if ($toExtra) {
+                    BoatSailing::query()->where('property_id', $property->id)->whereKey($targetSailing->id)->lockForUpdate()->get();
+                }
+
                 $views = $this->dateSailings->forDate($property, $date, $departureIds, true);
-                $target = collect($views[$departure->id])->first(fn (DateSailing $sailing): bool => $targetSailing === null ? $sailing->isMain : $sailing->sailing?->id === $targetSailing->id);
+                $extras = $this->dateSailings->extras($property, $date);
+                $target = $toExtra
+                    ? collect($extras)->first(fn (DateSailing $sailing): bool => $sailing->sailing?->id === $targetSailing->id)
+                    : collect($views[$departure->id])->first(fn (DateSailing $sailing): bool => $targetSailing === null ? $sailing->isMain : $sailing->sailing?->id === $targetSailing->id);
 
                 if ($target === null) {
                     return SailingResult::refused(SailingResult::REFUSAL_SAILING_NOT_FOUND);
                 }
 
-                $timeColumn = $departure->direction === BoatDirection::In ? 'arrival_time' : 'departure_time';
+                $timeColumn = $direction === BoatDirection::In ? 'arrival_time' : 'departure_time';
                 $postedFareKept = false;
 
                 foreach ($trips as $listed) {
                     $trip = UnitBoatTrip::query()->lockForUpdate()->findOrFail($listed->id);
                     $unit = $units[$trip->reservation_unit_id];
-                    $from = $this->dateSailings->sailingOf($trip, $views);
+                    $from = $this->dateSailings->sailingOf($trip, $views, $extras);
 
-                    if ($trip->boat_departure_id === $departure->id && $from?->key() === $target->key()) {
+                    if (($toExtra || $trip->boat_departure_id === $departure->id) && $from?->key() === $target->key()) {
                         continue;
                     }
 
-                    if ($trip->boat_departure_id === $departure->id) {
+                    if ($toExtra) {
+                        $trip->forceFill(['boat_sailing_id' => $target->sailing->id, 'ticked_at' => null, 'ticked_by' => null])->save();
+                    } elseif ($trip->boat_departure_id === $departure->id) {
                         $trip->forceFill(['boat_sailing_id' => $target->isMain ? null : $target->sailing->id, 'ticked_at' => null, 'ticked_by' => null])->save();
                     } else {
                         $set = ($this->setBoatTrip)($actor, $unit, new BoatTripData(
@@ -144,7 +156,7 @@ class MoveBoatTrips
                             'reservation_unit_id' => $unit->id,
                             'direction' => $trip->direction->value,
                             'from_boat_departure_id' => $listed->boat_departure_id,
-                            'to_boat_departure_id' => $departure->id,
+                            'to_boat_departure_id' => $departure?->id,
                             'from_boat_sailing_id' => $from?->sailing?->id,
                             'to_boat_sailing_id' => $target->sailing?->id,
                             'boat' => $target->boat?->name,

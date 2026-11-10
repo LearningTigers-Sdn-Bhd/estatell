@@ -70,7 +70,11 @@ function ChangeBoatTripForm({
         choiceFromTrip(trip),
     );
     const [time, setTime] = useState(stayTime);
-    const { seats, loaded: seatsLoaded } = useBoatSeats(direction, date);
+    const {
+        seats,
+        cancelled,
+        loaded: seatsLoaded,
+    } = useBoatSeats(direction, date);
     const form = useForm<BoatTripPayload>({
         mode: 'scheduled',
         boat_departure_id: null,
@@ -121,6 +125,7 @@ function ChangeBoatTripForm({
                 departures={departuresFor(departures ?? [], direction)}
                 seats={seats}
                 seatsLoaded={seatsLoaded}
+                cancelled={cancelled}
                 bookingSeats={0}
                 error={form.errors.boat_departure_id}
             />

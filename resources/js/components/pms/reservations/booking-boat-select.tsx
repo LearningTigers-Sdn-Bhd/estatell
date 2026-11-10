@@ -26,6 +26,8 @@ type Props = {
     /** Seats taken on each departure for the date, from the server. */
     seats: Record<string, number>;
     seatsLoaded: boolean;
+    /** Departures cancelled on the date: left out of the list. */
+    cancelled?: number[];
     /** This booking's guests on the date: counted in the browser for the over-seats warning only. */
     bookingSeats: number;
     /** A refusal of this trip from the server, shown under the select. */
@@ -44,9 +46,13 @@ export function BookingBoatSelect({
     departures,
     seats,
     seatsLoaded,
+    cancelled = [],
     bookingSeats,
     error,
 }: Props) {
+    const running = departures.filter(
+        (departure) => !cancelled.includes(departure.id),
+    );
     const picked = departures.find(
         (departure) => String(departure.id) === value.value,
     );
@@ -62,7 +68,7 @@ export function BookingBoatSelect({
                 <EnumSelect
                     id={id}
                     aria-label={label}
-                    options={boatOptions(departures, seats, seatsLoaded)}
+                    options={boatOptions(running, seats, seatsLoaded)}
                     value={value.value}
                     onValueChange={(next) =>
                         onChange(choiceOf(next, value.note))

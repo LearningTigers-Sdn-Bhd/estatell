@@ -179,6 +179,7 @@ function SetBoatsRow({
                     departures={departuresFor(departures, 'in')}
                     seats={inSeats.seats}
                     seatsLoaded={inSeats.loaded}
+                    cancelled={inSeats.cancelled}
                     bookingSeats={0}
                 />
             ) : (
@@ -195,6 +196,7 @@ function SetBoatsRow({
                     departures={departuresFor(departures, 'out')}
                     seats={outSeats.seats}
                     seatsLoaded={outSeats.loaded}
+                    cancelled={outSeats.cancelled}
                     bookingSeats={0}
                 />
             ) : (

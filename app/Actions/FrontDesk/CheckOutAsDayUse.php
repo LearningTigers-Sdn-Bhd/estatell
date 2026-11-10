@@ -2,6 +2,7 @@
 
 namespace App\Actions\FrontDesk;
 
+use App\Actions\Boats\SyncBoatTripsToStay;
 use App\Actions\Folio\PostDayUseBlock;
 use App\Data\Reservations\CheckOutCollectData;
 use App\Data\Reservations\CheckOutDamageData;
@@ -22,6 +23,7 @@ class CheckOutAsDayUse
         private PostDayUseBlock $postDayUseBlock,
         private CheckOutAndRefund $checkOutAndRefund,
         private UnpostedAddOnsAfter $unpostedAddOnsAfter,
+        private SyncBoatTripsToStay $syncBoatTripsToStay,
     ) {}
 
     public function __invoke(User $actor, ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, ?CheckOutDamageData $damage = null, ?int $ratePlanId = null, bool $noPlan = false): UnitStayResult
@@ -66,6 +68,8 @@ class CheckOutAsDayUse
             'departure_time' => $quote->blockEnd,
             'rate_plan_id' => $quote->ratePlanId ?? $locked->rate_plan_id,
         ])->save();
+        ($this->syncBoatTripsToStay)($locked, $oldDates['arrival_date'], $oldDates['departure_date']);
+        $locked->forceFill(['arrival_time' => $quote->start, 'departure_time' => $quote->blockEnd])->save();
         event(ReservationChanged::forUnit($locked, $oldDates['arrival_date'], $oldDates['departure_date']));
         $locked->dayUse()->create([
             'date' => $quote->date,

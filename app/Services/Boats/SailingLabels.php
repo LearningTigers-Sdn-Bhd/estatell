@@ -15,7 +15,7 @@ class SailingLabels
     public function title(DateSailing $sailing, bool $withDirection = false): string
     {
         return implode(' · ', array_filter([
-            $withDirection ? $sailing->departure->direction->label() : null,
+            $withDirection ? $sailing->direction->label() : null,
             $this->times($sailing),
             $this->boat($sailing),
             $this->crew($sailing),
@@ -25,7 +25,7 @@ class SailingLabels
     /** "09:00 Kuala Besut jetty → 09:45", with " (changed)" when the sailing has its own time. */
     public function times(DateSailing $sailing): string
     {
-        $text = implode(' ', array_filter([$sailing->leavesAt, $sailing->departure->pickup_point])).' → '.$sailing->arrivesAt;
+        $text = implode(' ', array_filter([$sailing->leavesAt, $sailing->pickupPoint])).' → '.$sailing->arrivesAt;
 
         return $sailing->timeChanged ? $text.' '.__('(changed)') : $text;
     }

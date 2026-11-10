@@ -2,6 +2,7 @@
 
 namespace App\Actions\Boats;
 
+use App\Enums\SailingKind;
 use App\Models\BoatDeparture;
 use App\Models\BoatSailing;
 use App\Models\Property;
@@ -16,7 +17,7 @@ class RemoveSailing
     public function __construct(private DateSailings $dateSailings, private BoatTripUsage $boatTripUsage) {}
 
     /**
-     * Delete an added boat of a departure. The main sailing is not removed here (`sailing_is_main`; Default resets the
+     * Delete an added boat of a departure, or an extra trip with no guests. The main sailing is not removed here (`sailing_is_main`; Default resets the
      * date), a sailing with guests is refused (`sailing_has_guests`), and a date before the business date is read only
      * (`date_closed`). Locks the departure, then the date's sailings. Logs `boat_sailing.removed`.
      */
@@ -29,7 +30,7 @@ class RemoveSailing
         }
 
         if ($sailing->boat_departure_id === null) {
-            return SailingResult::refused(SailingResult::REFUSAL_SAILING_NOT_FOUND);
+            return $this->removeExtra($actor, $property, $sailing);
         }
 
         return DB::transaction(function () use ($actor, $property, $sailing): SailingResult {
@@ -73,6 +74,49 @@ class RemoveSailing
                     'boat_id' => $sailing->boat_id,
                 ])
                 ->log('Boat removed from a departure');
+
+            return SailingResult::done();
+        });
+    }
+
+    /** An extra trip is deleted while it has no guests. It has no main sailing to keep. */
+    private function removeExtra(User $actor, Property $property, BoatSailing $sailing): SailingResult
+    {
+        return DB::transaction(function () use ($actor, $property, $sailing): SailingResult {
+            $locked = BoatSailing::query()
+                ->where('property_id', $property->id)
+                ->whereNull('boat_departure_id')
+                ->where('kind', SailingKind::Guests->value)
+                ->lockForUpdate()
+                ->find($sailing->id);
+
+            if ($locked === null) {
+                return SailingResult::refused(SailingResult::REFUSAL_SAILING_NOT_FOUND);
+            }
+
+            $view = collect($this->dateSailings->extras($property, $locked->date))->first(fn (DateSailing $extra): bool => $extra->sailing?->id === $locked->id);
+            $guests = (int) $this->dateSailings->tripsOn($view)
+                ->join('reservation_units', 'reservation_units.id', '=', 'unit_boat_trips.reservation_unit_id')
+                ->sum(DB::raw('reservation_units.adults + reservation_units.children'));
+
+            if ($guests > 0) {
+                return SailingResult::refused(SailingResult::REFUSAL_SAILING_HAS_GUESTS, $guests);
+            }
+
+            $locked->delete();
+
+            activity()
+                ->performedOn($property)
+                ->causedBy($actor)
+                ->event('boat_sailing.removed')
+                ->withProperties([
+                    'property_id' => $property->id,
+                    'boat_sailing_id' => $locked->id,
+                    'boat_departure_id' => null,
+                    'date' => $locked->date->toDateString(),
+                    'boat_id' => $locked->boat_id,
+                ])
+                ->log('Extra boat trip removed');
 
             return SailingResult::done();
         });

@@ -76,6 +76,30 @@ class DateSailings
     }
 
     /**
+     * The departures among `$departureIds` that are cancelled on the date.
+     *
+     * @param  list<int>  $departureIds
+     * @return list<int>
+     */
+    public function cancelledDepartureIds(array $departureIds, CarbonInterface $date): array
+    {
+        if ($departureIds === []) {
+            return [];
+        }
+
+        return BoatSailing::query()
+            ->whereIn('boat_departure_id', $departureIds)
+            ->whereDate('date', $date->toDateString())
+            ->where('kind', SailingKind::Guests->value)
+            ->whereNotNull('cancelled_at')
+            ->distinct()
+            ->pluck('boat_departure_id')
+            ->map(intval(...))
+            ->values()
+            ->all();
+    }
+
+    /**
      * The trips on a sailing: its own (`boat_sailing_id`), and on the main sailing also the trips of the departure and
      * date with no sailing. Units that hold inventory only.
      *
@@ -84,6 +108,17 @@ class DateSailings
     public function tripsOn(DateSailing $sailing): Builder
     {
         $departure = $sailing->departure;
+
+        if ($departure === null) {
+            return UnitBoatTrip::query()
+                ->where('unit_boat_trips.property_id', $sailing->sailing?->property_id)
+                ->where('unit_boat_trips.direction', $sailing->direction->value)
+                ->where('unit_boat_trips.boat_sailing_id', $sailing->sailing?->id)
+                ->whereIn('unit_boat_trips.reservation_unit_id', ReservationUnit::query()
+                    ->select('id')
+                    ->whereDate($sailing->direction->tripDateColumn(), $sailing->date->toDateString())
+                    ->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory())));
+        }
 
         return UnitBoatTrip::query()
             ->where('unit_boat_trips.property_id', $departure->property_id)
@@ -104,12 +139,56 @@ class DateSailings
     }
 
     /**
+     * The extra trips of the property on the date, by time. An extra trip is a guest sailing with no departure; trips are
+     * moved onto it from the board. Cancelled sailings are never extra trips (an empty one is deleted), so none are left out.
+     *
+     * @return list<DateSailing>
+     */
+    public function extras(Property $property, CarbonInterface $date): array
+    {
+        return BoatSailing::query()
+            ->where('property_id', $property->id)
+            ->whereDate('date', $date->toDateString())
+            ->where('kind', SailingKind::Guests->value)
+            ->whereNull('boat_departure_id')
+            ->with(['boat', 'crew'])
+            ->orderBy('leaves_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (BoatSailing $sailing): DateSailing => new DateSailing(
+                departure: null,
+                direction: $sailing->direction,
+                pickupPoint: $sailing->pickup_point,
+                date: $sailing->date,
+                sailing: $sailing,
+                isMain: false,
+                boat: $sailing->boat,
+                crew: $sailing->crew,
+                leavesAt: substr((string) $sailing->leaves_at, 0, 5),
+                arrivesAt: substr((string) ($sailing->arrives_at ?? $sailing->leaves_at), 0, 5),
+                timeChanged: false,
+                seats: $sailing->boat?->seats,
+            ))
+            ->values()
+            ->all();
+    }
+
+    /**
      * The sailing a trip is on: the one it was moved to, else the main sailing of its departure.
      *
      * @param  array<int, list<DateSailing>>  $sailingsByDeparture  From `forDate()`, for the trip's date.
+     * @param  list<DateSailing>  $extras  From `extras()`, for the trip's date.
      */
-    public function sailingOf(UnitBoatTrip $trip, array $sailingsByDeparture): ?DateSailing
+    public function sailingOf(UnitBoatTrip $trip, array $sailingsByDeparture, array $extras = []): ?DateSailing
     {
+        if ($trip->boat_sailing_id !== null) {
+            foreach ($extras as $extra) {
+                if ($extra->sailing?->id === $trip->boat_sailing_id) {
+                    return $extra;
+                }
+            }
+        }
+
         $list = $sailingsByDeparture[$trip->boat_departure_id] ?? [];
 
         if ($trip->boat_sailing_id !== null) {
@@ -127,6 +206,8 @@ class DateSailings
     {
         return new DateSailing(
             departure: $departure,
+            direction: $departure->direction,
+            pickupPoint: $departure->pickup_point,
             date: $date,
             sailing: null,
             isMain: true,
@@ -146,6 +227,8 @@ class DateSailings
 
         return new DateSailing(
             departure: $departure,
+            direction: $departure->direction,
+            pickupPoint: $departure->pickup_point,
             date: $sailing->date,
             sailing: $sailing,
             isMain: $isMain,

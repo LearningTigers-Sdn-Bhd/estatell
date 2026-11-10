@@ -2,12 +2,13 @@
 
 namespace App\Data\Boats;
 
+use App\Enums\BoatDirection;
 use Spatie\LaravelData\Data;
 
 /**
  * What staff set on a sailing: the boat, one person in charge and the assistants. Times (`H:i`) are only changed when
  * `setsTimes` is true; then both are given, or both are null to go back to the timetable. `SaveSailing` and
- * `AddSailingBoat` check them.
+ * `AddSailingBoat` check them. `direction` and `pickupPoint` are for an extra trip (`AddExtraSailing`), which has no departure.
  */
 class SailingData extends Data
 {
@@ -21,6 +22,8 @@ class SailingData extends Data
         public bool $setsTimes = false,
         public ?string $leavesAt = null,
         public ?string $arrivesAt = null,
+        public ?BoatDirection $direction = null,
+        public ?string $pickupPoint = null,
     ) {}
 
     /**

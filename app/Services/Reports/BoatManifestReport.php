@@ -51,6 +51,7 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
         $rows = [];
         $positions = [];
         $sailings = $this->dateSailings->forDate($property, CarbonImmutable::parse($filters->from), withCancelled: true);
+        $extras = $this->dateSailings->extras($property, CarbonImmutable::parse($filters->from));
 
         foreach ($directions as $direction) {
             $trips = $this->trips($property, $filters->from, $direction);
@@ -71,10 +72,10 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
                     ->orderBy('id'),
                 null,
                 $rooms,
-                function (ReservationUnit $unit, ?string $room) use ($tripByUnit, $direction, $sailings, &$positions): BoatManifestRow {
+                function (ReservationUnit $unit, ?string $room) use ($tripByUnit, $direction, $sailings, $extras, &$positions): BoatManifestRow {
                     $trip = $tripByUnit[$unit->id];
                     $time = $direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time;
-                    $sailing = $trip->mode === BoatMode::Scheduled ? $this->dateSailings->sailingOf($trip, $sailings) : null;
+                    $sailing = $trip->mode === BoatMode::Scheduled ? $this->dateSailings->sailingOf($trip, $sailings, $extras) : null;
                     $positions[$trip->id] = $this->position($trip, $time, $sailing);
 
                     return BoatManifestRow::fromModel($trip, $unit, $room, $sailing === null ? null : $this->sailingDetails($sailing));
@@ -232,7 +233,8 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
         $directions = $filters->bothDirections ? [BoatDirection::Out, BoatDirection::In] : [$filters->direction ?? BoatDirection::In];
         $sailings = collect($this->dateSailings->forDate($property, CarbonImmutable::parse($filters->from)))
             ->flatten()
-            ->filter(fn (DateSailing $sailing): bool => in_array($sailing->departure->direction, $directions, true))
+            ->merge($this->dateSailings->extras($property, CarbonImmutable::parse($filters->from)))
+            ->filter(fn (DateSailing $sailing): bool => in_array($sailing->direction, $directions, true))
             ->sortBy(fn (DateSailing $sailing): array => [$sailing->leavesAt, $sailing->sortId()])
             ->values();
         $departures = BoatDeparture::query()
@@ -256,8 +258,8 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
         foreach ($sailings as $sailing) {
             $group = $rowsByGroup[$sailing->key()] ?? [];
 
-            if ($group !== [] || $sailing->departure->active) {
-                $sections[] = $this->printSection($sailing->departure->direction->value, str_replace(':', '', $sailing->leavesAt), $sailing->departure->pickup_point, $group, $this->labels->boat($sailing), $sailing->crew->map(fn ($member): array => ['name' => $member->name, 'in_charge' => (bool) $member->pivot->in_charge])->values()->all());
+            if ($group !== [] || $sailing->departure === null || $sailing->departure->active) {
+                $sections[] = $this->printSection($sailing->direction->value, str_replace(':', '', $sailing->leavesAt), $sailing->pickupPoint, $group, $this->labels->boat($sailing), $sailing->crew->map(fn ($member): array => ['name' => $member->name, 'in_charge' => (bool) $member->pivot->in_charge])->values()->all());
             }
         }
 

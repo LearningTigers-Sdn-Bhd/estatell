@@ -15,6 +15,8 @@ use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
 use App\Services\Boats\BoatTripAccess;
+use App\Services\Boats\DateSailings;
+use App\Services\Boats\SailingTimes;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
@@ -24,6 +26,8 @@ class SetBoatTrip
         private BoatTripAccess $boatTripAccess,
         private SyncBoatFare $syncBoatFare,
         private AddUnitAddOn $addUnitAddOn,
+        private SailingTimes $sailingTimes,
+        private DateSailings $dateSailings,
     ) {}
 
     /**
@@ -77,12 +81,25 @@ class SetBoatTrip
             return BoatTripResult::refused(BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND);
         }
 
+        $tripDate = $locked->{$data->direction->tripDateColumn()};
+
+        if ($departure !== null && $this->dateSailings->cancelledDepartureIds([$departure->id], $tripDate) !== []) {
+            return BoatTripResult::refused(
+                BoatTripResult::REFUSAL_DEPARTURE_CANCELLED,
+                __('The :time boat :direction does not run on :date.', [
+                    'time' => substr($departure->leaves_at, 0, 5),
+                    'direction' => $data->direction->value,
+                    'date' => $tripDate->format('j M'),
+                ]),
+            );
+        }
+
         if (! $data->mode->needsDeparture() && blank($data->time)) {
             return BoatTripResult::refused(BoatTripResult::REFUSAL_TIME_REQUIRED);
         }
 
         $time = $data->mode->needsDeparture()
-            ? $data->direction->propertyTime($departure)
+            ? $this->sailingTimes->forTrip($departure, $tripDate)
             : substr((string) $data->time, 0, 5).':00';
         $boatDepartureId = $data->mode->needsDeparture() ? $departure->id : null;
         $note = filled($data->note) ? trim((string) $data->note) : null;

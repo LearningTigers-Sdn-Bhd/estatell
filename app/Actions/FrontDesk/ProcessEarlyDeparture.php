@@ -2,6 +2,7 @@
 
 namespace App\Actions\FrontDesk;
 
+use App\Actions\Boats\SyncBoatTripsToStay;
 use App\Enums\SystemTransactionCode;
 use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
@@ -21,6 +22,7 @@ class ProcessEarlyDeparture
         private PolicyChargeCalculator $policyChargeCalculator,
         private PostUnitPolicyFee $postUnitPolicyFee,
         private UnpostedAddOnsAfter $unpostedAddOnsAfter,
+        private SyncBoatTripsToStay $syncBoatTripsToStay,
     ) {}
 
     /**
@@ -99,6 +101,7 @@ class ProcessEarlyDeparture
             }
 
             $unit->save();
+            ($this->syncBoatTripsToStay)($unit, $previousArrival, $previousDeparture);
             event(ReservationChanged::forUnit($unit, $previousArrival, $previousDeparture));
 
             return StayDatesResult::done($unit, $fee, $postsFee);

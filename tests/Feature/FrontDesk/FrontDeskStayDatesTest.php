@@ -3,8 +3,11 @@
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\ExtendStay;
+use App\Actions\FrontDesk\ProcessEarlyDeparture;
 use App\Actions\FrontDesk\StayDatesResult;
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Enums\ChargingUnit;
 use App\Enums\PackageUnit;
 use App\Enums\PolicyScope;
@@ -13,6 +16,8 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Events\ReservationChanged;
 use App\Events\StayDatesChanged;
+use App\Models\BoatDeparture;
+use App\Models\BoatSailing;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\FolioLine;
@@ -28,6 +33,7 @@ use App\Models\RoomRevenuePolicy;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
+use App\Models\UnitBoatTrip;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -490,4 +496,74 @@ test('extending the stay or the departure time tells the door locks', function (
 
     expect(lateCheckout(lateCheckoutSetup())->isRefused())->toBeFalse();
     Event::assertDispatchedTimes(StayDatesChanged::class, 2);
+});
+
+/**
+ * A scheduled boat trip for the unit, on a departure of its direction (Boat in 09:00 → 09:45, Boat out 08:00 → 08:30),
+ * moved onto a sailing of its date and ticked.
+ *
+ * @param  array{property: Property, actor: User, unit: ReservationUnit}  $setup
+ */
+function datesBoatTrip(array $setup, BoatDirection $direction): UnitBoatTrip
+{
+    $departure = BoatDeparture::factory()->for($setup['property'])->create($direction === BoatDirection::In
+        ? ['direction' => $direction, 'leaves_at' => '09:00', 'arrives_at' => '09:45']
+        : ['direction' => $direction, 'leaves_at' => '08:00', 'arrives_at' => '08:30']);
+    $sailing = BoatSailing::factory()->forDeparture($departure)->create(['date' => $setup['unit']->{$direction->tripDateColumn()}->toDateString()]);
+
+    return UnitBoatTrip::factory()->create([
+        'property_id' => $setup['property']->id,
+        'reservation_unit_id' => $setup['unit']->id,
+        'direction' => $direction,
+        'boat_departure_id' => $departure->id,
+        'boat_sailing_id' => $sailing->id,
+        'ticked_at' => now(),
+        'ticked_by' => $setup['actor']->id,
+    ]);
+}
+
+test('moving the arrival takes the Boat in trip off its sailing and gives the unit the new date\'s boat time', function () {
+    $setup = datesSetup();
+    $in = datesBoatTrip($setup, BoatDirection::In);
+    $out = datesBoatTrip($setup, BoatDirection::Out);
+    BoatSailing::factory()->forDeparture($in->boatDeparture)->create(['date' => today()->addDays(2)->toDateString(), 'leaves_at' => '10:00:00', 'arrives_at' => '10:45:00']);
+
+    expect(changeDates($setup, arrival: today()->addDays(2))->isRefused())->toBeFalse();
+
+    expect($in->refresh()->boat_sailing_id)->toBeNull()
+        ->and($in->ticked_at)->toBeNull()
+        ->and($setup['unit']->refresh()->arrival_time)->toBe('10:45:00')
+        ->and($out->refresh()->boat_sailing_id)->not->toBeNull()
+        ->and($out->ticked_at)->not->toBeNull();
+});
+
+test('shortening the stay moves the Boat out trip to the main sailing of the new date', function () {
+    $setup = datesSetup();
+    $out = datesBoatTrip($setup, BoatDirection::Out);
+    $setup['unit']->forceFill(['departure_time' => '08:30:00'])->save();
+
+    expect(changeDates($setup, departure: today()->addDays(3))->isRefused())->toBeFalse();
+
+    expect($out->refresh()->boat_sailing_id)->toBeNull()
+        ->and($out->ticked_at)->toBeNull()
+        ->and($setup['unit']->refresh()->departure_time)->toBe('08:00:00');
+});
+
+test('the early departure Action moves the Boat out trip with the new date, and a charter trip keeps its typed time', function () {
+    $setup = datesSetup();
+    $out = datesBoatTrip($setup, BoatDirection::Out);
+    $setup['unit']->forceFill(['departure_time' => '11:30:00'])->save();
+
+    $result = app(ProcessEarlyDeparture::class)($setup['actor'], $setup['unit'], today()->addDays(3)->toImmutable(), applyPolicy: false);
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($out->refresh()->boat_sailing_id)->toBeNull()
+        ->and($setup['unit']->refresh()->departure_time)->toBe('08:00:00');
+
+    $out->forceFill(['mode' => BoatMode::Charter, 'boat_departure_id' => null])->save();
+    $setup['unit']->forceFill(['departure_time' => '11:30:00'])->save();
+
+    app(ProcessEarlyDeparture::class)($setup['actor'], $setup['unit'], today()->addDays(2)->toImmutable(), applyPolicy: false);
+
+    expect($setup['unit']->refresh()->departure_time)->toBe('11:30:00');
 });

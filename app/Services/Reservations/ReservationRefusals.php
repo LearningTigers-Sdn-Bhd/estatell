@@ -102,7 +102,7 @@ class ReservationRefusals
      *
      * @return array<string, string>
      */
-    public function boatTripErrors(string $code): array
+    public function boatTripErrors(string $code, ?string $detail = null): array
     {
         [$field, $message] = match ($code) {
             BoatTripResult::REFUSAL_BOATS_OFF => [self::FORM, __('Boats is not on for this property.')],
@@ -110,6 +110,7 @@ class ReservationRefusals
             BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND => ['boat_departure_id', __('This boat is not available for this direction. Choose another.')],
             BoatTripResult::REFUSAL_TIME_REQUIRED => ['time', __('Enter the time.')],
             BoatTripResult::REFUSAL_DAY_USE => [self::FORM, __('Day use bookings have no boat trips.')],
+            BoatTripResult::REFUSAL_DEPARTURE_CANCELLED => ['boat_departure_id', $detail ?? __('This boat does not run on that date. Choose another.')],
             BoatTripResult::REFUSAL_FARE_NOT_FOUND => ['boat_departure_id', __("This boat's fare is not available. Turn it on or change the departure's fare.")],
             default => [self::FORM, __('This change was refused.')],
         };
@@ -123,9 +124,9 @@ class ReservationRefusals
      *
      * @return array<string, string>
      */
-    public function boatTripsErrors(string $code, string $unitLabel): array
+    public function boatTripsErrors(string $code, string $unitLabel, ?string $detail = null): array
     {
-        return [self::FORM => $unitLabel.': '.current($this->boatTripErrors($code))];
+        return [self::FORM => $unitLabel.': '.current($this->boatTripErrors($code, $detail))];
     }
 
     /**
