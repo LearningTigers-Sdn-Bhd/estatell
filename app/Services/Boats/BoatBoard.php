@@ -4,6 +4,7 @@ namespace App\Services\Boats;
 
 use App\Data\Boats\BoatBoardGroupData;
 use App\Data\Boats\BoatPickData;
+use App\Data\Boats\BoatSailingCrewData;
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
@@ -137,6 +138,23 @@ class BoatBoard
         return collect($this->groups($property, $date, 'both'))
             ->filter(fn (BoatBoardGroupData $group): bool => $group->kind === 'sailing' && ! $group->cancelled && ! $group->isExtra && $group->departureId !== null)
             ->map(fn (BoatBoardGroupData $group): BoatPickData => BoatPickData::fromGroup($group))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The boat and crew of every running sailing of the date, both directions and extra trips included, whatever tab is
+     * open. Reads the sailings only, not the guests.
+     *
+     * @return list<BoatSailingCrewData>
+     */
+    public function sailingCrews(Property $property, CarbonImmutable $date): array
+    {
+        return collect($this->dateSailings->forDate($property, $date))
+            ->flatten()
+            ->merge($this->dateSailings->extras($property, $date))
+            ->reject(fn (DateSailing $sailing): bool => $sailing->cancelled)
+            ->map(fn (DateSailing $sailing): BoatSailingCrewData => BoatSailingCrewData::fromSailing($sailing))
             ->values()
             ->all();
     }

@@ -22,12 +22,15 @@ type Props = {
     dateLabel: string;
     boats: Boat[];
     crew: CrewMember[];
+    /** The boat and crew of every running sailing of the date: those of the other sailings at the same time are hidden. */
+    sailingCrews: App.Data.Boats.BoatSailingCrewData[];
 };
 
 /**
  * Change boat and crew: the Boat, the person In charge and the Assistants of one sailing, saved through `SaveSailing`.
  * The same Dialog adds a boat to a departure (`AddSailingBoat`), which needs a boat. The server refuses a boat or crew
- * member that is unavailable, and that shows as a toast.
+ * member that is unavailable, and that shows as a toast. A boat or crew member already on another sailing that leaves
+ * at the same time, Boat in or Boat out, is not listed.
  */
 export function BoatSailingDialog(props: Props) {
     return <BoatSailingForm key={useFreshOnOpen(props.open)} {...props} />;
@@ -42,6 +45,7 @@ function BoatSailingForm({
     dateLabel,
     boats,
     crew,
+    sailingCrews,
 }: Props) {
     const isAdd = mode === 'add';
     const form = useForm({
@@ -62,13 +66,22 @@ function BoatSailingForm({
                   ...group.assistantIds,
               ],
     );
+    const sameTime = sailingCrews.filter(
+        (sailing) =>
+            sailing.time === group.time && (isAdd || sailing.key !== group.key),
+    );
+    const takenBoats = new Set(sameTime.map((sailing) => sailing.boatId));
+    const takenCrew = new Set(sameTime.flatMap((sailing) => sailing.crewIds));
     const people = crew.filter(
-        (member) => member.active || current.has(member.id),
+        (member) =>
+            (member.active || current.has(member.id)) &&
+            !takenCrew.has(member.id),
     );
     const personLabel = (member: CrewMember) =>
         member.active ? member.name : `${member.name} (unavailable)`;
     const boatOptions: EnumOption[] = boats
         .filter((boat) => boat.active || boat.id === group.boatId)
+        .filter((boat) => !takenBoats.has(boat.id))
         .map((boat) => ({
             value: String(boat.id),
             label: boat.active ? boat.name : `${boat.name} (unavailable)`,

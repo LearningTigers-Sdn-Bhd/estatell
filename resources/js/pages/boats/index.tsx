@@ -86,6 +86,7 @@ type Props = {
     crew: App.Data.Boats.BoatCrewMemberData[];
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
     boatPicks?: App.Data.Boats.BoatPickData[];
+    sailingCrews: App.Data.Boats.BoatSailingCrewData[];
     layout: App.Data.Reports.ReportLayoutData;
     orientationOptions: EnumOption[];
     can: { manage: boolean; columns: boolean };
@@ -162,6 +163,7 @@ export default function BoatsIndex({
     crew,
     boatDepartures,
     boatPicks,
+    sailingCrews,
     layout,
     orientationOptions,
     can,
@@ -570,6 +572,7 @@ export default function BoatsIndex({
                     dateLabel={dayLabel(date)}
                     boats={boats}
                     crew={crew}
+                    sailingCrews={sailingCrews}
                 />
             )}
 

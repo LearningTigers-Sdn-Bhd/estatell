@@ -45,6 +45,7 @@ class BoatBoardController extends Controller
             'crew' => BoatCrewMember::query()->where('property_id', $property->id)->orderBy('name')->get()->map(fn (BoatCrewMember $member): BoatCrewMemberData => BoatCrewMemberData::fromModel($member))->all(),
             'boatDepartures' => Inertia::optional(fn () => $options->boatDepartures($property)),
             'boatPicks' => Inertia::optional(fn () => $board->picks($property, $date)),
+            'sailingCrews' => $hasDepartures ? $board->sailingCrews($property, $date) : [],
             'layout' => $layoutResolver->resolve($property, ReportKey::BoatManifest),
             'orientationOptions' => PageOrientation::options(),
             'can' => [

@@ -133,6 +133,8 @@ Change boat and crew · Boat in 09:00 · 11 Nov     ×
 
 A Dialog (`FormOverlay`, `sm`). The selects work as in the departure Sheet ([Add or edit departure](01-boat-settings.md#add-or-edit-departure)), with each crew member's phone under the name.
 
+- A boat or crew member already on another sailing that leaves at the same time on that date, Boat in or Boat out, extra trips included, is not listed. Add boat hides those of every sailing at that time. The board sends each running sailing's boat and crew as `sailingCrews`. The server does not refuse a double booking; this is a picker filter only.
+
 ### Crew pickers
 
 **In charge** and **Assistants** show each crew member's phone (`boat_crew_members.phone`) as a muted second line under the name. A crew member with no phone shows the name only. This applies to Change boat and crew, Trip or job and the departure Sheet in Settings. No schema change.
