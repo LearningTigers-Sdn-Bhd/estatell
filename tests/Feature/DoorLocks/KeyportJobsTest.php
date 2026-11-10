@@ -5,6 +5,7 @@ use App\Enums\KeyportJobType;
 use App\Models\KeyportDevice;
 use App\Models\KeyportJob;
 use App\Models\Property;
+use Illuminate\Support\Sleep;
 use Illuminate\Testing\TestResponse;
 
 require_once __DIR__.'/../Support/KeyportSetup.php';
@@ -52,7 +53,7 @@ it('hands over a job in property time and starts its lease', function () {
     ['token' => $token, 'property' => $property, 'device' => $device] = keyportSetup();
     $job = KeyportJob::factory()->for($property)->create();
 
-    keyportClaim($token)->assertOk()
+    keyportClaim($token, ['long_poll' => false])->assertOk()
         ->assertJsonPath('id', $job->public_id)
         ->assertJsonPath('type', 'guest_card.issue')
         ->assertJsonPath('expires_at', '2026-10-14 20:10:00')
@@ -63,6 +64,38 @@ it('hands over a job in property time and starts its lease', function () {
     expect($job->status)->toBe(KeyportJobStatus::Claimed)
         ->and($job->device_id)->toBe($device->id)
         ->and($job->lease_until->toIso8601String())->toBe(now()->addSeconds(120)->toIso8601String());
+});
+
+it('returns immediately when the agent opts out of long polling', function () {
+    ['token' => $token, 'property' => $property] = keyportSetup();
+    config(['keyport.poll_seconds' => 25]);
+    Sleep::fake();
+    Sleep::whenFakingSleep(fn () => KeyportJob::factory()->for($property)->create());
+
+    keyportClaim($token, ['long_poll' => false])->assertNoContent();
+
+    Sleep::assertNeverSlept();
+});
+
+it('keeps long polling for agents that do not opt out', function (array $health) {
+    ['token' => $token, 'property' => $property] = keyportSetup();
+    config(['keyport.poll_seconds' => 25]);
+    Sleep::fake();
+    Sleep::whenFakingSleep(fn () => KeyportJob::factory()->for($property)->create());
+
+    keyportClaim($token, $health)->assertOk()->assertJsonPath('type', 'guest_card.issue');
+
+    Sleep::assertSleptTimes(1);
+})->with(['legacy' => [[]], 'explicit' => [['long_poll' => true]]]);
+
+it('returns 422 for an invalid polling mode without recording a heartbeat', function () {
+    ['token' => $token, 'device' => $device] = keyportSetup();
+    $lastSeen = $device->last_seen_at;
+
+    keyportClaim($token, ['long_poll' => 'invalid'])->assertUnprocessable()
+        ->assertJsonPath('error.code', 'invalid_request');
+
+    expect($device->refresh()->last_seen_at)->toEqual($lastSeen);
 });
 
 it('gives a job to one device only', function () {

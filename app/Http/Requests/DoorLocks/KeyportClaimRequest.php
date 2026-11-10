@@ -20,6 +20,7 @@ class KeyportClaimRequest extends KeyportRequest
             'readers.*.state' => ['required', 'string', 'max:20'],
             'client_code_present' => ['sometimes', 'boolean'],
             'busy' => ['sometimes', 'boolean'],
+            'long_poll' => ['sometimes', 'boolean'],
         ];
     }
 }

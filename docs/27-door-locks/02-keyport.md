@@ -64,7 +64,8 @@ A room has one lock (unique per property and room), so one room is either TTLock
 - A claimed card write whose lease (120 s) ends with no result becomes `uncertain` and is never offered again. A read becomes `failed`.
 - A pending job past `expires_at` becomes `expired` and is never offered.
 - A result is idempotent. The same result again answers `204`. A different result for a finished job answers `409 job_already_finished`.
-- A claim waits up to `keyport.poll_seconds` (25) for work. This holds one PHP worker per connected PC. Set `KEYPORT_POLL_SECONDS` lower if workers run short.
+- Updated agents send `long_poll: false`. Estatell checks once and responds immediately; after `204` the agent waits two seconds locally before checking again. Idle agents no longer occupy a PHP worker. A ready job is returned immediately; a job queued between checks waits up to two seconds, plus request time.
+- Agents that omit `long_poll` or send `true` retain the legacy wait of up to `keyport.poll_seconds` (25). Each legacy agent can hold one PHP worker. Deploy the server and rebuild/restart Keyport to remove that load; deploying only the server does not fix older agents. New agents also work against older servers, which ignore the field and still long poll. Do not set `KEYPORT_POLL_SECONDS=0` while older agents remain: they immediately re-poll empty responses.
 
 ## Not built yet
 

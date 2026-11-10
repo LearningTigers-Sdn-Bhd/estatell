@@ -15,9 +15,10 @@ use App\Models\KeyportDevice;
 use App\Models\KeyportJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Sleep;
 
 /**
- * The Keyport PC's job calls. A claim is also the heartbeat, and it waits (long poll) up to `keyport.poll_seconds`.
+ * The Keyport PC's job calls. New agents wait locally between empty claims; older agents still long poll.
  */
 class KeyportJobController extends Controller
 {
@@ -32,7 +33,8 @@ class KeyportJobController extends Controller
             return response()->noContent();
         }
 
-        $deadline = hrtime(true) / 1e9 + (int) config('keyport.poll_seconds');
+        $waitSeconds = $request->boolean('long_poll', true) ? (int) config('keyport.poll_seconds') : 0;
+        $deadline = hrtime(true) / 1e9 + $waitSeconds;
 
         do {
             $job = $claim($device);
@@ -45,7 +47,7 @@ class KeyportJobController extends Controller
                 break;
             }
 
-            sleep(1);
+            Sleep::sleep(1);
         } while (true);
 
         return response()->noContent();
