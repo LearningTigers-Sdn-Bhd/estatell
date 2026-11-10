@@ -73,6 +73,7 @@ type Props = {
     boats: App.Data.Boats.BoatData[];
     crew: App.Data.Boats.BoatCrewMemberData[];
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
+    boatPicks?: App.Data.Boats.BoatPickData[];
     layout: App.Data.Reports.ReportLayoutData;
     orientationOptions: EnumOption[];
     can: { manage: boolean; columns: boolean };
@@ -148,6 +149,7 @@ export default function BoatsIndex({
     boats,
     crew,
     boatDepartures,
+    boatPicks,
     layout,
     orientationOptions,
     can,
@@ -663,6 +665,10 @@ export default function BoatsIndex({
                     }}
                     direction={setBoat.row.direction as 'in' | 'out'}
                     departures={boatDepartures}
+                    boats={{
+                        picks: boatPicks,
+                        boatKey: setBoat.row.sailing_key,
+                    }}
                 />
             )}
         </>

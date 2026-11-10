@@ -1,4 +1,5 @@
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import {
     boatOptions,
     choiceOf,
@@ -32,6 +33,8 @@ type Props = {
     bookingSeats: number;
     /** A refusal of this trip from the server, shown under the select. */
     error?: string;
+    /** Options that replace the departures, for the Boat Trips board, which lists each boat of the date. */
+    options?: EnumOption[];
 };
 
 /**
@@ -49,6 +52,7 @@ export function BookingBoatSelect({
     cancelled = [],
     bookingSeats,
     error,
+    options,
 }: Props) {
     const running = departures.filter(
         (departure) => !cancelled.includes(departure.id),
@@ -68,7 +72,9 @@ export function BookingBoatSelect({
                 <EnumSelect
                     id={id}
                     aria-label={label}
-                    options={boatOptions(running, seats, seatsLoaded)}
+                    options={
+                        options ?? boatOptions(running, seats, seatsLoaded)
+                    }
                     value={value.value}
                     onValueChange={(next) =>
                         onChange(choiceOf(next, value.note))

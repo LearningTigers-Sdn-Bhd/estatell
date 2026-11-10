@@ -293,3 +293,51 @@ test('only users who manage reservations change the schedule, and another proper
         ->and(BoatSailing::query()->whereKey($extra->id)->exists())->toBeTrue()
         ->and(BoatDeparture::query()->count())->toBeGreaterThan(0);
 });
+
+test('Change boat on the board puts the trip on the picked boat of the departure and back on the main one', function () {
+    $setup = sailingSetup();
+    $trip = sailingTrip($setup, $setup['departure']);
+    $trip->forceFill(['ticked_at' => now(), 'ticked_by' => $setup['owner']->id])->save();
+    $code = $setup['property']->code;
+    $this->actingAs($setup['owner']);
+    $this->post(route('boats.sailings.store', $code), ['boat_departure_id' => $setup['departure']->id, 'date' => '2026-10-20', 'boat_id' => $setup['spare']->id, 'in_charge_id' => $setup['razak']->id, 'assistant_ids' => []])->assertSessionHasNoErrors();
+    $added = BoatSailing::query()->where('boat_id', $setup['spare']->id)->sole();
+    $setUrl = route('reservations.units.boat-trips.set', ['property' => $code, 'reservation' => $trip->reservationUnit->reservation_id, 'unit' => $trip->reservation_unit_id, 'direction' => 'in']);
+
+    $this->get(route('boats.index', ['property' => $code, 'date' => '2026-10-20']), ['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'boats/index', 'X-Inertia-Partial-Data' => 'boatPicks', 'X-Inertia-Version' => Inertia\Inertia::getVersion()])
+        ->assertJsonPath('props.boatPicks.0.boat', 'MV Sand Bay 1')
+        ->assertJsonPath('props.boatPicks.0.taken', 2)
+        ->assertJsonPath('props.boatPicks.1.sailingId', $added->id)
+        ->assertJsonPath('props.boatPicks.1.boat', 'MV Sand Bay 2')
+        ->assertJsonPath('props.boatPicks.2.departureId', $setup['other']->id)
+        ->assertJsonCount(3, 'props.boatPicks');
+
+    $this->put($setUrl, ['mode' => 'scheduled', 'boat_departure_id' => $setup['departure']->id, 'boat_sailing_id' => $added->id])->assertSessionHasNoErrors();
+
+    expect($trip->refresh()->boat_sailing_id)->toBe($added->id)
+        ->and($trip->ticked_at)->toBeNull();
+
+    $this->put($setUrl, ['mode' => 'scheduled', 'boat_departure_id' => $setup['departure']->id, 'boat_sailing_id' => null])->assertSessionHasNoErrors();
+
+    expect($trip->refresh()->boat_sailing_id)->toBeNull();
+});
+
+test('a boat of another departure is refused, and a set without a boat keeps the boat and the note', function () {
+    $setup = sailingSetup();
+    $trip = sailingTrip($setup, $setup['departure']);
+    $code = $setup['property']->code;
+    $this->actingAs($setup['owner']);
+    $this->post(route('boats.sailings.store', $code), ['boat_departure_id' => $setup['departure']->id, 'date' => '2026-10-20', 'boat_id' => $setup['spare']->id, 'in_charge_id' => $setup['razak']->id, 'assistant_ids' => []])->assertSessionHasNoErrors();
+    $added = BoatSailing::query()->where('boat_id', $setup['spare']->id)->sole();
+    $trip->forceFill(['boat_sailing_id' => $added->id, 'note' => 'Late ferry'])->save();
+    $setUrl = route('reservations.units.boat-trips.set', ['property' => $code, 'reservation' => $trip->reservationUnit->reservation_id, 'unit' => $trip->reservation_unit_id, 'direction' => 'in']);
+
+    $this->put($setUrl, ['mode' => 'scheduled', 'boat_departure_id' => $setup['other']->id, 'boat_sailing_id' => $added->id])->assertSessionHasErrors('boat_departure_id');
+
+    expect($trip->refresh()->boat_departure_id)->toBe($setup['departure']->id);
+
+    $this->put($setUrl, ['mode' => 'scheduled', 'boat_departure_id' => $setup['departure']->id])->assertSessionHasNoErrors();
+
+    expect($trip->refresh()->boat_sailing_id)->toBe($added->id)
+        ->and($trip->note)->toBe('Late ferry');
+});

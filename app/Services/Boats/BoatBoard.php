@@ -3,6 +3,7 @@
 namespace App\Services\Boats;
 
 use App\Data\Boats\BoatBoardGroupData;
+use App\Data\Boats\BoatPickData;
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
@@ -117,6 +118,21 @@ class BoatBoard
         $live = array_values(array_filter($list, fn (DateSailing $sailing): bool => ! $sailing->cancelled));
 
         return $live === [] ? array_slice($list, 0, 1) : $live;
+    }
+
+    /**
+     * The boats of a date the Change boat Dialog lists, both directions, in time order: every running sailing of a
+     * departure. Extra trips are left out, because a trip on one keeps its booked departure (Move to puts guests there).
+     *
+     * @return list<BoatPickData>
+     */
+    public function picks(Property $property, CarbonImmutable $date): array
+    {
+        return collect($this->groups($property, $date, 'both'))
+            ->filter(fn (BoatBoardGroupData $group): bool => $group->kind === 'sailing' && ! $group->cancelled && ! $group->isExtra && $group->departureId !== null)
+            ->map(fn (BoatBoardGroupData $group): BoatPickData => BoatPickData::fromGroup($group))
+            ->values()
+            ->all();
     }
 
     public function hasDepartures(Property $property): bool

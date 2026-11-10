@@ -192,6 +192,16 @@ assistantIds: number[],
 isStored: boolean,
 otherBoats: number,
 };
+export type BoatPickData = {
+key: string,
+direction: string,
+departureId: number,
+sailingId: number | null,
+time: string,
+boat: string | null,
+taken: number,
+seats: number | null,
+};
 export type BoatSetupUnitData = {
 id: number,
 label: string,
@@ -211,6 +221,8 @@ mode: App.Enums.BoatMode,
 boatDepartureId: number | null,
 time: string | null,
 note: string | null,
+boatSailingId: number | null,
+pickedSailing: boolean,
 };
 export type SailingData = {
 boatId: number | null,
@@ -3513,6 +3525,7 @@ search: string | null,
 bothDirections: boolean,
 boatNotSet: boolean,
 dateBasis: App.Enums.PaymentDateBasis,
+boatGroup: string | null,
 };
 export type ReportLayoutColumnData = {
 key: string,

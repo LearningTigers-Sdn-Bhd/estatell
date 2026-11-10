@@ -9,6 +9,7 @@ type OptionProp =
     | 'paymentOptions'
     | 'companies'
     | 'boatDepartures'
+    | 'boatPicks'
     | 'boatSetup'
     | 'manualFolios'
     | 'manualTaxes';
@@ -46,6 +47,7 @@ export const KEEP_OPTIONS = [
     'paymentOptions',
     'companies',
     'boatDepartures',
+    'boatPicks',
     'boatSetup',
     'manualFolios',
     'manualTaxes',

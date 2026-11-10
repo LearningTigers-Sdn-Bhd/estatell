@@ -8,12 +8,15 @@ import {
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { BookingBoatSelect } from '@/components/pms/reservations/booking-boat-select';
 import {
+    boatPickOptions,
+    boatPickPayload,
     boatTripPayload,
     choiceFromTrip,
     departuresFor,
     isTimed,
     type BoatChoice,
     type BoatDeparture,
+    type BoatPick,
     type BoatDirection,
     type BoatTripPayload,
 } from '@/components/pms/reservations/boat-trips';
@@ -44,6 +47,11 @@ type Props = {
     direction: BoatDirection;
     /** The available departures, or undefined while they load on open. */
     departures: BoatDeparture[] | undefined;
+    /**
+     * The Boat Trips board lists each boat of the date instead of each departure, so staff pick Boat 1 or Boat 2 of
+     * one time. Undefined while they load. `boatKey` is the board group the row is on now.
+     */
+    boats?: { picks: BoatPick[] | undefined; boatKey: string | null };
 };
 
 /**
@@ -62,12 +70,15 @@ function ChangeBoatTripForm({
     unit,
     direction,
     departures,
+    boats,
 }: Props) {
     const trip = direction === 'in' ? unit.boatIn : unit.boatOut;
     const stayTime = direction === 'in' ? unit.arrivalTime : unit.departureTime;
     const date = direction === 'in' ? unit.arrival : unit.departure;
     const [choice, setChoice] = useState<BoatChoice>(() =>
-        choiceFromTrip(trip),
+        boats !== undefined && trip?.mode === 'scheduled'
+            ? { value: boats.boatKey ?? '', note: '' }
+            : choiceFromTrip(trip),
     );
     const [time, setTime] = useState(stayTime);
     const {
@@ -83,7 +94,16 @@ function ChangeBoatTripForm({
     });
     const label = direction === 'in' ? 'Boat in' : 'Boat out';
 
-    useFormOptions(open, departures !== undefined, 'boatDepartures');
+    const loaded =
+        boats === undefined
+            ? departures !== undefined
+            : boats.picks !== undefined;
+
+    useFormOptions(
+        open,
+        loaded,
+        boats === undefined ? 'boatDepartures' : 'boatPicks',
+    );
 
     const params = { reservation: reservationId, unit: unit.id, direction };
     const submit = () => {
@@ -92,7 +112,10 @@ function ChangeBoatTripForm({
             except: KEEP_OPTIONS,
             onSuccess: () => onOpenChange(false),
         };
-        const payload = boatTripPayload(choice, time);
+        const payload =
+            boats === undefined || isTimed(choice)
+                ? boatTripPayload(choice, time)
+                : boatPickPayload(choice, boats.picks ?? []);
 
         if (payload === null) {
             router.delete(clear.url(params), options);
@@ -115,7 +138,7 @@ function ChangeBoatTripForm({
             onSubmit={submit}
             submitLabel={direction === 'in' ? 'Save boat in' : 'Save boat out'}
             processing={form.processing}
-            loading={departures === undefined}
+            loading={!loaded}
         >
             <BookingBoatSelect
                 id={`change-boat-${direction}`}
@@ -128,6 +151,11 @@ function ChangeBoatTripForm({
                 cancelled={cancelled}
                 bookingSeats={0}
                 error={form.errors.boat_departure_id}
+                options={
+                    boats === undefined
+                        ? undefined
+                        : boatPickOptions(boats.picks ?? [], direction)
+                }
             />
             {isTimed(choice) && (
                 <Field data-invalid={!!form.errors.time}>
