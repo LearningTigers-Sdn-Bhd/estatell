@@ -13,6 +13,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\BoatDeparture;
+use App\Models\BoatSailing;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Property;
@@ -449,4 +450,17 @@ test('a charter trip adds nothing when no charter charge is set', function () {
     boatTripSet($fixture, $fixture['unit'], BoatDirection::In, BoatMode::Charter, time: '10:30');
 
     expect(UnitAddOn::query()->count())->toBe(0);
+});
+
+test('a departure with a stored sailing but no trips cannot be deleted', function () {
+    $fixture = boatTripFixture();
+    BoatSailing::factory()->forDeparture($fixture['out'])->create();
+
+    $this->actingAs($fixture['owner'])
+        ->delete(route('settings.boats.departures.destroy', [$fixture['property']->code, $fixture['out']]))
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Boats or crew are set on dates for this departure. Turn it off instead.']);
+
+    expect(BoatDeparture::query()->whereKey($fixture['out']->id)->exists())->toBeTrue()
+        ->and(Activity::query()->where('event', 'boat_departure.deleted')->exists())->toBeFalse();
 });

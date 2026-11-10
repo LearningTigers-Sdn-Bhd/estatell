@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Boats;
 
+use App\Actions\Boats\BoatDepartureResult;
 use App\Actions\Boats\CreateBoatDeparture;
 use App\Actions\Boats\DeleteBoatDeparture;
 use App\Actions\Boats\UpdateBoatDeparture;
@@ -140,7 +141,10 @@ class BoatDepartureController extends Controller
         $result = $deleteBoatDeparture($request->user(), $boatDeparture);
 
         if ($result->isRefused()) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('Boat trips use this departure. Turn it off instead.')]);
+            $message = $result->refusal === BoatDepartureResult::REFUSAL_DEPARTURE_HAS_SAILINGS
+                ? __('Boats or crew are set on dates for this departure. Turn it off instead.')
+                : __('Boat trips use this departure. Turn it off instead.');
+            Inertia::flash('toast', ['type' => 'error', 'message' => $message]);
 
             return to_route('settings.boats.departures.index', $property);
         }
