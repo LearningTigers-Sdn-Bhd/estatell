@@ -18,7 +18,7 @@ Needs the `Boats` feature.
 
 ```
 Boats                                                            [+ Trip or job]  [Print]
-[◀] Tue 11 Nov [▶]  [Today] [Tomorrow]     Direction [In and out ▾]
+[◀] Tue 11 Nov [▶]  [Today] [Tomorrow]     [ Boat in | Boat out | Both ]
 
 [ ] Boat out · 08:00 Resort jetty → 08:45 · MV Sand Bay 1 · ⚓ Awang · Daus     6 / 20  ⋯
      Room  Lead guest     Agent          Phone          Pax     Note            Left

@@ -588,13 +588,24 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         </div>
                     )}
                     {direction && directionOptions.length > 0 && (
-                        <EnumSelect
-                            options={directionOptions}
-                            value={direction}
-                            onValueChange={(next) => visit({ direction: next })}
+                        <ToggleGroup
+                            variant="outline"
+                            spacing={0}
+                            value={[direction]}
+                            onValueChange={(next) =>
+                                next[0] && visit({ direction: next[0] })
+                            }
                             aria-label="Direction"
-                            className="w-auto"
-                        />
+                        >
+                            {directionOptions.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
                     )}
                     {refundsOnly !== undefined ? (
                         <Label className="flex items-center gap-2 text-sm font-normal">

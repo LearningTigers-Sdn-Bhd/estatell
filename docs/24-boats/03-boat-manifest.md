@@ -18,7 +18,7 @@ A report in the [core reports](../22-reports/01-core-reports.md) registry, so it
 
 - The report shows in the Front desk sidebar under Guests only when the Boats feature is on. Its page, PDF, spreadsheet and layout routes return 404 when it is off (`ReportKey::feature()`, `EnsureReportIsAvailable`).
 - The rows are not paged and keep their order (sailing time, then sailing id; Charter and Own by unit time, then jobs by time, last). The headers do not sort. Each Charter and Own row's time is the unit's `arrival_time` (In) or `departure_time` (Out).
-- **Filter:** Direction (Boat in, Boat out, Boat in and out). Default: Boat in and out. **Boat in and out** (`direction=both` or no direction, `ReportFilters::$bothDirections`) lists every sailing of the date in time order, as Sand Bay's sheet does (08:00 out, 09:00 in, 14:30 out…), and each section title starts with "Boat out · " or "Boat in · ".
+- **Filter:** Direction, a toggle group: Boat in, Boat out, Both. Default: Both. **Both** (`direction=both` or no direction, `ReportFilters::$bothDirections`) lists every sailing of the date in time order, as Sand Bay's sheet does (08:00 out, 09:00 in, 14:30 out…), and each section title starts with "Boat out · " or "Boat in · ".
 - **Quick dates:** Today, Tomorrow.
 
 ## Rows
