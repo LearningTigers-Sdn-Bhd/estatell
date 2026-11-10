@@ -6,15 +6,15 @@ Give each checked-in stay a PIN for its room door, and take it away when the gue
 
 ## Scope
 
-| Now                                                                        | Later                                                          |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| TTLock locks (first test lock: Est E13), one TTLock account per property   | Fingerprint registration, a property-wide card list (cards with no stay)             |
-| Generated PINs (no gateway needed)                                         | Unlock log import (needs a gateway)                            |
-| Custom PINs chosen by staff (gateway needed, alert shown without one)      | Guest self check-in with a PIN sent by email or WhatsApp       |
-| Remote unlock from the screen (gateway needed, alert shown without one)    | eKey sharing                                                   |
-| PIN issued at check-in, removed at check-out, undo check-in and room move  | A scheduled retry of failed PINs (today staff press **Retry**) |
-| IC cards registered by UID through a gateway, from the kiosk or from the stay panel (a desk reader read in the browser) |                                                                |
-| Behind the `DoorLocks` feature, off by default                             |                                                                |
+| Now                                                                                                                     | Later                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| TTLock locks (first test lock: Est E13), one TTLock account per property                                                | Fingerprint registration, a property-wide card list (cards with no stay) |
+| Generated PINs (no gateway needed)                                                                                      | Unlock log import (needs a gateway)                                      |
+| Custom PINs chosen by staff (gateway needed, alert shown without one)                                                   | Guest self check-in with a PIN sent by email or WhatsApp                 |
+| Remote unlock from the screen (gateway needed, alert shown without one)                                                 | eKey sharing                                                             |
+| PIN issued at check-in, removed at check-out, undo check-in and room move                                               | A scheduled retry of failed PINs (today staff press **Retry**)           |
+| IC cards registered by UID through a gateway, from the kiosk or from the stay panel (a desk reader read in the browser) |                                                                          |
+| Behind the `DoorLocks` feature, off by default                                                                          |                                                                          |
 
 ## Feature gate
 
