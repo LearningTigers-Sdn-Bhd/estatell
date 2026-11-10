@@ -152,16 +152,6 @@ propertyTime: string,
 pickupPoint: string | null,
 seats: number | null,
 };
-export type BoatDepartureRunData = {
-departureId: number,
-label: string,
-direction: string,
-boatId: number | null,
-crew: string | null,
-defaultBoatId: number | null,
-defaultCrew: string | null,
-isOverridden: boolean,
-};
 export type BoatFareAgeGroupData = {
 ageGroupId: number,
 label: string,
@@ -200,16 +190,6 @@ assistantIds: number[],
 assistants: string[],
 note: string | null,
 done: boolean,
-};
-export type BoatMainSailingData = {
-departureId: number,
-label: string,
-direction: string,
-boatId: number | null,
-inChargeId: number | null,
-assistantIds: number[],
-isStored: boolean,
-otherBoats: number,
 };
 export type BoatPickData = {
 key: string,

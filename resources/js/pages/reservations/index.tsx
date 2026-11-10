@@ -1,13 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    Ban,
-    CalendarDays,
-    CircleCheck,
-    ConciergeBell,
-    Hourglass,
-    LogIn,
-    LogOut,
-} from 'lucide-react';
+import { CalendarDays, ConciergeBell, LogIn, LogOut } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback } from 'react';
 import { DateText } from '@/components/pms/date-text';
@@ -40,7 +32,10 @@ type Item = App.Data.Reservations.ReservationListItemData;
 
 type Props = {
     reservations: Illuminate.LengthAwarePaginator<number, Item>;
+    /** The tabs: All, Arrivals, Departures and In house, each with its count. */
     statusCounts: App.Data.Reservations.ReservationStatusCountData[];
+    /** The Status filter options of the All tab, each with its count. */
+    statusOptions: App.Data.Reservations.ReservationStatusCountData[];
     /** The business date of an open Arrivals or Departures tab, otherwise null. These tabs skip the stay filter. */
     movementDate: string | null;
     filters: ReservationFilters;
@@ -57,15 +52,13 @@ const statusIcons: Record<string, LucideIcon> = {
     '': CalendarDays,
     arrivals: LogIn,
     departures: LogOut,
-    confirmed: CircleCheck,
     in_house: ConciergeBell,
-    completed: Hourglass,
-    cancelled: Ban,
 };
 
 export default function ReservationsIndex({
     reservations,
     statusCounts,
+    statusOptions,
     movementDate,
     filters,
     sort,
@@ -104,7 +97,11 @@ export default function ReservationsIndex({
     const tabHref = (status: string) =>
         index.url(undefined, {
             query: reservationQuery({
-                filters: { ...filters, status },
+                filters: {
+                    ...filters,
+                    status,
+                    statuses: status === '' ? filters.statuses : [],
+                },
                 sort,
                 view,
             }),
@@ -130,6 +127,7 @@ export default function ReservationsIndex({
             filters: {
                 search: '',
                 status: '',
+                statuses: [],
                 source: '',
                 stay: { mode: 'default', from: null, to: null },
             },
@@ -178,7 +176,9 @@ export default function ReservationsIndex({
             />
         );
     const showsDefaultHint =
-        (filters.status === 'completed' || filters.status === 'cancelled') &&
+        filters.status === '' &&
+        (filters.statuses.includes('completed') ||
+            filters.statuses.includes('cancelled')) &&
         filters.stay.mode === 'default';
     const cards = (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -217,6 +217,9 @@ export default function ReservationsIndex({
                         sort={sort}
                         sorts={sorts}
                         sources={sources}
+                        statusOptions={
+                            filters.status === '' ? statusOptions : null
+                        }
                         view={view}
                         showStay={movementDate === null}
                         onChange={(changes) => visit({ filters: changes })}
