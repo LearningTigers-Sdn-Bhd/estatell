@@ -18,6 +18,7 @@ import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
+import { DoorCards } from '@/components/pms/reservations/door-cards';
 import { DoorPins } from '@/components/pms/reservations/door-pins';
 import { KeyCards } from '@/components/pms/reservations/key-cards';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
@@ -347,6 +348,14 @@ export function UnitsTab({
                         unitId={unit.id}
                     />
                 )}
+                {doorPins !== null &&
+                    (doorPins.canAddCard || doorPins.cards.length > 0) && (
+                        <DoorCards
+                            cards={doorPins.cards}
+                            reservationId={reservationId}
+                            unitId={unit.id}
+                        />
+                    )}
                 {keyCards !== null && (
                     <KeyCards
                         cards={keyCards}

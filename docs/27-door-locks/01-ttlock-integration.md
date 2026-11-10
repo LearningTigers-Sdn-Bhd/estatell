@@ -8,12 +8,12 @@ Give each checked-in stay a PIN for its room door, and take it away when the gue
 
 | Now                                                                        | Later                                                          |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| TTLock locks (first test lock: Est E13), one TTLock account per property   | Fingerprint registration, a staff screen for cards             |
+| TTLock locks (first test lock: Est E13), one TTLock account per property   | Fingerprint registration, a property-wide card list (cards with no stay)             |
 | Generated PINs (no gateway needed)                                         | Unlock log import (needs a gateway)                            |
 | Custom PINs chosen by staff (gateway needed, alert shown without one)      | Guest self check-in with a PIN sent by email or WhatsApp       |
 | Remote unlock from the screen (gateway needed, alert shown without one)    | eKey sharing                                                   |
 | PIN issued at check-in, removed at check-out, undo check-in and room move  | A scheduled retry of failed PINs (today staff press **Retry**) |
-| IC cards registered by UID through a gateway (backend only, no screen yet) |                                                                |
+| IC cards registered by UID through a gateway, from the kiosk or from the stay panel (a desk reader read in the browser) |                                                                |
 | Behind the `DoorLocks` feature, off by default                             |                                                                |
 
 ## Feature gate
@@ -159,7 +159,9 @@ door_cards   id, property_id, door_lock_id, reservation_unit_id (nullable), card
 - `RegisterDoorCard` (lock, UID, label, window, idempotency key, unit): same rules as `IssueDoorPasscode`: a live row is returned as it is, a Failed row is tried again, a TTLock failure is saved as Failed. A card live on the lock under another key is refused (`card_in_use`). A bad UID is `invalid_card`.
 - `RemoveDoorCard`: deletes through the gateway and marks Revoked. A TTLock failure keeps the row.
 - `StayByCard` (`app/Services/DoorLocks/`): `find($property, $uid)` returns the unit of the newest Active card with a stay, or null. This is how check-out by card finds the stay. A Revoked, Failed or Pending card finds nothing.
-- Not built yet: choosing the lock and the window for a stay (the kiosk check-in Action will do it, as `SyncStayPasscodes` does for PINs), removing cards at check-out, and any staff screen.
+- **Staff add and remove a card** on the stay panel (a "Key card" line under Door PIN, shown when a TTLock lock serves the room or a card exists). **Add card** opens a dialog and reads the UID from the desk reader in the browser (`resources/js/lib/ecrfid.ts`, WebHID, Chrome or Edge, one reader per PC; vendor `FFFE:0091`, report ID n carries n bytes). Only the UID is posted to `POST reservations/{r}/units/{u}/door-cards`, which reuses `RegisterStayCard` (every lock of the stay's rooms, until departure, at most four cards per lock). **Remove** is `DELETE .../door-cards/{doorCard}` (`RemoveDoorCard`). The row shows "Card ending 1234" with the full number on hover, so it is not mistaken for the PIN.
+- **Staff check-out, early check-out, day-use check-out and undo check-in** call `RemoveStayCards`, so a card stops opening the door with the PIN. A card on a lock without a gateway keeps working until its end time (the toast of a manual Remove warns about this; the bulk removal is silent). The kiosk check-out removes its own cards and fails closed.
+- Not built yet: cards with no stay (staff or contractors), a property-wide card list, grouping one card's rows across several locks.
 
 ## Lock health
 

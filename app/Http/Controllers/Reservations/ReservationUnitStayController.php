@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\DoorLocks\RemoveStayCards;
 use App\Actions\FrontDesk\CancelUnitAndRefund;
 use App\Actions\FrontDesk\CancelUnitsAndRefund;
 use App\Actions\FrontDesk\CancelUnitsResult;
@@ -192,9 +193,13 @@ class ReservationUnitStayController extends Controller
      * Check one unit out, after collecting the balance and giving back the security deposit when the form asks for
      * them. A refusal at any step writes nothing.
      */
-    public function checkOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAndRefund $checkOutAndRefund, CheckOutOverdueStay $checkOutOverdueStay, ReservationRefusals $refusals): RedirectResponse
+    public function checkOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAndRefund $checkOutAndRefund, CheckOutOverdueStay $checkOutOverdueStay, ReservationRefusals $refusals, RemoveStayCards $removeStayCards): RedirectResponse
     {
         $result = ($request->stayedLastNight() ? $checkOutOverdueStay : $checkOutAndRefund)($request->user(), $unit, $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->damage());
+
+        if ($result->refusal === null) {
+            $removeStayCards($unit, $request->user());
+        }
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'), rooms: $result->rooms);
     }
@@ -203,16 +208,24 @@ class ReservationUnitStayController extends Controller
      * Check one unit out before its departure date: the early departure fee, the payment, the deposit refund and the
      * check-out in one step. A refusal at any step writes nothing.
      */
-    public function earlyCheckOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, EarlyCheckOut $earlyCheckOut, ReservationRefusals $refusals): RedirectResponse
+    public function earlyCheckOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, EarlyCheckOut $earlyCheckOut, ReservationRefusals $refusals, RemoveStayCards $removeStayCards): RedirectResponse
     {
         $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->leftYesterday(), $request->damage());
+
+        if ($result->refusal === null) {
+            $removeStayCards($unit, $request->user());
+        }
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'), rooms: $result->rooms);
     }
 
-    public function checkOutAsDayUse(CheckOutAsDayUseRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAsDayUse $checkOut, ReservationRefusals $refusals): RedirectResponse
+    public function checkOutAsDayUse(CheckOutAsDayUseRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAsDayUse $checkOut, ReservationRefusals $refusals, RemoveStayCards $removeStayCards): RedirectResponse
     {
         $result = $checkOut($request->user(), $unit, $request->start(), $request->end(), $request->amount(), $request->reason(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->damage(), $request->ratePlanId(), $request->noPlan());
+
+        if ($result->refusal === null) {
+            $removeStayCards($unit, $request->user());
+        }
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out as day use.'), rooms: $result->rooms);
     }
@@ -275,9 +288,13 @@ class ReservationUnitStayController extends Controller
     /**
      * Put a unit that checked in during the open business date back to Confirmed, with a reason.
      */
-    public function undoCheckIn(UnitUndoRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UndoCheckIn $undoCheckIn, ReservationRefusals $refusals): RedirectResponse
+    public function undoCheckIn(UnitUndoRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UndoCheckIn $undoCheckIn, ReservationRefusals $refusals, RemoveStayCards $removeStayCards): RedirectResponse
     {
         $result = $undoCheckIn($request->user(), $unit, $request->string('reason')->toString());
+
+        if ($result->refusal === null) {
+            $removeStayCards($unit, $request->user());
+        }
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Check-in undone.'));
     }
