@@ -22,6 +22,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $uploaded_by
  * @property string $amount
  * @property string|null $reference
+ * @property int|null $bank_account_id
  * @property PaymentProofStatus $status
  * @property string|null $reject_reason
  * @property int|null $reviewed_by
@@ -31,7 +32,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['amount', 'reference'])]
+#[Fillable(['amount', 'reference', 'bank_account_id'])]
 class PaymentProof extends Model implements HasMedia
 {
     use InteractsWithMedia;
@@ -81,6 +82,12 @@ class PaymentProof extends Model implements HasMedia
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /** @return BelongsTo<PropertyBankAccount, $this> */
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(PropertyBankAccount::class, 'bank_account_id');
     }
 
     /** @return BelongsTo<Payment, $this> */

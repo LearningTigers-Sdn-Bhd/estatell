@@ -14,6 +14,7 @@ use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArInvoicePrinter;
 use App\Services\CityLedger\ArPaymentReceipt;
 use App\Services\CityLedger\CompanyBillTo;
+use App\Services\Portal\PortalHowToPay;
 use App\Services\Portal\PortalStatements;
 use App\Services\Property\PrintedPdf;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class PortalStatementController extends Controller
     /**
      * The statements page: the statement with its aging for the `from` and `to` dates, the invoices and the payments.
      */
-    public function show(Request $request, Property $property, PortalStatements $statements, ArInvoiceDirectory $directory): Response
+    public function show(Request $request, Property $property, PortalStatements $statements, ArInvoiceDirectory $directory, PortalHowToPay $howToPay): Response
     {
         $company = $this->company($request);
         $property->loadMissing('settings');
@@ -47,6 +48,7 @@ class PortalStatementController extends Controller
             'payments' => PortalPaymentRowData::collect($statements->payments($property, $company), PaginatedDataCollection::class),
             'paymentSlips' => $statements->slips($property, $company),
             'canSendSlip' => $statements->canSendSlip($company),
+            'bankAccounts' => $howToPay->bankAccounts($property),
         ]);
     }
 

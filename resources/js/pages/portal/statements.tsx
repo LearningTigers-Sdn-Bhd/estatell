@@ -14,6 +14,7 @@ export default function PortalStatements({
     payments,
     paymentSlips,
     canSendSlip,
+    bankAccounts,
 }: {
     propertyCode: string;
     currency: App.Data.Property.CurrencyData | null;
@@ -28,6 +29,7 @@ export default function PortalStatements({
     >;
     paymentSlips: App.Data.Payments.PaymentProofData[];
     canSendSlip: boolean;
+    bankAccounts: App.Data.Catalogues.BankAccountData[];
 }) {
     return (
         <>
@@ -43,6 +45,7 @@ export default function PortalStatements({
                     propertyCode={propertyCode}
                     slips={paymentSlips}
                     canSend={canSendSlip}
+                    bankAccounts={bankAccounts}
                     currency={currency}
                 />
 

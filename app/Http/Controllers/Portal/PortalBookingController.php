@@ -11,6 +11,7 @@ use App\Actions\Portal\UpdatePortalReservationGuests;
 use App\Data\Payments\PaymentProofData;
 use App\Data\Portal\PortalBookingRowData;
 use App\Data\Property\CurrencyData;
+use App\Data\Reservations\AgentBillData;
 use App\Data\Reservations\PaymentScheduleData;
 use App\Enums\CompanyStatus;
 use App\Enums\Gender;
@@ -27,6 +28,7 @@ use App\Models\Reservation;
 use App\Services\Guests\CountryOptions;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookings;
+use App\Services\Portal\PortalHowToPay;
 use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\ReservationRefusals;
 use Closure;
@@ -87,10 +89,11 @@ class PortalBookingController extends Controller
     /**
      * One booking, Payments tab: the bill, the payment schedule and the proofs sent.
      */
-    public function payments(Request $request, Property $property, int $reservation, PortalBookings $bookings, AgentBill $agentBill): Response
+    public function payments(Request $request, Property $property, int $reservation, PortalBookings $bookings, AgentBill $agentBill, PortalHowToPay $howToPay): Response
     {
-        return $this->renderTab($request, $property, $reservation, 'payments', $bookings, $agentBill, fn (CompanyUser $link, Reservation $booking): array => [
-            'paymentProofs' => array_values(PaymentProof::query()->where('reservation_id', $booking->id)->with('uploader')->latest('id')->get()
+        return $this->renderTab($request, $property, $reservation, 'payments', $bookings, $agentBill, fn (CompanyUser $link, Reservation $booking, AgentBillData $bill): array => [
+            'howToPay' => $howToPay->for($property, $link->company, $booking, $bill),
+            'paymentProofs' => array_values(PaymentProof::query()->where('reservation_id', $booking->id)->with(['uploader', 'bankAccount'])->latest('id')->get()
                 ->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(
                     $proof,
                     route('portal.bookings.payment-proofs.file', ['property' => $property->code, 'reservation' => $booking->id, 'paymentProof' => $proof->id], absolute: false),
@@ -173,7 +176,7 @@ class PortalBookingController extends Controller
      * and the summary; `$tabProps` adds only the open tab's data.
      *
      * @param  'units'|'guests'|'payments'  $tab
-     * @param  Closure(CompanyUser, Reservation): array<string, mixed>  $tabProps
+     * @param  Closure(CompanyUser, Reservation, AgentBillData): array<string, mixed>  $tabProps
      */
     private function renderTab(Request $request, Property $property, int $reservation, string $tab, PortalBookings $bookings, AgentBill $agentBill, Closure $tabProps): Response
     {
@@ -181,16 +184,17 @@ class PortalBookingController extends Controller
         $property->loadMissing('settings');
 
         $booking = $bookings->find($link->company, $reservation);
+        $bill = $agentBill->for($booking);
 
         return Inertia::render('portal/bookings/show', [
             'tab' => $tab,
             'propertyCode' => $property->code,
             'booking' => $bookings->detail($link->company, $booking, $property),
             'paymentSchedule' => PaymentScheduleData::forReservation($booking),
-            'agentBill' => $agentBill->for($booking),
+            'agentBill' => $bill,
             'companySuspended' => $link->company->status === CompanyStatus::Suspended,
             'currency' => CurrencyData::forProperty($property),
-            ...$tabProps($link, $booking),
+            ...$tabProps($link, $booking, $bill),
         ]);
     }
 

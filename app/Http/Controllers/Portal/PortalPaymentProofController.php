@@ -9,6 +9,7 @@ use App\Models\CompanyUser;
 use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Services\Portal\PortalBookings;
+use App\Services\Portal\PortalHowToPay;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,10 +21,18 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class PortalPaymentProofController extends Controller
 {
-    public function store(UploadPaymentProofRequest $request, Property $property, int $reservation, PortalBookings $bookings, UploadPaymentProof $upload): RedirectResponse
+    public function store(UploadPaymentProofRequest $request, Property $property, int $reservation, PortalBookings $bookings, PortalHowToPay $howToPay, UploadPaymentProof $upload): RedirectResponse
     {
-        $booking = $bookings->find($this->link($request)->company, $reservation);
-        $proof = $upload($request->user(), $booking, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'));
+        $company = $this->link($request)->company;
+        $booking = $bookings->find($company, $reservation);
+
+        if ($howToPay->billedLater($company)) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Your company is billed after the stay. Pay the invoice from Statements.')]);
+
+            return to_route('portal.bookings.payments', ['property' => $property, 'reservation' => $reservation]);
+        }
+
+        $proof = $upload($request->user(), $booking, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'), $request->bankAccountId());
 
         Inertia::flash('toast', $proof === null
             ? ['type' => 'error', 'message' => __('This booking is closed. Contact the property.')]

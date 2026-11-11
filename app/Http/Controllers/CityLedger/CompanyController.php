@@ -117,7 +117,7 @@ class CompanyController extends Controller
             'payments' => $ledger->payments($company, $request->user()),
             'paymentSlips' => array_values(PaymentProof::query()
                 ->where('company_id', $company->id)
-                ->with('uploader')
+                ->with(['uploader', 'bankAccount'])
                 ->latest('id')
                 ->limit(50)
                 ->get()

@@ -35,7 +35,7 @@ class PortalPaymentSlipController extends Controller
             return to_route('portal.statements', ['property' => $property]);
         }
 
-        $slip = $upload($request->user(), $company, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'));
+        $slip = $upload($request->user(), $company, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'), $request->bankAccountId());
         Notification::send($this->recipients($company), new PaymentSlipReceived($company->id, $company->name, $property->code, $property->name, $slip->amount));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment slip sent. The property will confirm the payment.')]);

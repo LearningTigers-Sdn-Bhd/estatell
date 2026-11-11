@@ -2280,6 +2280,7 @@ export type PaymentProofData = {
 id: number,
 amount: string,
 reference: string | null,
+paidInto: string | null,
 status: App.Enums.PaymentProofStatus,
 badge: App.Data.Shared.BadgeData,
 uploadedAt: string,
@@ -2623,6 +2624,15 @@ city: string | null,
 state: string | null,
 postalCode: string | null,
 countryCode: string | null,
+};
+export type PortalHowToPayData = {
+billedLater: boolean,
+paid: string,
+leftToPay: string,
+bankAccounts: App.Data.Catalogues.BankAccountData[],
+canSendProof: boolean,
+contactPhone: string | null,
+contactEmail: string | null,
 };
 export type PortalInvitationData = {
 linkId: number,

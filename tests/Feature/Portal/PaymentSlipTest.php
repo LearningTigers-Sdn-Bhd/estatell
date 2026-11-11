@@ -7,6 +7,7 @@ use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\PaymentMethod;
 use App\Models\PaymentProof;
+use App\Models\PropertyBankAccount;
 use App\Models\User;
 use App\Notifications\PaymentSlipReceived;
 use Illuminate\Http\UploadedFile;
@@ -140,4 +141,21 @@ test('another company cannot open a slip, and only staff with city-ledger.paymen
     $this->actingAs($staff)->post(slipRoute($setup, 'accept', $slip), ['payment_method_id' => $setup['method']->id, 'amount' => '200'])->assertForbidden();
 
     expect($slip->refresh()->status)->toBe(PaymentProofStatus::Submitted);
+});
+
+test('the slip form shows the available accounts, and the slip saves the account the company paid into', function () {
+    $setup = slipSetup();
+    $maybank = PropertyBankAccount::factory()->for($setup['property'])->create(['bank_name' => 'Maybank', 'account_number' => '5123 4567 8901', 'position' => 1]);
+    $cimb = PropertyBankAccount::factory()->for($setup['property'])->create(['position' => 2]);
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.statements', $setup['property']))
+        ->assertInertia(fn (Assert $page) => $page->where('bankAccounts', fn ($accounts) => collect($accounts)->pluck('id')->all() === [$maybank->id, $cimb->id]));
+
+    slipUpload($setup)->assertSessionHasErrors('bank_account_id');
+    slipUpload($setup, ['bank_account_id' => $maybank->id])->assertSessionHasNoErrors();
+
+    expect(PaymentProof::query()->sole()->bank_account_id)->toBe($maybank->id);
+
+    $this->actingAs($setup['user'])->get(route('finance.city-ledger.companies.payments', [$setup['property']->code, $setup['company']]))
+        ->assertInertia(fn (Assert $page) => $page->where('paymentSlips.0.paidInto', 'Maybank · 5123 4567 8901'));
 });

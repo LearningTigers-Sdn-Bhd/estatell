@@ -367,7 +367,7 @@ class ReservationController extends Controller
         // Only an agent sends proofs, from the portal, so a reservation with no company reads nothing.
         $proofs = $reservation->company_id === null
             ? collect()
-            : PaymentProof::query()->where('reservation_id', $reservation->id)->with('uploader')->latest('id')->get();
+            : PaymentProof::query()->where('reservation_id', $reservation->id)->with(['uploader', 'bankAccount'])->latest('id')->get();
 
         return [
             'paymentProofs' => array_values($proofs->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(

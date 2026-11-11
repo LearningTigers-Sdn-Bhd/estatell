@@ -12,13 +12,13 @@ class UploadCompanyPaymentSlip
 {
     /**
      * Save a slip a company on credit terms sends for its account, with the file on the private media disk. It is not a
-     * payment until staff accept it. Logs `payment_slip.uploaded` on the company.
+     * payment until staff accept it. `$bankAccountId` is Paid into, checked by the request. Logs `payment_slip.uploaded` on the company.
      * See docs/15-city-ledger/03-ar-payments.md#payment-slips.
      */
-    public function __invoke(User $actor, Company $company, UploadedFile $file, string $amount, ?string $reference): PaymentProof
+    public function __invoke(User $actor, Company $company, UploadedFile $file, string $amount, ?string $reference, ?int $bankAccountId = null): PaymentProof
     {
-        return DB::transaction(function () use ($actor, $company, $file, $amount, $reference): PaymentProof {
-            $slip = new PaymentProof(['amount' => $amount, 'reference' => filled($reference) ? trim((string) $reference) : null]);
+        return DB::transaction(function () use ($actor, $company, $file, $amount, $reference, $bankAccountId): PaymentProof {
+            $slip = new PaymentProof(['amount' => $amount, 'reference' => filled($reference) ? trim((string) $reference) : null, 'bank_account_id' => $bankAccountId]);
             $slip->forceFill(['property_id' => $company->property_id, 'company_id' => $company->id, 'uploaded_by' => $actor->id])->save();
             $slip->addMedia($file)->toMediaCollection(PaymentProof::FILE);
 

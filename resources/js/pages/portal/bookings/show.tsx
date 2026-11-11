@@ -50,6 +50,7 @@ export default function PortalBookingShow({
     genders = [],
     locales = [],
     paymentProofs = [],
+    howToPay,
 }: {
     tab: Tab;
     booking: Booking;
@@ -72,6 +73,8 @@ export default function PortalBookingShow({
     locales?: EnumOption[];
     /** Payments tab only. */
     paymentProofs?: App.Data.Payments.PaymentProofData[];
+    /** Payments tab only. */
+    howToPay?: App.Data.Portal.PortalHowToPayData;
 }) {
     const [editingBoats, setEditingBoats] = useState(false);
     const boatFormKey = useFreshOnOpen(editingBoats);
@@ -221,20 +224,15 @@ export default function PortalBookingShow({
                                 summaryHidden={summaryHidden}
                                 onToggleSummary={toggleSummary}
                             />
-                        ) : tab === 'payments' ? (
+                        ) : tab === 'payments' && howToPay ? (
                             <BookingPaymentSection
                                 propertyCode={propertyCode}
                                 reservationId={booking.id}
+                                reference={booking.reference}
                                 schedule={paymentSchedule}
                                 bill={agentBill}
+                                howToPay={howToPay}
                                 proofs={paymentProofs}
-                                canUpload={
-                                    !companySuspended &&
-                                    paymentSchedule !== null &&
-                                    paymentSchedule.stages.some(
-                                        (stage) => stage.status !== 'paid',
-                                    )
-                                }
                                 currency={currency}
                             />
                         ) : (

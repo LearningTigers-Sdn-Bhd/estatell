@@ -205,6 +205,7 @@ export function PaymentProofReview({
                     <span className="text-xs text-muted-foreground">
                         {proof.uploadedBy}
                         {proof.reference ? ` · ${proof.reference}` : ''}
+                        {proof.paidInto ? ` · Paid into ${proof.paidInto}` : ''}
                         {proof.rejectReason ? ` · ${proof.rejectReason}` : ''}
                     </span>
                     {proof.status === 'submitted' && methods.length > 0 && (

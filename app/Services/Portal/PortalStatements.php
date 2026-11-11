@@ -58,7 +58,7 @@ class PortalStatements
     {
         return array_values(PaymentProof::query()
             ->where('company_id', $company->id)
-            ->with('uploader')
+            ->with(['uploader', 'bankAccount'])
             ->latest('id')
             ->limit(20)
             ->get()
