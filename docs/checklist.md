@@ -234,6 +234,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 - [ ] **Concierge page** — like the booking engine, but for the guest's stay experience. After the booking engine.
 - [ ] **AI concierge** — can be turned on only when the concierge page is on. Admins hold the API key for now. After the concierge page.
 - [ ] **AroundThat programme** — recommends places from the AroundThat API. Later.
+- [ ] **Curlec key per property** — each property uses its own Curlec account, so guest money goes straight to the property and Estatell never holds it. Estatell invoices its commission each month, and refunds come from the property's account. This removes the BNM, Route and linked-account questions. It changes the payout vouchers and the "Estatell holds the money" decision, so confirm with the boss first. For now the booking engine goes live on Estatell's account.
 
 ## Done
 
