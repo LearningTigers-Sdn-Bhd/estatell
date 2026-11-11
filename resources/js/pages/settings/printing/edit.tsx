@@ -62,6 +62,7 @@ export default function PrintingSettings({
     taxes,
     fonts = [],
     fontSizes = [],
+    bankAccounts = [],
 }: {
     tab: Tab;
     settings: Settings;
@@ -69,6 +70,8 @@ export default function PrintingSettings({
     taxes: App.Data.Property.PrintTaxData[];
     fonts?: FontStyleOption[];
     fontSizes?: FontSizeOption[];
+    /** Documents tab only. */
+    bankAccounts?: string[];
 }) {
     const form = useAutoSave(settings, request(tab));
 
@@ -132,6 +135,7 @@ export default function PrintingSettings({
                                     value={form.value}
                                     onChange={form.change}
                                     onDraft={form.draft}
+                                    bankAccounts={bankAccounts}
                                 />
                             )}
                         </div>
@@ -140,6 +144,7 @@ export default function PrintingSettings({
                                 settings={form.value}
                                 fonts={fonts}
                                 propertyName={profile.name}
+                                bankAccounts={bankAccounts}
                             />
                         ) : (
                             <PrintPreview

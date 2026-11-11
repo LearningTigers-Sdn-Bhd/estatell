@@ -11,7 +11,7 @@ use Brick\Money\Currency;
  * strings with two places. A credit note uses `billToLines`, the dates, `creditFor`, `reason` and `total`, and keeps
  * its own layout. An invoice uses `strip` (the info strip cells that have a value), `rooms` (the Rooms block, empty when
  * Room and guest on lines is on), `lines` (null without a folio), `payments` (the guest payments at the hotel, the city
- * ledger line left out), `paid`, `amountDue`, `amountInWords` and `paymentDetails`.
+ * ledger line left out), `paid`, `amountDue`, `amountInWords`, `paymentDetails` (the Payment notes) and `bankAccounts` (from `BankAccountLines`).
  */
 final readonly class ArInvoiceDocument
 {
@@ -42,6 +42,8 @@ final readonly class ArInvoiceDocument
         public string $amountDue = '0.00',
         public ?string $amountInWords = null,
         public ?string $paymentDetails = null,
+        /** @var list<string> */
+        public array $bankAccounts = [],
     ) {}
 
     public function currencyCode(): string

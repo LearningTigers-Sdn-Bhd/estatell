@@ -1,3 +1,5 @@
+import { Link } from '@inertiajs/react';
+import { ArrowUpRight } from 'lucide-react';
 import {
     Field,
     FieldContent,
@@ -8,6 +10,7 @@ import {
 } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { index as bankAccountsIndex } from '@/routes/settings/bank-accounts';
 
 type Settings = App.Data.Property.PrintSettingsData;
 type SwitchKey =
@@ -97,10 +100,13 @@ export function PrintDocumentsForm({
     value,
     onChange,
     onDraft,
+    bankAccounts,
 }: {
     value: Settings;
     onChange: (next: Settings, options?: { delay?: number }) => void;
     onDraft: (next: Settings) => void;
+    /** The available bank accounts, as the documents print them. */
+    bankAccounts: string[];
 }) {
     const toggle = (key: SwitchKey) => (checked: boolean) =>
         onChange({ ...value, [key]: checked });
@@ -134,21 +140,45 @@ export function PrintDocumentsForm({
                 </div>
             </FieldSet>
             <Field>
-                <FieldLabel htmlFor="bank_details">Payment details</FieldLabel>
+                <FieldLabel>Bank accounts</FieldLabel>
+                {bankAccounts.length > 0 ? (
+                    <ul className="flex flex-col gap-1 text-sm">
+                        {bankAccounts.map((line) => (
+                            <li key={line}>{line}</li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-sm text-muted-foreground">Not set</p>
+                )}
+                <FieldDescription>
+                    The available accounts print under Payment details on the
+                    booking summary and AR invoice.{' '}
+                    <Link
+                        href={bankAccountsIndex()}
+                        className="inline-flex items-center gap-0.5 underline-offset-4 hover:underline"
+                    >
+                        Manage bank accounts
+                        <ArrowUpRight className="size-3.5" />
+                    </Link>
+                </FieldDescription>
+            </Field>
+            <Field>
+                <FieldLabel htmlFor="bank_details">Payment notes</FieldLabel>
                 <Textarea
                     id="bank_details"
                     maxLength={500}
                     rows={3}
                     value={value.bankDetails ?? ''}
-                    placeholder="Maybank 5141 2233 4455 · Sandbay Resort Sdn Bhd"
+                    placeholder="e.g. DuitNow QR at the front desk"
                     onChange={(event) =>
                         onDraft({ ...value, bankDetails: event.target.value })
                     }
                     onBlur={() => onChange(value, { delay: 0 })}
                 />
                 <FieldDescription>
-                    Bank account or other payment instructions. Booking summary
-                    and AR invoice. Saves when you leave the field.
+                    Other payment instructions, printed after the bank accounts.
+                    Booking summary and AR invoice. Saves when you leave the
+                    field.
                 </FieldDescription>
             </Field>
         </div>

@@ -16,6 +16,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\UnitAddOn;
+use App\Services\Catalogues\BankAccountLines;
 use App\Services\Folio\DateRange;
 use App\Services\Folio\DocumentLines;
 use App\Services\Folio\DocumentRow;
@@ -43,12 +44,15 @@ class BookingSummary
         private FolioPaymentRows $paymentRows,
         private AmountInWords $amountInWords,
         private StayLabel $stayLabel,
+        private BankAccountLines $bankAccountLines,
     ) {}
 
     /**
      * @param  bool  $withPrices  False asks for the print without prices. A reservation with no company ignores it.
+     * @param  bool  $forPrint  True adds the bank accounts the PDF prints. The reservation page reads only the money, so it
+     *                          leaves this off and runs no extra query.
      */
-    public function for(Property $property, Reservation $reservation, bool $withPrices = true): BookingSummaryDocument
+    public function for(Property $property, Reservation $reservation, bool $withPrices = true, bool $forPrint = false): BookingSummaryDocument
     {
         $property->loadMissing(['settings', 'printSetting']);
         $reservation->loadMissing(['booker', 'company']);
@@ -93,6 +97,7 @@ class BookingSummary
             balanceInWords: $words,
             cancellationPolicy: $settings->show_cancellation_policy ? $this->policyTexts($property) : [],
             paymentDetails: $showPrices && filled($settings->bank_details) ? $settings->bank_details : null,
+            bankAccounts: $showPrices && $forPrint ? $this->bankAccountLines->for($property) : [],
         );
     }
 

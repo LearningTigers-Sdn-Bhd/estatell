@@ -51,7 +51,7 @@ It is not a tax invoice. The tax invoice of a stay is the [folio invoice](../13-
 │ Cancellation policy                                                  │
 │ Free cancellation until 2 days before arrival. After that, one       │
 │ night is charged.                                                    │
-│ Pay by bank transfer                                                 │
+│ Payment details                                                      │
 │ Maybank · Sandbay Resort Sdn Bhd · 5141 2233 4455 · MBBEMYKL         │
 │ DuitNow QR at the front desk                                         │
 └──────────────────────────────────────────────────────────────────────┘
@@ -117,14 +117,14 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 ### Footer blocks
 
 - **Cancellation policy**: the `CANCEL` and `NO_SHOW` [room revenue policy](../06-catalogues/06-room-revenue.md#policies) texts in `property_settings.default_locale` (`text_ms` for Malay, else `text_en`; an empty Malay text falls back to English). Left out when the switch is off or both texts are empty.
-- **Pay by bank transfer**: the available [bank accounts](../06-catalogues/07-bank-accounts.md), one per line (bank, account name, number, SWIFT when set), then the **Payment notes** text from the Documents tab. Left out when both are empty.
+- **Payment details**: the available [bank accounts](../06-catalogues/07-bank-accounts.md), one per line (bank, account name, number, SWIFT when set), then the **Payment notes** text from the Documents tab, through the `pdf.partials.payment-details` partial. Left out when both are empty. `BookingSummary::for(..., forPrint: true)` reads the accounts, so the reservation page, which reads the same summary for its money, runs no extra query.
 - **Amount in words** under Balance due, when the switch is on.
 - The property `footer_text` on every page, as on every PDF.
 
 ## Rules
 
 - **Empty values never print.** No "-", no "0.00" payment line, no country-only address, no empty cell.
-- **Prices for the guest.** A reservation with a `company_id` offers a second print, **without prices**: the same document with the Charges, Payments, Balance due, amount in words and Pay by bank transfer left out. The header, the info strip, Rooms and the cancellation policy stay. Rooms leaves out the rate plan, because its name can name a negotiated rate ("Room Only –20% (Acme only)"). A negotiated company rate is never handed to the guest by mistake. This follows the [registration card](../16-registration/01-card-fields.md#booking-summary) rule.
+- **Prices for the guest.** A reservation with a `company_id` offers a second print, **without prices**: the same document with the Charges, Payments, Balance due, amount in words and Payment details left out. The header, the info strip, Rooms and the cancellation policy stay. Rooms leaves out the rate plan, because its name can name a negotiated rate ("Room Only –20% (Acme only)"). A negotiated company rate is never handed to the guest by mistake. This follows the [registration card](../16-registration/01-card-fields.md#booking-summary) rule.
 - **Outcome stamp** under "Not a tax invoice": CANCELLED when the reservation is Cancelled, NO-SHOW when every unit is NoShow. A mixed reservation gets no stamp; each unit shows its own status in Rooms. Either way it prints the fees and payments it holds.
 - **Totals differ from the money strip.** The [money strip](06-reservation-page.md#money-strip) shows **Room total** (room nights only, without tax and add-ons, labelled so). The booking summary Total includes everything that will be charged, and the reservation page [summary card](06-reservation-page.md#summary-card) shows the same Total from `BookingSummary`. This is the wastays lesson: a summary that missed extra charges showed a false credit.
 - **Currency** is the property currency, printed once in the Total and Balance due labels.

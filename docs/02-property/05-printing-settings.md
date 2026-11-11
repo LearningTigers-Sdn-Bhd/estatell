@@ -119,7 +119,7 @@ What the customer documents show. One set of switches: each applies to every doc
 - **Nightly breakdown**: off collapses a unit's room lines with the same description and amount into "Room, 3 nights × 250.00" with the date range (inclusions and discounts the same way). On: one row per night.
 - **Tax breakdown**: on sums the tax lines per tax ("Service tax 8%", "Tourism tax"). Off: one "Tax" total. The tax registration number still prints next to the tax total (see [Legal fields](#legal-fields)).
 - **Amount in words**: English words under the total, for example "Ringgit Malaysia one thousand five hundred and four only", or "… and fifty sen only" when there are cents. See [Amount in words](#amount-in-words).
-- **Payment notes**: the booking summary and the AR invoice print the available [bank accounts](../06-catalogues/07-bank-accounts.md) (bank, account name, number, SWIFT), then this text. Accounts are set in Settings › Bank accounts, not here; the field's description links there.
+- **Payment notes**: the booking summary and the AR invoice print the available [bank accounts](../06-catalogues/07-bank-accounts.md) (bank, account name, number, SWIFT), then this text. Accounts are set in Settings › Bank accounts, not here. The tab lists them read only above the Payment notes field ("Not set" when there are none), with a **Manage bank accounts** link, and the preview prints them. The controller sends them as `bankAccounts` (`BankAccountLines`) on the Documents tab only.
 - **Empty values never print**, whatever the switches: no "-", no "0.00" payment line, no country-only address, no empty strip cell.
 - The voucher, the receipts, the AR statement and the reports do not read these switches.
 
@@ -133,7 +133,10 @@ What the customer documents show. One set of switches: each applies to every doc
 │ Sections                                  │  Service tax 8%  60.00 │
 │ ● Cancellation policy  (booking summary)  │  Total MYR      810.00 │
 │ ○ Signature lines      (folio invoice)    │ Cancellation policy    │
-│ Payment notes                             │ Free until 2 days…     │
+│ Bank accounts                             │ Free until 2 days…     │
+│ Maybank · Sandbay … · 5141 2233 4455      │ Payment details        │
+│ Manage bank accounts ↗                    │ Maybank · Sandbay …    │
+│ Payment notes                             │ DuitNow QR at the …    │
 │ [ DuitNow QR at the front desk          ] │ [Open sample PDF ↗]    │
 └───────────────────────────────────────────┴────────────────────────┘
 ```

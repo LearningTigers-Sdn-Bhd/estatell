@@ -86,8 +86,5 @@
         @endforeach
     @endif
 
-    @if ($summary->paymentDetails !== null)
-        <div class="heading gap-16">{{ __('Payment details') }}</div>
-        <div class="small">{!! nl2br(e($summary->paymentDetails)) !!}</div>
-    @endif
+    @include('pdf.partials.payment-details', ['bankAccounts' => $summary->bankAccounts, 'notes' => $summary->paymentDetails])
 @endsection
