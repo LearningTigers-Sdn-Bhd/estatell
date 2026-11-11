@@ -75,7 +75,7 @@ gateway_events     id, gateway_account, event_id (unique), event_type, payload (
 - One class, `CurlecGateway` (`app/Services/Payments/`), with `createOrder`, `refund`, `verifySignature` and `verifyWebhook`.
 - It is built from the wastays `razorpay` adapter's flow, using the Razorpay API that Curlec documents. There is no multi-gateway registry.
 - Keys are in `config/services.php`: `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`. `CURLEC_ACCOUNT` names the account on each row, and defaults to `primary`.
-- Order notes hold `app: estatell` and the hold token only. Guest identity data never goes to the gateway.
+- Order notes hold `app: estatell` and the hold token only. The microsite prefills Curlec's checkout form with the guest's email and phone, so the guest does not type them twice.
 
 ## Curlec rules
 
