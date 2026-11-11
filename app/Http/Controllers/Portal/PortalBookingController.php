@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Actions\Boats\SetBoatTrips;
+use App\Actions\Portal\AddPortalUnitGuest;
 use App\Actions\Portal\CancelPortalReservation;
 use App\Actions\Portal\PortalBookingResult;
 use App\Actions\Portal\RequestPortalCancellation;
@@ -12,8 +13,11 @@ use App\Data\Portal\PortalBookingRowData;
 use App\Data\Property\CurrencyData;
 use App\Data\Reservations\PaymentScheduleData;
 use App\Enums\CompanyStatus;
+use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
+use App\Enums\Locale;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Portal\StorePortalUnitGuestRequest;
 use App\Http\Requests\Portal\UpdatePortalBoatsRequest;
 use App\Http\Requests\Portal\UpdatePortalGuestsRequest;
 use App\Models\CompanyUser;
@@ -75,6 +79,8 @@ class PortalBookingController extends Controller
         return $this->renderTab($request, $property, $reservation, 'guests', $bookings, $agentBill, fn (): array => [
             'idTypes' => IdentityDocumentType::options(),
             'countries' => app(CountryOptions::class)->options(),
+            'genders' => Gender::options(),
+            'locales' => Locale::options(),
         ]);
     }
 
@@ -127,6 +133,17 @@ class PortalBookingController extends Controller
         $result = $updateGuests($request->user(), $link, $bookings->find($link->company, $reservation), $request->guests());
 
         return $this->back($property, $reservation, $result, __('Guests saved.'), $messages, 'portal.bookings.guests');
+    }
+
+    /**
+     * Add a sharer to one unit of the booking.
+     */
+    public function storeGuest(StorePortalUnitGuestRequest $request, Property $property, int $reservation, int $unit, PortalBookings $bookings, AddPortalUnitGuest $addGuest, PortalBookingMessages $messages): RedirectResponse
+    {
+        $link = $this->link($request);
+        $result = $addGuest($request->user(), $link, $bookings->find($link->company, $reservation), $unit, $request->profile(), $request->idType(), $request->idNumber());
+
+        return $this->back($property, $reservation, $result, __('Guest added.'), $messages, 'portal.bookings.guests');
     }
 
     /**

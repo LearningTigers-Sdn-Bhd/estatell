@@ -20,12 +20,12 @@ import { useGuestsView } from '@/components/pms/reservations/use-guests-view';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
 import { Workspace } from '@/components/pms/workspace';
-import { SummaryToggle } from '@/components/pms/reservations/summary-toggle';
+import { SummaryToggle } from '@/components/pms/summary-toggle';
 import { UnitsAllTable } from '@/components/pms/reservations/units-all-table';
 import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
-import { useViewChoice } from '@/components/pms/reservations/use-view-choice';
-import { ViewChoiceToggle } from '@/components/pms/reservations/view-choice-toggle';
-import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
+import { useViewChoice } from '@/components/pms/use-view-choice';
+import { ViewChoiceToggle } from '@/components/pms/view-choice-toggle';
+import { useSummaryHidden } from '@/components/pms/use-summary-hidden';
 import { Badge } from '@/components/ui/badge';
 import {
     activity as activityTab,

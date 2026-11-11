@@ -1,5 +1,5 @@
-import { useViewChoice } from '@/components/pms/reservations/use-view-choice';
-import type { ViewChoice } from '@/components/pms/reservations/use-view-choice';
+import { useViewChoice } from '@/components/pms/use-view-choice';
+import type { ViewChoice } from '@/components/pms/use-view-choice';
 
 export type GuestsView = ViewChoice;
 

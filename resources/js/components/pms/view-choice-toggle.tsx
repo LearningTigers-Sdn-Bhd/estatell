@@ -1,5 +1,5 @@
 import { List, ListTree } from 'lucide-react';
-import type { ViewChoice } from '@/components/pms/reservations/use-view-choice';
+import type { ViewChoice } from '@/components/pms/use-view-choice';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /**

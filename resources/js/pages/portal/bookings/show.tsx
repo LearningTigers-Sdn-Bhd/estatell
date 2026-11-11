@@ -4,7 +4,8 @@ import { BedDouble, Users, Wallet } from 'lucide-react';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { BookingBoatsDialog } from '@/components/pms/portal/booking-boats-dialog';
 import { BookingCancelActions } from '@/components/pms/portal/booking-cancel-actions';
-import { BookingGuestsSheet } from '@/components/pms/portal/booking-guests-sheet';
+import { guestGroups } from '@/components/pms/portal/booking-guest-rows';
+import { BookingGuestsRail } from '@/components/pms/portal/booking-guests-rail';
 import { BookingGuestsTab } from '@/components/pms/portal/booking-guests-tab';
 import { BookingPaymentSection } from '@/components/pms/portal/booking-payment-section';
 import { BookingSummaryCard } from '@/components/pms/portal/booking-summary-card';
@@ -14,6 +15,8 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
+import { useSummaryHidden } from '@/components/pms/use-summary-hidden';
+import { useViewChoice } from '@/components/pms/use-view-choice';
 import { Workspace } from '@/components/pms/workspace';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -44,6 +47,8 @@ export default function PortalBookingShow({
     boatSetup = [],
     idTypes = [],
     countries = [],
+    genders = [],
+    locales = [],
     paymentProofs = [],
 }: {
     tab: Tab;
@@ -61,16 +66,34 @@ export default function PortalBookingShow({
     idTypes?: EnumOption[];
     /** Guests tab only. */
     countries?: EnumOption[];
+    /** Guests tab only. */
+    genders?: EnumOption[];
+    /** Guests tab only. */
+    locales?: EnumOption[];
     /** Payments tab only. */
     paymentProofs?: App.Data.Payments.PaymentProofData[];
 }) {
-    const [editing, setEditing] = useState(false);
     const [editingBoats, setEditingBoats] = useState(false);
     const boatFormKey = useFreshOnOpen(editingBoats);
     const canChangeBoats = boatSetup.some(
         (unit) => unit.canSetBoatIn || unit.canSetBoatOut,
     );
-    const [saves, setSaves] = useState(0);
+    const [summaryHidden, toggleSummary] = useSummaryHidden(
+        'portal.bookings.summary-hidden',
+    );
+    const [guestsView, setGuestsView] = useViewChoice(
+        'portal.bookings.guests-view',
+    );
+    const [pickedGroup, setPickedGroup] = useState<string | null>(null);
+    const groups = guestGroups(booking);
+    const grouped =
+        tab === 'guests' &&
+        guestsView === 'grouped' &&
+        booking.units.length > 1;
+    const activeGroup =
+        groups.find((group) => group.key === pickedGroup)?.key ??
+        groups[0]?.key ??
+        'none';
     const key = { property: propertyCode, reservation: booking.id };
 
     const tabs = [
@@ -162,6 +185,16 @@ export default function PortalBookingShow({
                     panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
                     <Workspace
+                        list={
+                            grouped && groups.length > 1 ? (
+                                <BookingGuestsRail
+                                    groups={groups}
+                                    activeKey={activeGroup}
+                                    onSelect={setPickedGroup}
+                                />
+                            ) : undefined
+                        }
+                        hideAside={tab === 'guests' && summaryHidden}
                         asideLabel="Booking summary"
                         aside={
                             <BookingSummaryCard
@@ -175,18 +208,18 @@ export default function PortalBookingShow({
                         {tab === 'guests' ? (
                             <BookingGuestsTab
                                 booking={booking}
-                                countries={countries}
-                                toolbar={
-                                    booking.canEditGuests && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => setEditing(true)}
-                                        >
-                                            Edit guests
-                                        </Button>
-                                    )
-                                }
+                                propertyCode={propertyCode}
+                                options={{
+                                    idTypes,
+                                    countries,
+                                    genders,
+                                    locales,
+                                }}
+                                view={guestsView}
+                                onViewChange={setGuestsView}
+                                activeGroup={activeGroup}
+                                summaryHidden={summaryHidden}
+                                onToggleSummary={toggleSummary}
                             />
                         ) : tab === 'payments' ? (
                             <BookingPaymentSection
@@ -237,20 +270,6 @@ export default function PortalBookingShow({
                         reservationId={booking.id}
                         units={boatSetup}
                         departures={boatDepartures}
-                    />
-                )}
-
-                {tab === 'guests' && booking.canEditGuests && (
-                    <BookingGuestsSheet
-                        key={saves}
-                        open={editing}
-                        onOpenChange={setEditing}
-                        propertyCode={propertyCode}
-                        reservationId={booking.id}
-                        guests={booking.guests}
-                        idTypes={idTypes}
-                        countries={countries}
-                        onSaved={() => setSaves((count) => count + 1)}
                     />
                 )}
             </div>
