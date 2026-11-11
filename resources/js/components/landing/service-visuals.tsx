@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PinArt } from './pin-art';
+import { CheckinPhoneArt, PinArt } from './pin-art';
 import type { Visual } from './services';
 import { prefersReducedMotion, useStaggerReveal } from './use-reveal';
 
@@ -140,6 +140,45 @@ function ChatPanel() {
     );
 }
 
+function PhonePanel() {
+    const [step, setStep] = useState(0);
+
+    useEffect(() => {
+        const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        let timer: ReturnType<typeof setInterval> | undefined;
+        const start = () => {
+            clearInterval(timer);
+            if (motion.matches) {
+                setStep(2);
+                return;
+            }
+            timer = setInterval(
+                () => setStep((value) => (value + 1) % 3),
+                3200,
+            );
+        };
+        start();
+        motion.addEventListener('change', start);
+        return () => {
+            clearInterval(timer);
+            motion.removeEventListener('change', start);
+        };
+    }, []);
+
+    return (
+        <figure className="mx-auto w-full max-w-60">
+            <svg
+                viewBox="-12 -8 184 320"
+                role="img"
+                aria-label="Self check-in: scan the lobby QR, verify identity and payment, then receive your room PIN."
+                className="w-full overflow-visible drop-shadow-xl"
+            >
+                <CheckinPhoneArt step={step} />
+            </svg>
+        </figure>
+    );
+}
+
 export function ServiceVisual({ visual }: { visual: Visual }) {
     switch (visual.type) {
         case 'photo':
@@ -162,5 +201,7 @@ export function ServiceVisual({ visual }: { visual: Visual }) {
             return <ChatPanel />;
         case 'sync':
             return <SyncPanel />;
+        case 'phone':
+            return <PhonePanel />;
     }
 }

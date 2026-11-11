@@ -11,7 +11,7 @@ const contacts = [
         label: 'WhatsApp',
         value: '+6011-6202 3988',
         copy: '+601162023988',
-        href: 'https://wa.me/601162023988',
+        href: 'https://wa.me/601162023988?text=%5Bweb%5D-Hi-I-would-like-to-know-more-about-Estatell',
     },
     {
         label: 'Email',
@@ -86,7 +86,7 @@ export function Closing() {
                                 />
                             </a>
                             <a
-                                href="https://wa.me/601162023988"
+                                href="https://wa.me/601162023988?text=%5Bweb%5D-Hi-I-would-like-to-know-more-about-Estatell"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex min-h-12 w-full items-center justify-center gap-3 px-1 py-3 text-sm font-medium text-foreground underline decoration-border underline-offset-8 transition-colors hover:text-chart-1 hover:decoration-chart-1 motion-reduce:transition-none sm:w-auto"
