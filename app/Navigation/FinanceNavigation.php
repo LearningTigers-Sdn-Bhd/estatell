@@ -43,14 +43,14 @@ class FinanceNavigation
                     active: request()->routeIs('finance.city-ledger.aging*'),
                 ) : null,
             ]))),
-            new NavGroupData(label: __('Estatell'), items: array_values(array_filter([
-                $user->can(PermissionEnum::PayoutsView->value) && $this->payouts->isShown($property) ? new NavItemData(
+            new NavGroupData(label: __('Estatell'), items: $user->can(PermissionEnum::PayoutsView->value) && $this->payouts->isShown($property) ? [
+                new NavItemData(
                     title: __('Payouts'),
                     href: route('finance.payouts.index', ['property' => $property->code], absolute: false),
                     icon: 'banknote',
                     active: request()->routeIs('finance.payouts.*'),
-                ) : null,
-            ]))),
+                ),
+            ] : []),
         ];
     }
 }
