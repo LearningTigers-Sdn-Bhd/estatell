@@ -125,6 +125,15 @@ Branch `feat/group-unit-actions`. Planned on 2026-11-10: staff could change the 
 - [x] `feat(reservations): add an add-on to all lines on the booking form` — All lines in the Line select; each line holds a copy tagged with a client-only `shared` id, so the request does not change; a new line gets the copies; errors name the line. UI only, with `booking-lines.test.ts` cases. Docs: [Booking form](12-reservations/05-booking-form.md).
 - [x] `feat(reservations): show boat trips inline on the Units tab` — Sand Bay feedback: the Boat row is one line, "In 06:00 boat ✎ · Out 16:00 boat ✎" (`UnitBoatTripData::$short`: a scheduled boat by the time it leaves, so Boat in does not repeat the arrival time of Stay; the full summary as its tooltip; ✎ icon buttons in place of Change), and the All view shows the boat times under Stay (`ReservationUnitRowData` `boatIn` and `boatOut`, two more queries with Boats on). Pax shows adult and child icons (`PaxCount`, moved from `stay-view/` to `components/pms/`). Docs: [Boat trips](24-boats/02-boat-trips.md#reservation-page).
 
+### Agent bank transfer
+
+Branch `feat/portal-booking-tabs`. Planned on 2026-11-11 after Sand Bay asked how agents pay: the portal booking showed the bill but no bank details, and no form without a schedule. Bank transfer only; Curlec for companies is skipped for now.
+
+- [x] `docs(payments): plan bank accounts and agent bank transfer` — the bank accounts spec, How to pay, the proof form without a schedule, Paid into, and these items. Docs: [Bank accounts](06-catalogues/07-bank-accounts.md).
+- [ ] `feat(catalogues): add property bank accounts` — `property_bank_accounts` with its unique number and SWIFT CHECK, `SaveBankAccount`, `ReorderBankAccounts`, `BankAccountRequest`, the `settings.bank-accounts.*` routes, the Settings › Billing setup › Bank accounts page (Available Switch, arrows, Sheet) and the `banknote` nav icon. Docs: [Bank accounts](06-catalogues/07-bank-accounts.md).
+- [ ] `feat(printing): print bank accounts on documents` — the available accounts then Payment notes on the booking summary, the AR invoice and the sample PDF; Payment details renamed Payment notes, with a link to Bank accounts. Needs: add property bank accounts. Docs: [Documents tab](02-property/05-printing-settings.md#documents-tab).
+- [ ] `feat(portal): show how to pay and take proofs without a schedule` — `AgentBillData::$agentPaid`, How to pay, the form for every company that pays per booking while Left to pay is above 0, the direct-billing refusal in `UploadPaymentProof` and its note, `payment_proofs.bank_account_id` with Paid into on proofs and slips, the accounts above the Statements slip form, and Paid into in `PaymentProofReview` and the company Payments tab. Needs: add property bank accounts. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips).
+
 ## Next
 
 Needed for go-live.

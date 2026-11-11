@@ -134,7 +134,7 @@ Finance › City ledger › Invoices
 
 Rendered on demand with dompdf, not stored, with the shared letterhead from [Printing settings](../02-property/05-printing-settings.md). It shows the invoice or credit note number, dates, the company's name, tax numbers and billing address, the folio lines (an invoice) or the reason and the invoice it corrects (a credit note), and the total. A Void document is stamped VOID.
 
-The folio lines follow the [Documents tab](../02-property/05-printing-settings.md#documents-tab) switches, with the same line rules as the [folio invoice](../13-folio/06-folio-invoice.md#content): grouped under the room and the staying guest ("Room 103 · Tan Wei Ming", from the line source), collapsed room nights, the tax summary per tax, and the amount in words. A line and its reversal are both left out. With **Room and guest on lines** off, the [Rooms block](../02-property/05-printing-settings.md#rooms-block) names the staying guests: an AR invoice always names them. The **Payment details** text prints under the total. The info strip leaves out empty cells (2 to 4 cells: Bill to, Issued, Due, Reservation, the reservation `reference`). A credit note does not read the switches and keeps its layout.
+The folio lines follow the [Documents tab](../02-property/05-printing-settings.md#documents-tab) switches, with the same line rules as the [folio invoice](../13-folio/06-folio-invoice.md#content): grouped under the room and the staying guest ("Room 103 · Tan Wei Ming", from the line source), collapsed room nights, the tax summary per tax, and the amount in words. A line and its reversal are both left out. With **Room and guest on lines** off, the [Rooms block](../02-property/05-printing-settings.md#rooms-block) names the staying guests: an AR invoice always names them. The available [bank accounts](../06-catalogues/07-bank-accounts.md) and the **Payment notes** text print under the total, as on the booking summary. The info strip leaves out empty cells (2 to 4 cells: Bill to, Issued, Due, Reservation, the reservation `reference`). A credit note does not read the switches and keeps its layout.
 
 - **City ledger lines** are found by their transaction code (`DirectBillPayment`), never by the idempotency key: the invoice page, the PDF and the payment rows leave out every City ledger line and its reversal.
 - **Rows**: the folio's posted lines through the shared `FolioDocumentRows` and the [line grouper](../02-property/05-printing-settings.md#line-grouper), with the tax registration numbers. The city ledger line itself is left out. `ArInvoiceDetail::lines()` keeps serving the read-only invoice page.
@@ -151,7 +151,7 @@ Paid at the hotel
   12 Oct  R-1004  Card                                   (100.00)
                                     Amount due MYR         710.00
 Ringgit Malaysia seven hundred and ten only
-Payment details: Maybank 5141 2233 4455 · Sandbay Resort Sdn Bhd
+Pay by bank transfer: Maybank · Sandbay Resort Sdn Bhd · 5141 2233 4455
 ```
 
 - **Bill to** comes from `CompanyBillTo`. It prints the country only when a street, postcode or city is set, so a company with only a country prints no address line. The folio invoice uses the same class.

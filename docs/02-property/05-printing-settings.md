@@ -47,7 +47,7 @@ print_setting_taxes         the tax numbers the header shows
 
 - `SeedPropertyDefaults` creates the row with the defaults above and no tax rows. A back-fill migration creates it for existing properties, and `PropertyFactory` creates it in tests. Code that prints never checks for a missing row. The printing routes are a 404 before Basics, when the row does not exist yet.
 - `footer_text` and `bank_details` are trimmed. An empty text is stored as null (CHECK, like `taxes.registration_number`).
-- `bank_details` is the one value the table stores: the property has no bank account record, and the text is only ever printed.
+- `bank_details` is the one value the table stores. Its label is **Payment notes**: other payment instructions, printed after the property's [bank accounts](../06-catalogues/07-bank-accounts.md). The accounts have their own table (decided 11 Nov 2026); the column name stays.
 
 ## Enums
 
@@ -113,12 +113,13 @@ What the customer documents show. One set of switches: each applies to every doc
 | Amount in words (`show_amount_in_words`)         | ✓               | ✓             | ✓          | Off     |
 | Cancellation policy (`show_cancellation_policy`) | ✓               | –             | –          | On      |
 | Signature lines (`show_signature_lines`)         | –               | ✓             | –          | Off     |
-| Payment details (`bank_details`, text)           | ✓               | –             | ✓          | Empty   |
+| Payment notes (`bank_details`, text)             | ✓               | –             | ✓          | Empty   |
 
 - **Room and guest on lines**: charge rows are grouped under "Room 103 · Tan Wei Ming", from the line source (a child takes its parent's). Off: one list by date with a **Room** column. See [Room column](#room-column).
 - **Nightly breakdown**: off collapses a unit's room lines with the same description and amount into "Room, 3 nights × 250.00" with the date range (inclusions and discounts the same way). On: one row per night.
 - **Tax breakdown**: on sums the tax lines per tax ("Service tax 8%", "Tourism tax"). Off: one "Tax" total. The tax registration number still prints next to the tax total (see [Legal fields](#legal-fields)).
 - **Amount in words**: English words under the total, for example "Ringgit Malaysia one thousand five hundred and four only", or "… and fifty sen only" when there are cents. See [Amount in words](#amount-in-words).
+- **Payment notes**: the booking summary and the AR invoice print the available [bank accounts](../06-catalogues/07-bank-accounts.md) (bank, account name, number, SWIFT), then this text. Accounts are set in Settings › Bank accounts, not here; the field's description links there.
 - **Empty values never print**, whatever the switches: no "-", no "0.00" payment line, no country-only address, no empty strip cell.
 - The voucher, the receipts, the AR statement and the reports do not read these switches.
 
@@ -132,14 +133,14 @@ What the customer documents show. One set of switches: each applies to every doc
 │ Sections                                  │  Service tax 8%  60.00 │
 │ ● Cancellation policy  (booking summary)  │  Total MYR      810.00 │
 │ ○ Signature lines      (folio invoice)    │ Cancellation policy    │
-│ Payment details                           │ Free until 2 days…     │
-│ [ Maybank 5141 2233 4455 · Sandbay …    ] │ [Open sample PDF ↗]    │
+│ Payment notes                             │ Free until 2 days…     │
+│ [ DuitNow QR at the front desk          ] │ [Open sample PDF ↗]    │
 └───────────────────────────────────────────┴────────────────────────┘
 ```
 
 - Each switch says which documents it changes in its description.
 - The preview draws a sample booking summary from the form state. **Open sample PDF** opens `settings.printing.sample?document=booking-summary`: the real dompdf output with sample data.
-- The sample PDF is `pdf/document-sample.blade.php`. It draws the letterhead, a sample info strip, the shared lines partial, the cancellation policy text and the payment details. Its sample rows go through the same line grouper as the real documents.
+- The sample PDF is `pdf/document-sample.blade.php`. It draws the letterhead, a sample info strip, the shared lines partial, the cancellation policy text, the available bank accounts and the payment notes. Its sample rows go through the same line grouper as the real documents.
 
 ### Line grouper
 
@@ -200,11 +201,11 @@ The booking summary always has a Rooms section. The folio invoice and the AR inv
 
 **Printing** is its own Settings sidebar item (`settings.manage`, icon `printer`), below Registration card. It has three tabs with their own URLs:
 
-| Tab       | URL                                     | Content                                    |
-| --------- | --------------------------------------- | ------------------------------------------ |
-| General   | `/p/{code}/settings/printing`           | Font style, font size, footer text         |
-| Header    | `/p/{code}/settings/printing/header`    | Header line switches, tax numbers          |
-| Documents | `/p/{code}/settings/printing/documents` | Document switches and payment details text |
+| Tab       | URL                                     | Content                                  |
+| --------- | --------------------------------------- | ---------------------------------------- |
+| General   | `/p/{code}/settings/printing`           | Font style, font size, footer text       |
+| Header    | `/p/{code}/settings/printing/header`    | Header line switches, tax numbers        |
+| Documents | `/p/{code}/settings/printing/documents` | Document switches and payment notes text |
 
 Report column layouts are not here. They are a Sheet on each report page. See [Core reports](../22-reports/01-core-reports.md#layout-sheet).
 
