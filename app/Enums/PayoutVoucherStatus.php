@@ -33,6 +33,14 @@ enum PayoutVoucherStatus: string
         };
     }
 
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public static function options(): array
+    {
+        return array_map(fn (self $status): array => ['value' => $status->value, 'label' => $status->label()], self::cases());
+    }
+
     public function canTransitionTo(self $status): bool
     {
         return in_array($status, match ($this) {

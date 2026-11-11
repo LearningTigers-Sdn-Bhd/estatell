@@ -949,6 +949,49 @@ rate: string,
 effectiveFrom: string,
 status: App.Data.Shared.BadgeData,
 };
+export type PayoutVoucherData = {
+voucher: App.Data.Commissions.PayoutVoucherRowData,
+lines: App.Data.Commissions.PayoutVoucherLineData[],
+totals: {
+label: string,
+amount: string,
+}[],
+bankAccount: {
+bankName: string,
+accountName: string,
+accountNumber: string,
+swiftCode: string | null,
+} | null,
+approvedBy: string | null,
+approvedAt: string | null,
+paidOn: string | null,
+paidReference: string | null,
+canApprove: boolean,
+canMarkPaid: boolean,
+canAdjust: boolean,
+};
+export type PayoutVoucherLineData = {
+id: number,
+dueDate: string | null,
+reservationId: number | null,
+bookingReference: string | null,
+label: string,
+reason: string | null,
+amount: string,
+};
+export type PayoutVoucherRowData = {
+id: number,
+number: string,
+propertyId: number,
+propertyName: string,
+periodStart: string,
+periodEnd: string,
+dueOn: string,
+amount: string,
+owedToEstatell: boolean,
+currency: App.Data.Property.CurrencyData | null,
+status: App.Data.Shared.BadgeData,
+};
 }
 namespace Dashboard {
 export type ChannelMixCompanyData = {

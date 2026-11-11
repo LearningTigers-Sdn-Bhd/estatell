@@ -23,6 +23,7 @@ use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
 use App\Enums\PaymentReportStatus;
+use App\Enums\PayoutVoucherStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
 use App\Enums\RegistrationCardStatus;
@@ -155,6 +156,11 @@ class BadgeData extends Data
     }
 
     public static function fromPartnerStatus(PartnerStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromPayoutVoucherStatus(PayoutVoucherStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

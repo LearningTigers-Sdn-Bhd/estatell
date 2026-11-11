@@ -38,7 +38,7 @@ Let platform admins track money held for properties, commission per service, and
 
 ## Vouchers tab
 
-`/admin/commissions/vouchers` (Index)
+`/admin/commissions/vouchers` (Index). Until the Bookings tab is built, it is a page of its own and the **Commissions** sidebar link opens it.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -90,6 +90,13 @@ Let platform admins track money held for properties, commission per service, and
 | Approve        | Draft      | Confirm                                       |
 | Mark as paid   | Approved   | Dialog: transfer date and bank reference      |
 | PDF            | Always     | Opens the PDF                                 |
+
+- **Approve** refuses a voucher that is no longer a Draft, and a positive voucher when the property has no active bank account (the page shows a warning). A voucher the property owes is approved without one. Approving saves the bank account and the totals by type and service in `snapshot`.
+- **Bank account:** before approval the page shows the property's first active account; after, the saved one. Admins see the full number, because they make the transfer. The PDF and the property's own page show only the last 4 digits.
+- **Mark as paid** needs an Approved voucher, a transfer date that is not in the future, and the bank reference.
+- **Add adjustment** works on a Draft only. The amount is signed from the property's side, a reason is required, and the entry is linked to the voucher at once with the cycle's end as its due date. The form's key makes a repeated submit add nothing.
+- Every action is logged, and every write route needs two-factor.
+- **PDF:** `pdf.payout-voucher` through `PrintedPdf`, opened from `/admin/commissions/vouchers/{voucher}/pdf`. It is Estatell's document to the property, so it has no property letterhead.
 
 ## Commission rates
 
