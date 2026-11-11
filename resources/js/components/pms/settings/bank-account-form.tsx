@@ -69,7 +69,7 @@ export function BankAccountForm({
                     </FieldLabel>
                     <Input
                         id="bank-account-bank"
-                        placeholder="Maybank"
+                        placeholder="e.g. Maybank"
                         name="bank_name"
                         maxLength={100}
                         value={form.data.bank_name}
@@ -87,7 +87,7 @@ export function BankAccountForm({
                     </FieldLabel>
                     <Input
                         id="bank-account-name"
-                        placeholder="Sand Bay Resort Sdn Bhd"
+                        placeholder="e.g. Seaview Hospitality Sdn Bhd"
                         name="account_name"
                         maxLength={150}
                         value={form.data.account_name}
@@ -105,7 +105,7 @@ export function BankAccountForm({
                         </FieldLabel>
                         <Input
                             id="bank-account-number"
-                            placeholder="5123 4567 8901"
+                            placeholder="e.g. 5123 4567 8901"
                             name="account_number"
                             maxLength={34}
                             inputMode="numeric"
@@ -126,7 +126,7 @@ export function BankAccountForm({
                         </FieldLabel>
                         <Input
                             id="bank-account-swift"
-                            placeholder="MBBEMYKL"
+                            placeholder="e.g. MBBEMYKL"
                             name="swift_code"
                             maxLength={11}
                             value={form.data.swift_code}

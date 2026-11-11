@@ -45,7 +45,7 @@ test('the page lists available accounts first in order, only for this property',
 test('owners add an account at the end of the available list', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
-    PropertyBankAccount::factory()->for($property)->create(['position' => 3]);
+    PropertyBankAccount::factory()->for($property)->create(['bank_name' => 'CIMB Bank', 'position' => 3]);
 
     $this->actingAs($owner)
         ->post(route('settings.bank-accounts.store', $property->code), bankAccountPayload(overrides: [
