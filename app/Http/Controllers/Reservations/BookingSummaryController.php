@@ -18,7 +18,7 @@ class BookingSummaryController extends Controller
      */
     public function __invoke(Request $request, Property $property, Reservation $reservation, BookingSummary $bookingSummary, PrintedPdf $printedPdf): Response
     {
-        $summary = $bookingSummary->for($property, $reservation, $request->boolean('prices', true));
+        $summary = $bookingSummary->for($property, $reservation, $request->boolean('prices', true), forPrint: true);
 
         return $printedPdf->make($property, 'pdf.booking-summary', [
             'summary' => $summary,

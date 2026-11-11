@@ -24,6 +24,7 @@ use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
+use App\Models\PropertyBankAccount;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -125,9 +126,9 @@ function bsPay(Folio $folio, string $amount = '50.00', string $receipt = 'R-1002
     ]);
 }
 
-function bsSummary(array $setup, bool $prices = true): BookingSummaryDocument
+function bsSummary(array $setup, bool $prices = true, bool $forPrint = false): BookingSummaryDocument
 {
-    return app(BookingSummary::class)->for($setup['property']->fresh(), $setup['reservation']->fresh(), $prices);
+    return app(BookingSummary::class)->for($setup['property']->fresh(), $setup['reservation']->fresh(), $prices, $forPrint);
 }
 
 /** The sum of the Projected totals of every folio and not-started unit the folio tab shows. */
@@ -389,7 +390,13 @@ test('payment details and the amount in words print under the balance when switc
     $summary = bsSummary($setup);
 
     expect($summary->paymentDetails)->toBe('Maybank 5141 2233 4455')
+        ->and($summary->bankAccounts)->toBe([])
         ->and($summary->balanceInWords)->toBe('Ringgit Malaysia one hundred and eight only');
+
+    PropertyBankAccount::factory()->for($setup['property'])->create(['bank_name' => 'CIMB Bank', 'account_name' => 'Seaview Hospitality Sdn Bhd', 'account_number' => '8001 2233 44', 'swift_code' => 'CIBBMYKL']);
+
+    expect(bsSummary($setup, forPrint: true)->bankAccounts)->toBe(['CIMB Bank · Seaview Hospitality Sdn Bhd · 8001 2233 44 · SWIFT CIBBMYKL'])
+        ->and(bsSummary($setup)->bankAccounts)->toBe([]);
 });
 
 test('a balance below zero is a credit', function () {
@@ -405,17 +412,19 @@ test('without prices no amount is held, and the request is ignored without a com
     $setup = bsSetup();
     bsUnit($setup['reservation'], 2);
     $setup['property']->printSetting->forceFill(['bank_details' => 'Maybank 5141'])->save();
+    PropertyBankAccount::factory()->for($setup['property'])->create();
 
     expect(bsSummary($setup, false)->showPrices)->toBeTrue();
 
     $company = Company::factory()->for($setup['property'])->create();
     $setup['reservation']->forceFill(['company_id' => $company->id])->save();
-    $plain = bsSummary($setup, false);
+    $plain = bsSummary($setup, false, forPrint: true);
 
     expect($plain->showPrices)->toBeFalse()
         ->and($plain->lines)->toBeNull()
         ->and($plain->payments)->toBe([])
         ->and([$plain->paid, $plain->billed, $plain->balanceDue, $plain->balanceInWords, $plain->paymentDetails])->each->toBeNull()
+        ->and($plain->bankAccounts)->toBe([])
         ->and($plain->rooms)->toHaveCount(1);
 });
 
@@ -462,6 +471,7 @@ test('the PDF prints with every section filled', function () {
     $company = Company::factory()->for($setup['property'])->create();
     $setup['reservation']->forceFill(['company_id' => $company->id, 'external_reference' => 'PO-1', 'status' => 'cancelled'])->save();
     $setup['property']->printSetting->forceFill(['bank_details' => 'Maybank', 'show_amount_in_words' => true])->save();
+    PropertyBankAccount::factory()->for($setup['property'])->create(['swift_code' => 'MBBEMYKL']);
     $unit = bsUnit($setup['reservation'], 2, '100.00', '103');
     bsGuest($unit, 'Tan Wei Ming');
     $folio = app(CreateFolio::class)($setup['reservation'], $unit);

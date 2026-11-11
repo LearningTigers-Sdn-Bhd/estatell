@@ -8,9 +8,12 @@ use App\Http\Requests\Portal\UploadPaymentProofRequest;
 use App\Models\CompanyUser;
 use App\Models\PaymentProof;
 use App\Models\Property;
+use App\Notifications\PaymentSlipReceived;
 use App\Services\Portal\PortalBookings;
+use App\Services\Portal\PortalStatements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -20,16 +23,26 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class PortalPaymentProofController extends Controller
 {
-    public function store(UploadPaymentProofRequest $request, Property $property, int $reservation, PortalBookings $bookings, UploadPaymentProof $upload): RedirectResponse
+    /**
+     * Send a proof for the booking. Once the booking is invoiced it is saved as a company slip for that invoice, and the
+     * staff who check slips are told.
+     */
+    public function store(UploadPaymentProofRequest $request, Property $property, int $reservation, PortalBookings $bookings, PortalStatements $statements, UploadPaymentProof $upload): RedirectResponse
     {
-        $booking = $bookings->find($this->link($request)->company, $reservation);
-        $proof = $upload($request->user(), $booking, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'));
+        $company = $this->link($request)->company;
+        $booking = $bookings->find($company, $reservation);
+
+        $proof = $upload($request->user(), $company, $booking, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'), $request->bankAccountId());
+
+        if ($proof?->company_id !== null) {
+            Notification::send($statements->slipReviewers($company), new PaymentSlipReceived($company->id, $company->name, $property->code, $property->name, $proof->amount));
+        }
 
         Inertia::flash('toast', $proof === null
             ? ['type' => 'error', 'message' => __('This booking is closed. Contact the property.')]
             : ['type' => 'success', 'message' => __('Payment proof sent. The property will confirm the payment.')]);
 
-        return to_route('portal.bookings.show', ['property' => $property, 'reservation' => $reservation]);
+        return to_route('portal.bookings.payments', ['property' => $property, 'reservation' => $reservation]);
     }
 
     public function file(Request $request, Property $property, int $reservation, PaymentProof $paymentProof, PortalBookings $bookings): StreamedResponse

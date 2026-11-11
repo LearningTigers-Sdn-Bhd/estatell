@@ -99,7 +99,7 @@ class NightChargeQuote
             $inclusion = $inclusions->get($line->inclusionId);
             $code = $inclusion->chargeItem->transactionCode;
             $lineTax = $this->tax($property, $propertyTaxes, $code, $line->amount, $nationality);
-            $charges[] = new QuotedCharge($key.':incl:'.$inclusion->id, $code, $inclusion->chargeItem->name, $line->amount, $lineTax->isCalculated() ? $lineTax->netAmount : $line->amount, [], $lineTax);
+            $charges[] = new QuotedCharge($key.':incl:'.$inclusion->id, $code, $inclusion->chargeItem->name, $line->amount, $lineTax->isCalculated() ? $lineTax->netAmount : $line->amount, [], $lineTax, $roomCode);
         }
 
         return NightQuote::calculated($charges);

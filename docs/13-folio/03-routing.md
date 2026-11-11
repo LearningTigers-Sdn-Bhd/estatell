@@ -32,10 +32,13 @@ folio_routing_rules    id, reservation_id,
 2. At the same level, a rule for the posting unit beats a rule for all units.
 3. No rule matches: the unit's own folio (null before the unit has one, and `PostCharge` creates it).
 
+An inclusion passes a third argument, `$follows`: the code of its room or day use charge (`QuotedCharge::$follows`). When no rule matches the inclusion's own code, the router routes it as that charge. See [Inclusions follow their room](#rules).
+
 The router follows one rule and stops. A rule target is final, so there are no chains and no loops. A rule that points at the unit's own folio does nothing.
 
 ## Rules
 
+- **Inclusions follow their room.** A package inclusion (a meal, a boat fare) is part of the room price, so with no rule for its own code or category it goes to the folio of its night's room line. Under MasterPays the company then pays the whole package, not only the room part. A rule that matches the inclusion itself (a code, category or all-charges rule) still wins. The night audit, day use, Change price, Check out as day use, the Scheduled rows and the Move charges preview all pass `$follows`.
 - **Children follow their parent.** Tax and discount lines go to the folio of their charge. A rule never matches them. The one exception is [collected taxes](#collected-taxes) the guest pays.
 - **Reversals and transfers skip the router.** `ReverseLine` posts on the line's own folio. `TransferLines` posts on the chosen target.
 - **A closed target refuses the posting** (`folio_not_open`). There is never a silent fallback to the unit's folio. In the night audit this becomes an exception row that names the folio.
@@ -56,7 +59,7 @@ A tax with **Collect at check-in** (the tourism tax) follows the room line, exce
 | A folio no company pays (a Master the booker pays)                     | That folio, with the room                                    |
 
 - **Setting:** `companies.pays_collected_taxes` (default false), the switch **Company pays tourism tax** in the company's credit form ("How does this company pay?").
-- **Which lines:** only the taxes of the room line of a night. SST and other taxes, inclusions and add-ons follow their charge.
+- **Which lines:** only the taxes of the room line of a night. SST and other taxes follow their charge, inclusions follow their room line (see [Rules](#rules)) and add-ons follow their code.
 - **Posting:** `CollectedTaxPayer` (`app/Services/Folio/`) names the tax ids. `PostNightLines` passes them to `PostFolioCharge` as `taxFolios`, so the Tax line goes on the unit folio (created when missing) and keeps `parent_line_id` and the key `{night key}:tax:{tax_id}`. The audit, Change price and every night posting go through it.
 - **Reversal:** `ReverseLine` already posts each reversal on the folio of its line, so the tax is reversed on the unit folio. It refuses with `folio_not_open` when that folio is not Open. Change price checks the folios of the children too.
 - **Move:** `TransferLines` reverses such a child and copies it on its own folio, under the copy of its charge, so the tax stays with the guest. That folio must be Open.

@@ -4,6 +4,7 @@ namespace App\Services\Portal;
 
 use App\Actions\Boats\BoatTripResult;
 use App\Actions\Portal\PortalBookingResult;
+use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\ReservationResult;
 use App\Services\Rates\RateQuote;
@@ -82,6 +83,9 @@ class PortalBookingMessages
             PortalBookingResult::REFUSAL_PRICE_CHANGED => [self::FORM, __('The price changed. Check the new total and confirm again.')],
             PortalBookingResult::REFUSAL_NOT_EDITABLE => [self::FORM, __('The guests can no longer change. Contact the property.')],
             PortalBookingResult::REFUSAL_GUEST_NOT_FOUND => [self::FORM, __('The guests of this booking changed. Reload the page and try again.')],
+            AttachGuestResult::REFUSAL_UNIT_FULL => [self::FORM, __('This room has no space for another guest. Ask the property to add a guest.')],
+            AttachGuestResult::REFUSAL_BED_UNIT_FULL => [self::FORM, __('A bed holds one guest.')],
+            AttachGuestResult::REFUSAL_UNIT_NOT_OPEN => [self::FORM, __('The guests can no longer change. Contact the property.')],
             PortalBookingResult::REFUSAL_PAST_CUT_OFF => [self::FORM, __('The free cancellation period has ended. Ask the property to cancel.')],
             PortalBookingResult::REFUSAL_NOT_CANCELLABLE => [self::FORM, __('This booking cannot be cancelled or have a cancellation requested now.')],
             PortalBookingResult::REFUSAL_ALREADY_REQUESTED => [self::FORM, __('You already asked the property to cancel this booking.')],

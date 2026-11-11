@@ -211,7 +211,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 03  | [Staff](03-staff/)                   | Staff invitations, roles and permissions                                                                               |
 | 04  | [Notifications](04-notifications/)   | Notification types and opt-out                                                                                         |
 | 05  | [Rooms](05-rooms/)                   | Room types, rooms, beds, groups, blocks                                                                                |
-| 06  | [Catalogues](06-catalogues/)         | Transaction codes, charge items, taxes, payment methods, discounts, room revenue                                       |
+| 06  | [Catalogues](06-catalogues/)         | Transaction codes, charge items, taxes, payment methods, discounts, room revenue, bank accounts                        |
 | 07  | [Meals](07-meals/)                   | Meal periods and entitlements                                                                                          |
 | 08  | [Rates](08-rates/)                   | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts                                        |
 | 09  | [Packages](09-packages/)             | Inclusions and package prices                                                                                          |

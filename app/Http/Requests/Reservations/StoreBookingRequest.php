@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Reservations;
 
 use App\Data\Boats\BoatTripData;
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Data\Reservations\NewAddOnData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
@@ -11,6 +12,7 @@ use App\Data\Reservations\UnitPickData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Enums\IdentityDocumentType;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
@@ -19,6 +21,8 @@ use App\Models\BookingSource;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\RoomType;
+use App\Services\Guests\CountryOptions;
+use App\Services\Guests\IdentityNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -34,6 +38,26 @@ class StoreBookingRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * The ID number of each guest tab is stored without spaces or dashes, like the guest form.
+     */
+    protected function prepareForValidation(): void
+    {
+        $guests = $this->input('guests');
+
+        if (! is_array($guests)) {
+            return;
+        }
+
+        foreach ($guests as $index => $tab) {
+            if (is_array($tab) && is_string($tab['identity_number'] ?? null)) {
+                $guests[$index]['identity_number'] = app(IdentityNumber::class)->normalize($tab['identity_number']);
+            }
+        }
+
+        $this->merge(['guests' => $guests]);
     }
 
     /**
@@ -73,6 +97,9 @@ class StoreBookingRequest extends FormRequest
             'guests.*.update_profile' => ['nullable', 'boolean'],
             'guests.*.stays_in' => ['nullable', 'integer', 'min:0', 'max:999'],
             ...GuestProfileRules::prefixed('guests.*.', $this->phoneRegion(), nameRequired: false),
+            'guests.*.identity_type' => ['nullable', 'required_with:guests.*.identity_number', Rule::enum(IdentityDocumentType::class)],
+            'guests.*.identity_number' => ['nullable', 'string', 'min:4', 'max:40'],
+            'guests.*.identity_country_code' => ['nullable', Rule::in(app(CountryOptions::class)->codes())],
             'lines' => ['required', 'array', 'min:1', 'max:20'],
             'lines.*.room_type_id' => ['required', 'integer'],
             'lines.*.rate_plan_id' => ['required', 'integer'],
@@ -338,6 +365,7 @@ class StoreBookingRequest extends FormRequest
             }
 
             $this->checkNationality($validator, $index, $tab);
+            $this->checkIdentity($validator, $index, $tab);
 
             if ($this->canManageGuests()) {
                 continue;
@@ -348,6 +376,27 @@ class StoreBookingRequest extends FormRequest
             } elseif (! empty($tab['update_profile'])) {
                 $validator->errors()->add("guests.{$index}.update_profile", __('You may not change a guest\'s profile.'));
             }
+        }
+    }
+
+    /**
+     * An ID is saved only for a new guest (a linked guest keeps the IDs on its profile, so one sent for it is ignored).
+     * It needs `guests.view-documents` like the guest form, and a MyKad number has 12 digits.
+     *
+     * @param  array<string, mixed>  $tab
+     */
+    private function checkIdentity(Validator $validator, int|string $index, array $tab): void
+    {
+        if (blank($tab['identity_number'] ?? null) || ! empty($tab['guest_id'])) {
+            return;
+        }
+
+        $key = "guests.{$index}.identity_number";
+
+        if (! $this->user()->can(PermissionEnum::GuestsViewDocuments->value)) {
+            $validator->errors()->add($key, __('You may not add an ID.'));
+        } elseif (($tab['identity_type'] ?? null) === IdentityDocumentType::MyKad->value && ! preg_match('/^\d{12}$/', (string) $tab['identity_number'])) {
+            $validator->errors()->add($key, __('A MyKad number has 12 digits.'));
         }
     }
 
@@ -407,6 +456,9 @@ class StoreBookingRequest extends FormRequest
             profile: GuestProfileRules::attributes($tab, $region),
             updateProfile: (bool) ($tab['update_profile'] ?? false),
             unitIndex: isset($tab['stays_in']) ? (int) $tab['stays_in'] : null,
+            identity: empty($tab['guest_id']) && filled($tab['identity_number'] ?? null)
+                ? new IdentityDocumentInputData(IdentityDocumentType::from($tab['identity_type']), $tab['identity_number'], ($tab['identity_country_code'] ?? null) ?: null, null)
+                : null,
         ), array_values($tabs));
     }
 

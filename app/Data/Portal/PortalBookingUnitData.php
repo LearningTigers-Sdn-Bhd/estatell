@@ -9,12 +9,15 @@ use Spatie\LaravelData\Data;
 
 /**
  * One room or bed of a booking: the room type, the plan, the dates, the guests' names, the add-ons and the total of
- * the rooms and add-ons. No room number, folio or staff note.
+ * the rooms and add-ons. `guestIds` lists the unit's guests in the same order as `guestNames`, so the Guests tab can
+ * put each guest under the unit they stay in. `canAddGuest` says the company can add a sharer: the guests can still
+ * change, the unit is Confirmed and it has room for another guest. No room number, folio or staff note.
  */
 class PortalBookingUnitData extends Data
 {
     /**
      * @param  list<string>  $guestNames
+     * @param  list<int>  $guestIds
      * @param  list<PortalBookingAddOnData>  $addOns
      */
     public function __construct(
@@ -28,14 +31,16 @@ class PortalBookingUnitData extends Data
         public int $children,
         public BadgeData $status,
         public array $guestNames,
+        public array $guestIds,
         public array $addOns,
         public string $total,
+        public bool $canAddGuest = false,
     ) {}
 
     /**
      * Load `roomType`, `ratePlan`, `nights`, `dayUse`, `guests.guest` and `addOns.chargeItem` first.
      */
-    public static function fromUnit(ReservationUnit $unit): self
+    public static function fromUnit(ReservationUnit $unit, bool $canAddGuest = false): self
     {
         $rooms = $unit->nights->reduce(fn (BigDecimal $sum, $night): BigDecimal => $sum->plus($night->amount), BigDecimal::of($unit->dayUse->amount ?? '0'));
         $addOns = $unit->addOns->reduce(fn (BigDecimal $sum, $addOn): BigDecimal => $sum->plus(BigDecimal::of($addOn->unit_amount)->multipliedBy($addOn->quantity)), BigDecimal::zero());
@@ -51,8 +56,10 @@ class PortalBookingUnitData extends Data
             children: $unit->children,
             status: BadgeData::fromUnitStatus($unit->status),
             guestNames: array_values($unit->guests->map(fn ($occupant): string => $occupant->guest->full_name)->all()),
+            guestIds: array_values($unit->guests->map(fn ($occupant): int => $occupant->guest->id)->all()),
             addOns: array_values($unit->addOns->map(fn ($addOn): PortalBookingAddOnData => PortalBookingAddOnData::fromAddOn($addOn))->all()),
             total: (string) $rooms->plus($addOns)->toScale(2),
+            canAddGuest: $canAddGuest,
         );
     }
 }

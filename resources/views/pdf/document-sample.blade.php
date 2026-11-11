@@ -40,8 +40,5 @@
         <div class="small">{{ __('Free cancellation until 2 days before arrival. After that, one night is charged.') }}</div>
     @endif
 
-    @if (filled($settings->bank_details))
-        <div class="heading gap-16">{{ __('Payment details') }}</div>
-        <div class="small">{!! nl2br(e($settings->bank_details)) !!}</div>
-    @endif
+    @include('pdf.partials.payment-details', ['bankAccounts' => $bankAccounts, 'notes' => filled($settings->bank_details) ? $settings->bank_details : null])
 @endsection

@@ -17,6 +17,7 @@ use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
+use App\Models\PropertyBankAccount;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -197,6 +198,14 @@ test('the amount in words spells the amount due and Payment details print when s
     expect(arpDocument($invoice)->amountInWords)->toContain('sixty-eight')
         ->and(substr_count($html, 'sixty-eight'))->toBe(1)
         ->and($html)->toContain('Payment details')->toContain('Maybank 5141 2233 4455');
+
+    PropertyBankAccount::factory()->for($setup['property'])->create(['bank_name' => 'Maybank', 'account_name' => 'Seaview Hospitality Sdn Bhd', 'account_number' => '5123 4567 8901']);
+    PropertyBankAccount::factory()->for($setup['property'])->inactive()->create(['bank_name' => 'RHB Bank']);
+    $html = arpHtml($setup, $invoice);
+
+    expect(arpDocument($invoice)->bankAccounts)->toBe(['Maybank · Seaview Hospitality Sdn Bhd · 5123 4567 8901'])
+        ->and($html)->toContain('Maybank · Seaview Hospitality Sdn Bhd · 5123 4567 8901')
+        ->and($html)->not->toContain('RHB Bank');
 });
 
 test('the info strip names the company, the dates and the reservation', function () {

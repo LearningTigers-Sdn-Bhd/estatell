@@ -141,6 +141,12 @@ class SettingsNavigation
                     icon: 'credit-card',
                     active: request()->routeIs('settings.agent-payments.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Bank accounts'),
+                    href: route('settings.bank-accounts.index', ['property' => $property->code], absolute: false),
+                    icon: 'banknote',
+                    active: request()->routeIs('settings.bank-accounts.*'),
+                ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
                 $user->can(PermissionEnum::StaffView->value) ? new NavItemData(
