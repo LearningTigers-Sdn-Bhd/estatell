@@ -34,7 +34,7 @@ Let platform admins track money held for properties, commission per service, and
 - **Rows:** one per reservation with ledger entries due in the period (`CommissionBookings`), newest due first, 25 to a page. A booking shows once it has ended. A refund recorded a month later shows in that later period too, because rows follow due dates like vouchers.
 - **Columns:** Property, Booking, Source, Booked, Check-in, Check-out, Guest, Value, one commission column per `CommissionService` (positive), Outstanding to hotel (signed: negative means the property owes Estatell).
 - **Value:** what Estatell collected for a booking engine booking; otherwise the commission base, the room revenue before tax (reversals cancel out).
-- **Filters in the URL:** period (day, week from Monday, month, quarter or year) around a date, property and service. The default is this month in Malaysia time.
+- **Filters in the URL:** period (day, week from Monday, month, quarter or year) around a date, property, service and a search on the booking reference or the booker's name. The default is this month in Malaysia time.
 - **Footer:** totals of every row the filters keep, not only the page.
 - **Header cards** (`CommissionTotals`) are figures as of now. They follow the property filter and ignore the period. Amounts are in ringgit, the currency Curlec settles in.
     - **Total cash liability:** each property's positive balance of entries not in a paid voucher, plus money held for booking engine bookings not yet in the ledger (`OnlineBookingMoney::heldOutsideLedger`).

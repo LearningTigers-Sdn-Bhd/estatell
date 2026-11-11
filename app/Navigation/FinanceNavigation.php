@@ -7,6 +7,7 @@ use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Commissions\PropertyPayouts;
 
 /**
  * Sidebar groups for the Finance context. Items the user has no permission for are left out.
@@ -14,6 +15,8 @@ use App\Models\User;
  */
 class FinanceNavigation
 {
+    public function __construct(private PropertyPayouts $payouts) {}
+
     /**
      * @return list<NavGroupData>
      */
@@ -38,6 +41,14 @@ class FinanceNavigation
                     href: route('finance.city-ledger.aging', ['property' => $property->code], absolute: false),
                     icon: 'chart-column',
                     active: request()->routeIs('finance.city-ledger.aging*'),
+                ) : null,
+            ]))),
+            new NavGroupData(label: __('Estatell'), items: array_values(array_filter([
+                $user->can(PermissionEnum::PayoutsView->value) && $this->payouts->isShown($property) ? new NavItemData(
+                    title: __('Payouts'),
+                    href: route('finance.payouts.index', ['property' => $property->code], absolute: false),
+                    icon: 'banknote',
+                    active: request()->routeIs('finance.payouts.*'),
                 ) : null,
             ]))),
         ];

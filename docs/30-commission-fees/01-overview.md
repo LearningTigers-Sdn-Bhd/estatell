@@ -4,7 +4,7 @@
 
 Track what Estatell earns from each property's bookings, hold the money Estatell collects for properties, and pay it out on fixed dates. Platform admins see every property; each property sees its own bookings and payouts.
 
-**Status: in build.** Planned on 2026-11-11. Rates, the ledger, the Commissions settings tab, booking engine and channel manager recording, payout vouchers, the platform Commissions page and charging periods per property are built. The property Payouts page is next. Build order is in the [checklist](../checklist.md#30-commission-fees).
+**Status: built.** Planned on 2026-11-11. Rates, the ledger, the Commissions settings tab, booking engine and channel manager recording, payout vouchers, the platform Commissions page, charging periods per property and the property Payouts page are built. Build order is in the [checklist](../checklist.md#30-commission-fees).
 
 ## Decisions
 
@@ -22,7 +22,7 @@ Track what Estatell earns from each property's bookings, hold the money Estatell
 | Negative balance         | Carried forward until it reaches RM 50 or 3 months; then the property pays by bank transfer           |
 | Payout method            | Manual bank transfer by a platform admin. Curlec Route waits for Curlec's answers                     |
 | Who approves and pays    | Platform admins only                                                                                  |
-| Property access          | `payouts.view`, given to the Owner role by default. Draft vouchers are hidden from the property       |
+| Property access          | `payouts.view`, given to Owner by default. Shown while a service is on or a non-Draft voucher exists  |
 | Reuse                    | Each service is one enum case and one rule class. The ledger, vouchers and pages work for any service |
 
 ## Money flow

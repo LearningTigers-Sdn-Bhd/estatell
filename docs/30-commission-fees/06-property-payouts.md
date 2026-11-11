@@ -8,8 +8,8 @@ Let a property track the money Estatell collects for it, the commission per serv
 
 - New permission `payouts.view` (`PermissionEnum::PayoutsView`).
 - Given to the Owner role by default. The owner can give it to other roles.
-- The page is shown when the property has at least one commission service on.
-- Draft vouchers are hidden. The property sees Approved, Paid and Carried forward vouchers only.
+- The page is shown when the property has a commission service on today, or has a voucher it may see. A property that stops every service still sees its past payouts. Otherwise the routes answer 404 (`EnsurePayoutsAreShown`) and the sidebar leaves the item out.
+- Draft vouchers are hidden. The property sees Approved, Paid and Carried forward vouchers only (`PayoutVoucherStatus::isVisibleToProperty`). A Draft or another property's voucher answers 404.
 
 ## Bookings tab
 
@@ -38,9 +38,11 @@ Let a property track the money Estatell collects for it, the commission per serv
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- The same columns as the admin Bookings tab, without Property. "Out" is Outstanding to hotel.
-- **Next payout** is the property's share of the next voucher run, or its Approved voucher. A negative amount reads "You owe Estatell".
-- A row opens the reservation.
+- The same columns, filters and footer as the admin Bookings tab, without Property (`CommissionBookings`, limited to the property). "Out" is Outstanding to hotel. Search matches the booking reference or the booker's name.
+- **Next payout** (`PropertyPayouts::summary`) is the earliest Draft or Approved voucher's amount and payout date. A Draft shows only as this amount. With no open voucher, it is a forecast of the coming cut-off from the entries not yet in a voucher. A negative amount reads "You owe Estatell".
+- **Last payout** is the latest Paid voucher, with its paid date and bank reference.
+- A row opens the reservation when the user has `reservations.view`.
+- **Export CSV:** every filtered row with the page columns, `payouts-{from}-to-{to}.csv`.
 
 ## Payouts tab
 
@@ -60,4 +62,4 @@ Let a property track the money Estatell collects for it, the commission per serv
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-A row opens `/p/{property:code}/finance/payouts/vouchers/{voucher}`: the admin voucher page, read-only, with no action buttons except PDF.
+A row opens `/p/{property:code}/finance/payouts/vouchers/{payoutVoucher}`: the admin voucher page, read-only, with no action buttons except PDF and no approver name. The PDF is at `…/{payoutVoucher}/pdf`.

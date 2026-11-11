@@ -21,6 +21,7 @@ class PayoutVoucherRowData extends Data
         public string $periodStart,
         public string $periodEnd,
         public string $dueOn,
+        public ?string $paidOn,
         public string $amount,
         /** True when the property owes Estatell. */
         public bool $owedToEstatell,
@@ -41,6 +42,7 @@ class PayoutVoucherRowData extends Data
             periodStart: $voucher->period_start->toDateString(),
             periodEnd: $voucher->period_end->toDateString(),
             dueOn: $voucher->due_on->toDateString(),
+            paidOn: $voucher->paid_on?->toDateString(),
             amount: $voucher->amount,
             owedToEstatell: BigDecimal::of($voucher->amount)->isNegative(),
             currency: CurrencyData::forProperty($voucher->property),

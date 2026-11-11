@@ -23,6 +23,7 @@ class CommissionBookingsRequest extends FormRequest
             'filter.date' => ['nullable', 'date_format:Y-m-d'],
             'filter.property' => ['nullable', 'integer'],
             'filter.service' => ['nullable', Rule::enum(CommissionService::class)],
+            'filter.search' => ['nullable', 'string', 'max:100'],
         ];
     }
 
@@ -38,6 +39,7 @@ class CommissionBookingsRequest extends FormRequest
             $date === null ? app(PayoutCycle::class)->today() : CarbonImmutable::createFromFormat('!Y-m-d', $date),
             $this->validated('filter.property') === null ? null : (int) $this->validated('filter.property'),
             CommissionService::tryFrom((string) $this->validated('filter.service')),
+            $this->validated('filter.search'),
         );
     }
 }

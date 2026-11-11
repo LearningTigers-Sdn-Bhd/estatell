@@ -64,7 +64,7 @@ Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md
 - [x] `feat(commissions): approve, pay and print payout vouchers` — the Vouchers list, the voucher page, adjustments, approve, mark as paid, the voucher PDF and the Commissions sidebar link. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#voucher-page).
 - [x] `feat(commissions): add the platform commissions dashboard` — the Bookings tab at `/admin/commissions` with Total Cash Liability, Immediate Payable and Owed to Estatell, the period, property and service filters, and the CSV export. Needs: approve, pay and print payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#bookings-tab).
 - [x] `feat(commissions): start and stop commission per property` — `property_commission_periods`, the charge date (check-out date), the Commissions tab on the admin property page, and the platform start date removed. Needs: the platform commissions dashboard. Docs: [Charging periods](30-commission-fees/02-commission-rules.md#charging-periods), [Platform pages](30-commission-fees/05-platform-pages.md#property-commissions-tab).
-- [ ] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
+- [x] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
 
 ### 18 Front desk
 

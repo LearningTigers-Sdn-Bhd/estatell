@@ -10,6 +10,7 @@ use App\Enums\CommissionService;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use Brick\Math\BigDecimal;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 use stdClass;
 
 /**
- * The rows of the admin Commissions Bookings tab: one per reservation with ledger entries due in the period, newest due
+ * The rows of the admin Commissions and the property Payouts Bookings tabs: one per reservation with ledger entries due in the period, newest due
  * first. The value is what Estatell collected for a booking engine booking, or the commission base otherwise (reversals
  * cancel out). See docs/30-commission-fees/05-platform-pages.md#bookings-tab.
  */
@@ -77,6 +78,11 @@ class CommissionBookings
             ->whereNotNull('reservation_id')
             ->whereBetween('due_date', [$filters->from, $filters->to])
             ->when($filters->propertyId !== null, fn (Builder $query) => $query->where('property_id', $filters->propertyId))
+            ->when($filters->search !== null, fn (Builder $query) => $query->whereIn('reservation_id', Reservation::query()
+                ->select('id')
+                ->where(fn (EloquentBuilder $reservations) => $reservations
+                    ->where('reference', 'ilike', '%'.$filters->search.'%')
+                    ->orWhereHas('booker', fn (EloquentBuilder $booker) => $booker->where('full_name', 'ilike', '%'.$filters->search.'%')))))
             ->groupBy('reservation_id')
             ->select('reservation_id')
             ->selectRaw('max(due_date) as last_due')

@@ -8,7 +8,7 @@ use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 
 /**
- * The filters of the admin Commissions Bookings tab, read from the URL. The period runs from `from` to `to`, both included.
+ * The filters of the admin Commissions and the property Payouts Bookings tabs, read from the URL. The period runs from `from` to `to`, both included.
  */
 class CommissionBookingFilters extends Data
 {
@@ -19,12 +19,15 @@ class CommissionBookingFilters extends Data
         public string $to,
         public ?int $propertyId,
         public ?CommissionService $service,
+        /** Part of the booking reference or the booker's name. */
+        public ?string $search = null,
     ) {}
 
-    public static function make(CommissionPeriod $period, CarbonImmutable $date, ?int $propertyId, ?CommissionService $service): self
+    public static function make(CommissionPeriod $period, CarbonImmutable $date, ?int $propertyId, ?CommissionService $service, ?string $search = null): self
     {
         [$from, $to] = $period->range($date);
+        $search = trim((string) $search);
 
-        return new self($period, $date->toDateString(), $from->toDateString(), $to->toDateString(), $propertyId, $service);
+        return new self($period, $date->toDateString(), $from->toDateString(), $to->toDateString(), $propertyId, $service, $search === '' ? null : $search);
     }
 }

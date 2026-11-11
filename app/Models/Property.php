@@ -146,6 +146,14 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     }
 
     /**
+     * @return HasMany<PayoutVoucher, $this>
+     */
+    public function payoutVouchers(): HasMany
+    {
+        return $this->hasMany(PayoutVoucher::class);
+    }
+
+    /**
      * @return HasMany<Role, $this>
      */
     public function roles(): HasMany

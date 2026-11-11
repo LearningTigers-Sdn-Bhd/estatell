@@ -41,6 +41,22 @@ enum PayoutVoucherStatus: string
         return array_map(fn (self $status): array => ['value' => $status->value, 'label' => $status->label()], self::cases());
     }
 
+    /**
+     * Whether the property sees the voucher on its Payouts page. A Draft can still change, so only Estatell sees it.
+     */
+    public function isVisibleToProperty(): bool
+    {
+        return $this !== self::Draft;
+    }
+
+    /**
+     * @return list<self>
+     */
+    public static function visibleToProperty(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $status): bool => $status->isVisibleToProperty()));
+    }
+
     public function canTransitionTo(self $status): bool
     {
         return in_array($status, match ($this) {

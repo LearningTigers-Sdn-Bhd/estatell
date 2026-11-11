@@ -81,8 +81,9 @@ class PayoutVoucherDirectory
 
     /**
      * The voucher page. The bank account is the one saved on approval, or the property's first active account before.
+     * For the property's own read-only page, there are no actions and no approver name.
      */
-    public function detail(PayoutVoucher $voucher): PayoutVoucherData
+    public function detail(PayoutVoucher $voucher, bool $forProperty = false): PayoutVoucherData
     {
         $voucher->loadMissing([...PayoutVoucherRowData::RELATIONS, 'approver:id,name']);
 
@@ -106,14 +107,14 @@ class PayoutVoucherDirectory
             lines: array_values($lines->all()),
             totals: array_map(fn (array $total): array => ['label' => $this->totals->label($total['key']), 'amount' => $total['amount']], $this->totals->for($voucher)),
             bankAccount: $this->bankAccount($voucher),
-            approvedBy: $voucher->approver?->name,
+            approvedBy: $forProperty ? null : $voucher->approver?->name,
             approvedAt: $voucher->approved_at?->format('Y-m-d H:i'),
             paidOn: $voucher->paid_on?->toDateString(),
             paidReference: $voucher->paid_reference,
-            canApprove: $voucher->status->canTransitionTo(PayoutVoucherStatus::Approved)
+            canApprove: ! $forProperty && $voucher->status->canTransitionTo(PayoutVoucherStatus::Approved)
                 && ($this->bankAccount($voucher) !== null || ! BigDecimal::of($voucher->amount)->isPositive()),
-            canMarkPaid: $voucher->status->canTransitionTo(PayoutVoucherStatus::Paid),
-            canAdjust: $voucher->status === PayoutVoucherStatus::Draft,
+            canMarkPaid: ! $forProperty && $voucher->status->canTransitionTo(PayoutVoucherStatus::Paid),
+            canAdjust: ! $forProperty && $voucher->status === PayoutVoucherStatus::Draft,
         );
     }
 
