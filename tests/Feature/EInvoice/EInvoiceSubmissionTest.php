@@ -648,8 +648,64 @@ it('masks the buyer ID and explains an LHDN rejection with a fix', function () {
             ->where('submission.buyer.id_label', 'IC (MyKad)')
             ->where('submission.buyer.id_number', '•••• 5555')
             ->where('submission.reasons', [
+                ['message' => "The guest's IC number does not match their tax number at LHDN.", 'fix' => 'Check the IC and tax number with the guest, then submit again.', 'where' => 'buyer'],
+                ['message' => 'Something new', 'fix' => 'Check the buyer details, then submit again.', 'where' => 'buyer'],
+            ])
+            ->where('submission.can_resubmit', true)
+            ->etc());
+});
+
+it('sends an error in the hotel details to E-invoice settings and words a company mismatch for a company', function () {
+    $setup = submissionSetup();
+    $submission = EInvoiceSubmission::factory()->for($setup['property'])->create([
+        'folio_id' => $setup['folio']->id,
+        'status' => EInvoiceStatus::Invalid,
+        'buyer_snapshot' => ['name' => 'Sabah Energy Sdn Bhd', 'tin' => 'C12345678900', 'id_type' => 'BRN', 'id_value' => '201901012345'],
+        'error_details' => ['validationResults' => ['status' => 'Invalid', 'validationSteps' => [
+            ['status' => 'Invalid', 'name' => 'Step03', 'error' => ['innerError' => [
+                ['errorCode' => 'CF321', 'error' => 'Invalid phone', 'propertyPath' => 'Invoice.AccountingSupplierParty.Party.Contact.Telephone'],
+                ['errorCode' => 'ERR206', 'error' => 'BRN mismatch', 'propertyPath' => 'Invoice.AccountingCustomerParty.Party.PartyIdentification.ID'],
+            ]]],
+        ]]],
+    ]);
+
+    $this->actingAs($setup['owner'])
+        ->get("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('submission.reasons.0.where', 'hotel')
+            ->where('submission.reasons.1.message', "The company's registration number does not match its tax number at LHDN.")
+            ->where('submission.reasons.1.where', 'buyer')
+            ->etc());
+});
+
+it('offers no resubmit once a newer e-invoice replaced the rejected one', function () {
+    $setup = submissionSetup();
+    $rejected = EInvoiceSubmission::factory()->for($setup['property'])->create(['folio_id' => $setup['folio']->id, 'status' => EInvoiceStatus::Invalid]);
+    submitSetupFolio($setup);
+
+    $this->actingAs($setup['owner'])
+        ->get("/p/{$setup['property']->code}/finance/e-invoices/{$rejected->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('submission.can_resubmit', false)->etc());
+});
+
+it('opens the folio e-invoice form with what LHDN rejected and why', function () {
+    $setup = submissionSetup();
+    EInvoiceSubmission::factory()->for($setup['property'])->create([
+        'folio_id' => $setup['folio']->id,
+        'status' => EInvoiceStatus::Invalid,
+        'buyer_snapshot' => ['name' => 'Ahmad Razak', 'tin' => 'IG99999999990', 'id_type' => 'NRIC', 'id_value' => '900101125555', 'country_code' => 'MYS'],
+        'error_details' => ['validationResults' => ['status' => 'Invalid', 'validationSteps' => [
+            ['status' => 'Invalid', 'name' => 'Step05', 'error' => ['innerError' => [['errorCode' => 'ERR206', 'error' => 'NRIC mismatch']]]],
+        ]]],
+    ]);
+
+    $this->actingAs($setup['owner'])
+        ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('folio.canSubmitEInvoice', true)
+            ->where('folio.eInvoiceBuyer.tin', 'IG99999999990')
+            ->where('folio.eInvoiceRejection', [
                 ['message' => "The guest's IC number does not match their tax number at LHDN.", 'fix' => 'Check the IC and tax number with the guest, then submit again.'],
-                ['message' => 'Something new', 'fix' => 'Check the buyer details, then submit again.'],
             ])
             ->etc());
 });

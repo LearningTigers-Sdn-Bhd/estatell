@@ -5,51 +5,91 @@ namespace App\Services\EInvoice;
 use App\Models\EInvoiceSubmission;
 
 /**
- * Turns what LHDN said about a rejected e-invoice into plain reasons a hotel manager can act on: what is wrong and
- * how to fix it. The raw LHDN codes stay out of the page.
+ * Turns what LHDN said about a rejected e-invoice into plain reasons a hotel manager can act on: what is wrong, how to
+ * fix it, and whose details to fix (`where`). The raw LHDN codes stay out of the page.
+ *
+ * `where` is buyer (the guest or company details sent), hotel (E-invoice settings), login (the MyInvois Client ID and
+ * secret) or retry (nothing to fix, submit again). LHDN names the field it rejected, so a field under the supplier
+ * party goes to hotel and one under the customer party goes to buyer, whatever the code.
  */
 class LhdnRejectionReasons
 {
     /**
      * Plain text for the LHDN codes we have seen on real submissions. Codes are matched exactly first, then by prefix.
      *
-     * @var array<string, array{message: string, fix: string}>
+     * @var array<string, array{message: string, fix: string, where: string}>
      */
     private const array KNOWN = [
         'ERR206' => [
             'message' => "The guest's IC number does not match their tax number at LHDN.",
             'fix' => 'Check the IC and tax number with the guest, then submit again.',
+            'where' => 'buyer',
         ],
         'ERR228' => [
             'message' => 'LHDN only accepts the general public tax number on a monthly summary.',
             'fix' => "Enter the guest's own tax number, or leave the stay for the monthly summary.",
+            'where' => 'buyer',
         ],
         'DR308' => [
             'message' => 'The buyer is not the same as on the original e-invoice.',
             'fix' => 'Use the same buyer details as the original e-invoice.',
+            'where' => 'buyer',
         ],
         'CV316' => [
             'message' => 'A Malaysian state was given for a buyer outside Malaysia.',
             'fix' => 'Set the state to Not applicable for a foreign buyer, then submit again.',
+            'where' => 'buyer',
         ],
         'ERR2' => [
             'message' => "LHDN could not match the buyer's tax details.",
             'fix' => 'Check the tax number and ID with the buyer, then submit again.',
+            'where' => 'buyer',
         ],
         'CV3' => [
             'message' => 'LHDN did not accept a code in the e-invoice, such as a country or state.',
             'fix' => "Check the buyer's country and state, then submit again.",
+            'where' => 'buyer',
         ],
         'CF3' => [
-            'message' => 'Some buyer or hotel details are missing or in the wrong format.',
-            'fix' => "Check the buyer's name, address, city and phone, and the hotel details in E-invoice settings.",
+            'message' => 'Some buyer details are missing or in the wrong format.',
+            'fix' => "Check the buyer's name, address, city and phone, then submit again.",
+            'where' => 'buyer',
+        ],
+    ];
+
+    /**
+     * The same codes when the buyer is a company, which has a registration number instead of an IC.
+     *
+     * @var array<string, array{message: string, fix: string, where: string}>
+     */
+    private const array COMPANY = [
+        'ERR206' => [
+            'message' => "The company's registration number does not match its tax number at LHDN.",
+            'fix' => 'Check the registration and tax number with the company, then submit again.',
+            'where' => 'buyer',
+        ],
+        'ERR2' => [
+            'message' => "LHDN could not match the company's tax details.",
+            'fix' => 'Check the registration and tax number with the company, then submit again.',
+            'where' => 'buyer',
         ],
     ];
 
     private const string DEFAULT_FIX = 'Check the buyer details, then submit again.';
 
     /**
-     * @return list<array{message: string, fix: string}>
+     * Any rejected field of the hotel's own details.
+     *
+     * @var array{message: string, fix: string, where: string}
+     */
+    private const array HOTEL = [
+        'message' => "Some of your hotel's details are missing or in the wrong format.",
+        'fix' => "Check the hotel's tax number, registration number, address and phone in E-invoice settings, then submit again.",
+        'where' => 'hotel',
+    ];
+
+    /**
+     * @return list<array{message: string, fix: string, where: string}>
      */
     public function for(EInvoiceSubmission $submission): array
     {
@@ -58,9 +98,10 @@ class LhdnRejectionReasons
             return [];
         }
 
+        $isCompany = strtoupper((string) ($submission->buyer_snapshot['id_type'] ?? '')) === 'BRN';
         $reasons = [];
-        foreach ($this->lhdnErrors($details) as [$code, $text]) {
-            $reasons[] = $this->explain($code, $text);
+        foreach ($this->lhdnErrors($details) as [$code, $text, $path]) {
+            $reasons[] = $this->explain($code, $text, $path, $isCompany);
         }
 
         if ($reasons === [] && isset($details['message'])) {
@@ -69,15 +110,15 @@ class LhdnRejectionReasons
 
         $reasons = array_values(array_unique($reasons, SORT_REGULAR));
 
-        return array_map(fn (array $reason): array => ['message' => __($reason['message']), 'fix' => __($reason['fix'])], $reasons);
+        return array_map(fn (array $reason): array => ['message' => __($reason['message']), 'fix' => __($reason['fix']), 'where' => $reason['where']], $reasons);
     }
 
     /**
-     * Every [code, text] pair in the error, from the validation steps (a document LHDN accepted and then rejected) or
+     * Every [code, text, field path] in the error, from the validation steps (a document LHDN accepted and then rejected) or
      * from the submission reply (a document LHDN refused on arrival).
      *
      * @param  array<string, mixed>  $details
-     * @return list<array{0: string, 1: string}>
+     * @return list<array{0: string, 1: string, 2: string}>
      */
     private function lhdnErrors(array $details): array
     {
@@ -90,13 +131,13 @@ class LhdnRejectionReasons
 
             $inner = data_get($step, 'error.innerError');
             foreach (is_array($inner) && $inner !== [] ? $inner : [data_get($step, 'error', [])] as $error) {
-                $errors[] = [(string) ($error['errorCode'] ?? ''), (string) ($error['error'] ?? '')];
+                $errors[] = [(string) ($error['errorCode'] ?? ''), (string) ($error['error'] ?? ''), (string) ($error['propertyPath'] ?? '')];
             }
         }
 
         foreach ([data_get($details, 'details', []), data_get($details, 'rejected.error.details', [])] as $list) {
             foreach (is_array($list) ? $list : [] as $error) {
-                $errors[] = [(string) ($error['code'] ?? ''), (string) ($error['message'] ?? '')];
+                $errors[] = [(string) ($error['code'] ?? ''), (string) ($error['message'] ?? ''), (string) ($error['propertyPath'] ?? $error['target'] ?? '')];
             }
         }
 
@@ -104,15 +145,21 @@ class LhdnRejectionReasons
     }
 
     /**
-     * @return array{message: string, fix: string}
+     * @return array{message: string, fix: string, where: string}
      */
-    private function explain(string $code, string $text): array
+    private function explain(string $code, string $text, string $path, bool $isCompany): array
     {
-        if (isset(self::KNOWN[$code])) {
-            return self::KNOWN[$code];
+        if (str_contains($path, 'AccountingSupplierParty')) {
+            return self::HOTEL;
         }
 
-        foreach (self::KNOWN as $prefix => $reason) {
+        $known = $isCompany ? self::COMPANY + self::KNOWN : self::KNOWN;
+
+        if (isset($known[$code])) {
+            return $known[$code];
+        }
+
+        foreach ($known as $prefix => $reason) {
             if (strlen($prefix) < 5 && $code !== '' && str_starts_with($code, $prefix)) {
                 return $reason;
             }
@@ -121,11 +168,11 @@ class LhdnRejectionReasons
         // LHDN's own sentence ends with a link to its developer docs, which means nothing to a hotel manager.
         $message = trim((string) preg_replace('/\s*Please refer to https?:\S+/i', '', $text));
 
-        return ['message' => $message !== '' ? $message : __('LHDN rejected the e-invoice.'), 'fix' => self::DEFAULT_FIX];
+        return ['message' => $message !== '' ? $message : __('LHDN rejected the e-invoice.'), 'fix' => self::DEFAULT_FIX, 'where' => 'buyer'];
     }
 
     /**
-     * @return array{message: string, fix: string}
+     * @return array{message: string, fix: string, where: string}
      */
     private function connectionProblem(int $httpStatus): array
     {
@@ -133,12 +180,14 @@ class LhdnRejectionReasons
             return [
                 'message' => "LHDN refused the hotel's MyInvois login.",
                 'fix' => 'Check the Client ID and Client secret in E-invoice settings, then submit again.',
+                'where' => 'login',
             ];
         }
 
         return [
             'message' => 'We could not reach LHDN.',
             'fix' => 'Submit again in a few minutes.',
+            'where' => 'retry',
         ];
     }
 }

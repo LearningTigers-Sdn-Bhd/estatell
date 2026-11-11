@@ -1,4 +1,4 @@
-import { Form, Head, Link, useForm } from '@inertiajs/react';
+import { Form, Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     ArrowUpRight,
     Ban,
@@ -48,7 +48,11 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
 import { useClipboard } from '@/hooks/use-clipboard';
-import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
+import { show as showCompany } from '@/routes/finance/city-ledger/companies';
+import {
+    eInvoice as submitArEInvoice,
+    show as showArInvoice,
+} from '@/routes/finance/city-ledger/invoices';
 import {
     cancel,
     consolidate,
@@ -63,6 +67,9 @@ import { edit as eInvoiceSettings } from '@/routes/settings/e-invoice';
 import { edit as emailSettings } from '@/routes/settings/emails';
 
 type Badge = { value: string; label: string; tone: App.Enums.Tone };
+
+/** Whose details LHDN rejected: the buyer's, the hotel's (E-invoice settings), the MyInvois login, or none (retry). */
+type Where = 'buyer' | 'hotel' | 'login' | 'retry';
 
 type Submission = {
     id: number;
@@ -91,7 +98,12 @@ type Submission = {
         folio_id: number;
         folio_number: string;
     } | null;
-    ar_invoice: { id: number; number: string; company: string | null } | null;
+    ar_invoice: {
+        id: number;
+        number: string;
+        company: string | null;
+        company_id: number;
+    } | null;
     original: { id: number; number: string } | null;
     credited: string | null;
     credit_notes: {
@@ -116,7 +128,8 @@ type Submission = {
         details: Record<string, string>;
     } | null;
     lhdn_reference: string | null;
-    reasons: { message: string; fix: string }[];
+    reasons: { message: string; fix: string; where: Where }[];
+    can_resubmit: boolean;
     history: { label: string; at: string | null }[];
 };
 
@@ -213,17 +226,73 @@ function CreditNoteList({
     );
 }
 
-/** Where staff correct the details LHDN rejected. */
-function fixUrl(submission: Submission): string | null {
-    if (submission.reservation) {
-        return folioTab.url(
-            { reservation: submission.reservation.id },
-            { query: { folio: String(submission.reservation.folio_id) } },
+function folioUrl(submission: Submission, openForm = false): string | null {
+    if (!submission.reservation) {
+        return null;
+    }
+
+    return folioTab.url(
+        { reservation: submission.reservation.id },
+        {
+            query: {
+                folio: String(submission.reservation.folio_id),
+                ...(openForm ? { e_invoice: 'fix' } : {}),
+            },
+        },
+    );
+}
+
+/**
+ * What a rejection needs: the buyer's details fixed where they are kept (the folio's Issue e-invoice form, or the
+ * company record for a city ledger invoice), the hotel's in E-invoice settings, or nothing but sending it again.
+ */
+function rejection(submission: Submission) {
+    const has = (where: Where) =>
+        submission.reasons.some((reason) => reason.where === where);
+
+    return {
+        buyer: submission.reasons.length === 0 || has('buyer'),
+        settings: has('hotel') || has('login'),
+    };
+}
+
+/** One line under the reasons that says where the details live. */
+function WhereToFix({ submission }: { submission: Submission }) {
+    const needs = rejection(submission);
+
+    if (submission.kind === 'credit_note' && submission.original) {
+        return (
+            <p>
+                A credit note uses the buyer from the original e-invoice. Open{' '}
+                <strong>{submission.original.number}</strong> and issue a new
+                credit note.
+            </p>
         );
     }
 
+    if (!needs.buyer || !submission.can_resubmit) {
+        return null;
+    }
+
     if (submission.ar_invoice) {
-        return showArInvoice.url({ invoice: submission.ar_invoice.id });
+        return (
+            <p>
+                A city ledger e-invoice uses the company's tax numbers and
+                billing address. Correct them on the company page, then press{' '}
+                <strong>Submit again</strong>.
+            </p>
+        );
+    }
+
+    if (submission.reservation) {
+        return (
+            <p>
+                The buyer details are in the <strong>Issue e-invoice</strong>{' '}
+                form on folio {submission.reservation.folio_number}.{' '}
+                <strong>Fix and submit again</strong> opens it with what was
+                sent.
+            </p>
+        );
     }
 
     return null;
@@ -317,6 +386,7 @@ function StatusNotice({
                             <li>Check the buyer details, then submit again.</li>
                         )}
                     </ul>
+                    <WhereToFix submission={submission} />
                 </AlertDescription>
             </Alert>
         );
@@ -621,12 +691,127 @@ function EmailGuestDialog(props: Parameters<typeof EmailGuestForm>[0]) {
     return <EmailGuestForm key={useFreshOnOpen(props.open)} {...props} />;
 }
 
+/**
+ * The buttons on a rejected e-invoice, each to the page that holds the details LHDN rejected. The one for the main
+ * problem is the primary button. A monthly summary has its own Submit the month again.
+ */
+function RejectedActions({ submission }: { submission: Submission }) {
+    const needs = rejection(submission);
+    const settingsLink = needs.settings && (
+        <Link
+            href={eInvoiceSettings()}
+            className={buttonVariants({
+                variant: needs.buyer ? 'outline' : 'default',
+            })}
+        >
+            <Wrench data-icon="inline-start" />
+            E-invoice settings
+        </Link>
+    );
+
+    if (submission.kind === 'credit_note') {
+        return (
+            <>
+                {submission.original && (
+                    <Link
+                        href={show.url(
+                            { submission: submission.original.id },
+                            { query: { credit_note: 'new' } },
+                        )}
+                        className={buttonVariants()}
+                    >
+                        <FilePlus2 data-icon="inline-start" />
+                        Issue a new credit note
+                    </Link>
+                )}
+                {settingsLink}
+            </>
+        );
+    }
+
+    if (!submission.can_resubmit) {
+        return settingsLink || null;
+    }
+
+    if (submission.ar_invoice) {
+        return (
+            <>
+                {needs.buyer && (
+                    <Link
+                        href={showCompany({
+                            company: submission.ar_invoice.company_id,
+                        })}
+                        className={buttonVariants()}
+                    >
+                        <Wrench data-icon="inline-start" />
+                        Edit company details
+                    </Link>
+                )}
+                {settingsLink}
+                <Form
+                    {...submitArEInvoice.form({
+                        invoice: submission.ar_invoice.id,
+                    })}
+                    options={{ preserveScroll: true }}
+                >
+                    {({ processing }) => (
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            disabled={processing}
+                            focusableWhenDisabled
+                        >
+                            {processing ? (
+                                <Spinner data-icon="inline-start" />
+                            ) : (
+                                <RefreshCw data-icon="inline-start" />
+                            )}
+                            Submit again
+                        </Button>
+                    )}
+                </Form>
+            </>
+        );
+    }
+
+    const folioFormUrl = folioUrl(submission, true);
+
+    return (
+        <>
+            {folioFormUrl && (
+                <Link
+                    href={folioFormUrl}
+                    className={buttonVariants({
+                        variant: needs.buyer ? 'default' : 'outline',
+                    })}
+                >
+                    {needs.buyer ? (
+                        <Wrench data-icon="inline-start" />
+                    ) : (
+                        <RefreshCw data-icon="inline-start" />
+                    )}
+                    {needs.buyer ? 'Fix and submit again' : 'Submit again'}
+                </Link>
+            )}
+            {settingsLink}
+        </>
+    );
+}
+
 export default function EInvoiceShow({
     submission,
     currency,
     canEditEmail,
 }: Props) {
-    const [crediting, setCrediting] = useState(false);
+    const pageUrl = usePage().url;
+    // A rejected credit note links here to issue a new one.
+    const [crediting, setCrediting] = useState(
+        () =>
+            submission.can_credit_note &&
+            new URLSearchParams(pageUrl.split('?')[1] ?? '').get(
+                'credit_note',
+            ) === 'new',
+    );
     const [emailing, setEmailing] = useState(false);
     const [, copy] = useClipboard();
     const money = (amount: string | null) =>
@@ -636,13 +821,9 @@ export default function EInvoiceShow({
             <MoneyText amount={amount} currency={currency} />
         );
     const title = `${KIND_LABEL[submission.kind]} ${submission.number}`;
-    const repairUrl = fixUrl(submission);
     const showCreditNotes =
         submission.kind !== 'credit_note' &&
         (submission.credit_notes.length > 0 || submission.can_credit_note);
-    const loginProblem = submission.reasons.some((reason) =>
-        reason.fix.includes('E-invoice settings'),
-    );
 
     const copyAndTell = async (text: string, message: string) => {
         if (await copy(text)) {
@@ -667,27 +848,9 @@ export default function EInvoiceShow({
                     badge={<StatusBadge status={submission.status} />}
                     actions={
                         <>
-                            {submission.status.value === 'invalid' &&
-                                repairUrl && (
-                                    <Link
-                                        href={repairUrl}
-                                        className={buttonVariants()}
-                                    >
-                                        <Wrench data-icon="inline-start" />
-                                        Fix and submit again
-                                    </Link>
-                                )}
-                            {submission.status.value === 'invalid' &&
-                                loginProblem && (
-                                    <Link
-                                        href={eInvoiceSettings()}
-                                        className={buttonVariants({
-                                            variant: 'outline',
-                                        })}
-                                    >
-                                        E-invoice settings
-                                    </Link>
-                                )}
+                            {submission.status.value === 'invalid' && (
+                                <RejectedActions submission={submission} />
+                            )}
                             {submission.status.value === 'invalid' &&
                                 submission.kind === 'summary' &&
                                 submission.period && (
@@ -812,7 +975,7 @@ export default function EInvoiceShow({
                     {submission.reservation && (
                         <Figure label="Reservation">
                             <Link
-                                href={fixUrl(submission) ?? ''}
+                                href={folioUrl(submission) ?? ''}
                                 className="underline underline-offset-2"
                             >
                                 {submission.reservation.reference}

@@ -39,6 +39,7 @@ use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\EInvoice\BuyerResolver;
+use App\Services\EInvoice\LhdnRejectionReasons;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\OnlineRefundLedger;
@@ -67,6 +68,7 @@ class FolioStatement
         private CurrentBusinessDate $currentBusinessDate,
         private CheckOutSettlement $checkOutSettlement,
         private OnlineRefundLedger $onlineRefundLedger,
+        private LhdnRejectionReasons $lhdnRejectionReasons,
     ) {}
 
     /**
@@ -354,6 +356,11 @@ class FolioStatement
 
         $canSubmitEInvoice = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed && ($latestSubmission === null || $latestSubmission->status === EInvoiceStatus::Invalid);
         $buyer = $folio !== null ? BuyerResolver::forFolio($folio, $property) : null;
+        $rejected = $canSubmitEInvoice && $latestSubmission?->status === EInvoiceStatus::Invalid ? $latestSubmission : null;
+        if ($rejected !== null && $buyer !== null) {
+            // Start the correction from what LHDN rejected, not from the profile again.
+            $buyer = array_merge($buyer, array_filter($rejected->buyer_snapshot ?? [], fn (mixed $value): bool => $value !== null));
+        }
 
         return new FolioData(
             key: $entry['key'],
@@ -408,6 +415,10 @@ class FolioStatement
             payerGuestIdValue: $buyer['id_value'] ?? null,
             payerGuestCity: $buyer['city'] ?? null,
             eInvoiceBuyer: $buyer,
+            eInvoiceRejection: $rejected === null ? [] : array_map(
+                fn (array $reason): array => ['message' => $reason['message'], 'fix' => $reason['fix']],
+                array_values(array_filter($this->lhdnRejectionReasons->for($rejected), fn (array $reason): bool => $reason['where'] === 'buyer')),
+            ),
         );
     }
 

@@ -47,6 +47,7 @@ class SubmissionView
                 'id' => $submission->arInvoice->id,
                 'number' => $submission->arInvoice->number,
                 'company' => $submission->arInvoice->company?->name,
+                'company_id' => $submission->arInvoice->company_id,
             ],
             'original' => $submission->originalSubmission === null ? null : [
                 'id' => $submission->originalSubmission->id,
@@ -71,6 +72,7 @@ class SubmissionView
             'guest_email' => $status === EInvoiceStatus::Valid && ! $submission->is_consolidated ? $this->guestEmail->for($submission) : null,
             'lhdn_reference' => $submission->uuid,
             'reasons' => $status === EInvoiceStatus::Invalid ? $this->rejectionReasons->for($submission) : [],
+            'can_resubmit' => $this->canResubmit($submission),
             'history' => $this->history($submission, $at),
         ];
     }
@@ -100,6 +102,25 @@ class SubmissionView
             'date' => $date?->setTimezone($timeZone)->toDateString(),
             'status' => new BadgeData($submission->status->value, $submission->status->label(), $submission->status->tone()),
         ];
+    }
+
+    /**
+     * Whether staff can send this rejected stay or city ledger invoice again: nothing newer has replaced it yet.
+     */
+    private function canResubmit(EInvoiceSubmission $submission): bool
+    {
+        if ($submission->status !== EInvoiceStatus::Invalid || $submission->is_consolidated || $submission->document_type !== EInvoiceDocumentType::Invoice) {
+            return false;
+        }
+
+        return ! EInvoiceSubmission::query()
+            ->where('property_id', $submission->property_id)
+            ->where('document_type', EInvoiceDocumentType::Invoice)
+            ->when($submission->ar_invoice_id !== null,
+                fn ($query) => $query->where('ar_invoice_id', $submission->ar_invoice_id),
+                fn ($query) => $query->where('folio_id', $submission->folio_id)->whereNull('ar_invoice_id'))
+            ->active()
+            ->exists();
     }
 
     /**

@@ -1248,6 +1248,10 @@ payerGuestIdType: string | null,
 payerGuestIdValue: string | null,
 payerGuestCity: string | null,
 eInvoiceBuyer: Record<string, any> | null,
+eInvoiceRejection: {
+message: string,
+fix: string,
+}[],
 };
 export type FolioDiscountOptionData = {
 id: number,

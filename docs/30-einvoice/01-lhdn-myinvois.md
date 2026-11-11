@@ -108,7 +108,19 @@ Finance › E-invoicing › **E-invoices** is written for owners, managers and f
 
 - **List**: the City ledger Index layout. Search finds the number, the guest or company name, the reservation number and the City ledger invoice number. Filters: type (E-invoice, Credit note, Monthly summary) and status. A rejected e-invoice shows one alert above the table, with **Show rejected**. Rows open the detail page; they carry no actions.
 - **Detail**: one notice says what happened and what to do next, with dates and amounts in bold. Tiles show the total with tax, the stay or month, the reservation and the **LHDN reference** (the one ID LHDN support asks for). **Billed to** and **Credit notes** sit side by side on a wide screen, and **History** is collapsed.
-- **Rejections** are explained by `LhdnRejectionReasons`: each LHDN code becomes a plain reason and a fix (`ERR206`: the IC does not match the tax number). An unknown code shows LHDN's own sentence without its developer link.
+- **Rejections** are explained by `LhdnRejectionReasons`: each LHDN code becomes a plain reason and a fix (`ERR206`: the IC does not match the tax number; for a company buyer, the registration number). An unknown code shows LHDN's own sentence without its developer link. Each reason also says whose details to fix (`where`). LHDN's field path decides first: a field under `AccountingSupplierParty` is the hotel's, one under `AccountingCustomerParty` is the buyer's.
+- **Fixing a rejection**: the buttons go where the rejected details are kept.
+
+  | Rejected | Where | Button |
+  | --- | --- | --- |
+  | Buyer, stay e-invoice | The folio's **Issue e-invoice** form | **Fix and submit again** opens the folio with the form open, filled with what was sent and LHDN's reasons on top |
+  | Buyer, City ledger invoice | The company record (tax numbers, billing address) | **Edit company details**, then **Submit again** on the e-invoice page |
+  | Buyer, credit note | The original e-invoice (a credit note copies its buyer) | **Issue a new credit note** opens the original with the credit note form open |
+  | Hotel details or MyInvois login | E-invoice settings | **E-invoice settings**, then submit again |
+  | LHDN could not be reached | Nothing to fix | **Submit again** |
+  | Monthly summary | E-invoice settings when the hotel details were rejected | **Submit the month again** |
+
+  The resubmit buttons show only while nothing newer has replaced the rejected e-invoice. Corrections typed in the folio form go to LHDN only; they do not update the guest profile.
 - **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and a preview of the email. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
 - **Credit notes** show the 3 latest, with **Show all**, under "Credited X of Y".
 - **Privacy**: the page never receives the UBL document or LHDN's raw replies, and shows only the last four characters of the buyer's IC, passport or registration number. `SubmissionView` builds what the page gets.

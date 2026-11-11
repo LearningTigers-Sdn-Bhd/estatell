@@ -1,4 +1,4 @@
-import { Form, Link, router } from '@inertiajs/react';
+import { Form, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowRightLeft,
     BadgePercent,
@@ -193,7 +193,15 @@ export function FolioTab({
     const [discounting, setDiscounting] = useState(false);
     const [managing, setManaging] = useState(false);
     const [closing, setClosing] = useState(false);
-    const [issuingEInvoice, setIssuingEInvoice] = useState(false);
+    const pageUrl = usePage().url;
+    // The e-invoice page's Fix and submit again link opens the form straight away.
+    const [issuingEInvoice, setIssuingEInvoice] = useState(
+        () =>
+            (folio?.canSubmitEInvoice ?? false) &&
+            new URLSearchParams(pageUrl.split('?')[1] ?? '').get(
+                'e_invoice',
+            ) === 'fix',
+    );
     const [settling, setSettling] = useState(false);
     const [voucherOpen, setVoucherOpen] = useState(false);
     const [voucherInitial, setVoucherInitial] = useState<string[]>([]);

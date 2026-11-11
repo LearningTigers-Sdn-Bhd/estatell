@@ -88,5 +88,7 @@ class FolioData extends Data
         public ?string $payerGuestCity = null,
         /** @var array<string, mixed>|null */
         public ?array $eInvoiceBuyer = null,
+        /** @var list<array{message: string, fix: string}> What LHDN said about the rejected buyer details, to fix them in the Issue e-invoice form. */
+        public array $eInvoiceRejection = [],
     ) {}
 }

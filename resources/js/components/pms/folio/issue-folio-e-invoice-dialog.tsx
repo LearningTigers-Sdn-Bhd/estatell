@@ -1,4 +1,5 @@
 import { useForm } from '@inertiajs/react';
+import { CircleAlert } from 'lucide-react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
@@ -11,6 +12,7 @@ import {
     FieldLegend,
     FieldSet,
 } from '@/components/ui/field';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { eInvoice } from '@/routes/reservations/folios';
@@ -91,6 +93,7 @@ function IssueFolioEInvoiceForm({
     });
 
     const { data, errors } = form;
+    const rejection = folio.eInvoiceRejection;
     const isForeign =
         data.buyer_snapshot.country_code !== 'MYS' &&
         data.buyer_snapshot.country_code !== 'MY';
@@ -124,13 +127,40 @@ function IssueFolioEInvoiceForm({
             variant="sheet"
             open={open}
             onOpenChange={onOpenChange}
-            title="Issue e-invoice"
+            title={
+                rejection.length > 0
+                    ? 'Fix and send e-invoice again'
+                    : 'Issue e-invoice'
+            }
             description={`Sends folio ${folio.number ?? folio.name} to LHDN as the guest's own e-invoice. Check the details with the guest first: LHDN rejects a tax number that does not match the IC or company registration.`}
             errors={errors}
             onSubmit={submit}
             submitLabel="Send to LHDN"
             processing={form.processing}
         >
+            {rejection.length > 0 && (
+                <Alert variant="destructive">
+                    <CircleAlert />
+                    <AlertTitle>LHDN rejected the last one</AlertTitle>
+                    <AlertDescription>
+                        <ul className="flex flex-col gap-2">
+                            {rejection.map((reason) => (
+                                <li
+                                    key={reason.message}
+                                    className="flex flex-col gap-0.5"
+                                >
+                                    <strong>{reason.message}</strong>
+                                    <span>{reason.fix}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <p>
+                            The details below are what was sent. Correct them
+                            and send again.
+                        </p>
+                    </AlertDescription>
+                </Alert>
+            )}
             <FieldSet>
                 <FieldLegend>Billed to</FieldLegend>
                 <FieldDescription>
