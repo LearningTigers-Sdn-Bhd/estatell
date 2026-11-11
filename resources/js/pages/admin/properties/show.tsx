@@ -3,11 +3,13 @@ import {
     Cable,
     Hourglass,
     Info,
+    Percent,
     Store,
     ToggleRight,
     Users,
 } from 'lucide-react';
 import { useState } from 'react';
+import { PropertyCommissions } from '@/components/pms/commissions/property-commissions';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
@@ -37,6 +39,7 @@ import { show as goLive } from '@/routes/admin/properties/go-live';
 import { show as viewAs } from '@/routes/view-as';
 import {
     channels as channelsTab,
+    commissions as commissionsTab,
     features as featuresTab,
     index,
     otaLists as otaListsTab,
@@ -51,7 +54,13 @@ type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type StaffMember = App.Data.Platform.AdminPropertyStaffData;
 type OtaListRow = App.Data.Platform.AdminOtaListRowData;
 type Channel = App.Data.Channels.ChannelTabData;
-type Tab = 'overview' | 'staff' | 'features' | 'ota-lists' | 'channels';
+type Tab =
+    | 'overview'
+    | 'staff'
+    | 'features'
+    | 'ota-lists'
+    | 'channels'
+    | 'commissions';
 
 export default function PropertyShow({
     property,
@@ -64,6 +73,8 @@ export default function PropertyShow({
     channel,
     channelManagerOn,
     partnerOptions,
+    commissionServices = [],
+    commissionHistory = [],
 }: {
     property: Property;
     tab: Tab;
@@ -75,6 +86,8 @@ export default function PropertyShow({
     channel?: Channel;
     channelManagerOn: boolean;
     partnerOptions: EnumOption[];
+    commissionServices?: App.Data.Commissions.PropertyCommissionServiceData[];
+    commissionHistory?: App.Data.Commissions.PropertyCommissionPeriodData[];
 }) {
     const [suspendOpen, setSuspendOpen] = useState(false);
 
@@ -234,6 +247,12 @@ export default function PropertyShow({
                                   },
                               ]
                             : []),
+                        {
+                            value: 'commissions',
+                            label: 'Commissions',
+                            icon: Percent,
+                            href: commissionsTab(property.code),
+                        },
                     ]}
                     summary={
                         <PropertySummary property={property} showPartner />
@@ -257,6 +276,13 @@ export default function PropertyShow({
                             code={property.code}
                             rows={otaLists}
                             channels={otaChannels}
+                        />
+                    )}
+                    {tab === 'commissions' && (
+                        <PropertyCommissions
+                            code={property.code}
+                            services={commissionServices}
+                            history={commissionHistory}
                         />
                     )}
                     {tab === 'channels' && channel && (

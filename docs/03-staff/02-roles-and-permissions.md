@@ -90,6 +90,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `booking-website.manage`           | Booking website: General, Design, Content, Rates and SEO tabs               | ✓     |         |                                   |
 | `booking-website.publish`          | Publish or unpublish the booking website                                    | ✓     |         |                                   |
 | `booking-website.api`              | Booking website: API token and return addresses                             | ✓     |         |                                   |
+| `payouts.view`                     | Finance › Payouts: bookings, commission and payout vouchers from Estatell   | ✓     |         |                                   |
 
 Later modules add rows here. Their module docs list their permissions.
 
