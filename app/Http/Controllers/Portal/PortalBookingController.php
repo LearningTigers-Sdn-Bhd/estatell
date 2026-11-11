@@ -8,7 +8,6 @@ use App\Actions\Portal\CancelPortalReservation;
 use App\Actions\Portal\PortalBookingResult;
 use App\Actions\Portal\RequestPortalCancellation;
 use App\Actions\Portal\UpdatePortalReservationGuests;
-use App\Data\Payments\PaymentProofData;
 use App\Data\Portal\PortalBookingRowData;
 use App\Data\Property\CurrencyData;
 use App\Data\Reservations\AgentBillData;
@@ -22,7 +21,6 @@ use App\Http\Requests\Portal\StorePortalUnitGuestRequest;
 use App\Http\Requests\Portal\UpdatePortalBoatsRequest;
 use App\Http\Requests\Portal\UpdatePortalGuestsRequest;
 use App\Models\CompanyUser;
-use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\Guests\CountryOptions;
@@ -87,17 +85,13 @@ class PortalBookingController extends Controller
     }
 
     /**
-     * One booking, Payments tab: the bill, the payment schedule and the proofs sent.
+     * One booking, Payments tab: how to pay, the bill, the payment schedule and the proofs and slips sent for it.
      */
     public function payments(Request $request, Property $property, int $reservation, PortalBookings $bookings, AgentBill $agentBill, PortalHowToPay $howToPay): Response
     {
         return $this->renderTab($request, $property, $reservation, 'payments', $bookings, $agentBill, fn (CompanyUser $link, Reservation $booking, AgentBillData $bill): array => [
             'howToPay' => $howToPay->for($property, $link->company, $booking, $bill),
-            'paymentProofs' => array_values(PaymentProof::query()->where('reservation_id', $booking->id)->with(['uploader', 'bankAccount'])->latest('id')->get()
-                ->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(
-                    $proof,
-                    route('portal.bookings.payment-proofs.file', ['property' => $property->code, 'reservation' => $booking->id, 'paymentProof' => $proof->id], absolute: false),
-                ))->all()),
+            'paymentProofs' => $howToPay->proofs($property, $link->company, $booking),
         ]);
     }
 

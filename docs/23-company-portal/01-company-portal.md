@@ -235,7 +235,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 | -------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Units    | `/portal/{code}/bookings/{id}` | The staff Units tab All view without the Room column: room type, lead guest, pax, stay with the boat line, rate plan with the add-ons, total (rooms and add-ons) and status. **Set boats**.                                           |
 | Guests   | `.../bookings/{id}/guests`     | The staff Guests tab layout, edited in place: one row per guest (name, phone, the room type they stay in), opening for email, ID, personal details and address. A booker who does not stay comes last. **+ Add guest** adds a sharer. |
-| Payments | `.../bookings/{id}/payments`   | **How to pay** (Left to pay, the bank accounts, the reference to use), the bill (you pay, the guest pays), the payment schedule, the proofs sent and the upload form. A direct-billing company sees a Billed after your stay note.    |
+| Payments | `.../bookings/{id}/payments`   | Left to pay and Paid with **Pay this booking** (the Pay dialog), the bill as a table (you pay, the guest pays), the payment schedule, and the payments and slips sent. No card border: the tab uses the full width.                   |
 
 - The summary card shows the booker, You pay, Guest pays, Paid and Still to pay, the units and room nights, and the cancellation terms. There is no Folio or Activity tab.
 - **Guests tab:** with 2 or more units, an **All | Grouped** toggle. Grouped puts the units in a rail (a select below `lg`) and the table shows that unit's guests. Two units of one room type are numbered ("Garden Room 1", "Garden Room 2"), because there is no room number. The summary icon button hides the summary card on this tab. Both choices are remembered in the browser (`portal.bookings.guests-view`, `portal.bookings.summary-hidden`). There is no MyKad reader: it serves the front desk, and company users type the ID.
@@ -249,13 +249,22 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 ### Statements
 
 ```
-/portal/{code}/statements         From [1 Sep] To [19 Oct]   [Statement PDF]
- Invoices   AR-0087  1 Oct  due 31 Oct  RM 1,200  Balance 0      Settled  [PDF]
-            AR-0091  9 Oct  due 8 Nov   RM 3,000  Balance 3,000  Open     [PDF]
- Payments   RCP-0040  5 Oct  Bank transfer  BT-PAY-77  RM 1,200  [Receipt]
+Statements                                                    [Send payment]
+[ Balance ]  [ Overdue ]  [ Credit ]
+ Statement   Invoices   Payments   Slips 1
 ```
 
-- **Send a payment slip** for a company on credit terms, with the property's available bank accounts above the form. See [Payment slips](../15-city-ledger/03-ar-payments.md#payment-slips).
+- **Summary:** three tiles above the tabs, as at the statement's end date (`PortalAccountSummaryData`, from the statement's aging): **Balance** (open invoices less credit), **Overdue** (the buckets past their due date) and **Credit** (unallocated payments). The header, **Send payment** (a company on credit terms; it opens the Pay dialog) and the tiles show on every tab.
+- **Link tabs** (`TabLinks`), each with its own URL; the server sends only the open tab's list:
+
+    | Tab       | URL                         | Content                                                                                                                                  |
+    | --------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+    | Statement | `/portal/{code}/statements` | The period (`from`, `to` in the URL), the statement with aging, Payments on bookings, Statement PDF                                      |
+    | Invoices  | `.../statements/invoices`   | Open and Settled invoices and credit notes, 25 per page, each with **PDF**                                                               |
+    | Payments  | `.../statements/payments`   | Non-void payments, 25 per page, each with **Receipt**                                                                                    |
+    | Slips     | `.../statements/slips`      | Slips sent, with **For** (the invoice it names, or Account) and **View slip**. The label counts the slips still waiting (`slipsWaiting`) |
+
+- A sent slip returns to the Slips tab. See [Payment slips](../15-city-ledger/03-ar-payments.md#payment-slips).
 - Open and Settled AR invoices, non-void AR payments, the statement with aging, **Payments on bookings** (money paid per booking, outside the balance), and the invoice, receipt and statement PDFs, from the staff city ledger services. The invoice PDF is the staff one, including payments made at the hotel.
 - Voided invoices and payments are hidden; their PDFs return 404. Allocations are not shown.
 - Every document is looked up through the linked company at the property in the URL, never by id alone.
@@ -289,8 +298,8 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 /portal/{code}/bookings/new            Stay → lines (rate plan → room type → rooms, pax) → guests → confirm
 /portal/{code}/bookings/{id}           Detail, Units tab: [Set boats] [Cancel] or [Request cancellation]
 /portal/{code}/bookings/{id}/guests    Detail, Guests tab: guests edited in place, [All | Grouped]
-/portal/{code}/bookings/{id}/payments  Detail, Payments tab: how to pay, schedule and proof upload
-/portal/{code}/statements              AR invoices, payments, statement PDF (read-only)
+/portal/{code}/bookings/{id}/payments  Detail, Payments tab: what is left to pay, the Pay dialog, the bill and schedule
+/portal/{code}/statements              Statement tab; /invoices, /payments and /slips tabs (read-only, plus Send payment)
 /portal/{code}/company                 Company details: contact, tax numbers and billing address (see below)
 /account/...                           Profile, password, 2FA (shared account pages)
 ```
@@ -345,6 +354,7 @@ Borneo Travel · Free cancellation until 7 days before arrival
 
 The company user keeps the company's contact, tax numbers and billing address up to date. Hotel staff may also edit the tax numbers and address until the company ticks **"Only we manage our tax and billing details"**, which sets `companies.profile_managed_by_company` (see [Companies](../15-city-ledger/01-companies.md#data-model)).
 
+- **Layout:** a Workspace (`scroll="page"`). The main panel has the form in three parts (Contact, Tax numbers, Billing address) and **Save company details**. The side card shows the name, type and status (set by the property) and the consent switch. Both panels sit in one form, so the switch saves with the button.
 - Fields: the consent tick, contact email, contact phone, `brn`, `tin`, `sst_registration_number`, `billing_address_line1`, `billing_address_line2`, `billing_city`, `billing_state_code`, `billing_postal_code`, `billing_country_code`.
 - Each property has its own company row, so a change applies only to the property in the URL.
 - `UpdatePortalCompanyDetails` saves them and logs `company.updated` with the company user as causer.

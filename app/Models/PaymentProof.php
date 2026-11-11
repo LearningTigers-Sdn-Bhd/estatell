@@ -13,12 +13,13 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * A payment proof an agent uploads in the portal, for a booking (`reservation_id`) or for its city ledger account
- * (`company_id`). Staff accept it, which records the payment, or reject it. The file is the `file` media item on the private media disk.
+ * (`company_id`), optionally for one invoice (`ar_invoice_id`) of an invoiced booking. Staff accept it, which records the payment, or reject it. The file is the `file` media item on the private media disk.
  *
  * @property int $id
  * @property int $property_id
  * @property int|null $reservation_id
  * @property int|null $company_id
+ * @property int|null $ar_invoice_id
  * @property int $uploaded_by
  * @property string $amount
  * @property string|null $reference
@@ -70,6 +71,12 @@ class PaymentProof extends Model implements HasMedia
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /** @return BelongsTo<ArInvoice, $this> */
+    public function arInvoice(): BelongsTo
+    {
+        return $this->belongsTo(ArInvoice::class);
     }
 
     /** @return BelongsTo<ArPayment, $this> */

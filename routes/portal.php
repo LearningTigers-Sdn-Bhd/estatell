@@ -46,6 +46,9 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
 
         Route::prefix('statements')->name('statements')->group(function () {
             Route::get('/', [PortalStatementController::class, 'show']);
+            Route::get('invoices', [PortalStatementController::class, 'invoices'])->name('.invoices');
+            Route::get('payments', [PortalStatementController::class, 'payments'])->name('.payments');
+            Route::get('slips', [PortalStatementController::class, 'slips'])->name('.slips');
             Route::get('pdf', [PortalStatementController::class, 'pdf'])->name('.pdf');
             Route::get('invoices/{invoice}/pdf', [PortalStatementController::class, 'invoicePdf'])->whereNumber('invoice')->name('.invoices.pdf');
             Route::post('payment-slips', [PortalPaymentSlipController::class, 'store'])->middleware('throttle:20,1')->name('.payment-slips.store');

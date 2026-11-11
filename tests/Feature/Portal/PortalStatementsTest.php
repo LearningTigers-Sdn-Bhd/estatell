@@ -20,9 +20,9 @@ beforeEach(function () {
     [$this->company, $this->link] = portalLinkFor($this->user, $this->property);
 });
 
-function portalStatementsPageUrl(Property $property, array $query = []): string
+function portalStatementsPageUrl(Property $property, array $query = [], string $tab = ''): string
 {
-    return route('portal.statements', ['property' => $property->code, ...$query]);
+    return route($tab === '' ? 'portal.statements' : 'portal.statements.'.$tab, ['property' => $property->code, ...$query]);
 }
 
 test('the statements page lists only this company\'s Open and Settled invoices at this property', function () {
@@ -38,10 +38,12 @@ test('the statements page lists only this company\'s Open and Settled invoices a
     ArInvoice::factory()->for($elsewhere)->create(['company_id' => $sameNameElsewhere->id, 'number' => 'AR-0300']);
 
     $this->actingAs($this->user)
-        ->get(portalStatementsPageUrl($this->property))
+        ->get(portalStatementsPageUrl($this->property, tab: 'invoices'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('portal/statements')
+            ->where('tab', 'invoices')
+            ->missing('statement')
             ->has('invoices.data', 3)
             ->where('invoices.data.0.number', 'AR-0091')
             ->where('invoices.data.0.balance', '3000.00')
@@ -62,7 +64,7 @@ test('the statements page lists only this company\'s payments that are not void 
     ArPayment::factory()->for($elsewhere)->create(['company_id' => $sameNameElsewhere->id, 'receipt_number' => 'RCP-0300']);
 
     $this->actingAs($this->user)
-        ->get(portalStatementsPageUrl($this->property))
+        ->get(portalStatementsPageUrl($this->property, tab: 'payments'))
         ->assertInertia(fn (Assert $page) => $page
             ->has('payments.data', 1)
             ->where('payments.data.0.receiptNumber', 'RCP-0040')
@@ -178,7 +180,7 @@ test('a Suspended company still sees its statements and PDFs', function () {
     $invoice = ArInvoice::factory()->for($this->property)->create(['company_id' => $this->company->id]);
 
     $this->actingAs($this->user)
-        ->get(portalStatementsPageUrl($this->property))
+        ->get(portalStatementsPageUrl($this->property, tab: 'invoices'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->has('invoices.data', 1));
 

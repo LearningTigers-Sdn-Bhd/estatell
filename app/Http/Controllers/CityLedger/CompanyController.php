@@ -14,6 +14,7 @@ use App\Data\Property\CurrencyData;
 use App\Enums\CompanyMarket;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
+use App\Enums\PaymentProofStatus;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CityLedger\CompanyRequest;
@@ -26,6 +27,7 @@ use App\Services\CityLedger\CompanyPortalState;
 use App\Services\CityLedger\CreditExposure;
 use App\Services\CityLedger\StatementBuilder;
 use App\Services\Guests\CountryOptions;
+use App\Services\Payments\ProofPaymentMethods;
 use App\Services\Property\MigrationWindow;
 use App\Services\Rates\CompanyRatePlans;
 use Illuminate\Http\RedirectResponse;
@@ -117,7 +119,8 @@ class CompanyController extends Controller
             'payments' => $ledger->payments($company, $request->user()),
             'paymentSlips' => array_values(PaymentProof::query()
                 ->where('company_id', $company->id)
-                ->with(['uploader', 'bankAccount'])
+                ->where('status', '<>', PaymentProofStatus::Accepted)
+                ->with(['uploader', 'bankAccount', 'arInvoice'])
                 ->latest('id')
                 ->limit(50)
                 ->get()
@@ -125,6 +128,7 @@ class CompanyController extends Controller
                 ->all()),
             'openInvoices' => $ledger->openInvoices($company),
             'methods' => $ledger->methods($company),
+            'slipMethods' => app(ProofPaymentMethods::class)->options($property),
             'canRecordPayment' => $request->user()->can(PermissionEnum::CityLedgerPayment->value),
             'canAllocate' => $request->user()->can(PermissionEnum::CityLedgerAllocate->value),
         ]);

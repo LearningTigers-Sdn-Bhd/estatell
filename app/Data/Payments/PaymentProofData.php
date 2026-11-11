@@ -10,6 +10,7 @@ use Spatie\LaravelData\Data;
 /**
  * A payment proof an agent sent, for the reservation page and the portal booking. `fileUrl` opens the file. `paidInto` is
  * the bank account the company says it paid into ("Maybank · 5123 4567 8901"); load `bankAccount` with the proof.
+ * `invoiceNumber` is the invoice a company slip is for (null for the account or a booking proof); load `arInvoice`.
  */
 class PaymentProofData extends Data
 {
@@ -24,6 +25,7 @@ class PaymentProofData extends Data
         public string $uploadedBy,
         public ?string $rejectReason,
         public string $fileUrl,
+        public ?string $invoiceNumber = null,
     ) {}
 
     public static function fromModel(PaymentProof $proof, string $fileUrl): self
@@ -39,6 +41,7 @@ class PaymentProofData extends Data
             uploadedBy: $proof->uploader->name ?? '',
             rejectReason: $proof->reject_reason,
             fileUrl: $fileUrl,
+            invoiceNumber: $proof->ar_invoice_id === null ? null : $proof->arInvoice?->number,
         );
     }
 }

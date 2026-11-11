@@ -60,7 +60,9 @@ function slipRoute(array $setup, string $action, PaymentProof $slip): string
 test('a company on credit terms sends a slip: it is told, staff are told, and it is not a payment yet', function () {
     $setup = slipSetup();
 
-    slipUpload($setup)->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Payment slip sent. The property will confirm the payment.']);
+    slipUpload($setup)
+        ->assertRedirect(route('portal.statements.slips', $setup['property']))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Payment slip sent. The property will confirm the payment.']);
 
     $slip = PaymentProof::query()->sole();
 
@@ -70,8 +72,8 @@ test('a company on credit terms sends a slip: it is told, staff are told, and it
         ->and(ArPayment::query()->count())->toBe(0);
     Notification::assertSentTo($setup['user'], PaymentSlipReceived::class);
 
-    $this->actingAs($setup['portalUser'])->get(route('portal.statements', $setup['property']))
-        ->assertInertia(fn (Assert $page) => $page->where('canSendSlip', true)->where('paymentSlips.0.status', 'submitted')->where('paymentSlips.0.reference', 'MBB-1'));
+    $this->actingAs($setup['portalUser'])->get(route('portal.statements.slips', $setup['property']))
+        ->assertInertia(fn (Assert $page) => $page->where('canSendSlip', true)->where('slipsWaiting', 1)->where('paymentSlips.0.status', 'submitted')->where('paymentSlips.0.reference', 'MBB-1'));
 });
 
 test('accepting a slip records a city ledger payment against the oldest invoice, once', function () {
@@ -91,8 +93,53 @@ test('accepting a slip records a city ledger payment against the oldest invoice,
         ->and($slip->refresh()->status)->toBe(PaymentProofStatus::Accepted)
         ->and($slip->ar_payment_id)->toBe($payment->id);
 
+    $this->actingAs($setup['portalUser'])->get(route('portal.statements.slips', $setup['property']))
+        ->assertInertia(fn (Assert $page) => $page->where('paymentSlips.0.status', 'accepted')->where('slipsWaiting', 0));
+    $this->get(route('portal.statements', $setup['property']))
+        ->assertInertia(fn (Assert $page) => $page->where('statement.closingBalance', '300.00'));
+    $this->get(route('portal.statements.invoices', $setup['property']))
+        ->assertInertia(fn (Assert $page) => $page->where('invoices.data.0.balance', '300.00'));
+});
+
+test('an accepted slip leaves the slip table, and its payment opens the slip', function () {
+    $setup = slipSetup();
+    slipUpload($setup);
+    slipUpload($setup, ['reference' => 'MBB-2']);
+    [$first, $second] = PaymentProof::query()->orderBy('id')->get()->all();
+
+    $this->actingAs($setup['user'])->post(slipRoute($setup, 'accept', $first), ['payment_method_id' => $setup['method']->id, 'amount' => '200'])->assertSessionHasNoErrors();
+
+    $this->get(route('finance.city-ledger.companies.payments', [$setup['property']->code, $setup['company']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('paymentSlips', 1)
+            ->where('paymentSlips.0.id', $second->id)
+            ->where('payments.0.slipUrl', route('finance.city-ledger.companies.payment-slips.file', [$setup['property']->code, $setup['company'], $first], absolute: false)));
+});
+
+test('a slip with no invoice open stays as credit, and the summary shows balance, overdue and credit', function () {
+    $setup = slipSetup();
+    $setup['invoice']->update(['issued_on' => '2026-09-01', 'due_on' => '2026-09-30']);
+    slipUpload($setup, ['amount' => '700.00']);
+
+    $this->actingAs($setup['user'])->post(slipRoute($setup, 'accept', PaymentProof::query()->sole()), ['payment_method_id' => $setup['method']->id, 'amount' => '700.00'])
+        ->assertSessionHasNoErrors();
+
     $this->actingAs($setup['portalUser'])->get(route('portal.statements', $setup['property']))
-        ->assertInertia(fn (Assert $page) => $page->where('paymentSlips.0.status', 'accepted')->where('statement.closingBalance', '300.00')->where('invoices.data.0.balance', '300.00'));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('summary.asOf', '2026-10-14')
+            ->where('summary.balance', '-200.00')
+            ->where('summary.overdue', '0.00')
+            ->where('summary.credit', '200.00'));
+    $this->get(route('portal.statements.slips', $setup['property']))
+        ->assertInertia(fn (Assert $page) => $page->where('paymentSlips.0.invoiceNumber', null));
+});
+
+test('the summary counts what is past due as overdue', function () {
+    $setup = slipSetup();
+    $setup['invoice']->update(['issued_on' => '2026-09-01', 'due_on' => '2026-09-30']);
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.statements', $setup['property']))
+        ->assertInertia(fn (Assert $page) => $page->where('summary.balance', '500.00')->where('summary.overdue', '500.00')->where('summary.credit', '0.00'));
 });
 
 test('a rejected slip records nothing and the company sees the reason', function () {
@@ -105,7 +152,7 @@ test('a rejected slip records nothing and the company sees the reason', function
 
     expect(ArPayment::query()->count())->toBe(0);
 
-    $this->actingAs($setup['portalUser'])->get(route('portal.statements', $setup['property']))
+    $this->actingAs($setup['portalUser'])->get(route('portal.statements.slips', $setup['property']))
         ->assertInertia(fn (Assert $page) => $page->where('paymentSlips.0.status', 'rejected')->where('paymentSlips.0.rejectReason', 'Not in our account'));
 });
 

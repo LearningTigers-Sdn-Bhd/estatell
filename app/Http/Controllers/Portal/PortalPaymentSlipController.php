@@ -9,7 +9,6 @@ use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\PaymentProof;
 use App\Models\Property;
-use App\Models\User;
 use App\Notifications\PaymentSlipReceived;
 use App\Services\Portal\PortalStatements;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +26,7 @@ class PortalPaymentSlipController extends Controller
     public function store(UploadPaymentProofRequest $request, Property $property, PortalStatements $statements, UploadCompanyPaymentSlip $upload): RedirectResponse
     {
         $company = $this->company($request);
-        $page = route('portal.statements', ['property' => $property]);
+        $page = route('portal.statements.slips', ['property' => $property]);
 
         if (! $statements->canSendSlip($company)) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Your company pays per booking. Send the proof on the booking.')]);
@@ -36,7 +35,7 @@ class PortalPaymentSlipController extends Controller
         }
 
         $slip = $upload($request->user(), $company, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'), $request->bankAccountId());
-        Notification::send($this->recipients($company), new PaymentSlipReceived($company->id, $company->name, $property->code, $property->name, $slip->amount));
+        Notification::send($statements->slipReviewers($company), new PaymentSlipReceived($company->id, $company->name, $property->code, $property->name, $slip->amount));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment slip sent. The property will confirm the payment.')]);
 
@@ -48,26 +47,6 @@ class PortalPaymentSlipController extends Controller
         abort_unless($paymentProof->company_id === $this->company($request)->id, 404);
 
         return ($paymentProof->getFirstMedia(PaymentProof::FILE) ?? abort(404))->toInlineResponse($request);
-    }
-
-    /**
-     * @return iterable<int, User>
-     */
-    private function recipients(Company $company): iterable
-    {
-        $previousTeamId = getPermissionsTeamId();
-        setPermissionsTeamId($company->property_id);
-
-        try {
-            return User::query()
-                ->where('property_id', $company->property_id)
-                ->where('is_admin', false)
-                ->whereNull('deactivated_at')
-                ->permission('city-ledger.payment')
-                ->get();
-        } finally {
-            setPermissionsTeamId($previousTeamId);
-        }
     }
 
     private function company(Request $request): Company

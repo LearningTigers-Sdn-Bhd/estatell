@@ -8,10 +8,12 @@ use App\Http\Requests\Portal\UploadPaymentProofRequest;
 use App\Models\CompanyUser;
 use App\Models\PaymentProof;
 use App\Models\Property;
+use App\Notifications\PaymentSlipReceived;
 use App\Services\Portal\PortalBookings;
-use App\Services\Portal\PortalHowToPay;
+use App\Services\Portal\PortalStatements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -21,18 +23,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class PortalPaymentProofController extends Controller
 {
-    public function store(UploadPaymentProofRequest $request, Property $property, int $reservation, PortalBookings $bookings, PortalHowToPay $howToPay, UploadPaymentProof $upload): RedirectResponse
+    /**
+     * Send a proof for the booking. Once the booking is invoiced it is saved as a company slip for that invoice, and the
+     * staff who check slips are told.
+     */
+    public function store(UploadPaymentProofRequest $request, Property $property, int $reservation, PortalBookings $bookings, PortalStatements $statements, UploadPaymentProof $upload): RedirectResponse
     {
         $company = $this->link($request)->company;
         $booking = $bookings->find($company, $reservation);
 
-        if ($howToPay->billedLater($company)) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('Your company is billed after the stay. Pay the invoice from Statements.')]);
+        $proof = $upload($request->user(), $company, $booking, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'), $request->bankAccountId());
 
-            return to_route('portal.bookings.payments', ['property' => $property, 'reservation' => $reservation]);
+        if ($proof?->company_id !== null) {
+            Notification::send($statements->slipReviewers($company), new PaymentSlipReceived($company->id, $company->name, $property->code, $property->name, $proof->amount));
         }
-
-        $proof = $upload($request->user(), $booking, $request->file('file'), (string) $request->validated('amount'), $request->validated('reference'), $request->bankAccountId());
 
         Inertia::flash('toast', $proof === null
             ? ['type' => 'error', 'message' => __('This booking is closed. Contact the property.')]

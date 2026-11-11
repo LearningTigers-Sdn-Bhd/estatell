@@ -808,6 +808,7 @@ unallocated: string,
 isVoided: boolean,
 canAllocate: boolean,
 canVoid: boolean,
+slipUrl: string | null,
 };
 export type CompanyData = {
 id: number,
@@ -2287,6 +2288,7 @@ uploadedAt: string,
 uploadedBy: string,
 rejectReason: string | null,
 fileUrl: string,
+invoiceNumber: string | null,
 };
 export type PaymentQuoteData = {
 amount: string | null,
@@ -2519,6 +2521,12 @@ childAges: number[],
 beds: number,
 rooms: number,
 };
+export type PortalAccountSummaryData = {
+asOf: string,
+balance: string,
+overdue: string,
+credit: string,
+};
 export type PortalArrivalData = {
 reservationId: number,
 propertyName: string,
@@ -2633,6 +2641,8 @@ bankAccounts: App.Data.Catalogues.BankAccountData[],
 canSendProof: boolean,
 contactPhone: string | null,
 contactEmail: string | null,
+invoiceNumber: string | null,
+invoiceDueOn: string | null,
 };
 export type PortalInvitationData = {
 linkId: number,
