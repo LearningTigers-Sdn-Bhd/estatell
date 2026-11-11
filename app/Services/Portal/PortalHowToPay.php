@@ -19,6 +19,7 @@ use App\Models\Reservation;
 use App\Services\CityLedger\ArInvoiceBalance;
 use App\Services\Reservations\AgentPaymentSchedule;
 use Brick\Math\BigDecimal;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * How a company pays one booking by bank transfer, for the portal Payments tab. Every company can send a proof while
@@ -109,9 +110,9 @@ class PortalHowToPay
     public function proofs(Property $property, Company $company, Reservation $booking): array
     {
         return array_values(PaymentProof::query()
-            ->where(fn ($proofs) => $proofs
+            ->where(fn (Builder $proofs) => $proofs
                 ->where('reservation_id', $booking->id)
-                ->orWhere(fn ($slips) => $slips
+                ->orWhere(fn (Builder $slips) => $slips
                     ->where('company_id', $company->id)
                     ->whereHas('arInvoice.folio', fn ($folios) => $folios->where('reservation_id', $booking->id))))
             ->with(['uploader', 'bankAccount', 'arInvoice'])
