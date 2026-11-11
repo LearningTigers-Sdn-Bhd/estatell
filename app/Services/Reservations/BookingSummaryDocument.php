@@ -9,7 +9,7 @@ use Carbon\CarbonImmutable;
 
 /**
  * Everything the booking summary PDF prints, worked out by `BookingSummary`, so the view only prints. Without prices
- * `lines`, `paid`, `billed`, `balanceDue`, `balanceInWords` and `paymentDetails` are null and `payments` is empty.
+ * `lines`, `paid`, `billed`, `balanceDue`, `balanceInWords` and `paymentDetails` are null and `payments` and `bankAccounts` are empty.
  * `stamp` is CANCELLED, NO-SHOW or null. `balanceDue` is signed (below 0 is a credit) and null when nothing is charged and nothing is paid. `rooms` lists every unit, with its status at the end for a Cancelled or NoShow unit. Amounts are decimal strings with two decimals.
  */
 final readonly class BookingSummaryDocument
@@ -36,6 +36,8 @@ final readonly class BookingSummaryDocument
         public ?string $balanceInWords,
         public array $cancellationPolicy,
         public ?string $paymentDetails,
+        /** @var list<string> The available bank accounts, from `BankAccountLines`; only on the print. */
+        public array $bankAccounts = [],
     ) {}
 
     public function hasCharges(): bool

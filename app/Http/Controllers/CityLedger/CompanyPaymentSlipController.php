@@ -7,9 +7,9 @@ use App\Actions\CityLedger\ArPaymentResult;
 use App\Actions\Payments\RejectPaymentProof;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
-use App\Models\PaymentMethod;
 use App\Models\PaymentProof;
 use App\Models\Property;
+use App\Services\Payments\ProofPaymentMethods;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -29,11 +29,11 @@ class CompanyPaymentSlipController extends Controller
         return ($paymentProof->getFirstMedia(PaymentProof::FILE) ?? abort(404))->toInlineResponse($request);
     }
 
-    public function accept(Request $request, Property $property, Company $company, PaymentProof $paymentProof, AcceptCompanyPaymentSlip $accept): RedirectResponse
+    public function accept(Request $request, Property $property, Company $company, PaymentProof $paymentProof, AcceptCompanyPaymentSlip $accept, ProofPaymentMethods $methods): RedirectResponse
     {
         abort_unless($paymentProof->company_id === $company->id, 404);
         $validated = $request->validate([
-            'payment_method_id' => ['required', 'integer', Rule::exists(PaymentMethod::class, 'id')->where('property_id', $property->id)],
+            'payment_method_id' => ['required', 'integer', Rule::in(array_column($methods->options($property), 'value'))],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
         ]);
 

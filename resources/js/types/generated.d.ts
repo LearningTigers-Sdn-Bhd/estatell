@@ -412,6 +412,14 @@ required: boolean,
 };
 }
 namespace Catalogues {
+export type BankAccountData = {
+id: number,
+bankName: string,
+accountName: string,
+accountNumber: string,
+swiftCode: string | null,
+active: boolean,
+};
 export type ChargeItemChildPriceData = {
 ageGroupId: number,
 label: string,
@@ -800,6 +808,7 @@ unallocated: string,
 isVoided: boolean,
 canAllocate: boolean,
 canVoid: boolean,
+slipUrl: string | null,
 };
 export type CompanyData = {
 id: number,
@@ -2272,12 +2281,14 @@ export type PaymentProofData = {
 id: number,
 amount: string,
 reference: string | null,
+paidInto: string | null,
 status: App.Enums.PaymentProofStatus,
 badge: App.Data.Shared.BadgeData,
 uploadedAt: string,
 uploadedBy: string,
 rejectReason: string | null,
 fileUrl: string,
+invoiceNumber: string | null,
 };
 export type PaymentQuoteData = {
 amount: string | null,
@@ -2510,6 +2521,12 @@ childAges: number[],
 beds: number,
 rooms: number,
 };
+export type PortalAccountSummaryData = {
+asOf: string,
+balance: string,
+overdue: string,
+credit: string,
+};
 export type PortalArrivalData = {
 reservationId: number,
 propertyName: string,
@@ -2566,8 +2583,10 @@ adults: number,
 children: number,
 status: App.Data.Shared.BadgeData,
 guestNames: string[],
+guestIds: number[],
 addOns: App.Data.Portal.PortalBookingAddOnData[],
 total: string,
+canAddGuest: boolean,
 };
 export type PortalCompanyData = {
 name: string,
@@ -2603,6 +2622,27 @@ phone: string | null,
 idType: string | null,
 idTypeLabel: string | null,
 nationalityCode: string | null,
+email: string | null,
+dateOfBirth: string | null,
+gender: string | null,
+preferredLocale: string | null,
+addressLine1: string | null,
+addressLine2: string | null,
+city: string | null,
+state: string | null,
+postalCode: string | null,
+countryCode: string | null,
+};
+export type PortalHowToPayData = {
+billedLater: boolean,
+paid: string,
+leftToPay: string,
+bankAccounts: App.Data.Catalogues.BankAccountData[],
+canSendProof: boolean,
+contactPhone: string | null,
+contactEmail: string | null,
+invoiceNumber: string | null,
+invoiceDueOn: string | null,
 };
 export type PortalInvitationData = {
 linkId: number,
@@ -4090,6 +4130,7 @@ guestId: number | null,
 profile: Record<string, any>,
 updateProfile: boolean,
 unitIndex: number | null,
+identity: App.Data.Guests.IdentityDocumentInputData | null,
 };
 export type NewReservationData = {
 bookerGuestId: number,

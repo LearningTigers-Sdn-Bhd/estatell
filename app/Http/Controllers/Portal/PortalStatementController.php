@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Data\CityLedger\ArInvoiceRowData;
+use App\Data\CityLedger\StatementData;
+use App\Data\Portal\PortalAccountSummaryData;
 use App\Data\Portal\PortalPaymentRowData;
 use App\Data\Property\CurrencyData;
 use App\Http\Controllers\CityLedger\CompanyStatementController;
@@ -14,6 +16,7 @@ use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArInvoicePrinter;
 use App\Services\CityLedger\ArPaymentReceipt;
 use App\Services\CityLedger\CompanyBillTo;
+use App\Services\Portal\PortalHowToPay;
 use App\Services\Portal\PortalStatements;
 use App\Services\Property\PrintedPdf;
 use Illuminate\Http\Request;
@@ -31,22 +34,42 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 class PortalStatementController extends Controller
 {
     /**
-     * The statements page: the statement with its aging for the `from` and `to` dates, the invoices and the payments.
+     * The Statement tab: the statement with its aging and payments on bookings for the `from` and `to` dates.
      */
-    public function show(Request $request, Property $property, PortalStatements $statements, ArInvoiceDirectory $directory): Response
+    public function show(Request $request, Property $property, PortalStatements $statements, ArInvoiceDirectory $directory, PortalHowToPay $howToPay): Response
     {
-        $company = $this->company($request);
-        $property->loadMissing('settings');
-        [$from, $to] = CompanyStatementController::range($request, $directory->today($property));
+        return $this->renderTab($request, $property, 'statement', $statements, $directory, $howToPay, fn (Company $company, StatementData $statement): array => [
+            'statement' => $statement,
+        ]);
+    }
 
-        return Inertia::render('portal/statements', [
-            'propertyCode' => $property->code,
-            'currency' => CurrencyData::forProperty($property),
-            'statement' => $statements->statement($company, $from, $to),
+    /**
+     * The Invoices tab: the company's Open and Settled invoices and credit notes, 25 per page.
+     */
+    public function invoices(Request $request, Property $property, PortalStatements $statements, ArInvoiceDirectory $directory, PortalHowToPay $howToPay): Response
+    {
+        return $this->renderTab($request, $property, 'invoices', $statements, $directory, $howToPay, fn (Company $company): array => [
             'invoices' => ArInvoiceRowData::collect($statements->invoices($property, $company), PaginatedDataCollection::class),
+        ]);
+    }
+
+    /**
+     * The Payments tab: the company's payments that are not void, 25 per page.
+     */
+    public function payments(Request $request, Property $property, PortalStatements $statements, ArInvoiceDirectory $directory, PortalHowToPay $howToPay): Response
+    {
+        return $this->renderTab($request, $property, 'payments', $statements, $directory, $howToPay, fn (Company $company): array => [
             'payments' => PortalPaymentRowData::collect($statements->payments($property, $company), PaginatedDataCollection::class),
+        ]);
+    }
+
+    /**
+     * The Slips tab: the payment slips the company sent, newest first.
+     */
+    public function slips(Request $request, Property $property, PortalStatements $statements, ArInvoiceDirectory $directory, PortalHowToPay $howToPay): Response
+    {
+        return $this->renderTab($request, $property, 'slips', $statements, $directory, $howToPay, fn (Company $company): array => [
             'paymentSlips' => $statements->slips($property, $company),
-            'canSendSlip' => $statements->canSendSlip($company),
         ]);
     }
 
@@ -94,6 +117,33 @@ class PortalStatementController extends Controller
 
         return $printedPdf->make($property, 'pdf.ar-receipt', ['receipt' => $receipt])
             ->stream('receipt-'.$receipt->receiptNumber.'.pdf');
+    }
+
+    /**
+     * Each tab has its own URL. Every tab gets the summary (as at the statement's end date, from the `from` and `to`
+     * dates), whether the company can send a payment and the slips still waiting; only the open tab's list is read.
+     *
+     * @param  'statement'|'invoices'|'payments'|'slips'  $tab
+     * @param  callable(Company, StatementData): array<string, mixed>  $tabProps
+     */
+    private function renderTab(Request $request, Property $property, string $tab, PortalStatements $statements, ArInvoiceDirectory $directory, PortalHowToPay $howToPay, callable $tabProps): Response
+    {
+        $company = $this->company($request);
+        $property->loadMissing('settings');
+        [$from, $to] = CompanyStatementController::range($request, $directory->today($property));
+        $statement = $statements->statement($company, $from, $to);
+        $canSendSlip = $statements->canSendSlip($company);
+
+        return Inertia::render('portal/statements', [
+            'tab' => $tab,
+            'propertyCode' => $property->code,
+            'currency' => CurrencyData::forProperty($property),
+            'summary' => PortalAccountSummaryData::fromStatement($statement),
+            'slipsWaiting' => $statements->slipsWaiting($company),
+            'canSendSlip' => $canSendSlip,
+            'bankAccounts' => $canSendSlip ? $howToPay->bankAccounts($property) : [],
+            ...$tabProps($company, $statement),
+        ]);
     }
 
     /**

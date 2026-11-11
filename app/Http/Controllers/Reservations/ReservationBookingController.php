@@ -13,6 +13,7 @@ use App\Data\Reservations\WalkInPaymentData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
+use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\OldFolioMode;
 use App\Enums\PermissionEnum;
@@ -414,6 +415,8 @@ class ReservationBookingController extends Controller
             'currency' => CurrencyData::forProperty($property),
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canManageGuests' => $canManageGuests,
+            'canAddIdentity' => $canManageGuests && $request->user()->can(PermissionEnum::GuestsViewDocuments->value),
+            'identityDocumentTypes' => IdentityDocumentType::options(),
             'canRecordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
             'canCheckOut' => $walkIn && $request->user()->can(PermissionEnum::FrontDeskCheckOut->value),
             'canCheckInWithoutCard' => $walkIn && (bool) $property->settings?->card_required_for_check_in && $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value),

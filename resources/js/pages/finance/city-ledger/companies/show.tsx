@@ -578,6 +578,7 @@ export default function CompanyShow({
     payments = [],
     openInvoices = [],
     methods = [],
+    slipMethods = [],
     paymentSlips = [],
     canRecordPayment = false,
     statement = null,
@@ -596,6 +597,8 @@ export default function CompanyShow({
     payments?: App.Data.CityLedger.ArPaymentRowData[];
     openInvoices?: App.Data.CityLedger.OpenArInvoiceData[];
     methods?: App.Data.CityLedger.ArPaymentMethodOptionData[];
+    /** The bank transfer methods an accepted slip is recorded with. */
+    slipMethods?: { value: string; label: string }[];
     paymentSlips?: App.Data.Payments.PaymentProofData[];
     canRecordPayment?: boolean;
     statement?: App.Data.CityLedger.StatementData | null;
@@ -828,33 +831,6 @@ export default function CompanyShow({
                             currency={currency}
                         />
                     )}
-                    {tab === 'payments' && paymentSlips.length > 0 && (
-                        <section className="flex max-w-3xl flex-col gap-3 rounded-lg border p-4">
-                            <div className="flex flex-col gap-1">
-                                <h2 className="text-base font-medium">
-                                    Payment slips
-                                </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    Slips the company sent in the portal. Accept
-                                    records the payment and matches it to the
-                                    oldest open invoices.
-                                </p>
-                            </div>
-                            <PaymentProofReview
-                                companyId={company.id}
-                                proofs={paymentSlips}
-                                methods={
-                                    canRecordPayment
-                                        ? methods.map((method) => ({
-                                              value: String(method.id),
-                                              label: method.name,
-                                          }))
-                                        : []
-                                }
-                                currency={currency}
-                            />
-                        </section>
-                    )}
                     {tab === 'payments' && (
                         <ArPaymentsTab
                             key={`payments-${company.id}`}
@@ -865,6 +841,28 @@ export default function CompanyShow({
                             currency={currency}
                             canRecordPayment={canRecordPayment}
                         />
+                    )}
+                    {tab === 'payments' && (
+                        <section className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1">
+                                <h2 className="text-base font-medium">
+                                    Payment slips
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Slips the company sent in the portal that
+                                    wait for a check, and the ones you rejected.
+                                    Accept records the payment: it moves to
+                                    Payments above, where View slip opens it.
+                                </p>
+                            </div>
+                            <PaymentProofReview
+                                companyId={company.id}
+                                proofs={paymentSlips}
+                                methods={canRecordPayment ? slipMethods : []}
+                                currency={currency}
+                                emptyText="No slips to check"
+                            />
+                        </section>
                     )}
                     {tab === 'rates' && (
                         <CompanyRatesTable

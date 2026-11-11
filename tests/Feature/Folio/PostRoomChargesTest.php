@@ -7,8 +7,10 @@ use App\Enums\ArInvoiceStatus;
 use App\Enums\ChargingUnit;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\InclusionStart;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
+use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
@@ -160,6 +162,35 @@ test('a routing rule sends the room to the master folio', function () {
 
     expect($result->line()->folio_id)->toBe($master->id)
         ->and(Folio::query()->where('type', FolioType::Unit)->count())->toBe(0);
+});
+
+test('an inclusion with no rule of its own goes to the folio of its room line', function () {
+    $setup = nightSetup();
+    $master = app(CreateFolio::class)($setup['reservation'], null);
+    FolioRoutingRule::factory()->create(['reservation_id' => $setup['reservation']->id, 'reservation_unit_id' => null, 'transaction_code_id' => null, 'category' => TransactionCategory::Room, 'target_folio_id' => $master->id]);
+    $inclusion = RatePlanInclusion::factory()->create(['rate_plan_id' => $setup['unit']->rate_plan_id, 'starts_on' => InclusionStart::ArrivalDay, 'allocated_amount' => '15.00']);
+
+    $result = app(PostRoomCharges::class)(null, $setup['unit'], $setup['date']);
+
+    $line = collect($result->lines)->firstWhere('transaction_code_id', $inclusion->chargeItem->transaction_code_id);
+    expect($inclusion->chargeItem->transactionCode->category)->not->toBe(TransactionCategory::Room)
+        ->and($line->folio_id)->toBe($master->id)
+        ->and($result->line()->folio_id)->toBe($master->id)
+        ->and(Folio::query()->where('type', FolioType::Unit)->count())->toBe(0);
+});
+
+test('an inclusion with its own rule follows that rule, not the room line', function () {
+    $setup = nightSetup();
+    $master = app(CreateFolio::class)($setup['reservation'], null);
+    $other = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $inclusion = RatePlanInclusion::factory()->create(['rate_plan_id' => $setup['unit']->rate_plan_id, 'starts_on' => InclusionStart::ArrivalDay, 'allocated_amount' => '15.00']);
+    FolioRoutingRule::factory()->create(['reservation_id' => $setup['reservation']->id, 'reservation_unit_id' => null, 'transaction_code_id' => null, 'category' => TransactionCategory::Room, 'target_folio_id' => $master->id]);
+    FolioRoutingRule::factory()->create(['reservation_id' => $setup['reservation']->id, 'reservation_unit_id' => null, 'transaction_code_id' => $inclusion->chargeItem->transaction_code_id, 'category' => null, 'target_folio_id' => $other->id]);
+
+    $result = app(PostRoomCharges::class)(null, $setup['unit'], $setup['date']);
+
+    expect(collect($result->lines)->firstWhere('transaction_code_id', $inclusion->chargeItem->transaction_code_id)->folio_id)->toBe($other->id)
+        ->and($result->line()->folio_id)->toBe($master->id);
 });
 
 test('a closed target folio refuses the night and writes nothing', function () {

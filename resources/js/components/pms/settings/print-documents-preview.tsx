@@ -110,10 +110,12 @@ export function PrintDocumentsPreview({
     settings,
     fonts,
     propertyName,
+    bankAccounts,
 }: {
     settings: Settings;
     fonts: FontStyleOption[];
     propertyName: string;
+    bankAccounts: string[];
 }) {
     const font = fonts.find((option) => option.value === settings.font);
     const units = [...new Set(sampleNights.map((night) => night.unit))];
@@ -217,7 +219,7 @@ export function PrintDocumentsPreview({
                         </p>
                     </div>
                 )}
-                {settings.bankDetails && (
+                {(bankAccounts.length > 0 || settings.bankDetails) && (
                     <div
                         className={cn(
                             'pt-2',
@@ -225,9 +227,19 @@ export function PrintDocumentsPreview({
                         )}
                     >
                         <p className="font-bold">Payment details</p>
-                        <p className="text-xs whitespace-pre-line text-muted-foreground">
-                            {settings.bankDetails}
-                        </p>
+                        {bankAccounts.map((line) => (
+                            <p
+                                key={line}
+                                className="text-xs text-muted-foreground"
+                            >
+                                {line}
+                            </p>
+                        ))}
+                        {settings.bankDetails && (
+                            <p className="text-xs whitespace-pre-line text-muted-foreground">
+                                {settings.bankDetails}
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

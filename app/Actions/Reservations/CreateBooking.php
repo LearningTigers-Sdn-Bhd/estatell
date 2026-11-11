@@ -101,7 +101,7 @@ class CreateBooking
                 throw new BookingRefused(BookingResult::refused(BookingResult::REFUSAL_GUEST_NAME_REQUIRED, guestIndex: $index));
             }
 
-            return ($this->createGuest)($actor, $property, $tab->profile)->id;
+            return ($this->createGuest)($actor, $property, $tab->profile, identity: $tab->identity)->id;
         }
 
         if ($tab->updateProfile && $tab->profile !== []) {

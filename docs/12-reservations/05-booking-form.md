@@ -278,7 +278,9 @@ Units without a guest are allowed. The footer counts them, and they show "No gue
 
 ### Guest details
 
-Shown in the expanded part of the row, with no second toggle. Email and the personal fields (nationality, date of birth, gender, preferred language) share one grid of three columns from `lg`; the address keeps its own layout below. The fields are: date of birth, gender, nationality, address line 1 and 2, city, state, postcode, country, preferred language. The fields come from `GuestDetailsFields`, extracted from `guest-form.tsx` and used by both forms, so they cannot drift apart. No ID document: ID is collected on the [registration card](../16-registration/04-signing-flow.md) at check-in and kept on the guest profile.
+Shown in the expanded part of the row, with no second toggle. Email and the personal fields share one grid of three columns from `lg` (`GuestDetailsFields` with `order="contact-first"`): Email, Date of birth, Gender, then Preferred language, Nationality and **IC / Passport number**; the address keeps its own layout below. The fields come from `GuestDetailsFields`, extracted from `guest-form.tsx` and used by both forms, so they cannot drift apart.
+
+**ID (changed 11 Nov 2026):** a new guest's row has the IC / Passport field (`GuestIdentityFields`, the ID type inside the number box), for staff with `guests.manage` and `guests.view-documents` (`canAddIdentity`). Before, ID was only collected on the [registration card](../16-registration/04-signing-flow.md) at check-in. `StoreBookingRequest` takes `guests.*.identity_type`, `identity_number` (spaces and dashes removed, 4 to 40 characters, 12 digits for MyKad) and `identity_country_code`, and refuses an ID from staff without `guests.view-documents` ("You may not add an ID."). `CreateBooking` saves it as the new guest's first ID document through `CreateGuest`. A linked guest keeps the IDs on its profile, so an ID sent for it (for example after a MyKad scan) is ignored. The portal booking form shows the same field (`PortalIdField`).
 
 ### Permissions
 

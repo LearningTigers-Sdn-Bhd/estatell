@@ -269,6 +269,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(PaymentMethod::class);
     }
 
+    /** @return HasMany<PropertyBankAccount, $this> */
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(PropertyBankAccount::class);
+    }
+
     /**
      * @return HasMany<RoomGroup, $this>
      */
