@@ -20,6 +20,7 @@ class AdminNavigation
             new NavItemData(title: __('Dashboard'), href: route('admin.dashboard', absolute: false), icon: 'layout-grid'),
             new NavItemData(title: __('Properties'), href: route('admin.properties.index', absolute: false), icon: 'building', badge: $this->waitingForApproval()),
             new NavItemData(title: __('Partners'), href: route('admin.partners.index', absolute: false), icon: 'handshake'),
+            new NavItemData(title: __('Commissions'), href: route('admin.commissions.index', absolute: false), icon: 'percent', active: request()->routeIs('admin.commissions.*')),
             new NavItemData(title: __('Settings'), href: route('admin.settings.edit', absolute: false), icon: 'settings', active: request()->routeIs('admin.settings.*')),
             new NavItemData(title: __('Channels'), href: route('admin.channels.index', absolute: false), icon: 'waypoints', active: request()->routeIs('admin.channels.*')),
             new NavItemData(title: __('Amenities'), href: route('admin.amenities.index', absolute: false), icon: 'sparkles', active: request()->routeIs('admin.amenities.*')),

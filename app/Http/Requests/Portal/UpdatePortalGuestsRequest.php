@@ -3,22 +3,35 @@
 namespace App\Http\Requests\Portal;
 
 use App\Enums\IdentityDocumentType;
+use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\Property;
 use App\Services\Guests\IdentityNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Propaganistas\LaravelPhone\PhoneNumber;
 use Propaganistas\LaravelPhone\Rules\Phone;
 
 /**
- * The Edit guests form on a portal booking: name, phone and ID of each guest. The ID number is typed in full to
- * replace the one on file and is saved in its normalized form. Whether the guests may still change is decided by
- * `UpdatePortalReservationGuests`.
+ * The Edit guests form on a portal booking: name, phone, ID and the rest of the profile (email, personal details and
+ * address) of each guest. A profile field that is sent replaces the saved value, so an empty one clears it; a field
+ * that is left out keeps it. The ID number is typed in full to replace the one on file and is saved in its normalized
+ * form. Whether the guests may still change is decided by `UpdatePortalReservationGuests`.
  */
 class UpdatePortalGuestsRequest extends FormRequest
 {
+    /**
+     * The profile fields besides name, phone and nationality, validated with the shared guest profile rules.
+     *
+     * @var list<string>
+     */
+    public const array PROFILE_FIELDS = [
+        'email', 'date_of_birth', 'gender', 'preferred_locale',
+        'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country_code',
+    ];
+
     public function authorize(): bool
     {
         return true;
@@ -56,6 +69,10 @@ class UpdatePortalGuestsRequest extends FormRequest
             'guests.*.id_number' => [
                 'nullable', 'required_with:guests.*.id_type', 'string', 'min:4', 'max:40',
             ],
+            ...Arr::only(
+                GuestProfileRules::prefixed('guests.*.', $this->phoneRegion()),
+                array_map(fn (string $field): string => 'guests.*.'.$field, self::PROFILE_FIELDS),
+            ),
         ];
     }
 
@@ -87,7 +104,7 @@ class UpdatePortalGuestsRequest extends FormRequest
     }
 
     /**
-     * @return list<array{guest_id: int, full_name: string, phone: ?string, nationality_code: ?string, id_type: ?string, id_number: ?string}>
+     * @return list<array{guest_id: int, full_name: string, phone: ?string, nationality_code: ?string, id_type: ?string, id_number: ?string, profile: array<string, mixed>}>
      */
     public function guests(): array
     {
@@ -98,6 +115,7 @@ class UpdatePortalGuestsRequest extends FormRequest
             'nationality_code' => filled($guest['nationality_code'] ?? null) ? mb_strtoupper($guest['nationality_code']) : null,
             'id_type' => $guest['id_type'] ?? null,
             'id_number' => $guest['id_number'] ?? null,
+            'profile' => Arr::only($guest, self::PROFILE_FIELDS),
         ], $this->validated('guests')));
     }
 

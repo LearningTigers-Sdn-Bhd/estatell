@@ -7,6 +7,7 @@ import { DateText } from '@/components/pms/date-text';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioTab } from '@/components/pms/folio/folio-tab';
 import { SettlePastStayDialog } from '@/components/pms/folio/settle-past-stay-dialog';
+import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
 import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
@@ -20,12 +21,12 @@ import { useGuestsView } from '@/components/pms/reservations/use-guests-view';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
 import { Workspace } from '@/components/pms/workspace';
-import { SummaryToggle } from '@/components/pms/reservations/summary-toggle';
+import { SummaryToggle } from '@/components/pms/summary-toggle';
 import { UnitsAllTable } from '@/components/pms/reservations/units-all-table';
 import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
-import { useViewChoice } from '@/components/pms/reservations/use-view-choice';
-import { ViewChoiceToggle } from '@/components/pms/reservations/view-choice-toggle';
-import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
+import { useViewChoice } from '@/components/pms/use-view-choice';
+import { ViewChoiceToggle } from '@/components/pms/view-choice-toggle';
+import { useSummaryHidden } from '@/components/pms/use-summary-hidden';
 import { Badge } from '@/components/ui/badge';
 import {
     activity as activityTab,
@@ -43,6 +44,7 @@ type Props = {
     money: App.Data.Reservations.ReservationMoneyData;
     paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
     agentBill: App.Data.Reservations.AgentBillData | null;
+    proofsWaiting: number;
     paymentProofs: App.Data.Payments.PaymentProofData[];
     proofPaymentMethods: { value: string; label: string }[];
     units: App.Data.Reservations.ReservationUnitOptionData[];
@@ -107,6 +109,7 @@ export default function ReservationShow({
     money,
     paymentSchedule,
     agentBill,
+    proofsWaiting,
     paymentProofs,
     proofPaymentMethods,
     units,
@@ -383,8 +386,7 @@ export default function ReservationShow({
                                 money={money}
                                 paymentSchedule={paymentSchedule}
                                 agentBill={agentBill}
-                                paymentProofs={paymentProofs}
-                                proofPaymentMethods={proofPaymentMethods}
+                                proofsWaiting={proofsWaiting}
                                 canViewCompany={canViewCompany}
                                 currency={currency}
                             />
@@ -418,7 +420,7 @@ export default function ReservationShow({
                                 currency={currency}
                             />
                         ) : tab === 'folio' ? (
-                            <>
+                            <div className="flex flex-col gap-6">
                                 <FolioTab
                                     reservationId={reservation.id}
                                     units={units}
@@ -443,12 +445,25 @@ export default function ReservationShow({
                                     onCorrectPrice={correctPrice}
                                     currency={currency}
                                 />
+                                {paymentProofs.length > 0 && (
+                                    <section className="flex flex-col gap-2">
+                                        <h2 className="text-base font-medium">
+                                            Payment proofs
+                                        </h2>
+                                        <PaymentProofReview
+                                            reservationId={reservation.id}
+                                            proofs={paymentProofs}
+                                            methods={proofPaymentMethods}
+                                            currency={currency}
+                                        />
+                                    </section>
+                                )}
                                 {settlePastStayUrl && (
                                     <SettlePastStayDialog
                                         manualUrl={settlePastStayUrl}
                                     />
                                 )}
-                            </>
+                            </div>
                         ) : tab === 'activity' && activity ? (
                             <ActivityTab activity={activity} />
                         ) : unitsAll ? (

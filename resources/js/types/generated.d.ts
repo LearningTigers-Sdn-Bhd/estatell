@@ -412,6 +412,14 @@ required: boolean,
 };
 }
 namespace Catalogues {
+export type BankAccountData = {
+id: number,
+bankName: string,
+accountName: string,
+accountNumber: string,
+swiftCode: string | null,
+active: boolean,
+};
 export type ChargeItemChildPriceData = {
 ageGroupId: number,
 label: string,
@@ -800,6 +808,7 @@ unallocated: string,
 isVoided: boolean,
 canAllocate: boolean,
 canVoid: boolean,
+slipUrl: string | null,
 };
 export type CompanyData = {
 id: number,
@@ -915,6 +924,128 @@ number: string,
 description: string | null,
 amount: string,
 balance: string,
+};
+}
+namespace Commissions {
+export type CommissionBookingFilters = {
+period: App.Enums.CommissionPeriod,
+date: string,
+from: string,
+to: string,
+propertyId: number | null,
+service: App.Enums.CommissionService | null,
+search: string | null,
+};
+export type CommissionBookingRowData = {
+reservationId: number,
+propertyName: string,
+bookingReference: string,
+sourceName: string,
+bookedAt: string,
+checkIn: string | null,
+checkOut: string | null,
+guestName: string,
+value: string,
+commissions: Record<string, string>,
+outstanding: string,
+currency: App.Data.Property.CurrencyData | null,
+};
+export type CommissionEntryInputData = {
+type: App.Enums.CommissionEntryType,
+amount: string,
+dueDate: string | null,
+reservationId: number | null,
+service: App.Enums.CommissionService | null,
+baseAmount: string | null,
+rate: string | null,
+gatewayPaymentId: number | null,
+gatewayRefundId: number | null,
+reversesEntryId: number | null,
+idempotencyKey: string | null,
+reason: string | null,
+};
+export type CommissionRateData = {
+id: number,
+service: App.Enums.CommissionService,
+serviceLabel: string,
+rate: string,
+effectiveFrom: string,
+status: App.Data.Shared.BadgeData,
+};
+export type CommissionTotalsData = {
+cashLiability: string,
+immediatePayable: string,
+payableOn: string,
+owedToEstatell: string,
+propertiesOwing: number,
+currency: App.Data.Property.CurrencyData,
+};
+export type PayoutVoucherData = {
+voucher: App.Data.Commissions.PayoutVoucherRowData,
+lines: App.Data.Commissions.PayoutVoucherLineData[],
+totals: {
+label: string,
+amount: string,
+}[],
+bankAccount: {
+bankName: string,
+accountName: string,
+accountNumber: string,
+swiftCode: string | null,
+} | null,
+approvedBy: string | null,
+approvedAt: string | null,
+paidOn: string | null,
+paidReference: string | null,
+canApprove: boolean,
+canMarkPaid: boolean,
+canAdjust: boolean,
+};
+export type PayoutVoucherLineData = {
+id: number,
+dueDate: string | null,
+reservationId: number | null,
+bookingReference: string | null,
+label: string,
+reason: string | null,
+amount: string,
+};
+export type PayoutVoucherRowData = {
+id: number,
+number: string,
+propertyId: number,
+propertyName: string,
+periodStart: string,
+periodEnd: string,
+dueOn: string,
+paidOn: string | null,
+amount: string,
+owedToEstatell: boolean,
+currency: App.Data.Property.CurrencyData | null,
+status: App.Data.Shared.BadgeData,
+};
+export type PropertyCommissionPeriodData = {
+id: number,
+service: App.Enums.CommissionService,
+serviceLabel: string,
+startsOn: string,
+endsOn: string | null,
+hasStarted: boolean,
+createdBy: string | null,
+};
+export type PropertyCommissionServiceData = {
+service: App.Enums.CommissionService,
+label: string,
+rate: string | null,
+period: App.Data.Commissions.PropertyCommissionPeriodData | null,
+};
+export type PropertyPayoutSummaryData = {
+nextAmount: string,
+nextDueOn: string,
+lastAmount: string | null,
+lastPaidOn: string | null,
+lastReference: string | null,
+currency: App.Data.Property.CurrencyData,
 };
 }
 namespace Concierge {
@@ -2390,12 +2521,14 @@ export type PaymentProofData = {
 id: number,
 amount: string,
 reference: string | null,
+paidInto: string | null,
 status: App.Enums.PaymentProofStatus,
 badge: App.Data.Shared.BadgeData,
 uploadedAt: string,
 uploadedBy: string,
 rejectReason: string | null,
 fileUrl: string,
+invoiceNumber: string | null,
 };
 export type PaymentQuoteData = {
 amount: string | null,
@@ -2628,6 +2761,12 @@ childAges: number[],
 beds: number,
 rooms: number,
 };
+export type PortalAccountSummaryData = {
+asOf: string,
+balance: string,
+overdue: string,
+credit: string,
+};
 export type PortalArrivalData = {
 reservationId: number,
 propertyName: string,
@@ -2684,8 +2823,10 @@ adults: number,
 children: number,
 status: App.Data.Shared.BadgeData,
 guestNames: string[],
+guestIds: number[],
 addOns: App.Data.Portal.PortalBookingAddOnData[],
 total: string,
+canAddGuest: boolean,
 };
 export type PortalCompanyData = {
 name: string,
@@ -2721,6 +2862,27 @@ phone: string | null,
 idType: string | null,
 idTypeLabel: string | null,
 nationalityCode: string | null,
+email: string | null,
+dateOfBirth: string | null,
+gender: string | null,
+preferredLocale: string | null,
+addressLine1: string | null,
+addressLine2: string | null,
+city: string | null,
+state: string | null,
+postalCode: string | null,
+countryCode: string | null,
+};
+export type PortalHowToPayData = {
+billedLater: boolean,
+paid: string,
+leftToPay: string,
+bankAccounts: App.Data.Catalogues.BankAccountData[],
+canSendProof: boolean,
+contactPhone: string | null,
+contactEmail: string | null,
+invoiceNumber: string | null,
+invoiceDueOn: string | null,
 };
 export type PortalInvitationData = {
 linkId: number,
@@ -4208,6 +4370,7 @@ guestId: number | null,
 profile: Record<string, any>,
 updateProfile: boolean,
 unitIndex: number | null,
+identity: App.Data.Guests.IdentityDocumentInputData | null,
 };
 export type NewReservationData = {
 bookerGuestId: number,
@@ -5004,6 +5167,10 @@ export type ChargeStatus = 'posted' | 'reversal' | 'moved';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
+export type CommissionEntryType = 'collected' | 'refunded' | 'refund_fee' | 'commission' | 'adjustment' | 'carried_forward';
+export type CommissionPeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
+export type CommissionRateStatus = 'scheduled' | 'current' | 'past';
+export type CommissionService = 'booking_engine' | 'channel_manager';
 export type CompanyAccess = 'everyone' | 'all' | 'selected';
 export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyLinkRefusal = 'not_pending' | 'company_suspended' | 'property_not_live' | 'login_not_available' | 'already_linked';
@@ -5083,10 +5250,11 @@ export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
 export type PaymentStage = 'before_arrival' | 'in_house' | 'departed';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
+export type PayoutVoucherStatus = 'draft' | 'approved' | 'paid' | 'carried_forward';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'payouts.view';
 export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'kiosks' | 'booking-engine' | 'concierge';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';

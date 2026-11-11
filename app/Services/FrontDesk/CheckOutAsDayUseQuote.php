@@ -226,7 +226,7 @@ class CheckOutAsDayUseQuote
         $ownLines = [];
 
         foreach ($quote->charges as $charge) {
-            $target = $this->folioRouter->targetFor($proposed, $charge->code);
+            $target = $this->folioRouter->targetFor($proposed, $charge->code, $charge->follows);
 
             if ($target !== null && $target->status !== FolioStatus::Open) {
                 $data->refusal = $this->folioPostability->refusalFor($target);

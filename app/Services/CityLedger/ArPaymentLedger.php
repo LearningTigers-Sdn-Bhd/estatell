@@ -14,6 +14,8 @@ use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
 use App\Models\PaymentMethod;
+use App\Models\PaymentProof;
+use App\Models\Property;
 use App\Models\User;
 use Brick\Math\BigDecimal;
 
@@ -46,14 +48,22 @@ class ArPaymentLedger
             ->selectRaw('ar_payment_id, SUM(amount) AS allocated')
             ->pluck('allocated', 'ar_payment_id');
 
+        $slips = PaymentProof::query()
+            ->whereIn('ar_payment_id', $payments->pluck('id'))
+            ->pluck('id', 'ar_payment_id');
+        $propertyCode = $slips->isEmpty() ? null : Property::query()->whereKey($company->property_id)->value('code');
+
         $mayAllocate = $user->can(PermissionEnum::CityLedgerAllocate->value);
         $mayVoid = $user->can(PermissionEnum::CityLedgerPayment->value);
 
-        return array_values($payments->map(function (ArPayment $payment) use ($allocated, $mayAllocate, $mayVoid): ArPaymentRowData {
+        return array_values($payments->map(function (ArPayment $payment) use ($allocated, $mayAllocate, $mayVoid, $slips, $propertyCode, $company): ArPaymentRowData {
             $used = (string) ($allocated[$payment->id] ?? '0');
             $unallocated = $payment->voided_at !== null ? '0.00' : (string) BigDecimal::of((string) $payment->amount)->minus($used)->toScale(2);
 
-            return ArPaymentRowData::fromModel($payment, $unallocated, BigDecimal::of($used)->isPositive(), $mayAllocate, $mayVoid);
+            $slipId = $slips[$payment->id] ?? null;
+            $slipUrl = $slipId === null ? null : route('finance.city-ledger.companies.payment-slips.file', ['property' => $propertyCode, 'company' => $company->id, 'paymentProof' => $slipId], absolute: false);
+
+            return ArPaymentRowData::fromModel($payment, $unallocated, BigDecimal::of($used)->isPositive(), $mayAllocate, $mayVoid, $slipUrl);
         })->all());
     }
 

@@ -2,21 +2,24 @@ import {
     PaymentProofForm,
     PaymentProofList,
 } from '@/components/pms/payments/payment-proof-form';
+import { BankAccountList } from '@/components/pms/portal/bank-account-list';
 import { store } from '@/routes/portal/statements/payment-slips';
 
 /**
- * A company on credit terms sends a slip for its account. The property checks it, and only then does it count as a
+ * A company on credit terms sends a slip for its account, with the property's available bank accounts above the form. The property checks it, and only then does it count as a
  * payment. Each slip shows its status, with the reason if it was rejected.
  */
 export function PortalPaymentSlipSection({
     propertyCode,
     slips,
     canSend,
+    bankAccounts,
     currency,
 }: {
     propertyCode: string;
     slips: App.Data.Payments.PaymentProofData[];
     canSend: boolean;
+    bankAccounts: App.Data.Catalogues.BankAccountData[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
     if (!canSend && slips.length === 0) {
@@ -33,12 +36,16 @@ export function PortalPaymentSlipSection({
                     balance falls.
                 </p>
             </div>
+            {canSend && bankAccounts.length > 0 && (
+                <BankAccountList bankAccounts={bankAccounts} />
+            )}
             <PaymentProofList proofs={slips} currency={currency} />
             {canSend && (
                 <PaymentProofForm
                     action={store.url({ property: propertyCode })}
                     idPrefix="slip"
                     submitLabel="Send slip"
+                    bankAccounts={bankAccounts}
                 />
             )}
         </section>

@@ -1,6 +1,7 @@
 import { Form } from '@inertiajs/react';
 import {
     Ban,
+    Eye,
     MoreHorizontal,
     Plus,
     Printer,
@@ -170,6 +171,22 @@ export function ArPaymentsTab({
                                                     >
                                                         <Split />
                                                         Allocate
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {payment.slipUrl && (
+                                                    <DropdownMenuItem
+                                                        render={
+                                                            <a
+                                                                href={
+                                                                    payment.slipUrl
+                                                                }
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                            />
+                                                        }
+                                                    >
+                                                        <Eye />
+                                                        View slip
                                                     </DropdownMenuItem>
                                                 )}
                                                 {payment.hasReceipt && (

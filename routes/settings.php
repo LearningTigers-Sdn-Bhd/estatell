@@ -10,6 +10,7 @@ use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\BookingEngine\BookingApiController;
 use App\Http\Controllers\BookingEngine\BookingWebsiteController;
 use App\Http\Controllers\BookingEngine\NearbyPlaceController;
+use App\Http\Controllers\Catalogues\BankAccountController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
@@ -196,6 +197,13 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
         Route::get('agent-payments', [AgentPaymentTermsController::class, 'edit'])->name('agent-payments.edit');
         Route::put('agent-payments', [AgentPaymentTermsController::class, 'update'])->name('agent-payments.update');
+    });
+
+    Route::prefix('bank-accounts')->name('bank-accounts.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [BankAccountController::class, 'index'])->name('index');
+        Route::post('/', [BankAccountController::class, 'store'])->name('store');
+        Route::put('order', [BankAccountController::class, 'reorder'])->name('reorder');
+        Route::put('{bankAccount}', [BankAccountController::class, 'update'])->name('update');
     });
 
     Route::prefix('taxes')->name('taxes.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

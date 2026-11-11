@@ -28,14 +28,15 @@ class UpdatePortalReservationGuests
     ) {}
 
     /**
-     * Change the name, phone and ID of the guests of a booking, until check-in and not after the arrival date (the
-     * property's business date is on or before the arrival). Only the booking's own guests can change; a guest id
-     * that is not one of them refuses the whole save. Dates, rooms, plans and prices cannot change here. A new ID
-     * number replaces the number on the guest's first ID document, or adds a document when the guest has none. One
+     * Change the name, phone, ID and profile (email, personal details, address) of the guests of a booking, until
+     * check-in and not after the arrival date (the property's business date is on or before the arrival). Only the
+     * booking's own guests can change; a guest id that is not one of them refuses the whole save. The guest's tags are
+     * kept. Dates, rooms, plans and prices cannot change here. A new ID number replaces the number on the guest's
+     * first ID document, or adds a document when the guest has none. One
      * `reservation.guests_updated` entry on the reservation names the guests, with the company user as causer. All
      * or nothing. See docs/23-company-portal/01-company-portal.md#bookings.
      *
-     * @param  list<array{guest_id: int, full_name: string, phone: ?string, nationality_code: ?string, id_type: ?string, id_number: ?string}>  $guests
+     * @param  list<array{guest_id: int, full_name: string, phone: ?string, nationality_code: ?string, id_type: ?string, id_number: ?string, profile: array<string, mixed>}>  $guests
      */
     public function __invoke(User $user, CompanyUser $link, Reservation $reservation, array $guests): PortalBookingResult
     {
@@ -69,7 +70,7 @@ class UpdatePortalReservationGuests
     }
 
     /**
-     * @param  list<array{guest_id: int, full_name: string, phone: ?string, nationality_code: ?string, id_type: ?string, id_number: ?string}>  $guests
+     * @param  list<array{guest_id: int, full_name: string, phone: ?string, nationality_code: ?string, id_type: ?string, id_number: ?string, profile: array<string, mixed>}>  $guests
      *
      * @throws DomainException when a guest profile is closed (merged or anonymized), so the transaction rolls back
      */
@@ -78,7 +79,15 @@ class UpdatePortalReservationGuests
         foreach ($guests as $row) {
             $guest = Guest::query()->where('property_id', $reservation->property_id)->findOrFail($row['guest_id']);
 
-            if (! ($this->updateGuest)($user, $guest, ['full_name' => $row['full_name'], 'phone' => $row['phone'], ...($row['nationality_code'] === null ? [] : ['nationality_code' => $row['nationality_code']])]) || ! $this->saveId($user, $guest, $row)) {
+            $attributes = [
+                ...$row['profile'],
+                'full_name' => $row['full_name'],
+                'phone' => $row['phone'],
+                ...($row['nationality_code'] === null ? [] : ['nationality_code' => $row['nationality_code']]),
+            ];
+            $tags = array_values($guest->tags()->pluck('name')->all());
+
+            if (! ($this->updateGuest)($user, $guest, $attributes, $tags) || ! $this->saveId($user, $guest, $row)) {
                 throw new DomainException('The guest profile is closed.');
             }
         }

@@ -99,8 +99,6 @@
             <div class="small muted gap-8">{{ $document->amountInWords }}</div>
         @endif
 
-        @if ($document->paymentDetails !== null)
-            <div class="small gap-8"><span class="muted">{{ __('Payment details') }}:</span> {{ $document->paymentDetails }}</div>
-        @endif
+        @include('pdf.partials.payment-details', ['bankAccounts' => $document->bankAccounts, 'notes' => $document->paymentDetails])
     @endif
 @endsection

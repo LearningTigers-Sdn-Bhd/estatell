@@ -13,15 +13,17 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * A payment proof an agent uploads in the portal, for a booking (`reservation_id`) or for its city ledger account
- * (`company_id`). Staff accept it, which records the payment, or reject it. The file is the `file` media item on the private media disk.
+ * (`company_id`), optionally for one invoice (`ar_invoice_id`) of an invoiced booking. Staff accept it, which records the payment, or reject it. The file is the `file` media item on the private media disk.
  *
  * @property int $id
  * @property int $property_id
  * @property int|null $reservation_id
  * @property int|null $company_id
+ * @property int|null $ar_invoice_id
  * @property int $uploaded_by
  * @property string $amount
  * @property string|null $reference
+ * @property int|null $bank_account_id
  * @property PaymentProofStatus $status
  * @property string|null $reject_reason
  * @property int|null $reviewed_by
@@ -31,7 +33,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['amount', 'reference'])]
+#[Fillable(['amount', 'reference', 'bank_account_id'])]
 class PaymentProof extends Model implements HasMedia
 {
     use InteractsWithMedia;
@@ -71,6 +73,12 @@ class PaymentProof extends Model implements HasMedia
         return $this->belongsTo(Company::class);
     }
 
+    /** @return BelongsTo<ArInvoice, $this> */
+    public function arInvoice(): BelongsTo
+    {
+        return $this->belongsTo(ArInvoice::class);
+    }
+
     /** @return BelongsTo<ArPayment, $this> */
     public function arPayment(): BelongsTo
     {
@@ -81,6 +89,12 @@ class PaymentProof extends Model implements HasMedia
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /** @return BelongsTo<PropertyBankAccount, $this> */
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(PropertyBankAccount::class, 'bank_account_id');
     }
 
     /** @return BelongsTo<Payment, $this> */

@@ -198,6 +198,9 @@ type Props = {
     currency: App.Data.Property.CurrencyData | null;
     canOverrideRestrictions: boolean;
     canManageGuests: boolean;
+    /** Whether a new guest's ID may be typed (`guests.manage` and `guests.view-documents`). */
+    canAddIdentity: boolean;
+    identityDocumentTypes: EnumOption[];
     /** Whether the user may take a payment (`payment.record`): it shows the walk-in Payment section. */
     canRecordPayment: boolean;
     /** Walk-in only: whether the user may check a guest out (`front-desk.check-out`), which allows Already checked out on a day use. */
@@ -272,6 +275,8 @@ export default function ReservationCreate({
     currency,
     canOverrideRestrictions,
     canManageGuests,
+    canAddIdentity,
+    identityDocumentTypes,
     canRecordPayment,
     canCheckOut,
     canCheckInWithoutCard,
@@ -2085,6 +2090,10 @@ export default function ReservationCreate({
                                             guests={data.guests}
                                             units={unitChoices}
                                             canManageGuests={canManageGuests}
+                                            canAddIdentity={canAddIdentity}
+                                            identityDocumentTypes={
+                                                identityDocumentTypes
+                                            }
                                             countries={countries}
                                             defaultNationalityCode={
                                                 defaultNationalityCode

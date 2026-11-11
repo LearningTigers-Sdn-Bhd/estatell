@@ -52,7 +52,8 @@ It is not a tax invoice. The tax invoice of a stay is the [folio invoice](../13-
 │ Free cancellation until 2 days before arrival. After that, one       │
 │ night is charged.                                                    │
 │ Payment details                                                      │
-│ Maybank 5141 2233 4455 · Sandbay Resort Sdn Bhd                      │
+│ Maybank · Sandbay Resort Sdn Bhd · 5141 2233 4455 · MBBEMYKL         │
+│ DuitNow QR at the front desk                                         │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -116,7 +117,7 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 ### Footer blocks
 
 - **Cancellation policy**: the `CANCEL` and `NO_SHOW` [room revenue policy](../06-catalogues/06-room-revenue.md#policies) texts in `property_settings.default_locale` (`text_ms` for Malay, else `text_en`; an empty Malay text falls back to English). Left out when the switch is off or both texts are empty.
-- **Payment details**: the `bank_details` text from the Documents tab, left out when empty.
+- **Payment details**: the available [bank accounts](../06-catalogues/07-bank-accounts.md), one per line (bank, account name, number, SWIFT when set), then the **Payment notes** text from the Documents tab, through the `pdf.partials.payment-details` partial. Left out when both are empty. `BookingSummary::for(..., forPrint: true)` reads the accounts, so the reservation page, which reads the same summary for its money, runs no extra query.
 - **Amount in words** under Balance due, when the switch is on.
 - The property `footer_text` on every page, as on every PDF.
 

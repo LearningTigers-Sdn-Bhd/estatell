@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { FileText, Printer } from 'lucide-react';
 import { useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
@@ -102,6 +102,7 @@ export function PortalInvoicesTable({
                                 size: 'sm',
                             })}
                         >
+                            <Printer data-icon="inline-start" />
                             PDF
                         </a>
                     ),

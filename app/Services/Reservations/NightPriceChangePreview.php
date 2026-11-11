@@ -135,7 +135,7 @@ class NightPriceChangePreview
 
             if ($isCharged) {
                 foreach ($quote->charges as $charge) {
-                    $folio = $this->folioRouter->targetFor($unit, $charge->code);
+                    $folio = $this->folioRouter->targetFor($unit, $charge->code, $charge->follows);
 
                     if ($folio !== null && $folio->status !== FolioStatus::Open) {
                         return NightPricePlan::refused((string) $this->folioPostability->refusalFor($folio));

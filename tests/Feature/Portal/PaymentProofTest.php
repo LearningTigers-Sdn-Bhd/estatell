@@ -1,19 +1,25 @@
 <?php
 
 use App\Data\Reservations\PaymentScheduleData;
+use App\Enums\ArInvoiceStatus;
 use App\Enums\FolioStatus;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentProofStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
+use App\Models\ArAllocation;
+use App\Models\ArInvoice;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\PaymentProof;
+use App\Models\PropertyBankAccount;
 use App\Models\Reservation;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Notifications\PaymentSlipReceived;
 use App\Services\CityLedger\StatementBuilder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -50,7 +56,9 @@ function proofUpload(array $setup, Reservation $reservation, User $user, array $
 test('an agent sends a payment proof on its booking, and the schedule shows it as received', function () {
     [$setup, $reservation] = proofBooking();
 
-    proofUpload($setup, $reservation, $setup['portalUser'])->assertSessionHasNoErrors();
+    proofUpload($setup, $reservation, $setup['portalUser'])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('portal.bookings.payments', ['property' => $setup['property'], 'reservation' => $reservation->id]));
 
     $proof = PaymentProof::query()->sole();
     expect($proof->status)->toBe(PaymentProofStatus::Submitted)
@@ -59,7 +67,7 @@ test('an agent sends a payment proof on its booking, and the schedule shows it a
         ->and($proof->getFirstMedia(PaymentProof::FILE))->not->toBeNull()
         ->and(Activity::query()->where('event', 'payment_proof.uploaded')->count())->toBe(1);
 
-    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', ['property' => $setup['property'], 'reservation' => $reservation->id]))
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', ['property' => $setup['property'], 'reservation' => $reservation->id]))
         ->assertInertia(fn (Assert $page) => $page->where('paymentSchedule.stages.0.status', 'proof')->where('paymentProofs.0.reference', 'MBB-778812'));
 });
 
@@ -100,8 +108,35 @@ test('staff accept a proof, which records the payment with its reference, once',
         ->and($payment->amount)->toBe('200.00')
         ->and($payment->reference)->toBe('MBB-778812');
 
-    $this->get(route('reservations.show', [$setup['property']->code, $reservation]))
-        ->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.status', 'accepted')->where('paymentSchedule.stages.0.status', 'paid'));
+    $this->get(route('reservations.folio', [$setup['property']->code, $reservation]))
+        ->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.status', 'accepted')->where('proofsWaiting', 0)->where('paymentSchedule.stages.0.status', 'paid'));
+});
+
+test('staff see the proofs on the Folio tab, and only how many wait on the other tabs', function () {
+    [$setup, $reservation] = proofBooking();
+    proofUpload($setup, $reservation, $setup['portalUser']);
+
+    $this->actingAs($setup['user'])->get(route('reservations.show', [$setup['property']->code, $reservation]))
+        ->assertInertia(fn (Assert $page) => $page->where('proofsWaiting', 1)->where('paymentProofs', [])->where('proofPaymentMethods', []));
+    $this->get(route('reservations.folio', [$setup['property']->code, $reservation]))
+        ->assertInertia(fn (Assert $page) => $page->where('proofsWaiting', 1)->where('paymentProofs.0.reference', 'MBB-778812'));
+});
+
+test('a proof is recorded as a bank transfer: only those methods are offered and accepted', function () {
+    [$setup, $reservation] = proofBooking();
+    proofUpload($setup, $reservation, $setup['portalUser']);
+    $proof = PaymentProof::query()->sole();
+    $cash = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::Cash]);
+    $transfer = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::BankTransfer, 'requires_reference' => false]);
+
+    $this->actingAs($setup['user'])->get(route('reservations.folio', [$setup['property']->code, $reservation]))
+        ->assertInertia(fn (Assert $page) => $page->where('proofPaymentMethods', [['value' => (string) $transfer->id, 'label' => $transfer->name]]));
+
+    $url = route('reservations.payment-proofs.accept', [$setup['property']->code, $reservation, $proof]);
+    $this->post($url, ['payment_method_id' => $cash->id, 'amount' => '200.00'])->assertSessionHasErrors('payment_method_id');
+    $this->post($url, ['payment_method_id' => $transfer->id, 'amount' => '200.00'])->assertSessionHasNoErrors();
+
+    expect(Payment::query()->sole()->payment_method_id)->toBe($transfer->id);
 });
 
 test('staff reject a proof with a reason the agent sees, and need payment.record', function () {
@@ -118,7 +153,7 @@ test('staff reject a proof with a reason the agent sees, and need payment.record
         ->and($proof->reject_reason)->toBe('Not in our account yet')
         ->and(Payment::query()->count())->toBe(0);
 
-    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', ['property' => $setup['property'], 'reservation' => $reservation->id]))
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', ['property' => $setup['property'], 'reservation' => $reservation->id]))
         ->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.rejectReason', 'Not in our account yet')->where('paymentSchedule.stages.0.status', 'due'));
 });
 
@@ -155,4 +190,137 @@ test('a proof is refused once the stay ended and the company folio is closed', f
     proofUpload($setup, $reservation, $setup['portalUser'])->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'This booking is closed. Contact the property.']);
 
     expect(PaymentProof::query()->count())->toBe(0);
+});
+
+/**
+ * @param  array<string, mixed>  $setup
+ */
+function proofPaymentsTab(array $setup, Reservation $reservation): TestResponse
+{
+    return test()->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', ['property' => $setup['property'], 'reservation' => $reservation->id]));
+}
+
+test('an agent without a schedule sees how to pay and sends a proof naming the account it paid into', function () {
+    Storage::fake('local');
+    $setup = portalBookingSetup();
+    TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $setup['property']->id]);
+    $setup['company']->update(['direct_bill_enabled' => false, 'payment_schedule_enabled' => false]);
+    $reservation = portalMakeBooking($setup, ['expected_total' => '200.00'])->refresh();
+    $setup['property']->update(['contact_phone' => '+60 88 123 456']);
+    $maybank = PropertyBankAccount::factory()->for($setup['property'])->create(['bank_name' => 'Maybank', 'account_number' => '5123 4567 8901', 'position' => 1]);
+    $cimb = PropertyBankAccount::factory()->for($setup['property'])->create(['bank_name' => 'CIMB Bank', 'position' => 2]);
+    PropertyBankAccount::factory()->for($setup['property'])->inactive()->create();
+
+    $total = proofPaymentsTab($setup, $reservation)->viewData('page')['props']['agentBill']['agentTotal'];
+
+    expect((float) $total)->toBeGreaterThan(0);
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page
+        ->where('paymentSchedule', null)
+        ->where('howToPay.billedLater', false)
+        ->where('howToPay.canSendProof', true)
+        ->where('howToPay.paid', '0.00')
+        ->where('howToPay.leftToPay', $total)
+        ->where('howToPay.bankAccounts', fn ($accounts) => collect($accounts)->pluck('id')->all() === [$maybank->id, $cimb->id])
+        ->where('howToPay.contactPhone', '+60 88 123 456'));
+
+    proofUpload($setup, $reservation, $setup['portalUser'], ['bank_account_id' => $maybank->id])->assertSessionHasNoErrors();
+
+    expect(PaymentProof::query()->sole()->bank_account_id)->toBe($maybank->id);
+
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.paidInto', 'Maybank · 5123 4567 8901'));
+    $this->actingAs($setup['user'])->get(route('reservations.folio', [$setup['property']->code, $reservation]))
+        ->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.paidInto', 'Maybank · 5123 4567 8901'));
+});
+
+test('Paid into is needed with two accounts, filled in with one, and must be an available account of this property', function () {
+    [$setup, $reservation] = proofBooking();
+    $first = PropertyBankAccount::factory()->for($setup['property'])->create();
+    $off = PropertyBankAccount::factory()->for($setup['property'])->inactive()->create();
+    $foreign = PropertyBankAccount::factory()->create();
+
+    proofUpload($setup, $reservation, $setup['portalUser'])->assertSessionHasNoErrors();
+    expect(PaymentProof::query()->sole()->bank_account_id)->toBe($first->id);
+
+    PropertyBankAccount::factory()->for($setup['property'])->create();
+
+    proofUpload($setup, $reservation, $setup['portalUser'])->assertSessionHasErrors(['bank_account_id' => 'Choose the account you paid into.']);
+    proofUpload($setup, $reservation, $setup['portalUser'], ['bank_account_id' => $off->id])->assertSessionHasErrors('bank_account_id');
+    proofUpload($setup, $reservation, $setup['portalUser'], ['bank_account_id' => $foreign->id])->assertSessionHasErrors('bank_account_id');
+
+    expect(PaymentProof::query()->count())->toBe(1);
+});
+
+test('a proof without any bank account names none', function () {
+    [$setup, $reservation] = proofBooking();
+
+    proofUpload($setup, $reservation, $setup['portalUser'])->assertSessionHasNoErrors();
+
+    expect(PaymentProof::query()->sole()->bank_account_id)->toBeNull();
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page->where('howToPay.bankAccounts', [])->where('paymentProofs.0.paidInto', null));
+});
+
+test('a direct-billing company pays its booking before it is invoiced, as a proof on the booking', function () {
+    [$setup, $reservation] = proofBooking();
+    $setup['company']->update(['direct_bill_enabled' => true]);
+
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page->where('howToPay.billedLater', true)->where('howToPay.canSendProof', true)->where('howToPay.invoiceNumber', null));
+    proofUpload($setup, $reservation, $setup['portalUser'])->assertSessionHasNoErrors();
+
+    $proof = PaymentProof::query()->sole();
+    expect($proof->reservation_id)->toBe($reservation->id)
+        ->and($proof->company_id)->toBeNull()
+        ->and($proof->ar_invoice_id)->toBeNull();
+});
+
+test('once the booking is invoiced its proof is a company slip for that invoice, and accepting it fills that invoice first', function () {
+    Notification::fake();
+    [$setup, $reservation] = proofBooking();
+    $setup['company']->update(['direct_bill_enabled' => true]);
+    $reservation->forceFill(['status' => ReservationStatus::Completed])->save();
+    $folio = $reservation->folios()->whereNotNull('payer_company_id')->firstOrFail();
+    $folio->forceFill(['status' => FolioStatus::Closed, 'closed_at' => now(), 'closed_by' => $setup['user']->id])->save();
+    $older = ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'amount' => '300.00', 'status' => ArInvoiceStatus::Open, 'issued_on' => '2026-09-01', 'due_on' => '2026-09-30']);
+    $invoice = ArInvoice::factory()->create(['property_id' => $setup['property']->id, 'company_id' => $setup['company']->id, 'folio_id' => $folio->id, 'amount' => '200.00', 'status' => ArInvoiceStatus::Open, 'issued_on' => '2026-10-14', 'due_on' => '2026-11-13']);
+
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page
+        ->where('howToPay.canSendProof', true)
+        ->where('howToPay.leftToPay', '200.00')
+        ->where('howToPay.invoiceNumber', $invoice->number)
+        ->where('howToPay.invoiceDueOn', '2026-11-13'));
+
+    proofUpload($setup, $reservation, $setup['portalUser'], ['amount' => '250.00'])->assertSessionHasNoErrors();
+
+    $slip = PaymentProof::query()->sole();
+    expect($slip->reservation_id)->toBeNull()
+        ->and($slip->company_id)->toBe($setup['company']->id)
+        ->and($slip->ar_invoice_id)->toBe($invoice->id);
+    Notification::assertSentTo($setup['user'], PaymentSlipReceived::class);
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.id', $slip->id)->where('paymentProofs.0.invoiceNumber', $invoice->number));
+
+    $method = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::BankTransfer, 'requires_reference' => false]);
+    $this->actingAs($setup['user'])
+        ->post(route('finance.city-ledger.companies.payment-slips.accept', [$setup['property']->code, $setup['company'], $slip]), ['payment_method_id' => $method->id, 'amount' => '250.00'])
+        ->assertSessionHasNoErrors();
+
+    expect(ArAllocation::query()->where('ar_invoice_id', $invoice->id)->sum('amount'))->toEqual('200.00')
+        ->and(ArAllocation::query()->where('ar_invoice_id', $older->id)->sum('amount'))->toEqual('50.00')
+        ->and($invoice->refresh()->status)->toBe(ArInvoiceStatus::Settled);
+});
+
+test('the form is hidden once nothing is left to pay, and for a suspended company', function () {
+    [$setup, $reservation] = proofBooking();
+    proofUpload($setup, $reservation, $setup['portalUser']);
+    $method = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::BankTransfer, 'requires_reference' => false]);
+    $total = proofPaymentsTab($setup, $reservation)->viewData('page')['props']['agentBill']['agentTotal'];
+
+    $this->actingAs($setup['user'])
+        ->post(route('reservations.payment-proofs.accept', [$setup['property']->code, $reservation, PaymentProof::query()->sole()]), ['payment_method_id' => $method->id, 'amount' => $total])
+        ->assertSessionHasNoErrors();
+
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page->where('howToPay.leftToPay', '0.00')->where('howToPay.paid', $total)->where('howToPay.canSendProof', false));
+
+    [$setup, $reservation] = proofBooking();
+    $setup['company']->update(['status' => 'suspended']);
+
+    proofPaymentsTab($setup, $reservation)->assertInertia(fn (Assert $page) => $page->where('howToPay.canSendProof', false));
 });

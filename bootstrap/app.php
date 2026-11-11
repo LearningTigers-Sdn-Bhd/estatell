@@ -16,6 +16,7 @@ use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
+use App\Http\Middleware\EnsurePayoutsAreShown;
 use App\Http\Middleware\EnsurePortalAccess;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
@@ -70,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
             'kiosks' => EnsureKiosksAreActive::class,
+            'payouts' => EnsurePayoutsAreShown::class,
             'booking-engine' => EnsureBookingEngineIsActive::class,
             'concierge' => EnsureConciergeIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,

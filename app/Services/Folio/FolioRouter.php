@@ -17,11 +17,13 @@ use Illuminate\Support\Collection;
  * Chooses the folio a charge lands on. The most specific matching rule of the reservation wins: a rule with the
  * code, then a rule with the category, then a rule for all categories. At the same level a rule for the posting unit
  * beats a rule for all units. With no rule the unit's own folio is chosen, or null before the unit has one
- * (`PostCharge` then creates it). It follows one rule and stops: no chains. See docs/13-folio/03-routing.md.
+ * (`PostCharge` then creates it). It follows one rule and stops: no chains. An inclusion passes `$follows`, the code of
+ * its room or day use charge: with no rule of its own it goes where that charge goes, so a Master folio that pays the
+ * room also pays the package's inclusions. See docs/13-folio/03-routing.md.
  */
 class FolioRouter
 {
-    public function targetFor(ReservationUnit $unit, TransactionCode $code): ?Folio
+    public function targetFor(ReservationUnit $unit, TransactionCode $code, ?TransactionCode $follows = null): ?Folio
     {
         $rule = FolioRoutingRule::query()
             ->where('reservation_id', $unit->reservation_id)
@@ -32,6 +34,10 @@ class FolioRouter
             ->get()
             ->sortByDesc(fn (FolioRoutingRule $rule): int => $this->specificity($rule))
             ->first();
+
+        if ($rule === null && $follows !== null) {
+            return $this->targetFor($unit, $follows);
+        }
 
         return $rule->targetFolio ?? $this->unitFolio($unit);
     }
@@ -69,7 +75,7 @@ class FolioRouter
      * preview (Move charges): a proposed rule replaces a saved Manual rule with the same selectors, as the Action will.
      *
      * @param  list<FolioRoutingRule>  $proposedRules
-     * @return Closure(ReservationUnit, TransactionCode): ?int
+     * @return Closure(ReservationUnit, TransactionCode, ?TransactionCode=): ?int
      */
     public function resolverFor(Reservation $reservation, array $proposedRules = []): Closure
     {
@@ -82,7 +88,7 @@ class FolioRouter
             ->pluck('id', 'reservation_unit_id')
             ->all();
 
-        return fn (ReservationUnit $unit, TransactionCode $code): ?int => $this->pick($rules, $unit, $code)->target_folio_id
+        return fn (ReservationUnit $unit, TransactionCode $code, ?TransactionCode $follows = null): ?int => $this->pick($rules, $unit, $code, $follows)->target_folio_id
             ?? ($unitFolioIds[$unit->id] ?? null);
     }
 
@@ -91,13 +97,13 @@ class FolioRouter
      * Move charges preview names it in its notes. Same inputs as `resolverFor()`.
      *
      * @param  list<FolioRoutingRule>  $proposedRules
-     * @return Closure(ReservationUnit, TransactionCode): ?FolioRoutingRule
+     * @return Closure(ReservationUnit, TransactionCode, ?TransactionCode=): ?FolioRoutingRule
      */
     public function pickerFor(Reservation $reservation, array $proposedRules = []): Closure
     {
         $rules = $this->rulesWith($reservation, $proposedRules);
 
-        return fn (ReservationUnit $unit, TransactionCode $code): ?FolioRoutingRule => $this->pick($rules, $unit, $code);
+        return fn (ReservationUnit $unit, TransactionCode $code, ?TransactionCode $follows = null): ?FolioRoutingRule => $this->pick($rules, $unit, $code, $follows);
     }
 
     /**
@@ -126,16 +132,20 @@ class FolioRouter
     }
 
     /**
+     * The winning rule for the code, or, when none matches and `$follows` is given, the winning rule for that code.
+     *
      * @param  Collection<int, FolioRoutingRule>  $rules
      */
-    private function pick(Collection $rules, ReservationUnit $unit, TransactionCode $code): ?FolioRoutingRule
+    private function pick(Collection $rules, ReservationUnit $unit, TransactionCode $code, ?TransactionCode $follows = null): ?FolioRoutingRule
     {
-        return $rules
+        $rule = $rules
             ->filter(fn (FolioRoutingRule $rule): bool => ($rule->reservation_unit_id === null || $rule->reservation_unit_id === $unit->id)
                 && ($rule->transaction_code_id === null || $rule->transaction_code_id === $code->id)
                 && ($rule->category === null || $rule->category === $code->category))
             ->sortByDesc(fn (FolioRoutingRule $rule): int => $this->specificity($rule))
             ->first();
+
+        return $rule === null && $follows !== null ? $this->pick($rules, $unit, $follows) : $rule;
     }
 
     /**

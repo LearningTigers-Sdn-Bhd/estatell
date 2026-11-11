@@ -61,6 +61,14 @@ type PersonalProps = Props & {
     columns?: 2 | 3;
     /** A field put first in the same grid, for example the Email in the booking form. */
     leading?: ReactNode;
+    /** A field put last in the same grid, for example the ID in the portal booking form. */
+    trailing?: ReactNode;
+    /**
+     * `nationality-first` (default): nationality, date of birth, gender, language. `contact-first`: date of birth,
+     * gender, language, nationality, so with the leading Email and a trailing ID the rows read Email, Date of birth,
+     * Gender, then Preferred language, Nationality, ID.
+     */
+    order?: 'nationality-first' | 'contact-first';
 };
 
 function useParts({
@@ -175,6 +183,14 @@ function SelectField({
 export function GuestPersonalFields(props: PersonalProps) {
     const parts = useParts(props);
     const today = new Date().toLocaleDateString('en-CA');
+    const nationality = (
+        <CountryField
+            field="nationality_code"
+            label="Nationality"
+            countries={props.countries}
+            parts={parts}
+        />
+    );
 
     return (
         <FieldGroup>
@@ -185,12 +201,7 @@ export function GuestPersonalFields(props: PersonalProps) {
                 )}
             >
                 {props.leading}
-                <CountryField
-                    field="nationality_code"
-                    label="Nationality"
-                    countries={props.countries}
-                    parts={parts}
-                />
+                {props.order !== 'contact-first' && nationality}
                 <Field data-invalid={!!parts.error('date_of_birth')}>
                     <FieldLabel htmlFor={parts.id('date_of_birth')}>
                         Date of birth
@@ -223,6 +234,8 @@ export function GuestPersonalFields(props: PersonalProps) {
                     placeholder="Select language"
                     parts={parts}
                 />
+                {props.order === 'contact-first' && nationality}
+                {props.trailing}
             </div>
         </FieldGroup>
     );

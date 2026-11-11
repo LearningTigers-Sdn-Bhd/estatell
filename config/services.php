@@ -30,6 +30,8 @@ return [
         'key_id' => env('CURLEC_KEY_ID'),
         'key_secret' => env('CURLEC_KEY_SECRET'),
         'webhook_secret' => env('CURLEC_WEBHOOK_SECRET'),
+        // Curlec's charge per normal refund, which the property pays. See docs/30-commission-fees/03-ledger.md#refund-cost.
+        'refund_fee' => env('CURLEC_REFUND_FEE', '0.50'),
     ],
 
     'channex' => [

@@ -52,6 +52,20 @@ Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md).
 - [ ] In the `estatell-docs` repo: write the booking API developer guide — the steps, the demo address, the test token, the test payment details and the page security rules. The **Full guide** button on the API tab links to it. Needs: open the booking engine API on the demo. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode), [Page security](29-booking-engine/09-api-only-mode.md#page-security).
 - [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md), [Local development](29-booking-engine/10-local-dev-microsite.md).
 
+### 30 Commission fees
+
+Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md). Must be built before the booking engine collects real money.
+
+- [x] `docs(commissions): add the commission fees spec and checklist items` — `docs/30-commission-fees/`.
+- [x] `feat(commissions): add commission services, rates and the ledger` — `CommissionService`, `CommissionEntryType`, `CommissionRule`, `commission_rates`, `commission_entries`, and the Commission rates section on admin settings. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md), [Platform pages](30-commission-fees/05-platform-pages.md#commission-rates).
+- [x] `feat(commissions): record booking engine money and commission` — `collected`, `refunded` and `refund_fee` entries from Curlec results, and `BookingEngineCommission` when a booking ends. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md#entry-types).
+- [x] `feat(commissions): record channel manager commission` — `ChannelManagerCommission` on the folio's room revenue lines before tax, including cancellation and no-show fees. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md).
+- [x] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the entry lock. The PDF moved to the next item. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
+- [x] `feat(commissions): approve, pay and print payout vouchers` — the Vouchers list, the voucher page, adjustments, approve, mark as paid, the voucher PDF and the Commissions sidebar link. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#voucher-page).
+- [x] `feat(commissions): add the platform commissions dashboard` — the Bookings tab at `/admin/commissions` with Total Cash Liability, Immediate Payable and Owed to Estatell, the period, property and service filters, and the CSV export. Needs: approve, pay and print payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#bookings-tab).
+- [x] `feat(commissions): start and stop commission per property` — `property_commission_periods`, the charge date (check-out date), the Commissions tab on the admin property page, and the platform start date removed. Needs: the platform commissions dashboard. Docs: [Charging periods](30-commission-fees/02-commission-rules.md#charging-periods), [Platform pages](30-commission-fees/05-platform-pages.md#property-commissions-tab).
+- [x] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
+
 ### 18 Front desk
 
 Build in this order. The Stay View is two sidebar items under Overview: **Timeline View** and **Room View**. Docs: [Stay View](18-front-desk/03-stay-view.md).
@@ -124,6 +138,16 @@ Branch `feat/group-unit-actions`. Planned on 2026-11-10: staff could change the 
 - [x] `feat(reservations): change the price of several units` — `ChangeGroupNightPrice`, `GroupNightPriceResult`, `GroupNightPricePreview`, `ChangeGroupNightPriceRequest`, `ReservationRefusals::groupNightPriceErrors()`, the two `reservations.night-price` routes on `ReservationNightPriceController`, the two-column Dialog with one line per unit, and its Units select. Feedback: the tick boxes and bulk bar are gone; Change price sits in the All view toolbar left of the hide summary button (`SummaryToggle`, now on the Units tab too), and the Units select is shared with the group add-on as `MultiSelectWithAll`, which also replaces the night tick boxes in the one-unit Change price Dialog (with placeholders). The preview panel is shared as `GroupPreviewPanel`. Needs: the All and Grouped views. Docs: [Change the price of a group](12-reservations/09-change-night-price.md#change-the-price-of-a-group).
 - [x] `feat(reservations): add an add-on to all lines on the booking form` — All lines in the Line select; each line holds a copy tagged with a client-only `shared` id, so the request does not change; a new line gets the copies; errors name the line. UI only, with `booking-lines.test.ts` cases. Docs: [Booking form](12-reservations/05-booking-form.md).
 - [x] `feat(reservations): show boat trips inline on the Units tab` — Sand Bay feedback: the Boat row is one line, "In 06:00 boat ✎ · Out 16:00 boat ✎" (`UnitBoatTripData::$short`: a scheduled boat by the time it leaves, so Boat in does not repeat the arrival time of Stay; the full summary as its tooltip; ✎ icon buttons in place of Change), and the All view shows the boat times under Stay (`ReservationUnitRowData` `boatIn` and `boatOut`, two more queries with Boats on). Pax shows adult and child icons (`PaxCount`, moved from `stay-view/` to `components/pms/`). Docs: [Boat trips](24-boats/02-boat-trips.md#reservation-page).
+
+### Agent bank transfer
+
+Branch `feat/portal-booking-tabs`. Planned on 2026-11-11 after Sand Bay asked how agents pay: the portal booking showed the bill but no bank details, and no form without a schedule. Bank transfer only; Curlec for companies is skipped for now.
+
+- [x] `docs(payments): plan bank accounts and agent bank transfer` — the bank accounts spec, How to pay, the proof form without a schedule, Paid into, and these items. Commit `03e3d3f6`.
+- [x] `feat(catalogues): add property bank accounts` — `property_bank_accounts` with its unique number and SWIFT CHECK, `CreateBankAccount`, `UpdateBankAccount`, `ReorderBankAccounts`, `BankAccountRequest`, the `settings.bank-accounts.*` routes, the Settings › Billing setup › Bank accounts page (Available Switch, arrows, Sheet) and the `banknote` nav icon. Docs: [Bank accounts](06-catalogues/07-bank-accounts.md).
+- [x] `feat(printing): print bank accounts on documents` — the available accounts then Payment notes on the booking summary, the AR invoice and the sample PDF; Payment details renamed Payment notes, with the accounts read only and a link to Bank accounts; `BankAccountLines` and the `pdf.partials.payment-details` partial. Needs: add property bank accounts. Docs: [Documents tab](02-property/05-printing-settings.md#documents-tab).
+- [x] `feat(portal): show how to pay and take proofs without a schedule` — `PortalHowToPay` and `PortalHowToPayData`, How to pay (`BookingHowToPay`, `BankAccountList` with a copy button), the form for every company that pays per booking while Left to pay is above 0, the direct-billing refusal in the controller and its note, `payment_proofs.bank_account_id` with Paid into on proofs and slips, the accounts above the Statements slip form, and Paid into in `PaymentProofReview` and the company Payments tab. Needs: add property bank accounts. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips).
+- [x] `feat(portal): pay a booking or the account from a Pay dialog` — Sand Bay feedback on 11 Nov: one two-column Pay dialog (`PortalPayDialog`) on the booking and on Statements in place of the inline forms; every company can pay a booking, direct billing included; an invoiced booking's proof is a company slip with `payment_proofs.ar_invoice_id`, and accepting it fills that invoice first; the Payments tab without its card border, with Left to pay, Paid and the bill as a table; Statements with Balance, Overdue and Credit tiles and Slips sent; staff review proofs in a table under the folio (View slip, Accept, Reject), with a Review link in the summary card. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips), [Form containers](design-system/05-form-containers.md#sizes).
 
 ## Next
 
@@ -230,7 +254,6 @@ Guest self check-in on the guest's own phone. Docs: [Concierge page](30-concierg
 
 Topics on hold. Each one needs a planning session and its docs before it gets commit items. Do not build from these lines.
 
-- [ ] **Commission fees** — BE, CM and self-check-in commissions per booking, payouts on due dates, a platform dashboard and a hotel owner page. Booking engine commission is 10%. Open: the payout cycle, the other rates, booking value by source, negative balances. It reads what the booking engine records, and the property pays Curlec's fees on a refund.
 - [ ] **new-wastays** — the OTA app. Its API endpoints come with the booking engine. Open: its commission, its rates and guest accounts.
 - [ ] **AI concierge** — can be turned on only when the concierge page is on. Admins hold the API key for now. After the concierge page.
 - [ ] **AroundThat programme** — recommends places from the AroundThat API. Later.
@@ -495,6 +518,13 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `15689a3`  | fix(front-desk): hide early check-out for a unit that arrived today      |
 | `b86afbd`  | docs(front-desk): plan undo check-in and undo check-out                  |
 | `f2a9eb4`  | feat(front-desk): undo a check-in made today                             |
+| `acbdaf52` | docs(commissions): add the commission fees spec and checklist items      |
+| `5cebd25f` | feat(commissions): add commission services, rates and the ledger         |
+| `5aaaa9ee` | feat(commissions): record booking engine money and commission            |
+| `ff6a8e5f` | feat(commissions): record channel manager commission                     |
+| `86feac8e` | feat(commissions): generate payout vouchers on the 16th                  |
+| `e5c2c1b4` | feat(commissions): approve, pay and print payout vouchers                |
+| `8d38b2d3` | feat(commissions): add the platform commissions dashboard                |
 
 Smaller fixes and reverts are in `git log`.
 

@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * One AR payment of the Payments tab. `canAllocate` and `canVoid` already include the permission and the state, so the
- * page never works them out.
+ * page never works them out. `slipUrl` opens the payment slip it was accepted from, null for a payment recorded by hand.
  */
 class ArPaymentRowData extends Data
 {
@@ -25,13 +25,14 @@ class ArPaymentRowData extends Data
         public bool $isVoided,
         public bool $canAllocate,
         public bool $canVoid,
+        public ?string $slipUrl = null,
     ) {}
 
     /**
      * Expects `paymentMethod` to be loaded. `$unallocated` comes from the list query and `$hasAllocations` says
      * whether the payment has an active allocation.
      */
-    public static function fromModel(ArPayment $payment, string $unallocated, bool $hasAllocations, bool $mayAllocate, bool $mayVoid): self
+    public static function fromModel(ArPayment $payment, string $unallocated, bool $hasAllocations, bool $mayAllocate, bool $mayVoid, ?string $slipUrl = null): self
     {
         $isVoided = $payment->voided_at !== null;
 
@@ -48,6 +49,7 @@ class ArPaymentRowData extends Data
             isVoided: $isVoided,
             canAllocate: $mayAllocate && ! $isVoided && BigDecimal::of($unallocated)->isPositive(),
             canVoid: $mayVoid && ! $isVoided && ! $hasAllocations,
+            slipUrl: $slipUrl,
         );
     }
 }

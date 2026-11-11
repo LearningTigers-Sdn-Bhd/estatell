@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\FrontDesk\CancelUnits;
+use App\Enums\CompanyStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
@@ -9,6 +10,7 @@ use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Tag;
 use App\Notifications\PortalBookingCancelled;
 use App\Notifications\PortalCancellationRequested;
 use Illuminate\Database\Eloquent\Model;
@@ -115,11 +117,13 @@ test('the detail shows rooms, plans, guests, add-ons, total and references and n
 
     $response->assertInertia(fn (Assert $page) => $page
         ->component('portal/bookings/show')
+        ->where('tab', 'units')
         ->where('booking.reference', $reservation->reference)
         ->where('booking.externalReference', 'BT-9')
         ->where('booking.total', '210.00')
         ->where('booking.units.0.ratePlan', $setup['plan']->name)
         ->where('booking.units.0.guestNames', ['Guest 1'])
+        ->where('booking.units.0.guestIds', [$reservation->booker_guest_id])
         ->where('booking.units.0.addOns.0.name', 'Cleaning fee')
         ->where('booking.units.0.nights', 2)
         ->where('booking.guests.0.fullName', 'Guest 1')
@@ -127,6 +131,40 @@ test('the detail shows rooms, plans, guests, add-ons, total and references and n
         ->where('companySuspended', false));
 
     expect($response->getContent())->not->toContain('staff only');
+});
+
+test('each tab sends the booking and only its own data', function () {
+    $setup = portalBookingSetup();
+    $reservation = portalMakeBooking($setup);
+    $params = ['property' => $setup['property'], 'reservation' => $reservation->id];
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', $params))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('tab', 'units')
+            ->where('booking.id', $reservation->id)
+            ->has('agentBill')
+            ->has('boatSetup')
+            ->missing('countries')
+            ->missing('paymentProofs'));
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.guests', $params))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('portal/bookings/show')
+            ->where('tab', 'guests')
+            ->where('booking.id', $reservation->id)
+            ->has('countries')
+            ->has('idTypes')
+            ->missing('boatSetup')
+            ->missing('paymentProofs'));
+
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', $params))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('portal/bookings/show')
+            ->where('tab', 'payments')
+            ->where('booking.id', $reservation->id)
+            ->has('paymentProofs', 0)
+            ->missing('boatSetup')
+            ->missing('countries'));
 });
 
 test('another company\'s or property\'s booking is a 404 on every page', function () {
@@ -140,6 +178,8 @@ test('another company\'s or property\'s booking is a 404 on every page', functio
         $params = ['property' => $setup['property'], 'reservation' => $reservation->id];
 
         $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', $params))->assertNotFound();
+        $this->actingAs($setup['portalUser'])->get(route('portal.bookings.guests', $params))->assertNotFound();
+        $this->actingAs($setup['portalUser'])->get(route('portal.bookings.payments', $params))->assertNotFound();
         $this->actingAs($setup['portalUser'])->put(route('portal.bookings.guests.update', $params), $guest)->assertNotFound();
         $this->actingAs($setup['portalUser'])->post(route('portal.bookings.cancel', $params))->assertNotFound();
         $this->actingAs($setup['portalUser'])->post(route('portal.bookings.cancellation-request', $params))->assertNotFound();
@@ -184,7 +224,8 @@ describe('edit guests', function () {
             ->put(route('portal.bookings.guests.update', ['property' => $setup['property'], 'reservation' => $reservation->id]), ['guests' => [
                 ['guest_id' => $guest->id, 'full_name' => 'Tan Wei Ming', 'phone' => '012 345 6789', 'id_type' => 'mykad', 'id_number' => '900101-14-1234'],
             ]])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('portal.bookings.guests', ['property' => $setup['property'], 'reservation' => $reservation->id]));
 
         $guest->refresh();
 
@@ -257,6 +298,138 @@ describe('edit guests', function () {
         'after the arrival date' => ['2026-10-21', null, false],
         'checked in' => ['2026-10-20', UnitStatus::CheckedIn, false],
     ]);
+});
+
+describe('guest profile', function () {
+    test('the email, personal details and address change, an emptied field clears and staff tags stay', function () {
+        $setup = portalBookingSetup();
+        $reservation = portalMakeBooking($setup);
+        $guest = $reservation->booker;
+        $guest->tags()->attach(Tag::factory()->for($setup['property'])->create(['name' => 'VIP']));
+        $save = fn (array $fields) => $this->actingAs($setup['portalUser'])
+            ->put(route('portal.bookings.guests.update', ['property' => $setup['property'], 'reservation' => $reservation->id]), ['guests' => [['guest_id' => $guest->id, 'full_name' => $guest->full_name, ...$fields]]])
+            ->assertSessionHasNoErrors();
+
+        $save(['email' => 'tan@example.com', 'date_of_birth' => '1990-01-01', 'gender' => 'male', 'address_line1' => '12 Jalan Ampang', 'city' => 'Kuala Lumpur', 'country_code' => 'MY']);
+        $guest->refresh();
+
+        expect($guest->email)->toBe('tan@example.com')
+            ->and($guest->date_of_birth->toDateString())->toBe('1990-01-01')
+            ->and($guest->gender->value)->toBe('male')
+            ->and($guest->address_line1)->toBe('12 Jalan Ampang')
+            ->and($guest->country_code)->toBe('MY')
+            ->and($guest->tags()->pluck('name')->all())->toBe(['VIP']);
+
+        $save(['email' => '', 'city' => '']);
+        $guest->refresh();
+
+        expect($guest->email)->toBeNull()
+            ->and($guest->city)->toBeNull()
+            ->and($guest->address_line1)->toBe('12 Jalan Ampang');
+    });
+
+    test('a bad email or a future date of birth is refused', function () {
+        $setup = portalBookingSetup();
+        $reservation = portalMakeBooking($setup);
+
+        $this->actingAs($setup['portalUser'])
+            ->put(route('portal.bookings.guests.update', ['property' => $setup['property'], 'reservation' => $reservation->id]), ['guests' => [
+                ['guest_id' => $reservation->booker_guest_id, 'full_name' => 'Guest 1', 'email' => 'not-an-email', 'date_of_birth' => '2030-01-01'],
+            ]])
+            ->assertSessionHasErrors(['guests.0.email', 'guests.0.date_of_birth']);
+    });
+});
+
+describe('add a sharer', function () {
+    test('a new guest joins a room with space and the Guests tab says which rooms take one', function () {
+        $setup = portalBookingSetup();
+        $reservation = portalMakeBooking($setup);
+        $unit = $reservation->units()->sole();
+        $params = ['property' => $setup['property'], 'reservation' => $reservation->id];
+
+        $this->actingAs($setup['portalUser'])->get(route('portal.bookings.guests', $params))
+            ->assertInertia(fn (Assert $page) => $page->where('booking.units.0.canAddGuest', true));
+
+        $this->actingAs($setup['portalUser'])
+            ->post(route('portal.bookings.units.guests.store', [...$params, 'unit' => $unit->id]), ['full_name' => 'Lim Mei Ling', 'phone' => '012 345 6789', 'email' => 'mei@example.com', 'id_type' => 'passport', 'id_number' => 'A1234567'])
+            ->assertSessionHasNoErrors()
+            ->assertInertiaFlash('toast.type', 'success')
+            ->assertRedirect(route('portal.bookings.guests', $params));
+
+        $sharer = $unit->guests()->with('guest.documents')->latest('id')->first()->guest;
+
+        expect($unit->guests()->count())->toBe(2)
+            ->and($sharer->full_name)->toBe('Lim Mei Ling')
+            ->and($sharer->phone)->toBe('+60123456789')
+            ->and($sharer->email)->toBe('mei@example.com')
+            ->and($sharer->documents->sole()->number)->toBe('A1234567')
+            ->and(Activity::query()->where('event', 'reservation.guest_attached')->latest('id')->first()?->causer_id)->toBe($setup['portalUser']->id);
+
+        $this->actingAs($setup['portalUser'])->get(route('portal.bookings.guests', $params))
+            ->assertInertia(fn (Assert $page) => $page->where('booking.units.0.canAddGuest', false));
+    });
+
+    test('a full room is refused and no guest is made', function () {
+        $setup = portalBookingSetup();
+        $reservation = portalMakeBooking($setup, ['lines' => [portalRoomLine($setup, ['adults' => 1])]]);
+        $unit = $reservation->units()->sole();
+        $guests = Guest::query()->count();
+
+        $this->actingAs($setup['portalUser'])
+            ->post(route('portal.bookings.units.guests.store', ['property' => $setup['property'], 'reservation' => $reservation->id, 'unit' => $unit->id]), ['full_name' => 'Lim Mei Ling'])
+            ->assertInertiaFlash('toast.type', 'error');
+
+        expect($unit->guests()->count())->toBe(1)
+            ->and(Guest::query()->count())->toBe($guests);
+    });
+
+    test('a name is required', function () {
+        $setup = portalBookingSetup();
+        $reservation = portalMakeBooking($setup);
+
+        $this->actingAs($setup['portalUser'])
+            ->post(route('portal.bookings.units.guests.store', ['property' => $setup['property'], 'reservation' => $reservation->id, 'unit' => $reservation->units()->sole()->id]), ['full_name' => ''])
+            ->assertSessionHasErrors(['full_name']);
+    });
+
+    test('another company\'s booking is a 404 and a unit of another booking is refused', function () {
+        $setup = portalBookingSetup();
+        $mine = portalMakeBooking($setup);
+        $other = Company::factory()->for($setup['property'])->create();
+        $theirs = Reservation::factory()->for($setup['property'])->company($other)->create();
+        $theirUnit = ReservationUnit::factory()->for($theirs)->create();
+
+        $this->actingAs($setup['portalUser'])
+            ->post(route('portal.bookings.units.guests.store', ['property' => $setup['property'], 'reservation' => $theirs->id, 'unit' => $theirUnit->id]), ['full_name' => 'Hijack'])
+            ->assertNotFound();
+
+        $this->actingAs($setup['portalUser'])
+            ->post(route('portal.bookings.units.guests.store', ['property' => $setup['property'], 'reservation' => $mine->id, 'unit' => $theirUnit->id]), ['full_name' => 'Hijack'])
+            ->assertInertiaFlash('toast.type', 'error');
+
+        expect(Guest::query()->where('full_name', 'Hijack')->exists())->toBeFalse();
+    });
+
+    test('a sharer is refused after check-in, after the arrival date and for a suspended company', function (string $case) {
+        $setup = portalBookingSetup();
+        $reservation = portalMakeBooking($setup);
+        $unit = $reservation->units()->sole();
+
+        match ($case) {
+            'checked in' => (function () use ($reservation): void {
+                $reservation->units()->update(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
+                $reservation->forceFill(['status' => ReservationStatus::InHouse])->save();
+            })(),
+            'after arrival' => BusinessDate::query()->update(['date' => '2026-10-21']),
+            'suspended' => $setup['company']->forceFill(['status' => CompanyStatus::Suspended])->save(),
+        };
+
+        $this->actingAs($setup['portalUser'])
+            ->post(route('portal.bookings.units.guests.store', ['property' => $setup['property'], 'reservation' => $reservation->id, 'unit' => $unit->id]), ['full_name' => 'Lim Mei Ling'])
+            ->assertInertiaFlash('toast.type', 'error');
+
+        expect($unit->guests()->count())->toBe(1);
+    })->with(['checked in', 'after arrival', 'suspended']);
 });
 
 describe('cancel and request', function () {

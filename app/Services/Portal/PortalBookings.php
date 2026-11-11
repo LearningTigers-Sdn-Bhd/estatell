@@ -18,6 +18,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Boats\BoatTripAccess;
 use App\Services\Reservations\ReservationFormOptions;
+use App\Services\Reservations\UnitCapacity;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -37,6 +38,7 @@ class PortalBookings
         private PortalBookingRules $rules,
         private ReservationFormOptions $formOptions,
         private BoatTripAccess $boatTripAccess,
+        private UnitCapacity $capacity,
     ) {}
 
     /**
@@ -79,7 +81,7 @@ class PortalBookings
         $reservation->load([
             'booker.documents:id,guest_id,type',
             'units' => fn ($units) => $units->orderBy('id'),
-            'units.roomType:id,name',
+            'units.roomType:id,name,sell_unit',
             'units.ratePlan:id,name',
             'units.nights:id,reservation_unit_id,amount',
             'units.dayUse:id,reservation_unit_id,amount',
@@ -90,13 +92,29 @@ class PortalBookings
         $businessDate = $this->rules->businessDate($property);
         $suspended = $company->status === CompanyStatus::Suspended;
         $freeUntil = $this->rules->freeUntil($reservation, $company);
+        $canEditGuests = ! $suspended && $this->rules->canEditGuests($reservation, $businessDate);
 
         return PortalBookingData::fromReservation(
             $reservation,
-            canEditGuests: ! $suspended && $this->rules->canEditGuests($reservation, $businessDate),
+            canEditGuests: $canEditGuests,
             cancelMode: $suspended ? PortalCancelMode::Closed : $this->rules->cancelMode($reservation, $company, $businessDate),
             freeUntil: $freeUntil?->toDateString(),
+            addableUnitIds: $canEditGuests ? $this->addableUnitIds($reservation) : [],
         );
+    }
+
+    /**
+     * The units that take a sharer: Confirmed, with fewer guests than `UnitCapacity` allows. `AttachGuest` checks it
+     * again on save.
+     *
+     * @return list<int>
+     */
+    private function addableUnitIds(Reservation $reservation): array
+    {
+        return array_values($reservation->units
+            ->filter(fn (ReservationUnit $unit): bool => $unit->status === UnitStatus::Confirmed && $unit->guests->count() < $this->capacity->of($unit))
+            ->map(fn (ReservationUnit $unit): int => $unit->id)
+            ->all());
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Models\ArInvoice;
 use App\Models\Folio;
+use App\Services\Catalogues\BankAccountLines;
 use App\Services\Folio\DocumentLineGroups;
 use App\Services\Folio\DocumentLines;
 use App\Services\Folio\FolioDocumentRows;
@@ -26,6 +27,7 @@ class ArInvoicePrinter
         private FolioPaymentRows $paymentRows,
         private DocumentLines $documentLines,
         private AmountInWords $amountInWords,
+        private BankAccountLines $bankAccountLines,
     ) {}
 
     public function forInvoice(ArInvoice $invoice): ArInvoiceDocument
@@ -84,6 +86,7 @@ class ArInvoicePrinter
             amountDue: $amountDue,
             amountInWords: $settings->show_amount_in_words && $base['currency'] !== null ? $this->amountInWords->for($amountDue, $base['currency']) : null,
             paymentDetails: filled($settings->bank_details) ? $settings->bank_details : null,
+            bankAccounts: $this->bankAccountLines->for($invoice->property),
         );
     }
 
