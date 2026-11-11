@@ -13,7 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * One line of the commission ledger. Never updated or deleted: a correction is a reversal entry.
+ * One line of the commission ledger. Never updated or deleted: a correction is a reversal entry. The one change a
+ * database trigger allows is filling `payout_voucher_id` once, when the entry goes into a voucher.
  * The amount is signed from the property's side (+ owed to the property, − owed to Estatell).
  * See docs/30-commission-fees/03-ledger.md.
  *
@@ -28,13 +29,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $due_date
  * @property int|null $gateway_payment_id
  * @property int|null $gateway_refund_id
+ * @property int|null $payout_voucher_id
  * @property int|null $reverses_entry_id
  * @property string|null $idempotency_key
  * @property string|null $reason
  * @property int|null $created_by
  * @property CarbonImmutable|null $created_at
  */
-#[Fillable(['property_id', 'reservation_id', 'type', 'service', 'base_amount', 'rate', 'amount', 'due_date', 'gateway_payment_id', 'gateway_refund_id', 'reverses_entry_id', 'idempotency_key', 'reason', 'created_by'])]
+#[Fillable(['property_id', 'reservation_id', 'type', 'service', 'base_amount', 'rate', 'amount', 'due_date', 'gateway_payment_id', 'gateway_refund_id', 'payout_voucher_id', 'reverses_entry_id', 'idempotency_key', 'reason', 'created_by'])]
 class CommissionEntry extends Model
 {
     /** @use HasFactory<CommissionEntryFactory> */
@@ -87,6 +89,14 @@ class CommissionEntry extends Model
     public function gatewayRefund(): BelongsTo
     {
         return $this->belongsTo(GatewayRefund::class);
+    }
+
+    /**
+     * @return BelongsTo<PayoutVoucher, $this>
+     */
+    public function payoutVoucher(): BelongsTo
+    {
+        return $this->belongsTo(PayoutVoucher::class);
     }
 
     /**

@@ -60,8 +60,8 @@ Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md
 - [x] `feat(commissions): add commission services, rates and the ledger` — `CommissionService`, `CommissionEntryType`, `CommissionRule`, `commission_rates`, `commission_entries`, the channel manager start date, and the Commission rates section on admin settings. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md), [Platform pages](30-commission-fees/05-platform-pages.md#commission-rates).
 - [x] `feat(commissions): record booking engine money and commission` — `collected`, `refunded` and `refund_fee` entries from Curlec results, and `BookingEngineCommission` when a booking ends. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md#entry-types).
 - [x] `feat(commissions): record channel manager commission` — `ChannelManagerCommission` on the folio's room revenue lines before tax, including cancellation and no-show fees, from the start date. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md).
-- [ ] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the PDF. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
-- [ ] `feat(commissions): add the platform dashboard and voucher actions` — `/admin/commissions`, the Vouchers tab, the voucher page, adjustments, approve and mark as paid. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md).
+- [x] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the entry lock. The PDF moved to the next item. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
+- [ ] `feat(commissions): add the platform dashboard and voucher actions` — `/admin/commissions`, the Vouchers tab, the voucher page, adjustments, approve, mark as paid and the voucher PDF. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md).
 - [ ] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
 
 ### 18 Front desk
@@ -496,6 +496,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `acbdaf52` | docs(commissions): add the commission fees spec and checklist items      |
 | `5cebd25f` | feat(commissions): add commission services, rates and the ledger         |
 | `5aaaa9ee` | feat(commissions): record booking engine money and commission            |
+| `ff6a8e5f` | feat(commissions): record channel manager commission                     |
 
 Smaller fixes and reverts are in `git log`.
 

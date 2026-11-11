@@ -5030,6 +5030,7 @@ export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
 export type PaymentStage = 'before_arrival' | 'in_house' | 'departed';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
+export type PayoutVoucherStatus = 'draft' | 'approved' | 'paid' | 'carried_forward';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';

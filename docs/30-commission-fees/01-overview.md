@@ -4,7 +4,7 @@
 
 Track what Estatell earns from each property's bookings, hold the money Estatell collects for properties, and pay it out on fixed dates. Platform admins see every property; each property sees its own bookings and payouts.
 
-**Status: in build.** Planned on 2026-11-11. Rates, the ledger, the Commissions settings tab, and booking engine and channel manager recording are built. Build order is in the [checklist](../checklist.md#30-commission-fees).
+**Status: in build.** Planned on 2026-11-11. Rates, the ledger, the Commissions settings tab, booking engine and channel manager recording, and payout vouchers are built. Build order is in the [checklist](../checklist.md#30-commission-fees).
 
 ## Decisions
 
@@ -18,7 +18,7 @@ Track what Estatell earns from each property's bookings, hold the money Estatell
 | Channel manager start    | Only bookings that check out on or after a go-live date that admins set. No charge for older bookings |
 | Curlec's normal fee      | Estatell pays it from its commission                                                                  |
 | Curlec's refund cost     | The property pays the fee Curlec keeps and the RM 0.50 refund fee, from its next payout               |
-| Cut-off and payout       | Cut-off on the 15th, payout on the 1st (next working day if the 1st is not one), by checkout date     |
+| Cut-off and payout       | Cut-off on the 15th, payout on the 1st (the Monday if it is a weekend), by due date                   |
 | Paid voucher             | Never changes. Later corrections go into the next voucher as reversals                                |
 | Negative balance         | Carried forward until it reaches RM 50 or 3 months; then the property pays by bank transfer           |
 | Payout method            | Manual bank transfer by a platform admin. Curlec Route waits for Curlec's answers                     |
@@ -80,7 +80,7 @@ The module reads other modules through their events, Actions and Services. It ne
 | Commission base              | `ReservationRoomRevenue` (Folio); the booking engine caps it at the room total booked |
 | When a booking ends          | The hourly `RecordDueCommissions` run: every unit checked out, cancelled or no-show   |
 | Is the service on            | The Pennant features                                                                  |
-| Voucher number               | `document_sequences`                                                                  |
+| Voucher number               | `PV-{YYYYMM}-{property code}`, no sequence                                            |
 | Where to pay                 | `property_bank_accounts`                                                              |
 
 Code lives in `app/Actions/Commissions` and `app/Services/Commissions`. An hourly run finds ended bookings, because no single event marks the end of a booking.

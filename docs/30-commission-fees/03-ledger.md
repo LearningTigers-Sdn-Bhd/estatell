@@ -6,7 +6,7 @@ Record every amount Estatell holds for a property, or owes it, or is owed by it.
 
 ## Rules
 
-- Entries are immutable. A correction is a reversal entry, never an edit or a delete.
+- Entries are immutable. A correction is a reversal entry, never an edit or a delete. A database trigger (`commission_entries_immutable`) refuses every update and delete, except filling `payout_voucher_id` once from empty with nothing else changed.
 - Every automatic entry has a unique idempotency key, so a repeated event writes nothing new.
 - The amount is signed from the property's side: **+** is owed to the property, **−** is owed to Estatell.
 - Every query is scoped by `property_id`.
