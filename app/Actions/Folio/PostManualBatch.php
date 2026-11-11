@@ -7,8 +7,10 @@ use App\Actions\Payments\RefundPayment;
 use App\Data\Folio\ManualRowData;
 use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
+use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\ManualRowType;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Models\Folio;
 use App\Models\FolioManualBatch;
@@ -83,7 +85,10 @@ class PostManualBatch
 
                 $closed = false;
 
-                if ($close) {
+                // A payment that clears a checked-out room's folio has already closed it.
+                if ($close && $folio->fresh()?->status === FolioStatus::Closed) {
+                    $closed = true;
+                } elseif ($close) {
                     $result = ($this->closeFolio)($actor, $folio);
 
                     if ($result->isRefused()) {
@@ -187,7 +192,7 @@ class PostManualBatch
             throw new InvalidArgumentException('The payment must belong to a folio of the reservation.');
         }
 
-        $result = ($this->refundPayment)($actor, $payment, $row->amount, $row->reference, $key, $row->serviceDate, $batch->id);
+        $result = ($this->refundPayment)($actor, $payment, $row->amount, $row->reference, $key, $row->serviceDate, $batch->id, confirmedByCurlec: $payment->paymentMethod->type === PaymentMethodType::Online);
 
         return $result->isRefused() ? ManualBatchResult::refused((string) $result->refusal, $row->key, $row->type) : null;
     }

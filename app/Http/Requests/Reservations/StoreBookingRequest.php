@@ -123,6 +123,7 @@ class StoreBookingRequest extends FormRequest
         return [function (Validator $validator): void {
             $this->checkGuests($validator);
             $this->checkBookingSource($validator);
+            $this->checkOccupancy($validator);
 
             if ($validator->errors()->isNotEmpty() || ! $this->bookingSource()?->type->isWalkIn() || $this->property()->settings?->auto_assign_rooms) {
                 return;
@@ -140,6 +141,33 @@ class StoreBookingRequest extends FormRequest
                 }
             }
         }];
+    }
+
+    /**
+     * A room line cannot hold more guests than its room type takes, the same limit as the company portal and Change
+     * guests. A dorm line has no limit, and channel bookings and imports do not come through this request.
+     */
+    private function checkOccupancy(Validator $validator): void
+    {
+        /** @var Property $property */
+        $property = $this->route('property');
+        $roomTypes = RoomType::query()->where('property_id', $property->id)->get(['id', 'sell_unit', 'max_adults', 'max_children'])->keyBy('id');
+
+        foreach ($this->input('lines', []) as $index => $line) {
+            $roomType = $roomTypes->get((int) ($line['room_type_id'] ?? 0));
+
+            if ($roomType === null || $roomType->sell_unit === SellUnit::Bed) {
+                continue;
+            }
+
+            if ((int) ($line['adults'] ?? 0) > $roomType->max_adults) {
+                $validator->errors()->add("lines.{$index}.adults", __('This room type takes up to :max adults.', ['max' => $roomType->max_adults]));
+            }
+
+            if (count((array) ($line['child_ages'] ?? [])) > $roomType->max_children) {
+                $validator->errors()->add("lines.{$index}.child_ages", __('This room type takes up to :max children.', ['max' => $roomType->max_children]));
+            }
+        }
     }
 
     public function toBookingData(): NewBookingData
@@ -241,6 +269,12 @@ class StoreBookingRequest extends FormRequest
         }
 
         $type = $this->bookingSource()->type;
+
+        if ($type->isBookingEngine()) {
+            $validator->errors()->add('booking_source_id', __('This booking source is not available. Pick another.'));
+
+            return;
+        }
 
         if ($type->requiresCompany() && ! $this->user()->can(PermissionEnum::CompanyView->value)) {
             $validator->errors()->add('booking_source_id', __('This booking source is not available. Pick another.'));

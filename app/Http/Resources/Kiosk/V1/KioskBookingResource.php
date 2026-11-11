@@ -30,6 +30,7 @@ class KioskBookingResource extends JsonResource
             'departure' => $stay->departure_date->toDateString(),
             'unit_type' => $stay->roomType->name,
             'steps_required' => $this->resource->steps,
+            ...($this->resource->state ?? []),
         ];
     }
 }

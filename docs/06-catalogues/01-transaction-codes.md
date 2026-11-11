@@ -54,6 +54,7 @@ transaction_codes    id, property_id, system_key (nullable), code, name,
 | security_deposit          | SECURITY_DEPOSIT | Security deposit        | Payment    | Deposit         |
 | refund                    | REFUND           | Refund                  | Payment    | Refund          |
 | old_system_payment        | OLD_SYSTEM       | Old system              | Payment    | OldSystem       |
+| online_payment            | ONLINE           | Online                  | Payment    | Online          |
 | opening_balance           | OPENING_BAL      | Opening balance         | Adjustment | OpeningBalance  |
 | adjustment                | ADJUSTMENT       | Adjustment              | Adjustment | Adjustment      |
 | discount                  | DISCOUNT         | Discount                | Adjustment | Discount        |

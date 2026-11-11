@@ -17,6 +17,7 @@ It covers the PMS core:
 - Guest requests during a stay: housekeeping, maintenance and complaints.
 - An optional channel manager (Channex) behind a feature flag.
 - Optional boat departures, fares, trips and manifest for island properties, behind a feature flag.
+- An optional booking engine, so guests book and pay online, behind a feature flag.
 
 ## Background
 
@@ -191,6 +192,9 @@ One word per idea, in docs, code and UI.
 | City ledger       | Money owed to the property by companies. UI name; tables keep `ar_*`                                     | receivables (in UI)                        |
 | Partner           | A reseller who brings properties and helps them onboard. Sees only their own properties, at `/partner`   | super agent, agent, reseller (in code)     |
 | Property code     | `ES1142`: a 2-letter prefix (`ES` direct, or the partner's) and a number per prefix                      | unique id, hotel prefix                    |
+| Booking engine    | The feature that lets guests book and pay online, through the API                                        |                                            |
+| Microsite         | The property's booking website at `booking.estatell.com/{slug}`, a separate app                          | booking site, mini site                    |
+| Hold              | A room kept for 20 minutes while a guest pays                                                            | quote, reservation (for this)              |
 
 "Travel agent" appears only as a company type. "Portal" appears in UI labels and in `portal_*` columns.
 
@@ -200,5 +204,35 @@ Modules are numbered in build order. Each folder in `docs/` holds one module. Ea
 
 The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
-| 28 | [API access](28-api-access/) | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape |
-| 29 | [E-Invoicing](29-einvoice/) | LHDN MyInvois e-invoicing: folios, AR invoices, consolidation, credit notes, digital signing (feature flag) |
+| #   | Module                               | Summary                                                                                                                |
+| --- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 01  | [Platform](01-platform/)             | Platform admins, platform settings, feature flags, impersonation, demo properties                                      |
+| 02  | [Property](02-property/)             | Properties, settings, defaults seeding, age groups, printing settings                                                  |
+| 03  | [Staff](03-staff/)                   | Staff invitations, roles and permissions                                                                               |
+| 04  | [Notifications](04-notifications/)   | Notification types and opt-out                                                                                         |
+| 05  | [Rooms](05-rooms/)                   | Room types, rooms, beds, groups, blocks                                                                                |
+| 06  | [Catalogues](06-catalogues/)         | Transaction codes, charge items, taxes, payment methods, discounts, room revenue                                       |
+| 07  | [Meals](07-meals/)                   | Meal periods and entitlements                                                                                          |
+| 08  | [Rates](08-rates/)                   | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts                                        |
+| 09  | [Packages](09-packages/)             | Inclusions and package prices                                                                                          |
+| 10  | [Availability](10-availability/)     | Availability calculation                                                                                               |
+| 11  | [Guests](11-guests/)                 | Guest CRM, identity documents, privacy                                                                                 |
+| 12  | [Reservations](12-reservations/)     | Shape, groups, beds, add-ons, booking form, reservation page, booking summary, booking sources                         |
+| 13  | [Folio](13-folio/)                   | Folios, ledger lines, routing, posting, folio invoice                                                                  |
+| 14  | [Payments](14-payments/)             | Payments and refunds                                                                                                   |
+| 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                                                              |
+| 16  | [Registration](16-registration/)     | Registration cards and terms                                                                                           |
+| 17  | [Onboarding](17-onboarding/)         | Account creation, partners, wizard, go-live and approval                                                               |
+| 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard, group check-out                                                            |
+| 19  | [Housekeeping](19-housekeeping/)     | Room status board, printed work sheet and property column layout                                                       |
+| 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                                                                   |
+| 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                                                      |
+| 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                                                             |
+| 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties                                                   |
+| 24  | [Boats](24-boats/)                   | Boat departures, fares, boats and crew, trips per room, sailings, the Boat Trips board and the manifest (feature flag) |
+| 25  | [Guest requests](25-guest-requests/) | Housekeeping, maintenance and complaint requests, and their resolution times                                           |
+| 26  | [Accounting](26-accounting/)         | Daily journal of each closed business date pushed to the accounting software (feature flag)                            |
+| 27  | [Door locks](27-door-locks/)         | TTLock PINs per stay: generated or custom, issued at check-in, removed at check-out (feature flag)                     |
+| 28  | [API access](28-api-access/)         | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape              |
+| 29  | [Booking engine](29-booking-engine/) | Guests book and pay online, on a microsite or through the API (feature flag, planned)                                  |
+| 30  | [E-invoicing](30-einvoice/)          | LHDN MyInvois e-invoicing: folios, AR invoices, monthly consolidation, credit notes (feature flag)                     |

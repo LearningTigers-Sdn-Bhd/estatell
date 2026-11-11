@@ -5,8 +5,10 @@ namespace App\Services\Reservations;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Data\Reservations\CancelAllPreviewData;
+use App\Data\Reservations\CheckInAllEndedStayData;
 use App\Data\Reservations\CheckInAllPreviewData;
 use App\Data\Reservations\CheckOutDamageItemData;
+use App\Data\Reservations\EndedStayCheckInData;
 use App\Data\Reservations\FreeUnitData;
 use App\Data\Reservations\MoveTargetData;
 use App\Data\Reservations\UnitCheckInPreviewData;
@@ -41,6 +43,9 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
+use App\Services\Catalogues\CancellationPolicy;
+use App\Services\Catalogues\CancellationSteps;
+use App\Services\Catalogues\PolicyCharge;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\CityLedger\CreditCheck;
@@ -49,12 +54,14 @@ use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\DamageChargeItem;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\EndedStayCheckIn;
 use App\Services\FrontDesk\PendingNightQuote;
 use App\Services\FrontDesk\StayDay;
 use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Payments\CancelledUnitRefund;
 use App\Services\Platform\Impersonation;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
@@ -84,6 +91,7 @@ class UnitActionPreview
         private UnitNationality $unitNationality,
         private CreditCheck $creditCheck,
         private CheckInCollection $checkInCollection,
+        private EndedStayCheckIn $endedStayCheckIn,
         private Impersonation $impersonation,
         private CheckOutSettlement $checkOutSettlement,
         private CountryOptions $countryOptions,
@@ -97,6 +105,9 @@ class UnitActionPreview
         private PendingNightQuote $pendingNightQuote,
         private AuditPendingNotice $auditPendingNotice,
         private DamageChargeItem $damageChargeItem,
+        private CancellationPolicy $cancellationPolicy,
+        private CancellationSteps $cancellationSteps,
+        private CancelledUnitRefund $cancelledUnitRefund,
     ) {}
 
     /**
@@ -111,7 +122,9 @@ class UnitActionPreview
             return UnitCheckInPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $this->stayDay->forCheckIn($unit, $businessDate)->toDateString())->first();
+        $isEndedStay = $this->endedStayCheckIn->isOffered($unit, $businessDate);
+        $night = $isEndedStay ? $this->endedStayCheckIn->lastNight($unit) : $this->stayDay->forCheckIn($unit, $businessDate);
+        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $night->toDateString())->first();
         $room = $tonight->room->number ?? $tonight?->bed?->label;
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $needsNationality = $this->unitNationality->for($unit) === null
@@ -139,6 +152,53 @@ class UnitActionPreview
             auditPending: $this->auditPendingNotice->block($property, $this->stayDay->forCheckIn($unit, $businessDate)->gt($businessDate)
                 ? __('That\'s fine. Tonight\'s night audit charges :date.', ['date' => $businessDate->addDay()->format('j M')])
                 : null),
+            endedStay: $isEndedStay ? $this->endedStay($unit, $user, $businessDate) : null,
+        );
+    }
+
+    /**
+     * The cards of a stay that was not logged in time. The move to today is priced as `ChangeUnitDates` will price it.
+     */
+    private function endedStay(ReservationUnit $unit, User $user, CarbonImmutable $businessDate): EndedStayCheckInData
+    {
+        $move = $this->dates($unit, $businessDate, $businessDate->addDay());
+
+        return new EndedStayCheckInData(
+            arrival: $unit->arrival_date->format('j M'),
+            departure: $unit->departure_date->format('j M'),
+            lastNight: $this->endedStayCheckIn->lastNight($unit)->format('j M'),
+            today: $businessDate->format('j M'),
+            tomorrow: $businessDate->addDay()->format('j M'),
+            newTotal: $move->error === null ? $move->newTotal : null,
+            arrivingTodayBlocked: match (true) {
+                ! $user->can(PermissionEnum::ReservationsManage->value) => __('Ask someone who can change dates.'),
+                $move->error !== null => $move->error,
+                $move->restricted => __('A restriction applies to today. Use Change dates to override it.'),
+                default => null,
+            },
+        );
+    }
+
+    /**
+     * One question for every unit that was not logged in time. A reason that blocks the move for one unit disables it.
+     *
+     * @param  list<EndedStayCheckInData>  $units
+     */
+    private function checkInAllEndedStay(array $units): ?CheckInAllEndedStayData
+    {
+        if ($units === []) {
+            return null;
+        }
+
+        $oneNight = array_all($units, fn (EndedStayCheckInData $unit): bool => $unit->arrival === $unit->lastNight);
+
+        return new CheckInAllEndedStayData(
+            stayDates: $oneNight ? $units[0]->arrival.' → '.$units[0]->departure : __('the booked dates'),
+            oneNight: $oneNight,
+            lastNight: $units[0]->lastNight,
+            today: $units[0]->today,
+            tomorrow: $units[0]->tomorrow,
+            arrivingTodayBlocked: array_find($units, fn (EndedStayCheckInData $unit): bool => $unit->arrivingTodayBlocked !== null)?->arrivingTodayBlocked,
         );
     }
 
@@ -159,18 +219,21 @@ class UnitActionPreview
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $autoAssign = (bool) $property->settings?->auto_assign_rooms;
         $rows = [];
+        $endedStays = [];
 
         $units = $reservation->units()
             ->where('status', UnitStatus::Confirmed)
-            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereBetween('date', [$today, $businessDate->addDay()->toDateString()]), 'nights.room', 'nights.bed'])
+            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereBetween('date', [$businessDate->subDay()->toDateString(), $businessDate->addDay()->toDateString()]), 'nights.room', 'nights.bed'])
             ->orderBy('id')
             ->get();
 
         foreach ($units as $unit) {
-            $day = $this->stayDay->forCheckIn($unit, $businessDate)->toDateString();
+            $isEndedStay = $this->endedStayCheckIn->isOffered($unit, $businessDate);
+            $endedStay = $isEndedStay ? $this->endedStay($unit, $user, $businessDate) : null;
+            $endedStays[] = $endedStay;
+            $day = $isEndedStay ? $this->endedStayCheckIn->lastNight($unit)->toDateString() : $this->stayDay->forCheckIn($unit, $businessDate)->toDateString();
             $tonight = $unit->nights->first(fn ($night): bool => $night->date->toDateString() === $day);
-            $arrival = $unit->arrival_date->toDateString();
-            $ready = $day >= $arrival && $day < $unit->departure_date->toDateString();
+            $ready = $isEndedStay || ($day >= $unit->arrival_date->toDateString() && $day < $unit->departure_date->toDateString());
             $room = $tonight->room->number ?? $tonight?->bed?->label;
 
             $rows[] = [
@@ -180,23 +243,30 @@ class UnitActionPreview
                 'room' => $room,
                 'cardsMissing' => $cardRequired ? $this->registrationCardRequirement->missingFor($unit, $property)->count() : 0,
                 'ready' => $ready,
-                'note' => match (true) {
-                    ! $ready && $day < $arrival => $this->notArrivedNote($unit, $businessDate),
-                    ! $ready => __('Cannot check in: the stay ended on :date.', ['date' => $unit->departure_date->format('d M Y')]),
-                    $room === null && $autoAssign => __('No room yet. One is given at check-in.'),
-                    $room === null => __('No room for tonight. Assign a room before check-in.'),
-                    default => null,
-                },
+                'endedStay' => $isEndedStay,
+                'moveTotal' => $endedStay?->newTotal,
+                'note' => $this->checkInAllNote($unit, $businessDate, $ready, $day, $room, $autoAssign),
             ];
         }
 
-        return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null);
+        return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null, $this->checkInAllEndedStay(array_values(array_filter($endedStays))));
     }
 
     /**
      * Why a unit that arrives after the business date cannot check in, and what the front desk can do: change the
      * dates first to check the guest in early.
      */
+    private function checkInAllNote(ReservationUnit $unit, CarbonInterface $businessDate, bool $ready, string $day, ?string $room, bool $autoAssign): ?string
+    {
+        return match (true) {
+            ! $ready && $day < $unit->arrival_date->toDateString() => $this->notArrivedNote($unit, $businessDate),
+            ! $ready => __('Cannot check in: the stay ended on :date.', ['date' => $unit->departure_date->format('d M Y')]),
+            $room === null && $autoAssign => __('No room yet. One is given at check-in.'),
+            $room === null => __('No room for tonight. Assign a room before check-in.'),
+            default => null,
+        };
+    }
+
     private function notArrivedNote(ReservationUnit $unit, CarbonInterface $businessDate): string
     {
         $days = (int) CarbonImmutable::instance($businessDate)->startOfDay()->diffInDays($unit->arrival_date->startOfDay());
@@ -566,7 +636,7 @@ class UnitActionPreview
      * business date, the money held on the reservation and the company portal request. Only a Confirmed unit can be
      * ticked. The fee is the figure `CancelUnit` computes, so the Dialog and a Cancel unit agree.
      */
-    public function cancelAll(Reservation $reservation): CancelAllPreviewData
+    public function cancelAll(Reservation $reservation, bool $canRefund = false): CancelAllPreviewData
     {
         $property = $reservation->property()->firstOrFail();
         $businessDate = $this->currentBusinessDate->date($property);
@@ -575,7 +645,7 @@ class UnitActionPreview
             return CancelAllPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $policy = RoomRevenuePolicy::query()->where('property_id', $property->id)->where('code', SystemTransactionCode::CancellationRevenue)->first();
+        $policy = $this->cancellationPolicy->forReservation($property->id, $reservation->id);
         $code = $property->transactionCodes()->where('system_key', SystemTransactionCode::CancellationRevenue->value)->where('active', true)->first();
 
         if ($policy === null || $code === null) {
@@ -599,6 +669,8 @@ class UnitActionPreview
                 'feeTotal' => null,
                 'withinFreeWindow' => false,
                 'unpostedAddOns' => 0,
+                'onlineRefund' => '0.00',
+                'onlineRefundWaived' => '0.00',
                 'note' => null,
             ];
 
@@ -626,6 +698,12 @@ class UnitActionPreview
             $row['feeTotal'] = $charge->isFree() ? '0.00' : (string) $tax->grossAmount->getAmount();
             $row['withinFreeWindow'] = $charge->withinFreeWindow;
             $row['unpostedAddOns'] = (int) $unit->unposted_add_ons_count;
+
+            if ($canRefund) {
+                $row['onlineRefund'] = (string) $this->cancelledUnitRefund->for($unit, BigDecimal::of($row['feeTotal']))->amount()->toScale(2);
+                $row['onlineRefundWaived'] = (string) $this->cancelledUnitRefund->for($unit)->amount()->toScale(2);
+            }
+
             $rows[] = $row;
         }
 
@@ -648,13 +726,13 @@ class UnitActionPreview
             ];
         }
 
-        return new CancelAllPreviewData($rows, $policy->free_until_days, (string) BigDecimal::of((string) ($paid ?: 0))->toScale(2), $request, null);
+        return new CancelAllPreviewData($rows, $this->cancellationSteps->freeUntilDays($this->cancellationSteps->of($policy)), (string) BigDecimal::of((string) ($paid ?: 0))->toScale(2), $request, null);
     }
 
     /**
      * The fee of the cancellation or no-show policy on the business date, for the Cancel unit and Mark no-show forms.
      */
-    public function fee(ReservationUnit $unit, SystemTransactionCode $code): UnitFeePreviewData
+    public function fee(ReservationUnit $unit, SystemTransactionCode $code, bool $canRefund = false): UnitFeePreviewData
     {
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
 
@@ -662,23 +740,44 @@ class UnitActionPreview
             return UnitFeePreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $policy = $this->policy($unit, $code);
+        $isCancellation = $code === SystemTransactionCode::CancellationRevenue;
+        $policy = $isCancellation ? $this->cancellationPolicy->forReservation($unit->property_id, $unit->reservation_id) : $this->policy($unit, $code);
 
         if ($policy === null) {
             return UnitFeePreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_POLICY_NOT_FOUND));
         }
 
         $charge = $this->policyChargeCalculator->calculate($policy, $unit);
-        $isCancellation = $code === SystemTransactionCode::CancellationRevenue;
+        [$onlineRefund, $onlineRefundWaived] = $isCancellation && $canRefund ? $this->onlineRefunds($unit, $charge) : ['0.00', '0.00'];
 
         return new UnitFeePreviewData(
             fee: (string) $charge->amount->getAmount(),
             withinFreeWindow: $charge->withinFreeWindow,
-            freeUntilDays: $isCancellation ? $policy->free_until_days : null,
+            freeUntilDays: $isCancellation ? $this->cancellationSteps->freeUntilDays($this->cancellationSteps->of($policy)) : null,
             daysBeforeArrival: $isCancellation ? (int) $businessDate->diffInDays($unit->arrival_date->toImmutable()->startOfDay(), false) : null,
             unpostedAddOns: $unit->addOns()->whereNull('folio_line_id')->count(),
             error: null,
+            onlineRefund: $onlineRefund,
+            onlineRefundWaived: $onlineRefundWaived,
         );
+    }
+
+    /**
+     * What a cancelled unit gives back through Curlec, with the fee and with the fee waived.
+     *
+     * @return array{string, string}
+     */
+    private function onlineRefunds(ReservationUnit $unit, PolicyCharge $charge): array
+    {
+        $property = $unit->property()->firstOrFail();
+        $code = $property->transactionCodes()->where('system_key', SystemTransactionCode::CancellationRevenue->value)->where('active', true)->first();
+        $tax = $code === null || $charge->isFree() ? null : $this->taxCalculator->calculate($property, $code, $charge->amount, '1', $this->unitNationality->for($unit));
+        $fee = $tax !== null && $tax->isCalculated() ? BigDecimal::of((string) $tax->grossAmount->getAmount()) : BigDecimal::of((string) $charge->amount->getAmount());
+
+        return [
+            (string) $this->cancelledUnitRefund->for($unit, $fee)->amount()->toScale(2),
+            (string) $this->cancelledUnitRefund->for($unit)->amount()->toScale(2),
+        ];
     }
 
     /**

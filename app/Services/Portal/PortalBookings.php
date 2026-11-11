@@ -2,18 +2,27 @@
 
 namespace App\Services\Portal;
 
+use App\Data\Boats\BoatDepartureOptionData;
+use App\Data\Boats\BoatSetupUnitData;
 use App\Data\Portal\PortalBookingData;
 use App\Data\Portal\PortalBookingRowData;
+use App\Enums\BoatDirection;
 use App\Enums\CompanyStatus;
 use App\Enums\PortalCancelMode;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Features\Boats;
 use App\Models\Company;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
+use App\Services\Boats\BoatTripAccess;
+use App\Services\Reservations\ReservationFormOptions;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 
 /**
  * Reads the bookings of one company at one property for the portal. Every query is scoped by the property and the
@@ -24,7 +33,11 @@ class PortalBookings
 {
     public const int PER_PAGE = 20;
 
-    public function __construct(private PortalBookingRules $rules) {}
+    public function __construct(
+        private PortalBookingRules $rules,
+        private ReservationFormOptions $formOptions,
+        private BoatTripAccess $boatTripAccess,
+    ) {}
 
     /**
      * The company's bookings, newest first, 20 to a page. The search matches our reference or the company's own
@@ -84,6 +97,43 @@ class PortalBookings
             cancelMode: $suspended ? PortalCancelMode::Closed : $this->rules->cancelMode($reservation, $company, $businessDate),
             freeUntil: $freeUntil?->toDateString(),
         );
+    }
+
+    /**
+     * The departures the agent can pick, none when the property does not use boats.
+     *
+     * @return list<BoatDepartureOptionData>
+     */
+    public function boatDepartures(Property $property): array
+    {
+        return Feature::for($property)->active(Boats::class) ? $this->formOptions->boatDepartures($property) : [];
+    }
+
+    /**
+     * The rooms of the booking with their boats, by room type and guest: the portal shows no room number. A direction the
+     * room can no longer change is read only, and everything is read only for a Suspended company.
+     *
+     * @return list<BoatSetupUnitData>
+     */
+    public function boatSetup(Company $company, Reservation $reservation, Property $property): array
+    {
+        if (! Feature::for($property)->active(Boats::class)) {
+            return [];
+        }
+
+        $canChange = $company->status !== CompanyStatus::Suspended;
+        $units = $reservation->units()->with(['roomType:id,name', 'boatTrips.boatDeparture', 'guests.guest:id,full_name'])
+            ->where('stay_type', StayType::Overnight->value)
+            ->whereIn('status', [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value])
+            ->orderBy('id')
+            ->get();
+
+        return array_values($units->map(fn (ReservationUnit $unit): BoatSetupUnitData => BoatSetupUnitData::fromModel(
+            $unit,
+            trim($unit->roomType->name.' · '.($unit->guests->first()?->guest->full_name ?? ''), ' ·'),
+            $canChange && $this->boatTripAccess->refusalFor($unit, BoatDirection::In) === null,
+            $canChange && $this->boatTripAccess->refusalFor($unit, BoatDirection::Out) === null,
+        ))->all());
     }
 
     /**

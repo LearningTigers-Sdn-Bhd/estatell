@@ -25,10 +25,14 @@ class PostFolioCharge
      * `{key}:tax:{tax_id}`. A null actor is the system, as in the night audit. `PostCharge`, `PostRoomCharges` and
      * `RecordPayment` (the payment surcharge) call it. See docs/13-folio/02-posting-charges.md.
      *
+     * `$taxFolios` puts the Tax child of a tax id on another folio (still a child of the charge line), for a collected
+     * tax the guest pays when a company pays the room (see `CollectedTaxPayer`).
+     *
      * A `$manualBatchId` marks the charge line only, not its children. A `$transferGroupId` goes on every line written
      * (`SplitLine` uses it). `$migrated` marks every line written as copied from the old system (`SaveOldFolios`).
      *
      * @param  list<QuotedDiscount>  $discounts  Each with its transaction code id resolved.
+     * @param  array<int, Folio>  $taxFolios  The folio of a Tax child, by tax id. Others go on `$folio`.
      * @return non-empty-list<FolioLine> the charge line first, then its discount lines, then its tax lines
      */
     public function __invoke(
@@ -48,6 +52,7 @@ class PostFolioCharge
         ?int $manualBatchId = null,
         ?string $transferGroupId = null,
         bool $migrated = false,
+        array $taxFolios = [],
     ): array {
         if (! $tax->isCalculated()) {
             throw new InvalidArgumentException('A refused tax calculation cannot be posted.');
@@ -79,7 +84,7 @@ class PostFolioCharge
         }
 
         foreach ($tax->taxes as $component) {
-            $lines[] = $this->line($folio, $actor, $postingDate, $serviceDate, $key.':tax:'.$component->taxId, [
+            $lines[] = $this->line($taxFolios[$component->taxId] ?? $folio, $actor, $postingDate, $serviceDate, $key.':tax:'.$component->taxId, [
                 'transaction_code_id' => $component->transactionCodeId,
                 'kind' => TransactionKind::Tax,
                 'description' => $component->name,

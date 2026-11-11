@@ -6,6 +6,7 @@ use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use App\Enums\FolioStatus;
+use App\Features\EInvoicing;
 use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
@@ -17,6 +18,7 @@ use App\Services\EInvoice\MyInvoisClientFactory;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Laravel\Pennant\Feature;
 
 class SubmitFolioEInvoice
 {
@@ -32,7 +34,7 @@ class SubmitFolioEInvoice
         $property = $folio->property;
         $setting = $property->eInvoiceSetting;
 
-        if ($setting === null || ! $setting->enabled) {
+        if ($setting === null || ! $setting->enabled || ! Feature::for($property)->active(EInvoicing::class)) {
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_NOT_ENABLED, __('E-invoicing is not enabled for this property.'));
         }
 

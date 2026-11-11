@@ -601,15 +601,16 @@ Not a table: two groups on one page. The registration card group is the same com
 ## Channel manager table
 
 ```
- ┌ ℹ Add your OTA logins. The estatell team connects them for you. Only the team
- │   reads these. Passwords are stored encrypted and are never shown again here.
+ ┌ ℹ Only the Estatell team can see these logins. They are stored encrypted and
+ │   hidden after you save. To change one, remove it and add it again.
  │   Nothing is connected from this page.
  └
  ┌──────────┬─────────────┬──────────┬──────────┬────────────────┬─────────────┬───────────────┬────┐
  │ Channel  │ Property ID │ Username │ Password │ Market manager │ Phone       │ Email         │    │
- ├──────────┼─────────────┼──────────┼──────────┼────────────────┼─────────────┼───────────────┼────┤
- │[Agoda  ▾]│[ 123456   ] │[me@x.com]│[••••••  ]│[ Aisha       ] │[ +60 12 … ] │[ aisha@ag… ]  │ 🗑 │
- │[Other  ▾]│[ 789012   ] │[me@x.com]│ On file  │[              ]│[           ]│[             ]│ 🗑 │
+ ├──────────┼─────────────┴──────────┴──────────┴────────────────┴─────────────┴───────────────┼────┤
+ │ Agoda    │ Saved. Only the Estatell team can see this login.                                 │ 🗑 │
+ ├──────────┼─────────────┬──────────┬──────────┬────────────────┬─────────────┬───────────────┼────┤
+ │[Other  ▾]│[ 789012   ] │[me@x.com]│[••••••  ]│[              ]│[           ]│[             ]│ 🗑 │
  │ [e.g. Traveloka          ]  ← Channel name, shown only when Channel is Other                     │
  ├──────────┴─────────────┴──────────┴──────────┴────────────────┴─────────────┴───────────────┴────┤
  │ Total: 2                                                                      [+ Add channel]    │
@@ -618,13 +619,13 @@ Not a table: two groups on one page. The registration card group is the same com
 
 - Optional. No rows to start: the empty state says "No channels yet. Leave this empty and continue if you don't sell through any OTA." The section is called **OTA lists**. The add button says **Add channel**. An empty table with **Save and continue** counts as Skipped.
 - There is no channel manager field. All properties use the platform Channex account (see [Connections](../21-channels/01-connections-and-feature-gate.md)). No feature gate applies, because onboarding only stores the logins.
-- Columns: **Channel** (select of the active rows in `ota_channels`, managed by admins, see [OTA channels](../21-channels/01-connections-and-feature-gate.md#ota-channels)), Property ID (the property's own code on that channel), Username, Password, and the optional market manager name, phone and email. Channel is required. The seeded **Other** option shows a required **Channel name** field. One row per channel per property, and one Other row per name, ignoring case. Errors show per row.
-- **Password** is write-only. A new row has a password input. A saved row shows "On file" and a **Change** button. Change opens an empty password input: typing replaces the saved value, and **Keep saved** (or leaving it blank) keeps it. The page never receives a password as a prop.
-- A saved row shows "On file" and a **Change** button for the password. The channel of a saved row cannot be changed: onboarding keeps it editable, and Settings locks it (remove the row and add a new one).
-- Username and password are stored encrypted (`encrypted` cast). Removing a row with 🗑 deletes it, saved or not.
-- One submit, one transaction, through `SaveOtaCredentials`. For each saved row it calls `EnsureOtaBookingSource`, so the channel is also a [booking source](../12-reservations/11-booking-sources.md#defaults) on the booking form. Removing a row keeps its booking source.
-- The admin property page has an **OTA lists** tab, read only. **Reveal** is a POST that returns the password as JSON (never page props). It needs `support.2fa` and writes an activity log entry. **Mark processed** sets the row to Processed once the team has connected the channel. Nothing in code reads the stored logins. The admin uses them to sign in to the OTA extranet, and the [Connect form](../21-channels/07-admin-channels-tab.md#reference-rail) shows the row as a reference and pre-fills the hotel ID from Property ID. Nothing writes back to the row. `support.2fa` does nothing while `SUPPORT_REQUIRE_2FA` is off, so set it to `true` in production before the first real OTA list is saved.
-- After go-live the owner manages the same table in **Settings → OTA lists** (`settings.ota-lists`, owner only), through the same Action. It adds a read only **Status** column (Pending or Processed). When `ChannelManager` is on, it also shows a read only **Channel** column with the owner status (see [Owner Channels page](../21-channels/08-owner-channels-page.md#statuses)). There is no Reveal. Changing a password sets the row back to Pending and writes an activity log entry. Removing a Processed row warns "Tell the estatell team to disconnect {channel}".
+- Columns of a new row: **Channel** (select of the active rows in `ota_channels`, managed by admins, see [OTA channels](../21-channels/01-connections-and-feature-gate.md#ota-channels)), Property ID (the property's own code on that channel), Username, Password, and the optional market manager name, phone and email.
+- **Saved rows are hidden.** OTA logins are for the Estatell team only, so owners and partners (including **View as**) never get them back. `OnboardingOtaCredentialRowData` holds only the row's id and channel. To change a saved row, remove it and add it again, or ask the team.
+- The page submits `saved_ids` (the saved rows that stay, unchanged) and `rows` (the new ones).
+- Username and password are stored encrypted (`encrypted` cast). Removing a row with 🗑 deletes it when the step is saved.
+- One submit, one transaction, through `SaveOtaCredentials`. For each new row it calls `EnsureOtaBookingSource`, so the channel is also a [booking source](../12-reservations/11-booking-sources.md#defaults) on the booking form. Removing a row keeps its booking source.
+- The admin property page has an **OTA lists** tab, where the team adds, changes and removes logins received by WhatsApp or chat. **Add channel** and the row's edit button open a Sheet. A saved row keeps its channel. A blank password keeps the saved one, and a new password sets the row back to Pending. Every write needs `support.2fa` and writes an activity log entry that never holds the login. **Reveal** is a POST that returns the password as JSON (never page props). It needs `support.2fa` and writes an activity log entry. **Mark processed** sets the row to Processed once the team has connected the channel.
+- There is no OTA lists page in Settings. After go-live, only the team changes logins. A skipped OTA lists step is not listed on the Recommended checklist, because the owner has nowhere to fill it in.
 - At phone width each row stacks into a card.
 - Check: optional, never blocks. Done with at least one row, or Skipped.
 

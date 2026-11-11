@@ -53,7 +53,7 @@ class ReservationActivityLog
 
     /**
      * The latest price override of a unit: the one logged when the unit was added, or a later Change price. Its reason
-     * (null when none was given) and who set it. Null when the unit has none.
+     * (null when none or only blank text was given) and who set it. Null when the unit has none.
      *
      * @return array{reason: ?string, by: ?string}|null
      */
@@ -75,7 +75,7 @@ class ReservationActivityLog
 
         $reason = $activity->properties->get($activity->event === 'reservation.unit_added' ? 'override_reason' : 'reason');
 
-        return ['reason' => $reason === null ? null : (string) $reason, 'by' => $this->causerName($activity->causer)];
+        return ['reason' => trim((string) $reason) === '' ? null : (string) $reason, 'by' => $this->causerName($activity->causer)];
     }
 
     /**
@@ -118,6 +118,12 @@ class ReservationActivityLog
                 'amount' => data_get($properties->get('nights', []), '0.new_amount'),
             ]),
             'reservation.boat_trip_set' => $this->boatTripSetText($properties),
+            'reservation.boat_trip_ticked' => $properties->get('ticked')
+                ? __(':direction: ticked on the manifest.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()])
+                : __(':direction: tick removed on the manifest.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()]),
+            'reservation.boat_trip_moved' => $properties->get('boat') === null
+                ? __(':direction: moved to the :time boat.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label(), 'time' => $properties->get('boat_time')])
+                : __(':direction: moved to :boat (:time).', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label(), 'boat' => $properties->get('boat'), 'time' => $properties->get('boat_time')]),
             'reservation.boat_trip_cleared' => __(':direction: not set.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()]),
             default => (string) $activity->description,
         };

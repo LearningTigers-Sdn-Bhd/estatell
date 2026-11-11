@@ -3,8 +3,13 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Accounting\AccountingSettingsController;
 use App\Http\Controllers\ApiAccess\KioskController;
+use App\Http\Controllers\Boats\BoatController;
+use App\Http\Controllers\Boats\BoatCrewController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
+use App\Http\Controllers\BookingEngine\BookingApiController;
+use App\Http\Controllers\BookingEngine\BookingWebsiteController;
+use App\Http\Controllers\BookingEngine\NearbyPlaceController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
@@ -12,15 +17,17 @@ use App\Http\Controllers\Catalogues\RoomRevenueController;
 use App\Http\Controllers\Catalogues\RoomRevenueDayUseController;
 use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
+use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
+use App\Http\Controllers\DoorLocks\KeyportSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\EInvoiceSettingsController;
 use App\Http\Controllers\Property\NotificationSettingController;
-use App\Http\Controllers\Property\OtaListSettingsController;
 use App\Http\Controllers\Property\PrintSettingsController;
 use App\Http\Controllers\Property\PropertyLogoController;
+use App\Http\Controllers\Property\PropertyPhotoController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rates\RatePlanCompanyController;
 use App\Http\Controllers\Rates\RatePlanController;
@@ -30,7 +37,9 @@ use App\Http\Controllers\Reservations\BookingSourceController;
 use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
+use App\Http\Controllers\Rooms\RoomTypeAmenityController;
 use App\Http\Controllers\Rooms\RoomTypeController;
+use App\Http\Controllers\Rooms\RoomTypePhotoController;
 use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffBulkAddController;
 use App\Http\Controllers\Staff\StaffController;
@@ -51,6 +60,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('profile', [PropertySettingsController::class, 'updateProfile'])->name('profile.update');
         Route::get('business', [PropertySettingsController::class, 'business'])->name('business');
         Route::put('business', [PropertySettingsController::class, 'updateBusiness'])->name('business.update');
+        Route::get('photos', [PropertySettingsController::class, 'photos'])->name('photos');
+        Route::controller(PropertyPhotoController::class)->group(function () {
+            Route::post('photos', 'store')->name('photos.store');
+            Route::put('photos/order', 'reorder')->name('photos.reorder');
+            Route::delete('photos/{photo}', 'destroy')->whereNumber('photo')->name('photos.destroy');
+        });
         Route::get('/', [PropertySettingsController::class, 'edit'])->name('edit');
         Route::get('operations', [PropertySettingsController::class, 'operations'])->name('operations');
         Route::get('support', [PropertySettingsController::class, 'support'])->name('support');
@@ -95,6 +110,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::middleware('can:'.PermissionEnum::RoomsView->value)->scopeBindings()->group(function () {
             Route::get('{roomType}', [RoomTypeController::class, 'edit'])->name('edit');
             Route::get('{roomType}/rooms', [RoomTypeController::class, 'editRooms'])->name('rooms.edit');
+            Route::get('{roomType}/photos', [RoomTypePhotoController::class, 'edit'])->name('photos.edit');
+            Route::get('{roomType}/amenities', [RoomTypeAmenityController::class, 'edit'])->name('amenities.edit');
         });
 
         Route::middleware('can:'.PermissionEnum::RoomsManage->value)->scopeBindings()->group(function () {
@@ -102,6 +119,10 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('order', [RoomTypeController::class, 'reorder'])->name('reorder');
             Route::put('{roomType}', [RoomTypeController::class, 'update'])->name('update');
             Route::put('{roomType}/rooms', [RoomTypeController::class, 'updateRooms'])->name('rooms.update');
+            Route::post('{roomType}/photos', [RoomTypePhotoController::class, 'store'])->name('photos.store');
+            Route::put('{roomType}/photos/order', [RoomTypePhotoController::class, 'reorder'])->name('photos.reorder');
+            Route::delete('{roomType}/photos/{photo}', [RoomTypePhotoController::class, 'destroy'])->whereNumber('photo')->name('photos.destroy');
+            Route::put('{roomType}/amenities', [RoomTypeAmenityController::class, 'update'])->name('amenities.update');
             Route::post('{roomType}/archive', [RoomTypeController::class, 'archive'])->name('archive');
             Route::post('{roomType}/restore', [RoomTypeController::class, 'restore'])->name('restore');
         });
@@ -154,11 +175,27 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('{boatDeparture}', [BoatDepartureController::class, 'update'])->name('update');
             Route::delete('{boatDeparture}', [BoatDepartureController::class, 'destroy'])->name('destroy');
         });
+        Route::prefix('boats/boats')->name('boats.boats.')->group(function () {
+            Route::get('/', [BoatController::class, 'index'])->name('index');
+            Route::post('/', [BoatController::class, 'store'])->name('store');
+            Route::put('{boat}', [BoatController::class, 'update'])->name('update');
+        });
+        Route::prefix('boats/crew')->name('boats.crew.')->group(function () {
+            Route::get('/', [BoatCrewController::class, 'index'])->name('index');
+            Route::post('/', [BoatCrewController::class, 'store'])->name('store');
+            Route::put('{crewMember}', [BoatCrewController::class, 'update'])->name('update');
+        });
+        Route::put('boats/charter', [BoatFareController::class, 'charter'])->name('boats.charter');
         Route::prefix('boats/fares')->name('boats.fares.')->group(function () {
             Route::get('/', [BoatFareController::class, 'index'])->name('index');
             Route::post('/', [BoatFareController::class, 'store'])->name('store');
             Route::put('{chargeItem}', [BoatFareController::class, 'update'])->name('update');
         });
+    });
+
+    Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::get('agent-payments', [AgentPaymentTermsController::class, 'edit'])->name('agent-payments.edit');
+        Route::put('agent-payments', [AgentPaymentTermsController::class, 'update'])->name('agent-payments.update');
     });
 
     Route::prefix('taxes')->name('taxes.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
@@ -188,15 +225,63 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
     Route::prefix('door-locks')->name('door-locks.')->middleware(['door-locks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [DoorLockSettingsController::class, 'edit'])->name('edit');
-        Route::put('/', [DoorLockSettingsController::class, 'update'])->name('update');
-        Route::post('test', [DoorLockSettingsController::class, 'test'])->name('test');
-        Route::post('sync', [DoorLockSettingsController::class, 'sync'])->name('sync');
-        Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link');
-        Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock');
-        Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock');
-        Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store');
-        Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke');
-        Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry');
+        Route::put('/', [DoorLockSettingsController::class, 'update'])->name('update')->middleware('door-locks:ttlock');
+        Route::post('test', [DoorLockSettingsController::class, 'test'])->name('test')->middleware('door-locks:ttlock');
+        Route::post('sync', [DoorLockSettingsController::class, 'sync'])->name('sync')->middleware('door-locks:ttlock');
+        Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock')->middleware('door-locks:ttlock');
+        Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health')->middleware('door-locks:ttlock');
+        Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store')->middleware('door-locks:ttlock');
+        Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke')->middleware('door-locks:ttlock');
+        Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry')->middleware('door-locks:ttlock');
+    });
+
+    Route::prefix('booking-website')->name('booking-website.')->middleware('booking-engine')->scopeBindings()->group(function () {
+        Route::middleware('can:'.PermissionEnum::BookingWebsiteManage->value)->group(function () {
+            Route::get('/', [BookingWebsiteController::class, 'general'])->name('general');
+            Route::put('/', [BookingWebsiteController::class, 'updateGeneral'])->name('general.update');
+            Route::get('design', [BookingWebsiteController::class, 'design'])->name('design');
+            Route::put('design', [BookingWebsiteController::class, 'updateDesign'])->name('design.update');
+            Route::post('design/images/{slot}', [BookingWebsiteController::class, 'uploadImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.store');
+            Route::post('design/images/{slot}/from-album', [BookingWebsiteController::class, 'copyImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.copy');
+            Route::delete('design/images/{slot}', [BookingWebsiteController::class, 'removeImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.destroy');
+            Route::get('seo', [BookingWebsiteController::class, 'seo'])->name('seo');
+            Route::put('seo', [BookingWebsiteController::class, 'updateSeo'])->name('seo.update');
+            Route::get('amenities', [BookingWebsiteController::class, 'amenities'])->name('amenities');
+            Route::put('amenities', [BookingWebsiteController::class, 'updateAmenities'])->name('amenities.update');
+            Route::get('rates', [BookingWebsiteController::class, 'rates'])->name('rates');
+            Route::put('rates', [BookingWebsiteController::class, 'updateRates'])->name('rates.update');
+            Route::get('nearby-places', [NearbyPlaceController::class, 'index'])->name('nearby-places');
+            Route::post('nearby-places', [NearbyPlaceController::class, 'store'])->name('nearby-places.store');
+            Route::put('nearby-places/order', [NearbyPlaceController::class, 'reorder'])->name('nearby-places.reorder');
+            Route::post('nearby-places/{nearbyPlace}/suggested', [NearbyPlaceController::class, 'storeSuggested'])->withoutScopedBindings()->whereNumber('nearbyPlace')->name('nearby-places.suggested');
+            Route::put('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'update'])->whereNumber('nearbyPlace')->name('nearby-places.update');
+            Route::put('nearby-places/{nearbyPlace}/active', [NearbyPlaceController::class, 'active'])->whereNumber('nearbyPlace')->name('nearby-places.active.update');
+            Route::delete('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'destroy'])->whereNumber('nearbyPlace')->name('nearby-places.destroy');
+        });
+        Route::middleware('can:'.PermissionEnum::BookingWebsitePublish->value)->group(function () {
+            Route::post('publish', [BookingWebsiteController::class, 'publish'])->name('publish');
+            Route::post('unpublish', [BookingWebsiteController::class, 'unpublish'])->name('unpublish');
+        });
+        Route::middleware('can:'.PermissionEnum::BookingWebsiteApi->value)->group(function () {
+            Route::get('api', [BookingApiController::class, 'show'])->name('api');
+            Route::post('api/token', [BookingApiController::class, 'issueToken'])->name('api.token.store');
+            Route::delete('api/token', [BookingApiController::class, 'revokeToken'])->name('api.token.destroy');
+            Route::post('api/return-addresses', [BookingApiController::class, 'storeReturnAddress'])->name('api.return-addresses.store');
+            Route::delete('api/return-addresses/{bookingReturnAddress}', [BookingApiController::class, 'destroyReturnAddress'])->whereNumber('bookingReturnAddress')->name('api.return-addresses.destroy');
+        });
+    });
+
+    Route::prefix('keyport')->name('keyport.')->middleware(['door-locks:elock', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('/', [KeyportSettingsController::class, 'index'])->name('index');
+        Route::post('codes', [KeyportSettingsController::class, 'storeCode'])->name('codes.store');
+        Route::post('devices/{keyportDevice}/revoke', [KeyportSettingsController::class, 'revokeDevice'])->name('devices.revoke');
+        Route::delete('devices/{keyportDevice}', [KeyportSettingsController::class, 'destroyDevice'])->name('devices.destroy');
+        Route::post('locks', [KeyportSettingsController::class, 'storeLock'])->name('locks.store');
+        Route::put('locks/{doorLock}', [KeyportSettingsController::class, 'updateLock'])->name('locks.update');
+        Route::delete('locks/{doorLock}', [KeyportSettingsController::class, 'destroyLock'])->name('locks.destroy');
+        Route::post('jobs/{keyportJob}/cancel', [KeyportSettingsController::class, 'cancelJob'])->name('jobs.cancel');
     });
 
     Route::prefix('accounting')->name('accounting.')->middleware(['accounting', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
@@ -210,15 +295,10 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('syncs/{accountingSync}/retry', [AccountingSettingsController::class, 'retry'])->name('retry');
     });
 
-    Route::prefix('e-invoice')->name('e-invoice.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+    Route::prefix('e-invoice')->name('e-invoice.')->middleware(['einvoicing', 'can:'.PermissionEnum::SettingsManage->value])->group(function () {
         Route::get('/', [EInvoiceSettingsController::class, 'edit'])->name('edit');
         Route::put('/', [EInvoiceSettingsController::class, 'update'])->name('update');
         Route::post('test', [EInvoiceSettingsController::class, 'test'])->name('test');
-    });
-
-    Route::prefix('ota-lists')->name('ota-lists.')->middleware('can:'.PermissionEnum::SettingsOtaLists->value)->group(function () {
-        Route::get('/', [OtaListSettingsController::class, 'edit'])->name('edit');
-        Route::put('/', [OtaListSettingsController::class, 'update'])->name('update');
     });
 
     Route::prefix('kiosks')->name('kiosks.')->middleware(['kiosks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {

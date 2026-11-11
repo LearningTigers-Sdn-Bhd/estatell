@@ -31,7 +31,7 @@ class ReservationBoatTripController extends Controller
         $result = $setBoatTrip($request->user(), $unit, $request->toTripData($direction));
 
         if ($result->isRefused()) {
-            return back(fallback: $page)->withErrors($refusals->boatTripErrors((string) $result->refusal));
+            return back(fallback: $page)->withErrors($refusals->boatTripErrors((string) $result->refusal, $result->detail));
         }
 
         Inertia::flash('toast', $this->savedToast($result->postedFareKept, __('Boat trip saved.')));
@@ -49,7 +49,7 @@ class ReservationBoatTripController extends Controller
         $result = $setBoatTrips($request->user(), $reservation, $request->changes());
 
         if ($result->isRefused()) {
-            return back(fallback: $page)->withErrors($refusals->boatTripsErrors((string) $result->refusal, (string) $result->unitLabel));
+            return back(fallback: $page)->withErrors($refusals->boatTripsErrors((string) $result->refusal, (string) $result->unitLabel, $result->detail));
         }
 
         Inertia::flash('toast', $this->savedToast($result->postedFareKept, __('Boat trips saved.')));

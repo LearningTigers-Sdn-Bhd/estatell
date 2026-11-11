@@ -28,7 +28,7 @@ class PaymentMethodController extends Controller
         abort_if($property->settings === null, 404);
 
         $paymentMethods = $property->paymentMethods()
-            ->where('type', '!=', PaymentMethodType::OldSystem->value)
+            ->whereNotIn('type', [PaymentMethodType::OldSystem->value, PaymentMethodType::Online->value])
             ->with(['transactionCode', 'surchargeChargeItem'])
             ->orderByDesc('active')
             ->ordered()

@@ -11,6 +11,8 @@ use App\Actions\Reservations\ArrivalImportResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
+use App\Actions\Reservations\GroupAddOnResult;
+use App\Actions\Reservations\GroupNightPriceResult;
 use App\Actions\Reservations\GroupUpdateResult;
 use App\Actions\Reservations\NightPriceResult;
 use App\Actions\Reservations\ReservationResult;
@@ -54,6 +56,31 @@ class ReservationRefusals
     }
 
     /**
+     * The errors to flash back to the group add-on Dialog. A refusal that depends on the unit (closed, its stay, its
+     * dates) is a form error that starts with the unit label, so staff know which room to fix. The others belong to a
+     * field, as for one unit.
+     *
+     * @return array<string, string>
+     */
+    public function groupAddOnErrors(string $code, ?string $unit = null): array
+    {
+        $message = match ($code) {
+            GroupAddOnResult::REFUSAL_NO_UNITS => __('Pick at least one unit.'),
+            AddOnResult::REFUSAL_UNIT_NOT_OPEN => __('This unit is closed, so it cannot change.'),
+            AddOnResult::REFUSAL_NIGHTLY_ITEM_FOR_DAY_USE => __('A nightly item cannot be added to a day use unit.'),
+            AddOnResult::REFUSAL_SERVICE_DATE_OUTSIDE_STAY => __('The service date is not within this stay.'),
+            AddOnResult::REFUSAL_SERVICE_DATE_IN_PAST => __('The date or the nights of this stay are already past.'),
+            default => null,
+        };
+
+        if ($message === null) {
+            return $this->errors($code);
+        }
+
+        return [self::FORM => $unit === null ? $message : $unit.': '.$message];
+    }
+
+    /**
      * The errors to flash back to a unit action form (cancel, no-show, reinstate, change dates), keyed by field name.
      * A code the form does not know falls back to the shared list.
      *
@@ -82,12 +109,49 @@ class ReservationRefusals
     }
 
     /**
+     * The errors to flash back to the group Change price Dialog. The price and the reason keep their fields; any other
+     * refusal is a form error that starts with the unit label, so staff know which room to fix.
+     *
+     * @return array<string, string>
+     */
+    public function groupNightPriceErrors(string $code, ?string $unit = null): array
+    {
+        if ($code === GroupNightPriceResult::REFUSAL_NO_UNITS) {
+            return ['unit_ids' => __('Tick at least one unit.')];
+        }
+
+        $errors = $this->nightPriceErrors($code);
+        $field = (string) array_key_first($errors);
+
+        if (in_array($field, ['price', 'reason'], true)) {
+            return $errors;
+        }
+
+        return [self::FORM => $unit === null ? $errors[$field] : $unit.': '.$errors[$field]];
+    }
+
+    /**
+     * The message of a refused Change guests: its own codes, else the shared unit and quote messages.
+     */
+    public function partyMessage(string $code): string
+    {
+        return match ($code) {
+            UnitPartyChangePreview::REFUSAL_UNIT_NOT_OPEN => __('Only a confirmed or checked-in room can change its guests.'),
+            UnitPartyChangePreview::REFUSAL_DAY_USE => __('A day use booking keeps its guests. Cancel it and book again.'),
+            UnitPartyChangePreview::REFUSAL_BED_UNIT => __('A bed takes one guest. Add or remove beds instead.'),
+            UnitPartyChangePreview::REFUSAL_TOO_MANY_GUESTS => __('This room type takes fewer guests.'),
+            UnitPartyChangePreview::REFUSAL_NOTHING_CHANGED => __('The guests are the same as now.'),
+            default => (string) array_values($this->unitErrors($code))[0],
+        };
+    }
+
+    /**
      * The errors of the boat trip Dialog, keyed by field. `unit_not_open` is shared with other Actions, so the boat
      * trip messages stay here and do not change the shared list.
      *
      * @return array<string, string>
      */
-    public function boatTripErrors(string $code): array
+    public function boatTripErrors(string $code, ?string $detail = null): array
     {
         [$field, $message] = match ($code) {
             BoatTripResult::REFUSAL_BOATS_OFF => [self::FORM, __('Boats is not on for this property.')],
@@ -95,6 +159,7 @@ class ReservationRefusals
             BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND => ['boat_departure_id', __('This boat is not available for this direction. Choose another.')],
             BoatTripResult::REFUSAL_TIME_REQUIRED => ['time', __('Enter the time.')],
             BoatTripResult::REFUSAL_DAY_USE => [self::FORM, __('Day use bookings have no boat trips.')],
+            BoatTripResult::REFUSAL_DEPARTURE_CANCELLED => ['boat_departure_id', $detail ?? __('This boat does not run on that date. Choose another.')],
             BoatTripResult::REFUSAL_FARE_NOT_FOUND => ['boat_departure_id', __("This boat's fare is not available. Turn it on or change the departure's fare.")],
             default => [self::FORM, __('This change was refused.')],
         };
@@ -108,9 +173,9 @@ class ReservationRefusals
      *
      * @return array<string, string>
      */
-    public function boatTripsErrors(string $code, string $unitLabel): array
+    public function boatTripsErrors(string $code, string $unitLabel, ?string $detail = null): array
     {
-        return [self::FORM => $unitLabel.': '.current($this->boatTripErrors($code))];
+        return [self::FORM => $unitLabel.': '.current($this->boatTripErrors($code, $detail))];
     }
 
     /**
@@ -139,6 +204,7 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter an amount of 0 or more for this day use.')],
             UnitStayResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('This property has no open business date yet.')],
             UnitStayResult::REFUSAL_STAY_ENDED => [self::FORM, __('The stay has ended.')],
+            UnitStayResult::REFUSAL_ARRIVED_AT_IN_FUTURE => ['arrived_at', __('The arrival time cannot be later than now.')],
             UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED => [self::FORM, __('The guest cannot check in before the arrival date.')],
             UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED => [self::FORM, __('Assign a room or bed for tonight before checking in.')],
             UnitStayResult::REFUSAL_CARD_MISSING => [self::FORM, $canOverrideCard
@@ -208,6 +274,8 @@ class ReservationRefusals
             ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE => ['company_id', __('This company is not available. Pick an active company.')],
             ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY => ['rate_plan_id', __('This rate plan is for certain companies only. Pick one of them on the reservation first.')],
             ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT => ['company_id', __('Units use plans only the old company can book.')],
+            ReservationResult::REFUSAL_ROOMS_BELOW_MIN => ['rate_plan_id', __('This rate needs more rooms in one booking. Pick another rate.')],
+            ReservationResult::REFUSAL_ROOMS_ABOVE_MAX => ['rate_plan_id', __('This rate is for fewer rooms in one booking. Pick the group rate.')],
             ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
             ReservationResult::REFUSAL_MASTER_HAS_PAYMENTS => ['company_id', __('Refund the :amount payment on the Master folio first, then change the company.', ['amount' => $detail])],
             ReservationResult::REFUSAL_MASTER_HAS_AR_INVOICE => ['company_id', __('Void invoice :number first, then change the company.', ['number' => $detail])],

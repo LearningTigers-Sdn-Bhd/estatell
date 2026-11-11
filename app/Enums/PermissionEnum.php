@@ -9,7 +9,6 @@ namespace App\Enums;
 enum PermissionEnum: string
 {
     case SettingsManage = 'settings.manage';
-    case SettingsOtaLists = 'settings.ota-lists';
     case StaffView = 'staff.view';
     case StaffManage = 'staff.manage';
     case RolesManage = 'roles.manage';
@@ -67,6 +66,10 @@ enum PermissionEnum: string
     case HousekeepingView = 'housekeeping.view';
     case HousekeepingUpdate = 'housekeeping.update';
     case HousekeepingInspect = 'housekeeping.inspect';
+    case HousekeepingEditTimes = 'housekeeping.edit-times';
+    case BookingWebsiteManage = 'booking-website.manage';
+    case BookingWebsitePublish = 'booking-website.publish';
+    case BookingWebsiteApi = 'booking-website.api';
     case EInvoiceView = 'einvoice.view';
     case EInvoiceManage = 'einvoice.manage';
 
@@ -74,7 +77,6 @@ enum PermissionEnum: string
     {
         return match ($this) {
             self::SettingsManage => __('Manage property settings'),
-            self::SettingsOtaLists => __('Manage OTA lists'),
             self::StaffView => __('View staff'),
             self::StaffManage => __('Manage staff'),
             self::RolesManage => __('Manage roles'),
@@ -132,6 +134,10 @@ enum PermissionEnum: string
             self::HousekeepingView => __('View the housekeeping board'),
             self::HousekeepingUpdate => __('Update room status, assignments and flags'),
             self::HousekeepingInspect => __('Mark rooms as inspected'),
+            self::HousekeepingEditTimes => __('Correct housekeeping IN and OUT times'),
+            self::BookingWebsiteManage => __('Edit the booking website settings'),
+            self::BookingWebsitePublish => __('Publish or unpublish the booking website'),
+            self::BookingWebsiteApi => __('Manage the booking API token and return addresses'),
             self::EInvoiceView => __('View e-invoices and submissions'),
             self::EInvoiceManage => __('Submit, cancel, and configure e-invoices'),
         };
@@ -143,7 +149,7 @@ enum PermissionEnum: string
     public function group(): string
     {
         return match ($this) {
-            self::SettingsManage, self::SettingsOtaLists => __('Property'),
+            self::SettingsManage => __('Property'),
             self::StaffView, self::StaffManage, self::RolesManage => __('Team'),
             self::RoomsView, self::RoomsManage, self::RoomsBlock => __('Rooms'),
             self::NotificationManage => __('System'),
@@ -157,7 +163,8 @@ enum PermissionEnum: string
             self::FrontDeskView, self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn, self::FrontDeskUndoCheckOut => __('Front desk'),
             self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
             self::ReportsView => __('Reports'),
-            self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect => __('Housekeeping'),
+            self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes => __('Housekeeping'),
+            self::BookingWebsiteManage, self::BookingWebsitePublish, self::BookingWebsiteApi => __('Booking website'),
             self::EInvoiceView, self::EInvoiceManage => __('Finance'),
         };
     }

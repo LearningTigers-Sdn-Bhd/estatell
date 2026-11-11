@@ -6,19 +6,22 @@ use App\Data\Reports\PaymentRow;
 use App\Data\Reports\ReportBreakdown;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportTotals;
+use App\Enums\PaymentDateBasis;
 use App\Enums\PaymentMethodType;
 use App\Enums\ReportGroup;
 use App\Models\ArPayment;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Reservations\ReservationRoomBox;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Payments and refunds received in the range, by business date: the folio payments (the posting date of their ledger
- * line) and the city ledger payments (`received_on`). A refund is a negative amount. Every row shows, but only
+ * Payments and refunds in the range: the folio payments by the posting date of their ledger line, or by `received_on`
+ * when `dateBasis` is Received, and the city ledger payments by `received_on`. A row shows both dates, the room of a
+ * Unit folio (its first night) and the guest. A refund is a negative amount. Every row shows, but only
  * Completed payments count in the totals and in the summaries (by method or by staff, with In, Out and Net): Pending,
  * Failed and Voided rows add nothing. The `staff` filter keeps one receiver, and `refundsOnly` keeps only the refunds
  * (and so no city ledger rows). Payments of the Old system method (and their refunds) are left out of the rows, the totals, the staff list and both summaries.
@@ -26,6 +29,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class PaymentsReport implements HasBreakdown, HasTotals, Report
 {
+    public function __construct(private ReservationRoomBox $roomBox) {}
+
     /**
      * @param  list<int|string>|null  $rowKeys  `p:{id}` for a folio payment, `ar:{id}` for a city ledger payment.
      * @return list<PaymentRow>
@@ -42,18 +47,21 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
                 ->join('payment_methods', 'payment_methods.id', '=', 'payments.payment_method_id')
                 ->where('payment_methods.type', '!=', PaymentMethodType::OldSystem->value)
                 ->where('payments.property_id', $property->id)
-                ->whereBetween('folio_lines.posting_date', [$filters->from, $filters->to])
+                ->whereBetween($filters->dateBasis->column(), [$filters->from, $filters->to])
                 ->when($folioIds !== null, fn (Builder $query) => $query->whereIn('payments.id', $folioIds))
                 ->when($filters->staff !== null, fn (Builder $query) => $query->where('payments.received_by', $filters->staff))
                 ->when($filters->refundsOnly, fn (Builder $query) => $query->whereNotNull('payments.refund_of_id'))
                 ->select('payments.*', 'folio_lines.posting_date as business_date')
-                ->with(['folio.reservation', 'paymentMethod', 'receiver', 'refundOf:id,receipt_number'])
-                ->orderBy('folio_lines.posting_date')
+                ->with(['folio.reservation.booker', 'folio.payerGuest', 'folio.payerCompany', 'paymentMethod', 'receiver', 'refundOf:id,receipt_number'])
+                ->orderBy($filters->dateBasis->column())
                 ->orderBy('payments.id')
                 ->get();
 
+            $rooms = $this->roomBox->assignmentsForUnits(array_values(array_unique(array_filter($payments->map(fn (Payment $payment): ?int => $payment->folio->reservation_unit_id)->all()))));
+
             foreach ($payments as $payment) {
-                $rows[] = PaymentRow::fromPayment($payment, substr((string) $payment->getAttribute('business_date'), 0, 10));
+                $unitId = $payment->folio->reservation_unit_id;
+                $rows[] = PaymentRow::fromPayment($payment, substr((string) $payment->getAttribute('business_date'), 0, 10), $unitId === null ? null : ($rooms[$unitId] ?? null));
             }
         }
 
@@ -73,7 +81,8 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
             }
         }
 
-        usort($rows, fn (PaymentRow $a, PaymentRow $b): int => $a->date <=> $b->date);
+        $received = $filters->dateBasis === PaymentDateBasis::Received;
+        usort($rows, fn (PaymentRow $a, PaymentRow $b): int => $received ? $a->received_on <=> $b->received_on : $a->date <=> $b->date);
 
         return $rows;
     }
@@ -91,7 +100,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
             ->join('payment_methods', 'payment_methods.id', '=', 'payments.payment_method_id')
             ->where('payment_methods.type', '!=', PaymentMethodType::OldSystem->value)
             ->where('payments.property_id', $property->id)
-            ->whereBetween('folio_lines.posting_date', [$filters->from, $filters->to])
+            ->whereBetween($filters->dateBasis->column(), [$filters->from, $filters->to])
             ->select('payments.received_by');
 
         $cityLedger = ArPayment::query()
@@ -131,7 +140,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
     /**
      * The summary under the table, by the `group` of the filters. By method (the default): the count, In, Out and Net of
      * the Completed rows for each payment method. By staff (the cash-up): the same for each method of each staff
-     * member, with a subtotal row for each staff member. In is the Completed payments, Out the Completed refunds
+     * member, with a subtotal row for each staff member, leaving out the money no staff member took (Online). In is the Completed payments, Out the Completed refunds
      * (negative) and Net is In plus Out.
      *
      * @param  list<PaymentRow>  $rows
@@ -166,7 +175,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
      */
     private function byStaff(array $rows): ReportBreakdown
     {
-        $completed = $this->completed($rows);
+        $completed = array_values(array_filter($this->completed($rows), fn (PaymentRow $row): bool => $row->staff_id !== 0));
         $byStaff = [];
 
         foreach ($completed as $row) {

@@ -14,8 +14,8 @@ use App\Services\Property\MigrationWindow;
 
 /**
  * Finds the payment method that staff can take money with on a reservation: an active method of its property. City
- * ledger is never offered, and OTA collected only when the caller allows it (the Record payment Dialog and the wastays
- * replay). The method's code must be an active payment code, and a surcharge needs an active charge item on an active
+ * ledger is never offered, OTA collected only when the caller allows it (the Record payment Dialog and the wastays
+ * replay), and Online only to the booking engine, which posts the money Curlec took. The method's code must be an active payment code, and a surcharge needs an active charge item on an active
  * charge code. The system Old system method is offered by the migration window and
  * `folio.manual`, not by its `active` flag, and never has a surcharge. `RecordPayment` and the manual folio preview
  * both use it.
@@ -24,12 +24,13 @@ class AvailablePaymentMethod
 {
     public function __construct(private MigrationWindow $migrationWindow) {}
 
-    public function find(Reservation $reservation, int $methodId, User $actor, bool $allowOtaCollected = false): ?PaymentMethod
+    public function find(Reservation $reservation, int $methodId, ?User $actor, bool $allowOtaCollected = false, bool $allowOnline = false): ?PaymentMethod
     {
         $method = PaymentMethod::query()
             ->where('property_id', $reservation->property_id)
             ->where('type', '!=', PaymentMethodType::DirectBill)
             ->when(! $allowOtaCollected, fn ($query) => $query->where('type', '!=', PaymentMethodType::OtaCollected))
+            ->when(! $allowOnline, fn ($query) => $query->where('type', '!=', PaymentMethodType::Online))
             ->with(['transactionCode', 'surchargeChargeItem.transactionCode'])
             ->find($methodId);
 
@@ -57,10 +58,10 @@ class AvailablePaymentMethod
     }
 
     /**
-     * Whether the user may take an Old system payment now: `folio.manual` (or a platform admin, who runs the console imports) and an open migration window.
+     * Whether the user may take an Old system payment now: `folio.manual` (or a platform admin, who runs the console imports) and an open migration window. No actor never may.
      */
-    public function oldSystemOffered(Property $property, User $actor): bool
+    public function oldSystemOffered(Property $property, ?User $actor): bool
     {
-        return ($actor->is_admin || $actor->can(PermissionEnum::FolioManual->value)) && $this->migrationWindow->isOpen($property);
+        return $actor !== null && ($actor->is_admin || $actor->can(PermissionEnum::FolioManual->value)) && $this->migrationWindow->isOpen($property);
     }
 }

@@ -15,7 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Money received on a folio, or given back (a refund, with `refund_of_id`). `amount` is always positive: for a
  * payment it is the total collected (the amount paid on the bill plus any surcharge and its tax), for a refund the
- * amount given back. `folio_line_id` is its ledger line. A database trigger rejects every UPDATE and DELETE.
+ * amount given back. `folio_line_id` is its ledger line. `received_on` is the day the money came in (the business
+ * date unless staff pick an earlier day), and `received_at` the moment staff recorded it. A database trigger rejects every UPDATE and DELETE.
  * See docs/14-payments/01-payments-and-refunds.md.
  *
  * @property int $id
@@ -26,19 +27,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property PaymentPurpose $purpose
  * @property PaymentStatus $status
  * @property string|null $reference
+ * @property CarbonImmutable $received_on
+ * @property string|null $notes
  * @property int|null $refund_of_id
  * @property string|null $refund_reason
  * @property bool $voided
  * @property string|null $receipt_number
  * @property int $folio_line_id
  * @property int|null $surcharge_line_id
- * @property int $received_by
+ * @property int|null $received_by
  * @property CarbonImmutable $received_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
-    'folio_id', 'payment_method_id', 'amount', 'purpose', 'status', 'reference', 'refund_of_id', 'refund_reason', 'voided', 'receipt_number',
+    'folio_id', 'payment_method_id', 'amount', 'purpose', 'status', 'reference', 'received_on', 'notes', 'refund_of_id', 'refund_reason', 'voided', 'receipt_number',
     'folio_line_id', 'surcharge_line_id', 'received_by', 'received_at',
 ])]
 class Payment extends Model
@@ -57,6 +60,7 @@ class Payment extends Model
             'status' => PaymentStatus::class,
             'voided' => 'boolean',
             'received_at' => 'datetime',
+            'received_on' => 'date',
         ];
     }
 
@@ -98,6 +102,14 @@ class Payment extends Model
     public function refunds(): HasMany
     {
         return $this->hasMany(self::class, 'refund_of_id');
+    }
+
+    /**
+     * @return HasMany<GatewayRefundPart, $this>
+     */
+    public function gatewayRefundParts(): HasMany
+    {
+        return $this->hasMany(GatewayRefundPart::class);
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Enums\CompanyStatus;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\OnboardingPhase;
 use App\Enums\OnboardingStep;
+use App\Enums\PaymentMethodType;
 use App\Enums\StepState;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
@@ -183,7 +184,7 @@ class GoLiveReview
             OnboardingStep::RoomTypes => $this->count($property->roomTypes()->active()->count(), 'room type'),
             OnboardingStep::Rooms => $this->count($property->rooms()->active()->count(), 'room'),
             OnboardingStep::Taxes => $this->roomTaxesSummary($property),
-            OnboardingStep::PaymentMethods => $this->count($property->paymentMethods()->active()->count(), 'payment method'),
+            OnboardingStep::PaymentMethods => $this->count($property->paymentMethods()->active()->where('type', '!=', PaymentMethodType::Online)->count(), 'payment method'),
             OnboardingStep::Companies => $this->count($property->companies()->where('status', CompanyStatus::Active->value)->count(), 'company', 'companies'),
             OnboardingStep::BasicRate => match ($state) {
                 StepState::Done => 'Priced for the next 30 days.',

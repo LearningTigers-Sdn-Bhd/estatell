@@ -212,7 +212,7 @@ test('a group where Master pays and has no company records the bill on the Maste
 
 test('a company billed on Master pays collects no bill and still takes the deposit', function () {
     $setup = walkInCheckInSetup();
-    $company = Company::factory()->for($setup['property'])->create();
+    $company = Company::factory()->for($setup['property'])->create(['pays_collected_taxes' => true]);
 
     $this->actingAs($setup['user'])->post(walkInSaveUrl($setup), walkInSaveBody($setup, ['company_id' => $company->id, 'billing_mode' => 'master_pays', 'expected_total' => '200.00']))->assertSessionHasNoErrors();
 

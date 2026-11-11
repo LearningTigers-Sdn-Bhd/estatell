@@ -11,7 +11,7 @@ unit_add_ons    id, reservation_unit_id, charge_item_id, quantity, unit_amount,
                 service_date (nullable), property_age_group_id (nullable), timestamps
 ```
 
-- Every add-on belongs to one unit. A group extra, such as one transfer for the whole group, goes on one unit.
+- Every add-on belongs to one unit. An extra for each room of a group, such as breakfast, is added to every unit at once with the [group add-on](#group-add-on), and each unit gets its own rows. One shared extra, such as one transfer for the whole group, still goes on one unit.
 - No `property_id`: the table is scoped through the unit, like `unit_nights`.
 - `quantity` is at least 1 and `unit_amount` is 0 or more (database CHECKs).
 - The total is `quantity × unit_amount`. It is calculated, never stored.
@@ -68,22 +68,77 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 
 `(User $actor, UnitAddOn $addOn): bool`. Deletes one add-on row and logs `reservation.add_on_removed` on the reservation. Returns false, writing and logging nothing, when the row is already gone or the unit is not Confirmed or CheckedIn (add-ons of Cancelled, NoShow and CheckedOut units stay as history). A posted add-on (`unit_add_ons.folio_line_id` is set) is refused the same way (`add_on_posted`). The correction is `ReverseLine`.
 
+### Group add-on
+
+**Status: planned** (Sand Bay feedback 2). Add the same add-on to several units of a reservation in one save.
+
+#### Entry
+
+| From                                                                | Units picked when it opens                                 |
+| ------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [Add-ons tab](06-reservation-page.md#add-ons-tab): **+ Add add-on** | **All units** on a group, the one unit on a single booking |
+
+It needs `reservations.manage`. The Units tab has no Add add-on: the group add-on starts here only.
+
+#### Dialog
+
+The existing Add add-on Dialog, with these changes:
+
+- **Units** is a multi-select of the Confirmed and CheckedIn units, with **All units** first. Picking one unit works as today.
+- Charge item, quantity (PerItem), service date (non-nightly) and amount apply to **each** unit. The amount follows `allow_override`, as today.
+- **Units** is a `MultiCombobox`. Its first item, **All units (5)**, picks every unit and shows as one chip; picking a single unit after it keeps only that unit. The service date picker spans the earliest arrival to the latest departure of the picked units; a unit whose stay misses the date is refused by name.
+- On a group (2 or more Confirmed or CheckedIn units) the Dialog is two columns, like Check out (`FormOverlay` `size="lg"`): the fields on the left and a muted **Preview** panel on the right (`rounded-lg border bg-muted p-4`). Below `lg` it is one column and the preview comes after the fields.
+- With nothing to show yet, the panel shows an `EmptyState` ("No preview yet"). The preview table shows one line per unit (unit label, guests, nights, total) and the total before tax, with the note "Tax is added when it posts to the folio." Its header and total row stay in place and only the rows scroll (`max-h-56`). It comes from the server (`GroupAddOnPreview`, read only, 300 ms after a change), which uses `ChargeQuantityResolver` and `ChargeChildPrices` like `AddUnitAddOn`, so the totals match what is written. A unit that would get no rows (no night left, or a nightly item on day use) shows "Not added" in place of its total. Refusals are checked only on save.
+- The submit button names the count: "Add to 5 units".
+- A refusal shows as a form error that names the room: "F3: The stay has no night on or after the business date." The Dialog stays open.
+- Success closes it with a toast: "Breakfast added to 5 units."
+
+#### `AddGroupAddOn`
+
+`(User $actor, Reservation $reservation, list<int> $unitIds, NewAddOnData $data): GroupAddOnResult` in `app/Actions/Reservations/`.
+
+- One transaction. It locks the picked units in id order, then calls `AddUnitAddOn` once per unit with the same `NewAddOnData`.
+- All or nothing: the first refusal rolls every unit back. `GroupAddOnResult` holds the created add-ons, or the refusal code with the unit id and label.
+- A unit id that is not a unit of the reservation is ignored. No unit left is refused (`no_units_selected`).
+- Each unit keeps its own `reservation.add_on_added` entry. No summary entry is written.
+- Billing does not change: each row posts and routes like any add-on, so MasterPaysAll still sends it to the Master folio.
+
+#### Routes
+
+| URL                                           | Name                           | Permission            |
+| --------------------------------------------- | ------------------------------ | --------------------- |
+| `POST …/{reservation}/add-ons/preview` (JSON) | `reservations.add-ons.preview` | `reservations.manage` |
+| `POST …/{reservation}/add-ons`                | `reservations.add-ons.store`   | `reservations.manage` |
+
+With one unit picked, the Dialog posts `reservations.units.add-ons.store` as today.
+
+#### Not in scope
+
+- No bulk remove. Remove stays per row.
+- No By item view on the Add-ons tab until staff ask for it.
+
+#### Tests
+
+- Breakfast (PerGuestNight) on 3 units with different guests and nights writes each unit's own rows.
+- One refused unit refuses the whole save, names the room and writes nothing.
+- Units of another reservation are ignored. Permission 403 and other-property 404.
+
 ### Booking with add-ons
 
 `NewUnitData` gains `add_ons` (a list of `NewAddOnData`). `AddUnit` calls `AddUnitAddOn` for each one inside its transaction, so a booking stays all or nothing. An add-on refusal refuses the whole booking: `ReservationResult` passes the add-on code through and names the line. `AddUnit` rolls back its own unit too, so Add unit on the reservation page never leaves a unit behind. A bed line gives every bed the same add-ons.
 
 ## Added automatically
 
-An item with **Add to every new booking** (`charge_items.auto_add`) is added to each new room as an ordinary add-on. `AutoAddOns` (service, `app/Services/Reservations/`) returns the active auto-add items as `NewAddOnData` for a unit.
+An item with **Add to every new booking** (`charge_items.auto_add`) is added to each new room as an ordinary add-on. `AutoAddOns` (service, `app/Services/Reservations/`) returns the active auto-add items as `NewAddOnData` for a unit. `forChannelUnit()` returns only those that also have `auto_add_channels`; `IngestChannelBooking` adds them one by one with `AddUnitAddOn` and ignores a refusal.
 
-| Where a room is added                | Auto-add                                                                                                                           |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Booking form and walk-in             | Prefilled in each room's Add-ons with an **Added automatically** tag and **×** to remove it                                        |
-| **Add unit** on the reservation page | Added by the server (the Sheet has no add-ons); the toast names them: "Unit added with Cleaning fee."                              |
-| Company portal booking               | Added by the server (`CreatePortalReservation`); the company user cannot remove them, and the total shown at Confirm includes them |
-| Channel booking                      | Not added. The OTA price and terms decide what the guest pays                                                                      |
-| Reinstate                            | Not added again. The unit's old add-ons come back as they were                                                                     |
-| Day use unit                         | PerStay, PerGuest and PerItem items only; nightly items have no nights                                                             |
+| Where a room is added                | Auto-add                                                                                                                                                                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Booking form and walk-in             | Prefilled in each room's Add-ons with an **Added automatically** tag and **×** to remove it                                                                                                                                                                             |
+| **Add unit** on the reservation page | Added by the server (the Sheet has no add-ons); the toast names them: "Unit added with Cleaning fee."                                                                                                                                                                   |
+| Company portal booking               | Added by the server (`CreatePortalReservation`); the company user cannot remove them, the total shown at Confirm includes them, and a rule charges them to the company's Master folio                                                                                   |
+| Channel booking                      | Only items with **Also add to channel bookings** (`auto_add_channels`), added by the server after each new or added room. The OTA price does not change; the guest pays the item at the property. An item the room refuses is skipped, so the booking is still accepted |
+| Reinstate                            | Not added again. The unit's old add-ons come back as they were                                                                                                                                                                                                          |
+| Day use unit                         | PerStay, PerGuest and PerItem items only; nightly items have no nights                                                                                                                                                                                                  |
 
 - An auto-added add-on posts, prices and follows stay changes like any add-on.
 - Removing one on the booking form is logged on the reservation: "Cleaning fee was not added (removed on the booking form)." The form sends the removed item ids as `declined_auto_add_ons`.

@@ -91,6 +91,7 @@ class FolioRefusals
             PostingResult::REFUSAL_PAYMENT_LINE => [self::FORM, __('A payment cannot be reversed or moved. Refund it instead.')],
             FolioStatusResult::REFUSAL_UNITS_IN_HOUSE => [self::FORM, InHouseUnits::message($rooms)],
             FolioStatusResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
+            FolioStatusResult::REFUSAL_ONLINE_REFUND_PENDING => [self::FORM, __('An online refund is still pending on this folio. It can be closed once Curlec confirms the refund.')],
             FolioStatusResult::REFUSAL_BALANCE_NOT_ZERO => [self::FORM, __('Only a folio with a balance of 0.00 can be closed. Settle it or move the charges first.')],
             FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('This folio has a city ledger invoice. Issue a credit note instead of reopening it.')],
             FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],

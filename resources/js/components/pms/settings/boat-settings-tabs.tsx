@@ -1,15 +1,17 @@
-import { Ship, Ticket } from 'lucide-react';
+import { Anchor, Ship, Ticket, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TabLinks } from '@/components/pms/tab-links';
+import { index as boatsIndex } from '@/routes/settings/boats/boats';
+import { index as crewIndex } from '@/routes/settings/boats/crew';
 import { index as departuresIndex } from '@/routes/settings/boats/departures';
 import { index as faresIndex } from '@/routes/settings/boats/fares';
 
-/** The Departures and Fares tabs of the Boats settings page. Each tab has its own URL. */
+/** The Departures, Fares, Boats and Crew tabs of the Boats settings page. Each tab has its own URL. */
 export function BoatSettingsTabs({
     activeTab,
     children,
 }: {
-    activeTab: 'departures' | 'fares';
+    activeTab: 'departures' | 'fares' | 'boats' | 'crew';
     children: ReactNode;
 }) {
     return (
@@ -29,6 +31,18 @@ export function BoatSettingsTabs({
                     label: 'Fares',
                     icon: Ticket,
                     href: faresIndex(),
+                },
+                {
+                    value: 'boats',
+                    label: 'Boats',
+                    icon: Anchor,
+                    href: boatsIndex(),
+                },
+                {
+                    value: 'crew',
+                    label: 'Crew',
+                    icon: Users,
+                    href: crewIndex(),
                 },
             ]}
         >

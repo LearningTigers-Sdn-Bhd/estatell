@@ -341,9 +341,29 @@ export function FolioRowsTable({
                                                 />
                                             ))}
                                         </span>
-                                        {row.note && (
+                                        {(row.note || row.receivedOn) && (
                                             <span className="block text-xs text-muted-foreground">
-                                                Ref {row.note}
+                                                {row.note && (
+                                                    <>Ref {row.note}</>
+                                                )}
+                                                {row.note &&
+                                                    row.receivedOn &&
+                                                    ' · '}
+                                                {row.receivedOn && (
+                                                    <>
+                                                        Received{' '}
+                                                        <DateText
+                                                            date={
+                                                                row.receivedOn
+                                                            }
+                                                        />
+                                                    </>
+                                                )}
+                                            </span>
+                                        )}
+                                        {row.notes && (
+                                            <span className="block text-xs text-muted-foreground">
+                                                {row.notes}
                                             </span>
                                         )}
                                     </TableCell>

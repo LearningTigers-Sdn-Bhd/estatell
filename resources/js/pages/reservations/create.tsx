@@ -43,11 +43,14 @@ import {
     addDays,
     beforeGoLiveRange,
     bookingPayload,
+    withSharedAddOns,
     bookingSeats,
     autoAddOns,
     emptyLine,
     nightsBetween,
     plansFor,
+    roomsInBooking,
+    switchGroupRates,
     totalUnits,
     unitOptions,
 } from '@/components/pms/reservations/booking-lines';
@@ -538,7 +541,32 @@ export default function ReservationCreate({
         )?.[1];
     const roomTypes = addUnitOptions.roomTypes;
     const units = totalUnits(data.lines, roomTypes);
+    const roomCount = roomsInBooking(data.lines, roomTypes);
     const unitChoices = unitOptions(data.lines, roomTypes);
+
+    const [groupRateNote, setGroupRateNote] = useState<string | null>(null);
+
+    // A FIT rate with Larger bookings use moves its lines to the group rate once the booking outgrows it, and back when
+    // it shrinks. Staff can still pick another rate on any line afterwards.
+    useEffect(() => {
+        const switched = switchGroupRates(
+            form.data.lines,
+            plansFor(
+                addUnitOptions.ratePlans,
+                '',
+                form.data.company_id,
+                isDayUse,
+            ),
+            roomCount,
+        );
+
+        if (switched.count > 0) {
+            form.setData('lines', switched.lines);
+            setGroupRateNote(
+                `${switched.count === 1 ? '1 room' : `${switched.count} rooms`} moved to ${switched.switchedTo} for a booking of ${roomCount} rooms.`,
+            );
+        }
+    }, [roomCount]);
 
     const unitCapacities = unitChoices.map((unit) => unit.capacity).join(',');
     const previousUnitCount = useRef(0);
@@ -917,7 +945,7 @@ export default function ReservationCreate({
                                             </Field>
                                         </div>
                                     ) : (
-                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_12rem]">
+                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_12rem]">
                                             <Field
                                                 data-invalid={
                                                     !!errors.arrival_date ||
@@ -1487,6 +1515,9 @@ export default function ReservationCreate({
                                                 )}
                                                 seats={boatInSeats.seats}
                                                 seatsLoaded={boatInSeats.loaded}
+                                                cancelled={
+                                                    boatInSeats.cancelled
+                                                }
                                                 bookingSeats={party}
                                                 error={errors.boat_in}
                                             />
@@ -1504,6 +1535,9 @@ export default function ReservationCreate({
                                                 seats={boatOutSeats.seats}
                                                 seatsLoaded={
                                                     boatOutSeats.loaded
+                                                }
+                                                cancelled={
+                                                    boatOutSeats.cancelled
                                                 }
                                                 bookingSeats={party}
                                                 error={errors.boat_out}
@@ -1852,6 +1886,9 @@ export default function ReservationCreate({
                                                                         companyId={
                                                                             data.company_id
                                                                         }
+                                                                        roomCount={
+                                                                            roomCount
+                                                                        }
                                                                         arrival={
                                                                             data.arrival_date
                                                                         }
@@ -1925,10 +1962,13 @@ export default function ReservationCreate({
                                                                 'lines',
                                                                 [
                                                                     ...data.lines,
-                                                                    emptyLine(
-                                                                        autoAddOns(
-                                                                            chargeItems,
-                                                                            data.stay_type,
+                                                                    withSharedAddOns(
+                                                                        data.lines,
+                                                                        emptyLine(
+                                                                            autoAddOns(
+                                                                                chargeItems,
+                                                                                data.stay_type,
+                                                                            ),
                                                                         ),
                                                                     ),
                                                                 ],
@@ -1940,6 +1980,13 @@ export default function ReservationCreate({
                                                     </Button>
                                                 </div>
                                             </div>
+                                            {groupRateNote && (
+                                                <Alert>
+                                                    <AlertDescription>
+                                                        {groupRateNote}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
                                             {warnings.length > 0 && (
                                                 <Alert>
                                                     <AlertDescription>

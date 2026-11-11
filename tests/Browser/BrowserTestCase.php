@@ -366,15 +366,25 @@ abstract class BrowserTestCase extends TestCase
 
     /**
      * Open a policy tab of Settings › Billing setup › Room revenue with a Percentage charge filled in but not saved, so
-     * the screenshot shows the charge fields and the worked example. The demo properties keep every policy Free.
+     * the screenshot shows the charge fields and the worked example. The demo properties keep every policy Free. On
+     * Cancellation the charge is a step at 0 days, under a free step at `$freeUntilDays` when it is given.
      */
     protected function openPolicy(string $tab, string $percent, ?string $freeUntilDays = null): AwaitableWebpage
     {
         $page = $this->open(route('settings.room-revenue.policies.show', [$this->property, $tab]), height: 1200)
-            ->click('Percentage')
-            ->type('#percent', $percent);
+            ->click('Percentage');
 
-        return $freeUntilDays === null ? $page->wait(1) : $page->type('#free_until_days', $freeUntilDays)->wait(1);
+        if ($tab !== 'cancellation') {
+            return $page->type('#percent', $percent)->wait(1);
+        }
+
+        $page = $page->type('[aria-label="Days before arrival of step 1"]', $freeUntilDays ?? '0')
+            ->type('[aria-label="Percent of step 1"]', $freeUntilDays === null ? $percent : '0');
+
+        return $freeUntilDays === null ? $page->wait(1) : $page->click('Add step')
+            ->type('[aria-label="Days before arrival of step 2"]', '0')
+            ->type('[aria-label="Percent of step 2"]', $percent)
+            ->wait(1);
     }
 
     /**

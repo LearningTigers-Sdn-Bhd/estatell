@@ -10,7 +10,39 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/pms/phone-input';
 import { Switch } from '@/components/ui/switch';
+
+export function SettingsPhoneInput({
+    name,
+    label,
+    value,
+    error,
+    disabled,
+    placeholder,
+}: {
+    name: string;
+    label: ReactNode;
+    value: string | null;
+    error?: string;
+    disabled?: boolean;
+    placeholder?: string;
+}) {
+    return (
+        <Field>
+            <FieldLabel htmlFor={name}>{label}</FieldLabel>
+            <PhoneInput
+                id={name}
+                name={name}
+                value={value ?? ''}
+                placeholder={placeholder}
+                disabled={disabled}
+                invalid={!!error}
+            />
+            <FieldError>{error}</FieldError>
+        </Field>
+    );
+}
 
 export function SettingsInput({
     name,
@@ -24,6 +56,7 @@ export function SettingsInput({
     disabled,
     description,
     placeholder,
+    onValueChange,
 }: {
     name: string;
     label: ReactNode;
@@ -36,6 +69,7 @@ export function SettingsInput({
     disabled?: boolean;
     description?: string;
     placeholder?: string;
+    onValueChange?: (value: string) => void;
 }) {
     return (
         <Field>
@@ -51,6 +85,7 @@ export function SettingsInput({
                 placeholder={placeholder}
                 disabled={disabled}
                 aria-invalid={!!error}
+                onChange={(event) => onValueChange?.(event.target.value)}
             />
             {description && <FieldDescription>{description}</FieldDescription>}
             <FieldError>{error}</FieldError>
@@ -67,11 +102,14 @@ export function SettingsSelect({
     disabled,
     description,
     allLabel,
+    onValueChange,
 }: {
     name: string;
     label: string;
     value: string;
     options: EnumOption[];
+    /** Called with the picked value, for a field that changes another field. The select stays uncontrolled. */
+    onValueChange?: (value: string) => void;
     /** Label for the empty value, for example "Not set". */
     allLabel?: string;
     error?: string;
@@ -86,6 +124,7 @@ export function SettingsSelect({
                 name={name}
                 options={options}
                 defaultValue={value}
+                onValueChange={onValueChange}
                 allLabel={allLabel}
                 disabled={disabled}
                 aria-invalid={!!error}

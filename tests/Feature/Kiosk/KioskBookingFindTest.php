@@ -7,11 +7,12 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\RegistrationCardFieldSetting;
 use App\Models\ReservationUnit;
+use App\Models\Tax;
 use App\Services\Kiosk\KioskLookupLockout;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\PersonalAccessToken;
 
-require_once __DIR__.'/../Support/KioskSetup.php';
+require_once __DIR__.'/../Support/KioskKeySetup.php';
 
 it('finds a booking by reference', function () {
     ['unit' => $unit] = kioskStaySetup();
@@ -26,6 +27,10 @@ it('finds a booking by reference', function () {
             'departure' => '2026-10-16',
             'unit_type' => 'Deluxe Double',
             'steps_required' => ['id' => true, 'registration_card' => false],
+            'status' => 'confirmed',
+            'check_out_open' => false,
+            'key_available' => false,
+            'room_number' => null,
         ]);
 });
 
@@ -43,6 +48,17 @@ it('reports the pre-check-in settings in steps_required', function () {
     kioskPost('/bookings/find', ['reference' => 'R-100'])
         ->assertOk()
         ->assertJsonPath('steps_required', ['id' => false, 'registration_card' => true]);
+});
+
+it('asks for the ID when a foreign-only tax needs a nationality the stay does not have', function () {
+    ['property' => $property] = kioskStaySetup();
+    RegistrationCardFieldSetting::factory()->create(['property_id' => $property->id, 'field' => RegistrationCardField::IdentityDocument, 'visibility' => FieldVisibility::Optional]);
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('steps_required.id', false);
+
+    Tax::factory()->for($property)->create(['enabled' => true, 'foreign_guests_only' => true]);
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('steps_required.id', true);
 });
 
 it('answers booking_not_found for an unknown reference', function () {
@@ -90,10 +106,48 @@ it('does not find a stay that is not ready to arrive or depart, cancelled or alr
 
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
 })->with([
-    'checked in' => [['status' => 'checked_in', 'checked_in_at' => '2026-10-14 10:00:00']],
     'cancelled' => [['status' => 'cancelled']],
     'departure day reached' => [['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']],
 ]);
+
+it('says a checked-in stay is checked in and not yet open for check-out, without its room or key', function () {
+    kioskStaySetup(['status' => 'checked_in', 'checked_in_at' => '2026-10-14 10:00:00']);
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])
+        ->assertOk()
+        ->assertJsonPath('status', 'checked_in')
+        ->assertJsonPath('check_out_open', false)
+        ->assertJsonPath('key_available', false)
+        ->assertJsonPath('room_number', null);
+});
+
+it('gives the room and says the key can be shown while this kiosk checked the guest in a moment ago', function () {
+    kioskKeySetup();
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])
+        ->assertOk()
+        ->assertJsonPath('status', 'checked_in')
+        ->assertJsonPath('key_available', true)
+        ->assertJsonPath('room_number', '101');
+});
+
+it('says a confirmed stay is confirmed', function () {
+    kioskStaySetup();
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])
+        ->assertOk()
+        ->assertJsonPath('status', 'confirmed')
+        ->assertJsonPath('check_out_open', false);
+});
+
+it('says check-out is open for a checked-in stay on its departure day', function () {
+    kioskStaySetup(['status' => 'checked_in', 'checked_in_at' => '2026-10-12 10:00:00', 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])
+        ->assertOk()
+        ->assertJsonPath('status', 'checked_in')
+        ->assertJsonPath('check_out_open', true);
+});
 
 it('directs an ambiguous reference to the front desk without choosing a stay', function () {
     ['reservation' => $reservation, 'unit' => $first] = kioskStaySetup(['arrival_date' => '2026-10-14']);

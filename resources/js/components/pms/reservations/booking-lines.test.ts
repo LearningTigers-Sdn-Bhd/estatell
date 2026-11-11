@@ -6,16 +6,24 @@ import {
     bookingPayload,
     chargeableQuote,
     emptyLine,
+    groupRateSwitch,
     isQuotable,
     moveAddOn,
     nightsBetween,
     plansFor,
     removeAddOn,
+    removeSharedAddOn,
     resizeAges,
     resizeBeds,
+    shareAddOn,
+    sharedAddOns,
     sumMoney,
+    switchGroupRates,
     totalUnits,
     unitsInLine,
+    unshareAddOn,
+    updateSharedAddOn,
+    withSharedAddOns,
 } from './booking-lines';
 import type { BookingForm } from './booking-lines';
 
@@ -444,4 +452,176 @@ test('a migrated stay quote leaves the nights before go-live out of its totals',
             1,
         )?.unitTotal,
     ).toBe('80.00');
+});
+
+test('a plan with rooms per booking shows only when the booking has that many rooms, and a picked plan stays', () => {
+    const plan = (
+        id: number,
+        minRooms: number | null,
+        maxRooms: number | null,
+    ) =>
+        ({
+            id,
+            name: `P${id}`,
+            roomTypeIds: [1],
+            fixedNights: null,
+            companyAccess: 'everyone',
+            companyAtDesk: true,
+            companyIds: [],
+            companyMarket: 'all',
+            marketCompanyIds: [],
+            isDayUse: false,
+            minRooms,
+            maxRooms,
+        }) as unknown as App.Data.Reservations.RatePlanOptionData;
+    const plans = [plan(1, null, null), plan(2, 1, 4), plan(3, 5, null)];
+    const ids = (rooms: number | null, keep = '') =>
+        plansFor(plans, '1', '', false, rooms, keep).map((one) => one.id);
+
+    expect(ids(3)).toEqual([1, 2]);
+    expect(ids(5)).toEqual([1, 3]);
+    expect(ids(5, '2')).toEqual([1, 2, 3]);
+    expect(ids(null)).toEqual([1, 2, 3]);
+});
+
+test('a FIT line moves to its group rate once the booking outgrows it, and back when it shrinks', () => {
+    const plan = (
+        id: number,
+        minRooms: number | null,
+        maxRooms: number | null,
+        groupRatePlanId: number | null = null,
+        roomTypeIds = [1],
+    ) => ({
+        id,
+        name: `P${id}`,
+        roomTypeIds,
+        minRooms,
+        maxRooms,
+        groupRatePlanId,
+    });
+    const fit = plan(1, 1, 4, 2);
+    const group = plan(2, 5, null);
+    const lines = (planId: string, count: number) =>
+        Array.from({ length: count }, () => ({
+            rate_plan_id: planId,
+            room_type_id: '1',
+        }));
+
+    const grown = switchGroupRates(lines('1', 5), [fit, group], 5);
+    expect(grown.lines.map((line) => line.rate_plan_id)).toEqual([
+        '2',
+        '2',
+        '2',
+        '2',
+        '2',
+    ]);
+    expect(grown.switchedTo).toBe('P2');
+    expect(grown.count).toBe(5);
+
+    const shrunk = switchGroupRates(lines('2', 4), [fit, group], 4);
+    expect(shrunk.lines.map((line) => line.rate_plan_id)).toEqual([
+        '1',
+        '1',
+        '1',
+        '1',
+    ]);
+
+    const kept = lines('1', 3);
+    expect(switchGroupRates(kept, [fit, group], 3).lines).toBe(kept);
+
+    // No switch when the group rate does not sell the room type, or the agent cannot book it.
+    expect(
+        groupRateSwitch([fit, plan(2, 5, null, null, [9])], '1', '1', 5),
+    ).toBeNull();
+    expect(groupRateSwitch([fit], '1', '1', 5)).toBeNull();
+});
+
+test('an All lines row goes to every line, a new line gets it, and the request sends it with each line', () => {
+    const addOn = (id: string) => ({
+        charge_item_id: id,
+        quantity: '1',
+        unit_amount: '',
+        service_date: '',
+    });
+    const lines = [
+        { ...emptyLine(), room_type_id: '1', add_ons: [addOn('7')] },
+        { ...emptyLine(), room_type_id: '1', add_ons: [] },
+    ];
+
+    const shared = shareAddOn(lines, 0, 0, 'all-1');
+
+    expect(shared.map((line) => line.add_ons.map((one) => one.shared))).toEqual(
+        [['all-1'], ['all-1']],
+    );
+    expect(sharedAddOns(shared)).toHaveLength(1);
+
+    const priced = updateSharedAddOn(shared, 'all-1', { unit_amount: '25.00' });
+    const grown = [
+        ...priced,
+        withSharedAddOns(priced, { ...emptyLine(), room_type_id: '1' }),
+    ];
+
+    expect(grown.map((line) => line.add_ons[0]?.unit_amount)).toEqual([
+        '25.00',
+        '25.00',
+        '25.00',
+    ]);
+
+    const data = {
+        stay_type: 'overnight',
+        boat_in: { value: '', note: '' },
+        boat_out: { value: '', note: '' },
+        start_time: '',
+        booking_source_id: '1',
+        external_reference: '',
+        arrival_date: '2026-10-20',
+        departure_date: '2026-10-22',
+        arrival_time: '15:00',
+        departure_time: '11:00',
+        group_name: '',
+        company_id: '',
+        credit_override_reason: '',
+        billing_mode: 'master_pays',
+        notes: '',
+        guests: [],
+        lines: grown,
+    } as BookingForm;
+    const sent = bookingPayload(data, [roomType]).lines;
+
+    expect(sent.map((line) => line.add_ons)).toEqual([
+        [{ ...addOn('7'), unit_amount: '25.00' }],
+        [{ ...addOn('7'), unit_amount: '25.00' }],
+        [{ ...addOn('7'), unit_amount: '25.00' }],
+    ]);
+});
+
+test('an All lines row can go back to one line or be removed from every line', () => {
+    const addOn = {
+        charge_item_id: '7',
+        quantity: '1',
+        unit_amount: '',
+        service_date: '',
+        shared: 'all-1',
+    };
+    const lines = [
+        { ...emptyLine(), add_ons: [{ ...addOn }] },
+        { ...emptyLine(), add_ons: [{ ...addOn }] },
+    ];
+
+    const back = unshareAddOn(lines, 'all-1', 1);
+
+    expect(back[0].add_ons).toEqual([]);
+    expect(back[1].add_ons).toEqual([
+        {
+            charge_item_id: '7',
+            quantity: '1',
+            unit_amount: '',
+            service_date: '',
+        },
+    ]);
+    expect(
+        removeSharedAddOn(lines, 'all-1').every(
+            (line) => line.add_ons.length === 0,
+        ),
+    ).toBe(true);
 });

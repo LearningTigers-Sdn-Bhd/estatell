@@ -4,12 +4,16 @@ import { CountrySelect } from '@/components/pms/country-select';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { MoneyText } from '@/components/pms/money-text';
+import { formatMoney, MoneyText } from '@/components/pms/money-text';
 import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import {
     AuditPendingNote,
     AuditPendingStrip,
 } from '@/components/pms/reservations/audit-pending';
+import {
+    EndedStayColumns,
+    EndedStayQuestion,
+} from '@/components/pms/reservations/ended-stay-question';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import {
     KEEP_OPTIONS,
@@ -43,6 +47,7 @@ type Props = {
     paymentOptions?: Options;
     canAssignRoom: boolean;
     onAssignRoom: () => void;
+    onNoShow?: () => void;
     currency: App.Data.Property.CurrencyData | null;
 };
 
@@ -79,6 +84,7 @@ function CheckInForm({
     paymentOptions,
     canAssignRoom,
     onAssignRoom,
+    onNoShow,
     currency,
 }: Props) {
     useFormOptions(open, paymentOptions !== undefined, 'paymentOptions');
@@ -90,6 +96,8 @@ function CheckInForm({
         (one) => !one.isOldSystem && !one.isOtaCollected,
     );
     const form = useForm({
+        ended_stay_choice: 'arrived_last_night',
+        arrived_at: '',
         nationality_code: '',
         without_card: false,
         credit_override_reason: '',
@@ -103,8 +111,13 @@ function CheckInForm({
     const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
     const method = methods.find((one) => String(one.id) === methodId);
     const collection = preview?.collection ?? null;
+    const endedStay = preview?.endedStay ?? null;
+    const arrivingToday =
+        endedStay !== null && data.ended_stay_choice === 'arriving_today';
     // The full bill is offered unless the company is billed. Ticked, it holds the tax rows, so they drop out.
+    // A move to today changes the bill, so the old total is not offered.
     const billOffered =
+        !arrivingToday &&
         collection !== null &&
         !collection.billHidden &&
         Number(collection.billTotal) > 0;
@@ -134,6 +147,10 @@ function CheckInForm({
     const submit = () => {
         form.transform((values) => ({
             ...values,
+            ended_stay_choice:
+                endedStay !== null ? values.ended_stay_choice : '',
+            arrived_at:
+                endedStay !== null && !arrivingToday ? values.arrived_at : '',
             payment_method_id: collecting ? methodId : '',
             reference: method?.requiresReference ? values.reference : '',
             collect_now: collecting && values.collect_now,
@@ -158,6 +175,7 @@ function CheckInForm({
     return (
         <FormOverlay
             variant="dialog"
+            size={endedStay !== null ? 'lg' : undefined}
             open={open}
             onOpenChange={onOpenChange}
             title={`Check in · ${unit.roomType}`}
@@ -178,6 +196,9 @@ function CheckInForm({
                 preview === null ||
                 preview.error !== null ||
                 preview.roomState === 'none' ||
+                (endedStay !== null &&
+                    !arrivingToday &&
+                    data.arrived_at === '') ||
                 (data.collect_now && collecting && paymentOptions === undefined)
             }
             loading={preview === null}
@@ -186,374 +207,431 @@ function CheckInForm({
                 <>
                     <AuditPendingStrip pending={preview.auditPending} />
                     <AuditPendingNote pending={preview.auditPending} />
-                    <MyKadScanner
-                        onScan={(card) => {
-                            if (preview.needsNationality) {
-                                form.setData(
-                                    'nationality_code',
-                                    card.nationality_code || 'MY',
-                                );
-                            }
-                        }}
-                    />
-                    {preview.error !== null && (
-                        <p className="text-sm text-destructive">
-                            {preview.error}
-                        </p>
-                    )}
-                    <div className="flex flex-col gap-1 text-sm">
-                        <div className="flex justify-between gap-4">
-                            <span className="text-muted-foreground">Room</span>
-                            <span>
-                                {preview.roomState === 'assigned' ? (
-                                    preview.room
-                                ) : preview.roomState === 'auto' ? (
-                                    <span className="text-muted-foreground">
-                                        Assigned when you check in
-                                    </span>
-                                ) : (
-                                    <span className="text-destructive">
-                                        Not assigned for tonight
-                                    </span>
-                                )}
-                            </span>
-                        </div>
-                        {preview.roomState === 'none' && (
-                            <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-                                {canAssignRoom
-                                    ? 'Assign a room before you check in.'
-                                    : 'Ask someone who can assign rooms.'}
-                                {canAssignRoom && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={onAssignRoom}
-                                    >
-                                        Assign a room
-                                    </Button>
-                                )}
-                            </div>
+                    <EndedStayColumns
+                        question={
+                            endedStay !== null ? (
+                                <EndedStayQuestion
+                                    id="check-in"
+                                    intro={
+                                        unit.nightCount === 1
+                                            ? `This booking was for last night (${endedStay.lastNight}) and was not checked in.`
+                                            : `This booking's last night was ${endedStay.lastNight} and it was not checked in.`
+                                    }
+                                    legend="Do you want to check the guest in for the previous business day?"
+                                    keepLabel="Yes, they arrived after night audit was done"
+                                    moveLabel="No, they arrive today"
+                                    stayedDescription={`Keeps ${endedStay.arrival} → ${endedStay.departure}. The guest came for the booked ${unit.nightCount === 1 ? 'night' : 'nights'}. This includes arriving after midnight, such as 2:00 a.m. today. ${unit.nightCount === 1 ? 'That night is' : 'Those nights are'} charged.`}
+                                    arrivingDescription={
+                                        endedStay.arrivingTodayBlocked ??
+                                        `Changes the booking to ${endedStay.today} → ${endedStay.tomorrow}. Only if the guest has not used the room yet and will sleep here tonight. They leave tomorrow. New total ${formatMoney(endedStay.newTotal ?? '0', currency)}.`
+                                    }
+                                    arrivingDisabled={
+                                        endedStay.arrivingTodayBlocked !== null
+                                    }
+                                    choice={data.ended_stay_choice}
+                                    onChoiceChange={(value) =>
+                                        form.setData('ended_stay_choice', value)
+                                    }
+                                    arrivedAt={data.arrived_at}
+                                    onArrivedAtChange={(value) =>
+                                        form.setData('arrived_at', value)
+                                    }
+                                    errors={errors}
+                                    onNoShow={onNoShow}
+                                />
+                            ) : null
+                        }
+                    >
+                        <MyKadScanner
+                            onScan={(card) => {
+                                if (preview.needsNationality) {
+                                    form.setData(
+                                        'nationality_code',
+                                        card.nationality_code || 'MY',
+                                    );
+                                }
+                            }}
+                        />
+                        {preview.error !== null && (
+                            <p className="text-sm text-destructive">
+                                {preview.error}
+                            </p>
                         )}
-                        {preview.cardRequired && (
+                        <div className="flex flex-col gap-1 text-sm">
                             <div className="flex justify-between gap-4">
                                 <span className="text-muted-foreground">
-                                    Registration card
+                                    Room
                                 </span>
-                                <span
-                                    className={
-                                        preview.cardsMissing > 0
-                                            ? 'text-warning'
-                                            : 'text-success'
-                                    }
-                                >
-                                    {preview.cardsMissing === 0
-                                        ? 'Signed'
-                                        : preview.cardsMissing === 1
-                                          ? '1 card not signed'
-                                          : `${preview.cardsMissing} cards not signed`}
+                                <span>
+                                    {preview.roomState === 'assigned' ? (
+                                        preview.room
+                                    ) : preview.roomState === 'auto' ? (
+                                        <span className="text-muted-foreground">
+                                            Assigned when you check in
+                                        </span>
+                                    ) : (
+                                        <span className="text-destructive">
+                                            {endedStay !== null
+                                                ? 'Not assigned for this stay'
+                                                : 'Not assigned for tonight'}
+                                        </span>
+                                    )}
                                 </span>
                             </div>
-                        )}
-                    </div>
-                    {preview.cardsMissing > 0 &&
-                        preview.canCheckInWithoutCard && (
-                            <FieldLabel htmlFor="check-in-without_card">
-                                <Field orientation="horizontal">
-                                    <Checkbox
-                                        id="check-in-without_card"
-                                        checked={data.without_card}
-                                        onCheckedChange={(checked) =>
-                                            form.setData(
-                                                'without_card',
-                                                checked,
-                                            )
+                            {preview.roomState === 'none' && (
+                                <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+                                    {canAssignRoom
+                                        ? 'Assign a room before you check in.'
+                                        : 'Ask someone who can assign rooms.'}
+                                    {canAssignRoom && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={onAssignRoom}
+                                        >
+                                            Assign a room
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                            {preview.cardRequired && (
+                                <div className="flex justify-between gap-4">
+                                    <span className="text-muted-foreground">
+                                        Registration card
+                                    </span>
+                                    <span
+                                        className={
+                                            preview.cardsMissing > 0
+                                                ? 'text-warning'
+                                                : 'text-success'
                                         }
-                                    />
-                                    <FieldContent>
-                                        <span className="text-sm font-medium">
-                                            Check in without a card
-                                        </span>
-                                        <FieldDescription>
-                                            The card stays unsigned. This is
-                                            logged with your name.
-                                        </FieldDescription>
-                                    </FieldContent>
-                                </Field>
-                            </FieldLabel>
-                        )}
-                    {needsOverride && !preview.canCheckInWithoutCard && (
-                        <p className="text-sm text-muted-foreground">
-                            Sign the registration card first, or ask someone who
-                            may check in without one.
-                        </p>
-                    )}
-                    {preview.needsNationality && (
-                        <Field data-invalid={!!errors.nationality_code}>
-                            <FieldLabel htmlFor="check-in-nationality_code">
-                                Nationality
-                            </FieldLabel>
-                            <CountrySelect
-                                id="check-in-nationality_code"
-                                name="nationality_code"
-                                value={data.nationality_code}
-                                onValueChange={(value) =>
-                                    form.setData('nationality_code', value)
-                                }
-                                options={preview.countries}
-                                invalid={!!errors.nationality_code}
-                            />
-                            <FieldDescription>
-                                A tax depends on it. It is saved to the guest
-                                profile.
-                            </FieldDescription>
-                            <FieldError>{errors.nationality_code}</FieldError>
-                        </Field>
-                    )}
-                    {preview.creditExceeded &&
-                        (preview.canOverrideCredit ? (
-                            <Field
-                                data-invalid={!!errors.credit_override_reason}
-                            >
-                                <FieldLabel htmlFor="check-in-credit_override_reason">
-                                    Credit limit override reason
-                                </FieldLabel>
-                                <Textarea
-                                    id="check-in-credit_override_reason"
-                                    value={data.credit_override_reason}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'credit_override_reason',
-                                            event.target.value,
-                                        )
-                                    }
-                                    maxLength={500}
-                                    rows={2}
-                                    aria-invalid={
-                                        !!errors.credit_override_reason
-                                    }
-                                />
-                                <FieldDescription>
-                                    This company is over its credit limit. A
-                                    reason lets you check in anyway.
-                                </FieldDescription>
-                                <FieldError>
-                                    {errors.credit_override_reason}
-                                </FieldError>
-                            </Field>
-                        ) : (
-                            <p className="text-sm text-destructive">
-                                This company is over its credit limit. Ask
-                                someone who may override it.
-                            </p>
-                        ))}
-                    {collection !== null && (
-                        <>
-                            {billOffered && (
-                                <FieldLabel htmlFor="check-in-room_charges">
+                                    >
+                                        {preview.cardsMissing === 0
+                                            ? 'Signed'
+                                            : preview.cardsMissing === 1
+                                              ? '1 card not signed'
+                                              : `${preview.cardsMissing} cards not signed`}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        {preview.cardsMissing > 0 &&
+                            preview.canCheckInWithoutCard && (
+                                <FieldLabel htmlFor="check-in-without_card">
                                     <Field orientation="horizontal">
                                         <Checkbox
-                                            id="check-in-room_charges"
-                                            checked={data.room_charges}
+                                            id="check-in-without_card"
+                                            checked={data.without_card}
                                             onCheckedChange={(checked) =>
                                                 form.setData(
-                                                    'room_charges',
+                                                    'without_card',
                                                     checked,
                                                 )
                                             }
                                         />
                                         <FieldContent>
-                                            <span className="flex justify-between gap-4 text-sm font-medium">
-                                                Room charges and tax
-                                                <MoneyText
-                                                    amount={
-                                                        collection.billTotal
-                                                    }
-                                                    currency={currency}
-                                                />
+                                            <span className="text-sm font-medium">
+                                                Check in without a card
                                             </span>
                                             <FieldDescription>
-                                                The whole bill: nights, add-ons
-                                                and every tax.
+                                                The card stays unsigned. This is
+                                                logged with your name.
                                             </FieldDescription>
                                         </FieldContent>
                                     </Field>
                                 </FieldLabel>
                             )}
-                            {!billTicked &&
-                                !collection.taxesHidden &&
-                                collection.taxes.length > 0 && (
-                                    <div className="flex flex-col gap-1 text-sm">
-                                        <span className="font-medium">
-                                            Collected at check-in
-                                        </span>
-                                        {collection.taxes.map((tax) => (
-                                            <AmountRow
-                                                key={tax.name}
-                                                label={tax.name}
-                                                amount={tax.amount}
-                                                exempt={tax.exempt}
-                                                currency={currency}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            {collection.deposit !== null && (
-                                <FieldLabel htmlFor="check-in-collect_deposit">
-                                    <Field orientation="horizontal">
-                                        <Checkbox
-                                            id="check-in-collect_deposit"
-                                            checked={data.collect_deposit}
-                                            onCheckedChange={(checked) =>
-                                                form.setData(
-                                                    'collect_deposit',
-                                                    checked,
-                                                )
-                                            }
-                                        />
-                                        <FieldContent>
-                                            <span className="flex justify-between gap-4 text-sm font-medium">
-                                                Security deposit
-                                                <MoneyText
-                                                    amount={collection.deposit}
-                                                    currency={currency}
-                                                />
-                                            </span>
-                                        </FieldContent>
-                                    </Field>
+                        {needsOverride && !preview.canCheckInWithoutCard && (
+                            <p className="text-sm text-muted-foreground">
+                                Sign the registration card first, or ask someone
+                                who may check in without one.
+                            </p>
+                        )}
+                        {preview.needsNationality && (
+                            <Field data-invalid={!!errors.nationality_code}>
+                                <FieldLabel htmlFor="check-in-nationality_code">
+                                    Nationality
                                 </FieldLabel>
-                            )}
-                            {nothingToCollect && (
-                                <p
-                                    className="text-sm text-muted-foreground"
-                                    data-slot="no-collection"
+                                <CountrySelect
+                                    id="check-in-nationality_code"
+                                    name="nationality_code"
+                                    value={data.nationality_code}
+                                    onValueChange={(value) =>
+                                        form.setData('nationality_code', value)
+                                    }
+                                    options={preview.countries}
+                                    invalid={!!errors.nationality_code}
+                                />
+                                <FieldDescription>
+                                    A tax depends on it. It is saved to the
+                                    guest profile.
+                                </FieldDescription>
+                                <FieldError>
+                                    {errors.nationality_code}
+                                </FieldError>
+                            </Field>
+                        )}
+                        {preview.creditExceeded &&
+                            (preview.canOverrideCredit ? (
+                                <Field
+                                    data-invalid={
+                                        !!errors.credit_override_reason
+                                    }
                                 >
-                                    No collection is needed. You can check in
-                                    the guest.
+                                    <FieldLabel htmlFor="check-in-credit_override_reason">
+                                        Credit limit override reason
+                                    </FieldLabel>
+                                    <Textarea
+                                        id="check-in-credit_override_reason"
+                                        value={data.credit_override_reason}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'credit_override_reason',
+                                                event.target.value,
+                                            )
+                                        }
+                                        maxLength={500}
+                                        rows={2}
+                                        aria-invalid={
+                                            !!errors.credit_override_reason
+                                        }
+                                    />
+                                    <FieldDescription>
+                                        This company is over its credit limit. A
+                                        reason lets you check in anyway.
+                                    </FieldDescription>
+                                    <FieldError>
+                                        {errors.credit_override_reason}
+                                    </FieldError>
+                                </Field>
+                            ) : (
+                                <p className="text-sm text-destructive">
+                                    This company is over its credit limit. Ask
+                                    someone who may override it.
                                 </p>
-                            )}
-                            {collecting && (
-                                <>
-                                    <FieldLabel htmlFor="check-in-collect_now">
+                            ))}
+                        {collection !== null && (
+                            <>
+                                {billOffered && (
+                                    <FieldLabel htmlFor="check-in-room_charges">
                                         <Field orientation="horizontal">
                                             <Checkbox
-                                                id="check-in-collect_now"
-                                                checked={data.collect_now}
+                                                id="check-in-room_charges"
+                                                checked={data.room_charges}
                                                 onCheckedChange={(checked) =>
                                                     form.setData(
-                                                        'collect_now',
+                                                        'room_charges',
                                                         checked,
                                                     )
                                                 }
                                             />
                                             <FieldContent>
                                                 <span className="flex justify-between gap-4 text-sm font-medium">
-                                                    Collect now
-                                                    <span>
-                                                        Total{' '}
-                                                        <MoneyText
-                                                            amount={String(
-                                                                data.collect_now
-                                                                    ? collectTotal
-                                                                    : 0,
-                                                            )}
-                                                            currency={currency}
-                                                        />
-                                                    </span>
+                                                    Room charges and tax
+                                                    <MoneyText
+                                                        amount={
+                                                            collection.billTotal
+                                                        }
+                                                        currency={currency}
+                                                    />
                                                 </span>
                                                 <FieldDescription>
-                                                    Untick it to take a part
-                                                    payment with Record payment
-                                                    on the folio.
+                                                    {Number(
+                                                        collection.billPaid,
+                                                    ) > 0
+                                                        ? `Still owed after ${formatMoney(collection.billPaid, currency)} already paid.`
+                                                        : 'The whole bill: nights, add-ons and every tax.'}
                                                 </FieldDescription>
                                             </FieldContent>
                                         </Field>
                                     </FieldLabel>
-                                    {data.collect_now && (
-                                        <div
-                                            className={cn(
-                                                'grid gap-4',
-                                                method?.requiresReference &&
-                                                    'sm:grid-cols-2',
-                                            )}
-                                        >
-                                            <Field
-                                                data-invalid={
-                                                    !!errors.payment_method_id
-                                                }
-                                            >
-                                                <FieldLabel htmlFor="check-in-payment_method_id">
-                                                    Method
-                                                </FieldLabel>
-                                                {paymentOptions ===
-                                                undefined ? (
-                                                    <Skeleton className="h-9 w-full" />
-                                                ) : (
-                                                    <EnumSelect
-                                                        id="check-in-payment_method_id"
-                                                        options={methods.map(
-                                                            (one) => ({
-                                                                value: String(
-                                                                    one.id,
-                                                                ),
-                                                                label: one.name,
-                                                            }),
-                                                        )}
-                                                        value={methodId}
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            form.setData(
-                                                                'payment_method_id',
-                                                                value,
-                                                            )
-                                                        }
-                                                        aria-invalid={
-                                                            !!errors.payment_method_id
-                                                        }
-                                                    />
-                                                )}
-                                                <FieldError>
-                                                    {errors.payment_method_id}
-                                                </FieldError>
-                                            </Field>
-                                            {method?.requiresReference && (
-                                                <Field
-                                                    data-invalid={
-                                                        !!errors.reference
-                                                    }
-                                                >
-                                                    <FieldLabel htmlFor="check-in-reference">
-                                                        Reference
-                                                    </FieldLabel>
-                                                    <Input
-                                                        id="check-in-reference"
-                                                        placeholder="e.g. 4821 0933"
-                                                        value={data.reference}
-                                                        onChange={(event) =>
-                                                            form.setData(
-                                                                'reference',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                        maxLength={100}
-                                                        autoComplete="off"
-                                                        aria-invalid={
-                                                            !!errors.reference
-                                                        }
-                                                    />
-                                                    <FieldError>
-                                                        {errors.reference}
-                                                    </FieldError>
-                                                </Field>
-                                            )}
+                                )}
+                                {!billTicked &&
+                                    !collection.taxesHidden &&
+                                    collection.taxes.length > 0 && (
+                                        <div className="flex flex-col gap-1 text-sm">
+                                            <span className="font-medium">
+                                                Collected at check-in
+                                            </span>
+                                            {collection.taxes.map((tax) => (
+                                                <AmountRow
+                                                    key={tax.name}
+                                                    label={tax.name}
+                                                    amount={tax.amount}
+                                                    exempt={tax.exempt}
+                                                    currency={currency}
+                                                />
+                                            ))}
                                         </div>
                                     )}
-                                </>
-                            )}
-                        </>
-                    )}
+                                {collection.deposit !== null && (
+                                    <FieldLabel htmlFor="check-in-collect_deposit">
+                                        <Field orientation="horizontal">
+                                            <Checkbox
+                                                id="check-in-collect_deposit"
+                                                checked={data.collect_deposit}
+                                                onCheckedChange={(checked) =>
+                                                    form.setData(
+                                                        'collect_deposit',
+                                                        checked,
+                                                    )
+                                                }
+                                            />
+                                            <FieldContent>
+                                                <span className="flex justify-between gap-4 text-sm font-medium">
+                                                    Security deposit
+                                                    <MoneyText
+                                                        amount={
+                                                            collection.deposit
+                                                        }
+                                                        currency={currency}
+                                                    />
+                                                </span>
+                                            </FieldContent>
+                                        </Field>
+                                    </FieldLabel>
+                                )}
+                                {nothingToCollect && (
+                                    <p
+                                        className="text-sm text-muted-foreground"
+                                        data-slot="no-collection"
+                                    >
+                                        No collection is needed. You can check
+                                        in the guest.
+                                    </p>
+                                )}
+                                {collecting && (
+                                    <>
+                                        <FieldLabel htmlFor="check-in-collect_now">
+                                            <Field orientation="horizontal">
+                                                <Checkbox
+                                                    id="check-in-collect_now"
+                                                    checked={data.collect_now}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        form.setData(
+                                                            'collect_now',
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                                <FieldContent>
+                                                    <span className="flex justify-between gap-4 text-sm font-medium">
+                                                        Collect now
+                                                        <span>
+                                                            Total{' '}
+                                                            <MoneyText
+                                                                amount={String(
+                                                                    data.collect_now
+                                                                        ? collectTotal
+                                                                        : 0,
+                                                                )}
+                                                                currency={
+                                                                    currency
+                                                                }
+                                                            />
+                                                        </span>
+                                                    </span>
+                                                    <FieldDescription>
+                                                        Untick it to take a part
+                                                        payment with Record
+                                                        payment on the folio.
+                                                    </FieldDescription>
+                                                </FieldContent>
+                                            </Field>
+                                        </FieldLabel>
+                                        {data.collect_now && (
+                                            <div
+                                                className={cn(
+                                                    'grid gap-4',
+                                                    method?.requiresReference &&
+                                                        'sm:grid-cols-2',
+                                                )}
+                                            >
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.payment_method_id
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="check-in-payment_method_id">
+                                                        Method
+                                                    </FieldLabel>
+                                                    {paymentOptions ===
+                                                    undefined ? (
+                                                        <Skeleton className="h-9 w-full" />
+                                                    ) : (
+                                                        <EnumSelect
+                                                            id="check-in-payment_method_id"
+                                                            options={methods.map(
+                                                                (one) => ({
+                                                                    value: String(
+                                                                        one.id,
+                                                                    ),
+                                                                    label: one.name,
+                                                                }),
+                                                            )}
+                                                            value={methodId}
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                form.setData(
+                                                                    'payment_method_id',
+                                                                    value,
+                                                                )
+                                                            }
+                                                            aria-invalid={
+                                                                !!errors.payment_method_id
+                                                            }
+                                                        />
+                                                    )}
+                                                    <FieldError>
+                                                        {
+                                                            errors.payment_method_id
+                                                        }
+                                                    </FieldError>
+                                                </Field>
+                                                {method?.requiresReference && (
+                                                    <Field
+                                                        data-invalid={
+                                                            !!errors.reference
+                                                        }
+                                                    >
+                                                        <FieldLabel htmlFor="check-in-reference">
+                                                            Reference
+                                                        </FieldLabel>
+                                                        <Input
+                                                            id="check-in-reference"
+                                                            placeholder="e.g. 4821 0933"
+                                                            value={
+                                                                data.reference
+                                                            }
+                                                            onChange={(event) =>
+                                                                form.setData(
+                                                                    'reference',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            maxLength={100}
+                                                            autoComplete="off"
+                                                            aria-invalid={
+                                                                !!errors.reference
+                                                            }
+                                                        />
+                                                        <FieldError>
+                                                            {errors.reference}
+                                                        </FieldError>
+                                                    </Field>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </EndedStayColumns>
                 </>
             )}
         </FormOverlay>

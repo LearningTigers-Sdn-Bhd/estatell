@@ -8,9 +8,11 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\ReservationUnitChild;
@@ -133,6 +135,7 @@ test('the header and summary carry the reservation figures from units that hold 
         ->where('reservation.stayTotal', '700.00')
         ->where('reservation.billingMode', 'each_pays')
         ->where('reservation.externalReference', 'OTA-1')
+        ->where('reservation.shortCode', $reservation->short_code)
         ->where('reservation.createdBy', $reservation->creator->name)
         ->where('reservation.booker.name', 'Tan Wei Ming')
         ->where('reservation.booker.isVip', true)
@@ -231,7 +234,23 @@ test('the unit panel shows the plan, guests, child ages, rooms, nights and prima
         ->where('unit.nights.2.assigned', '102')
         ->where('unit.nights.2.isOverridden', true)
         ->where('unit.nights.0.isOverridden', false)
-        ->where('units.0.label', 'Deluxe King · 101'));
+        ->where('units.0.label', 'Deluxe King · 101')
+        ->where('units.0.primaryGuest', 'Ahmad Faiz'));
+});
+
+test('the unit list shows the primary guest and booked occupancy of each unit', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $withGuests = pageUnit($reservation, ['adults' => 2, 'children' => 1]);
+    pageUnit($reservation, ['adults' => 1, 'children' => 0]);
+    UnitGuest::factory()->create(['reservation_unit_id' => $withGuests->id, 'guest_id' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Second Guest'])->id]);
+    UnitGuest::factory()->primary()->create(['reservation_unit_id' => $withGuests->id, 'guest_id' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Ahmad Faiz'])->id]);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->where('units.0.primaryGuest', 'Ahmad Faiz')
+        ->where('units.0.occupancy', '2 adults · 1 child')
+        ->where('units.1.occupancy', '1 adult')
+        ->where('units.1.primaryGuest', null));
 });
 
 test('a unit with no room shows a dash and no assigned rooms', function () {
@@ -244,6 +263,7 @@ test('a unit with no room shows a dash and no assigned rooms', function () {
         ->where('unit.allNightsAssigned', false)
         ->where('unit.primaryGuest', null)
         ->where('units.0.assigned', null)
+        ->where('units.0.primaryGuest', null)
         ->where('autoAssignRooms', false));
 });
 
@@ -272,6 +292,67 @@ test('the price override reason and who set it come from the log of the unit tha
         ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', true)->where('unit.priceOverrideReason', null)->where('unit.priceOverrideBy', 'Aina'));
     $this->get(pageUrl($property, $reservation, 'reservations.show', ['unit' => $plain->id]))
         ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', false)->where('unit.priceOverrideReason', null)->where('unit.priceOverrideBy', null));
+});
+
+test('a blank price override reason is sent as no reason', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $unit = pageUnit($reservation);
+    activity()->performedOn($reservation)->event('reservation.unit_added')->withProperties([
+        'reservation_unit_id' => $unit->id,
+        'override_total' => '684.00',
+        'override_reason' => '  ',
+    ])->log('Unit added to reservation');
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', true)->where('unit.priceOverrideReason', null));
+});
+
+test('the All view rows carry each unit with its guests, stay, plan and room total', function () {
+    [$user, $property] = pageOwner();
+    $roomType = RoomType::factory()->for($property)->create(['name' => 'Deluxe Twin']);
+    $room = Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => 'F1']);
+    $reservation = pageReservation($property);
+    $first = pageUnit($reservation, ['room_type_id' => $roomType->id, 'adults' => 2, 'children' => 1]);
+    UnitNight::query()->where('reservation_unit_id', $first->id)->update(['room_id' => $room->id]);
+    UnitGuest::factory()->primary()->create(['reservation_unit_id' => $first->id, 'guest_id' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Huang Shuidi'])->id]);
+    $mixed = pageUnit($reservation, ['room_type_id' => $roomType->id, 'arrival_date' => '2026-10-13', 'departure_date' => '2026-10-15']);
+    $otherPlan = RatePlan::factory()->for($property)->create();
+    $mixed->nights()->orderBy('date')->first()->update(['rate_plan_id' => $otherPlan->id, 'override_amount' => '84.00', 'amount' => '84.00']);
+    pageUnit($reservation, ['room_type_id' => $roomType->id, 'status' => 'cancelled']);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->has('unitRows', 3)
+        ->where('canChangePrice', true)
+        ->where('unitRows.0.id', $first->id)
+        ->where('unitRows.0.roomType', 'Deluxe Twin')
+        ->where('unitRows.0.assigned', 'F1')
+        ->where('unitRows.0.primaryGuest', 'Huang Shuidi')
+        ->where('unitRows.0.adults', 2)
+        ->where('unitRows.0.children', 1)
+        ->where('unitRows.0.arrival', '2026-10-12')
+        ->where('unitRows.0.departure', '2026-10-15')
+        ->where('unitRows.0.nightCount', 3)
+        ->where('unitRows.0.ratePlan', $first->ratePlan->name)
+        ->where('unitRows.0.total', '300.00')
+        ->where('unitRows.0.status.label', 'Confirmed')
+        ->where('unitRows.1.nightCount', 2)
+        ->where('unitRows.1.ratePlan', 'Several plans')
+        ->where('unitRows.1.total', '184.00')
+        ->where('unitRows.1.primaryGuest', null)
+        ->where('unitRows.2.status.label', 'Cancelled'));
+});
+
+test('the All view Change price button follows the change price permission', function () {
+    [$user, $property] = pageStaffWith(['reservations.view']);
+    $reservation = pageReservation($property);
+    pageUnit($reservation);
+    pageUnit($reservation);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->has('unitRows', 2)
+        ->where('canChangePrice', false)
+        ->where('canManage', false));
 });
 
 test('the guest rows show the booker, unit guests with roles, and units without a guest', function () {
@@ -479,7 +560,7 @@ test('the page needs a constant number of queries however many units it has', fu
         $few = $queries(2, $route);
         $many = $queries(7, $route);
 
-        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(48); // 25 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source
+        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(52); // 26 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source, 3 for the All view rows (`ReservationUnitRows`, Units tab only; two more with Boats on)
     }
 });
 
@@ -628,4 +709,29 @@ test('the money figures read credit when paid exceeds the total and zero with no
         ->where('money.total', '0.00')
         ->where('money.stillToPay', '0.00')
         ->where('money.isCredit', false));
+});
+
+test('reservation Guests offers masked ID documents and saves a manually typed passport without leaving the booking', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $unit = pageUnit($reservation);
+    $guest = $reservation->booker;
+    UnitGuest::factory()->primary()->create(['reservation_unit_id' => $unit->id, 'guest_id' => $guest->id]);
+    GuestIdentityDocument::factory()->for($guest)->create(['number' => '900101141234']);
+    $url = pageUrl($property, $reservation, 'reservations.guests');
+
+    $this->actingAs($user)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('canViewDocuments', true)
+        ->has('identityDocumentTypes', 3)
+        ->where('guests.0.documents.0.maskedNumber', '•••• 1234')
+        ->where('guests.0.documents.0.number', null));
+    $this->from($url)->post(route('guests.documents.store', [$property->code, $guest]), [
+        'type' => 'passport', 'number' => 'a 1234567', 'issuing_country_code' => 'CN',
+    ])->assertRedirect($url)->assertInertiaFlash('toast.type', 'success');
+
+    expect($guest->documents()->where('type', 'passport')->sole()->number)->toBe('A1234567');
+
+    $staff = User::factory()->for($property)->withPermissions(['reservations.view', 'guests.view', 'guests.manage'])->create();
+    $this->actingAs($staff)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('canViewDocuments', false)->where('guests.0.documents', []));
 });

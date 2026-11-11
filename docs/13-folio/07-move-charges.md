@@ -72,23 +72,26 @@ A Scheduled row is not a ledger line. The night audit posts it later to the foli
 - **A rule pointing at the unit's own folio** sends the charges back to it (the router's "own folio" case).
 - A room with no Scheduled rows shows no block.
 - Later changes happen in the existing Routing rules Sheet, where the rules show as Manual.
+- **Tonight's night counts (decided 6 Nov 2026).** A rule has no dates, so a choice always covers tonight if the audit has not posted it. A room on its last night gets the same choice, so a one-night group needs no routing rule by hand. Once the night is posted, tick the posted line instead.
+- **Money on the room's own folio.** When a room's charges leave its own folio and that folio holds Advance money (a Collect now payment is one), the preview names the amount. The move is still allowed.
 
 ## Wording
 
 Every folio name in labels, notes, the toast and the log comes from `optionLabel()` ({to} for the target, {from} for a source). The page never writes a folio name itself.
 
-| Element                                          | Text                                                                                                        |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| Page title                                       | "Move charges · {reference} · {group name or booker}"                                                       |
-| Note under the title                             | "Charges move now. Scheduled charges follow the rule you choose, until you change it in Routing rules."     |
-| Scheduled header                                 | "SCHEDULED · not charged yet" (the folio tab's word)                                                        |
-| Choice 1                                         | "Charge room nights to {to}", detail "15–16 Oct · 2 nights · MYR 540.00"                                    |
-| Choice 2                                         | "Charge everything to {to}", detail "Room nights, Island trip 16 Oct and any later charge · MYR 900.00"     |
-| Posted Room charges ticked, schedule left behind | "2 scheduled nights of Room 101 will still be charged to {from}."                                           |
-| A row kept by a more specific rule               | "{charge} stays on {folio}: a rule sends {category or code} charges there."                                 |
-| Button                                           | "Move 30 charges", "Move 30 charges and 10 schedules", "Move 10 schedules", or "Move charges" (disabled)    |
-| Toast                                            | "30 charges moved to {to}." and, with schedules, " Scheduled nights of 10 rooms will be charged there too." |
-| Activity log                                     | "Moved 30 charges (MYR 8,100.00) to {to} from 10 folios. Scheduled room nights of 10 rooms now go to {to}." |
+| Element                                          | Text                                                                                                            |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Page title                                       | "Move charges · {reference} · {group name or booker}"                                                           |
+| Note under the title                             | "Charges move now. Scheduled charges follow the rule you choose, until you change it in Routing rules."         |
+| Scheduled header                                 | "SCHEDULED · not charged yet" (the folio tab's word)                                                            |
+| Choice 1                                         | "Charge room nights to {to}", detail "15–16 Oct · 2 nights · MYR 540.00"                                        |
+| Choice 2                                         | "Charge everything to {to}", detail "Room nights, Island trip 16 Oct and any later charge · MYR 900.00"         |
+| Money left on the room's own folio               | "Room 101 has MYR 50.00 paid on its own folio. Payments do not move, so refund it or keep those charges there." |
+| Posted Room charges ticked, schedule left behind | "2 scheduled nights of Room 101 will still be charged to {from}."                                               |
+| A row kept by a more specific rule               | "{charge} stays on {folio}: a rule sends {category or code} charges there."                                     |
+| Button                                           | "Move 30 charges", "Move 30 charges and 10 schedules", "Move 10 schedules", or "Move charges" (disabled)        |
+| Toast                                            | "30 charges moved to {to}." and, with schedules, " Scheduled nights of 10 rooms will be charged there too."     |
+| Activity log                                     | "Moved 30 charges (MYR 8,100.00) to {to} from 10 folios. Scheduled room nights of 10 rooms now go to {to}."     |
 
 Words the page does not use: "Upcoming" (the folio tab says Scheduled), "post" (staff say charge), "routing rule" in a choice label, "here" (two columns make it unclear) and "Transfer" (the page and the row menu say Move).
 
@@ -96,13 +99,13 @@ Words the page does not use: "Upcoming" (the folio tab says Scheduled), "post" (
 
 `(User $actor, Folio $target, list<FolioLine> $lines, list<array{unit: ReservationUnit, scope: 'room'|'all'}> $schedules): MoveChargesResult`
 
-| Check                                                                                 | Refusal                 |
-| ------------------------------------------------------------------------------------- | ----------------------- |
-| At least one line or one schedule                                                     | `nothing_to_move`       |
-| At most 200 posted charges (parents; children do not count)                           | `too_many_charges`      |
-| Every line and unit belongs to the target's reservation                               | `different_reservation` |
-| The `TransferLines` checks: Open folios, movable lines, no payment line               | its refusal codes       |
-| Each schedule unit is not Cancelled or NoShow and has a night after the business date | `nothing_scheduled`     |
+| Check                                                                                                                                                                            | Refusal                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| At least one line or one schedule                                                                                                                                                | `nothing_to_move`       |
+| At most 200 posted charges (parents; children do not count)                                                                                                                      | `too_many_charges`      |
+| Every line and unit belongs to the target's reservation                                                                                                                          | `different_reservation` |
+| The `TransferLines` checks: Open folios, movable lines, no payment line                                                                                                          | its refusal codes       |
+| Each schedule unit is not Cancelled or NoShow and has a night to charge: not posted, on or after the business date. Tonight's night does not count once the unit has checked out | `nothing_scheduled`     |
 
 - One transaction. It locks the target and every source folio in id order, runs every check before the first write, so one bad line refuses the whole move and writes nothing.
 - The posted charges go through `TransferLines`, which accepts lines from **several source folios** of one reservation (it accepted one). All copies share one `transfer_group_id`.
@@ -155,7 +158,7 @@ Decisions made at build time:
 - **Closing the sources.** `TransferLines` takes `bool $closeSettled = true`. `MoveCharges` passes false and closes each source itself after the rules are saved, so a later "folio receives scheduled charges" check sees the new rules. Other callers keep the default.
 - **Rollback.** A refusal of `CreateRoutingRule` after the posted move rolls the whole transaction back. `rule_exists` is not a refusal here.
 - **Rules kept.** A Manual rule with the same selectors and the same target is kept as it is and is not logged as created.
-- **Preview payload** (`MovePreviewData`): `balances` (posted before and after for every Open folio), `projectedBefore` and `projectedAfter` (the target), `schedules` (the choices per room, only rooms with Scheduled rows that do not already go to the target and a night after the business date), `incoming` (the Scheduled charges that land on the target), `notes`, `chargeCount`, `amount`, `scheduleCount` and `refusal`. The choice amounts come from routing the Scheduled rows again with each choice's rules, so a row kept by a more specific rule is not counted.
+- **Preview payload** (`MovePreviewData`): `balances` (posted before and after for every Open folio), `projectedBefore` and `projectedAfter` (the target), `schedules` (the choices per room, only rooms with Scheduled rows that do not already go to the target and a night to charge), `incoming` (the Scheduled charges that land on the target), `notes`, `chargeCount`, `amount`, `scheduleCount` and `refusal`. The choice amounts come from routing the Scheduled rows again with each choice's rules, so a row kept by a more specific rule is not counted.
 - **Scheduled blocks** from `ScheduledFolioRows` now carry their transaction `code`.
 - Activity log text when only schedules move: "Scheduled room nights of 2 rooms now go to {to}." ("Scheduled charges" when any room chose Charge everything).
 

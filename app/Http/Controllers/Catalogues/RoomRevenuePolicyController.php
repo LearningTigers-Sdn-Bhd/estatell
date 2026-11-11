@@ -15,6 +15,7 @@ use App\Http\Requests\Catalogues\RoomRevenuePolicyRequest;
 use App\Models\Property;
 use App\Models\RoomRevenuePolicy;
 use App\Models\Tax;
+use App\Services\Catalogues\CancellationSteps;
 use App\Services\Catalogues\RoomRevenuePolicyPreview;
 use App\Services\Catalogues\RoomRevenueTaxIds;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +28,7 @@ class RoomRevenuePolicyController extends Controller
     /**
      * Show one policy tab: the form and what the saved policy charges on a sample stay.
      */
-    public function show(Property $property, PolicyTab $tab, RoomRevenuePolicyPreview $preview, RoomRevenueTaxIds $roomRevenueTaxIds): Response
+    public function show(Property $property, PolicyTab $tab, RoomRevenuePolicyPreview $preview, RoomRevenueTaxIds $roomRevenueTaxIds, CancellationSteps $cancellationSteps): Response
     {
         abort_if($property->settings === null, 404);
 
@@ -35,7 +36,7 @@ class RoomRevenuePolicyController extends Controller
 
         return Inertia::render('settings/room-revenue/policy', [
             'tab' => $tab->value,
-            'policy' => RoomRevenuePolicyData::fromModel($policy, $roomRevenueTaxIds->forPolicy($property, $policy)),
+            'policy' => RoomRevenuePolicyData::fromModel($policy, $roomRevenueTaxIds->forPolicy($property, $policy), $cancellationSteps->of($policy)),
             'roomTaxIds' => $roomRevenueTaxIds->forRoom($property),
             'taxes' => $property->taxes()
                 ->orderByDesc('enabled')

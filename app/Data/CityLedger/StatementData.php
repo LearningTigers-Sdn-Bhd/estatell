@@ -12,6 +12,7 @@ class StatementData extends Data
 {
     /**
      * @param  list<StatementLineData>  $lines
+     * @param  list<StatementBookingPaymentData>  $bookingPayments  Money paid on the company's bookings in the period.
      */
     public function __construct(
         public string $from,
@@ -20,5 +21,6 @@ class StatementData extends Data
         public array $lines,
         public string $closingBalance,
         public AgingRowData $aging,
+        public array $bookingPayments = [],
     ) {}
 }

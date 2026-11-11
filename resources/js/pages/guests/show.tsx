@@ -1,6 +1,10 @@
 import { Head } from '@inertiajs/react';
 import { FileText, IdCard, StickyNote } from 'lucide-react';
 import type { ReactNode } from 'react';
+import {
+    GuestIdentityFields,
+    emptyGuestIdentity,
+} from '@/components/pms/guest-identity-fields';
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import { AnonymizeGuestDialog } from '@/components/pms/guests/anonymize-guest-dialog';
@@ -260,10 +264,35 @@ export default function GuestShow({
                                 <GuestForm
                                     key={guestFormKey(guest)}
                                     guest={guest}
+                                    canViewDocuments={canViewDocuments}
+                                    documents={documents}
+                                    identityTypes={
+                                        documentFormOptions?.types ?? []
+                                    }
                                     {...formOptions}
                                 />
                             ) : (
-                                <Details guest={guest} />
+                                <div className="flex flex-col gap-5">
+                                    {canViewDocuments && !isAnonymized && (
+                                        <GuestIdentityFields
+                                            guestId={guest.id}
+                                            document={documents[0]}
+                                            values={emptyGuestIdentity(
+                                                guest.nationalityCode,
+                                                documents[0],
+                                            )}
+                                            types={documents.map(
+                                                (document) => ({
+                                                    value: document.type,
+                                                    label: document.typeLabel,
+                                                }),
+                                            )}
+                                            disabled
+                                            onChange={() => undefined}
+                                        />
+                                    )}
+                                    <Details guest={guest} />
+                                </div>
                             )}
                             <PossibleDuplicates
                                 guest={guest}

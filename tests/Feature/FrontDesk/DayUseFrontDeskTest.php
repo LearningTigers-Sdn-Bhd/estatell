@@ -174,7 +174,8 @@ test('the policy counts a day use as one night priced at the block, and re-quote
 
     expect((string) $calculator->calculate($policy, $setup['unit'])->amount->getAmount())->toBe('100.00');
 
-    $policy->update(['applies_to' => PolicyScope::WholeStay, 'percent' => '50.00']);
+    $policy->update(['applies_to' => PolicyScope::WholeStay]);
+    $policy->steps()->update(['percent' => '50.00']);
     expect((string) $calculator->calculate($policy->fresh(), $setup['unit'])->amount->getAmount())->toBe('50.00');
 
     $policy->update(['applies_to' => PolicyScope::UnusedNights]);

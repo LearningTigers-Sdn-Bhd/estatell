@@ -34,7 +34,7 @@ property_licences  id, property_id, issuer, number, expires_on (nullable), show_
 - Easy to say on the phone. Admin ⌘K searches by code, name or city.
 - Not a secret. Access is always checked by `EnsurePropertyAccess`; a code that does not belong to the user returns `404`.
 - Not the [document prefix](#document-prefix), which is a separate column.
-- `slug` is added later, only when the public booking engine needs it.
+- `slug` comes with the [booking engine](../29-booking-engine/07-settings-and-permissions.md#data-model), which also adds `latitude`, `longitude` and `google_maps_url`.
 - History: codes were plain numbers from the sequence `property_code_seq` until the partners change. The migration prefixed every existing code with `ES` (10142 → `ES10142`), seeded the `ES` counter with the highest number, and dropped the sequence. A second migration, before launch, renumbered every prefix from 1101 in creation order (`ES10142` → `ES1103`) and reset the counters. It refuses to run when a journal has been pushed to an accounting provider, because journal references include the code.
 
 ## Document prefix
@@ -78,7 +78,7 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
 
-All seven Details tabs disable Save until a field changes. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
+The seven Details form tabs disable Save until a field changes. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
 
 ### Business licence
 
@@ -115,6 +115,44 @@ The legal details, on the Details page, **Business licence** tab (`/p/{code}/set
 | `GET`, `PUT /p/{code}/settings/business` | `settings.business`, `settings.business.update` |
 | `POST`, `DELETE …/settings/logo`         | `settings.logo.store`, `settings.logo.destroy`  |
 | `GET …/settings/logo`                    | `settings.logo`                                 |
+
+## Photos
+
+The property's own photo album, on the Details page, **Photos** tab (`/p/{code}/settings/photos`, `settings.manage`). It is the third tab.
+
+```
+┌ Property photos ─────────────────────────────────────────────┐
+│ Your property's own photos, such as the beach, lobby or pool.│
+│ JPEG, PNG or WebP, up to 5 MB each. Up to 20 photos.         │
+│                                                              │
+│ ┌───────┐ ┌───────┐ ┌───────┐ ┌╌╌╌╌╌╌╌╌╌┐                    │
+│ │ Cover │ │ lobby │ │ pool  │ ┆[Upload] ┆                    │
+│ │ [≡][x]│ │ [≡][x]│ │ [≡][x]│ ┆ 3 of 20 ┆                    │
+│ └───────┘ └───────┘ └───────┘ └╌╌╌╌╌╌╌╌╌┘                    │
+│ Drag to reorder. The first photo is the cover.               │
+└──────────────────────────────────────────────────────────────┘
+```
+
+| Photos  | What shows                                                                        |
+| ------- | --------------------------------------------------------------------------------- |
+| 0       | One dashed card: No photos yet and Upload photos                                  |
+| 1 to 19 | The photos and a small dashed upload card. From 2 photos, the drag hint shows too |
+| 20      | The photos and "20 of 20 photos", with no upload card                             |
+
+- A `photos` media collection on Property, on the public media disk (`MEDIA_PUBLIC_DISK`), because guests see the photos. Up to 20 photos, each with a `thumb` (400 px) and a `web` (1600 px) conversion. Each is JPEG, PNG or WebP, up to 5 MB.
+- The tab shares `PhotoGrid` (`components/pms/photo-grid.tsx`) with the room type Photos tab.
+- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated`, with `photos` or `photo_order` as the change.
+- The album does not depend on the booking website. It has no feature flag and the tab shows in both booking modes.
+- Onboarding does not ask for photos, and they are not on the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist). The [Booking website checklist](../29-booking-engine/07-settings-and-permissions.md#general) asks for them before publishing.
+- The booking engine API returns these photos on `properties/{code}`.
+- The website's image slots keep their own copies. Changing the album never changes a slot. See [Design](../29-booking-engine/07-settings-and-permissions.md#design).
+
+| Route                              | Name                      |
+| ---------------------------------- | ------------------------- |
+| `GET /p/{code}/settings/photos`    | `settings.photos`         |
+| `POST /p/{code}/settings/photos`   | `settings.photos.store`   |
+| `PUT …/settings/photos/order`      | `settings.photos.reorder` |
+| `DELETE …/settings/photos/{photo}` | `settings.photos.destroy` |
 
 ## Rules
 

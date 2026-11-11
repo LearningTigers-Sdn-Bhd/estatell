@@ -19,6 +19,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\Reservations\ReservationShortCode;
 use App\Services\Reservations\StayChargeTotal;
 use Illuminate\Support\Facades\DB;
 
@@ -27,17 +28,19 @@ class CreateReservation
     public function __construct(
         private AddUnit $addUnit,
         private NextDocumentNumber $nextDocumentNumber,
+        private ReservationShortCode $reservationShortCode,
         private SyncRoutingRules $syncRoutingRules,
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
         private StayChargeTotal $stayChargeTotal,
+        private SetReservationPaymentSchedule $setPaymentSchedule,
     ) {}
 
     /**
      * Create a reservation and its units in one transaction.
      *
      * A Bed room type line adds one unit for each bed. A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
-     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
+     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. A company that pays per booking gives the reservation its payment deadlines (`SetReservationPaymentSchedule`, not for channel bookings). `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(?User $actor, Property $property, NewReservationData $data, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
     {
@@ -89,13 +92,16 @@ class CreateReservation
                     'property_id' => $property->id,
                     'booking_source_id' => $data->bookingSource->id,
                     'reference' => ($this->nextDocumentNumber)($property, DocumentType::Reservation)->reference,
+                    'short_code' => $this->reservationShortCode->generate($property),
                     'status' => ReservationStatus::Confirmed,
                     'created_by' => $actor?->id,
                 ])->save();
 
+                $roomCount = count(array_filter($data->units, fn (NewUnitData $line): bool => $line->stayType === StayType::Overnight && $roomTypes->get($line->roomTypeId)?->sell_unit === SellUnit::Room));
+
                 foreach ($data->units as $index => $line) {
                     foreach (range(1, $this->unitCount($roomTypes->get($line->roomTypeId), $line, $index)) as $ignored) {
-                        $result = ($this->addUnit)($actor, $reservation, $line, $index, $fromChannel, $allowPastArrival);
+                        $result = ($this->addUnit)($actor, $reservation, $line, $index, $fromChannel, $allowPastArrival, $roomCount);
 
                         if ($result->isRefused()) {
                             throw new ReservationRefused($result);
@@ -104,6 +110,10 @@ class CreateReservation
                 }
 
                 $this->checkCredit($actor, $reservation, $data);
+
+                if (! $fromChannel) {
+                    ($this->setPaymentSchedule)($reservation);
+                }
 
                 ($this->syncRoutingRules)($reservation);
 

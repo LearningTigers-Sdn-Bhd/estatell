@@ -8,6 +8,7 @@ use App\Data\Channels\ChannelTabData;
 use App\Data\Platform\AdminPropertyData;
 use App\Data\Platform\AdminPropertyRowData;
 use App\Data\Platform\AdminPropertyStaffData;
+use App\Data\Platform\BookingEngineModeData;
 use App\Data\Platform\PropertyFeatureData;
 use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyStatus;
@@ -110,6 +111,7 @@ class PropertyController extends Controller
     {
         return $this->renderTab($property, 'features', [
             'features' => PropertyFeatureData::forProperty($property),
+            'bookingEngineMode' => BookingEngineModeData::forProperty($property),
         ]);
     }
 
@@ -120,6 +122,7 @@ class PropertyController extends Controller
     {
         return $this->renderTab($property, 'ota-lists', [
             'otaLists' => $propertyOtaLists->forProperty($property),
+            'otaChannels' => $propertyOtaLists->channels(),
         ]);
     }
 

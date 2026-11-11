@@ -81,6 +81,51 @@ idleTimeoutSeconds: number,
 };
 }
 namespace Boats {
+export type BoatBoardGroupData = {
+key: string,
+kind: string,
+direction: string | null,
+directionLabel: string | null,
+time: string | null,
+title: string | null,
+times: string | null,
+boat: string | null,
+inCharge: string | null,
+assistants: string[],
+taken: number,
+seats: number | null,
+departureId: number | null,
+sailingId: number | null,
+hasStored: boolean,
+canRemove: boolean,
+cancelled: boolean,
+isExtra: boolean,
+departureGuests: number,
+isMain: boolean,
+departureBoats: number,
+leavesAt: string | null,
+arrivesAt: string | null,
+pickupPoint: string | null,
+timeChanged: boolean,
+boatId: number | null,
+inChargeId: number | null,
+assistantIds: number[],
+rows: App.Data.Reports.BoatManifestRow[],
+jobs: App.Data.Boats.BoatJobData[],
+};
+export type BoatCrewMemberData = {
+id: number,
+name: string,
+phone: string | null,
+active: boolean,
+};
+export type BoatData = {
+id: number,
+name: string,
+registration: string | null,
+seats: number | null,
+active: boolean,
+};
 export type BoatDepartureData = {
 id: number,
 direction: App.Enums.BoatDirection,
@@ -90,6 +135,11 @@ pickupPoint: string | null,
 seats: number | null,
 chargeItemId: number | null,
 fare: App.Data.Boats.BoatFareData | null,
+defaultBoatId: number | null,
+defaultBoatName: string | null,
+inChargeId: number | null,
+assistantIds: number[],
+crewNames: string[],
 active: boolean,
 upcomingBookings: number,
 meals: string[],
@@ -127,6 +177,36 @@ childrenSummary: string,
 taxes: App.Data.Catalogues.ChargeItemTaxData[],
 childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
 };
+export type BoatJobData = {
+id: number,
+leavesAt: string,
+jobType: string,
+jobLabel: string,
+boatId: number | null,
+boat: string | null,
+inChargeId: number | null,
+inCharge: string | null,
+assistantIds: number[],
+assistants: string[],
+note: string | null,
+done: boolean,
+};
+export type BoatPickData = {
+key: string,
+direction: string,
+departureId: number,
+sailingId: number | null,
+time: string,
+boat: string | null,
+taken: number,
+seats: number | null,
+};
+export type BoatSailingCrewData = {
+key: string,
+time: string,
+boatId: number | null,
+crewIds: number[],
+};
 export type BoatSetupUnitData = {
 id: number,
 label: string,
@@ -146,6 +226,18 @@ mode: App.Enums.BoatMode,
 boatDepartureId: number | null,
 time: string | null,
 note: string | null,
+boatSailingId: number | null,
+pickedSailing: boolean,
+};
+export type SailingData = {
+boatId: number | null,
+inChargeId: number | null,
+assistantIds: number[],
+setsTimes: boolean,
+leavesAt: string | null,
+arrivesAt: string | null,
+direction: App.Enums.BoatDirection | null,
+pickupPoint: string | null,
 };
 export type UnitBoatTripData = {
 direction: App.Enums.BoatDirection,
@@ -156,6 +248,167 @@ departureAvailable: boolean,
 time: string | null,
 note: string | null,
 summary: string,
+short: string,
+};
+}
+namespace BookingEngine {
+export type AdminNearbyPlaceData = {
+id: number,
+name: string,
+googleMapsUrl: string,
+status: App.Data.Shared.BadgeData,
+statusValue: App.Enums.NearbyPlaceStatus,
+propertiesCount: number,
+addedBy: string,
+createdAt: string,
+canApprove: boolean,
+canReject: boolean,
+};
+export type AmenityCategoryData = {
+id: number,
+name: string,
+type: App.Enums.AmenityType,
+amenitiesCount: number,
+};
+export type AmenityData = {
+id: number,
+name: string,
+type: App.Enums.AmenityType,
+typeLabel: string,
+categoryId: number,
+category: string,
+active: boolean,
+};
+export type AmenityPickerData = {
+amenities: App.Data.BookingEngine.AmenityData[],
+selectedIds: number[],
+};
+export type BookingReturnAddressData = {
+id: number,
+url: string,
+};
+export type BookingSiteChecklistItemData = {
+key: string,
+label: string,
+done: boolean,
+detail: string | null,
+};
+export type BookingWebsiteApiData = {
+apiAddress: string,
+hasToken: boolean,
+tokenCreatedAt: string | null,
+tokenLastUsedAt: string | null,
+returnAddresses: App.Data.BookingEngine.BookingReturnAddressData[],
+returnAddressLimit: number,
+docsUrl: string,
+};
+export type BookingWebsiteDesignData = {
+siteTemplateId: number | null,
+allowsMainColor: boolean,
+mainColor: string | null,
+templates: {
+value: string,
+label: string,
+}[],
+slots: App.Data.BookingEngine.SiteImageSlotData[],
+imageMaxKb: number,
+albumPhotos: App.Data.Property.PropertyPhotoData[],
+};
+export type BookingWebsiteGeneralData = {
+mode: string,
+published: boolean,
+publishedAt: string | null,
+slug: string,
+slugLocked: boolean,
+baseUrl: string,
+webAddress: string,
+googleMapsUrl: string | null,
+aboutText: string | null,
+checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
+canPublish: boolean,
+};
+export type BookingWebsiteHeaderData = {
+status: App.Data.Shared.BadgeData,
+mode: App.Data.Shared.BadgeData,
+};
+export type BookingWebsiteRatePlanData = {
+id: number,
+name: string,
+bookableOnline: boolean,
+roomTypeNames: string[],
+};
+export type BookingWebsiteSeoData = {
+seoTitle: string | null,
+seoDescription: string | null,
+propertyName: string,
+webAddress: string,
+};
+export type NearbyPlaceSuggestionData = {
+id: number,
+name: string,
+googleMapsUrl: string,
+distance: string,
+distanceKm: number,
+};
+export type NewBookingHoldData = {
+arrival: string,
+departure: string,
+total: string,
+guestName: string,
+guestEmail: string,
+guestPhone: string,
+guestNationality: string,
+specialRequests: string | null,
+lines: App.Data.BookingEngine.NewBookingHoldLineData[],
+guestIp: string | null,
+};
+export type NewBookingHoldLineData = {
+roomTypeId: number,
+ratePlanId: number,
+adults: number,
+childAges: number[],
+};
+export type PropertyNearbyPlaceData = {
+id: number,
+name: string,
+sharedName: string,
+displayName: string | null,
+description: string | null,
+googleMapsUrl: string,
+active: boolean,
+distance: string | null,
+distanceKm: number | null,
+};
+export type SiteImageSlotData = {
+key: string,
+label: string,
+required: boolean,
+fileName: string | null,
+url: string | null,
+thumbUrl: string | null,
+};
+export type SiteTemplateData = {
+id: number,
+key: string,
+name: string,
+type: App.Enums.SiteTemplateType,
+typeLabel: string,
+propertyId: number | null,
+propertyLabel: string | null,
+status: App.Data.Shared.BadgeData,
+allowsMainColor: boolean,
+previewUrl: string | null,
+slots: App.Data.BookingEngine.SiteTemplateSlotData[],
+sitesCount: number,
+transitions: {
+value: string,
+label: string,
+}[],
+};
+export type SiteTemplateSlotData = {
+key: string,
+label: string,
+required: boolean,
 };
 }
 namespace Catalogues {
@@ -178,6 +431,8 @@ defaultAmount: string | null,
 chargingUnit: App.Enums.ChargingUnit,
 allowOverride: boolean,
 autoAdd: boolean,
+autoAddChannels: boolean,
+housekeepingItem: boolean,
 needsChildPriceReview: boolean,
 active: boolean,
 taxIds: number[],
@@ -230,7 +485,7 @@ amount: string | null,
 percent: string | null,
 percentBasis: App.Enums.PolicyRateBasis | null,
 appliesTo: App.Enums.PolicyScope,
-freeUntilDays: number | null,
+steps: App.Data.Catalogues.RoomRevenuePolicyStepData[],
 ownTaxes: boolean,
 taxIds: number[],
 textEn: string,
@@ -249,6 +504,11 @@ localTotal: string | null,
 foreignTotal: string | null,
 steps: string[],
 taxBreakdown: App.Data.Catalogues.RoomRevenuePreviewData | null,
+};
+export type RoomRevenuePolicyStepData = {
+daysBefore: number,
+amount: string | null,
+percent: string | null,
 };
 export type RoomRevenuePreviewData = {
 sampleAmount: string,
@@ -450,6 +710,11 @@ isOther: boolean,
 };
 }
 namespace CityLedger {
+export type AgentPaymentTermsData = {
+depositPercent: number,
+depositHours: number,
+fullPaymentDays: number,
+};
 export type AgingReportData = {
 asAt: string,
 rows: App.Data.CityLedger.AgingRowData[],
@@ -559,6 +824,11 @@ contactPhone: string | null,
 creditLimit: string | null,
 paymentTermsDays: number | null,
 directBillEnabled: boolean,
+paysCollectedTaxes: boolean,
+paymentScheduleEnabled: boolean,
+agentDepositPercent: number | null,
+agentDepositHours: number | null,
+agentFullPaymentDays: number | null,
 status: App.Data.Shared.BadgeData,
 createdAt: string,
 portal: App.Data.CityLedger.CompanyPortalData | null,
@@ -620,6 +890,14 @@ number: string,
 dueOn: string | null,
 balance: string,
 };
+export type StatementBookingPaymentData = {
+date: string,
+booking: string,
+method: string,
+reference: string | null,
+receipt: string | null,
+amount: string,
+};
 export type StatementData = {
 from: string,
 to: string,
@@ -627,6 +905,7 @@ openingBalance: string,
 lines: App.Data.CityLedger.StatementLineData[],
 closingBalance: string,
 aging: App.Data.CityLedger.AgingRowData,
+bookingPayments: App.Data.CityLedger.StatementBookingPaymentData[],
 };
 export type StatementLineData = {
 date: string,
@@ -670,6 +949,7 @@ arrivals: App.Data.Dashboard.UnitCountTileData | null,
 departures: App.Data.Dashboard.UnitCountTileData | null,
 tonight: App.Data.Dashboard.TonightTileData | null,
 month: App.Data.Dashboard.MonthTileData | null,
+newBookings: App.Data.Dashboard.NewBookingsTileData | null,
 };
 export type DashboardTodoData = {
 rows: App.Data.Dashboard.DashboardTodoRowData[],
@@ -710,6 +990,10 @@ currency: App.Data.Property.CurrencyData | null,
 posted: string,
 bookedNights: number,
 bookedAmount: string,
+};
+export type NewBookingsTileData = {
+bookings: number,
+rooms: number,
 };
 export type PerformanceChannelMixData = {
 nights: number,
@@ -757,6 +1041,21 @@ previousOccupancy: number | null,
 previousAdr: number | null,
 previousRevpar: number | null,
 };
+export type TodayBookingRowData = {
+id: number,
+guest: string,
+reference: string,
+created: string,
+rooms: number,
+arrival: string | null,
+departure: string | null,
+url: string,
+};
+export type TodayBookingsData = {
+rows: App.Data.Dashboard.TodayBookingRowData[],
+total: number,
+date: string,
+};
 export type TonightNightData = {
 date: string,
 occupancy: number,
@@ -783,22 +1082,38 @@ total: number,
 };
 }
 namespace DoorLocks {
+export type DoorCardData = {
+id: number,
+lockName: string,
+cardNumber: string,
+status: App.Data.Shared.BadgeData,
+endsAt: string,
+error: string | null,
+canRemove: boolean,
+};
 export type DoorLockConnectionData = {
 ttlockUsername: string,
 signedIn: boolean,
 enabled: boolean,
 passcodeMode: string,
+passcodeLength: number,
 lastTestedAt: string | null,
 lastError: string | null,
 };
 export type DoorLockData = {
 id: number,
 name: string,
+provider: string,
+lockNo: string | null,
 batteryPercent: number | null,
 hasGateway: boolean,
 roomId: number | null,
 roomNumber: string | null,
 syncedAt: string | null,
+gatewayName: string | null,
+gatewayOnline: boolean | null,
+clockDriftSeconds: number | null,
+healthCheckedAt: string | null,
 };
 export type DoorPasscodeData = {
 id: number,
@@ -813,6 +1128,21 @@ error: string | null,
 revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
+canReplace: boolean,
+};
+export type KeyportJobData = {
+id: string,
+type: string,
+created_at: string,
+expires_at: string,
+payload: Record<string, any>,
+};
+export type KeyportPairingData = {
+device_id: string,
+device_token: string,
+property_code: string,
+property_name: string,
+poll_seconds: number,
 };
 export type LockWithoutPinData = {
 name: string,
@@ -820,8 +1150,14 @@ reason: string | null,
 };
 export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
+cards: App.Data.DoorLocks.DoorCardData[],
 locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
+updating: boolean,
+making: boolean,
+leavingIds: number[],
+syncing: boolean,
+canAddCard: boolean,
 };
 }
 namespace Folio {
@@ -900,6 +1236,7 @@ oldSystemTitle: string | null,
 oldSystemTotal: string | null,
 refundCredit: string | null,
 canRefundOtherMethod: boolean,
+onlineRefunds: App.Data.Folio.OnlineRefundData[],
 eInvoiceSubmissionId: number | null,
 eInvoiceStatus: string | null,
 eInvoiceStatusLabel: string | null,
@@ -958,6 +1295,8 @@ unitId: number | null,
 unitNightId: number | null,
 postedDate: string | null,
 methodType: string | null,
+receivedOn: string | null,
+notes: string | null,
 };
 export type ManualFolioOptionData = {
 id: number,
@@ -1196,6 +1535,13 @@ legacyNumber: string | null,
 rows: App.Data.Folio.OldFolioRowData[],
 openingBalance: string | null,
 };
+export type OnlineRefundData = {
+id: number,
+amount: string,
+status: App.Data.Shared.BadgeData,
+failureReason: string | null,
+canRetry: boolean,
+};
 export type PostFolioOptionData = {
 id: number | null,
 label: string,
@@ -1363,11 +1709,14 @@ moves: App.Data.Shared.BadgeData[],
 assignedTo: number | null,
 assignedName: string | null,
 guest: string | null,
+adults: number | null,
+children: number | null,
 arrivalDate: string | null,
 arrivalTime: string | null,
 departureDate: string | null,
 departureTime: string | null,
 isStayOver: boolean,
+stay: App.Data.Shared.BadgeData | null,
 isPriority: boolean,
 priorityNote: string | null,
 remark: string | null,
@@ -1375,10 +1724,65 @@ needsMaintenance: boolean,
 canDismissMaintenance: boolean,
 doNotDisturb: boolean,
 reason: string | null,
+cleaning: App.Data.Housekeeping.RoomCleaningStateData,
 };
 export type HousekeepingStaffData = {
 id: number,
 name: string,
+};
+export type RoomCleaningData = {
+id: number,
+housekeeperId: number,
+housekeeperName: string,
+date: string,
+inTime: string,
+outTime: string | null,
+minutes: number | null,
+};
+export type RoomCleaningStateData = {
+roomId: number,
+roomNumber: string,
+cleaning: App.Data.Housekeeping.RoomCleaningData | null,
+canStart: boolean,
+canFinish: boolean,
+canEdit: boolean,
+askHousekeeper: boolean,
+};
+}
+namespace Keyport {
+export type KeyportDeviceData = {
+id: number,
+name: string,
+platform: string | null,
+status: App.Data.Shared.BadgeData,
+lastSeenAt: string | null,
+readerNote: string | null,
+canRevoke: boolean,
+};
+export type KeyportJobRowData = {
+id: number,
+typeLabel: string,
+status: App.Data.Shared.BadgeData,
+lockName: string | null,
+guest: string | null,
+message: string | null,
+createdAt: string,
+canCancel: boolean,
+open: boolean,
+};
+export type UnitKeyCardsData = {
+locks: {
+id: number,
+name: string,
+hasCard: boolean,
+stale: boolean,
+previous: boolean,
+}[],
+deskOnline: boolean,
+hasDesk: boolean,
+canMake: boolean,
+jobs: App.Data.Keyport.KeyportJobRowData[],
+syncing: boolean,
 };
 }
 namespace Kiosk {
@@ -1716,28 +2120,18 @@ name: string,
 isOther: boolean,
 };
 export type OnboardingOtaCredentialData = {
-id: number | null,
 otaChannelId: number,
 channelName: string | null,
 propertyCode: string,
 username: string,
-password: string | null,
+password: string,
 marketManagerName: string | null,
 marketManagerPhone: string | null,
 marketManagerEmail: string | null,
 };
 export type OnboardingOtaCredentialRowData = {
 id: number,
-otaChannelId: number,
 channelLabel: string,
-channelName: string | null,
-propertyCode: string,
-username: string,
-hasPassword: boolean,
-marketManagerName: string | null,
-marketManagerPhone: string | null,
-marketManagerEmail: string | null,
-status: App.Data.Shared.BadgeData,
 };
 export type OnboardingPaymentMethodData = {
 id: number,
@@ -1868,6 +2262,10 @@ migrated: boolean,
 lineKey: string | null,
 allowOtaCollected: boolean,
 issueReceipt: boolean,
+guestPaysTaxes: boolean,
+allowOnline: boolean,
+receivedOn: string | null,
+notes: string | null,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -1880,6 +2278,17 @@ requiresReference: boolean,
 isOldSystem: boolean,
 type: string | null,
 isOtaCollected: boolean,
+};
+export type PaymentProofData = {
+id: number,
+amount: string,
+reference: string | null,
+status: App.Enums.PaymentProofStatus,
+badge: App.Data.Shared.BadgeData,
+uploadedAt: string,
+uploadedBy: string,
+rejectReason: string | null,
+fileUrl: string,
 };
 export type PaymentQuoteData = {
 amount: string | null,
@@ -1906,6 +2315,8 @@ review: App.Data.Onboarding.GoLiveReviewData,
 export type AdminMailEventRowData = {
 id: number,
 sentAt: string,
+triggeredByTitle: string | null,
+triggeredByDetail: string | null,
 recipient: string,
 recipientCount: number,
 subject: string,
@@ -2000,6 +2411,13 @@ export type AdminWaitingPropertyData = {
 sentOn: string,
 warningsCount: number,
 };
+export type BookingEngineModeData = {
+mode: App.Enums.BookingEngineMode,
+options: {
+value: string,
+label: string,
+}[],
+};
 export type DemoAccessData = {
 url: string,
 logins: App.Data.Platform.DemoLoginData[],
@@ -2031,6 +2449,14 @@ currentStep: string,
 percent: number,
 lastActivity: string,
 };
+export type OtaCredentialLoginData = {
+propertyCode: string,
+username: string,
+password: string | null,
+marketManagerName: string | null,
+marketManagerPhone: string | null,
+marketManagerEmail: string | null,
+};
 export type PartnerInvitationPreviewData = {
 email: string,
 partnerName: string,
@@ -2056,6 +2482,11 @@ feature: App.Enums.PlatformFeature,
 label: string,
 description: string,
 active: boolean,
+providers: string[] | null,
+providerOptions: {
+value: string,
+label: string,
+}[] | null,
 };
 export type ViewAsStaffData = {
 id: number,
@@ -2073,6 +2504,7 @@ guests: App.Data.Portal.NewPortalGuestData[],
 groupName: string | null,
 externalReference: string | null,
 expectedTotal: string,
+boatTrips: App.Data.Boats.BoatTripData[],
 };
 export type NewPortalGuestData = {
 fullName: string | null,
@@ -2181,6 +2613,7 @@ fullName: string,
 phone: string | null,
 idType: string | null,
 idTypeLabel: string | null,
+nationalityCode: string | null,
 };
 export type PortalInvitationData = {
 linkId: number,
@@ -2222,6 +2655,9 @@ id: number,
 name: string,
 summary: string,
 roomTypeIds: number[],
+minRooms: number | null,
+maxRooms: number | null,
+groupRatePlanId: number | null,
 };
 export type PortalRecentBookingData = {
 reservationId: number,
@@ -2346,6 +2782,12 @@ number: string,
 expiresOn: string | null,
 showOnDocuments: boolean,
 };
+export type PropertyPhotoData = {
+id: number,
+name: string,
+url: string,
+thumbUrl: string,
+};
 export type PropertyProfileData = {
 name: string,
 legalName: string | null,
@@ -2392,6 +2834,7 @@ code: string,
 name: string,
 status: App.Enums.PropertyStatus,
 logoUrl: string | null,
+countryCode: string | null,
 };
 export type WeekendNightsOptionData = {
 value: string,
@@ -2536,6 +2979,9 @@ dayUseMinHours: number | null,
 dayUseMaxHours: number | null,
 dayUseFrom: string | null,
 dayUseUntil: string | null,
+minRooms: number | null,
+maxRooms: number | null,
+groupRatePlanId: number | null,
 usesChildPrices: boolean,
 family: string,
 pricingLabel: string,
@@ -2548,6 +2994,8 @@ archived: boolean,
 status: App.Data.Shared.BadgeData,
 isDerived: boolean,
 checkChildPrices: boolean,
+bookableOnline: boolean,
+offerableOnline: boolean,
 roomTypeIds: number[],
 roomTypeNames: string[],
 };
@@ -2612,6 +3060,7 @@ export type RatePlanStayDiscountData = {
 minNights: number,
 discountType: App.Enums.StayDiscountType,
 value: string,
+perRoom: boolean,
 fromNight: number,
 };
 export type RatePricingRoomTypeData = {
@@ -2790,6 +3239,20 @@ subject: string | null,
 causerName: string,
 createdAt: string,
 };
+export type AgentPaymentDueRow = {
+key: number,
+reservation_id: number,
+reservation: string,
+company: string,
+arrival: string,
+stage: string,
+amount_due: string,
+due_at: string,
+status: string,
+time_zone: string,
+overdue: boolean,
+stay_ended: boolean,
+};
 export type ArrivalRow = {
 key: number,
 reservation: string,
@@ -2815,6 +3278,7 @@ key: number,
 departure: string,
 unit: string,
 lead_guest: string,
+agent: string,
 phone: string | null,
 adults: number,
 children: number,
@@ -2823,6 +3287,17 @@ reservation: string,
 note: string | null,
 boat_departure_id: number | null,
 seats: number | null,
+direction: string,
+not_set: boolean,
+boat: string | null,
+crew: string | null,
+ticked: boolean,
+mode: string | null,
+sailing_key: string | null,
+sailing_title: string | null,
+reservation_id: number | null,
+reservation_unit_id: number | null,
+unit_time: string | null,
 };
 export type CheckedOutRow = {
 key: number,
@@ -2931,6 +3406,42 @@ kind: string,
 staff: string | null,
 amount: string,
 };
+export type HouseStatusRow = {
+key: string,
+group: string,
+room: string,
+label: string,
+pax: number,
+flags: string[],
+remark: string | null,
+kind: string,
+group_key: string,
+group_order: (number| string)[],
+checked_out: boolean,
+warning: boolean,
+cleaning: App.Data.Housekeeping.RoomCleaningStateData | null,
+};
+export type HousekeepingItemRow = {
+key: string,
+room: string,
+guest: string,
+pax: number,
+item: string,
+quantity: number,
+action: string,
+arrival: string,
+departure: string,
+};
+export type HousekeepingLogRow = {
+key: number,
+date: string,
+room: string,
+room_type: string,
+housekeeper: string,
+in: string,
+out: string | null,
+minutes: number | null,
+};
 export type HousekeepingTaskRow = {
 key: number,
 due: number,
@@ -2941,6 +3452,9 @@ room_type: string,
 status: string,
 assigned: string | null,
 guest: string | null,
+stay: string | null,
+adults: number | null,
+children: number | null,
 arrival: string | null,
 arrival_date: string | null,
 arrival_time: string | null,
@@ -3061,6 +3575,12 @@ amount: string,
 reference: string | null,
 refund_of: string | null,
 staff_id: number,
+received_on: string,
+room: string | null,
+guest: string,
+notes: string | null,
+folio: string | null,
+invoice: string | null,
 };
 export type PoliceReportRow = {
 key: string,
@@ -3112,6 +3632,10 @@ foreignOnly: boolean,
 direction: App.Enums.BoatDirection | null,
 bucket: App.Enums.ChargeBucket | null,
 search: string | null,
+bothDirections: boolean,
+boatNotSet: boolean,
+dateBasis: App.Enums.PaymentDateBasis,
+boatGroup: string | null,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -3160,6 +3684,22 @@ namespace Reservations {
 export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
+};
+export type AgentBillData = {
+agentLines: {
+label: string,
+quantity: number,
+amount: string,
+}[],
+agentTotal: string,
+guestLines: {
+label: string,
+quantity: number,
+amount: string,
+}[],
+guestTotal: string,
+total: string,
+nationalityMissing: boolean,
 };
 export type ArrivalImportRowData = {
 line: number,
@@ -3260,6 +3800,8 @@ fee: string | null,
 feeTotal: string | null,
 withinFreeWindow: boolean,
 unpostedAddOns: number,
+onlineRefund: string,
+onlineRefundWaived: string,
 note: string | null,
 }[],
 freeUntilDays: number | null,
@@ -3284,6 +3826,14 @@ defaultAmount: string | null,
 allowOverride: boolean,
 autoAdd: boolean,
 };
+export type CheckInAllEndedStayData = {
+stayDates: string,
+oneNight: boolean,
+lastNight: string,
+today: string,
+tomorrow: string,
+arrivingTodayBlocked: string | null,
+};
 export type CheckInAllPreviewData = {
 rows: {
 unitId: number,
@@ -3293,9 +3843,12 @@ room: string | null,
 cardsMissing: number,
 ready: boolean,
 note: string | null,
+endedStay: boolean,
+moveTotal: string | null,
 }[],
 canCheckInWithoutCard: boolean,
 error: string | null,
+endedStay: App.Data.Reservations.CheckInAllEndedStayData | null,
 };
 export type CheckInCollectionData = {
 taxes: {
@@ -3308,6 +3861,7 @@ taxesHidden: boolean,
 deposit: string | null,
 billTotal: string,
 billHidden: boolean,
+billPaid: string,
 };
 export type CheckOutAsDayUseData = {
 refusal: string | null,
@@ -3383,10 +3937,31 @@ export type DiscountOptionData = {
 id: number,
 name: string,
 };
+export type EndedStayCheckInData = {
+arrival: string,
+departure: string,
+lastNight: string,
+today: string,
+tomorrow: string,
+newTotal: string | null,
+arrivingTodayBlocked: string | null,
+};
 export type FreeUnitData = {
 id: number,
 label: string,
 reason: string | null,
+};
+export type GroupAddOnPreviewData = {
+lines: App.Data.Reservations.GroupAddOnPreviewLineData[],
+total: string,
+};
+export type GroupAddOnPreviewLineData = {
+unitId: number,
+label: string,
+guests: number,
+nights: number | null,
+total: string | null,
+note: string | null,
 };
 export type GroupCheckOutDoneData = {
 checkedOut: number,
@@ -3483,6 +4058,21 @@ settleMaster: boolean,
 masterAfter: string | null,
 onePayment: string | null,
 };
+export type GroupNightPricePreviewData = {
+lines: App.Data.Reservations.GroupNightPricePreviewLineData[],
+difference: string | null,
+hadDiscount: boolean,
+};
+export type GroupNightPricePreviewLineData = {
+unitId: number,
+label: string,
+nights: number,
+was: string | null,
+wasHigh: string | null,
+charged: number,
+difference: string | null,
+error: string | null,
+};
 export type MoveTargetData = {
 rowKey: string,
 roomTypeId: number,
@@ -3562,6 +4152,17 @@ date: string,
 amount: string,
 charged: boolean,
 };
+export type PaymentScheduleData = {
+stages: {
+label: string,
+amount: string,
+dueAt: string,
+status: string,
+}[],
+depositPercent: number,
+paid: string,
+left: string,
+};
 export type RatePlanOptionData = {
 id: number,
 name: string,
@@ -3577,6 +4178,9 @@ dayUseMinHours: number | null,
 dayUseMaxHours: number | null,
 dayUseFrom: string | null,
 dayUseUntil: string | null,
+minRooms: number | null,
+maxRooms: number | null,
+groupRatePlanId: number | null,
 };
 export type ReservationActivityData = {
 id: number,
@@ -3612,6 +4216,7 @@ email: string | null,
 export type ReservationData = {
 id: number,
 reference: string,
+shortCode: string,
 title: string,
 groupName: string | null,
 isGroup: boolean,
@@ -3649,6 +4254,7 @@ cardUnitGuestId: number | null,
 billing: string | null,
 canBill: boolean,
 guest: App.Data.Guests.GuestOptionData | null,
+documents: App.Data.Guests.GuestIdentityDocumentData[],
 };
 export type ReservationListItemData = {
 id: number,
@@ -3752,6 +4358,7 @@ boatOut: App.Data.Boats.UnitBoatTripData | null,
 canSetBoatIn: boolean,
 canSetBoatOut: boolean,
 hasPriceOverride: boolean,
+canChangeGuests: boolean,
 };
 export type ReservationUnitOptionData = {
 id: number,
@@ -3759,10 +4366,29 @@ roomType: string,
 isBed: boolean,
 capacity: number,
 assigned: string | null,
+primaryGuest: string | null,
 label: string,
 status: App.Data.Shared.BadgeData,
 arrival: string,
 departure: string,
+occupancy: string,
+};
+export type ReservationUnitRowData = {
+id: number,
+roomType: string,
+assigned: string | null,
+primaryGuest: string | null,
+adults: number,
+children: number,
+arrival: string,
+departure: string,
+nightCount: number,
+stayLabel: string | null,
+ratePlan: string,
+total: string,
+status: App.Data.Shared.BadgeData,
+boatIn: string | null,
+boatOut: string | null,
 };
 export type RoomTypeOptionData = {
 id: number,
@@ -3800,6 +4426,7 @@ canOverrideCredit: boolean,
 collection: App.Data.Reservations.CheckInCollectionData | null,
 error: string | null,
 auditPending: App.Data.Reservations.UnitAuditPendingData | null,
+endedStay: App.Data.Reservations.EndedStayCheckInData | null,
 };
 export type UnitCheckOutPreviewData = {
 balance: string,
@@ -3855,6 +4482,8 @@ freeUntilDays: number | null,
 daysBeforeArrival: number | null,
 unpostedAddOns: number,
 error: string | null,
+onlineRefund: string,
+onlineRefundWaived: string,
 };
 export type UnitLateCheckOutPreviewData = {
 fee: string | null,
@@ -3891,6 +4520,33 @@ nightTotal: string,
 lines: App.Data.Reservations.UnitPendingLineData[],
 balanceIfStayed: string,
 stayed: boolean,
+};
+export type UnitPartyAddOnData = {
+key: string,
+name: string,
+summary: string,
+reverseAmount: string,
+chargeAmount: string,
+needsReversal: boolean,
+canApply: boolean,
+};
+export type UnitPartyNightData = {
+date: string,
+was: string,
+will: string,
+charged: boolean,
+overridden: boolean,
+changes: boolean,
+};
+export type UnitPartyPreviewData = {
+nights: App.Data.Reservations.UnitPartyNightData[],
+before: string,
+after: string,
+difference: string,
+fromChannel: boolean,
+hasCharged: boolean,
+error: string | null,
+addOns: App.Data.Reservations.UnitPartyAddOnData[],
 };
 export type UnitPendingLineData = {
 description: string,
@@ -3989,6 +4645,7 @@ refused: string[],
 export type RoomData = {
 id: number,
 number: string,
+printLabel: string | null,
 roomTypeId: number,
 roomGroupId: number | null,
 archived: boolean,
@@ -4000,6 +4657,7 @@ name: string,
 export type RoomTypeData = {
 id: number,
 name: string,
+printLabel: string | null,
 description: string | null,
 sellUnit: App.Enums.SellUnit,
 maxAdults: number,
@@ -4009,6 +4667,12 @@ smokingAllowed: boolean,
 petsAllowed: boolean,
 termsDocumentId: number | null,
 archived: boolean,
+};
+export type RoomTypePhotoData = {
+id: number,
+name: string,
+url: string,
+thumbUrl: string,
 };
 export type RoomTypeRoomChoiceData = {
 id: number,
@@ -4196,6 +4860,7 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type AmenityType = 'property' | 'room';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
@@ -4209,9 +4874,14 @@ export type AuditStepStatus = 'running' | 'completed' | 'failed';
 export type AuditTrigger = 'scheduled' | 'manual';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BoatDirection = 'in' | 'out';
+export type BoatJobType = 'diesel' | 'linen' | 'supplies' | 'staff' | 'maintenance' | 'other';
 export type BoatMode = 'scheduled' | 'charter' | 'own';
+export type BookableOnlineResult = 'saved' | 'not-available' | 'last-plan';
+export type BookingClientType = 'microsite' | 'api-only' | 'demo';
+export type BookingEngineMode = 'microsite' | 'api-only';
+export type BookingHoldStatus = 'held' | 'paid' | 'confirmed' | 'expired';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
-export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
+export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in' | 'booking_engine';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error' | 'structure_sync_failed' | 'removal_blocked' | 'ota_payment_not_posted';
 export type ChannelConnectionStatus = 'draft' | 'mapped' | 'active' | 'paused' | 'error';
@@ -4247,33 +4917,44 @@ export type EInvoiceEnvironment = 'mock' | 'sandbox' | 'production';
 export type EInvoiceScenario = 'folio' | 'ar_invoice' | 'consolidation';
 export type EInvoiceStatus = 'draft' | 'pending' | 'submitted' | 'valid' | 'invalid' | 'cancelled';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
+export type EndedStayChoice = 'arrived_last_night' | 'arriving_today';
 export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
+export type GatewayPaymentStatus = 'created' | 'paid' | 'failed';
+export type GatewayRefundStatus = 'pending' | 'processed' | 'failed';
 export type Gender = 'male' | 'female';
 export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
 export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' | 'set_priority' | 'clear_priority' | 'add_remark' | 'needs_maintenance';
 export type HousekeepingReason = 'departed' | 'stay_over';
-export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition';
+export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition' | 'cleaning_in_progress' | 'cleaning_not_started';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
+export type HousekeepingStay = 'due_out' | 'in_house' | 'checked_out' | 'arriving';
 export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KeyportApiError = 'invalid_pairing_code' | 'pairing_code_expired' | 'pairing_code_used' | 'unauthorized' | 'door_locks_disabled' | 'upgrade_required' | 'job_not_found' | 'job_already_finished' | 'invalid_request';
+export type KeyportDeviceStatus = 'online' | 'offline' | 'revoked';
+export type KeyportJobStatus = 'pending' | 'claimed' | 'succeeded' | 'failed' | 'uncertain' | 'cancelled' | 'expired';
+export type KeyportJobType = 'guest_card.issue' | 'guest_card.rewrite' | 'guest_card.erase' | 'guest_card.read';
 export type KioskKeyMode = 'pin' | 'card' | 'both';
 export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
+export type LockProvider = 'ttlock' | 'elock';
+export type MailActorType = 'system' | 'property' | 'partner' | 'admin' | 'guest' | 'company';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
 export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
+export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
@@ -4287,7 +4968,9 @@ export type PartnerStatus = 'invited' | 'active' | 'suspended';
 export type PasscodeKind = 'generated' | 'custom';
 export type PasscodeMode = 'generated' | 'custom';
 export type PasscodeStatus = 'pending' | 'active' | 'failed' | 'revoked' | 'expired';
-export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system';
+export type PaymentDateBasis = 'posted' | 'received';
+export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system' | 'online';
+export type PaymentProofStatus = 'submitted' | 'accepted' | 'rejected';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
 export type PaymentStage = 'before_arrival' | 'in_house' | 'departed';
@@ -4295,8 +4978,8 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'einvoice.view' | 'einvoice.manage';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'einvoice.view' | 'einvoice.manage';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
@@ -4316,7 +4999,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'housekeeping-log' | 'house-status' | 'agent-payments' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';
@@ -4324,7 +5007,10 @@ export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'ot
 export type RoomBlockRefusal = 'unavailable' | 'ended' | 'blocked' | 'has_stay';
 export type RoomDayState = 'arriving' | 'in_house' | 'departing' | 'vacant' | 'blocked';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
+export type SailingKind = 'guests' | 'job';
 export type SellUnit = 'room' | 'bed';
+export type SiteTemplateStatus = 'draft' | 'available' | 'retired';
+export type SiteTemplateType = 'standard' | 'custom';
 export type SpreadsheetFormat = 'csv' | 'xlsx';
 export type StayDiscountType = 'percent' | 'amount';
 export type StayType = 'overnight' | 'day_use';
@@ -4332,16 +5018,17 @@ export type StayViewGrouping = 'none' | 'room_group' | 'room_type';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment';
 export type TabbedReport = 'guest-list' | 'daily-report';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';
 export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'other';
+export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'online' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
 export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out';
+export type UnitMovement = 'arrivals' | 'departures';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type WastaysEventType = 'create' | 'check_in' | 'charge' | 'adjustment' | 'repair' | 'payment' | 'deposit' | 'refund' | 'reversal' | 'folio_movement' | 'stay_change' | 'early_departure' | 'check_out';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\DoorLocks;
 
 use App\Actions\DoorLocks\AdjustLockClock;
+use App\Actions\DoorLocks\CheckDoorLockHealth;
 use App\Actions\DoorLocks\DoorLockResult;
 use App\Actions\DoorLocks\IssueDoorPasscode;
 use App\Actions\DoorLocks\LinkDoorLock;
@@ -14,9 +15,13 @@ use App\Actions\DoorLocks\UnlockDoor;
 use App\Data\DoorLocks\DoorLockConnectionData;
 use App\Data\DoorLocks\DoorLockData;
 use App\Data\DoorLocks\DoorPasscodeData;
+use App\Data\Keyport\KeyportDeviceData;
+use App\Data\Keyport\KeyportJobRowData;
+use App\Enums\LockProvider;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeMode;
 use App\Enums\PasscodeStatus;
+use App\Features\DoorLocks;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DoorLocks\IssuePasscodeRequest;
 use App\Http\Requests\DoorLocks\SaveDoorLockConnectionRequest;
@@ -30,24 +35,67 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\LaravelData\PaginatedDataCollection;
 
 class DoorLockSettingsController extends Controller
 {
     /**
-     * The one Door locks page: the connection, the locks with their rooms, and the latest PINs. Bounded lists load once.
+     * The one Door locks page: the connection, the locks with their rooms, and the PINs. Locks and PINs page on the server, each on its own query parameter.
      */
-    public function edit(Property $property): Response
+    public function edit(Request $request, Property $property): Response
     {
         $connection = $property->doorLockConnection;
+        $search = trim($request->string('lock_search')->toString());
+        $like = '%'.addcslashes($search, '%_\\').'%';
+        $ttlockSearch = trim($request->string('ttlock_search')->toString());
+        $ttlockLike = '%'.addcslashes($ttlockSearch, '%_\\').'%';
+        $ttlocks = $property->doorLocks()->ofProvider(LockProvider::TTLock);
 
         return Inertia::render('settings/door-locks/index', [
+            // The providers the admin turned on for this property. The page shows only these.
+            'providers' => array_map(fn (LockProvider $provider): string => $provider->value, DoorLocks::providers($property)),
             'connection' => $connection === null ? null : DoorLockConnectionData::fromModel($connection),
             'passcodeModes' => PasscodeMode::options(),
             'passcodeKinds' => array_map(fn (PasscodeKind $kind): array => ['value' => $kind->value, 'label' => $kind->label()], PasscodeKind::cases()),
-            'locks' => $property->doorLocks()->with('room')->orderBy('name')->get()->map(DoorLockData::fromModel(...)),
+            // The TTLock locks table pages on `ttlocks_page` and searches on `ttlock_search`. `lockOptions` is the whole bounded list in
+            // lean form, for the PIN form and the gateway notice, so they never depend on which page is showing.
+            'lockTotal' => (clone $ttlocks)->count(),
+            'lockSearch' => $ttlockSearch,
+            'lockOptions' => (clone $ttlocks)->orderBy('name')->orderBy('id')->get(['id', 'name', 'has_gateway'])
+                ->map(fn (DoorLock $lock): array => ['value' => (string) $lock->id, 'label' => $lock->name, 'hasGateway' => $lock->has_gateway])->values(),
+            'locks' => DoorLockData::collect(
+                (clone $ttlocks)->with('room')
+                    ->when($ttlockSearch !== '', fn ($query) => $query->where(fn ($query) => $query
+                        ->where('name', 'ilike', $ttlockLike)
+                        ->orWhereHas('room', fn ($room) => $room->where('number', 'ilike', $ttlockLike))))
+                    ->orderBy('name')->orderBy('id')->paginate(10, ['*'], 'ttlocks_page')->withQueryString(),
+                PaginatedDataCollection::class,
+            ),
             'rooms' => Room::query()->where('property_id', $property->id)->whereNull('archived_at')->orderBy('position')->orderBy('number')->get(['id', 'number'])
                 ->map(fn (Room $room): array => ['value' => (string) $room->id, 'label' => $room->number])->values(),
-            'passcodes' => DoorPasscode::query()->where('property_id', $property->id)->with('doorLock')->latest('id')->limit(50)->get()->map(DoorPasscodeData::fromModel(...)),
+            'passcodes' => DoorPasscodeData::collect(
+                DoorPasscode::query()->where('property_id', $property->id)->with('doorLock')->latest('id')->paginate(10, ['*'], 'pins_page')->withQueryString(),
+                PaginatedDataCollection::class,
+            ),
+            // eLock side: front-desk PCs, locks and card jobs. One prop so the page can poll it alone. Locks and jobs page on their own
+            // query parameters, so paging one list never moves the other.
+            'keyport' => [
+                'devices' => $property->keyportDevices()->latest('id')->get()->map(KeyportDeviceData::fromModel(...)),
+                'lockTotal' => $property->doorLocks()->ofProvider(LockProvider::ELock)->count(),
+                'lockSearch' => $search,
+                'locks' => DoorLockData::collect(
+                    $property->doorLocks()->ofProvider(LockProvider::ELock)->with('room')
+                        ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                            ->where('name', 'ilike', $like)->orWhere('lock_no', 'ilike', $like)
+                            ->orWhereHas('room', fn ($room) => $room->where('number', 'ilike', $like))))
+                        ->orderBy('name')->orderBy('id')->paginate(10, ['*'], 'locks_page')->withQueryString(),
+                    PaginatedDataCollection::class,
+                ),
+                'jobs' => KeyportJobRowData::collect(
+                    $property->keyportJobs()->with('doorLock')->latest('id')->paginate(10, ['*'], 'jobs_page')->withQueryString(),
+                    PaginatedDataCollection::class,
+                ),
+            ],
         ]);
     }
 
@@ -119,17 +167,22 @@ class DoorLockSettingsController extends Controller
 
     public function unlock(Request $request, Property $property, DoorLock $doorLock, UnlockDoor $unlockDoor): RedirectResponse
     {
-        return $this->flash($property, $unlockDoor($doorLock, $request->user()), __('Door unlocked.'));
+        return $this->cloudOnly($property, $doorLock) ?? $this->flash($property, $unlockDoor($doorLock, $request->user()), __('Door unlocked.'));
     }
 
     public function clock(Request $request, Property $property, DoorLock $doorLock, AdjustLockClock $adjustLockClock): RedirectResponse
     {
-        return $this->flash($property, $adjustLockClock($doorLock, $request->user()), __('Lock clock set.'));
+        return $this->cloudOnly($property, $doorLock) ?? $this->flash($property, $adjustLockClock($doorLock, $request->user()), __('Lock clock set.'));
+    }
+
+    public function health(Property $property, DoorLock $doorLock, CheckDoorLockHealth $checkDoorLockHealth): RedirectResponse
+    {
+        return $this->cloudOnly($property, $doorLock) ?? $this->flash($property, $checkDoorLockHealth($doorLock->load('property.doorLockConnection')), __('Lock checked.'));
     }
 
     public function storePasscode(IssuePasscodeRequest $request, Property $property, IssueDoorPasscode $issueDoorPasscode): RedirectResponse
     {
-        $lock = $property->doorLocks()->with('property.doorLockConnection')->findOrFail($request->integer('door_lock_id'));
+        $lock = $property->doorLocks()->ofProvider(LockProvider::TTLock)->with('property.doorLockConnection')->findOrFail($request->integer('door_lock_id'));
         [$startsAt, $endsAt] = $request->window($property->settings->time_zone ?? 'Asia/Kuala_Lumpur');
 
         $result = $issueDoorPasscode(
@@ -173,6 +226,20 @@ class DoorLockSettingsController extends Controller
         );
 
         return $this->flash($property, $result, __('PIN issued.'));
+    }
+
+    /**
+     * Remote unlock, clock and health talk to the TTLock cloud. An eLock lock has none of that: it opens with a key card from Keyport.
+     */
+    private function cloudOnly(Property $property, DoorLock $doorLock): ?RedirectResponse
+    {
+        if ($doorLock->provider === LockProvider::TTLock) {
+            return null;
+        }
+
+        Inertia::flash('toast', ['type' => 'error', 'message' => __('An eLock lock opens with a key card. It has no remote control.')]);
+
+        return to_route('settings.door-locks.edit', $property);
     }
 
     /**

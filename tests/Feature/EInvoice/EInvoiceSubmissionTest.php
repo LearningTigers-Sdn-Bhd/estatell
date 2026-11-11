@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\EInvoice\ConsolidateMonthlyEInvoices;
+use App\Actions\EInvoice\SubmitFolioEInvoice;
 use App\Enums\ArInvoiceType;
 use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceEnvironment;
@@ -475,4 +476,32 @@ it('submits an individual e-invoice from front desk with custom buyer snapshot',
     $ublCustomer = $submission->document_payload['Invoice'][0]['AccountingCustomerParty'][0]['Party'][0];
     $tinId = collect($ublCustomer['PartyIdentification'])->firstWhere('ID.0.schemeID', 'TIN')['ID'][0]['_'];
     expect($tinId)->toBe('EI00000000020');
+});
+
+it('answers 404 to every e-invoice route while the feature is off', function () {
+    $setup = submissionSetup();
+    $code = $setup['property']->code;
+    Feature::for($setup['property'])->deactivate(EInvoicing::class);
+    $arInvoice = ArInvoice::factory()->for($setup['property'])->create();
+
+    $this->actingAs($setup['owner']);
+    $this->post("/p/{$code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")->assertNotFound();
+    $this->post("/p/{$code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice/cancel")->assertNotFound();
+    $this->post("/p/{$code}/finance/city-ledger/invoices/{$arInvoice->id}/e-invoice")->assertNotFound();
+    $this->post("/p/{$code}/finance/city-ledger/invoices/{$arInvoice->id}/e-invoice/cancel")->assertNotFound();
+    $this->get("/p/{$code}/finance/e-invoices")->assertNotFound();
+    $this->post("/p/{$code}/finance/e-invoices/consolidate")->assertNotFound();
+    $this->get("/p/{$code}/settings/e-invoice")->assertNotFound();
+
+    expect(EInvoiceSubmission::query()->count())->toBe(0);
+});
+
+it('does not submit a folio while the feature is off, so checkout auto-submit stays quiet', function () {
+    $setup = submissionSetup();
+    Feature::for($setup['property'])->deactivate(EInvoicing::class);
+
+    $result = app(SubmitFolioEInvoice::class)($setup['folio'], $setup['owner']);
+
+    expect($result->ok)->toBeFalse()
+        ->and(EInvoiceSubmission::query()->count())->toBe(0);
 });

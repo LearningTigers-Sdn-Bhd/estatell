@@ -14,6 +14,10 @@ import {
 import { useEffect, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import {
+    GuestIdentityFields,
+    emptyGuestIdentity,
+} from '@/components/pms/guest-identity-fields';
 import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
 import { GuestAutocompleteField } from '@/components/pms/guests/guest-autocomplete-field';
 import { GuestDetailsFields } from '@/components/pms/guests/guest-details-fields';
@@ -258,6 +262,8 @@ export function SavedGuestRow({
     rowId,
     reservationId,
     row,
+    canViewDocuments,
+    identityDocumentTypes,
     showUnit = true,
     canAdd,
     canEdit,
@@ -277,6 +283,8 @@ export function SavedGuestRow({
     rowId: string;
     reservationId: number;
     row: Row;
+    canViewDocuments: boolean;
+    identityDocumentTypes: EnumOption[];
     /** False in the Grouped view, where the rail names the unit. */
     showUnit?: boolean;
     canAdd: boolean;
@@ -301,23 +309,39 @@ export function SavedGuestRow({
             ? linkGuest(emptyGuest(), row.guest)
             : null,
     );
+    const [identitySavedVersion, setIdentitySavedVersion] = useState(0);
+    const [identity, setIdentity] = useState(() =>
+        emptyGuestIdentity(
+            row.guest?.profile.nationalityCode ?? null,
+            row.documents[0],
+        ),
+    );
     const [values, setValues] = useState<BookingGuest | null>(base);
     const [errors, setErrors] = useState<Errors>({});
     const [processing, setProcessing] = useState(false);
     const [open, setOpen] = useState(false);
     const dirty =
-        values !== null && base !== null && profileChanged(values, base);
+        values !== null &&
+        base !== null &&
+        (profileChanged(values, base) ||
+            identity.identity_number !== '' ||
+            identity.identity_document_id !== '');
     const hiddenError = Object.keys(errors).some(
         (field) => !['full_name', 'phone'].includes(field),
     );
     const mykad = useGuestMykadRow({
         rowKey: rowId,
-        values,
+        values: values === null ? null : { ...values, identity },
         target: mykadTarget,
-        apply: (fields) =>
+        withIdentity: canViewDocuments,
+        apply: ({ identity: scannedIdentity, ...fields }) => {
             setValues((current) =>
                 current === null ? current : { ...current, ...fields },
-            ),
+            );
+            if (scannedIdentity !== undefined) {
+                setIdentity(scannedIdentity);
+            }
+        },
         onFilled: () => setOpen(true),
     });
 
@@ -419,22 +443,38 @@ export function SavedGuestRow({
                       guestId: row.guestId,
                   });
 
-        router.put(url, profilePayload(values), {
-            preserveScroll: true,
-            preserveState: true,
-            onStart: () => setProcessing(true),
-            onFinish: () => setProcessing(false),
-            onError: (found) => setErrors(found),
-            onSuccess: () => {
-                setErrors({});
-                setBase(values);
-                mykad.forget();
+        router.put(
+            url,
+            { ...profilePayload(values), ...identity },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onStart: () => setProcessing(true),
+                onFinish: () => setProcessing(false),
+                onError: (found) => setErrors(found),
+                onSuccess: () => {
+                    setIdentitySavedVersion((current) => current + 1);
+                    setErrors({});
+                    setBase(values);
+                    setIdentity((current) => ({
+                        ...current,
+                        identity_number: '',
+                        identity_document_id: '',
+                    }));
+                    mykad.forget();
+                },
             },
-        });
+        );
     };
 
     const cancel = () => {
         setValues(base);
+        setIdentity(
+            emptyGuestIdentity(
+                row.guest?.profile.nationalityCode ?? null,
+                row.documents[0],
+            ),
+        );
         setErrors({});
         mykad.forget();
     };
@@ -529,7 +569,30 @@ export function SavedGuestRow({
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
                             {parts.linked}
-                            {parts.email}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {parts.email}
+                                {canViewDocuments && row.guest !== null && (
+                                    <GuestIdentityFields
+                                        guestId={row.guest.id}
+                                        savedVersion={identitySavedVersion}
+                                        document={row.documents[0]}
+                                        values={identity}
+                                        types={identityDocumentTypes}
+                                        errors={errors}
+                                        disabled={processing}
+                                        onRemoved={() => {
+                                            setErrors({});
+                                            mykad.forget();
+                                        }}
+                                        onChange={(patch) =>
+                                            setIdentity((current) => ({
+                                                ...current,
+                                                ...patch,
+                                            }))
+                                        }
+                                    />
+                                )}
+                            </div>
                             <GuestDetailsFields
                                 columns={2}
                                 idPrefix={`${idPrefix}-`}
@@ -585,6 +648,8 @@ export function SavedGuestRow({
 export function DraftGuestRow({
     reservationId,
     draft,
+    canViewDocuments,
+    identityDocumentTypes,
     units,
     full,
     showUnit = true,
@@ -599,6 +664,8 @@ export function DraftGuestRow({
 }: {
     reservationId: number;
     draft: BookingGuest;
+    canViewDocuments: boolean;
+    identityDocumentTypes: EnumOption[];
     units: Unit[];
     full: Set<number>;
     /** False in the Grouped view: the unit is the open one and Stays in is not shown. */
@@ -633,6 +700,7 @@ export function DraftGuestRow({
         rowKey: draft.key,
         values: draft,
         target: mykadTarget,
+        withIdentity: canViewDocuments,
         apply: onChange,
         onFilled: () => setOpen(true),
     });
@@ -864,7 +932,44 @@ export function DraftGuestRow({
                             {canManageGuests && (
                                 <GuestDetailsFields
                                     columns={3}
-                                    leading={parts.email}
+                                    leading={
+                                        <>
+                                            {parts.email}
+                                            {canViewDocuments && (
+                                                <GuestIdentityFields
+                                                    guestId={
+                                                        draft.guest?.id ?? null
+                                                    }
+                                                    values={
+                                                        draft.identity ??
+                                                        emptyGuestIdentity(
+                                                            draft.nationality_code,
+                                                        )
+                                                    }
+                                                    types={
+                                                        identityDocumentTypes
+                                                    }
+                                                    errors={errors}
+                                                    disabled={
+                                                        processing ||
+                                                        (draft.guest !== null &&
+                                                            !draft.update_profile)
+                                                    }
+                                                    onChange={(patch) =>
+                                                        onChange({
+                                                            identity: {
+                                                                ...(draft.identity ??
+                                                                    emptyGuestIdentity(
+                                                                        draft.nationality_code,
+                                                                    )),
+                                                                ...patch,
+                                                            },
+                                                        })
+                                                    }
+                                                />
+                                            )}
+                                        </>
+                                    }
                                     idPrefix={`draft-${draft.key}-`}
                                     values={draft}
                                     errors={errors}

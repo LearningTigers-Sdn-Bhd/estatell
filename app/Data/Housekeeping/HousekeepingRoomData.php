@@ -5,6 +5,7 @@ namespace App\Data\Housekeeping;
 use App\Data\Shared\BadgeData;
 use App\Enums\HousekeepingReason;
 use App\Enums\HousekeepingStatus;
+use App\Enums\HousekeepingStay;
 use App\Enums\Tone;
 use App\Models\Room;
 use Spatie\LaravelData\Data;
@@ -32,11 +33,14 @@ class HousekeepingRoomData extends Data
         public ?int $assignedTo,
         public ?string $assignedName,
         public ?string $guest,
+        public ?int $adults,
+        public ?int $children,
         public ?string $arrivalDate,
         public ?string $arrivalTime,
         public ?string $departureDate,
         public ?string $departureTime,
         public bool $isStayOver,
+        public ?BadgeData $stay,
         public bool $isPriority,
         public ?string $priorityNote,
         public ?string $remark,
@@ -44,13 +48,14 @@ class HousekeepingRoomData extends Data
         public bool $canDismissMaintenance,
         public bool $doNotDisturb,
         public ?string $reason,
+        public RoomCleaningStateData $cleaning,
     ) {}
 
     /**
      * Expects `roomType`, `roomGroup` and `status.assignee` loaded.
      *
      * @param  list<HousekeepingBedBlockData>  $bedBlocks
-     * @param  array{guest: ?string, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool}  $stay
+     * @param  array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}  $stay
      */
     public static function forRoom(
         Room $room,
@@ -62,6 +67,7 @@ class HousekeepingRoomData extends Data
         bool $canInspect,
         bool $canBlock,
         string $date,
+        RoomCleaningStateData $cleaning,
     ): self {
         $roomStatus = $room->status;
         $moves = [];
@@ -90,11 +96,14 @@ class HousekeepingRoomData extends Data
             assignedTo: $roomStatus->assigned_to,
             assignedName: $roomStatus->assignee?->name,
             guest: $stay['guest'],
+            adults: $stay['adults'],
+            children: $stay['children'],
             arrivalDate: $stay['arrivalDate'],
             arrivalTime: $stay['arrivalTime'],
             departureDate: $stay['departureDate'],
             departureTime: $stay['departureTime'],
             isStayOver: $stay['isStayOver'],
+            stay: $stay['stay'] === null ? null : new BadgeData($stay['stay']->value, $stay['stay']->label(), $stay['stay']->tone()),
             isPriority: $roomStatus->is_priority,
             priorityNote: $roomStatus->priority_note,
             remark: $roomStatus->remark,
@@ -102,6 +111,7 @@ class HousekeepingRoomData extends Data
             canDismissMaintenance: $canBlock && $roomStatus->needs_maintenance,
             doNotDisturb: $roomStatus->do_not_disturb_on?->toDateString() === $date,
             reason: $roomStatus->status === HousekeepingStatus::Dirty ? $reason?->label() : null,
+            cleaning: $cleaning,
         );
     }
 }

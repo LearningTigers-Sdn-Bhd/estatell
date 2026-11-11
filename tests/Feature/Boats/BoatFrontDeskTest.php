@@ -118,6 +118,33 @@ test('arrivals and departures show the matching trip, in time order, with the bo
         ]));
 });
 
+test('Boat not set keeps the arrivals and departures with no trip in their direction, and boats off hides it', function () {
+    [$user, $property] = boatDeskSetup();
+    $set = boatDeskUnit($property, '09:00:00', '10:00:00', ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
+    boatDeskTrip($set, BoatDirection::In);
+    $onlyOut = boatDeskUnit($property, '09:00:00', '10:00:00', ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
+    boatDeskTrip($onlyOut, BoatDirection::Out);
+    $leaving = boatDeskUnit($property, '09:00:00', '12:15:00');
+    $query = 'from=2026-10-10&to=2026-10-10&no_boat=1';
+    $keys = fn ($rows): array => collect($rows)->pluck('key')->all();
+
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=arrivals&{$query}")->assertInertia(fn (Assert $page) => $page
+        ->where('boatNotSet', true)
+        ->where('rows.data', fn ($rows) => $keys($rows) === [$onlyOut->id])
+        ->where('tabs.0.count', 2));
+
+    $this->get("/p/{$property->code}/reports/guest-list?tab=departures&{$query}")->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => $keys($rows) === [$leaving->id]));
+
+    $this->get("/p/{$property->code}/reports/guest-list?tab=in-house&date=2026-10-10&no_boat=1")->assertInertia(fn (Assert $page) => $page->where('boatNotSet', null));
+
+    Feature::for($property)->deactivate(Boats::class);
+
+    $this->get("/p/{$property->code}/reports/guest-list?tab=arrivals&{$query}")->assertInertia(fn (Assert $page) => $page
+        ->where('boatNotSet', null)
+        ->where('rows.data', fn ($rows) => count($rows) === 2));
+});
+
 test('with boats off the column is out of the layout and no trip is read', function () {
     [$user, $property] = boatDeskSetup(featureOn: false);
     $unit = boatDeskUnit($property, '09:00:00', '10:00:00', ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
@@ -132,7 +159,7 @@ test('with boats off the column is out of the layout and no trip is read', funct
     expect(collect(ReportKey::Departures->columnsFor($property))->pluck('key')->contains('boat'))->toBeFalse();
 });
 
-test('a saved layout drops the boat column while boats are off and gets it back at the end when they are on', function () {
+test('a saved layout drops the boat column while boats are off and gets it back in its code place when they are on', function () {
     [$user, $property] = boatDeskSetup(featureOn: false);
     $resolver = app(ReportLayoutResolver::class);
     $draft = fn (Property $property) => array_map(fn ($column): array => ['key' => $column->key, 'visible' => true], ReportKey::Arrivals->columnsFor($property));
@@ -147,7 +174,8 @@ test('a saved layout drops the boat column while boats are off and gets it back 
 
     $keys = array_column($resolver->resolve($property, ReportKey::Arrivals)->columns, 'key');
 
-    expect(end($keys))->toBe('boat');
+    expect($keys)->toContain('boat')
+        ->and($keys)->toBe(array_column(ReportKey::Arrivals->columnsFor($property), 'key'));
 });
 
 /**

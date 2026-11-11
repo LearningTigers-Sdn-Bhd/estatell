@@ -2,6 +2,7 @@ import { CountrySelect } from '@/components/pms/country-select';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { PhoneInput } from '@/components/pms/phone-input';
 import { CardSection } from '@/components/pms/registration-card/card-section';
 import { CardTextField } from '@/components/pms/registration-card/card-text-field';
 import { IdentityDocumentFields } from '@/components/pms/registration-card/identity-document-fields';
@@ -62,6 +63,8 @@ export function PersonalSection({
                                 form.setData('nationality_code', value)
                             }
                             options={countries}
+                            placeholder={word('Search countries')}
+                            emptyText={word('No matching countries.')}
                             invalid={!!errors.nationality_code}
                         />
                         <FieldError>{errors.nationality_code}</FieldError>
@@ -135,13 +138,28 @@ export function ContactSection({
         <CardSection title={word('Contact')}>
             <FieldGroup className="grid gap-4 sm:grid-cols-2">
                 {has('phone') && (
-                    <CardTextField
-                        form={form}
-                        name="phone"
-                        label={mark('phone', 'Phone')}
-                        type="tel"
-                        placeholder="+60 12 345 6789"
-                    />
+                    <Field data-invalid={!!errors.phone}>
+                        <FieldLabel htmlFor="card-phone">
+                            {mark('phone', 'Phone')}
+                        </FieldLabel>
+                        <PhoneInput
+                            id="card-phone"
+                            value={form.data.phone}
+                            onChange={(value) => form.setData('phone', value)}
+                            invalid={!!errors.phone}
+                            locale={form.data.locale}
+                            labels={{
+                                search: word('Search countries'),
+                                empty: word('No matching countries.'),
+                                invalid: word('Enter a valid phone number.'),
+                                invalidForCountry: word(
+                                    'Enter a valid :country phone number.',
+                                ),
+                                countryCode: word('Country code: :country'),
+                            }}
+                        />
+                        <FieldError>{errors.phone}</FieldError>
+                    </Field>
                 )}
                 {has('email') && (
                     <CardTextField
@@ -204,6 +222,8 @@ export function ContactSection({
                                 form.setData('country_code', value)
                             }
                             options={countries}
+                            placeholder={word('Search countries')}
+                            emptyText={word('No matching countries.')}
                             invalid={!!errors.country_code}
                         />
                         <FieldError>{errors.country_code}</FieldError>

@@ -4,6 +4,7 @@ namespace App\Actions\Reservations;
 
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Guests\UpdateGuest;
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\User;
@@ -22,14 +23,14 @@ class ResolveUnitGuest
      *
      * @param  array<string, mixed>  $profile  Validated profile fields, the phone number in E.164.
      */
-    public function __invoke(User $actor, Property $property, ?int $guestId, array $profile = [], bool $updateProfile = false): Guest|AttachGuestResult
+    public function __invoke(User $actor, Property $property, ?int $guestId, array $profile = [], bool $updateProfile = false, ?IdentityDocumentInputData $identity = null): Guest|AttachGuestResult
     {
         if ($guestId === null) {
             if (trim((string) ($profile['full_name'] ?? '')) === '') {
                 return AttachGuestResult::refused(BookingResult::REFUSAL_GUEST_NAME_REQUIRED);
             }
 
-            return ($this->createGuest)($actor, $property, $profile);
+            return ($this->createGuest)($actor, $property, $profile, identity: $identity);
         }
 
         $guest = Guest::query()
@@ -45,7 +46,7 @@ class ResolveUnitGuest
         if ($updateProfile && $profile !== []) {
             $tags = array_values($guest->tags()->pluck('name')->all());
 
-            if (! ($this->updateGuest)($actor, $guest, $profile, $tags)) {
+            if (! ($this->updateGuest)($actor, $guest, $profile, $tags, $identity)) {
                 return AttachGuestResult::refused(AttachGuestResult::REFUSAL_GUEST_NOT_FOUND);
             }
 

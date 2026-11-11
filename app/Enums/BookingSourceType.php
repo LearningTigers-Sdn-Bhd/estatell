@@ -12,6 +12,7 @@ enum BookingSourceType: string
     case Ota = 'ota';
     case Company = 'company';
     case WalkIn = 'walk_in';
+    case BookingEngine = 'booking_engine';
 
     public function label(): string
     {
@@ -20,6 +21,7 @@ enum BookingSourceType: string
             self::Ota => __('OTA'),
             self::Company => __('Company / Travel agent'),
             self::WalkIn => __('Walk-in'),
+            self::BookingEngine => __('Booking Engine'),
         };
     }
 
@@ -30,11 +32,12 @@ enum BookingSourceType: string
             self::Ota => Tone::Info,
             self::Company => Tone::Warning,
             self::WalkIn => Tone::Success,
+            self::BookingEngine => Tone::Info,
         };
     }
 
     /**
-     * The types staff can add: Direct and OTA. Company and Walk-in are system rows.
+     * The types staff can add: Direct and OTA. Company, Walk-in and Booking Engine are system rows.
      *
      * @return list<array{value: string, label: string}>
      */
@@ -61,6 +64,7 @@ enum BookingSourceType: string
             self::Ota => 2,
             self::Company => 3,
             self::WalkIn => 4,
+            self::BookingEngine => 5,
         };
     }
 
@@ -82,5 +86,10 @@ enum BookingSourceType: string
     public function isWalkIn(): bool
     {
         return $this === self::WalkIn;
+    }
+
+    public function isBookingEngine(): bool
+    {
+        return $this === self::BookingEngine;
     }
 }

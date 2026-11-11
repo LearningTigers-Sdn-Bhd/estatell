@@ -26,6 +26,7 @@ export function ReportExportMenu({
     side = 'bottom',
     pdfUrl,
     spreadsheetUrl,
+    label = 'Export',
 }: {
     report: App.Enums.ReportKey;
     /** The date fields of the report page: `from` and `to`, or `date` for a report of one date. */
@@ -37,6 +38,8 @@ export function ReportExportMenu({
     /** Own export routes, for a page whose users do not have `reports.view`. Default: the shared report routes. */
     pdfUrl?: string;
     spreadsheetUrl?: string;
+    /** The button text. Default: Export. */
+    label?: string;
 }) {
     const { csrfToken } = usePage().props;
     const formRef = useRef<HTMLFormElement>(null);
@@ -74,7 +77,7 @@ export function ReportExportMenu({
                     ) : (
                         <Download data-icon="inline-start" />
                     )}
-                    Export
+                    {label}
                     <ChevronDown data-icon="inline-end" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" side={side}>

@@ -9,6 +9,7 @@ use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
 use App\Models\UnitNight;
+use App\Services\BookingEngine\HeldUnits;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
@@ -26,11 +27,14 @@ use Spatie\Period\Precision;
  * - A booked unit takes its room or bed off sale on each of its nights while it is Confirmed, CheckedIn or CheckedOut.
  *   One unit is one room or one bed, so each night row counts once for both sell units. Cancelled and no-show units
  *   release their nights.
+ * - An open booking engine hold takes its room or bed off sale on each night of the stay. See `HeldUnits`.
  *
  * Stop-sell and the other selling restrictions belong to a plan, so `RestrictionCheck` reports them.
  */
 class AvailabilityService
 {
+    public function __construct(private HeldUnits $heldUnits) {}
+
     /**
      * One row for each night from arrival up to, not including, departure.
      *
@@ -43,7 +47,7 @@ class AvailabilityService
 
     /**
      * The nights of many room types of one property, read in a fixed number of queries: active rooms, active beds
-     * (only when a Bed room type is in the list), open blocks and booked unit nights are one query each. Every room
+     * (only when a Bed room type is in the list), open blocks, booked unit nights and open holds are one query each. Every room
      * type gets a key, even with no units. A stay with no nights gives an empty list for each room type.
      *
      * @param  iterable<RoomType>  $roomTypes  Room types of one property
@@ -67,6 +71,7 @@ class AvailabilityService
         $units = $this->unitsByRoomForTypes($roomTypes);
         $blocks = $this->openBlocks($roomTypes->first()->property_id, array_merge(...array_map('array_keys', $units)), $stay);
         $booked = $this->bookedUnits($roomTypes->first()->property_id, array_values(array_map(intval(...), $roomTypes->keys()->all())), $stay);
+        $held = $this->heldUnits->byNight($roomTypes->first()->property_id, array_values(array_map(intval(...), $roomTypes->keys()->all())), $first, $last);
         $result = [];
 
         foreach ($roomTypes as $roomType) {
@@ -77,7 +82,7 @@ class AvailabilityService
 
             for ($date = $first; $date->lte($last); $date = $date->addDay()) {
                 $key = $date->toDateString();
-                $nights[] = new NightAvailability($date, $total, count($blocked[$key] ?? []), $booked[$roomType->id][$key] ?? 0);
+                $nights[] = new NightAvailability($date, $total, count($blocked[$key] ?? []), $booked[$roomType->id][$key] ?? 0, $held[$roomType->id][$key] ?? 0);
             }
 
             $result[$roomType->id] = $nights;

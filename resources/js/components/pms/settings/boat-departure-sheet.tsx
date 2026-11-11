@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { MultiCombobox } from '@/components/pms/multi-combobox';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { fareLabel } from '@/components/pms/settings/boat-departure-table';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,8 @@ import { store, update } from '@/routes/settings/boats/departures';
 
 type Departure = App.Data.Boats.BoatDepartureData;
 type Fare = App.Data.Boats.BoatFareData;
+type Boat = App.Data.Boats.BoatData;
+type CrewMember = App.Data.Boats.BoatCrewMemberData;
 type Option = { value: string; label: string };
 
 type Props = {
@@ -33,6 +36,8 @@ type Props = {
     defaultDirection: string;
     directions: Option[];
     fares: Fare[];
+    boats: Boat[];
+    crew: CrewMember[];
     /** The active meal periods, for the meals preview under the times. */
     mealPeriods: App.Data.Meals.MealPeriodData[];
     currency: App.Data.Property.CurrencyData;
@@ -45,11 +50,16 @@ type FormData = {
     pickup_point: string;
     seats: string;
     charge_item_id: string;
+    default_boat_id: string;
+    in_charge_id: string;
+    assistant_ids: string[];
     active: boolean;
 };
 
 /** The "No fare" choice, which the form sends as an empty fare. */
 const NO_FARE = 'none';
+const NO_DEFAULT_BOAT = 'none';
+const NO_IN_CHARGE = 'none';
 
 function toFormData(
     departure: Departure | null,
@@ -63,6 +73,9 @@ function toFormData(
             pickup_point: '',
             seats: '',
             charge_item_id: '',
+            default_boat_id: '',
+            in_charge_id: '',
+            assistant_ids: [],
             active: true,
         };
     }
@@ -77,6 +90,14 @@ function toFormData(
             departure.chargeItemId === null
                 ? ''
                 : String(departure.chargeItemId),
+        default_boat_id:
+            departure.defaultBoatId === null ||
+            departure.defaultBoatId === undefined
+                ? ''
+                : String(departure.defaultBoatId),
+        in_charge_id:
+            departure.inChargeId === null ? '' : String(departure.inChargeId),
+        assistant_ids: departure.assistantIds.map(String),
         active: departure.active,
     };
 }
@@ -88,6 +109,8 @@ function BoatDepartureForm({
     defaultDirection,
     directions,
     fares,
+    boats,
+    crew,
     mealPeriods,
     currency,
 }: Props) {
@@ -134,6 +157,40 @@ function BoatDepartureForm({
             label: fareLabel(fare, money),
         })),
     ];
+
+    const boatOptions: EnumOption[] = [
+        { value: NO_DEFAULT_BOAT, label: 'No default boat' },
+        ...boats.map((boat) => ({
+            value: String(boat.id),
+            label: boat.name,
+        })),
+    ];
+
+    // Only available crew can be picked, plus the people already on this departure, so an edit does not drop them.
+    const pickedIds = new Set([
+        ...(departure?.assistantIds ?? []),
+        ...(departure?.inChargeId ? [departure.inChargeId] : []),
+    ]);
+    const offeredCrew = crew.filter(
+        (member) => member.active || pickedIds.has(member.id),
+    );
+    const crewLabel = (member: CrewMember) =>
+        member.active ? member.name : `${member.name} (unavailable)`;
+    const inChargeOptions: EnumOption[] = [
+        { value: NO_IN_CHARGE, label: 'Nobody' },
+        ...offeredCrew.map((member) => ({
+            value: String(member.id),
+            label: crewLabel(member),
+            description: member.phone ?? undefined,
+        })),
+    ];
+    const assistantOptions = offeredCrew
+        .filter((member) => String(member.id) !== data.in_charge_id)
+        .map((member) => ({
+            value: String(member.id),
+            label: crewLabel(member),
+            description: member.phone ?? undefined,
+        }));
 
     const submit = () => {
         const options = {
@@ -272,6 +329,7 @@ function BoatDepartureForm({
                         type="number"
                         inputMode="numeric"
                         min={1}
+                        placeholder="e.g. 20"
                         value={data.seats}
                         onChange={(event) =>
                             setData('seats', event.target.value)
@@ -289,6 +347,7 @@ function BoatDepartureForm({
                         id="boat-departure-fare"
                         name="charge_item_id"
                         options={fareOptions}
+                        placeholder="Choose a fare"
                         value={data.charge_item_id || NO_FARE}
                         onValueChange={(value) =>
                             setData(
@@ -303,6 +362,89 @@ function BoatDepartureForm({
                     </FieldDescription>
                     <FieldError>
                         {errors.charge_item_id ?? errors.active}
+                    </FieldError>
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field data-invalid={!!errors.default_boat_id}>
+                        <FieldLabel htmlFor="boat-departure-default-boat">
+                            Default boat
+                        </FieldLabel>
+                        <EnumSelect
+                            id="boat-departure-default-boat"
+                            name="default_boat_id"
+                            options={boatOptions}
+                            placeholder="Choose a boat"
+                            value={data.default_boat_id || NO_DEFAULT_BOAT}
+                            onValueChange={(value) =>
+                                setData(
+                                    'default_boat_id',
+                                    value === NO_DEFAULT_BOAT ? '' : value,
+                                )
+                            }
+                            aria-invalid={!!errors.default_boat_id}
+                        />
+                        <FieldDescription>
+                            Prefills each date on the Boats board.
+                        </FieldDescription>
+                        <FieldError>{errors.default_boat_id}</FieldError>
+                    </Field>
+                </div>
+                <Field data-invalid={!!errors.in_charge_id}>
+                    <FieldLabel htmlFor="boat-departure-in-charge">
+                        In charge
+                    </FieldLabel>
+                    {crew.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            No crew yet. Add one on the Crew tab.
+                        </p>
+                    ) : (
+                        <EnumSelect
+                            id="boat-departure-in-charge"
+                            name="in_charge_id"
+                            options={inChargeOptions}
+                            placeholder="Choose who is in charge"
+                            value={data.in_charge_id || NO_IN_CHARGE}
+                            onValueChange={(value) => {
+                                const next =
+                                    value === NO_IN_CHARGE ? '' : value;
+                                setData((current) => ({
+                                    ...current,
+                                    in_charge_id: next,
+                                    assistant_ids: current.assistant_ids.filter(
+                                        (id) => id !== next,
+                                    ),
+                                }));
+                            }}
+                            aria-invalid={!!errors.in_charge_id}
+                        />
+                    )}
+                    <FieldError>{errors.in_charge_id}</FieldError>
+                </Field>
+                <Field data-invalid={!!errors.assistant_ids}>
+                    <FieldLabel htmlFor="boat-departure-assistants">
+                        Assistants
+                    </FieldLabel>
+                    <MultiCombobox
+                        id="boat-departure-assistants"
+                        name="assistant_ids"
+                        items={assistantOptions}
+                        value={data.assistant_ids}
+                        onValueChange={(value) =>
+                            setData('assistant_ids', value)
+                        }
+                        placeholder="Choose assistants"
+                        emptyLabel={
+                            crew.length === 0
+                                ? 'No crew yet. Add one on the Crew tab.'
+                                : 'No matching crew.'
+                        }
+                        invalid={!!errors.assistant_ids}
+                    />
+                    <FieldDescription>
+                        Prefill each date on the Boats board.
+                    </FieldDescription>
+                    <FieldError>
+                        {errors.assistant_ids ?? errors['assistant_ids.0']}
                     </FieldError>
                 </Field>
                 {movesBookings && departure !== null && (

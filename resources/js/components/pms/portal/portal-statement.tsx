@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Printer } from 'lucide-react';
 import { useState } from 'react';
+import { StatementBookingPayments } from '@/components/pms/city-ledger/statement-booking-payments';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -181,6 +182,10 @@ export function PortalStatementSection({
                     ))}
                 </dl>
             </div>
+            <StatementBookingPayments
+                payments={statement.bookingPayments}
+                currency={currency}
+            />
         </section>
     );
 }

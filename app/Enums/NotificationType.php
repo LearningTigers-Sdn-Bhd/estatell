@@ -19,6 +19,11 @@ enum NotificationType: string
     case ChannelBookingReceived = 'channel_booking_received';
     case ChannelBookingCancelled = 'channel_booking_cancelled';
     case ChannelRemovalBlocked = 'channel_removal_blocked';
+    case PaymentSlipReceived = 'payment_slip_received';
+    case NearbyPlaceRemoved = 'nearby_place_removed';
+    case OnlineBookingReceived = 'online_booking_received';
+    case OnlineRefundNeedsAttention = 'online_refund_needs_attention';
+    case OnlineBookingCancelled = 'online_booking_cancelled';
 
     public function label(): string
     {
@@ -38,6 +43,11 @@ enum NotificationType: string
             self::ChannelBookingReceived => __('Channel booking received'),
             self::ChannelBookingCancelled => __('Channel booking cancelled'),
             self::ChannelRemovalBlocked => __('Archive blocked by a channel'),
+            self::PaymentSlipReceived => __('Company payment slip'),
+            self::NearbyPlaceRemoved => __('Nearby place removed'),
+            self::OnlineBookingReceived => __('Online booking received'),
+            self::OnlineRefundNeedsAttention => __('Online refund needs attention'),
+            self::OnlineBookingCancelled => __('Online booking cancelled'),
         };
     }
 
@@ -48,7 +58,7 @@ enum NotificationType: string
     {
         return match ($this) {
             self::RegistrationCardLink => [NotificationChannel::Mail],
-            self::SupportAccessUsed => [NotificationChannel::Database],
+            self::SupportAccessUsed, self::NearbyPlaceRemoved => [NotificationChannel::Database],
             default => [NotificationChannel::Mail, NotificationChannel::Database],
         };
     }
@@ -66,7 +76,7 @@ enum NotificationType: string
 
         return match ($this) {
             self::RegistrationCardLink => false,
-            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested, self::ChannelRemovalBlocked => $channel === NotificationChannel::Mail,
+            self::NightAuditFailed, self::SupportAccessUsed, self::NearbyPlaceRemoved, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested, self::ChannelRemovalBlocked => $channel === NotificationChannel::Mail,
             default => true,
         };
     }
@@ -76,7 +86,9 @@ enum NotificationType: string
         return match ($this) {
             self::NightAuditCompleted, self::NightAuditExceptions => 'night-audit.receive-report',
             self::NightAuditFailed => 'night-audit.run',
-            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled => 'reservations.manage',
+            self::PaymentSlipReceived => 'city-ledger.payment',
+            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled, self::OnlineBookingReceived, self::OnlineBookingCancelled => 'reservations.manage',
+            self::OnlineRefundNeedsAttention => 'payment.refund',
             default => null,
         };
     }

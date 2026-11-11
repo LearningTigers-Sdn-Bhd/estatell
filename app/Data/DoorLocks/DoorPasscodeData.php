@@ -26,6 +26,7 @@ class DoorPasscodeData extends Data
         public ?string $revokeNote,
         public bool $canRevoke,
         public bool $canRetry,
+        public bool $canReplace,
     ) {}
 
     /**
@@ -46,6 +47,7 @@ class DoorPasscodeData extends Data
             revokeNote: $passcode->status === PasscodeStatus::Revoked && $passcode->ends_at->isFuture() ? $passcode->revoke_note : null,
             canRevoke: $passcode->status->canTransitionTo(PasscodeStatus::Revoked),
             canRetry: $passcode->status === PasscodeStatus::Failed && $passcode->ends_at->isFuture(),
+            canReplace: $passcode->reservation_unit_id !== null && $passcode->status === PasscodeStatus::Active && $passcode->ends_at->isFuture() && $passcode->doorLock->has_gateway,
         );
     }
 }

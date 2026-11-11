@@ -144,7 +144,7 @@ Routes are in `routes/registration.php`. All need `registration-card.sign`, exce
 
 ## Labels in Bahasa Malaysia
 
-The card's labels are in `lang/ms.json` (new folder `lang/` at the project root, approved). The keys are the English source strings. The Bahasa Malaysia text is a first draft and needs a native reader. The page gets the labels for the open language as a prop.
+The card's labels are in `lang/ms.json` (new folder `lang/` at the project root, approved). The keys are the English source strings. The Bahasa Malaysia text is a first draft and needs a native reader. The page gets the labels for the open language as a prop. The phone field and the country search boxes use these labels too, and every country list on the card names countries in the open language.
 
 ## Rules
 

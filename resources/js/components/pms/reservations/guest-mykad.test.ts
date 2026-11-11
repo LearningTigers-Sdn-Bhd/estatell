@@ -62,23 +62,45 @@ test('clear values leave out what the card does not fill', () => {
 });
 
 test('a card fills the guest fields as Malaysian', () => {
-    const fields = fieldsFromCard({
-        name: 'NUR AISYAH BINTI RAHMAN',
-        ic_number: '900101141234',
-        formatted_ic: '900101-14-1234',
-        date_of_birth: '1990-01-01',
-        gender: 'female',
-        nationality_code: 'MY',
-        address_line1: '12 JALAN MAWAR',
-        address_line2: '',
-        city: 'KOTA KINABALU',
-        state: 'Sabah',
-        postal_code: '88000',
-        country_code: 'MY',
-        photo_base64: null,
-    });
+    const fields = fieldsFromCard(
+        {
+            name: 'NUR AISYAH BINTI RAHMAN',
+            ic_number: '900101141234',
+            formatted_ic: '900101-14-1234',
+            date_of_birth: '1990-01-01',
+            gender: 'female',
+            nationality_code: 'MY',
+            address_line1: '12 JALAN MAWAR',
+            address_line2: '',
+            city: 'KOTA KINABALU',
+            state: 'Sabah',
+            postal_code: '88000',
+            country_code: 'MY',
+            photo_base64: null,
+        },
+        true,
+    );
 
     expect(fields.full_name).toBe('NUR AISYAH BINTI RAHMAN');
     expect(fields.nationality_code).toBe('MY');
     expect(fields.country_code).toBe('MY');
+    expect(fields.identity).toEqual({
+        identity_document_id: '',
+        identity_type: 'mykad',
+        identity_number: '900101-14-1234',
+        identity_country_code: 'MY',
+    });
+});
+
+test('clearing a scan restores the previously typed passport', () => {
+    const identity = {
+        identity_document_id: '',
+        identity_type: 'passport',
+        identity_number: 'A1234567',
+        identity_country_code: 'CN',
+    };
+    const before = pickCardFields({ ...emptyGuest(), identity });
+
+    expect(before.identity).toEqual(identity);
+    expect(pickCardFields(emptyGuest()).identity).toBeUndefined();
 });

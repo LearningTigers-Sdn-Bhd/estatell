@@ -16,9 +16,11 @@ import { ChoiceCards } from '@/components/pms/choice-cards';
 import { AddOldSystemBalanceDialog } from '@/components/pms/city-ledger/add-old-system-balance-dialog';
 import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
 import { CompanyStatement } from '@/components/pms/city-ledger/company-statement';
+import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
 import { CompanyPortalSection } from '@/components/pms/city-ledger/company-portal-section';
 import { CompanyRatesTable } from '@/components/pms/city-ledger/company-rates-table';
+import { depositHoursHint } from '@/components/pms/city-ledger/deposit-hours';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
@@ -26,7 +28,9 @@ import { PageHeader } from '@/components/pms/page-header';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
+    SettingsPhoneInput,
     SettingsSelect,
+    SettingsSwitch,
 } from '@/components/pms/settings/form-fields';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -198,16 +202,23 @@ function CountryField({
 function CreditFields({
     company,
     currency,
+    agentPaymentDefaults: defaults,
     readOnly,
     errors,
 }: {
     company: Company;
     currency: App.Data.Property.CurrencyData | null;
+    agentPaymentDefaults: App.Data.CityLedger.AgentPaymentTermsData | null;
     readOnly: boolean;
     errors: Record<string, string>;
 }) {
     const [billing, setBilling] = useState(
         company.directBillEnabled ? '1' : '0',
+    );
+    const [depositHours, setDepositHours] = useState(
+        company.agentDepositHours === null
+            ? ''
+            : String(company.agentDepositHours),
     );
 
     return (
@@ -246,6 +257,80 @@ function CreditFields({
                     description="Days the company has to pay an invoice."
                 />
             </div>
+            <div className={billing === '0' ? 'contents' : 'hidden'}>
+                <SettingsSwitch
+                    name="payment_schedule_enabled"
+                    label="Payment schedule"
+                    checked={company.paymentScheduleEnabled}
+                    disabled={readOnly}
+                    error={errors.payment_schedule_enabled}
+                    description={`Ask for a deposit soon after booking and the rest before arrival, with reminders. Turn off for a trusted agent. Empty terms below follow Settings, Agent payments${
+                        defaults
+                            ? `: ${defaults.depositPercent}% within ${defaults.depositHours} hours, the whole booking ${defaults.fullPaymentDays} days before arrival.`
+                            : '.'
+                    }`}
+                />
+                <SettingsInput
+                    name="agent_deposit_percent"
+                    label="Deposit (%)"
+                    type="number"
+                    min={1}
+                    max={100}
+                    placeholder={
+                        defaults
+                            ? `Property default: ${defaults.depositPercent}%`
+                            : 'Property default'
+                    }
+                    value={company.agentDepositPercent}
+                    disabled={readOnly}
+                    error={errors.agent_deposit_percent}
+                    description="Share of the whole booking paid first."
+                />
+                <SettingsInput
+                    name="agent_deposit_hours"
+                    label="Deposit due within (hours)"
+                    type="number"
+                    min={1}
+                    max={8760}
+                    placeholder={
+                        defaults
+                            ? `Property default: ${defaults.depositHours} hours`
+                            : 'Property default'
+                    }
+                    value={company.agentDepositHours}
+                    disabled={readOnly}
+                    error={errors.agent_deposit_hours}
+                    description={depositHoursHint(
+                        depositHours,
+                        defaults?.depositHours ?? null,
+                    )}
+                    onValueChange={setDepositHours}
+                />
+                <SettingsInput
+                    name="agent_full_payment_days"
+                    label="Full payment (days before arrival)"
+                    type="number"
+                    min={1}
+                    max={365}
+                    placeholder={
+                        defaults
+                            ? `Property default: ${defaults.fullPaymentDays} days`
+                            : 'Property default'
+                    }
+                    value={company.agentFullPaymentDays}
+                    disabled={readOnly}
+                    error={errors.agent_full_payment_days}
+                    description="When the whole booking must be paid."
+                />
+            </div>
+            <SettingsSwitch
+                name="pays_collected_taxes"
+                label="Company pays tourism tax"
+                checked={company.paysCollectedTaxes}
+                disabled={readOnly}
+                error={errors.pays_collected_taxes}
+                description="Off: the guest pays taxes collected at check-in (tourism tax) at the desk, even when the company pays the room. On: they go on the company's bill with the room."
+            />
         </>
     );
 }
@@ -484,6 +569,7 @@ export default function CompanyShow({
     currency,
     canManage,
     canAddOldSystem = false,
+    agentPaymentDefaults = null,
     types = [],
     markets = [],
     countries = [],
@@ -492,6 +578,7 @@ export default function CompanyShow({
     payments = [],
     openInvoices = [],
     methods = [],
+    paymentSlips = [],
     canRecordPayment = false,
     statement = null,
 }: {
@@ -500,6 +587,7 @@ export default function CompanyShow({
     currency: App.Data.Property.CurrencyData | null;
     canManage: boolean;
     canAddOldSystem?: boolean;
+    agentPaymentDefaults?: App.Data.CityLedger.AgentPaymentTermsData | null;
     types?: EnumOption[];
     markets?: EnumOption[];
     countries?: EnumOption[];
@@ -508,6 +596,7 @@ export default function CompanyShow({
     payments?: App.Data.CityLedger.ArPaymentRowData[];
     openInvoices?: App.Data.CityLedger.OpenArInvoiceData[];
     methods?: App.Data.CityLedger.ArPaymentMethodOptionData[];
+    paymentSlips?: App.Data.Payments.PaymentProofData[];
     canRecordPayment?: boolean;
     statement?: App.Data.CityLedger.StatementData | null;
 }) {
@@ -640,15 +729,13 @@ export default function CompanyShow({
                                         disabled={readOnly}
                                         error={errors.contact_email}
                                     />
-                                    <SettingsInput
+                                    <SettingsPhoneInput
                                         name="contact_phone"
                                         placeholder="012-345 6789"
                                         label="Contact phone"
-                                        type="tel"
                                         value={company.contactPhone}
                                         disabled={readOnly}
                                         error={errors.contact_phone}
-                                        description="Without a country code, the number is read as a local number."
                                     />
                                 </>
                             )}
@@ -726,6 +813,7 @@ export default function CompanyShow({
                                 <CreditFields
                                     company={company}
                                     currency={currency}
+                                    agentPaymentDefaults={agentPaymentDefaults}
                                     readOnly={readOnly}
                                     errors={errors}
                                 />
@@ -739,6 +827,33 @@ export default function CompanyShow({
                             statement={statement}
                             currency={currency}
                         />
+                    )}
+                    {tab === 'payments' && paymentSlips.length > 0 && (
+                        <section className="flex max-w-3xl flex-col gap-3 rounded-lg border p-4">
+                            <div className="flex flex-col gap-1">
+                                <h2 className="text-base font-medium">
+                                    Payment slips
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Slips the company sent in the portal. Accept
+                                    records the payment and matches it to the
+                                    oldest open invoices.
+                                </p>
+                            </div>
+                            <PaymentProofReview
+                                companyId={company.id}
+                                proofs={paymentSlips}
+                                methods={
+                                    canRecordPayment
+                                        ? methods.map((method) => ({
+                                              value: String(method.id),
+                                              label: method.name,
+                                          }))
+                                        : []
+                                }
+                                currency={currency}
+                            />
+                        </section>
                     )}
                     {tab === 'payments' && (
                         <ArPaymentsTab

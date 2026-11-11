@@ -61,6 +61,7 @@ test('transaction enums expose their labels and options', function () {
         ['value' => 'adjustment', 'label' => 'Adjustment'],
         ['value' => 'opening_balance', 'label' => 'Opening balance'],
         ['value' => 'old_system', 'label' => 'Old system'],
+        ['value' => 'online', 'label' => 'Online'],
         ['value' => 'other', 'label' => 'Other'],
     ]);
 });

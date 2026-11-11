@@ -38,7 +38,8 @@ class CreateBooking
      * reference number, and the result names the step; auto-assign finding nothing free is not a refusal.
      * `$fromChannel` and `$allowPastArrival` (past and migrated stays) are passed to `CreateReservation`. A past stay is
      * not auto-assigned, and neither is a booking with `$autoAssignRooms` off (the wastays replay, which sets its own
-     * rooms). Permissions for creating guests are checked by the caller.
+     * rooms). Permissions for creating guests are checked by the caller. `$actor` is null when no staff member books (the
+     * booking engine): every rule still applies, nothing can be overridden, and the log has no causer.
      * See docs/12-reservations/05-booking-form.md.
      */
     public function __invoke(?User $actor, Property $property, NewBookingData $data, bool $fromChannel = false, bool $allowPastArrival = false, bool $autoAssignRooms = true): BookingResult

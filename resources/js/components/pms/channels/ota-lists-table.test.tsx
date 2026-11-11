@@ -1,64 +1,50 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vite-plus/test';
-import {
-    OtaListsTable,
-    blankOtaListRow,
-    otaListRowFromSaved,
-} from './ota-lists-table';
+import { OtaListsTable, blankOtaListRow } from './ota-lists-table';
 
 const channels = [
     { id: 1, name: 'Agoda', isOther: false },
     { id: 9, name: 'Other', isOther: true },
 ];
 
-const savedRow = (overrides: Record<string, unknown> = {}) =>
-    otaListRowFromSaved({
-        id: 5,
-        otaChannelId: 1,
-        channelLabel: 'Agoda',
-        channelName: null,
-        propertyCode: '123456',
-        username: 'frontdesk@seaview.my',
-        hasPassword: true,
-        marketManagerName: null,
-        marketManagerPhone: null,
-        marketManagerEmail: null,
-        status: { value: 'pending', label: 'Pending', tone: 'warning' },
-        ...overrides,
-    } as App.Data.Onboarding.OnboardingOtaCredentialRowData);
-
-const render = (rows: ReturnType<typeof savedRow>[]) =>
+const render = (
+    savedRows: App.Data.Onboarding.OnboardingOtaCredentialRowData[],
+    rows: ReturnType<typeof blankOtaListRow>[],
+) =>
     renderToStaticMarkup(
         <OtaListsTable
+            savedRows={savedRows}
             rows={rows}
             channels={channels}
             maxRows={20}
             errors={{}}
-            showStatus
-            lockSavedChannels
             onRowsChange={() => {}}
+            onRemoveSavedRow={() => {}}
             onRemoveRow={() => {}}
         />,
     );
 
-test('a saved row shows its channel as text, not a select', () => {
-    const markup = render([savedRow()]);
+test('a saved row shows only its channel and no login fields', () => {
+    const markup = render([{ id: 5, channelLabel: 'Agoda' }], []);
 
-    expect(markup).not.toContain('aria-label="Channel of row 1"');
     expect(markup).toContain('Agoda');
+    expect(markup).toContain('Only the Estatell team can see this');
+    expect(markup).toContain('aria-label="Remove Agoda"');
+    expect(markup).not.toContain('aria-label="Username of row 1"');
+    expect(markup).not.toContain('aria-label="Password of row 1"');
 });
 
-test('a saved Other row also locks its channel name', () => {
-    const markup = render([
-        savedRow({ otaChannelId: 9, channelName: 'Traveloka' }),
-    ]);
-
-    expect(markup).not.toContain('aria-label="Channel of row 1"');
-    expect(markup).toMatch(/aria-label="Channel name of row 1"[^>]*readOnly/);
-});
-
-test('a new row keeps the channel select', () => {
-    const markup = render([blankOtaListRow()]);
+test('a new row has the channel select and the login fields', () => {
+    const markup = render([], [blankOtaListRow()]);
 
     expect(markup).toContain('aria-label="Channel of row 1"');
+    expect(markup).toContain('aria-label="Username of row 1"');
+    expect(markup).toContain('aria-label="Password of row 1"');
+});
+
+test('the empty state shows only when there are no rows at all', () => {
+    expect(render([], [])).toContain('No channels yet');
+    expect(render([{ id: 5, channelLabel: 'Agoda' }], [])).not.toContain(
+        'No channels yet',
+    );
 });

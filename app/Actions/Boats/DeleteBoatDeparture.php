@@ -3,6 +3,7 @@
 namespace App\Actions\Boats;
 
 use App\Models\BoatDeparture;
+use App\Models\BoatSailing;
 use App\Models\User;
 use App\Services\Boats\BoatTripUsage;
 use Illuminate\Support\Facades\DB;
@@ -12,8 +13,9 @@ class DeleteBoatDeparture
     public function __construct(private BoatTripUsage $boatTripUsage) {}
 
     /**
-     * Delete a departure that no trip has ever used. A trip of any status refuses it (`departure_in_use`), so the switch
-     * is the way to stop using it. The restrict foreign key from the trips is the database's own guard.
+     * Delete a departure that no trip has ever used. A trip of any status refuses it (`departure_in_use`), and so does a
+     * stored sailing of any date, for example a boat set on one date (`departure_has_sailings`), so the switch is the way
+     * to stop using it. The restrict foreign keys from the trips and the sailings are the database's own guard.
      */
     public function __invoke(User $actor, BoatDeparture $boatDeparture): BoatDepartureResult
     {
@@ -22,6 +24,10 @@ class DeleteBoatDeparture
 
             if ($this->boatTripUsage->isUsed($boatDeparture)) {
                 return BoatDepartureResult::refused(BoatDepartureResult::REFUSAL_DEPARTURE_IN_USE);
+            }
+
+            if (BoatSailing::query()->where('property_id', $boatDeparture->property_id)->where('boat_departure_id', $boatDeparture->id)->exists()) {
+                return BoatDepartureResult::refused(BoatDepartureResult::REFUSAL_DEPARTURE_HAS_SAILINGS);
             }
 
             $propertyId = $boatDeparture->property_id;

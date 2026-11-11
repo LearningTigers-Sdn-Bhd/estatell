@@ -4,6 +4,7 @@ namespace App\Data\Reports;
 
 use App\Enums\BoatDirection;
 use App\Enums\ChargeBucket;
+use App\Enums\PaymentDateBasis;
 use App\Enums\ReportGroup;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
@@ -11,7 +12,10 @@ use Spatie\LaravelData\Data;
 /**
  * The checked filters of a report: the first and last date (`Y-m-d`, both included) and the extra filters that only
  * some reports take. `group` is set only for a report that groups its rows (Revenue, Tax) and `code` only for a report
- * that filters by transaction code (Folio ledger). `staff` (a user id) and `refundsOnly` are set only for Payments, `foreignOnly` only for the Police report, and `direction` only for the Boat manifest.
+ * that filters by transaction code (Folio ledger). `staff` (a user id), `refundsOnly` and `dateBasis` are set only for Payments, `foreignOnly` only for the Police report, and `direction` (or `bothDirections`, Boat in and Boat out together) and `boatGroup` only for the Boat manifest. `boatGroup`
+ * `scheduled` keeps the scheduled boats and the units with no boat set, `other` keeps Charter and Own boat, and null keeps all (the
+ * Boat Trips board tabs).
+ * `boatNotSet` (units with no trip in their direction) is set only for Arrivals and Departures when the property uses boats.
  * `bucket` and `search` (a booking number or guest name) are set only for Daily report › Charges.
  */
 class ReportFilters extends Data
@@ -27,6 +31,10 @@ class ReportFilters extends Data
         public ?BoatDirection $direction = null,
         public ?ChargeBucket $bucket = null,
         public ?string $search = null,
+        public bool $bothDirections = false,
+        public bool $boatNotSet = false,
+        public PaymentDateBasis $dateBasis = PaymentDateBasis::Posted,
+        public ?string $boatGroup = null,
     ) {}
 
     /**
@@ -62,10 +70,13 @@ class ReportFilters extends Data
             ...($this->code === null ? [] : ['code' => $this->code]),
             ...($this->staff === null ? [] : ['staff' => (string) $this->staff]),
             ...($this->refundsOnly ? ['refunds' => '1'] : []),
+            ...($this->dateBasis === PaymentDateBasis::Received ? ['dates' => PaymentDateBasis::Received->value] : []),
             ...($this->foreignOnly ? ['foreign' => '1'] : []),
-            ...($this->direction === null ? [] : ['direction' => $this->direction->value]),
+            ...($this->bothDirections ? ['direction' => 'both'] : ($this->direction === null ? [] : ['direction' => $this->direction->value])),
             ...($this->bucket === null ? [] : ['bucket' => $this->bucket->value]),
             ...($this->search === null ? [] : ['search' => $this->search]),
+            ...($this->boatNotSet ? ['no_boat' => '1'] : []),
+            ...($this->boatGroup === null ? [] : ['boat_group' => $this->boatGroup]),
         ];
     }
 }

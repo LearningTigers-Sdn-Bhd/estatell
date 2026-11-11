@@ -2,10 +2,8 @@ import { Link, router } from '@inertiajs/react';
 import {
     BedDouble,
     CalendarDays,
-    Check,
-    Copy,
     Info,
-    KeyRound,
+    Pencil,
     Ship,
     Tag,
     User,
@@ -19,7 +17,11 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
+import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
+import { DoorCards } from '@/components/pms/reservations/door-cards';
+import { DoorPins } from '@/components/pms/reservations/door-pins';
+import { KeyCards } from '@/components/pms/reservations/key-cards';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +35,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useClipboard } from '@/hooks/use-clipboard';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
@@ -94,85 +100,6 @@ function Detail({
     );
 }
 
-const PIN_TIME: Intl.DateTimeFormatOptions = {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-};
-
-/**
- * The door PINs of the stay, so staff can read one out at check-in. Shown only when a lock is linked to the unit's room.
- */
-function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
-    const [copiedText, copy] = useClipboard();
-
-    return (
-        <Detail icon={KeyRound} label="Door PIN">
-            <div className="flex flex-col gap-1">
-                {pins.sendNewPin && (
-                    <span className="text-warning">
-                        The stay was extended. Give the guest the newest PIN.
-                    </span>
-                )}
-                {pins.passcodes.map((passcode) => (
-                    <div
-                        key={passcode.id}
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
-                    >
-                        <span className="font-mono text-base font-medium tracking-wider tabular-nums">
-                            {passcode.code ?? '—'}
-                        </span>
-                        {passcode.code !== null && (
-                            <Button
-                                variant="outline"
-                                size="icon-sm"
-                                aria-label="Copy PIN"
-                                onClick={() => copy(passcode.code!)}
-                            >
-                                {copiedText === passcode.code ? (
-                                    <Check />
-                                ) : (
-                                    <Copy />
-                                )}
-                            </Button>
-                        )}
-                        <StatusBadge status={passcode.status} />
-                        <span className="text-muted-foreground">
-                            {passcode.lockName} ·{' '}
-                            {new Date(passcode.startsAt).toLocaleString(
-                                'en-GB',
-                                PIN_TIME,
-                            )}{' '}
-                            →{' '}
-                            {new Date(passcode.endsAt).toLocaleString(
-                                'en-GB',
-                                PIN_TIME,
-                            )}
-                        </span>
-                        {passcode.error && (
-                            <span className="text-destructive">
-                                {passcode.error}
-                            </span>
-                        )}
-                        {passcode.revokeNote && (
-                            <span className="text-warning">
-                                {passcode.revokeNote}
-                            </span>
-                        )}
-                    </div>
-                ))}
-                {pins.locksWithoutPin.map((lock) => (
-                    <span key={lock.name} className="text-muted-foreground">
-                        No PIN yet for {lock.name}
-                        {lock.reason && ` · ${lock.reason}`}
-                    </span>
-                ))}
-            </div>
-        </Detail>
-    );
-}
-
 /**
  * The Units tab list: Choose unit as a select below `lg` and a stack of links from `lg`.
  */
@@ -194,7 +121,7 @@ export function UnitsList({
                     aria-label="Choose unit"
                     options={units.map((option) => ({
                         value: String(option.id),
-                        label: `${option.label} · ${option.status.label}`,
+                        label: `${option.label} · ${option.status.label} · ${option.primaryGuest ?? 'No primary guest'} · ${option.occupancy}`,
                     }))}
                     value={String(activeUnitId)}
                     onValueChange={(value) =>
@@ -224,18 +151,48 @@ export function UnitsList({
                             option.id === activeUnitId ? 'true' : undefined
                         }
                         className={cn(
-                            'flex flex-col rounded-lg border px-3 py-2 text-sm hover:bg-muted',
+                            'flex min-w-0 flex-col rounded-lg border px-3 py-2 text-sm text-foreground hover:bg-muted',
                             option.id === activeUnitId &&
                                 'border-primary bg-muted',
                         )}
                     >
-                        <span className="font-medium">{option.roomType}</span>
-                        <span className="text-muted-foreground">
-                            {option.assigned ??
-                                (autoAssignRooms
-                                    ? 'At check-in'
-                                    : 'Not assigned')}{' '}
-                            · {option.status.label}
+                        <span className="font-medium break-words">
+                            {option.roomType}
+                        </span>
+                        <span
+                            className={cn(
+                                'mt-1 line-clamp-2 break-words',
+                                option.primaryGuest === null && 'italic',
+                            )}
+                            title={option.primaryGuest ?? undefined}
+                        >
+                            {option.primaryGuest ?? 'No primary guest'}
+                        </span>
+                        <span className="mt-2 flex flex-col gap-1.5 border-t pt-2 text-xs">
+                            <span className="flex items-center gap-1.5 tabular-nums">
+                                <Users
+                                    aria-hidden
+                                    className="size-3.5 shrink-0"
+                                />
+                                {option.occupancy}
+                            </span>
+                            <span className="flex items-center justify-between gap-2">
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                    <BedDouble
+                                        aria-hidden
+                                        className="size-3.5 shrink-0"
+                                    />
+                                    <span className="truncate">
+                                        {option.assigned ??
+                                            (autoAssignRooms
+                                                ? 'At check-in'
+                                                : 'Not assigned')}
+                                    </span>
+                                </span>
+                                <span className="shrink-0">
+                                    <StatusBadge status={option.status} />
+                                </span>
+                            </span>
                         </span>
                     </Link>
                 ))}
@@ -245,12 +202,16 @@ export function UnitsList({
 }
 
 /**
- * The Units tab: the panel of the open unit. The unit list is a separate slot of the workspace.
+ * The Units tab: the panel of the open unit. The unit list is a separate slot of the workspace. `toolbar` sits above
+ * the panel: the All / Grouped toggle of a group on the left and the summary toggle on the right.
  */
 export function UnitsTab({
     reservationId,
     unit,
+    toolbar,
     doorPins,
+    keyCards,
+    lockProviders = [],
     autoAssignRooms,
     canWaiveFees,
     canOverrideRestrictions,
@@ -261,7 +222,10 @@ export function UnitsTab({
 }: {
     reservationId: number;
     unit: Unit | null;
+    toolbar?: ReactNode;
     doorPins: App.Data.DoorLocks.UnitDoorPinsData | null;
+    keyCards: App.Data.Keyport.UnitKeyCardsData | null;
+    lockProviders?: string[];
     autoAssignRooms: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
@@ -272,6 +236,7 @@ export function UnitsTab({
 }) {
     const [ticked, setTicked] = useState<number[]>([]);
     const [changingPrice, setChangingPrice] = useState(false);
+    const [changingGuests, setChangingGuests] = useState(false);
     const [boatChange, setBoatChange] = useState<{
         direction: App.Enums.BoatDirection;
         open: boolean;
@@ -288,6 +253,11 @@ export function UnitsTab({
 
     return (
         <div className="flex flex-col gap-4">
+            {toolbar !== undefined && (
+                <div className="flex items-center justify-between gap-3">
+                    {toolbar}
+                </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-3 ps-3 pt-2">
                 <h2 className="font-heading text-base font-medium">
                     {unit.roomType} · {unit.ratePlan}
@@ -332,63 +302,123 @@ export function UnitsTab({
                 </Detail>
                 {hasBoats && unit.stayType !== 'day_use' && (
                     <Detail icon={Ship} label="Boat">
-                        <div className="flex flex-col gap-1">
-                            {(['in', 'out'] as const).map((direction) => {
-                                const trip =
-                                    direction === 'in'
-                                        ? unit.boatIn
-                                        : unit.boatOut;
-                                const canSet =
-                                    direction === 'in'
-                                        ? unit.canSetBoatIn
-                                        : unit.canSetBoatOut;
+                        {(['in', 'out'] as const).map((direction, index) => {
+                            const trip =
+                                direction === 'in' ? unit.boatIn : unit.boatOut;
+                            const canSet =
+                                direction === 'in'
+                                    ? unit.canSetBoatIn
+                                    : unit.canSetBoatOut;
+                            const name = direction === 'in' ? 'In' : 'Out';
 
-                                return (
-                                    <div
-                                        key={direction}
-                                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
-                                    >
+                            return (
+                                <span
+                                    key={direction}
+                                    className="flex items-center gap-1"
+                                >
+                                    {index > 0 && (
+                                        <span className="pe-1 text-muted-foreground">
+                                            ·
+                                        </span>
+                                    )}
+                                    <span className="text-muted-foreground">
+                                        {name}
+                                    </span>
+                                    {trip === null ? (
                                         <span className="text-muted-foreground">
-                                            {direction === 'in' ? 'In' : 'Out'}
+                                            Not set
                                         </span>
-                                        <span>
-                                            {trip === null ? (
-                                                <span className="text-muted-foreground">
-                                                    Not set
-                                                </span>
-                                            ) : (
-                                                trip.summary
-                                            )}
-                                        </span>
-                                        {canSet && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setBoatChange({
-                                                        direction,
-                                                        open: true,
-                                                    })
+                                    ) : (
+                                        <Tooltip>
+                                            <TooltipTrigger
+                                                render={
+                                                    <span className="tabular-nums" />
                                                 }
                                             >
-                                                Change
-                                            </Button>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                                {trip.short}
+                                                {!trip.departureAvailable &&
+                                                    trip.boatDepartureId !==
+                                                        null && (
+                                                        <span className="text-warning-text">
+                                                            {' '}
+                                                            · unavailable
+                                                        </span>
+                                                    )}
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {trip.summary}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
+                                    {canSet && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            aria-label={`Change boat ${direction}`}
+                                            title={`Change boat ${direction}`}
+                                            onClick={() =>
+                                                setBoatChange({
+                                                    direction,
+                                                    open: true,
+                                                })
+                                            }
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                    )}
+                                </span>
+                            );
+                        })}
                     </Detail>
                 )}
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                     <Detail icon={BedDouble} label="Room">
-                        {roomText(unit, autoAssignRooms)}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>{roomText(unit, autoAssignRooms)}</span>
+                            {lockProviders.map((provider) => (
+                                <Badge key={provider} variant="outline">
+                                    {provider}
+                                </Badge>
+                            ))}
+                        </div>
                     </Detail>
                     <Detail icon={Users} label="Guests">
-                        {guestsText(unit)}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span>{guestsText(unit)}</span>
+                            {unit.canChangeGuests && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setChangingGuests(true)}
+                                >
+                                    Change
+                                </Button>
+                            )}
+                        </div>
                     </Detail>
                 </div>
-                {doorPins !== null && <DoorPins pins={doorPins} />}
+                {doorPins !== null && (
+                    <DoorPins
+                        pins={doorPins}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
+                {doorPins !== null &&
+                    (doorPins.canAddCard || doorPins.cards.length > 0) && (
+                        <DoorCards
+                            cards={doorPins.cards}
+                            reservationId={reservationId}
+                            unitId={unit.id}
+                        />
+                    )}
+                {keyCards !== null && (
+                    <KeyCards
+                        cards={keyCards}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
                 <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
                         <span className="text-muted-foreground">
@@ -543,6 +573,16 @@ export function UnitsTab({
                         departures={boatDepartures}
                     />
                 )}
+            {unit.canChangeGuests && (
+                <ChangeGuestsDialog
+                    open={changingGuests}
+                    onOpenChange={setChangingGuests}
+                    reservationId={reservationId}
+                    unit={unit}
+                    canChangePrice={unit.canChangePrice}
+                    currency={currency}
+                />
+            )}
             {unit.canChangePrice && (
                 <ChangeNightPriceDialog
                     open={changingPrice}

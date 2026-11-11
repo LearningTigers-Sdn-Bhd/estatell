@@ -9,12 +9,13 @@ Record money received and refunded, and post it to the folio.
 ```
 payments    id, property_id, folio_id, payment_method_id, amount,
             purpose (PaymentPurpose), status (PaymentStatus), reference (nullable),
+            received_on (date), notes (nullable, ≤ 500),
             refund_of_id (nullable), refund_reason (nullable), voided (bool),
             receipt_number (nullable),
             folio_line_id, surcharge_line_id (nullable),
-            received_by, received_at, timestamps
+            received_by (nullable: a booking engine payment has none), received_at, timestamps
             checks: amount > 0; a refund has no receipt number;
-            only a refund has a reason or is voided;
+            only a refund has a reason or is voided; notes is trimmed and not empty;
             unique (property_id, receipt_number); unique folio_line_id
 ```
 
@@ -22,11 +23,13 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - `folio_line_id` is the payment line on the folio (negative for a payment, positive for a refund). `surcharge_line_id` is the surcharge charge line, when there is one.
 - A refund copies the `purpose` of the payment it refunds. It copies the `payment_method_id` too, unless it goes to [another method](#refund-to-another-method). `refund_reason` holds the reason for another method. `voided` marks a [void](#voidpayment).
 - A payment row is never updated after it is created. Its `status` is Completed.
+- `received_on` is the day the money came in, and `received_at` the moment staff recorded it. Staff pick `received_on` in Record payment (default: the business date). A day after the business date is refused (`received_on_in_future`, on the `received_on` field). Without a day, a payment takes its service date: the business date, or the day the old PMS took the money for an Old system payment. A refund takes its service date. It never moves the posting date, so the ledger, the night audit and the cash-up are not changed. The folio row shows "Received {date}" when it differs from the posting date, and the receipt shows **Received on** and **Recorded** then. Existing rows were filled from the service date of their payment line.
+- `notes` is a free remark for staff, for any method (Cash too). It shows under the folio row, on the receipt and in the Payments report. `reference` still shows only for a method that needs one.
 
 ## Enums
 
 - `PaymentPurpose`: Advance, Settlement, SecurityDeposit.
-- `PaymentStatus`: Pending, Completed, Failed. **Only Completed is created for now.** Pending, Failed and `gateway_payload` (jsonb) wait for an online gateway. The night audit's pending-payments blocker has nothing to block until then.
+- `PaymentStatus`: Pending, Completed, Failed. **Only Completed is created.** The [online gateway](../29-booking-engine/04-payment.md#data-model) tracks attempts in `gateway_payments` and writes a Completed row once the money is confirmed, because a payment row is never updated. The night audit's pending-payments blocker has nothing to block.
 
 ## Actions
 
@@ -36,7 +39,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 - **A payment before check-in (a deposit):** a payment is a posting, and a folio is created on the first posting. With a unit and no folio, the Action calls `CreateFolio` for that unit, then posts. Nothing creates a folio to display one.
 - **A unit that already has a folio:** the Action locks the unit row, finds the unit's own folio and posts to it. It does not refuse, so two quick clicks on Record payment never make two folios.
-- `NewPaymentData`: `payment_method_id`, `purpose`, `amount` (the amount paid on the bill), `reference`, `idempotency_key` (a UUID sent by the form, as `manual:{uuid}` is for charges).
+- `NewPaymentData`: `payment_method_id`, `purpose`, `amount` (the amount paid on the bill), `reference`, `idempotency_key` (a UUID sent by the form, as `manual:{uuid}` is for charges), `received_on` and `notes` (both optional).
 
 | Check, in order                                                                            | Refusal                                                          |
 | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
@@ -85,6 +88,8 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - A refund gives money back from the collected total. **The surcharge is not refunded.** It is a charge on the folio, and staff reverse it by hand with `ReverseLine` when the fee must go too.
 - Key: `refund:{uuid}`, from the form's UUID. A repeated key returns the existing refund. A refund has no receipt number.
 - Logs `payment.refunded` on the reservation (`payment.voided` for a void). The log carries the method and the reason.
+
+An Online payment refunds only through Curlec: staff refunds go through `RefundHeldPayment`, and the line posts when Curlec confirms. See [Rules for Online payments](../29-booking-engine/05-cancel-and-refund.md#rules-for-online-payments).
 
 #### Refund to another method
 
@@ -226,7 +231,7 @@ A table-based Blade PDF on A4 portrait (dompdf has no flex or grid, see [design 
 | Received from | The folio's payer guest, or its payer company, or the booker when it has neither; the reservation reference and the folio number |
 | Payment       | Method, reference, purpose                                                                                                       |
 | Amounts       | Amount paid on the bill, Surcharge and Tax on surcharge (only with a fee), **Total collected**, read from the ledger             |
-| Footer        | Received by (the staff member's name)                                                                                            |
+| Footer        | Received by (the staff member's name, or Booking Engine)                                                                         |
 
 Money shows as `MYR 105.40` with the property currency.
 
@@ -272,7 +277,7 @@ Decisions made at build time (checklist item 21):
 
 ## Not in this item
 
-The Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
+The Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, and [online payments](../29-booking-engine/04-payment.md) from the booking engine.
 
 ## Lessons from wastays
 

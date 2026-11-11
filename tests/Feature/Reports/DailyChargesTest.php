@@ -489,7 +489,7 @@ test('the tax columns go before Total in the default and in a saved layout', fun
 
     expect(ReportKey::DailyCharges->taxColumnAnchor())->toBe('total')
         ->and(ReportKey::DailyRevenue->taxColumnAnchor())->toBe('adjustments')
-        ->and(array_slice($keys(), 0, 6))->toBe(['tax:SST', 'tax:TTX', 'tax:SVC', 'total', 'date', 'base']);
+        ->and(array_slice($keys(), 0, 4))->toBe(['tax:SST', 'tax:TTX', 'tax:SVC', 'total']);
 });
 
 test('a property with no tax has no tax column and the totals still add up', function () {

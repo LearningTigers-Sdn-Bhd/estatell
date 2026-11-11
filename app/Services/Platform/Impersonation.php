@@ -64,6 +64,7 @@ class Impersonation
         'reservations.folios.payments.refunds.store',
         'reservations.folios.payments.void',
         'reservations.folios.refund-credit.store',
+        'reservations.folios.online-refunds.retry',
         'reservations.folios.void-invoice-and-reopen',
         'registration.void',
         'finance.city-ledger.*.void',
@@ -72,12 +73,13 @@ class Impersonation
     ];
 
     /**
-     * Route names denied for every method except GET and HEAD, so the staff lists stay readable.
+     * Route names denied for every method except GET and HEAD, so the staff lists and the booking API tab stay readable.
      *
      * @var list<string>
      */
     private const array BLOCKED_NON_GET_ROUTES = [
         'settings.staff.*',
+        'settings.booking-website.api.*',
     ];
 
     /**

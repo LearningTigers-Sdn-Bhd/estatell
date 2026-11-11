@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\LockProvider;
 use App\Enums\PlatformFeature;
 use App\Features\ChannelManager;
+use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Models\Property;
 use App\Models\User;
@@ -61,6 +63,8 @@ test('the property page lists features with their state for that property only',
                 'label' => 'Channel manager',
                 'description' => 'Connect this property to a channel manager and sync OTAs.',
                 'active' => false,
+                'providers' => null,
+                'providerOptions' => null,
             ])
         );
 });
@@ -149,4 +153,53 @@ test('active is required', function () {
     $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
         ->put(updateFeature(Property::factory()->create(), true), [])
         ->assertSessionHasErrors('active');
+});
+
+test('admins choose which lock providers Door locks uses, and an empty choice means both', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $url = updateFeature($property, true, 'door-locks');
+
+    $this->actingAs($admin)->put($url, ['active' => true, 'providers' => ['elock']])->assertRedirect();
+    expect(DoorLocks::providers($property))->toBe([LockProvider::ELock]);
+
+    $this->actingAs($admin)->put($url, ['active' => true, 'providers' => ['elock', 'ttlock']])->assertRedirect();
+    expect(DoorLocks::providers($property))->toBe([LockProvider::TTLock, LockProvider::ELock]);
+
+    $this->actingAs($admin)->put($url, ['active' => true])->assertRedirect();
+    expect(DoorLocks::providers($property))->toBe([LockProvider::TTLock, LockProvider::ELock]);
+
+    $this->actingAs($admin)->put($url, ['active' => true, 'providers' => ['ttlock']]);
+    expect(Activity::query()->orderBy('id')->pluck('event')->all())->toBe(['feature.activated', 'feature.updated', 'feature.updated'])
+        ->and(Activity::query()->orderBy('id')->first()->properties->get('providers'))->toBe(['elock']);
+
+    $this->actingAs($admin)->put($url, ['active' => false])->assertRedirect();
+    expect(DoorLocks::providers($property))->toBe([]);
+});
+
+test('an unknown or empty provider list is refused and the old value true still means both', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $url = updateFeature($property, true, 'door-locks');
+
+    $this->actingAs($admin)->put($url, ['active' => true, 'providers' => ['zigbee']])->assertSessionHasErrors('providers.0');
+    $this->actingAs($admin)->put($url, ['active' => true, 'providers' => []])->assertSessionHasErrors('providers');
+    expect(DoorLocks::providers($property))->toBe([]);
+
+    Feature::for($property)->activate(DoorLocks::class);
+    expect(DoorLocks::providers($property))->toBe([LockProvider::TTLock, LockProvider::ELock]);
+});
+
+test('the features list carries the chosen providers for Door locks only', function () {
+    $property = Property::factory()->create();
+    Feature::for($property)->activate(DoorLocks::class, ['elock']);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.properties.features', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('features.0.providers', null)
+            ->where('features.3.feature', 'door-locks')
+            ->where('features.3.active', true)
+            ->where('features.3.providers', ['elock'])
+            ->where('features.3.providerOptions', [['value' => 'ttlock', 'label' => 'TTLock'], ['value' => 'elock', 'label' => 'eLock']]));
 });

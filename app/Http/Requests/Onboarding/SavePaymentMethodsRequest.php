@@ -65,7 +65,7 @@ class SavePaymentMethodsRequest extends OnboardingStepRequest
                 Rule::exists('payment_methods', 'id')->where(
                     fn (Builder $query) => $query
                         ->where('property_id', $property->id)
-                        ->whereNotIn('type', [PaymentMethodType::OtaCollected->value, PaymentMethodType::OldSystem->value]),
+                        ->whereNotIn('type', [PaymentMethodType::OtaCollected->value, PaymentMethodType::OldSystem->value, PaymentMethodType::Online->value]),
                 ),
             ],
             'rows.*.name' => [

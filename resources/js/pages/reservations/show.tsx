@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { BedDouble, CreditCard, History, Receipt, Users } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -20,7 +20,11 @@ import { useGuestsView } from '@/components/pms/reservations/use-guests-view';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
 import { Workspace } from '@/components/pms/workspace';
+import { SummaryToggle } from '@/components/pms/reservations/summary-toggle';
+import { UnitsAllTable } from '@/components/pms/reservations/units-all-table';
 import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
+import { useViewChoice } from '@/components/pms/reservations/use-view-choice';
+import { ViewChoiceToggle } from '@/components/pms/reservations/view-choice-toggle';
 import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,6 +41,10 @@ type Tab = 'units' | 'guests' | 'add-ons' | 'folio' | 'activity';
 type Props = {
     reservation: App.Data.Reservations.ReservationData;
     money: App.Data.Reservations.ReservationMoneyData;
+    paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
+    agentBill: App.Data.Reservations.AgentBillData | null;
+    paymentProofs: App.Data.Payments.PaymentProofData[];
+    proofPaymentMethods: { value: string; label: string }[];
     units: App.Data.Reservations.ReservationUnitOptionData[];
     tab: Tab;
     autoAssignRooms: boolean;
@@ -64,9 +72,15 @@ type Props = {
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
+    unitRows?: App.Data.Reservations.ReservationUnitRowData[];
+    canChangePrice?: boolean;
     doorPins?: App.Data.DoorLocks.UnitDoorPinsData | null;
+    keyCards?: App.Data.Keyport.UnitKeyCardsData | null;
+    lockProviders?: string[];
     guests?: App.Data.Reservations.ReservationGuestData[];
     canManageGuests?: boolean;
+    canViewDocuments?: boolean;
+    identityDocumentTypes?: EnumOption[];
     countries?: EnumOption[];
     genders?: EnumOption[];
     locales?: EnumOption[];
@@ -91,6 +105,10 @@ type Props = {
 export default function ReservationShow({
     reservation,
     money,
+    paymentSchedule,
+    agentBill,
+    paymentProofs,
+    proofPaymentMethods,
     units,
     tab,
     autoAssignRooms,
@@ -118,9 +136,15 @@ export default function ReservationShow({
     boatDepartures,
     boatSetup,
     unit = null,
+    unitRows = [],
+    canChangePrice = false,
     doorPins = null,
+    keyCards = null,
+    lockProviders = [],
     guests = [],
     canManageGuests = false,
+    canViewDocuments = false,
+    identityDocumentTypes = [],
     countries = [],
     genders = [],
     locales = [],
@@ -174,6 +198,30 @@ export default function ReservationShow({
 
     const [summaryHidden, toggleSummary] = useSummaryHidden();
     const [guestsView, setGuestsView] = useGuestsView();
+    const [unitsView, setUnitsView] = useViewChoice('reservations.units-view');
+    const unitsAll = tab === 'units' && unitsView === 'all' && units.length > 1;
+    const unitsToggle =
+        units.length > 1 ? (
+            <ViewChoiceToggle
+                view={unitsView}
+                onViewChange={setUnitsView}
+                allLabel="All units"
+            />
+        ) : undefined;
+    const summaryToggle = (
+        <SummaryToggle hidden={summaryHidden} onToggle={toggleSummary} />
+    );
+    const openUnit = (unitId: number) => {
+        setUnitsView('grouped');
+        router.get(
+            show.url(
+                { reservation: reservation.id },
+                { query: { unit: unitId } },
+            ),
+            {},
+            { preserveScroll: true, preserveState: true, replace: true },
+        );
+    };
     const [pickedGroup, setPickedGroup] = useState<string | null>(null);
     const groups = guestGroups(guests, units);
     const grouped =
@@ -210,7 +258,10 @@ export default function ReservationShow({
                 activeKey={activeGroup}
                 onSelect={setPickedGroup}
             />
-        ) : tab === 'units' && unit !== null && units.length > 1 ? (
+        ) : tab === 'units' &&
+          !unitsAll &&
+          unit !== null &&
+          units.length > 1 ? (
             <UnitsList
                 reservationId={reservation.id}
                 units={units}
@@ -235,10 +286,15 @@ export default function ReservationShow({
                                         {reservation.reference}
                                     </strong>
                                 </span>
-                                <span>·</span>
-                                <DateText
-                                    date={reservation.firstArrival}
-                                /> →{' '}
+                                <span>
+                                    · Code:{' '}
+                                    <strong className="font-semibold text-foreground">
+                                        {reservation.shortCode}
+                                    </strong>
+                                </span>
+                            </span>
+                            <span className="flex flex-wrap items-center gap-x-2">
+                                <DateText date={reservation.firstArrival} /> →{' '}
                                 <DateText date={reservation.lastDeparture} />
                                 <span>
                                     · {reservation.unitCount}{' '}
@@ -316,13 +372,19 @@ export default function ReservationShow({
                         asideLabel="Reservation summary"
                         list={list}
                         hideAside={
-                            (tab === 'folio' || tab === 'guests') &&
+                            (tab === 'folio' ||
+                                tab === 'guests' ||
+                                tab === 'units') &&
                             summaryHidden
                         }
                         aside={
                             <ReservationSummary
                                 reservation={reservation}
                                 money={money}
+                                paymentSchedule={paymentSchedule}
+                                agentBill={agentBill}
+                                paymentProofs={paymentProofs}
+                                proofPaymentMethods={proofPaymentMethods}
                                 canViewCompany={canViewCompany}
                                 currency={currency}
                             />
@@ -335,6 +397,8 @@ export default function ReservationShow({
                                 units={units}
                                 canManage={canManage}
                                 canManageGuests={canManageGuests}
+                                canViewDocuments={canViewDocuments}
+                                identityDocumentTypes={identityDocumentTypes}
                                 countries={countries}
                                 genders={genders}
                                 locales={locales}
@@ -387,11 +451,32 @@ export default function ReservationShow({
                             </>
                         ) : tab === 'activity' && activity ? (
                             <ActivityTab activity={activity} />
+                        ) : unitsAll ? (
+                            <UnitsAllTable
+                                reservationId={reservation.id}
+                                rows={unitRows}
+                                units={units}
+                                canChangePrice={canChangePrice}
+                                hasBoats={hasBoats}
+                                toggle={unitsToggle}
+                                summaryToggle={summaryToggle}
+                                autoAssignRooms={autoAssignRooms}
+                                currency={currency}
+                                onOpenUnit={openUnit}
+                            />
                         ) : (
                             <UnitsTab
                                 reservationId={reservation.id}
                                 unit={unit}
+                                toolbar={
+                                    <>
+                                        {unitsToggle ?? <span />}
+                                        {summaryToggle}
+                                    </>
+                                }
                                 doorPins={doorPins}
+                                keyCards={keyCards}
+                                lockProviders={lockProviders}
                                 autoAssignRooms={autoAssignRooms}
                                 canWaiveFees={canWaiveFees}
                                 canOverrideRestrictions={

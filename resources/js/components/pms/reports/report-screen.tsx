@@ -79,14 +79,19 @@ type Props<TRow extends { key: number | string }> = {
     staff?: string | null;
     staffOptions?: EnumOption[];
     refundsOnly?: boolean;
+    /** The date Payments filters folio payments by (`posted` or `received`), with its options for the toggle. */
+    dateBasis?: string | null;
+    dateBasisOptions?: EnumOption[];
     /** The Foreign only filter of the Police report. */
     foreignOnly?: boolean;
+    /** The Boat not set filter of Arrivals and Departures; null or missing hides it. */
+    boatNotSet?: boolean | null;
     /** A short note under the title, such as "Status as of today". */
     note?: string | null;
     /** A small summary table under the main table (Payments: the total for each method). */
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
-    presets?: App.Enums.ReportDatePreset[];
+    presets?: App.Enums.ReportDatePreset[] | null;
     /** The Bucket filter of Daily report › Charges (`''` or null for every bucket), with its options. */
     bucket?: string | null;
     bucketOptions?: EnumOption[];
@@ -106,6 +111,8 @@ type Props<TRow extends { key: number | string }> = {
     embedded?: boolean;
     /** The name in the Layout Sheet title, such as "Guest list › Arrivals". Defaults to the title. */
     layoutLabel?: string;
+    /** Content between the header and the filters, such as the Boats and crew panel of the Boat manifest. */
+    aside?: ReactNode;
 };
 
 const MAX_SELECTED = 500;
@@ -141,7 +148,10 @@ export function ReportScreen<TRow extends { key: number | string }>({
     staff = null,
     staffOptions = [],
     refundsOnly,
+    dateBasis,
+    dateBasisOptions = [],
     foreignOnly,
+    boatNotSet = null,
     breakdown = null,
     note = null,
     presets,
@@ -156,6 +166,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     query,
     embedded = false,
     layoutLabel,
+    aside = null,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -171,7 +182,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(code ? { code } : {}),
             ...(staff ? { staff } : {}),
             ...(refundsOnly ? { refunds: '1' } : {}),
+            ...(dateBasis === 'received' ? { dates: dateBasis } : {}),
             ...(foreignOnly ? { foreign: '1' } : {}),
+            ...(boatNotSet ? { no_boat: '1' } : {}),
             ...(direction ? { direction } : {}),
             ...(bucket ? { bucket } : {}),
             ...(search ? { search } : {}),
@@ -184,7 +197,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
             code,
             staff,
             refundsOnly,
+            dateBasis,
             foreignOnly,
+            boatNotSet,
             direction,
             bucket,
             search,
@@ -337,7 +352,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
             code?: string;
             staff?: string;
             refundsOnly?: boolean;
+            dateBasis?: string;
             foreignOnly?: boolean;
+            boatNotSet?: boolean;
             direction?: string;
             bucket?: string;
             search?: string;
@@ -350,7 +367,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 code: code ?? '',
                 staff: staff ?? '',
                 refundsOnly: refundsOnly ?? false,
+                dateBasis: dateBasis ?? '',
                 foreignOnly: foreignOnly ?? false,
+                boatNotSet: boatNotSet ?? false,
                 direction: direction ?? '',
                 bucket: bucket ?? '',
                 search: search ?? '',
@@ -364,7 +383,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.code !== (code ?? '') ||
                 next.staff !== (staff ?? '') ||
                 next.refundsOnly !== (refundsOnly ?? false) ||
+                next.dateBasis !== (dateBasis ?? '') ||
                 next.foreignOnly !== (foreignOnly ?? false) ||
+                next.boatNotSet !== (boatNotSet ?? false) ||
                 next.direction !== (direction ?? '') ||
                 next.bucket !== (bucket ?? '') ||
                 next.search !== (search ?? '')
@@ -382,7 +403,11 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.code ? { code: next.code } : {}),
                     ...(next.staff ? { staff: next.staff } : {}),
                     ...(next.refundsOnly ? { refunds: '1' } : {}),
+                    ...(next.dateBasis === 'received'
+                        ? { dates: next.dateBasis }
+                        : {}),
                     ...(next.foreignOnly ? { foreign: '1' } : {}),
+                    ...(next.boatNotSet ? { no_boat: '1' } : {}),
                     ...(next.direction ? { direction: next.direction } : {}),
                     ...(next.bucket ? { bucket: next.bucket } : {}),
                     ...(next.search ? { search: next.search } : {}),
@@ -402,7 +427,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
             code,
             staff,
             refundsOnly,
+            dateBasis,
             foreignOnly,
+            boatNotSet,
             direction,
             bucket,
             search,
@@ -444,6 +471,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     </p>
                 )}
 
+                {aside}
+
                 <div className="flex flex-wrap items-center gap-2">
                     {isOneDate ? (
                         <DatePicker
@@ -466,6 +495,28 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             weekStartsOn={1}
                             className="w-auto"
                         />
+                    )}
+                    {dateBasis && dateBasisOptions.length > 0 && (
+                        <ToggleGroup
+                            variant="outline"
+                            spacing={0}
+                            aria-label="Date"
+                            value={[dateBasis]}
+                            onValueChange={(values) => {
+                                if (values[0]) {
+                                    visit({ dateBasis: values[0] });
+                                }
+                            }}
+                        >
+                            {dateBasisOptions.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
                     )}
                     {group && groupOptions.length > 0 && (
                         <ToggleGroup
@@ -537,13 +588,24 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         </div>
                     )}
                     {direction && directionOptions.length > 0 && (
-                        <EnumSelect
-                            options={directionOptions}
-                            value={direction}
-                            onValueChange={(next) => visit({ direction: next })}
+                        <ToggleGroup
+                            variant="outline"
+                            spacing={0}
+                            value={[direction]}
+                            onValueChange={(next) =>
+                                next[0] && visit({ direction: next[0] })
+                            }
                             aria-label="Direction"
-                            className="w-auto"
-                        />
+                        >
+                            {directionOptions.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
                     )}
                     {refundsOnly !== undefined ? (
                         <Label className="flex items-center gap-2 text-sm font-normal">
@@ -565,6 +627,17 @@ export function ReportScreen<TRow extends { key: number | string }>({
                                 }
                             />
                             Foreign only
+                        </Label>
+                    ) : null}
+                    {boatNotSet !== null ? (
+                        <Label className="flex items-center gap-2 text-sm font-normal">
+                            <Checkbox
+                                checked={boatNotSet}
+                                onCheckedChange={(checked) =>
+                                    visit({ boatNotSet: checked })
+                                }
+                            />
+                            Boat not set
                         </Label>
                     ) : null}
                     <div className="ml-auto flex items-center gap-2">

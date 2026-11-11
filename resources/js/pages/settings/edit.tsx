@@ -3,6 +3,7 @@ import {
     Baby,
     BadgeCheck,
     Building2,
+    Images,
     LifeBuoy,
     MoonStar,
     SlidersHorizontal,
@@ -15,11 +16,13 @@ import { AgeGroupsForm } from '@/components/pms/settings/age-groups-form';
 import { BusinessLicenceForm } from '@/components/pms/settings/business-licence-form';
 import { MealPeriodsForm } from '@/components/pms/settings/meal-periods-form';
 import { PropertyLogoField } from '@/components/pms/settings/property-logo-field';
+import { PropertyPhotos } from '@/components/pms/settings/property-photos';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { TabLinks } from '@/components/pms/tab-links';
 import {
     SettingsSwitch,
     SettingsInput,
+    SettingsPhoneInput,
     SettingsSelect,
 } from '@/components/pms/settings/form-fields';
 import { buttonVariants } from '@/components/ui/button';
@@ -39,6 +42,7 @@ import {
     edit as general,
     mealPeriods as mealPeriodsTab,
     operations,
+    photos as photosTab,
     profile as profileTab,
     support,
 } from '@/routes/settings';
@@ -46,6 +50,7 @@ import {
 type Section =
     | 'profile'
     | 'business'
+    | 'photos'
     | 'general'
     | 'operations'
     | 'support'
@@ -61,6 +66,9 @@ export default function PropertySettings({
     profile,
     business,
     maxLicences = 20,
+    photos = [],
+    photoLimit = 20,
+    photoMaxKb = 5120,
     currencies = [],
     locales = [],
     missedArrivalPolicies = [],
@@ -76,6 +84,9 @@ export default function PropertySettings({
     profile?: App.Data.Property.PropertyProfileData;
     business?: App.Data.Property.PropertyBusinessData;
     maxLicences?: number;
+    photos?: App.Data.Property.PropertyPhotoData[];
+    photoLimit?: number;
+    photoMaxKb?: number;
     currencies?: EnumOption[];
     locales?: EnumOption[];
     missedArrivalPolicies?: EnumOption[];
@@ -146,6 +157,12 @@ export default function PropertySettings({
                             label: 'Business licence',
                             icon: BadgeCheck,
                             href: businessTab(),
+                        },
+                        {
+                            value: 'photos',
+                            label: 'Photos',
+                            icon: Images,
+                            href: photosTab(),
                         },
                         {
                             value: 'general',
@@ -250,10 +267,9 @@ export default function PropertySettings({
                                         <FieldSet>
                                             <FieldLegend>Contact</FieldLegend>
                                             <FieldGroup className="grid md:grid-cols-2">
-                                                <SettingsInput
+                                                <SettingsPhoneInput
                                                     name="contact_phone"
                                                     label="Phone (optional)"
-                                                    type="tel"
                                                     value={profile.contactPhone}
                                                     error={errors.contact_phone}
                                                 />
@@ -413,6 +429,13 @@ export default function PropertySettings({
                                 </>
                             )}
                         </SettingsSection>
+                    )}
+                    {tab === 'photos' && (
+                        <PropertyPhotos
+                            photos={photos}
+                            photoLimit={photoLimit}
+                            photoMaxKb={photoMaxKb}
+                        />
                     )}
                     {tab === 'age-groups' && (
                         <AgeGroupsForm

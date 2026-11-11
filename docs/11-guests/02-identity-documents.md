@@ -26,7 +26,7 @@ media                       two single-file collections on each document: id_fro
 - The number is stored **normalized**: uppercase letters and digits only. `900101-14-1234` and `900101141234` are the same number. `IdentityNumber` does this, and the blind index applies the same transformation. A MyKad must be 12 digits. Any number needs at least 4 characters.
 - Front and back scans are media files. Each collection keeps one file: a new file replaces the old one and deletes it. JPEG, PNG, WebP or PDF, up to 10 MB.
 - New scans are stored on the disk chosen in [platform settings](../01-platform/02-platform-settings.md#media-storage). Each `media` row keeps its own disk, so older files stay readable.
-- The number is **masked** (`•••• 1234`) everywhere except the Reveal button and the edit sheet. Page props never carry the full number. Both fetch it with the logged `reveal` request.
+- The number is **masked** (`•••• 1234`) in document lists. The guest Details form and expanded booking guest rows automatically fetch the full number for staff with document permission and show a normal editable field. Page props never carry the full number. Forms, the Reveal button and the edit sheet all fetch it with the logged `reveal` request.
 - Revealing a number, opening the edit sheet (it fetches the number the same way) and opening a scan are written to the activity log on the guest: `guest.document_number_viewed` and `guest.document_scan_viewed`. Adding, changing and removing are logged too. No log entry contains the number.
 - The Non-national guests and Police reports follow the same rule: the ID number is masked without `guests.view-documents`, and a PDF or spreadsheet export that holds full numbers writes `report.exported_identity_numbers` to the activity log. See [Core reports](../22-reports/01-core-reports.md#built-non-national-guests-and-police-report).
 - Scans open through `guests.documents.scan`. It checks the permission and logs the view. On the `local` disk it then streams the file with `Cache-Control: no-store`. On R2 it redirects to a presigned URL that works for 5 minutes.
@@ -60,6 +60,14 @@ The Documents tab shows only to staff with `guests.view-documents`. An expired d
 | Permission              | Guards                                                                      | Owner | Manager | Front desk | Finance | Housekeeping |
 | ----------------------- | --------------------------------------------------------------------------- | ----- | ------- | ---------- | ------- | ------------ |
 | `guests.view-documents` | See, reveal and open ID documents. With `guests.manage`: add, edit, remove. | ✓     | ✓       | ✓          | –       | –            |
+
+## Manual entry
+
+The guest's Details tab and an expanded saved guest row on a reservation's Guests tab show one **IC / Passport number** field with its type selector inside. Staff type the number and use the existing guest Save button without opening an overlay. Existing numbers load automatically through the logged reveal request and are directly editable, without an Edit step. The field's **Remove** action confirms before deleting the selected document and any scans; other documents are kept. **Documents** opens the Documents tab for scans, expiry dates and additional IDs. The Documents tab keeps its full editor. A MyKad reader is optional. Saving a document returns to the page it was opened from.
+
+Each entry point requires `guests.view-documents`; adding or editing also requires `guests.manage`. Loading a full number in the staff form, revealing it in a list or opening the edit sheet logs access.
+
+The guest Details form can also save a scanned MyKad with the profile. It validates the number and portrait upload, then calls the existing document Actions inside the profile transaction. A closed guest cannot receive a document, and staff without document permission cannot save one through the profile route.
 
 ## MyKad reader
 

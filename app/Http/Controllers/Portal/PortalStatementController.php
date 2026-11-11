@@ -45,6 +45,8 @@ class PortalStatementController extends Controller
             'statement' => $statements->statement($company, $from, $to),
             'invoices' => ArInvoiceRowData::collect($statements->invoices($property, $company), PaginatedDataCollection::class),
             'payments' => PortalPaymentRowData::collect($statements->payments($property, $company), PaginatedDataCollection::class),
+            'paymentSlips' => $statements->slips($property, $company),
+            'canSendSlip' => $statements->canSendSlip($company),
         ]);
     }
 

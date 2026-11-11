@@ -12,6 +12,7 @@ use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -159,8 +160,23 @@ test('with auto-assign on the added unit gets a room for the whole stay', functi
         ->and($rooms->first())->not->toBeNull();
 });
 
+test('a unit cannot hold more guests than its room type takes', function (array $party, string $field) {
+    $setup = actionsSetup();
+
+    $this->actingAs($setup['user'])
+        ->from(actionsRoute($setup, 'reservations.show'))
+        ->post(actionsRoute($setup, 'reservations.units.store'), actionsUnitPayload($setup, $party))
+        ->assertSessionHasErrors($field);
+
+    expect($setup['reservation']->units()->count())->toBe(1);
+})->with([
+    'adults' => [['adults' => 3], 'adults'],
+    'children' => [['adults' => 2, 'child_ages' => [4, 9]], 'child_ages'],
+]);
+
 test('a unit is added with a toast and a log', function () {
     $setup = actionsSetup();
+    RoomType::query()->where('property_id', $setup['user']->property_id)->update(['max_children' => 2]);
 
     $this->actingAs($setup['user'])
         ->from(actionsRoute($setup, 'reservations.show'))
@@ -1008,4 +1024,99 @@ test('moving a guest needs reservations.manage', function () {
     $this->actingAs($setup['user'])
         ->post(actionsRoute($setup, 'reservations.units.guests.move', ['unit' => $setup['unit']->id, 'guestId' => $moving->guest_id]), ['target_unit_id' => $target->id])
         ->assertForbidden();
+});
+
+test('a draft guest saves its identity document with the unit link', function (bool $replace) {
+    $setup = actionsSetup();
+    $old = $replace ? UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id]) : null;
+    $route = $replace ? 'reservations.units.guests.replace' : 'reservations.units.guests.store';
+    $extra = ['unit' => $setup['unit']->id, ...($old ? ['guestId' => $old->guest_id] : [])];
+
+    $this->actingAs($setup['user'])->post(actionsRoute($setup, $route, $extra), [
+        'full_name' => 'New Passport Guest', 'nationality_code' => 'CN',
+        'identity_type' => 'passport', 'identity_number' => 'a 1234567', 'identity_country_code' => 'CN',
+    ])->assertSessionHasNoErrors()->assertInertiaFlash('toast.type', 'success');
+
+    $guest = Guest::query()->where('full_name', 'New Passport Guest')->sole();
+    expect($setup['unit']->guests()->sole()->guest_id)->toBe($guest->id);
+    expect($guest->documents()->sole()->number)->toBe('A1234567');
+    expect(Activity::query()->where('event', 'guest.document_added')->sole()->properties->toJson())->not->toContain('A1234567');
+})->with(['add' => false, 'replace' => true]);
+
+test('a scanned MyKad saves without overwriting the guest passport', function (bool $bookerOnly) {
+    $setup = actionsSetup();
+    $guest = $setup['reservation']->booker;
+    if (! $bookerOnly) {
+        UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'guest_id' => $guest->id]);
+    }
+    $passport = GuestIdentityDocument::factory()->for($guest)->create(['type' => 'passport', 'number' => 'A1234567']);
+    $route = $bookerOnly ? 'reservations.booker.update' : 'reservations.units.guests.update';
+    $extra = $bookerOnly ? [] : ['unit' => $setup['unit']->id, 'guestId' => $guest->id];
+
+    $this->actingAs($setup['user'])->put(actionsRoute($setup, $route, $extra), [
+        'full_name' => $guest->full_name, 'nationality_code' => 'MY',
+        'identity_type' => 'mykad', 'identity_number' => '900101-14-1234', 'identity_country_code' => 'MY',
+    ])->assertSessionHasNoErrors()->assertInertiaFlash('toast.type', 'success');
+
+    expect($guest->documents()->where('type', 'mykad')->sole()->number)->toBe('900101141234');
+    expect($passport->refresh()->number)->toBe('A1234567');
+    expect($guest->documents()->count())->toBe(2);
+})->with(['unit guest' => false, 'booker not staying' => true]);
+
+test('editing an ID from a saved guest row updates the selected document and preserves its expiry', function () {
+    $setup = actionsSetup();
+    $guest = $setup['reservation']->booker;
+    UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'guest_id' => $guest->id]);
+    $first = GuestIdentityDocument::factory()->for($guest)->create(['type' => 'passport', 'number' => 'A1111111']);
+    $selected = GuestIdentityDocument::factory()->for($guest)->create(['type' => 'passport', 'number' => 'A2222222', 'expires_on' => '2030-01-01']);
+
+    $this->actingAs($setup['user'])->put(actionsRoute($setup, 'reservations.units.guests.update', ['unit' => $setup['unit']->id, 'guestId' => $guest->id]), [
+        'full_name' => $guest->full_name, 'identity_document_id' => $selected->id,
+        'identity_type' => 'passport', 'identity_number' => 'a 3333333', 'identity_country_code' => 'CN',
+    ])->assertSessionHasNoErrors();
+
+    expect($selected->refresh()->number)->toBe('A3333333')->and($selected->expires_on->toDateString())->toBe('2030-01-01');
+    expect($first->refresh()->number)->toBe('A1111111');
+});
+
+test('a saved guest row rejects another guest document before changing the profile', function () {
+    $setup = actionsSetup();
+    $guest = $setup['reservation']->booker;
+    UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'guest_id' => $guest->id]);
+    $other = Guest::factory()->for($setup['property'])->create();
+    $document = GuestIdentityDocument::factory()->for($other)->create(['number' => '880101141234']);
+
+    $this->actingAs($setup['user'])->put(actionsRoute($setup, 'reservations.units.guests.update', ['unit' => $setup['unit']->id, 'guestId' => $guest->id]), [
+        'full_name' => 'Unwanted Change', 'identity_document_id' => $document->id,
+        'identity_type' => 'mykad', 'identity_number' => '900101141234',
+    ])->assertSessionHasErrors('identity_document_id');
+
+    expect($guest->refresh()->full_name)->not->toBe('Unwanted Change');
+    expect($document->refresh()->number)->toBe('880101141234');
+});
+
+test('a refused draft save leaves neither the new guest nor its document behind', function () {
+    $setup = actionsSetup();
+    $setup['unit']->forceFill(['status' => UnitStatus::Cancelled])->save();
+
+    $this->actingAs($setup['user'])->post(actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]), [
+        'full_name' => 'Refused ID Guest', 'identity_type' => 'mykad', 'identity_number' => '900101141234',
+    ])->assertSessionHasErrors('form');
+
+    $this->assertDatabaseMissing('guests', ['full_name' => 'Refused ID Guest']);
+    $this->assertDatabaseCount('guest_identity_documents', 0);
+    expect(Activity::query()->where('event', 'guest.document_added')->count())->toBe(0);
+});
+
+test('draft identity input requires document permission and rejects an invalid IC', function () {
+    $setup = actionsSetup();
+    $url = actionsRoute($setup, 'reservations.units.guests.store', ['unit' => $setup['unit']->id]);
+    $payload = ['full_name' => 'Invalid ID Guest', 'identity_type' => 'mykad', 'identity_number' => '1234'];
+
+    $this->actingAs($setup['user'])->post($url, $payload)->assertSessionHasErrors('identity_number');
+    $staff = User::factory()->for($setup['property'])->withPermissions(['reservations.manage', 'guests.manage'])->create();
+    $this->actingAs($staff)->post($url, [...$payload, 'identity_number' => '900101141234'])->assertForbidden();
+
+    $this->assertDatabaseMissing('guests', ['full_name' => 'Invalid ID Guest']);
+    $this->assertDatabaseCount('guest_identity_documents', 0);
 });

@@ -26,7 +26,7 @@ import { DashboardBadge } from '@/components/pms/dashboard/dashboard-badge';
 
 export function TodoSkeleton() {
     return (
-        <Card className="min-h-80 flex-1">
+        <Card className="min-h-80">
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <Skeleton className="size-5" />
@@ -161,7 +161,7 @@ export function TodoCard({
     onAction: (row: App.Data.Dashboard.DashboardTodoRowData) => void;
 }) {
     return (
-        <Card className="flex-1">
+        <Card>
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <ClipboardList

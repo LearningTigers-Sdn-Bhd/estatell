@@ -20,20 +20,25 @@ export type PaginationData = {
     total: number;
     prevUrl: string | null;
     nextUrl: string | null;
+    /** The query parameter that holds the page. Set it when a page has more than one paginated list. */
+    pageName?: string;
 };
 
 /**
  * Pagination meta from a Laravel paginator in the shape `PaginationFooter` takes.
  */
-export function toPaginationData(meta: {
-    current_page: number;
-    last_page: number;
-    from: number | null;
-    to: number | null;
-    total: number;
-    prev_page_url: string | null;
-    next_page_url: string | null;
-}): PaginationData {
+export function toPaginationData(
+    meta: {
+        current_page: number;
+        last_page: number;
+        from: number | null;
+        to: number | null;
+        total: number;
+        prev_page_url: string | null;
+        next_page_url: string | null;
+    },
+    pageName?: string,
+): PaginationData {
     return {
         currentPage: meta.current_page,
         lastPage: meta.last_page,
@@ -42,6 +47,7 @@ export function toPaginationData(meta: {
         total: meta.total,
         prevUrl: meta.prev_page_url,
         nextUrl: meta.next_page_url,
+        pageName,
     };
 }
 
@@ -93,7 +99,7 @@ function PaginationControls({ pagination }: { pagination: PaginationData }) {
         setError(false);
 
         if (target !== pagination.currentPage && baseUrl) {
-            router.visit(paginationUrl(baseUrl, target), {
+            router.visit(paginationUrl(baseUrl, target, pagination.pageName), {
                 preserveScroll: true,
                 preserveState: true,
             });
@@ -107,7 +113,7 @@ function PaginationControls({ pagination }: { pagination: PaginationData }) {
                     <PageLink
                         href={
                             pagination.prevUrl && baseUrl
-                                ? paginationUrl(baseUrl, 1)
+                                ? paginationUrl(baseUrl, 1, pagination.pageName)
                                 : null
                         }
                         label="First page"
@@ -134,7 +140,7 @@ function PaginationControls({ pagination }: { pagination: PaginationData }) {
                     </label>
                     <Input
                         id={inputId}
-                        name="page"
+                        name={pagination.pageName ?? 'page'}
                         aria-label="Page number"
                         aria-invalid={error || undefined}
                         aria-describedby={
@@ -170,7 +176,11 @@ function PaginationControls({ pagination }: { pagination: PaginationData }) {
                     <PageLink
                         href={
                             pagination.nextUrl && baseUrl
-                                ? paginationUrl(baseUrl, pagination.lastPage)
+                                ? paginationUrl(
+                                      baseUrl,
+                                      pagination.lastPage,
+                                      pagination.pageName,
+                                  )
                                 : null
                         }
                         label="Last page"

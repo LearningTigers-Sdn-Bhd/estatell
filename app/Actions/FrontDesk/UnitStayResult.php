@@ -20,6 +20,8 @@ class UnitStayResult
 
     public const REFUSAL_STAY_ENDED = 'stay_ended';
 
+    public const REFUSAL_ARRIVED_AT_IN_FUTURE = 'arrived_at_in_future';
+
     public const REFUSAL_NO_ROOM_ASSIGNED = 'no_room_assigned';
 
     public const REFUSAL_CARD_MISSING = 'card_missing';

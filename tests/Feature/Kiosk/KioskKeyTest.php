@@ -43,7 +43,7 @@ it('waits at most 120 seconds for a PIN job to create its row', function () {
     kioskRead("/stays/{$unit->id}/key")->assertExactJson(['pin' => ['status' => 'failed']]);
 });
 
-it('uses the newest nonexpired PIN and requires every lock to be ready', function () {
+it('uses the newest nonexpired PIN and needs the lock of tonight’s room to be ready', function () {
     ['unit' => $unit, 'lock' => $lock, 'property' => $property] = kioskKeySetup();
     DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'reservation_unit_id' => $unit->id, 'code' => '111111']);
     DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'reservation_unit_id' => $unit->id, 'code' => '222222']);
@@ -52,6 +52,8 @@ it('uses the newest nonexpired PIN and requires every lock to be ready', functio
     $room = Room::factory()->create(['property_id' => $property->id]);
     $second = DoorLock::factory()->for($property)->create(['room_id' => $room->id, 'has_gateway' => true]);
     UnitNight::query()->where('reservation_unit_id', $unit->id)->whereDate('date', '2026-10-15')->update(['room_id' => $room->id]);
+    kioskRead("/stays/{$unit->id}/key")->assertJsonPath('pin.code', '222222');
+    UnitNight::query()->where('reservation_unit_id', $unit->id)->whereDate('date', '2026-10-14')->update(['room_id' => $room->id]);
     kioskRead("/stays/{$unit->id}/key")->assertExactJson(['pin' => ['status' => 'pending']]);
     DoorPasscode::factory()->create(['door_lock_id' => $second->id, 'reservation_unit_id' => $unit->id, 'status' => PasscodeStatus::Failed]);
     kioskRead("/stays/{$unit->id}/key")->assertExactJson(['pin' => ['status' => 'failed']]);

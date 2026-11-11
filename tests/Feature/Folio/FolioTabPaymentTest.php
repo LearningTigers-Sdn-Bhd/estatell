@@ -150,6 +150,8 @@ test('a payment refusal comes back as an error on its field and writes nothing',
 })->with([
     'missing reference' => [fn (array $setup) => fpPayload(PaymentMethod::factory()->create(['property_id' => $setup['property']->id])), 'reference'],
     'zero amount' => [fn (array $setup) => fpPayload($setup['cash'], ['amount' => '0.00']), 'amount'],
+    'received tomorrow' => [fn (array $setup) => fpPayload($setup['cash'], ['received_on' => today()->addDay()->toDateString()]), 'received_on'],
+    'badly formed received date' => [fn (array $setup) => fpPayload($setup['cash'], ['received_on' => '24/10/2026']), 'received_on'],
     'badly formed amount' => [fn (array $setup) => fpPayload($setup['cash'], ['amount' => '12,50']), 'amount'],
     'city ledger' => [fn (array $setup) => fpPayload(PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::DirectBill])), 'payment_method_id'],
     'closed folio' => [function (array $setup) {
@@ -218,6 +220,23 @@ test('payment rows carry the reference, the amount left and the refund action on
         ->where('folio.rows', fn ($rows) => collect($rows)->contains(fn ($row) => in_array('refund', $row['actions'], true))));
 
     $this->actingAs(fpStaff($setup, DefaultRoleEnum::Housekeeping))->get($url)->assertForbidden();
+});
+
+test('a payment row shows the day it was received when it differs from the posting date, and its notes', function () {
+    $setup = fpSetup();
+    $url = fpUrl($setup, 'reservations.folios.payments.store', ['folio' => $setup['folio']->id]);
+    $earlier = today()->subDays(4)->toDateString();
+
+    $this->actingAs($setup['user'])->post($url, fpPayload($setup['cash'], ['received_on' => $earlier, 'notes' => 'Paid at the jetty']))->assertSessionHasNoErrors();
+    $this->actingAs($setup['user'])->post($url, fpPayload($setup['cash']))->assertSessionHasNoErrors();
+    [$late, $today] = Payment::query()->orderBy('id')->get()->all();
+    $row = fn ($rows, int $lineId): array => collect($rows)->firstWhere('lineId', $lineId);
+
+    $this->actingAs($setup['user'])->get(fpUrl($setup, 'reservations.folio', ['folio' => $setup['folio']->id]))->assertInertia(fn (Assert $page) => $page
+        ->where('folio.rows', fn ($rows) => $row($rows, $late->folio_line_id)['receivedOn'] === $earlier
+            && $row($rows, $late->folio_line_id)['notes'] === 'Paid at the jetty'
+            && $row($rows, $today->folio_line_id)['receivedOn'] === null
+            && $row($rows, $today->folio_line_id)['notes'] === null));
 });
 
 test('payment rows show an Advance or Security deposit purpose after the method, and Settlement shows none', function () {

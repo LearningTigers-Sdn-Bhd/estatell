@@ -5,6 +5,7 @@ require_once __DIR__.'/../Support/DayUseSetup.php';
 use App\Actions\Catalogues\UpdateDayUseTaxes;
 use App\Actions\FrontDesk\CheckOutAsDayUse;
 use App\Data\Reservations\CheckOutCollectData;
+use App\Enums\BoatDirection;
 use App\Enums\ChargingUnit;
 use App\Enums\FolioStatus;
 use App\Enums\HousekeepingStatus;
@@ -15,6 +16,8 @@ use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Events\ReservationChanged;
+use App\Models\BoatDeparture;
+use App\Models\BoatSailing;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Folio;
@@ -26,6 +29,7 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomStatus;
 use App\Models\UnitAddOn;
+use App\Models\UnitBoatTrip;
 use App\Models\User;
 use App\Services\FrontDesk\CheckOutAsDayUseQuote;
 use App\Services\NightAudit\StatisticsCalculator;
@@ -511,4 +515,22 @@ test('the quote prices whole minutes and ignores seconds', function () {
     $this->actingAs($s['user'])->postJson($url, ['end' => '15:00:30', 'amount' => '1.00', 'reason' => 'Whole minutes'])->assertOk()
         ->assertJsonPath('start', '14:00:00')->assertJsonPath('end', '15:00:00')
         ->assertJsonPath('hours', 1)->assertJsonPath('blockEnd', '15:00:00');
+});
+
+test('an overnight checkout as day use takes the Boat out trip off its sailing and keeps the block end as the departure time', function () {
+    $s = overnightDayUseCheckout();
+    $departure = BoatDeparture::factory()->for($s['property'])->create(['direction' => BoatDirection::Out, 'leaves_at' => '08:00', 'arrives_at' => '08:30']);
+    $sailing = BoatSailing::factory()->forDeparture($departure)->create(['date' => $s['unit']->departure_date->toDateString()]);
+    $trip = UnitBoatTrip::factory()->out()->create(['property_id' => $s['property']->id, 'reservation_unit_id' => $s['unit']->id, 'boat_departure_id' => $departure->id, 'boat_sailing_id' => $sailing->id, 'ticked_at' => now(), 'ticked_by' => $s['user']->id]);
+
+    $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], collect: dayUseCheckoutCollect($s, '120.00'), idempotencyKey: (string) Str::uuid());
+
+    expect($result->refusal)->toBeNull();
+
+    $unit = $s['unit']->fresh();
+
+    expect($trip->refresh()->boat_sailing_id)->toBeNull()
+        ->and($trip->ticked_at)->toBeNull()
+        ->and($unit->departure_time)->not->toBe('08:00:00')
+        ->and($unit->departure_time)->toBe($unit->dayUse->ends_at);
 });

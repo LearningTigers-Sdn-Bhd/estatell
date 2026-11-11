@@ -99,7 +99,7 @@ class MoveCharges
             return MoveChargesResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
         }
 
-        $withNights = $this->preview->unitsWithNightsAfter(array_map(fn (array $schedule): int => $schedule['unit']->id, $schedules), $businessDate);
+        $withNights = $this->preview->unitsWithNightsToCharge(array_map(fn (array $schedule): int => $schedule['unit']->id, $schedules), $businessDate);
         $idle = array_values(array_filter($schedules, fn (array $schedule): bool => ! $schedule['unit']->status->holdsInventory() || ! in_array($schedule['unit']->id, $withNights, true)));
 
         if ($idle !== []) {

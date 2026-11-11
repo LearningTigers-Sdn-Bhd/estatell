@@ -13,9 +13,60 @@ export type BoatChoice = { value: string; note: string };
 export type BoatTripPayload = {
     mode: 'scheduled' | 'charter' | 'own';
     boat_departure_id: number | null;
+    /** Only from the Boat Trips board: the boat picked, null for the main sailing. */
+    boat_sailing_id?: number | null;
     time: string | null;
     note: string | null;
 };
+
+export type BoatPick = App.Data.Boats.BoatPickData;
+
+/**
+ * The options of the Change boat select on the Boat Trips board: each boat of the date in this direction
+ * ("06:00 · Boat 2 · 0 / 8 seats") between Not set and Charter and Own boat. The value is the board group key.
+ */
+export function boatPickOptions(
+    picks: BoatPick[],
+    direction: BoatDirection,
+): EnumOption[] {
+    return [
+        { value: '', label: 'Not set' },
+        ...picks
+            .filter((pick) => pick.direction === direction)
+            .map((pick) => ({
+                value: pick.key,
+                label: [
+                    pick.time,
+                    pick.boat ?? 'No boat',
+                    pick.seats === null
+                        ? null
+                        : `${pick.taken} / ${pick.seats} seats`,
+                ]
+                    .filter(Boolean)
+                    .join(' · '),
+            })),
+        { value: 'charter', label: 'Charter' },
+        { value: 'own', label: 'Own boat' },
+    ];
+}
+
+/** The request of a boat picked on the board: its departure and its sailing (null for the main one). */
+export function boatPickPayload(
+    choice: BoatChoice,
+    picks: BoatPick[],
+): BoatTripPayload | null {
+    const pick = picks.find((item) => item.key === choice.value);
+
+    return pick === undefined
+        ? null
+        : {
+              mode: 'scheduled',
+              boat_departure_id: pick.departureId,
+              boat_sailing_id: pick.sailingId,
+              time: null,
+              note: null,
+          };
+}
 
 export const NOT_SET: BoatChoice = { value: '', note: '' };
 

@@ -1,11 +1,11 @@
 import { useForm } from '@inertiajs/react';
-import { DateText } from '@/components/pms/date-text';
+import { DateText, formatDate } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
+import { MultiSelectWithAll } from '@/components/pms/reservations/multi-select-with-all';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
     FieldDescription,
@@ -70,14 +70,6 @@ function ChangeNightPriceForm({
         priced &&
         preview.error === null;
 
-    const toggle = (id: number, checked: boolean) =>
-        form.setData(
-            'night_ids',
-            checked
-                ? [...data.night_ids, id]
-                : data.night_ids.filter((nightId) => nightId !== id),
-        );
-
     const submit = () => {
         form.post(nightPrice.url(key), {
             preserveScroll: true,
@@ -103,30 +95,27 @@ function ChangeNightPriceForm({
             {preview !== null && (
                 <>
                     <Field data-invalid={!!errors.night_ids}>
-                        <FieldLabel>Nights</FieldLabel>
-                        <div className="flex flex-wrap gap-x-4 gap-y-2">
-                            {preview.nights.map((night) => (
-                                <label
-                                    key={night.id}
-                                    className="flex items-center gap-2 text-sm"
-                                >
-                                    <Checkbox
-                                        checked={data.night_ids.includes(
-                                            night.id,
-                                        )}
-                                        onCheckedChange={(checked) =>
-                                            toggle(night.id, checked)
-                                        }
-                                    />
-                                    <DateText date={night.date} />
-                                    {night.charged && (
-                                        <span className="text-muted-foreground">
-                                            (charged)
-                                        </span>
-                                    )}
-                                </label>
-                            ))}
-                        </div>
+                        <FieldLabel htmlFor="night-price-night_ids">
+                            Nights
+                        </FieldLabel>
+                        <MultiSelectWithAll
+                            id="night-price-night_ids"
+                            name="night_ids"
+                            choices={preview.nights.map((night) => ({
+                                id: night.id,
+                                label: night.charged
+                                    ? `${formatDate(night.date)} (charged)`
+                                    : formatDate(night.date),
+                            }))}
+                            value={data.night_ids}
+                            onValueChange={(value) =>
+                                form.setData('night_ids', value)
+                            }
+                            allLabel="All nights"
+                            placeholder="Choose the nights, e.g. 10 Nov 2026"
+                            emptyLabel="No matching nights."
+                            invalid={!!errors.night_ids}
+                        />
                         <FieldError>{errors.night_ids}</FieldError>
                     </Field>
                     <Field data-invalid={!!errors.price}>
@@ -136,6 +125,7 @@ function ChangeNightPriceForm({
                         <Input
                             id="night-price-price"
                             inputMode="decimal"
+                            placeholder="e.g. 220.00"
                             value={data.price}
                             onChange={(event) =>
                                 form.setData('price', event.target.value)
@@ -171,6 +161,7 @@ function ChangeNightPriceForm({
                         </FieldLabel>
                         <Textarea
                             id="night-price-reason"
+                            placeholder="e.g. Corporate rate agreed"
                             value={data.reason}
                             onChange={(event) =>
                                 form.setData('reason', event.target.value)

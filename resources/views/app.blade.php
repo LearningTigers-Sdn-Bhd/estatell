@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        @unless (in_array($page['component'], ['landing', 'legal/terms', 'legal/privacy'], true))
+        @unless (in_array($page['component'], ['landing', 'services/show', 'legal/terms', 'legal/privacy'], true))
             <meta name="robots" content="noindex">
         @endunless
 

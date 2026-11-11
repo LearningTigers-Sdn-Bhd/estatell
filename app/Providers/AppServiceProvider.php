@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
+use App\Actions\DoorLocks\QueueStayKeyCards;
 use App\Actions\DoorLocks\QueueStayPasscodeSync;
 use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\NotifySupportMoneyCorrection;
@@ -18,11 +19,13 @@ use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
+use App\Models\BookingClient;
 use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Notifications\MailActorResolver;
 use App\Services\Notifications\MillionSendTransport;
 use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
@@ -35,11 +38,13 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Log\Context\Repository as ContextRepository;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -83,10 +88,32 @@ class AppServiceProvider extends ServiceProvider
         $this->configureMailLog();
         $this->configureChannelEvents();
         $this->configureApiRateLimiting();
+        $this->configureInertiaSsr();
+        $this->configureKeyportRateLimits();
     }
 
     /**
-     * Pairing is limited per IP address (a pairing code can be guessed). Everything else is limited per token. See docs/28-api-access/01-api-tokens.md.
+     * Only the public pages are server-rendered, so crawlers and answer engines get real HTML. The staff app sits behind a
+     * login, so rendering it on the server would only add load. When the SSR server is down Inertia falls back to the
+     * browser render. A closure here replaces the config switch, so it still honours INERTIA_SSR_ENABLED.
+     */
+    private function configureInertiaSsr(): void
+    {
+        Inertia::disableSsr(fn (): bool => ! config('inertia.ssr.enabled') || ! request()->routeIs('home', 'services.show', 'terms', 'privacy'));
+    }
+
+    /**
+     * Pairing is the only Keyport call without a token, so it is limited per IP to blunt guessing of pairing codes.
+     */
+    private function configureKeyportRateLimits(): void
+    {
+        RateLimiter::for('keyport-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+    }
+
+    /**
+     * Pairing is limited per IP address (a pairing code can be guessed). Everything else is limited per token, and a
+     * booking client's token also per property, so one busy hotel cannot slow other microsites. A route with no property
+     * in the path counts per token. See docs/28-api-access/01-api-tokens.md.
      */
     protected function configureApiRateLimiting(): void
     {
@@ -97,8 +124,20 @@ class AppServiceProvider extends ServiceProvider
             return [Limit::perMinute(20)->by('kiosk-walk-in-token:'.($kiosk instanceof Kiosk ? $kiosk->id : 'none')),
                 Limit::perMinute(40)->by('kiosk-walk-in-ip:'.(string) $request->ip())];
         });
+        RateLimiter::for('api-booking-holds', function (Request $request): Limit {
+            $client = $request->attributes->get('booking_client');
+
+            return Limit::perMinute(30)->by('booking-holds:'.$client->currentAccessToken()->getKey().':'.mb_strtolower((string) $request->route('code')));
+        });
         RateLimiter::for('api-token', function (Request $request): Limit {
             $kiosk = $request->attributes->get('kiosk');
+            $client = $request->attributes->get('booking_client');
+
+            if ($client instanceof BookingClient) {
+                $property = $request->route('code') ?? $request->route('slug');
+
+                return Limit::perMinute(120)->by('booking:'.$client->currentAccessToken()->getKey().':'.mb_strtolower((string) $property));
+            }
 
             return Limit::perMinute(120)->by($kiosk instanceof Kiosk ? 'kiosk:'.$kiosk->id : (string) $request->ip());
         });
@@ -112,6 +151,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen([RatesChanged::class, InventoryChanged::class, ReservationChanged::class], fn (RatesChanged|InventoryChanged|ReservationChanged $event) => app(RecordChannelAriChange::class)($event));
         Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
+        Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayKeyCards::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 
         RatePlan::saved(function (RatePlan $ratePlan): void {
@@ -137,6 +177,12 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureMailLog(): void
     {
+        Context::dehydrating(function (ContextRepository $context): void {
+            if (! $context->hasHidden(MailActorResolver::CONTEXT_KEY)) {
+                $context->addHidden(MailActorResolver::CONTEXT_KEY, app(MailActorResolver::class)->fromRequest());
+            }
+        });
+
         Event::listen(MessageSending::class, function (MessageSending $event): void {
             if (is_string($notification = $event->data['__laravel_notification'] ?? null)) {
                 $event->message->getHeaders()->addTextHeader(MillionSendTransport::NOTIFICATION_HEADER, $notification);

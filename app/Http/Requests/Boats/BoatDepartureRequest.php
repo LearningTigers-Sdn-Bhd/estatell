@@ -4,6 +4,7 @@ namespace App\Http\Requests\Boats;
 
 use App\Enums\BoatDirection;
 use App\Enums\TransactionCategory;
+use App\Models\BoatCrewMember;
 use App\Models\BoatDeparture;
 use App\Models\ChargeItem;
 use App\Models\Property;
@@ -31,6 +32,9 @@ class BoatDepartureRequest extends FormRequest
             'pickup_point' => filled($this->input('pickup_point')) ? trim((string) $this->input('pickup_point')) : null,
             'seats' => filled($this->input('seats')) ? $this->input('seats') : null,
             'charge_item_id' => filled($this->input('charge_item_id')) ? $this->input('charge_item_id') : null,
+            'default_boat_id' => filled($this->input('default_boat_id')) ? $this->input('default_boat_id') : null,
+            ...($this->has('in_charge_id') ? ['in_charge_id' => filled($this->input('in_charge_id')) ? $this->input('in_charge_id') : null] : []),
+            ...($this->has('assistant_ids') ? ['assistant_ids' => array_values(array_filter((array) $this->input('assistant_ids'), filled(...)))] : []),
             ...($this->has('active') ? ['active' => $this->boolean('active')] : []),
         ]);
     }
@@ -107,6 +111,20 @@ class BoatDepartureRequest extends FormRequest
                     }
                 },
             ],
+            'default_boat_id' => [
+                'nullable', 'integer',
+                Rule::exists('boats', 'id')->where('property_id', $property->id)->where('active', true),
+            ],
+            'in_charge_id' => ['nullable', 'integer', Rule::in($this->pickableCrewIds($property, $current))],
+            'assistant_ids' => [
+                'nullable', 'array',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if ($value !== [] && $this->input('in_charge_id') === null) {
+                        $fail(__('Pick who is in charge first.'));
+                    }
+                },
+            ],
+            'assistant_ids.*' => ['integer', 'distinct', Rule::in($this->pickableCrewIds($property, $current))],
             'active' => [
                 'sometimes', 'boolean',
                 function (string $attribute, mixed $value, Closure $fail) use ($property): void {
@@ -133,6 +151,28 @@ class BoatDepartureRequest extends FormRequest
         return [
             'arrives_at.after' => __('Arrives must be after Leaves.'),
         ];
+    }
+
+    /**
+     * The crew members this save may pick: the property's available crew, plus the ones already on the departure, so an
+     * edit does not drop a person who is now unavailable.
+     *
+     * @return list<int>
+     */
+    private function pickableCrewIds(Property $property, ?BoatDeparture $current): array
+    {
+        return array_values(BoatCrewMember::query()
+            ->where('property_id', $property->id)
+            ->where(function (Builder $query) use ($current): void {
+                $query->where('active', true);
+
+                if ($current instanceof BoatDeparture) {
+                    $query->orWhereIn('id', $current->crew()->pluck('boat_crew_members.id'));
+                }
+            })
+            ->get(['id'])
+            ->map(fn (BoatCrewMember $member): int => $member->id)
+            ->all());
     }
 
     /** A Transport charge item of the property, or null. Active or not. */

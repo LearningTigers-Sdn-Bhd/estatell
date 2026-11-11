@@ -43,7 +43,7 @@ test('ota lists saved', function () {
     ]);
 
     $page = $this->open(route('onboarding.channel-manager.edit', $this->property->code), height: 700)
-        ->waitForText('On file')
+        ->waitForText('Only the Estatell team can see this login')
         ->wait(1);
 
     $this->shoot($page, 'channels-saved');

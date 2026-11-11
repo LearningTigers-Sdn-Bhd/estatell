@@ -17,6 +17,7 @@ class ReservationData extends Data
     public function __construct(
         public int $id,
         public string $reference,
+        public string $shortCode,
         public string $title,
         public ?string $groupName,
         public bool $isGroup,
@@ -58,6 +59,7 @@ class ReservationData extends Data
         return new self(
             id: $reservation->id,
             reference: $reservation->reference,
+            shortCode: $reservation->short_code,
             title: $reservation->group_name ?? $reservation->booker->full_name,
             groupName: $reservation->group_name,
             isGroup: $unitCount > 1,

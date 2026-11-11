@@ -10,6 +10,7 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             name: string;
+            siteUrl: string;
             auth: Auth;
             impersonation: App.Data.Platform.ImpersonationData | null;
             supportTwoFactor: { required: boolean } | null;
@@ -34,6 +35,8 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             onboarding?: App.Data.Onboarding.OnboardingProgressData | null;
             csrfToken: string;
+            bookingMode?: App.Enums.BookingEngineMode;
+            bookingWebsiteHeader?: App.Data.BookingEngine.BookingWebsiteHeaderData;
             [key: string]: unknown;
         };
     }

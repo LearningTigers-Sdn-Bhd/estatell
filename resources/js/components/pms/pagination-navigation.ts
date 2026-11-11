@@ -10,9 +10,13 @@ export function paginationPage(value: string, lastPage: number): number | null {
         : null;
 }
 
-export function paginationUrl(baseUrl: string, page: number): string {
+export function paginationUrl(
+    baseUrl: string,
+    page: number,
+    pageName = 'page',
+): string {
     const url = new URL(baseUrl);
-    url.searchParams.set('page', String(page));
+    url.searchParams.set(pageName, String(page));
 
     return url.href;
 }

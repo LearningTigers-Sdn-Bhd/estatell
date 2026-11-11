@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Reservations;
 
-use App\Actions\FrontDesk\CancelUnit;
-use App\Actions\FrontDesk\CancelUnits;
+use App\Actions\FrontDesk\CancelUnitAndRefund;
+use App\Actions\FrontDesk\CancelUnitsAndRefund;
 use App\Actions\FrontDesk\CancelUnitsResult;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
+use App\Actions\FrontDesk\CheckInEndedStay;
 use App\Actions\FrontDesk\CheckOutAndRefund;
 use App\Actions\FrontDesk\CheckOutAsDayUse;
 use App\Actions\FrontDesk\CheckOutOverdueStay;
@@ -57,14 +58,14 @@ use Inertia\Inertia;
  */
 class ReservationUnitStayController extends Controller
 {
-    public function cancelPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
+    public function cancelPreview(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
-        return response()->json($preview->fee($unit, SystemTransactionCode::CancellationRevenue));
+        return response()->json($preview->fee($unit, SystemTransactionCode::CancellationRevenue, (bool) $request->user()?->can(PermissionEnum::PaymentRefund->value)));
     }
 
-    public function cancelAllPreview(Property $property, Reservation $reservation, UnitActionPreview $preview): JsonResponse
+    public function cancelAllPreview(Request $request, Property $property, Reservation $reservation, UnitActionPreview $preview): JsonResponse
     {
-        return response()->json($preview->cancelAll($reservation));
+        return response()->json($preview->cancelAll($reservation, (bool) $request->user()?->can(PermissionEnum::PaymentRefund->value)));
     }
 
     public function undoCheckInPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
@@ -135,9 +136,12 @@ class ReservationUnitStayController extends Controller
      * refused payment saves nothing, not even the check-in, and goes back to the Dialog as an error on the method or
      * reference, so the same form can be sent again.
      */
-    public function checkIn(CheckInUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckInAndCollect $checkInAndCollect, ReservationRefusals $refusals, PaymentRefusals $paymentRefusals): RedirectResponse
+    public function checkIn(CheckInUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckInAndCollect $checkInAndCollect, CheckInEndedStay $checkInEndedStay, ReservationRefusals $refusals, PaymentRefusals $paymentRefusals): RedirectResponse
     {
-        $result = $checkInAndCollect($request->user(), $unit, $request->nationality(), $request->withoutCard(), $request->creditOverrideReason(), $request->collectNow());
+        $choice = $request->endedStayChoice();
+        $result = $choice === null
+            ? $checkInAndCollect($request->user(), $unit, $request->nationality(), $request->withoutCard(), $request->creditOverrideReason(), $request->collectNow())
+            : $checkInEndedStay($request->user(), $unit, $choice, $request->arrivedAt(), $request->nationality(), $request->withoutCard(), $request->creditOverrideReason(), $request->collectNow());
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
 
         if ($result->stay->isRefused()) {
@@ -161,7 +165,7 @@ class ReservationUnitStayController extends Controller
      */
     public function checkInAll(CheckInAllRequest $request, Property $property, Reservation $reservation, CheckInAllUnits $checkInAllUnits, ReservationRefusals $refusals): RedirectResponse
     {
-        $results = $checkInAllUnits($request->user(), $reservation, $request->unitIds(), $request->withoutCard());
+        $results = $checkInAllUnits($request->user(), $reservation, $request->unitIds(), $request->withoutCard(), $request->endedStayChoice(), $request->arrivedAt());
         $refused = array_filter($results, fn (?string $refusal): bool => $refusal !== null);
         $done = count($results) - count($refused);
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
@@ -236,9 +240,9 @@ class ReservationUnitStayController extends Controller
     /**
      * Cancel one unit and post the cancellation fee. A refusal goes back to the Dialog as an error.
      */
-    public function cancel(UnitPolicyFeeRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CancelUnit $cancelUnit, ReservationRefusals $refusals): RedirectResponse
+    public function cancel(UnitPolicyFeeRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CancelUnitAndRefund $cancelUnit, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $cancelUnit($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->boolean('remove_add_ons'));
+        $result = $cancelUnit($request->user(), $unit, $request->user()->can(PermissionEnum::PaymentRefund->value), $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->boolean('remove_add_ons'));
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit cancelled.'));
     }
@@ -247,9 +251,9 @@ class ReservationUnitStayController extends Controller
      * Cancel the ticked units of the reservation, all or nothing. A refusal cancels nothing and goes back to the
      * Dialog, keyed to the form field it belongs to, with the room it came from.
      */
-    public function cancelAll(CancelReservationRequest $request, Property $property, Reservation $reservation, CancelUnits $cancelUnits, ReservationRefusals $refusals): RedirectResponse
+    public function cancelAll(CancelReservationRequest $request, Property $property, Reservation $reservation, CancelUnitsAndRefund $cancelUnits, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $cancelUnits($request->user(), $reservation, $request->unitIds(), $request->doNotCharge(), $request->reason(), $request->boolean('remove_add_ons'), $request->expectedFees());
+        $result = $cancelUnits($request->user(), $reservation, $request->unitIds(), $request->user()->can(PermissionEnum::PaymentRefund->value), $request->doNotCharge(), $request->reason(), $request->boolean('remove_add_ons'), $request->expectedFees());
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
 
         if ($result->isRefused()) {

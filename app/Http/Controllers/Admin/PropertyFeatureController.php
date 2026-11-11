@@ -19,7 +19,9 @@ class PropertyFeatureController extends Controller
     {
         $active = $request->boolean('active');
 
-        $setPropertyFeature($request->user(), $property, $feature, $active);
+        $providers = $request->has('providers') ? array_values($request->array('providers')) : null;
+
+        $setPropertyFeature($request->user(), $property, $feature, $active, $providers);
 
         Inertia::flash('toast', [
             'type' => 'success',

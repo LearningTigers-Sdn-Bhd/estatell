@@ -26,7 +26,7 @@ The Channel IFrame is not used. Admins do not sign in to Channex by hand for the
 ## Flow
 
 ```
- 0 Onboarding     Owner adds OTA logins in OTA lists (reference for the team)
+ 0 Onboarding     Owner or admin adds OTA logins in OTA lists (team only)
  1 Flag on        Admin › property › Features › Channel manager
  2 Sync           Preview, then Sync to Channex: property, room types, rate plans
  3 Full sync      500 days in 2 calls, then changes only

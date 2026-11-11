@@ -105,7 +105,8 @@ test('the language in the URL changes the terms and the labels', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('card.locale', 'ms')
             ->where('card.labels.Full name', 'Nama penuh')
-            ->where('card.localeOptions.1.value', 'ms'));
+            ->where('card.localeOptions.1.value', 'ms')
+            ->where('countries', fn ($countries): bool => collect($countries)->firstWhere('value', 'DE')['label'] === 'Jerman'));
 });
 
 test('a card page of another property is not found and a user without the permission is refused', function () {

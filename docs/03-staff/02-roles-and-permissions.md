@@ -33,7 +33,6 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | Permission                         | Guards                                                                      | Owner | Manager | Front desk, Housekeeping, Finance |
 | ---------------------------------- | --------------------------------------------------------------------------- | ----- | ------- | --------------------------------- |
 | `settings.manage`                  | Property settings pages                                                     | ✓     | ✓       | –                                 |
-| `settings.ota-lists`               | Settings → OTA lists: add, change and remove OTA logins                     | ✓     | –       | –                                 |
 | `staff.view`                       | Staff list                                                                  | ✓     | ✓       | –                                 |
 | `staff.manage`                     | Invite, deactivate, reactivate, assign roles                                | ✓     | ✓       | –                                 |
 | `roles.manage`                     | Create roles, edit role permissions                                         | ✓     | –       | –                                 |
@@ -84,9 +83,15 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `housekeeping.view`                | Housekeeping board, print and export                                        | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.update`              | Mark clean or dirty, assign, priority, DND, remark, raise Needs maintenance | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.inspect`             | Mark a room Inspected                                                       | ✓     | ✓       | Front desk                        |
+| `housekeeping.edit-times`          | Correct housekeeping IN and OUT times                                       | ✓     | ✓       | Front desk                        |
 | `guest-requests.view`              | Guest requests list, reservation Requests tab, board tag                    | ✓     | ✓       | Front desk, Housekeeping          |
 | `guest-requests.manage`            | Open, edit, assign, cancel and reopen guest requests                        | ✓     | ✓       | Front desk                        |
 | `guest-requests.resolve`           | Start and resolve guest requests                                            | ✓     | ✓       | Front desk, Housekeeping          |
+| `booking-website.manage`           | Booking website: General, Design, Content, Rates and SEO tabs               | ✓     |         |                                   |
+| `booking-website.publish`          | Publish or unpublish the booking website                                    | ✓     |         |                                   |
+| `booking-website.api`              | Booking website: API token and return addresses                             | ✓     |         |                                   |
+| `einvoice.view`                    | E-invoice list and submission page                                          | ✓     | ✓       | Finance                           |
+| `einvoice.manage`                  | Submit, cancel, credit-note and consolidate e-invoices                      | ✓     | ✓       | Finance                           |
 
 Later modules add rows here. Their module docs list their permissions.
 

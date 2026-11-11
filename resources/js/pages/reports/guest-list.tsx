@@ -37,6 +37,7 @@ type Props = {
     from: string;
     to: string;
     maxRangeDays: number | null;
+    boatNotSet: boolean | null;
     currency: App.Data.Property.CurrencyData | null;
 };
 

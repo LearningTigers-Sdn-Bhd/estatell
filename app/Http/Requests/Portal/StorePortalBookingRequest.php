@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Portal;
 
+use App\Data\Boats\BoatTripData;
 use App\Data\Portal\NewPortalBookingData;
 use App\Data\Portal\NewPortalGuestData;
+use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Enums\IdentityDocumentType;
 use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\Property;
@@ -54,6 +57,16 @@ class StorePortalBookingRequest extends PortalOffersRequest
             'group_name' => ['nullable', 'string', 'max:150'],
             'external_reference' => ['nullable', 'string', 'max:100'],
             'expected_total' => ['required', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'boat_in' => ['nullable', 'array'],
+            'boat_in.mode' => ['required_with:boat_in', Rule::enum(BoatMode::class)],
+            'boat_in.boat_departure_id' => ['required_if:boat_in.mode,'.BoatMode::Scheduled->value, 'nullable', 'integer'],
+            'boat_in.time' => ['nullable', 'date_format:H:i'],
+            'boat_in.note' => ['nullable', 'string', 'max:255'],
+            'boat_out' => ['nullable', 'array'],
+            'boat_out.mode' => ['required_with:boat_out', Rule::enum(BoatMode::class)],
+            'boat_out.boat_departure_id' => ['required_if:boat_out.mode,'.BoatMode::Scheduled->value, 'nullable', 'integer'],
+            'boat_out.time' => ['nullable', 'date_format:H:i'],
+            'boat_out.note' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -106,7 +119,31 @@ class StorePortalBookingRequest extends PortalOffersRequest
             groupName: $this->validated('group_name'),
             externalReference: $this->validated('external_reference'),
             expectedTotal: $this->validated('expected_total'),
+            boatTrips: $this->boatTrips(),
         );
+    }
+
+    /**
+     * @return list<BoatTripData>
+     */
+    private function boatTrips(): array
+    {
+        $trips = [];
+
+        foreach ([['boat_in', BoatDirection::In], ['boat_out', BoatDirection::Out]] as [$field, $direction]) {
+            $trip = $this->validated($field);
+
+            if (is_array($trip)) {
+                $trips[] = BoatTripData::fromInput([
+                    'mode' => Arr::string($trip, 'mode'),
+                    'boat_departure_id' => $trip['boat_departure_id'] ?? null,
+                    'time' => $trip['time'] ?? null,
+                    'note' => $trip['note'] ?? null,
+                ], $direction);
+            }
+        }
+
+        return $trips;
     }
 
     private function phoneRegion(): string

@@ -64,6 +64,7 @@ class RatePlanDiscountsPreviewRequest extends FormRequest
                 'min_nights' => (int) $row['min_nights'],
                 'discount_type' => $row['discount_type'],
                 'value' => (string) $row['value'],
+                'per_room' => filter_var($row['per_room'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'from_night' => (int) $row['from_night'],
             ]))
             ->values();

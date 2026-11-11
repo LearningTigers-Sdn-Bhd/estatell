@@ -23,6 +23,7 @@ enum TransactionCategory: string
     case Adjustment = 'adjustment';
     case OpeningBalance = 'opening_balance';
     case OldSystem = 'old_system';
+    case Online = 'online';
     case Other = 'other';
 
     public function label(): string
@@ -47,6 +48,7 @@ enum TransactionCategory: string
             self::Adjustment => __('Adjustment'),
             self::OpeningBalance => __('Opening balance'),
             self::OldSystem => __('Old system'),
+            self::Online => __('Online'),
             self::Other => __('Other'),
         };
     }

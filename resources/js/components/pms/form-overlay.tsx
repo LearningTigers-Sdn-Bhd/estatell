@@ -49,6 +49,8 @@ type Props = Shape & {
     submitVariant?: 'default' | 'destructive';
     /** Replaces Cancel and the primary button, for a form with more than one step. */
     footer?: ReactNode;
+    /** A secondary action at the start of the footer, away from Cancel and the primary button (for example Remove). */
+    footerStart?: ReactNode;
     /** Shows skeleton fields while an optional prop loads. */
     loading?: boolean;
     /** The fields only. */
@@ -62,7 +64,7 @@ type Props = Shape & {
 const DIALOG_SIZE = {
     sm: 'md:max-w-100',
     md: 'md:max-w-lg',
-    // 240 = 60rem = 960 px: the check-out Dialog only (two columns from 1024 px).
+    // 240 = 60rem = 960 px: the check-out Dialog and the ended stay check-in (two columns from 1024 px).
     lg: 'md:max-w-240',
 } as const;
 
@@ -102,6 +104,7 @@ export function FormOverlay(props: Props) {
         submitVariant = 'default',
         loading = false,
         footer,
+        footerStart,
         children,
     } = props;
     const formRef = useRef<HTMLFormElement>(null);
@@ -175,6 +178,11 @@ export function FormOverlay(props: Props) {
                                 {fields}
                             </div>
                             <SheetFooter className="flex-row justify-end border-t bg-muted/50">
+                                {footerStart && (
+                                    <div className="sm:mr-auto">
+                                        {footerStart}
+                                    </div>
+                                )}
                                 {footer ?? (
                                     <>
                                         <Button
@@ -226,6 +234,9 @@ export function FormOverlay(props: Props) {
                 >
                     {fields}
                     <DialogFooter>
+                        {footerStart && (
+                            <div className="sm:mr-auto">{footerStart}</div>
+                        )}
                         {footer ?? (
                             <>
                                 <DialogClose

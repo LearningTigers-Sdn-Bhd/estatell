@@ -2,6 +2,7 @@
 
 namespace App\Services\DoorLocks;
 
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -69,6 +70,71 @@ class TtlockApi
         } while ($page <= (int) ($response['pages'] ?? 1));
 
         return $locks;
+    }
+
+    /**
+     * Every gateway of the account, with whether it is online. TTLock counts a gateway online while its TCP link is up, so an
+     * unplugged one can still show online for a few minutes.
+     *
+     * @return list<array{id: int, name: string, online: bool}>
+     */
+    public function gateways(string $accessToken): array
+    {
+        $gateways = [];
+        $page = 1;
+
+        do {
+            $response = $this->post('/v3/gateway/list', $accessToken, ['pageNo' => $page, 'pageSize' => 100]);
+
+            foreach ($response['list'] ?? [] as $gateway) {
+                $gateways[] = [
+                    'id' => (int) $gateway['gatewayId'],
+                    'name' => (string) ($gateway['gatewayName'] ?? $gateway['gatewayId']),
+                    'online' => (int) ($gateway['isOnline'] ?? 0) === 1,
+                ];
+            }
+
+            $page++;
+        } while ($page <= (int) ($response['pages'] ?? 1));
+
+        return $gateways;
+    }
+
+    /**
+     * The TTLock ids of the locks that talk through one gateway.
+     *
+     * @return list<int>
+     */
+    public function gatewayLockIds(string $accessToken, int $gatewayId): array
+    {
+        $response = $this->post('/v3/gateway/listLock', $accessToken, ['gatewayId' => $gatewayId]);
+
+        return array_values(array_map(fn (array $lock): int => (int) $lock['lockId'], $response['list'] ?? []));
+    }
+
+    /**
+     * The lock clock, read through the gateway. Needs a gateway that can reach the lock now.
+     */
+    public function lockTime(string $accessToken, int $lockId): CarbonImmutable
+    {
+        $response = $this->post('/v3/lock/queryDate', $accessToken, ['lockId' => $lockId], remote: true);
+
+        return CarbonImmutable::createFromTimestampMs((int) $response['date']);
+    }
+
+    /**
+     * Move the end of a PIN we sent through the gateway, so the guest keeps the same PIN. TTLock needs the start date too,
+     * and ignores the change without it.
+     */
+    public function changePasscodePeriod(string $accessToken, int $lockId, int $passcodeId, CarbonInterface $startsAt, CarbonInterface $endsAt): void
+    {
+        $this->post('/v3/keyboardPwd/change', $accessToken, [
+            'lockId' => $lockId,
+            'keyboardPwdId' => $passcodeId,
+            'startDate' => $startsAt->getTimestampMs(),
+            'endDate' => $endsAt->getTimestampMs(),
+            'changeType' => 2,
+        ], remote: true);
     }
 
     /**

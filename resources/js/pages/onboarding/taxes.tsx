@@ -130,6 +130,7 @@ export default function Taxes({
         no_tax: noTax,
         rows: taxes.length > 0 ? taxes.map(rowOf) : [newRow()],
     });
+    const previewHttp = useHttp<Payload, Preview>(http.data);
     const guard = useUnsavedChanges(http.isDirty);
     const [preview, setPreview] = useState(savedPreview);
     const [saving, setSaving] = useState(false);
@@ -167,11 +168,15 @@ export default function Taxes({
             return;
         }
 
+        const payload = http.data;
         const timer = window.setTimeout(() => {
             previewedKey.current = previewKey;
-            http.post(TaxController.preview.url(), {
-                onSuccess: (response) => setPreview(response),
-            }).catch(() => undefined);
+            previewHttp.transform(() => payload);
+            previewHttp
+                .post(TaxController.preview.url(), {
+                    onSuccess: (response) => setPreview(response),
+                })
+                .catch(() => undefined);
         }, 250);
 
         return () => window.clearTimeout(timer);
@@ -713,7 +718,7 @@ export default function Taxes({
                         preview={preview}
                         offTaxes={[]}
                         money={money}
-                        loading={http.processing}
+                        loading={previewHttp.processing}
                         localLabel={`${local === 'local' ? 'Local' : local} guest`}
                     />
                 )}

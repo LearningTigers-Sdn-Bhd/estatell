@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MailActorType;
 use App\Enums\MailStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\MailEventFactory;
@@ -21,6 +22,8 @@ use Spatie\LaravelCipherSweet\Contracts\CipherSweetEncrypted;
  *
  * @property int $id
  * @property int|null $property_id
+ * @property MailActorType|null $actor_type
+ * @property int|null $actor_user_id
  * @property string|null $notification_type
  * @property string $recipient
  * @property int $recipient_count
@@ -32,7 +35,7 @@ use Spatie\LaravelCipherSweet\Contracts\CipherSweetEncrypted;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'notification_type', 'recipient', 'recipient_count', 'subject', 'status', 'provider_message_id', 'error', 'sent_at'])]
+#[Fillable(['property_id', 'actor_type', 'actor_user_id', 'notification_type', 'recipient', 'recipient_count', 'subject', 'status', 'provider_message_id', 'error', 'sent_at'])]
 class MailEvent extends Model implements CipherSweetEncrypted
 {
     /** @use HasFactory<MailEventFactory> */
@@ -55,6 +58,7 @@ class MailEvent extends Model implements CipherSweetEncrypted
     protected function casts(): array
     {
         return [
+            'actor_type' => MailActorType::class,
             'status' => MailStatus::class,
             'sent_at' => 'immutable_datetime',
         ];
@@ -66,5 +70,13 @@ class MailEvent extends Model implements CipherSweetEncrypted
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_user_id');
     }
 }

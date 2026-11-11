@@ -11,6 +11,7 @@ import type { ReservationFilters } from './reservation-query';
 const clean: ReservationFilters = {
     search: '',
     status: '',
+    statuses: [],
     source: '',
     stay: { mode: 'default', from: '2026-10-10', to: null },
 };
@@ -26,7 +27,7 @@ test('filters, sort and view are kept in the query', () => {
     const filters: ReservationFilters = {
         ...clean,
         search: 'tan',
-        status: 'confirmed',
+        statuses: ['confirmed', 'cancelled'],
         source: '3',
         stay: { mode: 'custom', from: '2026-10-12', to: null },
     };
@@ -35,7 +36,7 @@ test('filters, sort and view are kept in the query', () => {
         {
             filter: {
                 search: 'tan',
-                status: 'confirmed',
+                statuses: 'confirmed,cancelled',
                 source: '3',
                 stay: '2026-10-12_',
             },
@@ -54,10 +55,11 @@ test('stay values cover the default, all dates and both ends', () => {
     ).toBe('2026-10-01_2026-10-31');
 });
 
-test('reset keeps the status tab and clears everything else', () => {
+test('reset keeps the tab and clears everything else', () => {
     const filters: ReservationFilters = {
         search: 'tan',
         status: 'in_house',
+        statuses: ['completed'],
         source: '3',
         stay: { mode: 'all', from: null, to: null },
     };
@@ -65,14 +67,16 @@ test('reset keeps the status tab and clears everything else', () => {
     expect(resetFilters(filters)).toEqual({
         search: '',
         status: 'in_house',
+        statuses: [],
         source: '',
         stay: { mode: 'default', from: null, to: null },
     });
 });
 
-test('reset is offered only when search, source or stay differ from the default', () => {
+test('reset is offered only when search, Status, source or stay differ from the default', () => {
     expect(canResetFilters(clean)).toBe(false);
-    expect(canResetFilters({ ...clean, status: 'confirmed' })).toBe(false);
+    expect(canResetFilters({ ...clean, status: 'in_house' })).toBe(false);
+    expect(canResetFilters({ ...clean, statuses: ['cancelled'] })).toBe(true);
     expect(canResetFilters({ ...clean, search: 'tan' })).toBe(true);
     expect(canResetFilters({ ...clean, source: '3' })).toBe(true);
     expect(

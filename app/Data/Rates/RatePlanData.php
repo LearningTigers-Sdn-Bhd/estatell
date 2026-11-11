@@ -3,6 +3,7 @@
 namespace App\Data\Rates;
 
 use App\Data\Shared\BadgeData;
+use App\Enums\CompanyAccess;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
@@ -29,6 +30,9 @@ class RatePlanData extends Data
         public ?int $dayUseMaxHours,
         public ?string $dayUseFrom,
         public ?string $dayUseUntil,
+        public ?int $minRooms,
+        public ?int $maxRooms,
+        public ?int $groupRatePlanId,
         public bool $usesChildPrices,
         public string $family,
         public string $pricingLabel,
@@ -41,6 +45,8 @@ class RatePlanData extends Data
         public BadgeData $status,
         public bool $isDerived,
         public bool $checkChildPrices,
+        public bool $bookableOnline,
+        public bool $offerableOnline,
         public array $roomTypeIds,
         public array $roomTypeNames,
     ) {}
@@ -63,6 +69,9 @@ class RatePlanData extends Data
             dayUseMaxHours: $ratePlan->day_use_max_hours,
             dayUseFrom: $ratePlan->day_use_from === null ? null : substr($ratePlan->day_use_from, 0, 5),
             dayUseUntil: $ratePlan->day_use_until === null ? null : substr($ratePlan->day_use_until, 0, 5),
+            minRooms: $ratePlan->min_rooms,
+            maxRooms: $ratePlan->max_rooms,
+            groupRatePlanId: $ratePlan->group_rate_plan_id,
             usesChildPrices: $ratePlan->pricing_basis->usesChildPrices($ratePlan->package_unit),
             family: $ratePlan->pricing_basis->family(),
             pricingLabel: self::pricingLabel($ratePlan),
@@ -75,6 +84,8 @@ class RatePlanData extends Data
             status: BadgeData::fromRatePlanStatus($ratePlan->archived_at === null ? RatePlanStatus::Active : RatePlanStatus::Archived),
             isDerived: $ratePlan->parent_rate_plan_id !== null,
             checkChildPrices: $ratePlan->needs_child_price_review,
+            bookableOnline: $ratePlan->bookable_online,
+            offerableOnline: $ratePlan->archived_at === null && $ratePlan->pricing_basis !== PricingBasis::DayUse && $ratePlan->company_access === CompanyAccess::Everyone,
             roomTypeIds: array_values(array_map(intval(...), $roomTypes->pluck('id')->all())),
             roomTypeNames: array_values(array_map(strval(...), $roomTypes->pluck('name')->all())),
         );

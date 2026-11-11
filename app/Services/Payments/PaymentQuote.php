@@ -24,7 +24,7 @@ class PaymentQuote
 
     /**
      * `$amount` is the amount paid on the bill (a decimal string). A Fixed surcharge is the method's value, a Percent
-     * one that percent of the amount (rounded half up). An Old system or OTA collected payment never has one: that money
+     * one that percent of the amount (rounded half up). An Old system, OTA collected or Online payment never has one: that money
      * was not taken at the desk. The tax on the fee follows the code of the method's surcharge
      * charge item and the booker's nationality. A fee that rounds to 0.00 adds nothing.
      */
@@ -38,7 +38,7 @@ class PaymentQuote
         $currency = $property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a payment.');
         $paid = Money::of($amount, $currency);
-        $surchargeType = in_array($method->type, [PaymentMethodType::OldSystem, PaymentMethodType::OtaCollected], true) ? SurchargeType::None : $method->surcharge_type;
+        $surchargeType = in_array($method->type, [PaymentMethodType::OldSystem, PaymentMethodType::OtaCollected, PaymentMethodType::Online], true) ? SurchargeType::None : $method->surcharge_type;
         $surcharge = match ($surchargeType) {
             SurchargeType::None => Money::zero($currency),
             SurchargeType::Fixed => Money::of((string) $method->surcharge_value, $currency),

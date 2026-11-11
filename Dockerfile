@@ -48,10 +48,14 @@ ARG VITE_APP_NAME=estatell
 
 ENV VITE_APP_NAME=${VITE_APP_NAME}
 
-RUN npm run build
+# Browser bundle and the self-contained server-render bundle (bootstrap/ssr). The latter needs no node_modules.
+RUN npm run build:ssr
 RUN rm -rf node_modules
 
 FROM php-base AS runtime
+
+# Only the Node binary, to run the Inertia SSR server (the `ssr` service in compose.yaml).
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 ENV APP_ENV=production \
     APP_DEBUG=false \

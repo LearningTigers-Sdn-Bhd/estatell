@@ -7,6 +7,7 @@ use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Features\AccountingIntegration;
 use App\Features\Boats;
+use App\Features\BookingEngine;
 use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Kiosks;
@@ -31,7 +32,7 @@ class SettingsNavigation
                     title: __('Details'),
                     href: route('settings.profile', ['property' => $property->code], absolute: false),
                     icon: 'building',
-                    active: request()->routeIs('settings.profile', 'settings.business', 'settings.edit', 'settings.operations', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
+                    active: request()->routeIs('settings.profile', 'settings.business', 'settings.photos', 'settings.edit', 'settings.operations', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Registration card'),
@@ -61,7 +62,7 @@ class SettingsNavigation
                     title: __('Door locks'),
                     href: route('settings.door-locks.edit', ['property' => $property->code], absolute: false),
                     icon: 'lock',
-                    active: request()->routeIs('settings.door-locks.*'),
+                    active: request()->routeIs('settings.door-locks.*', 'settings.keyport.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Kiosks::class) ? new NavItemData(
                     title: __('Kiosks'),
@@ -69,11 +70,11 @@ class SettingsNavigation
                     icon: 'tablet',
                     active: request()->routeIs('settings.kiosks.*'),
                 ) : null,
-                $user->can(PermissionEnum::SettingsOtaLists->value) ? new NavItemData(
-                    title: __('OTA lists'),
-                    href: route('settings.ota-lists.edit', ['property' => $property->code], absolute: false),
-                    icon: 'waypoints',
-                    active: request()->routeIs('settings.ota-lists.*'),
+                $user->can(PermissionEnum::BookingWebsiteManage->value) && Feature::for($property)->active(BookingEngine::class) ? new NavItemData(
+                    title: __('Booking website'),
+                    href: route('settings.booking-website.general', ['property' => $property->code], absolute: false),
+                    icon: 'globe',
+                    active: request()->routeIs('settings.booking-website.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Booking sources'),
@@ -140,6 +141,12 @@ class SettingsNavigation
                     href: route('settings.discounts.index', ['property' => $property->code], absolute: false),
                     icon: 'percent',
                     active: request()->routeIs('settings.discounts.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Agent payments'),
+                    href: route('settings.agent-payments.edit', ['property' => $property->code], absolute: false),
+                    icon: 'credit-card',
+                    active: request()->routeIs('settings.agent-payments.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([

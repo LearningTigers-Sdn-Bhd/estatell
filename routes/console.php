@@ -1,8 +1,12 @@
 <?php
 
 use App\Actions\ApiAccess\PruneIdempotencyKeys;
+use App\Actions\BookingEngine\ExpireBookingHolds;
+use App\Actions\BookingEngine\PurgeBookingHoldGuestDetails;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
+use App\Actions\Payments\ResendWaitingOnlineRefunds;
+use App\Jobs\ExpireDoorCredentials;
 use App\Jobs\MonthlyConsolidationJob;
 use App\Jobs\ReleaseExpiredKioskHolds;
 use Illuminate\Foundation\Inspiring;
@@ -58,11 +62,21 @@ Schedule::call(fn (): int => app(PruneMailEvents::class)())->name('prune-mail-ev
 
 Schedule::call(fn (): int => app(PruneIdempotencyKeys::class)())->name('prune-api-idempotency-keys')->hourly()->onOneServer();
 
+Schedule::call(fn (): int => app(ExpireBookingHolds::class)())->name('expire-booking-holds')->everyMinute()->withoutOverlapping()->onOneServer();
+
+Schedule::call(fn (): int => app(ResendWaitingOnlineRefunds::class)())->name('resend-waiting-online-refunds')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
+
+Schedule::call(fn (): int => app(PurgeBookingHoldGuestDetails::class)())->name('purge-booking-hold-guest-details')->dailyAt('03:50')->onOneServer();
+
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::command('onboarding:send-reminders')->hourly()->withoutOverlapping()->onOneServer();
+
+Schedule::command('agent-payments:send-reminders')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 Schedule::command('channels:pull-revisions')->everyFiveMinutes()->onOneServer();
 Schedule::job(new MonthlyConsolidationJob)->monthlyOn(1, '04:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 Schedule::job(new ReleaseExpiredKioskHolds)->everyMinute()->onOneServer();
+
+Schedule::job(new ExpireDoorCredentials)->everyFiveMinutes()->onOneServer();

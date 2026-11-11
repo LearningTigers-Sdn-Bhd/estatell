@@ -22,14 +22,15 @@ Decided on 2026-10-18. It replaces the plan for demo properties inside productio
 | ------- | --------------------- | --------------------------------------------------------------------- |
 | `web`   | FrankenPHP on `:8080` | Runs migrations on deploy (`AUTORUN_ENABLED=true`). The only service. |
 
-| Production                       | Demo                                        | Why                                                                             |
-| -------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
-| `web`, `horizon`, `scheduler`    | `web` only                                  | No automatic night audits, so the business date stays on today until the reset. |
-| `APP_ENV=production`             | `APP_ENV=demo`                              | Production blocks `migrate:fresh`. The demo must allow it.                      |
-| Redis for queue, cache, sessions | `sync` queue, `database` cache and sessions | No Redis. The reset wipes sessions and cache with the tables.                   |
-| Real mailer                      | `MAIL_MAILER=log`                           | Nothing leaves the server. No SMS keys.                                         |
-| R2 or the `media` volume         | The `demo-media` volume                     | The reset clears it.                                                            |
-| Own `APP_KEY`, `CIPHERSWEET_KEY` | Own `APP_KEY`, `CIPHERSWEET_KEY`            | Never reuse the production keys.                                                |
+| Production                       | Demo                                        | Why                                                                                                                      |
+| -------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `web`, `horizon`, `scheduler`    | `web` only                                  | No automatic night audits, so the business date stays on today until the reset.                                          |
+| `APP_ENV=production`             | `APP_ENV=demo`                              | Production blocks `migrate:fresh`. The demo must allow it.                                                               |
+| Redis for queue, cache, sessions | `sync` queue, `database` cache and sessions | No Redis. The reset wipes sessions and cache with the tables.                                                            |
+| Real mailer                      | `MAIL_MAILER=log`                           | Nothing leaves the server. No SMS keys.                                                                                  |
+| Curlec live keys                 | Curlec test keys, `DEMO_BOOKING_API_TOKEN`  | Developers test the booking API with fake payments. See [Test mode](../29-booking-engine/09-api-only-mode.md#test-mode). |
+| R2 or the `media` volume         | The `demo-media` volume                     | The reset clears it.                                                                                                     |
+| Own `APP_KEY`, `CIPHERSWEET_KEY` | Own `APP_KEY`, `CIPHERSWEET_KEY`            | Never reuse the production keys.                                                                                         |
 
 None of the production scheduled tasks are needed: the reset clears ID scans, the demo has no onboarding owners, and Horizon is not running.
 

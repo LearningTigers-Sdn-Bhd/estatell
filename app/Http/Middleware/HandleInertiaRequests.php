@@ -19,6 +19,7 @@ use App\Navigation\PartnerNavigation;
 use App\Navigation\PortalNavigation;
 use App\Navigation\StaffNavigation;
 use App\Services\Channels\ChannelRemovalProgress;
+use App\Services\Landing\ServicePages;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingProgress;
@@ -59,6 +60,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'siteUrl' => ServicePages::url(),
             'auth' => [
                 'user' => $request->user(),
             ],

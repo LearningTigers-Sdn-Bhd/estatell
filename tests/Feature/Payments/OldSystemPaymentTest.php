@@ -77,6 +77,7 @@ test('an Old system payment is recorded without a receipt number, dated before g
         ->and($payment->amount)->toBe('100.00')
         ->and($payment->surcharge_line_id)->toBeNull()
         ->and($payment->folioLine->service_date->toDateString())->toBe('2026-09-01')
+        ->and($payment->received_on->toDateString())->toBe('2026-09-01')
         ->and($payment->folioLine->posting_date->toDateString())->toBe('2026-10-13')
         ->and($payment->folioLine->description)->toBe('Paid in old system · OR-1203')
         ->and(FolioLine::query()->where('folio_id', $setup['folio']->id)->count())->toBe(1);

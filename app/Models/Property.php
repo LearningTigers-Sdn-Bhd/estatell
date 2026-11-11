@@ -11,13 +11,16 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Laravel\Pennant\Concerns\HasFeatures;
 use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES1101) and never changes.
@@ -25,6 +28,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $id
  * @property int|null $partner_id
  * @property string $code
+ * @property string|null $slug
  * @property string|null $document_prefix
  * @property string $name
  * @property PropertyType|null $type
@@ -40,6 +44,9 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property string|null $legal_name
  * @property string|null $registration_number
  * @property string|null $tin
+ * @property string|null $latitude
+ * @property string|null $longitude
+ * @property string|null $google_maps_url
  * @property string|null $msic_code
  * @property string|null $business_description
  * @property CarbonImmutable|null $onboarding_started_at
@@ -51,6 +58,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read PropertySetting|null $settings
+ * @property-read (Pivot&object{display_name: string|null})|null $pivot Set when loaded through NearbyPlace::properties(); holds this property's name for the place.
  * @property-read PropertyEInvoiceSetting|null $eInvoiceSetting
  */
 #[Fillable([
@@ -72,12 +80,35 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
      */
     public const array LOGO_MIME_TYPES = ['image/png', 'image/jpeg'];
 
+    public const string PHOTOS = 'photos';
+
+    public const int PHOTO_LIMIT = 20;
+
+    public const int PHOTO_MAX_KB = 5120;
+
+    public const array PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+    public const array PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+    /**
+     * Album photos are shown to guests, so they live on the public media disk.
+     */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection(self::LOGO)
             ->singleFile()
             ->acceptsMimeTypes(self::LOGO_MIME_TYPES)
             ->useDisk(app(PlatformSettings::class)->current()->media_disk->diskName());
+
+        $this->addMediaCollection(self::PHOTOS)
+            ->acceptsMimeTypes(self::PHOTO_MIME_TYPES)
+            ->useDisk(config('filesystems.public_media'));
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')->performOnCollections(self::PHOTOS)->nonQueued()->width(400);
+        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS)->nonQueued()->width(1600);
     }
 
     /**
@@ -151,6 +182,22 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function boatDepartures(): HasMany
     {
         return $this->hasMany(BoatDeparture::class);
+    }
+
+    /** @return HasMany<Boat, $this> */
+    public function boats(): HasMany
+    {
+        return $this->hasMany(Boat::class);
+    }
+
+    /**
+     * The boat crew. Named after the `{crewMember}` route parameter, so scoped route bindings find it.
+     *
+     * @return HasMany<BoatCrewMember, $this>
+     */
+    public function crewMembers(): HasMany
+    {
+        return $this->hasMany(BoatCrewMember::class);
     }
 
     /** @return HasMany<BookingSource, $this> */
@@ -359,6 +406,32 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(Kiosk::class);
     }
 
+    /** @return BelongsToMany<NearbyPlace, $this> */
+    public function nearbyPlaces(): BelongsToMany
+    {
+        return $this->belongsToMany(NearbyPlace::class, 'property_nearby_places')->withPivot(['display_name', 'description', 'position', 'active'])->withTimestamps()->orderByPivot('position');
+    }
+
+    /** @return BelongsToMany<Amenity, $this> */
+    public function amenities(): BelongsToMany
+    {
+        return $this->belongsToMany(Amenity::class, 'property_amenities');
+    }
+
+    /** @return HasOne<PropertyBookingSite, $this> */
+    public function bookingSite(): HasOne
+    {
+        return $this->hasOne(PropertyBookingSite::class);
+    }
+
+    /**
+     * @return HasMany<BookingReturnAddress, $this>
+     */
+    public function bookingReturnAddresses(): HasMany
+    {
+        return $this->hasMany(BookingReturnAddress::class);
+    }
+
     /** @return HasOne<DoorLockConnection, $this> */
     public function doorLockConnection(): HasOne
     {
@@ -369,6 +442,18 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function doorPasscodes(): HasMany
     {
         return $this->hasMany(DoorPasscode::class);
+    }
+
+    /** @return HasMany<KeyportDevice, $this> */
+    public function keyportDevices(): HasMany
+    {
+        return $this->hasMany(KeyportDevice::class);
+    }
+
+    /** @return HasMany<KeyportJob, $this> */
+    public function keyportJobs(): HasMany
+    {
+        return $this->hasMany(KeyportJob::class);
     }
 
     /** @return HasMany<DoorLock, $this> */

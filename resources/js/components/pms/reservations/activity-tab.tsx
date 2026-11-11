@@ -31,6 +31,7 @@ const kindIcons: Record<string, LucideIcon> = {
     'reservation.group_updated': Pencil,
     'reservation.boat_trip_set': Ship,
     'reservation.boat_trip_cleared': Ship,
+    'reservation.boat_trip_ticked': Ship,
 };
 
 function iconFor(kind: string | null): LucideIcon {

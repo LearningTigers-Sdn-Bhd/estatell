@@ -1,13 +1,18 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\AuthenticateKeyportDevice;
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
 use App\Http\Middleware\EnsureBoatsIsActive;
+use App\Http\Middleware\EnsureBookingClientReach;
+use App\Http\Middleware\EnsureBookingEngineIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
+use App\Http\Middleware\EnsureEInvoicingIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
@@ -47,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             Route::prefix('webhooks')->name('webhooks.')->group(base_path('routes/webhooks.php'));
             Route::prefix('api')->middleware('api')->group(base_path('routes/api.php'));
+            Route::prefix('api/keyport/v1')->name('keyport.')->middleware('keyport.version')->group(base_path('routes/keyport.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -56,14 +62,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'api.token' => AuthenticateApiToken::class,
+            'api.booking.reach' => EnsureBookingClientReach::class,
             'api.idempotent' => ReplayIdempotentRequest::class,
             'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
+            'einvoicing' => EnsureEInvoicingIsActive::class,
             'kiosks' => EnsureKiosksAreActive::class,
+            'booking-engine' => EnsureBookingEngineIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
+            'keyport.device' => AuthenticateKeyportDevice::class,
+            'keyport.version' => EnsureKeyportVersion::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
             'onboarding.only' => EnsureOnboarding::class,
@@ -81,7 +92,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureEInvoicingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
 
         $middleware->web(append: [
@@ -102,6 +115,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(fn (ThrottleRequestsException $exception, Request $request) => $request->is('api/*')
             ? ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, $exception->getHeaders())
+            : null);
+
+        $exceptions->render(fn (ValidationException $exception, Request $request) => $request->is('api/booking/*')
+            ? ApiError::response('invalid_fields', $exception->getMessage(), $exception->status, details: ['fields' => $exception->errors()])
             : null);
 
         $exceptions->render(fn (Throwable $exception, Request $request) => $request->is('api/*') && ! $exception instanceof HttpExceptionInterface && ! $exception instanceof ValidationException

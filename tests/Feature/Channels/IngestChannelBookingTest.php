@@ -2,14 +2,19 @@
 
 use App\Actions\Channels\IngestChannelBooking;
 use App\Actions\Channels\StoreChannelRevision;
+use App\Enums\ChargingUnit;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\ChannelBookingRevision;
+use App\Models\ChargeItem;
+use App\Models\ChargeItemChildPrice;
 use App\Models\Guest;
+use App\Models\PropertyAgeGroup;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
+use App\Models\UnitAddOn;
 use App\Notifications\ChannelBookingCancelled;
 use App\Notifications\ChannelBookingReceived;
 use Illuminate\Support\Facades\DB;
@@ -432,4 +437,96 @@ test('a room added by a modified revision gets the booker as its primary guest',
     expect($reservation->units()->count())->toBe(2)
         ->and($added->guests()->sole()->guest_id)->toBe($reservation->booker_guest_id)
         ->and($added->guests()->sole()->is_primary)->toBeTrue();
+});
+
+test('a new OTA booking gets the items added to channel bookings, and not the other auto-add items', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $jetty = ChargeItem::factory()->for($setup['property'])->create([
+        'name' => 'Tourist Jetty Fee', 'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest,
+        'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    ChargeItem::factory()->for($setup['property'])->create([
+        'name' => 'Cleaning fee', 'default_amount' => '30.00', 'charging_unit' => ChargingUnit::PerStay, 'auto_add' => true,
+    ]);
+
+    [, $result] = ingest($setup);
+
+    $addOns = UnitAddOn::query()->get();
+    expect($result->ok)->toBeTrue()
+        ->and($addOns)->toHaveCount(1)
+        ->and($addOns[0]->charge_item_id)->toBe($jetty->id)
+        ->and($addOns[0]->quantity)->toBe(2)
+        ->and($addOns[0]->unit_amount)->toBe('10.00');
+});
+
+test('a room added by a modified revision gets the items added to channel bookings', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    ingest($setup);
+
+    ingest($setup, ['status' => 'modified', 'rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $units = Reservation::query()->sole()->units()->withCount('addOns')->orderBy('id')->get();
+    expect($units->pluck('add_ons_count')->all())->toBe([1, 1]);
+});
+
+test('an OTA booking is still saved when an item for channel bookings refuses the room', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuestNight, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+
+    [, $result] = ingest($setup, [
+        'arrival_date' => '2026-10-01',
+        'departure_date' => '2026-10-02',
+        'rooms' => [channelRevisionRoom(['checkin_date' => '2026-10-01', 'checkout_date' => '2026-10-02', 'amount' => '100.00'])],
+    ]);
+
+    expect($result->ok)->toBeTrue()
+        ->and(Reservation::query()->count())->toBe(1)
+        ->and(UnitAddOn::query()->count())->toBe(0);
+});
+
+test('a modified revision with other guests changes the unit party, keeps the OTA price and resizes the jetty fee', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $jetty = ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    ingest($setup);
+    $nights = reservationNightAmounts();
+
+    [, $result] = ingest($setup, ['status' => 'modified', 'rooms' => [channelRevisionRoom(['occupancy' => ['adults' => 3, 'children' => 1, 'infants' => 0]])]]);
+
+    $unit = Reservation::query()->sole()->units()->sole();
+    expect($result->ok)->toBeTrue()
+        ->and($unit->adults)->toBe(3)
+        ->and($unit->children)->toBe(1)
+        ->and(reservationNightAmounts())->toBe($nights)
+        ->and(UnitAddOn::query()->where('charge_item_id', $jetty->id)->sum('quantity'))->toBe(4);
+});
+
+test('an OTA child with no age pays the child price of the jetty fee, and an infant with an age is free', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $jetty = ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    $infant = PropertyAgeGroup::factory()->for($setup['property'])->create(['label' => 'Infant', 'min_age' => 0, 'max_age' => 2]);
+    $child = PropertyAgeGroup::factory()->for($setup['property'])->create(['label' => 'Child', 'min_age' => 3, 'max_age' => 11]);
+    ChargeItemChildPrice::factory()->free()->create(['charge_item_id' => $jetty->id, 'property_age_group_id' => $infant->id]);
+    ChargeItemChildPrice::factory()->percent('50.00')->create(['charge_item_id' => $jetty->id, 'property_age_group_id' => $child->id]);
+
+    ingest($setup, ['rooms' => [channelRevisionRoom(['occupancy' => ['adults' => 2, 'children' => 1, 'infants' => 1]])]]);
+
+    $unit = Reservation::query()->sole()->units()->sole();
+    expect($unit->children)->toBe(2)
+        ->and($unit->childAges()->orderBy('age')->pluck('age')->all())->toBe([0, 5]);
+    expect(UnitAddOn::query()->orderBy('id')->get()->map(fn (UnitAddOn $addOn): array => [$addOn->property_age_group_id, $addOn->quantity, $addOn->unit_amount])->all())
+        ->toBe([[null, 2, '10.00'], [$child->id, 1, '5.00']]);
 });

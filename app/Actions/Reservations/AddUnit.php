@@ -10,6 +10,7 @@ use App\Enums\DiscountScope;
 use App\Enums\PermissionEnum;
 use App\Enums\PricingBasis;
 use App\Enums\ReservationStatus;
+use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Events\ReservationChanged;
@@ -62,10 +63,10 @@ class AddUnit
      * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. A day use line (`$data->stayType`) goes to `AddDayUseUnit`; a reservation is all overnight or all day use. Only
      * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks, and accepts a stay the rate quote refuses when `overrideTotal` is set: its nights then carry no calculated price and the override total is spread over them. `$allowPastArrival` (only `CreatePastStay` passes it) skips the arrival date check and the restriction check for a stay that began before the business date; availability is still checked. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
      */
-    public function __invoke(?User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
+    public function __invoke(?User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false, bool $allowPastArrival = false, ?int $roomCount = null): ReservationResult
     {
         try {
-            return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex, $fromChannel, $allowPastArrival));
+            return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex, $fromChannel, $allowPastArrival, $roomCount));
         } catch (ReservationRefused $refused) {
             return $refused->result;
         }
@@ -74,7 +75,7 @@ class AddUnit
     /**
      * @throws ReservationRefused when an add-on is refused after the unit was written, so the transaction rolls back
      */
-    private function add(?User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex, bool $fromChannel, bool $allowPastArrival): ReservationResult
+    private function add(?User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex, bool $fromChannel, bool $allowPastArrival, ?int $roomCount): ReservationResult
     {
         $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
 
@@ -120,6 +121,18 @@ class AddUnit
 
             if (! $this->companyRateAccess->deskAllows($ratePlan, $companyId)) {
                 return $refuse(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY);
+            }
+        }
+
+        if (! $fromChannel && ($ratePlan->min_rooms !== null || $ratePlan->max_rooms !== null) && $roomType->sell_unit === SellUnit::Room) {
+            $rooms = $roomCount ?? $this->roomsAfterAdding($reservation);
+
+            if ($ratePlan->min_rooms !== null && $rooms < $ratePlan->min_rooms) {
+                return $refuse(ReservationResult::REFUSAL_ROOMS_BELOW_MIN);
+            }
+
+            if ($ratePlan->max_rooms !== null && $rooms > $ratePlan->max_rooms) {
+                return $refuse(ReservationResult::REFUSAL_ROOMS_ABOVE_MAX);
             }
         }
 
@@ -282,7 +295,7 @@ class AddUnit
             $tripResult = ($this->setBoatTrip)($actor, $unit, $boatTrip);
 
             if ($tripResult->isRefused()) {
-                throw new ReservationRefused(ReservationResult::refused((string) $tripResult->refusal, $lineIndex, null, null, $boatTrip->direction->value));
+                throw new ReservationRefused(ReservationResult::refused((string) $tripResult->refusal, $lineIndex, null, $tripResult->detail, $boatTrip->direction->value));
             }
         }
 
@@ -308,8 +321,8 @@ class AddUnit
     }
 
     /**
-     * Whether the actor may book past restrictions in the reservation's property. The permission team is switched to
-     * that property and put back afterwards.
+     * Whether the actor may book past restrictions in the reservation's property. A booking with no actor never may.
+     * The permission team is switched to that property and put back afterwards.
      */
     private function canOverrideRestrictions(?User $actor, Reservation $reservation): bool
     {
@@ -390,5 +403,16 @@ class AddUnit
             ->event('reservation.unit_added')
             ->withProperties($properties)
             ->log('Unit added to reservation');
+    }
+
+    /**
+     * The rooms of the reservation once this one is added: its live units of a Room room type, plus one.
+     */
+    private function roomsAfterAdding(Reservation $reservation): int
+    {
+        return $reservation->units()
+            ->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
+            ->whereHas('roomType', fn ($roomTypes) => $roomTypes->where('sell_unit', SellUnit::Room))
+            ->count() + 1;
     }
 }

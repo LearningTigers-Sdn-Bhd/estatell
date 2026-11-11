@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * One boat that runs every day at the same time, in one direction.
@@ -22,12 +23,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $pickup_point
  * @property int|null $seats
  * @property int|null $charge_item_id The fare.
+ * @property int|null $default_boat_id Default boat from settings.
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read int $departures Set by a selectRaw alias of count(*) in BoatFareUsage.
  */
-#[Fillable(['direction', 'leaves_at', 'arrives_at', 'pickup_point', 'seats', 'charge_item_id', 'active'])]
+#[Fillable(['direction', 'leaves_at', 'arrives_at', 'pickup_point', 'seats', 'charge_item_id', 'default_boat_id', 'active'])]
 class BoatDeparture extends Model
 {
     /** @use HasFactory<BoatDepartureFactory> */
@@ -53,6 +55,26 @@ class BoatDeparture extends Model
     public function chargeItem(): BelongsTo
     {
         return $this->belongsTo(ChargeItem::class);
+    }
+
+    /** @return BelongsTo<Boat, $this> */
+    public function defaultBoat(): BelongsTo
+    {
+        return $this->belongsTo(Boat::class, 'default_boat_id');
+    }
+
+    /**
+     * The default crew: one member is in charge (`pivot->in_charge`), the rest are assistants.
+     *
+     * @return BelongsToMany<BoatCrewMember, $this>
+     */
+    public function crew(): BelongsToMany
+    {
+        return $this->belongsToMany(BoatCrewMember::class, 'boat_departure_crew', 'boat_departure_id', 'boat_crew_member_id')
+            ->withPivot('in_charge')
+            ->withTimestamps()
+            ->orderByDesc('boat_departure_crew.in_charge')
+            ->orderBy('boat_crew_members.name');
     }
 
     /** @param Builder<BoatDeparture> $query */

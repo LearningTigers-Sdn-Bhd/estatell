@@ -50,6 +50,9 @@ test('notification types define their delivery rules', function (
     'channel booking received' => [NotificationType::ChannelBookingReceived, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
     'channel booking cancelled' => [NotificationType::ChannelBookingCancelled, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
     'channel removal blocked' => [NotificationType::ChannelRemovalBlocked, ['mail', 'database'], ['mail' => true, 'database' => false], null],
+    'online booking received' => [NotificationType::OnlineBookingReceived, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
+    'online booking cancelled' => [NotificationType::OnlineBookingCancelled, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
+    'nearby place removed' => [NotificationType::NearbyPlaceRemoved, ['database'], ['mail' => false, 'database' => false], null],
 ]);
 
 test('notification enums expose labelled options', function () {
@@ -72,6 +75,11 @@ test('notification enums expose labelled options', function () {
         ['value' => 'channel_booking_received', 'label' => 'Channel booking received'],
         ['value' => 'channel_booking_cancelled', 'label' => 'Channel booking cancelled'],
         ['value' => 'channel_removal_blocked', 'label' => 'Archive blocked by a channel'],
+        ['value' => 'payment_slip_received', 'label' => 'Company payment slip'],
+        ['value' => 'nearby_place_removed', 'label' => 'Nearby place removed'],
+        ['value' => 'online_booking_received', 'label' => 'Online booking received'],
+        ['value' => 'online_refund_needs_attention', 'label' => 'Online refund needs attention'],
+        ['value' => 'online_booking_cancelled', 'label' => 'Online booking cancelled'],
     ]);
 });
 

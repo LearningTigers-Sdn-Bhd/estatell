@@ -18,6 +18,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
+use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
@@ -57,6 +58,7 @@ class MoveChargesPreview
         private ReservationRoomBox $roomBox,
         private CurrentBusinessDate $currentBusinessDate,
         private FolioRefusals $refusals,
+        private UnitAdvancesHeld $unitAdvancesHeld,
     ) {}
 
     /**
@@ -86,20 +88,32 @@ class MoveChargesPreview
     }
 
     /**
-     * Whether each given unit has a night after the business date, as a list of the unit ids that do. A room with no
-     * such night has nothing left to charge (`nothing_scheduled` in `MoveCharges`).
+     * The given units that still have a night to charge, as a list of ids: a night that is not posted, on or after the
+     * business date. Tonight's night counts too, because a rule has no dates and the audit follows it. It does not count
+     * once the unit has checked out, because the audit refuses that night. A room with no such night has nothing left
+     * to charge (`nothing_scheduled` in `MoveCharges`).
      *
      * @param  list<int>  $unitIds
      * @return list<int>
      */
-    public function unitsWithNightsAfter(array $unitIds, CarbonImmutable $businessDate): array
+    public function unitsWithNightsToCharge(array $unitIds, CarbonImmutable $businessDate): array
     {
-        return array_values(array_map(intval(...), UnitNight::query()
+        $nights = UnitNight::query()
             ->whereIn('reservation_unit_id', $unitIds)
-            ->whereDate('date', '>', $businessDate->toDateString())
-            ->distinct()
-            ->pluck('reservation_unit_id')
-            ->all()));
+            ->whereDate('date', '>=', $businessDate->toDateString())
+            ->with('reservationUnit:id,status')
+            ->get(['id', 'reservation_unit_id', 'date']);
+        $posted = FolioLine::query()
+            ->whereIn('idempotency_key', $nights->map(fn (UnitNight $night): string => 'night:'.$night->id)->all())
+            ->pluck('idempotency_key')
+            ->flip();
+
+        return array_values($nights
+            ->reject(fn (UnitNight $night): bool => $posted->has('night:'.$night->id)
+                || ($night->date->isSameDay($businessDate) && $night->reservationUnit->status === UnitStatus::CheckedOut))
+            ->map(fn (UnitNight $night): int => $night->reservation_unit_id)
+            ->unique()
+            ->all());
     }
 
     /**
@@ -214,7 +228,10 @@ class MoveChargesPreview
             'openFolios' => $openFolios,
             'balances' => $balances,
             'charges' => $this->charges($openFolios, $unitLabels),
-            'blocks' => $this->scheduledRows->forReservation($property, $reservation, $unitLabels),
+            'blocks' => array_values(array_filter(
+                $this->scheduledRows->forReservation($property, $reservation, $unitLabels),
+                fn (array $block): bool => ! isset($block['guestTax']),
+            )),
             'unitLabels' => $unitLabels,
             'units' => $reservation->units()->orderBy('id')->get()->keyBy('id'),
         ];
@@ -378,7 +395,7 @@ class MoveChargesPreview
         $units = $state['units'];
         $businessDate = $this->currentBusinessDate->date($reservation->property);
         $offTarget = array_values(array_filter($blocks, fn (array $block): bool => $block['target'] !== $target->id));
-        $withNights = $businessDate === null ? [] : $this->unitsWithNightsAfter(array_values(array_unique(array_column($offTarget, 'unit'))), $businessDate);
+        $withNights = $businessDate === null ? [] : $this->unitsWithNightsToCharge(array_values(array_unique(array_column($offTarget, 'unit'))), $businessDate);
         $candidates = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory() && in_array($unit->id, $withNights, true));
 
         $asSchedules = fn (string $scope): array => array_values($candidates->map(fn (ReservationUnit $unit): array => ['unit' => $unit, 'scope' => $scope])->all());
@@ -478,7 +495,45 @@ class MoveChargesPreview
             }
         }
 
+        $notes = [...$notes, ...$this->paidNotes($reservation, $target, $schedules, $ticked, $state, $unitLabels, $money)];
+
         return [$choices, $incoming, array_values(array_unique($notes)), $this->rowsTotal($afterRows)];
+    }
+
+    /**
+     * One note for each room whose charges leave its own Open folio while that folio holds Advance money. A payment line
+     * never moves, so the money stays behind as a credit, and staff should see that before they save.
+     *
+     * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
+     * @param  Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>  $ticked
+     * @param  array<string, mixed>  $state
+     * @param  array<int, string>  $unitLabels
+     * @return list<string>
+     */
+    private function paidNotes(Reservation $reservation, Folio $target, array $schedules, Collection $ticked, array $state, array $unitLabels, callable $money): array
+    {
+        /** @var EloquentCollection<int, Folio> $openFolios */
+        $openFolios = $state['openFolios'];
+        $scheduled = array_map(fn (array $schedule): int => $schedule['unit']->id, $schedules);
+        $leaving = $openFolios
+            ->filter(fn (Folio $folio): bool => $folio->type === FolioType::Unit
+                && $folio->id !== $target->id
+                && (in_array($folio->reservation_unit_id, $scheduled, true) || $ticked->contains('folioId', $folio->id)))
+            ->pluck('reservation_unit_id');
+
+        if ($leaving->isEmpty()) {
+            return [];
+        }
+
+        $notes = [];
+
+        foreach ($this->unitAdvancesHeld->forReservation($reservation) as $unitId => $amount) {
+            if ($leaving->contains($unitId)) {
+                $notes[] = __('Room :room has :amount paid on its own folio. Payments do not move, so refund it or keep those charges there.', ['room' => $unitLabels[$unitId] ?? '—', 'amount' => $money($amount)]);
+            }
+        }
+
+        return $notes;
     }
 
     /**

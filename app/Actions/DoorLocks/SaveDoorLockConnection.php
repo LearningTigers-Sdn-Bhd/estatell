@@ -17,7 +17,7 @@ class SaveDoorLockConnection
     public function __construct(private TtlockApi $api) {}
 
     /**
-     * @param  array{ttlock_username: string, ttlock_password?: string|null, enabled: bool, passcode_mode: string}  $data
+     * @param  array{ttlock_username: string, ttlock_password?: string|null, enabled: bool, passcode_mode: string, passcode_length?: int}  $data
      */
     public function __invoke(Property $property, User $actor, array $data): DoorLockConnection
     {
@@ -39,6 +39,7 @@ class SaveDoorLockConnection
             'ttlock_username' => $username,
             'enabled' => $data['enabled'],
             'passcode_mode' => PasscodeMode::from($data['passcode_mode']),
+            'passcode_length' => $data['passcode_length'] ?? $connection->passcode_length ?? 6,
         ])->save();
 
         activity()

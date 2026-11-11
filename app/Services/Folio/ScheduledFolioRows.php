@@ -5,10 +5,12 @@ namespace App\Services\Folio;
 use App\Data\Folio\FolioRowData;
 use App\Data\Shared\BadgeData;
 use App\Enums\FolioRowTag;
+use App\Enums\FolioType;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -21,6 +23,7 @@ use App\Services\Catalogues\TaxCalculationResult;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\NightAudit\FirstBusinessDate;
 use App\Services\Reservations\AddOnLabel;
+use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
 
@@ -30,7 +33,7 @@ use Illuminate\Support\Collection;
  * nothing is written. Each block is a charge with its discount and tax children, placed on the folio the router
  * would choose (null while the unit has no folio). Tax is worked out with `TaxCalculator`, on the discounted amount.
  * A night before the go-live date is never charged, so it is never Scheduled (it keeps its quoted amount in `unit_nights`).
- * Assumes the booker's nationality drives foreign-guest taxes, as `PostCharge` does. Expects the property's `settings` and
+ * Each unit's lead guest drives its foreign-guest taxes, as `PostRoomCharges` and `PostCharge` do. Expects the property's `settings` and
  * the reservation's `booker` to be loaded. See docs/13-folio/05-folio-page.md.
  */
 class ScheduledFolioRows
@@ -44,13 +47,17 @@ class ScheduledFolioRows
         private NightChargeQuote $nightChargeQuote,
         private DayUseChargeQuote $dayUseChargeQuote,
         private FirstBusinessDate $firstBusinessDate,
+        private CollectedTaxPayer $collectedTaxPayer,
+        private UnitNationality $unitNationality,
     ) {}
 
     /**
      * Each block also carries its transaction `code`, so the Move charges preview can route it again with proposed rules.
+     * The collected taxes the guest pays (`CollectedTaxPayer`) are a block of their own on the unit folio, marked
+     * `guestTax`: they stay with the guest, so Move charges never routes them.
      *
      * @param  array<int, string>  $unitLabels  Short unit label (room, or room type) by unit id.
-     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>
+     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>, guestTax?: true}>
      */
     public function forReservation(Property $property, Reservation $reservation, array $unitLabels): array
     {
@@ -82,7 +89,10 @@ class ScheduledFolioRows
             ->pluck('idempotency_key')
             ->flip();
         $resolve = $this->folioRouter->resolverFor($reservation);
-        $nationality = $reservation->booker->nationality_code;
+        $guestTaxIds = $this->collectedTaxPayer->resolverFor($reservation);
+        /** @var array<int, int>|null $unitFolioIds */
+        $unitFolioIds = null;
+        $nationalities = $this->unitNationality->forUnits($units);
         $goLive = $this->firstBusinessDate->date($property)?->toDateString();
         $blocks = [];
 
@@ -91,7 +101,7 @@ class ScheduledFolioRows
             $first = true;
 
             if ($unit->stay_type === StayType::DayUse && $unit->dayUse !== null && $dayUseCode !== null && ! $posted->has('dayuse:'.$unit->id)) {
-                $quote = $this->dayUseChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $unit->dayUse, $dayUseCode, $nationality);
+                $quote = $this->dayUseChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $unit->dayUse, $dayUseCode, $nationalities[$unit->id] ?? null);
 
                 foreach ($quote->isRefused() ? [] : $quote->charges as $charge) {
                     $blocks[] = [
@@ -112,20 +122,35 @@ class ScheduledFolioRows
                     continue;
                 }
 
-                $quote = $this->nightChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $night, $isFirst, $roomCode, $nationality);
+                $quote = $this->nightChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $night, $isFirst, $roomCode, $nationalities[$unit->id] ?? null);
 
                 if ($quote->isRefused()) {
                     continue;
                 }
 
-                foreach ($quote->charges as $charge) {
+                foreach ($quote->charges as $index => $charge) {
+                    $target = $resolve($unit, $charge->code);
+                    $rows = $this->chargeRows($charge, $night->date->toDateString(), $charge->key === 'night:'.$night->id && $night->override_amount !== null, $label);
+                    $guestKeys = array_map(fn (int $taxId): string => $charge->key.':tax:'.$taxId, $index === 0 ? $guestTaxIds($unit, $target) : []);
                     $blocks[] = [
-                        'target' => $resolve($unit, $charge->code),
+                        'target' => $target,
                         'unit' => $unit->id,
                         'date' => $night->date->toDateString(),
                         'code' => $charge->code,
-                        'rows' => $this->chargeRows($charge, $night->date->toDateString(), $charge->key === 'night:'.$night->id && $night->override_amount !== null, $label),
+                        'rows' => array_values(array_filter($rows, fn (FolioRowData $row): bool => ! in_array($row->key, $guestKeys, true))),
                     ];
+                    $guestRows = array_values(array_filter($rows, fn (FolioRowData $row): bool => in_array($row->key, $guestKeys, true)));
+
+                    if ($guestRows !== []) {
+                        $blocks[] = [
+                            'target' => ($unitFolioIds ??= $this->unitFolioIds($reservation))[$unit->id] ?? null,
+                            'unit' => $unit->id,
+                            'date' => $night->date->toDateString(),
+                            'code' => $charge->code,
+                            'rows' => $guestRows,
+                            'guestTax' => true,
+                        ];
+                    }
                 }
             }
 
@@ -138,7 +163,7 @@ class ScheduledFolioRows
                     'unit' => $unit->id,
                     'date' => $date,
                     'code' => $code,
-                    'rows' => $this->addOnRows($property, $addOn, $code, $date, $currency, $nationality, $label),
+                    'rows' => $this->addOnRows($property, $addOn, $code, $date, $currency, $nationalities[$unit->id] ?? null, $label),
                 ];
             }
         }
@@ -146,6 +171,19 @@ class ScheduledFolioRows
         usort($blocks, fn (array $a, array $b): int => [$a['date'], $a['unit']] <=> [$b['date'], $b['unit']]);
 
         return $blocks;
+    }
+
+    /**
+     * @return array<int, int> The unit folio id by unit id.
+     */
+    private function unitFolioIds(Reservation $reservation): array
+    {
+        return Folio::query()
+            ->where('reservation_id', $reservation->id)
+            ->where('type', FolioType::Unit)
+            ->oldest('id')
+            ->pluck('id', 'reservation_unit_id')
+            ->all();
     }
 
     /**

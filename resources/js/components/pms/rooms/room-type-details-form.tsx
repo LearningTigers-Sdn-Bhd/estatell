@@ -130,6 +130,15 @@ export function RoomTypeDetailsForm({
                         disabled={readOnly}
                     />
                     <SettingsInput
+                        name="print_label"
+                        label="Print label"
+                        value={roomType.printLabel}
+                        error={errors.print_label}
+                        placeholder="e.g. KING"
+                        description="Short label on the House status report. Empty: the initials of the name."
+                        disabled={readOnly}
+                    />
+                    <SettingsInput
                         name="base_occupancy"
                         label={<GuestsIncludedLabel />}
                         type="number"

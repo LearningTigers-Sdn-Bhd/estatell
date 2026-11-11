@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Reservations;
 use App\Data\CityLedger\ArInvoiceData;
 use App\Data\DoorLocks\UnitDoorPinsData;
 use App\Data\Folio\RoutingRulesData;
+use App\Data\Keyport\UnitKeyCardsData;
+use App\Data\Payments\PaymentProofData;
 use App\Data\Property\CurrencyData;
+use App\Data\Reservations\PaymentScheduleData;
 use App\Data\Reservations\ReservationActivityData;
 use App\Data\Reservations\ReservationAddOnData;
 use App\Data\Reservations\ReservationListItemData;
@@ -16,17 +19,25 @@ use App\Data\Reservations\ReservationUnitOptionData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
+use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
+use App\Enums\LockProvider;
 use App\Enums\ManualFolioReason;
+use App\Enums\PaymentMethodType;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationStatus;
+use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\TransactionKind;
+use App\Enums\UnitMovement;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Features\DoorLocks;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
+use App\Models\PaymentMethod;
+use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -37,6 +48,7 @@ use App\Services\Boats\BoatTripAccess;
 use App\Services\Boats\ReservationBoatSummary;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\DoorLocks\StayLocks;
 use App\Services\DoorLocks\UnitDoorPins;
 use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
@@ -47,9 +59,11 @@ use App\Services\Folio\OldFolioPage;
 use App\Services\Folio\RoutingRuleList;
 use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
+use App\Services\Keyport\UnitKeyCards;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Platform\Impersonation;
 use App\Services\Property\MigrationWindow;
+use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\ReservationActivityLog;
@@ -59,6 +73,7 @@ use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationGuestRows;
 use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRoomBox;
+use App\Services\Reservations\ReservationUnitRows;
 use App\Services\Reservations\UnitActionMenu;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
@@ -82,6 +97,8 @@ class ReservationController extends Controller
         $repeats = array_flip($directory->repeatReservationIds($property, $page));
         $canViewGuest = $request->user()->can(PermissionEnum::GuestsView->value);
         $boats = Feature::for($property)->active(Boats::class) ? $boatSummary->forReservations($page) : [];
+        $counts = $directory->statusCounts($property, $request);
+        $statuses = $directory->statuses($request);
 
         $reservations->setCollection($page->map(fn (Reservation $reservation): ReservationListItemData => ReservationListItemData::fromModel(
             $reservation,
@@ -93,10 +110,13 @@ class ReservationController extends Controller
 
         return Inertia::render('reservations/index', [
             'reservations' => ReservationListItemData::collect($reservations, PaginatedDataCollection::class),
-            'statusCounts' => $this->statusCounts($directory->statusCounts($property, $request)),
+            'statusCounts' => $this->tabCounts($counts, $directory->movementCounts($property, $request), $statuses),
+            'statusOptions' => $this->statusOptions($counts),
+            'movementDate' => $directory->movement($request) === null ? null : $directory->defaultStayFrom($property)->toDateString(),
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
-                'status' => $request->string('filter.status')->toString(),
+                'status' => $directory->tab($request),
+                'statuses' => array_map(fn (ReservationStatus $status): string => $status->value, $statuses),
                 'source' => $request->string('filter.source')->toString(),
                 'stay' => $directory->stay($property, $request),
             ],
@@ -112,10 +132,11 @@ class ReservationController extends Controller
 
     /**
      * Reservation page, Units tab. `?unit=` picks the unit panel, and an unknown unit falls back to the first.
+     * `unitRows` feeds the All view, and `canChangePrice` its Change price button.
      */
-    public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu): Response
+    public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu, ReservationUnitRows $unitRows): Response
     {
-        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $property, $reservation, $activityLog, $actionMenu): array {
+        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $property, $reservation, $activityLog, $actionMenu, $unitRows): array {
             $unitId = $request->integer('unit');
             $selected = $unitModels->firstWhere('id', $unitId) ?? $unitModels->first();
 
@@ -129,10 +150,46 @@ class ReservationController extends Controller
 
             return [
                 'unit' => $data,
+                'unitRows' => $unitRows->rows($unitModels, $units, Feature::for($property)->active(Boats::class)),
+                'canChangePrice' => $request->user()->can(PermissionEnum::ReservationsChangePrice->value),
                 'doorPins' => $this->doorPins($request->user(), $property, $selected),
+                'keyCards' => $this->keyCards($request->user(), $property, $selected),
+                'lockProviders' => $this->lockProviders($request->user(), $property, $selected),
                 'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $property, $reservation, $single, $activityLog, $actionMenu)),
             ];
         });
+    }
+
+    /**
+     * Which lock systems open the room the unit sleeps in now, for a badge on the stay. Same staff and features as the PINs and cards.
+     *
+     * @return list<string>
+     */
+    private function lockProviders(User $user, Property $property, ReservationUnit $unit): array
+    {
+        if (! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
+            return [];
+        }
+
+        $stayLocks = app(StayLocks::class);
+
+        return array_values(array_filter([
+            DoorLocks::allows($property, LockProvider::TTLock) && $stayLocks->current($unit)->isNotEmpty() ? LockProvider::TTLock->label() : null,
+            DoorLocks::allows($property, LockProvider::ELock) && $stayLocks->currentElock($unit)->isNotEmpty() ? LockProvider::ELock->label() : null,
+        ]));
+    }
+
+    /**
+     * The eLock key cards of the unit, for the same staff and feature as the PINs. Null when the unit has no eLock lock and no card job.
+     */
+    private function keyCards(User $user, Property $property, ReservationUnit $unit): ?UnitKeyCardsData
+    {
+        if (! DoorLocks::allows($property, LockProvider::ELock)
+            || ! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
+            return null;
+        }
+
+        return app(UnitKeyCards::class)->forUnit($unit);
     }
 
     /**
@@ -140,7 +197,7 @@ class ReservationController extends Controller
      */
     private function doorPins(User $user, Property $property, ReservationUnit $unit): ?UnitDoorPinsData
     {
-        if (! Feature::for($property)->active(DoorLocks::class)
+        if (! DoorLocks::allows($property, LockProvider::TTLock)
             || ! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
             return null;
         }
@@ -156,8 +213,10 @@ class ReservationController extends Controller
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
 
         return $this->renderTab($request->user(), $property, $reservation, 'guests', fn (array $units): array => [
-            'guests' => $guestRows->rows($reservation, $units, $request->user()->can(PermissionEnum::GuestsView->value), $request->user()->can(PermissionEnum::RegistrationCardSign->value), $request->user()->can(PermissionEnum::FolioTransfer->value)),
+            'guests' => $guestRows->rows($reservation, $units, $request->user()->can(PermissionEnum::GuestsView->value), $request->user()->can(PermissionEnum::RegistrationCardSign->value), $request->user()->can(PermissionEnum::FolioTransfer->value), $request->user()->can(PermissionEnum::GuestsViewDocuments->value)),
             'canManageGuests' => $canManageGuests,
+            'canViewDocuments' => $request->user()->can(PermissionEnum::GuestsViewDocuments->value),
+            'identityDocumentTypes' => IdentityDocumentType::options(),
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
             'genders' => Gender::options(),
             'locales' => Locale::options(),
@@ -290,7 +349,40 @@ class ReservationController extends Controller
             canSetBoatIn: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::In) === null,
             canSetBoatOut: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::Out) === null,
             hasPriceOverride: $override !== null,
+            canChangeGuests: $user->can(PermissionEnum::ReservationsManage->value)
+                && in_array($unit->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)
+                && $unit->stay_type === StayType::Overnight
+                && $unit->roomType->sell_unit === SellUnit::Room,
         );
+    }
+
+    /**
+     * The agent's payment proofs of the reservation, newest first, and the methods to record one with. Empty when the
+     * agent sent none.
+     *
+     * @return array{paymentProofs: list<PaymentProofData>, proofPaymentMethods: list<array{value: string, label: string}>}
+     */
+    private function paymentProofProps(User $user, Property $property, Reservation $reservation): array
+    {
+        // Only an agent sends proofs, from the portal, so a reservation with no company reads nothing.
+        $proofs = $reservation->company_id === null
+            ? collect()
+            : PaymentProof::query()->where('reservation_id', $reservation->id)->with('uploader')->latest('id')->get();
+
+        return [
+            'paymentProofs' => array_values($proofs->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(
+                $proof,
+                route('reservations.payment-proofs.file', ['property' => $property->code, 'reservation' => $reservation->id, 'paymentProof' => $proof->id], absolute: false),
+            ))->all()),
+            'proofPaymentMethods' => $proofs->isEmpty() || ! $user->can(PermissionEnum::PaymentRecord->value) ? [] : array_values(PaymentMethod::query()
+                ->where('property_id', $property->id)
+                ->active()
+                ->whereNotIn('type', [PaymentMethodType::OldSystem->value, PaymentMethodType::DirectBill->value, PaymentMethodType::OtaCollected->value])
+                ->ordered()
+                ->get()
+                ->map(fn (PaymentMethod $method): array => ['value' => (string) $method->id, 'label' => $method->name])
+                ->all()),
+        ];
     }
 
     /**
@@ -327,9 +419,14 @@ class ReservationController extends Controller
         $hasBoats = Feature::for($property)->active(Boats::class);
         $canManage = $user->can(PermissionEnum::ReservationsManage->value);
 
+        $money = ReservationMoneyData::fromSummary(app(BookingSummary::class)->for($property, $reservation));
+
         return Inertia::render('reservations/show', [
             'reservation' => $overview['reservation'],
-            'money' => ReservationMoneyData::fromSummary(app(BookingSummary::class)->for($property, $reservation)),
+            'money' => $money,
+            'paymentSchedule' => PaymentScheduleData::forReservation($reservation),
+            'agentBill' => $reservation->deposit_due_at === null ? null : app(AgentBill::class)->for($reservation),
+            ...$this->paymentProofProps($user, $property, $reservation),
             'units' => $overview['units'],
             'tab' => $tab,
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
@@ -362,20 +459,42 @@ class ReservationController extends Controller
     }
 
     /**
-     * All, then one tab per status, each with its count.
+     * All, Arrivals, Departures and In house, each with its count. All counts the ticked statuses, or every status when
+     * none is ticked.
      *
-     * @param  array<string, int>  $counts
+     * @param  array<string, int>  $counts  By status value
+     * @param  array<string, int>  $movementCounts  By movement value
+     * @param  list<ReservationStatus>  $statuses  The ticked statuses of the Status filter
      * @return list<ReservationStatusCountData>
      */
-    private function statusCounts(array $counts): array
+    private function tabCounts(array $counts, array $movementCounts, array $statuses): array
     {
+        $all = $statuses === []
+            ? array_sum($counts)
+            : array_sum(array_map(fn (ReservationStatus $status): int => $counts[$status->value] ?? 0, $statuses));
+
         return [
-            new ReservationStatusCountData('', __('All'), array_sum($counts)),
+            new ReservationStatusCountData('', __('All'), $all),
             ...array_map(
-                fn (ReservationStatus $status): ReservationStatusCountData => new ReservationStatusCountData($status->value, $status->label(), $counts[$status->value] ?? 0),
-                ReservationStatus::cases(),
+                fn (UnitMovement $movement): ReservationStatusCountData => new ReservationStatusCountData($movement->value, $movement->label(), $movementCounts[$movement->value] ?? 0),
+                UnitMovement::cases(),
             ),
+            new ReservationStatusCountData(ReservationStatus::InHouse->value, ReservationStatus::InHouse->label(), $counts[ReservationStatus::InHouse->value] ?? 0),
         ];
+    }
+
+    /**
+     * The Status filter: one option per status with its count.
+     *
+     * @param  array<string, int>  $counts  By status value
+     * @return list<ReservationStatusCountData>
+     */
+    private function statusOptions(array $counts): array
+    {
+        return array_map(
+            fn (ReservationStatus $status): ReservationStatusCountData => new ReservationStatusCountData($status->value, $status->label(), $counts[$status->value] ?? 0),
+            ReservationStatus::cases(),
+        );
     }
 
     /**

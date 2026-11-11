@@ -7,6 +7,7 @@ use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
 use App\Http\Controllers\CityLedger\CompanyOldSystemController;
 use App\Http\Controllers\CityLedger\CompanyPaymentController;
+use App\Http\Controllers\CityLedger\CompanyPaymentSlipController;
 use App\Http\Controllers\CityLedger\CompanyPortalLoginController;
 use App\Http\Controllers\CityLedger\CompanyStatementController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
@@ -38,6 +39,9 @@ Route::prefix('finance')->name('finance.')->group(function () {
                 Route::get('statement', [CompanyController::class, 'statement'])->name('statement');
                 Route::get('statement.pdf', [CompanyStatementController::class, 'pdf'])->name('statement.pdf');
                 Route::get('payments/{payment}/receipt', [CompanyPaymentController::class, 'receipt'])->name('payments.receipt');
+                Route::get('payment-slips/{paymentProof}', [CompanyPaymentSlipController::class, 'file'])->name('payment-slips.file');
+                Route::post('payment-slips/{paymentProof}/accept', [CompanyPaymentSlipController::class, 'accept'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('payment-slips.accept');
+                Route::post('payment-slips/{paymentProof}/reject', [CompanyPaymentSlipController::class, 'reject'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('payment-slips.reject');
             });
 
             Route::prefix('payments')->name('payments.')->group(function () {
@@ -73,12 +77,12 @@ Route::prefix('finance')->name('finance.')->group(function () {
             Route::get('pdf', [ArInvoiceController::class, 'pdf'])->name('pdf');
             Route::post('credit-notes', [ArInvoiceController::class, 'storeCreditNote'])->middleware('can:'.PermissionEnum::CityLedgerCreditNote->value)->name('credit-notes.store');
             Route::post('void', [ArInvoiceController::class, 'void'])->name('void');
-            Route::post('e-invoice', [ArInvoiceController::class, 'submitEInvoice'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('e-invoice');
-            Route::post('e-invoice/cancel', [ArInvoiceController::class, 'cancelEInvoice'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('e-invoice.cancel');
+            Route::post('e-invoice', [ArInvoiceController::class, 'submitEInvoice'])->middleware(['einvoicing', 'can:'.PermissionEnum::EInvoiceManage->value])->name('e-invoice');
+            Route::post('e-invoice/cancel', [ArInvoiceController::class, 'cancelEInvoice'])->middleware(['einvoicing', 'can:'.PermissionEnum::EInvoiceManage->value])->name('e-invoice.cancel');
         });
     });
 
-    Route::prefix('e-invoices')->name('e-invoices.')->middleware('can:'.PermissionEnum::EInvoiceView->value)->scopeBindings()->group(function () {
+    Route::prefix('e-invoices')->name('e-invoices.')->middleware(['einvoicing', 'can:'.PermissionEnum::EInvoiceView->value])->scopeBindings()->group(function () {
         Route::get('/', [EInvoiceSubmissionsController::class, 'index'])->name('index');
         Route::get('{submission}', [EInvoiceSubmissionsController::class, 'show'])->name('show');
         Route::post('{submission}/refresh', [EInvoiceSubmissionsController::class, 'refresh'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('refresh');

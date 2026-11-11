@@ -11,6 +11,7 @@ use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
 use App\Enums\TabbedReport;
+use App\Features\Boats;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reports\ReportFiltersRequest;
 use App\Models\Property;
@@ -19,13 +20,15 @@ use App\Services\Reports\ReportLayoutResolver;
 use App\Services\Reports\ReportPage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 use Spatie\LaravelData\PaginatedDataCollection;
 
 class GuestListController extends Controller
 {
     /**
      * The Guest list page: the open tab (`?tab`, Arrivals when missing or wrong) as its own report, with the count of
-     * every tab for the chosen dates. Only the open tab's rows are sent.
+     * every tab for the chosen dates. Only the open tab's rows are sent. Arrivals and Departures take `?no_boat=1` (Boat
+     * not set) when the property uses boats; `boatNotSet` is null when the tab does not offer it.
      */
     public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver, GuestListCounts $counts): Response
     {
@@ -65,6 +68,7 @@ class GuestListController extends Controller
             'from' => $filters->from,
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
+            'boatNotSet' => $key->hasBoatNotSetFilter() && Feature::for($property)->active(Boats::class) ? $filters->boatNotSet : null,
             'currency' => CurrencyData::forProperty($property),
         ]);
     }

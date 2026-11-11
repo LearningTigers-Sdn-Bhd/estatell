@@ -19,7 +19,7 @@ class ReservationBookerController extends Controller
     {
         $booker = $reservation->booker;
 
-        $saved = $updateGuest($request->user(), $booker, $request->profile(), array_values($booker->tags()->pluck('name')->all()));
+        $saved = $updateGuest($request->user(), $booker, $request->profile(), array_values($booker->tags()->pluck('name')->all()), $request->identityData(), identityDocumentId: $request->identityDocumentId());
 
         Inertia::flash('toast', $saved
             ? ['type' => 'success', 'message' => __(':name saved.', ['name' => $request->input('full_name')])]

@@ -10,6 +10,7 @@ use App\Enums\TransactionKind;
 use App\Models\ArPayment;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -30,9 +31,11 @@ function paymentsUrl(Property $property, string $query = ''): string
 
 /**
  * A folio payment (or a refund) whose ledger line is posted on the business date given. `received_at` is the clock, so
- * the report must read the line.
+ * the report must read the line. `received_on` is the posting date unless given; `extra` sets other payment columns.
+ *
+ * @param  array<string, mixed>  $extra
  */
-function reportPayment(Property $property, PaymentMethod $method, string $amount, string $date, PaymentStatus $status = PaymentStatus::Completed, ?Payment $refundOf = null, ?User $staff = null): Payment
+function reportPayment(Property $property, PaymentMethod $method, string $amount, string $date, PaymentStatus $status = PaymentStatus::Completed, ?Payment $refundOf = null, ?User $staff = null, ?string $receivedOn = null, array $extra = []): Payment
 {
     $folio = Folio::factory()->create(['property_id' => $property->id]);
     $line = FolioLine::factory()->create([
@@ -53,7 +56,9 @@ function reportPayment(Property $property, PaymentMethod $method, string $amount
         'refund_of_id' => $refundOf?->id,
         'receipt_number' => $refundOf === null ? 'R-'.fake()->unique()->numerify('######') : null,
         'folio_line_id' => $line->id,
+        'received_on' => $receivedOn ?? $date,
         ...($staff === null ? [] : ['received_by' => $staff->id]),
+        ...$extra,
     ]);
 }
 
@@ -95,7 +100,7 @@ test('the page needs reports.view and is scoped to the property', function () {
         ->component('reports/payments')
         ->where('maxRangeDays', 366)
         ->where('sort', 'date')
-        ->has('layout.columns', 9)
+        ->has('layout.columns', 16)
         ->where('rows.meta.total', 7));
 });
 
@@ -179,6 +184,41 @@ test('the PDF of selected rows has its own totals and the totals for each method
         ->and($captured->data['breakdown']->total)->toBe(['Total', '3', '800.00', '-50.00', '750.00']);
 });
 
+test('Received filters and sorts folio payments by the day the money came in, Posted by the posting date', function () {
+    [$user, $property] = reportSetup();
+    $card = PaymentMethod::factory()->create(['property_id' => $property->id, 'name' => 'Bank transfer']);
+    $late = reportPayment($property, $card, '780.00', '2026-10-10', receivedOn: '2026-09-24');
+    $onTime = reportPayment($property, $card, '20.00', '2026-09-24');
+    $keys = fn (string $query): array => collect(test()->actingAs($user)->get(paymentsUrl($property, $query))->original->getData()['page']['props']['rows']['data'])->pluck('key')->all();
+
+    expect($keys('?from=2026-09-24&to=2026-09-24&dates=received'))->toEqualCanonicalizing(["p:{$late->id}", "p:{$onTime->id}"])
+        ->and($keys('?from=2026-09-24&to=2026-09-24'))->toBe(["p:{$onTime->id}"])
+        ->and($keys('?from=2026-10-10&to=2026-10-10'))->toBe(["p:{$late->id}"])
+        ->and($keys('?from=2026-10-10&to=2026-10-10&dates=received'))->toBe([]);
+
+    $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-09-24&to=2026-09-24&dates=received'))->assertInertia(fn (Assert $page) => $page
+        ->where('dateBasis', 'received')
+        ->where('sort', 'received_on')
+        ->where('rows.data.0.received_on', '2026-09-24')
+        ->where('totals.figures.amount', '800.00'));
+});
+
+test('a folio payment row has its guest, folio, invoice, reference and notes', function () {
+    [$user, $property] = reportSetup();
+    $card = PaymentMethod::factory()->create(['property_id' => $property->id]);
+    $other = reportPayment($property, $card, '50.00', '2026-10-10', extra: ['reference' => 'REF 326748', 'notes' => 'Agent paid']);
+    $guest = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'MA SHANG WEN']);
+    $other->folio->update(['payer_guest_id' => $guest->id, 'number' => 'F-100', 'invoice_number' => 'INV-7376']);
+    $row = fn (array $rows, string $key): array => collect($rows)->firstWhere('key', $key);
+
+    $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-10&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => $row($rows->all(), "p:{$other->id}")['guest'] === 'MA SHANG WEN'
+            && $row($rows->all(), "p:{$other->id}")['reference'] === 'REF 326748'
+            && $row($rows->all(), "p:{$other->id}")['notes'] === 'Agent paid'
+            && $row($rows->all(), "p:{$other->id}")['folio'] === 'F-100'
+            && $row($rows->all(), "p:{$other->id}")['invoice'] === 'INV-7376'));
+});
+
 test('the spreadsheet of selected rows has the total row and no summary table', function () {
     [$user, $property] = reportSetup();
     $rows = paymentsData($property)['rows'];
@@ -193,16 +233,16 @@ test('the spreadsheet of selected rows has the total row and no summary table', 
     $csv = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
     expect($csv)->toHaveCount(5)
-        ->and($csv[0][0])->toBe('Date')
-        ->and(array_column(array_slice($csv, 1, 3), 4))->toBe(['Completed', 'Voided', 'Completed'])
-        ->and(end($csv)[6])->toBe('450');
+        ->and($csv[0][0])->toBe('Posted on')
+        ->and(array_column(array_slice($csv, 1, 3), 10))->toBe(['Completed', 'Voided', 'Completed'])
+        ->and(end($csv)[12])->toBe('450');
 });
 
 test('the sidebar lists the finance reports under the Finance category', function () {
     [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(paymentsUrl($property))->assertInertia(fn (Assert $page) => $page
-        ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Finance')['items'])->pluck('title')->all() === ['Payments', 'Folio ledger', 'Outstanding balance', 'Deposit liability']));
+        ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Finance')['items'])->pluck('title')->all() === ['Payments', 'Folio ledger', 'Outstanding balance', 'Deposit liability', 'Agent payments due']));
 });
 
 /**

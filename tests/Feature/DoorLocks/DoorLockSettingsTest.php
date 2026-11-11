@@ -28,7 +28,7 @@ it('shows the page without any token', function () {
             ->where('connection.signedIn', true)
             ->missing('connection.accessToken')
             ->missing('connection.refreshToken')
-            ->has('locks', 1));
+            ->has('locks.data', 1)->where('lockTotal', 1)->has('lockOptions', 1)->where('passcodes.meta.total', 0));
 });
 
 it('signs in once and never saves the password', function () {
@@ -113,7 +113,7 @@ it('refuses a custom PIN without a gateway and writes nothing', function () {
         'door_lock_id' => $lock->id,
         'kind' => 'custom',
         'label' => 'Contractor',
-        'code' => '123456',
+        'code' => '135790',
         'ends_at' => '2026-10-15T18:00',
     ])->assertRedirect()->assertInertiaFlash('toast.type', 'error');
 
@@ -129,15 +129,15 @@ it('sends a custom PIN through a gateway', function () {
         'door_lock_id' => $lock->id,
         'kind' => 'custom',
         'label' => 'Contractor',
-        'code' => '123456',
+        'code' => '135790',
         'ends_at' => '2026-10-15T18:00',
     ])->assertRedirect();
 
     $passcode = DoorPasscode::query()->sole();
     expect($passcode->status)->toBe(PasscodeStatus::Active)
-        ->and($passcode->code)->toBe('123456')
+        ->and($passcode->code)->toBe('135790')
         ->and($passcode->ttlock_passcode_id)->toBe(9002);
-    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/keyboardPwd/add') && $request['addType'] === 2 && $request['keyboardPwd'] === '123456');
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/keyboardPwd/add') && $request['addType'] === 2 && $request['keyboardPwd'] === '135790');
 });
 
 it('rejects a PIN that is not 4 to 9 digits', function () {
@@ -253,4 +253,39 @@ it('keeps staff without settings.manage out', function () {
     $staff = User::factory()->for($property)->withPermissions([])->create();
 
     $this->actingAs($staff)->get(route('settings.door-locks.edit', $property))->assertForbidden();
+});
+
+it('saves the chosen-by-estatell PIN mode with a blank password', function () {
+    ['owner' => $owner, 'property' => $property, 'connection' => $connection] = doorLockSetup();
+
+    $this->actingAs($owner)->put(route('settings.door-locks.update', $property), [
+        'ttlock_username' => $connection->ttlock_username,
+        'ttlock_password' => '',
+        'passcode_mode' => 'custom',
+        'enabled' => true,
+    ])->assertSessionHasNoErrors();
+
+    expect($connection->refresh()->passcode_mode->value)->toBe('custom');
+});
+
+it('pages the TTLock locks and PINs on their own parameters and searches locks on the server', function () {
+    ['owner' => $owner, 'property' => $property] = doorLockSetup();
+
+    foreach (range(1, 14) as $n) {
+        DoorLock::factory()->for($property)->create(['name' => 'Wing '.$n, 'room_id' => null]);
+    }
+
+    DoorPasscode::factory()->count(12)->create(['property_id' => $property->id, 'door_lock_id' => DoorLock::query()->where('property_id', $property->id)->value('id')]);
+    $url = route('settings.door-locks.edit', $property);
+
+    $this->actingAs($owner)->get($url)
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('lockTotal', 15)->has('locks.data', 10)->where('locks.meta.last_page', 2)->has('lockOptions', 15)
+            ->has('passcodes.data', 10)->where('passcodes.meta.last_page', 2));
+
+    $this->actingAs($owner)->get($url.'?ttlocks_page=2')
+        ->assertInertia(fn (Assert $page) => $page->has('locks.data', 5)->has('passcodes.data', 10));
+
+    $this->actingAs($owner)->get($url.'?ttlock_search=Wing 7')
+        ->assertInertia(fn (Assert $page) => $page->where('lockSearch', 'Wing 7')->has('locks.data', 1)->where('lockTotal', 15)->has('lockOptions', 15));
 });

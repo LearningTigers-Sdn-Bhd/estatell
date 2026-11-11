@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\LockProvider;
 use App\Models\DoorLock;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,11 +23,19 @@ class DoorLockFactory extends Factory
             'property_id' => Property::factory(),
             'room_id' => null,
             'ttlock_lock_id' => fake()->unique()->numberBetween(100000, 999999),
-            'name' => 'C13_'.fake()->unique()->numerify('######'),
+            'name' => 'E13_'.fake()->unique()->numerify('######'),
             'battery_percent' => 90,
             'has_gateway' => false,
             'synced_at' => now(),
         ];
+    }
+
+    /**
+     * An eLock lock: opened by a card Keyport writes, so it has a lock number and no TTLock id.
+     */
+    public function elock(string $lockNo = '1.1.101'): static
+    {
+        return $this->state(['provider' => LockProvider::ELock, 'ttlock_lock_id' => null, 'lock_no' => $lockNo, 'name' => 'Room '.$lockNo, 'battery_percent' => null]);
     }
 
     public function withGateway(): static

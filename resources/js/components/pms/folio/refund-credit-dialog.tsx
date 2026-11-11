@@ -34,7 +34,10 @@ function RefundCreditForm({
     currency,
     options,
 }: Props) {
-    const canOtherMethod = folio.canRefundOtherMethod;
+    const holdsOnline = folio.rows.some(
+        (row) => row.actions.includes('refund') && row.methodType === 'online',
+    );
+    const canOtherMethod = folio.canRefundOtherMethod && !holdsOnline;
 
     useFormOptions(
         open && canOtherMethod,
@@ -75,7 +78,11 @@ function RefundCreditForm({
             open={open}
             onOpenChange={onOpenChange}
             title="Refund credit"
-            description={`Give money back from the payments on ${folio.name}: the newest payment first, security deposits last.`}
+            description={
+                holdsOnline
+                    ? `Give money back from the payments on ${folio.name}: the newest payment first, security deposits last. An online payment goes back through Curlec, and posts when Curlec confirms it.`
+                    : `Give money back from the payments on ${folio.name}: the newest payment first, security deposits last.`
+            }
             errors={errors}
             onSubmit={submit}
             submitLabel="Refund"

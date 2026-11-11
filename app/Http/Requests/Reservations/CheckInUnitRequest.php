@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Reservations;
 
 use App\Data\Reservations\CollectNowData;
+use App\Enums\EndedStayChoice;
 use App\Enums\PermissionEnum;
 use App\Services\Guests\CountryOptions;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -11,16 +12,18 @@ use Illuminate\Validation\Rule;
 
 /**
  * The Check in form. It sends choices only: a nationality, the overrides, and the Collect now choices (`room_charges` takes the unit's full bill as one Advance in place of the taxes). Amounts are
- * never sent, the Action works them out. An override or Collect now from a user without its permission is dropped.
+ * never sent, the Action works them out. An override or Collect now from a user without its permission is dropped. `ended_stay_choice` is sent only for a stay that was not logged in time.
  */
 class CheckInUnitRequest extends FormRequest
 {
     /**
-     * The `can:front-desk.check-in` route middleware authorizes this request.
+     * The `can:front-desk.check-in` route middleware authorizes this request. Moving the stay to today also changes its
+     * dates, so it needs the permission of Change dates.
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->endedStayChoice() !== EndedStayChoice::ArrivingToday
+            || $this->user()->can(PermissionEnum::ReservationsManage->value);
     }
 
     /**
@@ -29,6 +32,8 @@ class CheckInUnitRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'ended_stay_choice' => ['nullable', Rule::enum(EndedStayChoice::class)],
+            'arrived_at' => ['nullable', 'required_if:ended_stay_choice,'.EndedStayChoice::ArrivedLastNight->value, 'date_format:H:i'],
             'nationality_code' => ['nullable', Rule::in(app(CountryOptions::class)->codes())],
             'without_card' => ['boolean'],
             'credit_override_reason' => ['nullable', 'string', 'max:500'],
@@ -40,6 +45,16 @@ class CheckInUnitRequest extends FormRequest
             'reference' => ['nullable', 'string', 'max:100'],
             'idempotency_key' => ['nullable', 'required_if:collect_now,true', 'uuid'],
         ];
+    }
+
+    public function endedStayChoice(): ?EndedStayChoice
+    {
+        return EndedStayChoice::tryFrom((string) $this->input('ended_stay_choice'));
+    }
+
+    public function arrivedAt(): ?string
+    {
+        return filled($this->input('arrived_at')) ? $this->string('arrived_at')->toString() : null;
     }
 
     public function nationality(): ?string

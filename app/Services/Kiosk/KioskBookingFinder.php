@@ -7,6 +7,8 @@ use App\Enums\RegistrationCardField;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Models\Tax;
+use App\Services\Reservations\UnitNationality;
 
 /**
  * Finds the booking a guest types or scans at the kiosk and says whether the guest may start check-in today. It uses the
@@ -16,7 +18,7 @@ use App\Models\ReservationUnit;
  */
 class KioskBookingFinder
 {
-    public function __construct(private KioskStays $stays, private KioskWalkInHolds $holds) {}
+    public function __construct(private KioskStays $stays, private KioskWalkInHolds $holds, private UnitNationality $nationality) {}
 
     public function byReference(Property $property, string $reference): KioskBookingLookup
     {
@@ -47,9 +49,7 @@ class KioskBookingFinder
             return KioskBookingLookup::refused('hold_expired');
         }
 
-        $window = $stay->status === UnitStatus::CheckedIn
-            ? ($this->stays->checkOutWindow($stay) ? KioskStays::OPEN : KioskStays::ENDED)
-            : $this->stays->window($stay);
+        $window = $stay->status === UnitStatus::CheckedIn ? KioskStays::OPEN : $this->stays->window($stay);
 
         if ($window !== KioskStays::OPEN) {
             return KioskBookingLookup::refused(match ($window) {
@@ -61,23 +61,53 @@ class KioskBookingFinder
 
         $stay->loadMissing(['reservation', 'roomType']);
 
-        return KioskBookingLookup::found($stay, (string) $this->stays->guest($stay)?->full_name, $this->stepsRequired($property));
+        return KioskBookingLookup::found($stay, (string) $this->stays->guest($stay)?->full_name, $this->stepsRequired($property, $stay), $this->state($stay));
     }
 
     /**
      * `registration_card` follows the property's rule that a signed card is needed to check in. `id` is on when the
-     * registration card marks the ID document field Required (the default for a new property).
+     * registration card marks the ID document field Required (the default for a new property), and also when a
+     * foreign-guests-only tax needs a nationality the stay does not have yet: only the ID step gives the kiosk one, and
+     * check-in refuses with `nationality_required` without it.
      *
      * @return array{id: bool, registration_card: bool}
      */
-    private function stepsRequired(Property $property): array
+    private function stepsRequired(Property $property, ReservationUnit $stay): array
     {
         $visibility = $property->registrationCardFields()->where('field', RegistrationCardField::IdentityDocument)->value('visibility')
             ?? RegistrationCardField::IdentityDocument->defaultVisibility()->value;
 
         return [
-            'id' => $visibility === FieldVisibility::Required->value,
+            'id' => $visibility === FieldVisibility::Required->value || $this->needsNationality($property, $stay),
             'registration_card' => (bool) $property->settings?->card_required_for_check_in,
         ];
+    }
+
+    /**
+     * Where the stay is: still to check in, or in-house. An in-house stay says whether check-out is open, and gives
+     * its room only while this kiosk may still show a key (`checkedInByKiosk`).
+     *
+     * @return array{status: string, check_out_open: bool, key_available: bool, room_number: string|null}
+     */
+    private function state(ReservationUnit $stay): array
+    {
+        if ($stay->status !== UnitStatus::CheckedIn) {
+            return ['status' => 'confirmed', 'check_out_open' => false, 'key_available' => false, 'room_number' => null];
+        }
+
+        $keyAvailable = $this->stays->checkedInByKiosk($stay);
+
+        return [
+            'status' => 'checked_in',
+            'check_out_open' => $this->stays->checkOutWindow($stay),
+            'key_available' => $keyAvailable,
+            'room_number' => $keyAvailable ? $this->stays->roomNumber($stay) : null,
+        ];
+    }
+
+    private function needsNationality(Property $property, ReservationUnit $stay): bool
+    {
+        return $this->nationality->for($stay) === null
+            && Tax::query()->where('property_id', $property->id)->where('enabled', true)->where('foreign_guests_only', true)->exists();
     }
 }

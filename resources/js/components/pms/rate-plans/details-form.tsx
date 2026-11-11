@@ -1,8 +1,11 @@
 import { useForm } from '@inertiajs/react';
+import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Field,
+    FieldContent,
     FieldDescription,
     FieldError,
     FieldGroup,
@@ -15,6 +18,7 @@ import {
     InputGroupInput,
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { update } from '@/routes/settings/rate-plans';
@@ -69,11 +73,17 @@ export function DetailsForm({
     ratePlan,
     currency,
     nightsLockedReason = null,
+    groupRateOptions = [],
+    onlineBooking = false,
 }: {
     ratePlan: RatePlan;
     currency: App.Data.Property.CurrencyData;
+    /** The plans a larger booking can switch to: active, with a fewest rooms set. */
+    groupRateOptions?: EnumOption[];
     /** Why the nights of a package cannot change, or null when they can. */
     nightsLockedReason?: string | null;
+    /** Show the Book online switch (the Booking engine is on and the user can manage the booking website). */
+    onlineBooking?: boolean;
 }) {
     const form = useForm({
         name: ratePlan.name,
@@ -86,6 +96,13 @@ export function DetailsForm({
         day_use_max_hours: String(ratePlan.dayUseMaxHours ?? ''),
         day_use_from: ratePlan.dayUseFrom ?? '',
         day_use_until: ratePlan.dayUseUntil ?? '',
+        min_rooms: ratePlan.minRooms === null ? '' : String(ratePlan.minRooms),
+        max_rooms: ratePlan.maxRooms === null ? '' : String(ratePlan.maxRooms),
+        group_rate_plan_id:
+            ratePlan.groupRatePlanId === null
+                ? ''
+                : String(ratePlan.groupRatePlanId),
+        bookable_online: ratePlan.bookableOnline,
     });
     const guard = useUnsavedChanges(form.isDirty);
     const basis = ratePlan.pricingBasis;
@@ -95,6 +112,7 @@ export function DetailsForm({
         basis === 'per_room' ||
         (isPackage && ratePlan.packageUnit === 'per_room');
     const period = isPackage ? 'Per stay' : 'Per night';
+    const hasRoomLimits = basis !== 'per_bed' && !isDayUse;
 
     const save = (onSaved?: () => void) => {
         form.put(update.url({ ratePlan: ratePlan.id }), {
@@ -146,6 +164,99 @@ export function DetailsForm({
                     </FieldDescription>
                     <FieldError>{form.errors.description}</FieldError>
                 </Field>
+                {hasRoomLimits && (
+                    <Field
+                        data-invalid={
+                            !!form.errors.min_rooms || !!form.errors.max_rooms
+                        }
+                    >
+                        <FieldLabel htmlFor="min_rooms">
+                            Rooms per booking
+                        </FieldLabel>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                id="min_rooms"
+                                aria-label="Fewest rooms"
+                                type="number"
+                                min="1"
+                                max="200"
+                                inputMode="numeric"
+                                placeholder="Any"
+                                className="w-24"
+                                value={form.data.min_rooms}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'min_rooms',
+                                        event.target.value,
+                                    )
+                                }
+                                aria-invalid={!!form.errors.min_rooms}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                                to
+                            </span>
+                            <Input
+                                id="max_rooms"
+                                aria-label="Most rooms"
+                                type="number"
+                                min="1"
+                                max="200"
+                                inputMode="numeric"
+                                placeholder="Any"
+                                className="w-24"
+                                value={form.data.max_rooms}
+                                onChange={(event) =>
+                                    form.setData((data) => ({
+                                        ...data,
+                                        max_rooms: event.target.value,
+                                        group_rate_plan_id:
+                                            event.target.value === ''
+                                                ? ''
+                                                : data.group_rate_plan_id,
+                                    }))
+                                }
+                                aria-invalid={!!form.errors.max_rooms}
+                            />
+                        </div>
+                        <FieldDescription>
+                            For FIT and group rates, for example 1 to 4 rooms,
+                            or 5 and more. Leave empty for any number of rooms.
+                            Channel bookings ignore it.
+                        </FieldDescription>
+                        <FieldError>
+                            {form.errors.min_rooms ?? form.errors.max_rooms}
+                        </FieldError>
+                    </Field>
+                )}
+                {hasRoomLimits && (
+                    <Field data-invalid={!!form.errors.group_rate_plan_id}>
+                        <FieldLabel htmlFor="group_rate_plan_id">
+                            Larger bookings use
+                        </FieldLabel>
+                        <EnumSelect
+                            id="group_rate_plan_id"
+                            className="sm:max-w-sm"
+                            options={groupRateOptions}
+                            allLabel="No switch"
+                            disabled={form.data.max_rooms === ''}
+                            value={form.data.group_rate_plan_id}
+                            onValueChange={(value) =>
+                                form.setData('group_rate_plan_id', value)
+                            }
+                            aria-invalid={!!form.errors.group_rate_plan_id}
+                        />
+                        <FieldDescription>
+                            {form.data.max_rooms === ''
+                                ? 'Set the most rooms first.'
+                                : groupRateOptions.length === 0
+                                  ? 'No group rate to pick yet. Open the group rate plan, set its Rooms per booking to start above this plan (for example from 5, leave "to" empty) and save. It then shows here.'
+                                  : `A booking with more than ${form.data.max_rooms} rooms switches its rooms on this rate to the group rate, at the desk and in the agent portal, and back when it has fewer.`}
+                        </FieldDescription>
+                        <FieldError>
+                            {form.errors.group_rate_plan_id}
+                        </FieldError>
+                    </Field>
+                )}
                 {isPackage && (
                     <Field data-invalid={!!form.errors.fixed_nights}>
                         <FieldLabel htmlFor="fixed_nights">Nights</FieldLabel>
@@ -320,6 +431,28 @@ export function DetailsForm({
                             form.setData('single_supplement', value)
                         }
                     />
+                )}
+                {onlineBooking && (
+                    <Field orientation="horizontal">
+                        <Switch
+                            id="rate-plan-book-online"
+                            checked={form.data.bookable_online}
+                            onCheckedChange={(checked) =>
+                                form.setData('bookable_online', checked)
+                            }
+                            disabled={!ratePlan.offerableOnline}
+                        />
+                        <FieldContent>
+                            <FieldLabel htmlFor="rate-plan-book-online">
+                                Book online
+                            </FieldLabel>
+                            <FieldDescription>
+                                {ratePlan.offerableOnline
+                                    ? 'Guests can book this plan on your booking website.'
+                                    : 'Only active nightly plans open to everyone can be booked online.'}
+                            </FieldDescription>
+                        </FieldContent>
+                    </Field>
                 )}
             </FieldGroup>
             <footer className="flex justify-end">

@@ -6,8 +6,10 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
+use App\Features\Boats;
 use App\Models\Property;
 use App\Models\User;
+use Laravel\Pennant\Feature;
 
 /**
  * Sidebar groups for the Front desk context. Items the user has no permission for are left out.
@@ -53,6 +55,18 @@ class FrontDeskNavigation
                     href: route('housekeeping.index', ['property' => $property->code], absolute: false),
                     icon: 'spray-can',
                     active: request()->routeIs('housekeeping.*'),
+                ) : null,
+                $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
+                    title: __('Boat Trips'),
+                    href: route('boats.index', ['property' => $property->code], absolute: false),
+                    icon: 'ship',
+                    active: request()->routeIs('boats.*'),
+                ) : null,
+                $user->can(PermissionEnum::ReportsView->value) ? new NavItemData(
+                    title: __('House status'),
+                    href: route('reports.house-status', ['property' => $property->code], absolute: false),
+                    icon: 'layout-grid',
+                    active: request()->routeIs('reports.house-status'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Reservations'), items: array_filter([

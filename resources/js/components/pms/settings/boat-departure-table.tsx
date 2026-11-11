@@ -132,14 +132,17 @@ export function BoatDepartureTable({
 }) {
     return (
         <div className="overflow-auto rounded-lg border">
-            <Table className="table-fixed">
+            <Table className="min-w-[1340px] table-fixed">
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-28">Available</TableHead>
                         <TableHead className="w-24">Leaves</TableHead>
                         <TableHead className="w-24">Arrives</TableHead>
-                        <TableHead>Pick-up point</TableHead>
+                        <TableHead className="w-48">Pick-up point</TableHead>
                         <TableHead className="w-20 text-right">Seats</TableHead>
+                        <TableHead className="w-48">
+                            Default boat & crew
+                        </TableHead>
                         <TableHead className="w-64">Fare</TableHead>
                         <TableHead className="w-64">
                             <MealsHeader mealPeriods={mealPeriods} />
@@ -152,7 +155,7 @@ export function BoatDepartureTable({
                 <TableBody>
                     {departures.length === 0 && (
                         <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={8}>
+                            <TableCell colSpan={9}>
                                 <EmptyState icon={Ship} title={emptyTitle} />
                             </TableCell>
                         </TableRow>
@@ -196,6 +199,36 @@ export function BoatDepartureTable({
                                         —
                                     </span>
                                 )}
+                            </TableCell>
+                            <TableCell>
+                                {(() => {
+                                    // "Awang (in charge), Daus": the one in charge first, then the assistants.
+                                    const [first, ...others] =
+                                        departure.crewNames;
+                                    const crewText = [
+                                        first !== undefined &&
+                                        departure.inChargeId !== null
+                                            ? `${first} (in charge)`
+                                            : first,
+                                        ...others,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(', ');
+                                    const text = [
+                                        departure.defaultBoatName,
+                                        crewText,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ');
+
+                                    return text === '' ? (
+                                        <span className="text-muted-foreground">
+                                            —
+                                        </span>
+                                    ) : (
+                                        <span>{text}</span>
+                                    );
+                                })()}
                             </TableCell>
                             <TableCell>
                                 {departure.fare === null ? (

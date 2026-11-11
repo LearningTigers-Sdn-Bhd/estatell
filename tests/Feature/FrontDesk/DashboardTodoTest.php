@@ -196,3 +196,16 @@ test('todo limits the visible list and keeps a fixed query count as reservations
     $todo = app(DashboardTodo::class)->forDate($property, CarbonImmutable::parse('2026-10-14'), $user);
     expect($todo->rows)->toHaveCount(10)->and($todo->total)->toBe(12);
 });
+
+test('today bookings list and tile count only bookings created on the business date', function () {
+    [$property, $user] = todoProperty();
+    $today = Reservation::factory()->for($property)->create(['created_at' => '2026-10-14 03:00:00']); // 11:00 Kuala Lumpur
+    ReservationUnit::factory()->for($today)->create(['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']);
+    Reservation::factory()->for($property)->create(['created_at' => '2026-10-13 10:00:00']);
+
+    $this->actingAs($user)->get(route('dashboard', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(['default', 'bookings'], fn (Assert $page) => $page
+            ->where('bookings.total', 1)->where('bookings.rows.0.reference', $today->reference)
+            ->where('bookings.rows.0.created', '11:00')->where('bookings.rows.0.rooms', 1)
+            ->where('bookings.rows.0.arrival', '2026-10-20')->where('tiles.newBookings.bookings', 1)));
+});

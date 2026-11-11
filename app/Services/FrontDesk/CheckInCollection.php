@@ -8,9 +8,11 @@ use App\Enums\BillingMode;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
+use App\Models\Folio;
 use App\Models\Payment;
 use App\Models\ReservationUnit;
-use App\Models\Tax;
+use App\Services\Catalogues\CheckInTaxRule;
+use App\Services\Folio\CollectedTaxPayer;
 use App\Services\Folio\FolioRouter;
 use App\Services\Folio\ScheduledFolioRows;
 use Brick\Math\BigDecimal;
@@ -26,14 +28,17 @@ class CheckInCollection
     public function __construct(
         private ScheduledFolioRows $scheduledRows,
         private FolioRouter $folioRouter,
+        private CollectedTaxPayer $collectedTaxPayer,
+        private CheckInTaxRule $checkInTaxRule,
     ) {}
 
     public function for(ReservationUnit $unit): CheckInCollectionData
     {
         $reservation = $unit->reservation()->with('booker')->firstOrFail();
         $property = $reservation->property()->with('settings')->firstOrFail();
-        $flagged = Tax::query()->where('property_id', $property->id)->where('enabled', true)->where('collect_at_check_in', true)->orderBy('id')->get();
-        $hidden = $this->folioRouter->roomChargesGoToMaster($unit);
+        $flagged = $this->checkInTaxRule->flaggedTaxes($property);
+        $master = $this->folioRouter->roomChargesMasterFolio($unit);
+        $hidden = $master !== null && ! $this->collectedTaxPayer->guestPaysOnMaster($unit, $master);
         $taxes = [];
         $total = BigDecimal::zero();
         $blocks = array_values(array_filter(
@@ -56,7 +61,10 @@ class CheckInCollection
             }
         }
 
-        return new CheckInCollectionData($taxes, (string) $total->toScale(2), $hidden, $this->deposit($unit, (string) $property->settings?->security_deposit_amount), $this->billTotal($blocks), $reservation->company_id !== null && $reservation->billing_mode !== BillingMode::EachPays);
+        $bill = $this->billTotal($blocks);
+        $paid = BigDecimal::min($bill, BigDecimal::max(BigDecimal::zero(), $this->paidOnUnitFolio($unit, $master)));
+
+        return new CheckInCollectionData($taxes, (string) $total->toScale(2), $hidden, $this->deposit($unit, (string) $property->settings?->security_deposit_amount), (string) $bill->minus($paid)->toScale(2), $reservation->company_id !== null && $reservation->billing_mode !== BillingMode::EachPays, (string) $paid->toScale(2));
     }
 
     /**
@@ -72,11 +80,11 @@ class CheckInCollection
 
         foreach ($blocks as $block) {
             foreach ($block['rows'] as $row) {
-                if (preg_match('/^night:\d+:tax:(\d+)$/', $row->key, $matches) !== 1 || ! in_array((int) $matches[1], $taxIds, true)) {
-                    continue;
-                }
+                $taxId = $this->checkInTaxRule->deskTaxId($row->key, $taxIds);
 
-                $sums[(int) $matches[1]] = ($sums[(int) $matches[1]] ?? BigDecimal::zero())->plus($row->amount);
+                if ($taxId !== null) {
+                    $sums[$taxId] = ($sums[$taxId] ?? BigDecimal::zero())->plus($row->amount);
+                }
             }
         }
 
@@ -89,7 +97,7 @@ class CheckInCollection
      *
      * @param  list<array{rows: list<FolioRowData>}>  $blocks  The Scheduled blocks of the unit.
      */
-    private function billTotal(array $blocks): string
+    private function billTotal(array $blocks): BigDecimal
     {
         $total = BigDecimal::zero();
 
@@ -99,7 +107,29 @@ class CheckInCollection
             }
         }
 
-        return (string) $total->toScale(2);
+        return $total;
+    }
+
+    /**
+     * What the guest or the OTA already paid towards the unit's bill: the Completed payments on its Unit folio less their
+     * refunds and voids. A security deposit is not a payment of the bill. A payment on a Master folio covers the whole
+     * group and cannot be split by unit, so it is not counted.
+     */
+    private function paidOnUnitFolio(ReservationUnit $unit, ?Folio $master): BigDecimal
+    {
+        $folio = $master === null ? $this->folioRouter->unitFolio($unit) : null;
+
+        if ($folio === null) {
+            return BigDecimal::zero();
+        }
+
+        $paid = BigDecimal::zero();
+
+        foreach (Payment::query()->where('folio_id', $folio->id)->where('status', PaymentStatus::Completed)->where('purpose', '!=', PaymentPurpose::SecurityDeposit)->get(['amount', 'refund_of_id']) as $payment) {
+            $paid = $payment->refund_of_id === null ? $paid->plus($payment->amount) : $paid->minus($payment->amount);
+        }
+
+        return $paid;
     }
 
     /**

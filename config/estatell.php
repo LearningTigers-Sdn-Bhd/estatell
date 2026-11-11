@@ -24,6 +24,8 @@ return [
     | demo.estatell.com, reset every night. The demo uses the password to seed
     | its staff accounts. Production shows the link, the Owner logins and the
     | password on the partner Demo access card, only when the URL is set.
+    | The booking API token is the fixed test token developers use on the
+    | demo; without it the demo has no API client.
     | See docs/deployment/demo_environment.md.
     |
     */
@@ -31,6 +33,7 @@ return [
     'demo' => [
         'url' => env('DEMO_URL'),
         'password' => env('DEMO_PASSWORD'),
+        'booking_api_token' => env('DEMO_BOOKING_API_TOKEN'),
         'logins' => [
             ['property' => 'Pearlside View Resort', 'email' => 'pearlside@demo.estatell.com'],
             ['property' => 'Boreno Hotel', 'email' => 'boreno@demo.estatell.com'],
@@ -48,6 +51,31 @@ return [
     */
 
     'docs_url' => env('DOCS_URL', 'https://docs.estatell.com'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Booking website address
+    |--------------------------------------------------------------------------
+    |
+    | The base address of the booking microsite. A property's site is at this
+    | address plus its slug. See docs/29-booking-engine/08-microsite.md.
+    |
+    */
+
+    'booking_site_url' => env('BOOKING_SITE_URL', 'https://booking.estatell.com'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Booking API developer guide
+    |--------------------------------------------------------------------------
+    |
+    | The guide for an API only owner's developer: endpoints, the demo test
+    | path and the page security rules. The API tab links to it. See
+    | docs/29-booking-engine/09-api-only-mode.md.
+    |
+    */
+
+    'booking_api_docs_url' => env('BOOKING_API_DOCS_URL', 'https://docs.estatell.com/en/docs/developers/booking-api'),
 
     /*
     |--------------------------------------------------------------------------

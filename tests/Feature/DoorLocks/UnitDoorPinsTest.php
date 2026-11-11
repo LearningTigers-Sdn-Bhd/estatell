@@ -3,6 +3,8 @@
 use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Enums\PermissionEnum;
 use App\Enums\UnitStatus;
+use App\Models\DoorLock;
+use App\Models\DoorPasscode;
 use App\Models\Room;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -113,4 +115,80 @@ it('keeps the Delete PIN note on a revoked PIN only while its window is open', f
     $this->travelTo(now()->addDays(3));
 
     unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.passcodes.0.revokeNote', null));
+});
+
+it('flags the PIN as updating until the sync after a date change has run', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.updating', false));
+
+    $unit->update(['departure_date' => '2026-10-18']);
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.updating', true));
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.updating', false));
+});
+
+it('says the PINs are syncing while a PIN is being made, until it exists', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.making', true)->where('doorPins.syncing', true));
+
+    app(SyncStayPasscodes::class)($unit);
+
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.making', false)->where('doorPins.syncing', false));
+});
+
+it('does not say syncing when a PIN cannot be made because automatic PINs are off', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup();
+    $connection->update(['enabled' => false]);
+    $unit = doorLockStay($property, $room);
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.syncing', false));
+});
+
+it('says the PINs are syncing after a room move until the old room PIN is revoked', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room, 'lock' => $oldLock] = doorLockSetup(gateway: true);
+    $other = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    DoorLock::factory()->for($property)->create(['room_id' => $other->id, 'has_gateway' => true]);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $passcode = DoorPasscode::query()->sole();
+
+    $unit->nights()->update(['room_id' => $other->id]);
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.leavingIds', [$passcode->id])->where('doorPins.syncing', true));
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.leavingIds', [])->where('doorPins.making', false)->where('doorPins.syncing', false));
+    expect($oldLock->exists)->toBeTrue();
+});
+
+it('says the PINs are syncing after a check-out until they are revoked', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.syncing', true));
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.syncing', false));
+});
+
+it('badges the lock system of the stay room', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    $other = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    $bare = doorLockStay($property, $other);
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('lockProviders', ['TTLock']));
+    unitPage($owner, $bare)->assertInertia(fn (Assert $page) => $page->where('lockProviders', []));
 });

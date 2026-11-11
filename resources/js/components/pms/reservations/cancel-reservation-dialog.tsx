@@ -25,8 +25,13 @@ type Preview = App.Data.Reservations.CancelAllPreviewData;
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservation: App.Data.Reservations.ReservationData;
+    reservation: Pick<
+        App.Data.Reservations.ReservationData,
+        'id' | 'reference' | 'title' | 'companyName'
+    >;
     canWaiveFees: boolean;
+    /** The reason the form starts with, such as "Deposit not paid" from Agent payments due. */
+    defaultReason?: string;
     currency: App.Data.Property.CurrencyData | null;
 };
 
@@ -39,6 +44,7 @@ function CancelReservationForm({
     reservation,
     canWaiveFees,
     currency,
+    defaultReason = '',
 }: Props) {
     const key = { reservation: reservation.id };
     const { preview, reload } = useUnitPreview<Preview>(
@@ -48,7 +54,7 @@ function CancelReservationForm({
     const [picked, setPicked] = useState<number[] | null>(null);
     const form = useForm({
         do_not_charge: false,
-        reason: '',
+        reason: defaultReason,
         remove_add_ons: false,
     });
     const { data } = form;
@@ -67,6 +73,11 @@ function CancelReservationForm({
         ? 0
         : chosen.reduce((sum, row) => sum + cents(row.feeTotal), 0);
     const owed = feesWithTax - cents(preview?.paid ?? '0');
+    const onlineRefund = chosen.reduce(
+        (sum, row) =>
+            sum + cents(waive ? row.onlineRefundWaived : row.onlineRefund),
+        0,
+    );
     const addOns = chosen.reduce((sum, row) => sum + row.unpostedAddOns, 0);
     const label =
         selected.length === 1
@@ -351,9 +362,23 @@ function CancelReservationForm({
                                     </span>
                                 </div>
                             )}
-                            {owed < 0 && (
+                            {onlineRefund > 0 && (
+                                <div className="flex justify-between gap-4">
+                                    <span className="text-muted-foreground">
+                                        Goes back through Curlec automatically
+                                    </span>
+                                    <span className="font-medium">
+                                        <MoneyText
+                                            amount={toAmount(onlineRefund)}
+                                            currency={currency}
+                                        />
+                                    </span>
+                                </div>
+                            )}
+                            {owed < 0 && -owed > onlineRefund && (
                                 <p className="text-muted-foreground">
-                                    Refund it on the folio tab after cancelling.
+                                    Refund the rest on the folio tab after
+                                    cancelling.
                                 </p>
                             )}
                         </div>

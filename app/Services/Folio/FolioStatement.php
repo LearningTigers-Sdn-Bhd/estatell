@@ -6,6 +6,7 @@ use App\Data\Folio\FolioData;
 use App\Data\Folio\FolioOptionData;
 use App\Data\Folio\FolioRailItemData;
 use App\Data\Folio\FolioRowData;
+use App\Data\Folio\OnlineRefundData;
 use App\Data\Folio\PostFolioOptionData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Shared\BadgeData;
@@ -15,17 +16,21 @@ use App\Enums\EInvoiceStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\GatewayRefundStatus;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Features\EInvoicing;
 use App\Models\ArInvoice;
 use App\Models\Company;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioManualBatch;
+use App\Models\GatewayRefund;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\UnitGuest;
@@ -36,11 +41,13 @@ use App\Services\CityLedger\CreditCheck;
 use App\Services\EInvoice\BuyerResolver;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Payments\OnlineRefundLedger;
 use App\Services\Payments\PaymentPurposeChoices;
 use Brick\Math\BigDecimal;
 use Closure;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Laravel\Pennant\Feature;
 
 /**
  * Reads the folio tab of a reservation: the rail (every folio that is not Voided, then a read-only entry for each
@@ -59,6 +66,7 @@ class FolioStatement
         private ArInvoiceVoidCheck $arInvoiceVoidCheck,
         private CurrentBusinessDate $currentBusinessDate,
         private CheckOutSettlement $checkOutSettlement,
+        private OnlineRefundLedger $onlineRefundLedger,
     ) {}
 
     /**
@@ -223,7 +231,8 @@ class FolioStatement
 
         $held = $posted->filter(fn (FolioRowData $row): bool => in_array('refund', $row->actions, true))
             ->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus((string) $row->refundable), BigDecimal::zero());
-        $credit = BigDecimal::of($balance)->negated();
+        $holdsOnline = $posted->contains(fn (FolioRowData $row): bool => $row->methodType === PaymentMethodType::Online->value);
+        $credit = BigDecimal::of($balance)->negated()->minus($holdsOnline ? $this->onlineRefundLedger->pendingOnFolio($folio) : '0');
         $most = $credit->isLessThan($held) ? $credit : $held;
 
         if (! $most->isPositive() || $this->checkOutSettlement->holdsUnrefundable($folio->newCollection([$folio]))) {
@@ -231,6 +240,34 @@ class FolioStatement
         }
 
         return (string) $most->toScale(2);
+    }
+
+    /**
+     * The folio's online refunds waiting on Curlec, and the failed ones whose money is still there to retry.
+     *
+     * @param  Collection<int, FolioRowData>  $posted
+     * @return list<OnlineRefundData>
+     */
+    private function onlineRefunds(?Folio $folio, bool $mayRetry, Collection $posted): array
+    {
+        if ($folio === null || ! $posted->contains(fn (FolioRowData $row): bool => $row->methodType === PaymentMethodType::Online->value)) {
+            return [];
+        }
+
+        return array_values(GatewayRefund::query()
+            ->whereIn('status', [GatewayRefundStatus::Pending, GatewayRefundStatus::Failed])
+            ->whereHas('parts.payment', fn ($query) => $query->where('folio_id', $folio->id))
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (GatewayRefund $refund): bool => $refund->status === GatewayRefundStatus::Pending || $this->onlineRefundLedger->canStillRun($refund))
+            ->map(fn (GatewayRefund $refund): OnlineRefundData => new OnlineRefundData(
+                $refund->id,
+                $refund->amount,
+                BadgeData::fromGatewayRefundStatus($refund->status),
+                $refund->failure_reason,
+                $mayRetry && $refund->status === GatewayRefundStatus::Failed,
+            ))
+            ->all());
     }
 
     /**
@@ -307,7 +344,7 @@ class FolioStatement
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
         $eInvoiceSetting = $reservation->property->eInvoiceSetting;
-        $eInvoiceEnabled = $eInvoiceSetting !== null && $eInvoiceSetting->enabled;
+        $eInvoiceEnabled = $eInvoiceSetting !== null && $eInvoiceSetting->enabled && Feature::for($reservation->property)->active(EInvoicing::class);
         $latestSubmission = $folio !== null ? EInvoiceSubmission::query()
             ->where('folio_id', $folio->id)
             ->where('document_type', EInvoiceDocumentType::Invoice)
@@ -333,6 +370,7 @@ class FolioStatement
             oldSystemTitle: $old->isEmpty() ? null : (filled($folio?->legacy_number) ? __('OLD SYSTEM · folio :number', ['number' => $folio->legacy_number]) : __('OLD SYSTEM')),
             oldSystemTotal: $old->isEmpty() ? null : (string) $oldTotal->toScale(2),
             refundCredit: $refundCredit,
+            onlineRefunds: $this->onlineRefunds($folio, $isOpen && ($can['refund'] ?? false), $posted),
             canRefundOtherMethod: $user?->can(PermissionEnum::PaymentRefundOtherMethod->value) ?? false,
             canClose: $isOpen && ($can['close'] ?? false),
             canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio),
@@ -441,7 +479,7 @@ class FolioStatement
         $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
         $manualBatchIds = $viewManual ? $lines->pluck('manual_batch_id')->filter()->unique()->values() : collect();
         $manualBatches = $manualBatchIds->isEmpty() ? collect() : FolioManualBatch::query()->with('user:id,name')->whereIn('id', $manualBatchIds)->get()->keyBy('id');
-        $payments = $folio->payments()->withSum('refunds', 'amount')->with('paymentMethod')->get()->keyBy('folio_line_id');
+        $payments = $folio->payments()->withSum('refunds', 'amount')->withSum([OnlineRefundLedger::PENDING_SUM_RELATION => OnlineRefundLedger::pendingParts(...)], 'amount')->with('paymentMethod')->get()->keyBy('folio_line_id');
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
@@ -478,11 +516,11 @@ class FolioStatement
             if ($payment !== null && $payment->refund_of_id !== null) {
                 $tags[] = FolioRowTag::Refund;
             } elseif ($payment !== null) {
-                $refundable = (string) BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'))->toScale(2);
+                $refundable = (string) BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'))->minus((string) ($payment->pending_refunds_sum_amount ?? '0'))->toScale(2);
                 $canTakeBack = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive();
                 $actions = $canTakeBack ? ['refund'] : [];
 
-                if ($canTakeBack && $businessDate !== null && BigDecimal::of($refundable)->isEqualTo($payment->amount) && $line->posting_date->toDateString() === ($today === false ? $today = $businessDate() : $today)) {
+                if ($canTakeBack && $payment->paymentMethod->type !== PaymentMethodType::Online && $businessDate !== null && BigDecimal::of($refundable)->isEqualTo($payment->amount) && $line->posting_date->toDateString() === ($today === false ? $today = $businessDate() : $today)) {
                     $actions[] = 'void';
                 }
             }
@@ -490,7 +528,7 @@ class FolioStatement
             $purpose = $payment?->purpose->folioRowLabel();
             $description = $purpose === null ? $line->description : $line->description.' · '.$purpose;
 
-            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value));
+            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value, $payment !== null && ! $payment->received_on->isSameDay($line->posting_date) ? $payment->received_on->toDateString() : null, $payment?->notes));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);
