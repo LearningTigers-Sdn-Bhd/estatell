@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Platform\UpdatePlatformSettings;
 use App\Data\Platform\PlatformSettingsData;
+use App\Enums\CommissionService;
 use App\Enums\DormStrategy;
 use App\Enums\MediaDisk;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdatePlatformSettingsRequest;
+use App\Services\Commissions\CommissionRates;
 use App\Services\Platform\PlatformSettings;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -33,6 +35,17 @@ class PlatformSettingsController extends Controller
         return $this->renderTab($platformSettings, 'storage');
     }
 
+    /**
+     * The commission rates and the channel manager commission start date. See docs/30-commission-fees/05-platform-pages.md#commission-rates.
+     */
+    public function commissions(PlatformSettings $platformSettings, CommissionRates $commissionRates): Response
+    {
+        return $this->renderTab($platformSettings, 'commissions', [
+            'commissionRates' => $commissionRates->all(),
+            'commissionServices' => CommissionService::options(),
+        ]);
+    }
+
     public function update(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
     {
         return $this->save($request, $updatePlatformSettings, 'admin.settings.edit');
@@ -48,11 +61,20 @@ class PlatformSettingsController extends Controller
         return $this->save($request, $updatePlatformSettings, 'admin.settings.storage');
     }
 
-    private function renderTab(PlatformSettings $platformSettings, string $tab): Response
+    public function updateCommissions(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
+    {
+        return $this->save($request, $updatePlatformSettings, 'admin.settings.commissions');
+    }
+
+    /**
+     * @param  array<string, mixed>  $props
+     */
+    private function renderTab(PlatformSettings $platformSettings, string $tab, array $props = []): Response
     {
         $field = match ($tab) {
             'channels' => 'defaultDormStrategy',
             'storage' => 'mediaDisk',
+            'commissions' => 'channelManagerCommissionFrom',
             default => 'requireGoLiveApproval',
         };
 
@@ -64,6 +86,7 @@ class PlatformSettingsController extends Controller
                 'storage' => ['mediaDisks' => MediaDisk::options()],
                 default => [],
             },
+            ...$props,
         ]);
     }
 

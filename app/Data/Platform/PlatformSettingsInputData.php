@@ -4,6 +4,7 @@ namespace App\Data\Platform;
 
 use App\Enums\DormStrategy;
 use App\Enums\MediaDisk;
+use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 
 /**
@@ -15,5 +16,6 @@ class PlatformSettingsInputData extends Data
         public ?bool $requireGoLiveApproval = null,
         public ?DormStrategy $defaultDormStrategy = null,
         public ?MediaDisk $mediaDisk = null,
+        public ?CarbonImmutable $channelManagerCommissionFrom = null,
     ) {}
 }

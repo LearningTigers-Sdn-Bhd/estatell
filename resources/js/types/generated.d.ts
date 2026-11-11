@@ -926,6 +926,30 @@ amount: string,
 balance: string,
 };
 }
+namespace Commissions {
+export type CommissionEntryInputData = {
+type: App.Enums.CommissionEntryType,
+amount: string,
+dueDate: string | null,
+reservationId: number | null,
+service: App.Enums.CommissionService | null,
+baseAmount: string | null,
+rate: string | null,
+gatewayPaymentId: number | null,
+gatewayRefundId: number | null,
+reversesEntryId: number | null,
+idempotencyKey: string | null,
+reason: string | null,
+};
+export type CommissionRateData = {
+id: number,
+service: App.Enums.CommissionService,
+serviceLabel: string,
+rate: string,
+effectiveFrom: string,
+status: App.Data.Shared.BadgeData,
+};
+}
 namespace Dashboard {
 export type ChannelMixCompanyData = {
 name: string,
@@ -2471,11 +2495,13 @@ export type PlatformSettingsData = {
 requireGoLiveApproval: boolean,
 defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
+channelManagerCommissionFrom: string | null,
 };
 export type PlatformSettingsInputData = {
 requireGoLiveApproval: boolean | null,
 defaultDormStrategy: App.Enums.DormStrategy | null,
 mediaDisk: App.Enums.MediaDisk | null,
+channelManagerCommissionFrom: string | null,
 };
 export type PropertyFeatureData = {
 feature: App.Enums.PlatformFeature,
@@ -4927,6 +4953,9 @@ export type ChargeStatus = 'posted' | 'reversal' | 'moved';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
+export type CommissionEntryType = 'collected' | 'refunded' | 'refund_fee' | 'commission' | 'adjustment' | 'carried_forward';
+export type CommissionRateStatus = 'scheduled' | 'current' | 'past';
+export type CommissionService = 'booking_engine' | 'channel_manager';
 export type CompanyAccess = 'everyone' | 'all' | 'selected';
 export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyLinkRefusal = 'not_pending' | 'company_suspended' | 'property_not_live' | 'login_not_available' | 'already_linked';

@@ -57,7 +57,7 @@ Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md).
 Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md). Must be built before the booking engine collects real money.
 
 - [x] `docs(commissions): add the commission fees spec and checklist items` — `docs/30-commission-fees/`.
-- [ ] `feat(commissions): add commission services, rates and the ledger` — `CommissionService`, `CommissionEntryType`, `CommissionRule`, `commission_rates`, `commission_entries`, the channel manager start date, and the Commission rates section on admin settings. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md), [Platform pages](30-commission-fees/05-platform-pages.md#commission-rates).
+- [x] `feat(commissions): add commission services, rates and the ledger` — `CommissionService`, `CommissionEntryType`, `CommissionRule`, `commission_rates`, `commission_entries`, the channel manager start date, and the Commission rates section on admin settings. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md), [Platform pages](30-commission-fees/05-platform-pages.md#commission-rates).
 - [ ] `feat(commissions): record booking engine collections, refunds and commission` — `collected`, `refunded` and `refund_fee` entries from Curlec results, and `BookingEngineCommission` when a booking ends. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md#entry-types).
 - [ ] `feat(commissions): record channel manager commission` — `ChannelManagerCommission` on the folio's room revenue lines before tax, including cancellation and no-show fees, from the start date. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md).
 - [ ] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the PDF. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
@@ -493,6 +493,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `15689a3`  | fix(front-desk): hide early check-out for a unit that arrived today      |
 | `b86afbd`  | docs(front-desk): plan undo check-in and undo check-out                  |
 | `f2a9eb4`  | feat(front-desk): undo a check-in made today                             |
+| `acbdaf52` | docs(commissions): add the commission fees spec and checklist items      |
 
 Smaller fixes and reverts are in `git log`.
 

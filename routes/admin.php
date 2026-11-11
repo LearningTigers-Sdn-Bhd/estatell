@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AmenityCategoryController;
 use App\Http\Controllers\Admin\AmenityController;
+use App\Http\Controllers\Admin\CommissionRateController;
 use App\Http\Controllers\Admin\MailEventController;
 use App\Http\Controllers\Admin\NearbyPlaceController;
 use App\Http\Controllers\Admin\OtaChannelController;
@@ -115,4 +116,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('settings/channels', [PlatformSettingsController::class, 'updateChannels'])->middleware('support.2fa')->name('settings.channels.update');
     Route::get('settings/storage', [PlatformSettingsController::class, 'storage'])->name('settings.storage');
     Route::put('settings/storage', [PlatformSettingsController::class, 'updateStorage'])->middleware('support.2fa')->name('settings.storage.update');
+    Route::get('settings/commissions', [PlatformSettingsController::class, 'commissions'])->name('settings.commissions');
+    Route::put('settings/commissions', [PlatformSettingsController::class, 'updateCommissions'])->middleware('support.2fa')->name('settings.commissions.update');
+    Route::post('settings/commissions/rates', [CommissionRateController::class, 'store'])->middleware('support.2fa')->name('settings.commissions.rates.store');
 });

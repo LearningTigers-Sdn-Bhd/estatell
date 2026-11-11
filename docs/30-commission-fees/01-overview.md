@@ -4,7 +4,7 @@
 
 Track what Estatell earns from each property's bookings, hold the money Estatell collects for properties, and pay it out on fixed dates. Platform admins see every property; each property sees its own bookings and payouts.
 
-**Status: planned.** Planned on 2026-11-11. Build order is in the [checklist](../checklist.md#30-commission-fees).
+**Status: in build.** Planned on 2026-11-11. Rates, the ledger and the Commissions settings tab are built. Build order is in the [checklist](../checklist.md#30-commission-fees).
 
 ## Decisions
 

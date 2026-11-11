@@ -41,6 +41,7 @@ dataset('platform settings sections', [
     ['admin.settings.edit', 'admin.settings.update', ['require_go_live_approval' => '1']],
     ['admin.settings.channels', 'admin.settings.channels.update', ['default_dorm_strategy' => 'bed_as_unit']],
     ['admin.settings.storage', 'admin.settings.storage.update', ['media_disk' => 'local']],
+    ['admin.settings.commissions', 'admin.settings.commissions.update', ['channel_manager_commission_from' => '2026-12-01']],
 ]);
 
 test('staff get a 404 on every platform settings section', function (string $getRoute, string $putRoute, array $payload) {
@@ -248,6 +249,7 @@ test('each section requires a valid selection', function (string $routeName, arr
 
 test('saving an unchanged section does not log a change', function (string $getRoute, string $putRoute, array $payload) {
     $payload = $putRoute === 'admin.settings.update' ? ['require_go_live_approval' => '0'] : $payload;
+    PlatformSetting::query()->whereKey(1)->update(['channel_manager_commission_from' => '2026-12-01']);
 
     $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
         ->put(route($putRoute), $payload)

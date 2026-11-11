@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use App\Data\Platform\PlatformSettingsInputData;
 use App\Enums\DormStrategy;
 use App\Enums\MediaDisk;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,9 @@ class UpdatePlatformSettingsRequest extends FormRequest
             $this->routeIs('admin.settings.storage.update') => [
                 'media_disk' => ['required', Rule::enum(MediaDisk::class)->only(MediaDisk::configured())],
             ],
+            $this->routeIs('admin.settings.commissions.update') => [
+                'channel_manager_commission_from' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            ],
             default => ['require_go_live_approval' => ['required', 'boolean']],
         };
     }
@@ -38,6 +42,9 @@ class UpdatePlatformSettingsRequest extends FormRequest
             $this->routeIs('admin.settings.storage.update') => new PlatformSettingsInputData(
                 mediaDisk: MediaDisk::from($this->validated('media_disk')),
             ),
+            $this->routeIs('admin.settings.commissions.update') => new PlatformSettingsInputData(
+                channelManagerCommissionFrom: CarbonImmutable::createFromFormat('!Y-m-d', $this->validated('channel_manager_commission_from')),
+            ),
             default => new PlatformSettingsInputData(requireGoLiveApproval: $this->boolean('require_go_live_approval')),
         };
     }
@@ -50,6 +57,7 @@ class UpdatePlatformSettingsRequest extends FormRequest
         return [
             'default_dorm_strategy.enum' => __('This dorm strategy is not available yet. Native dorm is pending verification.'),
             'media_disk.enum' => __('This storage is not set up yet.'),
+            'channel_manager_commission_from.after_or_equal' => __('Choose today or a later date.'),
         ];
     }
 }

@@ -14,6 +14,7 @@ use App\Enums\ChannelConnectionStatus;
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\ChannelSupport;
 use App\Enums\ChargeStatus;
+use App\Enums\CommissionRateStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
@@ -94,6 +95,11 @@ class BadgeData extends Data
     }
 
     public static function fromChargeStatus(ChargeStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromCommissionRateStatus(CommissionRateStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

@@ -93,19 +93,33 @@ Let platform admins track money held for properties, commission per service, and
 
 ## Commission rates
 
-A **Commission rates** section on `/admin/settings` (Settings archetype, one card).
+A **Commissions** tab on platform settings, `/admin/settings/commissions`, next to General, Channel manager and File storage.
 
 ```
-┌ Commission rates ────────────────────────────────────────────────────────────┐
-│ Service           Rate     From                                              │
-│ Booking engine    10.00%   1 Dec 2026                       [Change rate]    │
-│ Channel manager    3.00%   1 Dec 2026                       [Change rate]    │
-│ Channel manager commission from: 1 Dec 2026                 [Change]         │
-│                                                             [View history]   │
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ Platform settings                                                            │
+│ [General] [Channel manager] [File storage] [% Commissions]                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Commission rates                                          [+ Change rate]    │
+│ One rate per service for every property, on the amount before tax.           │
+│ ┌──────────────────┬────────┬──────────────┬────────────┐                    │
+│ │Service           │  Rate  │From          │Status      │                    │
+│ ├──────────────────┼────────┼──────────────┼────────────┤                    │
+│ │Booking engine    │  8.00% │01 Dec 2026   │Scheduled   │                    │
+│ │Booking engine    │ 10.00% │01 Jan 2026   │Current     │                    │
+│ │Channel manager   │  3.00% │01 Jan 2026   │Current     │                    │
+│ └──────────────────┴────────┴──────────────┴────────────┘                    │
+│                                                                              │
+│ Channel manager commission start                                             │
+│ Only bookings that check out on or after this date pay CM commission.        │
+│ Start date [Not set ▾]                                       [Save changes]  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Change rate opens a Dialog with the new rate and its start date. A start date in the past is refused.
+- The table lists every rate, newest first per service, so it is also the history. Status is worked out against today: Scheduled, Current or Past.
+- **Change rate** opens a Dialog with the service, the rate (0 to 100, up to 2 decimals) and the start date. A past date, or a date the service already has, is refused. The change is logged.
+- **Channel manager commission start** is empty until an admin sets it. While empty, no channel manager commission is charged. A past date is refused; saving it is logged like the other platform settings.
+- Saving needs two-factor, like every admin write.
 
 ## Access
 

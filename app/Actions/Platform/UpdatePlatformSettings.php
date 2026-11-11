@@ -23,6 +23,7 @@ class UpdatePlatformSettings
                 'require_go_live_approval' => $data->requireGoLiveApproval,
                 'default_dorm_strategy' => $data->defaultDormStrategy,
                 'media_disk' => $data->mediaDisk,
+                'channel_manager_commission_from' => $data->channelManagerCommissionFrom?->toDateString(),
             ], fn (mixed $value): bool => $value !== null));
 
             $changed = Arr::except($settings->getDirty(), ['updated_at']);
