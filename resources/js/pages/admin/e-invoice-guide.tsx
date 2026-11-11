@@ -736,9 +736,9 @@ export default function EInvoiceGuide() {
     );
 }
 
-EInvoiceGuide.layout = () => ({
+EInvoiceGuide.layout = {
     breadcrumbs: [
         { title: 'Admin', href: dashboard() },
         { title: 'E-invoice guide', href: eInvoiceGuide() },
     ],
-});
+};

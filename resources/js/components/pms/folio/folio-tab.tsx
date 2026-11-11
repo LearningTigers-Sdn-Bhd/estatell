@@ -377,7 +377,7 @@ export function FolioTab({
                                                 folio.eInvoiceSubmissionId,
                                         })}
                                         className="inline-flex items-center gap-1 transition-opacity hover:opacity-80"
-                                        title="View LHDN E-Invoice submission"
+                                        title="Open the e-invoice"
                                     >
                                         <StatusBadge
                                             status={{

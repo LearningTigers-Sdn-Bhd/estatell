@@ -65,6 +65,9 @@ Signing is hidden, the same as in WAStays. `DocumentSigner` does not yet build t
 - **Issue date and time are UTC.** `IssueDate` and `IssueTime` use the UTC clock (`20:30:00Z`). LHDN reads them as UTC, so Malaysian time would put the document 8 hours in the future.
 - **Country codes are ISO 3166-1 alpha-3.** Guests and companies store alpha-2 (`SG`). `CountryOptions::alpha3()` converts them (`SGP`) from the PHP intl data. An empty country is sent as `MYS`.
 - **Status refresh.** LHDN validates in the background. After a submission, if LHDN still says "Submitted", `RefreshEInvoiceStatusJob` is queued (after the transaction commits). It checks again after 30 s, 1, 2 and 5 minutes. After that, staff can press Refresh on the submission page.
+- **Refresh errors are not hidden.** For the first seconds LHDN may refuse the status read (`403`). The submit actions then leave the document Submitted and the job retries; a job that keeps failing ends in `failed_jobs`. The Refresh button shows LHDN's error in a toast.
+- **Rejected documents.** A document LHDN rejects is Invalid. It does not count as active, so staff can correct the buyer and submit the folio or AR invoice again with the same number (verified on preprod). The submission page lists LHDN's reasons from each failed validation step.
+- **Buyer snapshot.** A submission stores the buyer exactly as LHDN received it (alpha-3 country, foreign TIN filled in). Credit notes reuse it, so LHDN sees the same buyer (`DR308` otherwise).
 
 ## Buyer Resolution Rules
 
@@ -89,14 +92,28 @@ For guests who do not request an individual e-invoice upon check-out:
 1. **Window**: Consolidated documents must be submitted within 7 calendar days after month-end.
 2. **Chunking**: LHDN allows a maximum of 100 stays per consolidated document. Stays in excess of 100 are automatically chunked into consecutive batches.
 3. **RM 10,000 Threshold Exemption**: Any stay whose total charges exceed RM 10,000 cannot be consolidated into a batch and must be submitted individually under LHDN regulations. Folios submitted in consolidated batches are recorded in `e_invoice_submission_folios` to prevent double-filing.
-4. **Scheduled Automation**: `App\Jobs\MonthlyConsolidationJob` runs automatically on the 1st of every month at 04:00 (Asia/Kuala_Lumpur) for properties with `consolidation_enabled = true`.
+4. **Stay amount**: charges, adjustments and taxes that were not reversed. Payments are left out, because a closed folio always balances to 0.
+5. **Rejected batches**: stays in an Invalid batch are picked up again by the next run. A stay in an active batch cannot get an individual e-invoice until that batch is cancelled.
+6. **Scheduled Automation**: `App\Jobs\MonthlyConsolidationJob` runs automatically on the 1st of every month at 04:00 (Asia/Kuala_Lumpur) for properties with `consolidation_enabled = true`.
 
 ## Front Desk Issuance
 
 - Closed folios can be submitted individually by front desk staff via the **Issue e-invoice** action in the folio tab.
 - A dedicated sheet (`IssueFolioEInvoiceDialog`) allows staff to input or verify the guest's statutory tax identification (TIN, NRIC, or Passport), billing address, and contact details before transmitting to LHDN.
 - Once submitted, the folio tab displays the live e-invoice status badge with a direct link to the submission details.
-- In the e-invoice detail page, technical identifiers and raw UBL 2.1 JSON payloads are organized under a collapsible section for clean, hotelier-friendly operation.
+
+## Staff pages
+
+Finance › E-invoicing › **E-invoices** is written for owners, managers and finance staff, not for developers.
+
+- **List**: the City ledger Index layout. Search finds the number, the guest or company name, the reservation number and the City ledger invoice number. Filters: type (E-invoice, Credit note, Monthly summary) and status. A rejected e-invoice shows one alert above the table, with **Show rejected**. Rows open the detail page; they carry no actions.
+- **Detail**: one notice says what happened and what to do next, with dates and amounts in bold. Tiles show the total with tax, the stay or month, the reservation and the **LHDN reference** (the one ID LHDN support asks for). **Billed to** and **Credit notes** sit side by side on a wide screen, and **History** is collapsed.
+- **Rejections** are explained by `LhdnRejectionReasons`: each LHDN code becomes a plain reason and a fix (`ERR206`: the IC does not match the tax number). An unknown code shows LHDN's own sentence without its developer link.
+- **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and a preview of the email. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
+- **Credit notes** show the 3 latest, with **Show all**, under "Credited X of Y".
+- **Privacy**: the page never receives the UBL document or LHDN's raw replies, and shows only the last four characters of the buyer's IC, passport or registration number. `SubmissionView` builds what the page gets.
+- **Statuses**: Preparing, Being checked, Valid, Rejected, Cancelled.
+- Times are stored as plain `timestamp` like the rest of the schema, and shown in the property's time zone.
 
 ## Permissions
 

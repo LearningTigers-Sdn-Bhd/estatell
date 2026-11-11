@@ -11,7 +11,6 @@ use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\User;
-use App\Services\EInvoice\BuyerResolver;
 use App\Services\EInvoice\FolioDocumentBuilder;
 use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\MyInvoisClientFactory;
@@ -46,15 +45,23 @@ class SubmitFolioEInvoice
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_FOLIO_NOT_CLOSED, __('Only closed folios can be submitted for e-invoicing.'));
         }
 
-        // Check for existing active submission
         $existing = EInvoiceSubmission::query()
             ->where('folio_id', $folio->id)
             ->where('document_type', EInvoiceDocumentType::Invoice)
-            ->where('status', '!=', EInvoiceStatus::Cancelled)
-            ->first();
+            ->active()
+            ->exists();
 
-        if ($existing !== null) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('An active e-invoice already exists for this folio.'));
+        if ($existing) {
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('This folio already has an e-invoice.'));
+        }
+
+        $inConsolidatedBatch = EInvoiceSubmission::query()
+            ->active()
+            ->whereHas('folios', fn ($query) => $query->whereKey($folio->id))
+            ->exists();
+
+        if ($inConsolidatedBatch) {
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('This stay is already in a monthly summary, so it cannot get its own e-invoice.'));
         }
 
         try {
@@ -72,7 +79,8 @@ class SubmitFolioEInvoice
             return EInvoiceResult::refused($refusal, $e->getMessage());
         }
 
-        $buyer = $buyerSnapshot ?? BuyerResolver::forFolio($folio);
+        // Keep the buyer exactly as LHDN received it, so a credit note names the same buyer.
+        $buyer = $built['buyer'];
 
         return DB::transaction(function () use ($folio, $actor, $requestedByGuest, $buyer, $built, $setting): EInvoiceResult {
             $submission = new EInvoiceSubmission([
@@ -115,8 +123,13 @@ class SubmitFolioEInvoice
                     $submission->status = EInvoiceStatus::Submitted;
                     $submission->save();
 
-                    // Instantly refresh if mock or pre-validated
-                    $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    // LHDN often refuses a status read for the first seconds while it validates. The queued
+                    // refresh below tries again, so an error here leaves the document Submitted.
+                    try {
+                        $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    } catch (MyInvoisApiException) {
+                        $refreshed = $submission;
+                    }
 
                     // LHDN validates in the background, so keep checking until it answers.
                     if ($refreshed->status === EInvoiceStatus::Submitted) {

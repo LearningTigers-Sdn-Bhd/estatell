@@ -300,7 +300,7 @@ class CreditNoteDocumentBuilder
                         ['Line' => [['_' => $buyer['address_line2'] ?? '']]],
                         ['Line' => [['_' => '']]],
                     ],
-                    'Country' => [['IdentificationCode' => [['_' => $buyer['country_code'] ?? 'MYS']]]],
+                    'Country' => [['IdentificationCode' => [['_' => BuyerResolver::lhdnCountryCode($buyer['country_code'] ?? null)]]]],
                 ],
             ],
             'PartyLegalEntity' => [['RegistrationName' => [['_' => $buyer['name'] ?? 'Buyer']]]],

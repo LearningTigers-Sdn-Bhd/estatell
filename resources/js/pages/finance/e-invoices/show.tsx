@@ -1,20 +1,36 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Form, Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowUpRight,
     Ban,
-    CheckCircle2,
+    CircleAlert,
     ChevronDown,
+    CircleCheck,
+    Clock,
     Copy,
-    FileCheck,
-    QrCode,
+    FilePlus2,
+    Mail,
     RefreshCw,
-    XCircle,
+    Wrench,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { DateText } from '@/components/pms/date-text';
+import { FormOverlay } from '@/components/pms/form-overlay';
+import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Collapsible,
@@ -22,735 +38,974 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/components/ui/toast';
+import { useClipboard } from '@/hooks/use-clipboard';
+import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
 import {
-    cancel as cancelRoute,
-    creditNote as creditNoteRoute,
-    index as indexRoute,
-    refresh as refreshRoute,
-    show as showRoute,
+    cancel,
+    consolidate,
+    creditNote,
+    email as emailRoute,
+    index,
+    refresh,
+    show,
 } from '@/routes/finance/e-invoices';
+import { folio as folioTab } from '@/routes/reservations';
+import { edit as eInvoiceSettings } from '@/routes/settings/e-invoice';
+import { edit as emailSettings } from '@/routes/settings/emails';
 
-type SubmissionDetail = {
+type Badge = { value: string; label: string; tone: App.Enums.Tone };
+
+type Submission = {
     id: number;
-    internal_id: string;
-    uuid: string | null;
-    submission_uid: string | null;
-    long_id: string | null;
-    document_type: string;
-    document_type_label: string;
-    scenario: string;
-    scenario_label: string;
-    status: string;
-    status_label: string;
-    status_tone: string;
-    is_consolidated: boolean;
-    requested_by_guest: boolean;
-    cancel_reason: string | null;
-    is_cancellable: boolean;
-    cancellation_deadline: string | null;
-    validation_url: string | null;
-    buyer_snapshot: Record<string, any> | null;
-    document_payload: Record<string, any> | null;
-    raw_response: Record<string, any> | null;
-    error_details: Record<string, any> | null;
-    error_messages: string[];
-    submitted_at: string | null;
-    validated_at: string | null;
-    cancelled_at: string | null;
-    created_at: string | null;
-    folio_number: string | null;
-    ar_invoice_number: string | null;
-    original_submission: {
-        id: number;
-        internal_id: string;
-        uuid: string | null;
+    number: string;
+    kind: 'invoice' | 'credit_note' | 'summary';
+    status: Badge;
+    amounts: {
+        subtotal: string | null;
+        tax: string | null;
+        total: string | null;
+    };
+    period: { from: string; to: string } | null;
+    buyer: {
+        name: string;
+        tax_number: string | null;
+        id_label: string | null;
+        id_number: string | null;
+        email: string | null;
+        phone: string | null;
+        address: string | null;
     } | null;
-    adjustments: Array<{
+    stays_included: number | null;
+    reservation: {
         id: number;
-        internal_id: string;
-        uuid: string | null;
-        status: string;
-        status_label: string;
-    }>;
+        reference: string;
+        folio_id: number;
+        folio_number: string;
+    } | null;
+    ar_invoice: { id: number; number: string; company: string | null } | null;
+    original: { id: number; number: string } | null;
+    credited: string | null;
+    credit_notes: {
+        id: number;
+        number: string;
+        amount: string | null;
+        status: Badge;
+        issued_at: string | null;
+    }[];
+    accepted_at: string | null;
+    cancelled_at: string | null;
+    cancel_reason: string | null;
+    cancel_until: string | null;
+    can_cancel: boolean;
+    can_credit_note: boolean;
+    can_check_status: boolean;
+    guest_link: string | null;
+    guest_email: {
+        to: string | null;
+        subject: string;
+        paragraphs: string[];
+        details: Record<string, string>;
+    } | null;
+    lhdn_reference: string | null;
+    reasons: { message: string; fix: string }[];
+    history: { label: string; at: string | null }[];
 };
 
 type Props = {
-    submission: SubmissionDetail;
+    submission: Submission;
+    currency: App.Data.Property.CurrencyData | null;
+    canEditEmail: boolean;
 };
 
-function formatDateTime(iso: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+const VISIBLE_CREDIT_NOTES = 3;
+
+const KIND_LABEL: Record<Submission['kind'], string> = {
+    invoice: 'E-invoice',
+    credit_note: 'Credit note',
+    summary: 'Monthly summary',
+};
+
+function Figure({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="flex flex-col gap-1 rounded-lg border p-3">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="text-sm font-medium">{children}</dd>
+        </div>
+    );
 }
 
-export default function EInvoiceShow({ submission }: Props) {
-    const [refreshing, setRefreshing] = useState(false);
-    const [cancelOpen, setCancelOpen] = useState(false);
-    const [cancelReason, setCancelReason] = useState('');
-    const [cancelling, setCancelling] = useState(false);
-
-    const [creditNoteOpen, setCreditNoteOpen] = useState(false);
-    const [creditNoteNumber, setCreditNoteNumber] = useState(
-        `CN-${submission.internal_id}`,
+function Detail({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="grid gap-0.5 px-3 py-2 sm:grid-cols-3 sm:gap-4">
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd className="min-w-0 text-sm break-words sm:col-span-2">
+                {children}
+            </dd>
+        </div>
     );
-    const [creditNoteAmount, setCreditNoteAmount] = useState('');
-    const [creditNoteReason, setCreditNoteReason] = useState('');
-    const [submittingCreditNote, setSubmittingCreditNote] = useState(false);
+}
 
-    const [copied, setCopied] = useState(false);
+function CreditNoteList({
+    submission,
+    money,
+}: {
+    submission: Submission;
+    money: (amount: string | null) => ReactNode;
+}) {
+    const [showAll, setShowAll] = useState(false);
+    const notes = showAll
+        ? submission.credit_notes
+        : submission.credit_notes.slice(0, VISIBLE_CREDIT_NOTES);
+    const hidden = submission.credit_notes.length - VISIBLE_CREDIT_NOTES;
 
-    const handleRefresh = () => {
-        setRefreshing(true);
-        router.post(
-            refreshRoute({ submission: submission.id }),
-            {},
-            {
-                preserveScroll: true,
-                onFinish: () => setRefreshing(false),
-            },
+    return (
+        <div className="flex flex-col divide-y rounded-lg border">
+            {submission.credited !== null && (
+                <p className="px-3 py-2 text-sm">
+                    Credited <strong>{money(submission.credited)}</strong> of{' '}
+                    {money(submission.amounts.total)}
+                </p>
+            )}
+            <ul className="flex flex-col divide-y">
+                {notes.map((note) => (
+                    <li
+                        key={note.id}
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm"
+                    >
+                        <Link
+                            href={show.url({ submission: note.id })}
+                            className="font-medium underline-offset-2 hover:underline"
+                        >
+                            {note.number}
+                        </Link>
+                        <span className="text-muted-foreground tabular-nums">
+                            {note.issued_at}
+                        </span>
+                        <span className="ms-auto flex items-center gap-3">
+                            {money(note.amount)}
+                            <StatusBadge status={note.status} />
+                        </span>
+                    </li>
+                ))}
+            </ul>
+            {hidden > 0 && (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-t-none"
+                    onClick={() => setShowAll(!showAll)}
+                >
+                    {showAll
+                        ? 'Show fewer'
+                        : `Show all ${submission.credit_notes.length}`}
+                </Button>
+            )}
+        </div>
+    );
+}
+
+/** Where staff correct the details LHDN rejected. */
+function fixUrl(submission: Submission): string | null {
+    if (submission.reservation) {
+        return folioTab.url(
+            { reservation: submission.reservation.id },
+            { query: { folio: String(submission.reservation.folio_id) } },
         );
-    };
+    }
 
-    const handleCancelSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setCancelling(true);
-        router.post(
-            cancelRoute({ submission: submission.id }),
-            { reason: cancelReason },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    setCancelling(false);
-                    setCancelOpen(false);
-                },
-            },
-        );
-    };
+    if (submission.ar_invoice) {
+        return showArInvoice.url({ invoice: submission.ar_invoice.id });
+    }
 
-    const handleCreditNoteSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmittingCreditNote(true);
-        router.post(
-            creditNoteRoute({ submission: submission.id }),
-            {
-                credit_note_number: creditNoteNumber,
-                amount: creditNoteAmount,
-                reason: creditNoteReason,
-            },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    setSubmittingCreditNote(false);
-                    setCreditNoteOpen(false);
-                },
-            },
-        );
-    };
+    return null;
+}
 
-    const handleCopyPayload = () => {
-        if (!submission.document_payload) return;
-        void navigator.clipboard.writeText(
-            JSON.stringify(submission.document_payload, null, 2),
+/**
+ * The one thing a manager needs to know about this document, and what to do next. Dates, amounts and button names
+ * are bold so the eye lands on them.
+ */
+function StatusNotice({
+    submission,
+    currency,
+}: {
+    submission: Submission;
+    currency: App.Data.Property.CurrencyData | null;
+}) {
+    const { status } = submission;
+
+    if (status.value === 'valid') {
+        return (
+            <Alert>
+                <CircleCheck className="text-success" />
+                <AlertTitle>
+                    Accepted by LHDN
+                    {submission.accepted_at && ` on ${submission.accepted_at}`}
+                </AlertTitle>
+                <AlertDescription>
+                    <p>
+                        {submission.kind === 'summary' && (
+                            <>
+                                It files{' '}
+                                <strong>
+                                    {submission.stays_included} stays
+                                </strong>{' '}
+                                whose guests did not ask for their own
+                                e-invoice. Nothing more to do.
+                            </>
+                        )}
+                        {submission.kind === 'credit_note' && (
+                            <>
+                                It reduces e-invoice{' '}
+                                <strong>{submission.original?.number}</strong>{' '}
+                                by{' '}
+                                <strong>
+                                    {submission.amounts.total && (
+                                        <MoneyText
+                                            amount={submission.amounts.total}
+                                            currency={currency}
+                                        />
+                                    )}
+                                </strong>
+                                . Nothing more to do.
+                            </>
+                        )}
+                        {submission.kind === 'invoice' && (
+                            <>
+                                It is filed. Use <strong>Email to guest</strong>{' '}
+                                to send the guest their copy.
+                            </>
+                        )}
+                    </p>
+                    {submission.cancel_until && (
+                        <p>
+                            You can cancel it until{' '}
+                            <strong>{submission.cancel_until}</strong>. After
+                            that, correct it with a credit note.
+                        </p>
+                    )}
+                </AlertDescription>
+            </Alert>
         );
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    }
+
+    if (status.value === 'invalid') {
+        return (
+            <Alert variant="destructive">
+                <CircleAlert />
+                <AlertTitle>Rejected by LHDN. Nothing was filed.</AlertTitle>
+                <AlertDescription>
+                    <ul className="flex flex-col gap-2">
+                        {submission.reasons.map((reason) => (
+                            <li
+                                key={reason.message}
+                                className="flex flex-col gap-0.5"
+                            >
+                                <strong>{reason.message}</strong>
+                                <span>{reason.fix}</span>
+                            </li>
+                        ))}
+                        {submission.reasons.length === 0 && (
+                            <li>Check the buyer details, then submit again.</li>
+                        )}
+                    </ul>
+                </AlertDescription>
+            </Alert>
+        );
+    }
+
+    if (status.value === 'cancelled') {
+        return (
+            <Alert>
+                <Ban className="text-muted-foreground" />
+                <AlertTitle>
+                    Cancelled
+                    {submission.cancelled_at &&
+                        ` on ${submission.cancelled_at}`}
+                </AlertTitle>
+                <AlertDescription>
+                    <p>
+                        LHDN no longer counts it, and the guest link no longer
+                        works.
+                        {submission.cancel_reason && (
+                            <>
+                                {' '}
+                                Reason:{' '}
+                                <strong>{submission.cancel_reason}</strong>.
+                            </>
+                        )}
+                    </p>
+                    {submission.reservation && (
+                        <p>
+                            To bill the guest again, issue a new e-invoice from
+                            the folio.
+                        </p>
+                    )}
+                </AlertDescription>
+            </Alert>
+        );
+    }
+
+    return (
+        <Alert>
+            <Clock className="text-info" />
+            <AlertTitle>LHDN is checking it</AlertTitle>
+            <AlertDescription>
+                This usually takes under a minute. Press{' '}
+                <strong>Check status</strong> to see the result.
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+function CancelAction({ submission }: { submission: Submission }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger render={<Button variant="outline" />}>
+                <Ban data-icon="inline-start" />
+                Cancel
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>
+                        Cancel {submission.number}?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        LHDN will no longer count it, and the guest link stops
+                        working. This cannot be undone.
+                        {submission.reservation &&
+                            ' You can issue a new e-invoice from the folio afterwards.'}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Form
+                    {...cancel.form({ submission: submission.id })}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                    className="flex flex-col gap-4"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <Field data-invalid={!!errors.reason}>
+                                <FieldLabel htmlFor="cancel-reason">
+                                    Reason
+                                </FieldLabel>
+                                <Input
+                                    id="cancel-reason"
+                                    name="reason"
+                                    required
+                                    maxLength={500}
+                                    placeholder="For example: wrong buyer name"
+                                    aria-invalid={!!errors.reason}
+                                />
+                                <FieldDescription>
+                                    LHDN keeps this reason with the e-invoice.
+                                </FieldDescription>
+                                <FieldError>{errors.reason}</FieldError>
+                            </Field>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Keep it</AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Cancel e-invoice
+                                </Button>
+                            </AlertDialogFooter>
+                        </>
+                    )}
+                </Form>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+function CreditNoteForm({
+    open,
+    onOpenChange,
+    submission,
+    currency,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    submission: Submission;
+    currency: App.Data.Property.CurrencyData | null;
+}) {
+    const form = useForm({
+        amount: '',
+        reason: '',
+        credit_note_number: `CN-${submission.number}`,
+    });
+    const { data, errors } = form;
+
+    return (
+        <FormOverlay
+            variant="dialog"
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Issue credit note"
+            description={`Use this when the guest should pay less than ${submission.number}, for example a refund after checkout. The e-invoice stays filed and LHDN records the credit note against it.`}
+            errors={errors}
+            onSubmit={() =>
+                form.post(creditNote.url({ submission: submission.id }), {
+                    preserveScroll: true,
+                    onSuccess: () => onOpenChange(false),
+                })
+            }
+            submitLabel="Issue credit note"
+            processing={form.processing}
+        >
+            <Field data-invalid={!!errors.amount}>
+                <FieldLabel htmlFor="credit-amount">Amount</FieldLabel>
+                <Input
+                    id="credit-amount"
+                    inputMode="decimal"
+                    value={data.amount}
+                    onChange={(event) =>
+                        form.setData('amount', event.target.value)
+                    }
+                    autoComplete="off"
+                    autoFocus
+                    aria-invalid={!!errors.amount}
+                />
+                {submission.amounts.total && (
+                    <FieldDescription>
+                        The e-invoice is for{' '}
+                        <MoneyText
+                            amount={submission.amounts.total}
+                            currency={currency}
+                        />
+                        .
+                    </FieldDescription>
+                )}
+                <FieldError>{errors.amount}</FieldError>
+            </Field>
+            <Field data-invalid={!!errors.reason}>
+                <FieldLabel htmlFor="credit-reason">Reason</FieldLabel>
+                <Textarea
+                    id="credit-reason"
+                    value={data.reason}
+                    onChange={(event) =>
+                        form.setData('reason', event.target.value)
+                    }
+                    maxLength={500}
+                    rows={2}
+                    placeholder="For example: late checkout fee waived"
+                    aria-invalid={!!errors.reason}
+                />
+                <FieldError>{errors.reason}</FieldError>
+            </Field>
+            <Field data-invalid={!!errors.credit_note_number}>
+                <FieldLabel htmlFor="credit-number">
+                    Credit note number
+                </FieldLabel>
+                <Input
+                    id="credit-number"
+                    value={data.credit_note_number}
+                    onChange={(event) =>
+                        form.setData('credit_note_number', event.target.value)
+                    }
+                    maxLength={50}
+                    aria-invalid={!!errors.credit_note_number}
+                />
+                <FieldError>{errors.credit_note_number}</FieldError>
+            </Field>
+        </FormOverlay>
+    );
+}
+
+function CreditNoteDialog(props: Parameters<typeof CreditNoteForm>[0]) {
+    return <CreditNoteForm key={useFreshOnOpen(props.open)} {...props} />;
+}
+
+function EmailGuestForm({
+    open,
+    onOpenChange,
+    submission,
+    canEditEmail,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    submission: Submission;
+    canEditEmail: boolean;
+}) {
+    const email = submission.guest_email!;
+    const form = useForm({ to: email.to ?? '' });
+
+    return (
+        <FormOverlay
+            variant="dialog"
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Email e-invoice to guest"
+            description="The guest gets this email with a View e-invoice button that opens their copy on MyInvois. Replies come to the property's contact email."
+            errors={form.errors}
+            onSubmit={() =>
+                form.post(emailRoute.url({ submission: submission.id }), {
+                    preserveScroll: true,
+                    onSuccess: () => onOpenChange(false),
+                })
+            }
+            submitLabel="Send email"
+            processing={form.processing}
+        >
+            <Field data-invalid={!!form.errors.to}>
+                <FieldLabel htmlFor="guest-email-to">To</FieldLabel>
+                <Input
+                    id="guest-email-to"
+                    type="email"
+                    value={form.data.to}
+                    onChange={(event) => form.setData('to', event.target.value)}
+                    autoComplete="off"
+                    autoFocus={!email.to}
+                    aria-invalid={!!form.errors.to}
+                />
+                {!email.to && (
+                    <FieldDescription>
+                        The e-invoice has no email address. Ask the guest for
+                        one.
+                    </FieldDescription>
+                )}
+                <FieldError>{form.errors.to}</FieldError>
+            </Field>
+            <div className="flex flex-col gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
+                <p className="font-medium">{email.subject}</p>
+                {email.paragraphs.map((paragraph, position) => (
+                    <p key={position} className="whitespace-pre-line">
+                        {paragraph}
+                    </p>
+                ))}
+                <dl className="flex flex-col gap-1 rounded-md border bg-background p-2">
+                    {Object.entries(email.details).map(([label, value]) => (
+                        <div key={label} className="flex justify-between gap-3">
+                            <dt className="text-muted-foreground">{label}</dt>
+                            <dd className="tabular-nums">{value}</dd>
+                        </div>
+                    ))}
+                </dl>
+                <span className="self-start rounded-md bg-primary px-3 py-1.5 text-primary-foreground">
+                    View e-invoice
+                </span>
+            </div>
+            {canEditEmail && (
+                <p className="text-sm text-muted-foreground">
+                    To change the wording for every guest, edit it in{' '}
+                    <Link
+                        href={emailSettings()}
+                        className="underline underline-offset-2"
+                    >
+                        Settings › Emails
+                    </Link>
+                    .
+                </p>
+            )}
+        </FormOverlay>
+    );
+}
+
+function EmailGuestDialog(props: Parameters<typeof EmailGuestForm>[0]) {
+    return <EmailGuestForm key={useFreshOnOpen(props.open)} {...props} />;
+}
+
+export default function EInvoiceShow({
+    submission,
+    currency,
+    canEditEmail,
+}: Props) {
+    const [crediting, setCrediting] = useState(false);
+    const [emailing, setEmailing] = useState(false);
+    const [, copy] = useClipboard();
+    const money = (amount: string | null) =>
+        amount === null ? (
+            '—'
+        ) : (
+            <MoneyText amount={amount} currency={currency} />
+        );
+    const title = `${KIND_LABEL[submission.kind]} ${submission.number}`;
+    const repairUrl = fixUrl(submission);
+    const showCreditNotes =
+        submission.kind !== 'credit_note' &&
+        (submission.credit_notes.length > 0 || submission.can_credit_note);
+    const loginProblem = submission.reasons.some((reason) =>
+        reason.fix.includes('E-invoice settings'),
+    );
+
+    const copyAndTell = async (text: string, message: string) => {
+        if (await copy(text)) {
+            toast.add({ title: message, type: 'success' });
+        }
     };
 
     return (
-        <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-            <Head title={`E-Invoice ${submission.internal_id}`} />
+        <>
+            <Head title={title} />
 
-            <PageHeader
-                title={`E-Invoice: ${submission.internal_id}`}
-                description={`${submission.document_type_label} • ${submission.scenario_label}`}
-                back={{ href: indexRoute(), label: 'All Submissions' }}
-                actions={
-                    <div className="flex items-center gap-2">
-                        {submission.validation_url && (
-                            <a
-                                href={submission.validation_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={buttonVariants({
-                                    variant: 'outline',
-                                    size: 'sm',
-                                })}
-                            >
-                                <QrCode className="mr-1.5 size-4" />
-                                LHDN Verification Portal
-                                <ArrowUpRight className="ml-1 size-3.5" />
-                            </a>
-                        )}
-
-                        {(submission.status === 'submitted' ||
-                            submission.status === 'pending') && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleRefresh}
-                                disabled={refreshing}
-                            >
-                                <RefreshCw
-                                    className={`mr-1.5 size-4 ${refreshing ? 'animate-spin' : ''}`}
-                                />
-                                Refresh LHDN Status
-                            </Button>
-                        )}
-
-                        {submission.is_cancellable && (
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => setCancelOpen(true)}
-                            >
-                                <Ban className="mr-1.5 size-4" />
-                                Cancel on LHDN
-                            </Button>
-                        )}
-
-                        {submission.status === 'valid' && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCreditNoteOpen(true)}
-                            >
-                                <FileCheck className="mr-1.5 size-4" />
-                                Issue Credit Note (02)
-                            </Button>
-                        )}
-                    </div>
-                }
-            />
-
-            {/* Status alerts */}
-            {submission.status === 'valid' && (
-                <Alert className="border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
-                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-                    <AlertTitle>
-                        Validated & Stamped by LHDN MyInvois
-                    </AlertTitle>
-                    <AlertDescription className="text-xs">
-                        This document has been cryptographically validated and
-                        accepted into the IRBM Continuous Transaction Control
-                        registry under UUID{' '}
-                        <span className="font-mono font-medium">
-                            {submission.uuid}
-                        </span>
-                        .
-                        {submission.cancellation_deadline &&
-                            submission.is_cancellable && (
-                                <span className="mt-1 block text-muted-foreground">
-                                    72-hour cancellation window is open until{' '}
-                                    {formatDateTime(
-                                        submission.cancellation_deadline,
+            <div className="flex flex-1 flex-col gap-6 p-4">
+                <PageHeader
+                    title={title}
+                    description={
+                        submission.buyer?.name ??
+                        (submission.kind === 'summary'
+                            ? 'General public'
+                            : undefined)
+                    }
+                    back={{ href: index(), label: 'E-invoices' }}
+                    badge={<StatusBadge status={submission.status} />}
+                    actions={
+                        <>
+                            {submission.status.value === 'invalid' &&
+                                repairUrl && (
+                                    <Link
+                                        href={repairUrl}
+                                        className={buttonVariants()}
+                                    >
+                                        <Wrench data-icon="inline-start" />
+                                        Fix and submit again
+                                    </Link>
+                                )}
+                            {submission.status.value === 'invalid' &&
+                                loginProblem && (
+                                    <Link
+                                        href={eInvoiceSettings()}
+                                        className={buttonVariants({
+                                            variant: 'outline',
+                                        })}
+                                    >
+                                        E-invoice settings
+                                    </Link>
+                                )}
+                            {submission.status.value === 'invalid' &&
+                                submission.kind === 'summary' &&
+                                submission.period && (
+                                    <Form
+                                        {...consolidate.form()}
+                                        transform={(data) => ({
+                                            ...data,
+                                            month: submission.period!.from.slice(
+                                                0,
+                                                7,
+                                            ),
+                                        })}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
+                                                focusableWhenDisabled
+                                            >
+                                                {processing ? (
+                                                    <Spinner data-icon="inline-start" />
+                                                ) : (
+                                                    <RefreshCw data-icon="inline-start" />
+                                                )}
+                                                Submit the month again
+                                            </Button>
+                                        )}
+                                    </Form>
+                                )}
+                            {submission.can_check_status && (
+                                <Form
+                                    {...refresh.form({
+                                        submission: submission.id,
+                                    })}
+                                    options={{ preserveScroll: true }}
+                                >
+                                    {({ processing }) => (
+                                        <Button
+                                            type="submit"
+                                            variant="outline"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing ? (
+                                                <Spinner data-icon="inline-start" />
+                                            ) : (
+                                                <RefreshCw data-icon="inline-start" />
+                                            )}
+                                            Check status
+                                        </Button>
                                     )}
-                                    .
+                                </Form>
+                            )}
+                            {submission.guest_email && (
+                                <Button onClick={() => setEmailing(true)}>
+                                    <Mail data-icon="inline-start" />
+                                    Email to guest
+                                </Button>
+                            )}
+                            {submission.guest_link && (
+                                <>
+                                    <a
+                                        href={submission.guest_link}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={buttonVariants({
+                                            variant: 'outline',
+                                        })}
+                                    >
+                                        View on MyInvois
+                                        <ArrowUpRight data-icon="inline-end" />
+                                    </a>
+                                </>
+                            )}
+                            {submission.can_credit_note && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCrediting(true)}
+                                >
+                                    <FilePlus2 data-icon="inline-start" />
+                                    Issue credit note
+                                </Button>
+                            )}
+                            {submission.can_cancel && (
+                                <CancelAction submission={submission} />
+                            )}
+                        </>
+                    }
+                />
+
+                <StatusNotice submission={submission} currency={currency} />
+
+                <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <Figure
+                        label={
+                            submission.kind === 'credit_note'
+                                ? 'Credit amount'
+                                : 'Total incl. tax'
+                        }
+                    >
+                        <span className="flex flex-col">
+                            {money(submission.amounts.total)}
+                            {submission.kind !== 'credit_note' &&
+                                submission.amounts.tax !== null && (
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        Tax {money(submission.amounts.tax)}
+                                    </span>
+                                )}
+                        </span>
+                    </Figure>
+                    {submission.period && (
+                        <Figure
+                            label={
+                                submission.kind === 'summary' ? 'Month' : 'Stay'
+                            }
+                        >
+                            <DateText date={submission.period.from} /> –{' '}
+                            <DateText date={submission.period.to} />
+                        </Figure>
+                    )}
+                    {submission.reservation && (
+                        <Figure label="Reservation">
+                            <Link
+                                href={fixUrl(submission) ?? ''}
+                                className="underline underline-offset-2"
+                            >
+                                {submission.reservation.reference}
+                            </Link>
+                            <span className="block text-xs font-normal text-muted-foreground">
+                                Folio {submission.reservation.folio_number}
+                            </span>
+                        </Figure>
+                    )}
+                    {submission.ar_invoice && (
+                        <Figure label="City ledger invoice">
+                            <Link
+                                href={showArInvoice.url({
+                                    invoice: submission.ar_invoice.id,
+                                })}
+                                className="underline underline-offset-2"
+                            >
+                                {submission.ar_invoice.number}
+                            </Link>
+                            {submission.ar_invoice.company && (
+                                <span className="block text-xs font-normal text-muted-foreground">
+                                    {submission.ar_invoice.company}
                                 </span>
                             )}
-                    </AlertDescription>
-                </Alert>
-            )}
+                        </Figure>
+                    )}
+                    {submission.stays_included !== null && (
+                        <Figure label="Stays included">
+                            {submission.stays_included}
+                        </Figure>
+                    )}
+                    {submission.original && (
+                        <Figure label="Corrects e-invoice">
+                            <Link
+                                href={show.url({
+                                    submission: submission.original.id,
+                                })}
+                                className="underline underline-offset-2"
+                            >
+                                {submission.original.number}
+                            </Link>
+                        </Figure>
+                    )}
+                    {submission.lhdn_reference && (
+                        <Figure label="LHDN reference">
+                            <span className="flex items-center gap-1">
+                                <span className="truncate font-normal tabular-nums">
+                                    {submission.lhdn_reference}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    aria-label="Copy LHDN reference"
+                                    onClick={() =>
+                                        copyAndTell(
+                                            submission.lhdn_reference!,
+                                            'LHDN reference copied',
+                                        )
+                                    }
+                                >
+                                    <Copy />
+                                </Button>
+                            </span>
+                        </Figure>
+                    )}
+                </dl>
 
-            {submission.status === 'invalid' && (
-                <Alert variant="destructive">
-                    <XCircle className="size-4" />
-                    <AlertTitle>Validation Rejected by LHDN</AlertTitle>
-                    <AlertDescription className="space-y-1 text-xs">
-                        <p>
-                            LHDN asynchronous validation rejected this document:
-                        </p>
-                        {submission.error_messages.map((err, i) => (
-                            <p key={i} className="font-semibold">
-                                • {err}
-                            </p>
-                        ))}
-                    </AlertDescription>
-                </Alert>
-            )}
+                {(submission.buyer || showCreditNotes) && (
+                    <div className="grid items-start gap-6 lg:grid-cols-2">
+                        {submission.buyer && (
+                            <section className="flex flex-col gap-3">
+                                <h2 className="text-base font-medium">
+                                    Billed to
+                                </h2>
+                                <dl className="flex flex-col divide-y rounded-lg border">
+                                    <Detail label="Name">
+                                        {submission.buyer.name}
+                                    </Detail>
+                                    <Detail label="Tax number (TIN)">
+                                        {submission.buyer.tax_number ?? '—'}
+                                    </Detail>
+                                    {submission.buyer.id_label && (
+                                        <Detail
+                                            label={submission.buyer.id_label}
+                                        >
+                                            <span className="tabular-nums">
+                                                {submission.buyer.id_number}
+                                            </span>
+                                        </Detail>
+                                    )}
+                                    {(submission.buyer.email ||
+                                        submission.buyer.phone) && (
+                                        <Detail label="Contact">
+                                            {[
+                                                submission.buyer.email,
+                                                submission.buyer.phone,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </Detail>
+                                    )}
+                                    {submission.buyer.address && (
+                                        <Detail label="Address">
+                                            {submission.buyer.address}
+                                        </Detail>
+                                    )}
+                                </dl>
+                            </section>
+                        )}
 
-            {submission.status === 'cancelled' && (
-                <Alert className="border-muted bg-muted/40">
-                    <Ban className="size-4 text-muted-foreground" />
-                    <AlertTitle>Document Cancelled</AlertTitle>
-                    <AlertDescription className="text-xs text-muted-foreground">
-                        This submission was cancelled on LHDN MyInvois on{' '}
-                        {submission.cancelled_at &&
-                            formatDateTime(submission.cancelled_at)}
-                        . Reason: "{submission.cancel_reason || 'Not specified'}
-                        ".
-                    </AlertDescription>
-                </Alert>
-            )}
+                        {showCreditNotes && (
+                            <section className="flex flex-col gap-3">
+                                <h2 className="text-base font-medium">
+                                    Credit notes
+                                </h2>
+                                {submission.credit_notes.length === 0 ? (
+                                    <p className="rounded-lg border p-3 text-sm text-muted-foreground">
+                                        None. Issue one if the guest should pay
+                                        less than this e-invoice.
+                                    </p>
+                                ) : (
+                                    <CreditNoteList
+                                        submission={submission}
+                                        money={money}
+                                    />
+                                )}
+                            </section>
+                        )}
+                    </div>
+                )}
 
-            <div className="grid gap-6 md:grid-cols-2">
-                {/* Document Summary Card */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">
-                                E-Invoice Summary
-                            </CardTitle>
-                            <StatusBadge
-                                status={{
-                                    value: submission.status,
-                                    label: submission.status_label,
-                                    tone: submission.status_tone as App.Enums.Tone,
-                                }}
-                            />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-xs">
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Internal Code
-                            </span>
-                            <span className="font-semibold">
-                                {submission.internal_id}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Document Type
-                            </span>
-                            <Badge variant="outline">
-                                {submission.document_type_label}
-                            </Badge>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Submission Mode
-                            </span>
-                            <span>{submission.scenario_label}</span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Source Reference
-                            </span>
-                            <span className="font-medium">
-                                {submission.folio_number
-                                    ? `Folio ${submission.folio_number}`
-                                    : submission.ar_invoice_number
-                                      ? `Invoice ${submission.ar_invoice_number}`
-                                      : 'Consolidated Batch'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Submitted At
-                            </span>
+                {submission.history.length > 0 && (
+                    <Collapsible className="rounded-lg border">
+                        <CollapsibleTrigger
+                            render={
+                                <button
+                                    type="button"
+                                    className="group/history flex w-full items-center justify-between gap-2 p-3 text-left text-sm font-medium"
+                                />
+                            }
+                        >
                             <span>
-                                {formatDateTime(submission.submitted_at)}
+                                History
+                                <span className="ms-2 font-normal text-muted-foreground">
+                                    {submission.history.length}{' '}
+                                    {submission.history.length === 1
+                                        ? 'event'
+                                        : 'events'}
+                                    {' · last: '}
+                                    {
+                                        submission.history[
+                                            submission.history.length - 1
+                                        ].label
+                                    }
+                                </span>
                             </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                                Validated At
-                            </span>
-                            <span>
-                                {formatDateTime(submission.validated_at)}
-                            </span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Buyer Profile Card */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">
-                            Buyer Party Profile
-                        </CardTitle>
-                        <CardDescription>
-                            Identity snapshot embedded in UBL
-                            AccountingCustomerParty.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-xs">
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Buyer Name
-                            </span>
-                            <span className="font-semibold">
-                                {submission.buyer_snapshot?.name ||
-                                    'General Public'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Buyer TIN
-                            </span>
-                            <span className="font-mono font-medium">
-                                {submission.buyer_snapshot?.tin || '—'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Identification (
-                                {submission.buyer_snapshot?.id_type || 'ID'})
-                            </span>
-                            <span className="font-mono">
-                                {submission.buyer_snapshot?.id_value || 'NA'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                State Code
-                            </span>
-                            <span>
-                                {submission.buyer_snapshot?.state_code ||
-                                    submission.buyer_snapshot?.billing_address
-                                        ?.state_code ||
-                                    '17 (NA)'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Contact Email
-                            </span>
-                            <span>
-                                {submission.buyer_snapshot?.email ||
-                                    submission.buyer_snapshot?.contact_email ||
-                                    '—'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">
-                                Contact Phone
-                            </span>
-                            <span>
-                                {submission.buyer_snapshot?.phone ||
-                                    submission.buyer_snapshot?.contact_phone ||
-                                    '—'}
-                            </span>
-                        </div>
-                    </CardContent>
-                </Card>
+                            <ChevronDown className="size-4 shrink-0 transition-transform group-data-[panel-open]/history:rotate-180" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <ol className="flex flex-col divide-y border-t">
+                                {submission.history.map((event, position) => (
+                                    <li
+                                        key={position}
+                                        className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+                                    >
+                                        <span>{event.label}</span>
+                                        <span className="text-muted-foreground tabular-nums">
+                                            {event.at}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ol>
+                        </CollapsibleContent>
+                    </Collapsible>
+                )}
             </div>
 
-            {/* Related Submissions & Adjustments */}
-            {(submission.original_submission ||
-                submission.adjustments.length > 0) && (
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">
-                            Linked Submissions & Billing References
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-xs">
-                        {submission.original_submission && (
-                            <div className="flex items-center justify-between border-b pb-2">
-                                <span className="text-muted-foreground">
-                                    Original Invoice
-                                </span>
-                                <Link
-                                    href={showRoute({
-                                        submission:
-                                            submission.original_submission.id,
-                                    })}
-                                    className="font-medium text-primary hover:underline"
-                                >
-                                    {submission.original_submission.internal_id}{' '}
-                                    ({submission.original_submission.uuid})
-                                </Link>
-                            </div>
-                        )}
-
-                        {submission.adjustments.map((adj) => (
-                            <div
-                                key={adj.id}
-                                className="flex items-center justify-between border-b pb-2"
-                            >
-                                <span className="text-muted-foreground">
-                                    Credit Note / Adjustment
-                                </span>
-                                <Link
-                                    href={showRoute({ submission: adj.id })}
-                                    className="font-medium text-primary hover:underline"
-                                >
-                                    {adj.internal_id} ({adj.status_label})
-                                </Link>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
+            {submission.guest_email && (
+                <EmailGuestDialog
+                    open={emailing}
+                    onOpenChange={setEmailing}
+                    submission={submission}
+                    canEditEmail={canEditEmail}
+                />
             )}
-
-            {/* Technical Details & UBL 2.1 Payload (Collapsible) */}
-            <Collapsible className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                <CollapsibleTrigger className="group flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-muted/50">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-semibold">
-                            Technical details & UBL 2.1 payload
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                            LHDN UUID, Submission UID, cryptographic hashes, and
-                            raw gateway JSON
-                        </span>
-                    </div>
-                    <ChevronDown className="size-4 shrink-0 transition-transform group-aria-expanded:rotate-180" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 border-t p-4">
-                    {/* Technical Identifiers */}
-                    <div className="grid gap-3 text-xs sm:grid-cols-2">
-                        <div className="flex flex-col gap-1 rounded border bg-muted/30 p-2.5">
-                            <span className="text-muted-foreground">
-                                Document UUID
-                            </span>
-                            <span className="font-mono font-medium select-all">
-                                {submission.uuid || '—'}
-                            </span>
-                        </div>
-                        <div className="flex flex-col gap-1 rounded border bg-muted/30 p-2.5">
-                            <span className="text-muted-foreground">
-                                Submission UID
-                            </span>
-                            <span className="font-mono font-medium select-all">
-                                {submission.submission_uid || '—'}
-                            </span>
-                        </div>
-                        {submission.long_id && (
-                            <div className="flex flex-col gap-1 rounded border bg-muted/30 p-2.5 sm:col-span-2">
-                                <span className="text-muted-foreground">
-                                    Long ID (Digest Hash)
-                                </span>
-                                <span className="font-mono text-xs break-all select-all">
-                                    {submission.long_id}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* UBL 2.1 Payload */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold">
-                                Normalized UBL 2.1 JSON Document Payload
-                            </span>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleCopyPayload}
-                            >
-                                <Copy className="mr-1.5 size-3.5" />
-                                {copied ? 'Copied!' : 'Copy JSON'}
-                            </Button>
-                        </div>
-                        <pre className="max-h-96 overflow-auto rounded-lg bg-muted/60 p-4 font-mono text-xs leading-relaxed">
-                            {submission.document_payload
-                                ? JSON.stringify(
-                                      submission.document_payload,
-                                      null,
-                                      2,
-                                  )
-                                : 'No payload captured.'}
-                        </pre>
-                    </div>
-
-                    {/* Raw LHDN Response */}
-                    {submission.raw_response && (
-                        <div className="space-y-2">
-                            <span className="text-xs font-semibold">
-                                LHDN Raw Gateway Response
-                            </span>
-                            <pre className="max-h-48 overflow-auto rounded-lg bg-muted/60 p-4 font-mono text-xs leading-relaxed">
-                                {JSON.stringify(
-                                    submission.raw_response,
-                                    null,
-                                    2,
-                                )}
-                            </pre>
-                        </div>
-                    )}
-                </CollapsibleContent>
-            </Collapsible>
-
-            {/* Cancel Modal */}
-            <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            Cancel E-Invoice on LHDN MyInvois
-                        </DialogTitle>
-                        <DialogDescription>
-                            LHDN accepts cancellation strictly within 72 hours
-                            of validation. Enter the cancellation reason.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={handleCancelSubmit} className="space-y-4">
-                        <div className="space-y-1.5">
-                            <label
-                                htmlFor="cancel_reason"
-                                className="text-sm font-medium"
-                            >
-                                Cancellation Reason *
-                            </label>
-                            <Input
-                                id="cancel_reason"
-                                required
-                                placeholder="e.g. Guest cancellation / incorrect billing name"
-                                value={cancelReason}
-                                onChange={(e) =>
-                                    setCancelReason(e.target.value)
-                                }
-                            />
-                        </div>
-
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setCancelOpen(false)}
-                                disabled={cancelling}
-                            >
-                                Back
-                            </Button>
-                            <Button
-                                type="submit"
-                                variant="destructive"
-                                disabled={cancelling || !cancelReason.trim()}
-                            >
-                                {cancelling ? (
-                                    <>
-                                        <Spinner className="mr-1.5 size-4" />{' '}
-                                        Cancelling...
-                                    </>
-                                ) : (
-                                    'Confirm Cancellation'
-                                )}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            {/* Credit Note Modal */}
-            <Dialog open={creditNoteOpen} onOpenChange={setCreditNoteOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            Issue E-Invoice Credit Note (02)
-                        </DialogTitle>
-                        <DialogDescription>
-                            References original submission{' '}
-                            <span className="font-semibold">
-                                {submission.internal_id}
-                            </span>{' '}
-                            via BillingReference.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form
-                        onSubmit={handleCreditNoteSubmit}
-                        className="space-y-4"
-                    >
-                        <div className="space-y-1.5">
-                            <label
-                                htmlFor="credit_note_number"
-                                className="text-sm font-medium"
-                            >
-                                Credit Note Number *
-                            </label>
-                            <Input
-                                id="credit_note_number"
-                                required
-                                value={creditNoteNumber}
-                                onChange={(e) =>
-                                    setCreditNoteNumber(e.target.value)
-                                }
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label
-                                htmlFor="credit_note_amount"
-                                className="text-sm font-medium"
-                            >
-                                Credit Amount (MYR) *
-                            </label>
-                            <Input
-                                id="credit_note_amount"
-                                type="number"
-                                step="0.01"
-                                required
-                                placeholder="0.00"
-                                value={creditNoteAmount}
-                                onChange={(e) =>
-                                    setCreditNoteAmount(e.target.value)
-                                }
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label
-                                htmlFor="credit_note_reason"
-                                className="text-sm font-medium"
-                            >
-                                Reason for Adjustment *
-                            </label>
-                            <Input
-                                id="credit_note_reason"
-                                required
-                                placeholder="e.g. Refund / billing correction"
-                                value={creditNoteReason}
-                                onChange={(e) =>
-                                    setCreditNoteReason(e.target.value)
-                                }
-                            />
-                        </div>
-
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setCreditNoteOpen(false)}
-                                disabled={submittingCreditNote}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={
-                                    submittingCreditNote ||
-                                    !creditNoteAmount ||
-                                    !creditNoteReason.trim()
-                                }
-                            >
-                                {submittingCreditNote ? (
-                                    <>
-                                        <Spinner className="mr-1.5 size-4" />{' '}
-                                        Submitting...
-                                    </>
-                                ) : (
-                                    'Submit Credit Note'
-                                )}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        </div>
+            {submission.can_credit_note && (
+                <CreditNoteDialog
+                    open={crediting}
+                    onOpenChange={setCrediting}
+                    submission={submission}
+                    currency={currency}
+                />
+            )}
+        </>
     );
 }

@@ -32,6 +32,8 @@ class EInvoiceResult
 
     public const string REFUSAL_PASSPORT_REQUIRED = 'passport_required';
 
+    public const string REFUSAL_NOT_EMAILABLE = 'not_emailable';
+
     private function __construct(
         public readonly bool $ok,
         public readonly ?EInvoiceSubmission $submission = null,

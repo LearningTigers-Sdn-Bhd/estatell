@@ -43,9 +43,9 @@ class FinanceNavigation
                 ) : null,
             ]))),
             ...(Feature::for($property)->active(EInvoicing::class) && $user->can(PermissionEnum::EInvoiceView->value) ? [
-                new NavGroupData(label: __('LHDN MyInvois'), items: [
+                new NavGroupData(label: __('E-invoicing'), items: [
                     new NavItemData(
-                        title: __('Submissions'),
+                        title: __('E-invoices'),
                         href: route('finance.e-invoices.index', ['property' => $property->code], absolute: false),
                         icon: 'file-check',
                         active: request()->routeIs('finance.e-invoices.*'),

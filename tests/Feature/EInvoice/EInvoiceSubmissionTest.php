@@ -22,14 +22,20 @@ use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
+use App\Models\PropertyGuestEmail;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Notifications\EInvoiceForGuest;
 use App\Services\EInvoice\MockMyInvoisClient;
+use App\Services\EInvoice\MyInvoisApiException;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * Setup a property with live status, open business date, and active mock E-Invoicing.
@@ -118,7 +124,7 @@ function submitSetupFolio(array $setup): EInvoiceSubmission
 {
     test()->actingAs($setup['owner'])
         ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
-        ->assertSessionHas('success');
+        ->assertInertiaFlash('toast.type', 'success');
 
     return EInvoiceSubmission::where('folio_id', $setup['folio']->id)->firstOrFail();
 }
@@ -130,7 +136,7 @@ it('submits a closed folio and transitions to Valid status via Mock client', fun
         ->from("/p/{$setup['property']->code}/finance/e-invoices")
         ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
         ->assertRedirect("/p/{$setup['property']->code}/finance/e-invoices")
-        ->assertSessionHas('success');
+        ->assertInertiaFlash('toast.type', 'success');
 
     $submission = EInvoiceSubmission::where('folio_id', $setup['folio']->id)->first();
     expect($submission)->not->toBeNull();
@@ -151,7 +157,7 @@ it('refuses to submit an open folio', function () {
         ->from("/p/{$setup['property']->code}/finance/e-invoices")
         ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
         ->assertRedirect("/p/{$setup['property']->code}/finance/e-invoices")
-        ->assertSessionHas('error');
+        ->assertInertiaFlash('toast.type', 'error');
 
     expect(EInvoiceSubmission::where('folio_id', $setup['folio']->id)->count())->toBe(0);
 });
@@ -174,7 +180,7 @@ it('cancels a valid submission within the 72-hour window', function () {
             'reason' => 'Wrong buyer identification provided',
         ])
         ->assertRedirect("/p/{$setup['property']->code}/finance/e-invoices")
-        ->assertSessionHas('success');
+        ->assertInertiaFlash('toast.type', 'success');
 
     $submission->refresh();
     expect($submission->status)->toBe(EInvoiceStatus::Cancelled);
@@ -200,7 +206,7 @@ it('refuses cancellation after the 72-hour window has expired', function () {
             'reason' => 'Late cancellation attempt',
         ])
         ->assertRedirect("/p/{$setup['property']->code}/finance/e-invoices")
-        ->assertSessionHas('error');
+        ->assertInertiaFlash('toast.type', 'error');
 
     $submission->refresh();
     expect($submission->status)->toBe(EInvoiceStatus::Valid);
@@ -227,7 +233,7 @@ it('issues a credit note referencing the original valid e-invoice and blocks ori
             'reason' => 'Guest room discount after checkout',
         ])
         ->assertRedirect("/p/{$setup['property']->code}/finance/e-invoices/{$original->id}")
-        ->assertSessionHas('success');
+        ->assertInertiaFlash('toast.type', 'success');
 
     $creditNote = EInvoiceSubmission::where('original_submission_id', $original->id)->first();
     expect($creditNote)->not->toBeNull();
@@ -242,7 +248,7 @@ it('issues a credit note referencing the original valid e-invoice and blocks ori
             'reason' => 'Attempting to cancel parent of credit note',
         ])
         ->assertRedirect("/p/{$setup['property']->code}/finance/e-invoices")
-        ->assertSessionHas('error');
+        ->assertInertiaFlash('toast.type', 'error');
 
     $original->refresh();
     expect($original->status)->toBe(EInvoiceStatus::Valid);
@@ -271,7 +277,7 @@ it('submits a city ledger AR invoice', function () {
         ->from("/p/{$setup['property']->code}/finance/city-ledger/invoices")
         ->post("/p/{$setup['property']->code}/finance/city-ledger/invoices/{$arInvoice->id}/e-invoice")
         ->assertRedirect("/p/{$setup['property']->code}/finance/city-ledger/invoices")
-        ->assertSessionHas('success');
+        ->assertInertiaFlash('toast.type', 'success');
 
     $submission = EInvoiceSubmission::where('ar_invoice_id', $arInvoice->id)->first();
     expect($submission)->not->toBeNull();
@@ -291,10 +297,17 @@ it('renders the finance e-invoices dashboard and detail views', function () {
         'status' => EInvoiceStatus::Valid,
     ]);
 
-    // Dashboard index
+    // Dashboard index: the page reads the paginator as data, links and meta.
     $this->actingAs($setup['owner'])
         ->get("/p/{$setup['property']->code}/finance/e-invoices")
-        ->assertOk();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('finance/e-invoices/index')
+            ->has('submissions.data', 1)
+            ->has('submissions.links')
+            ->where('submissions.meta.current_page', 1)
+            ->where('submissions.meta.total', 1)
+            ->etc());
 
     // Details view
     $this->actingAs($setup['owner'])
@@ -348,7 +361,7 @@ it('refuses submission if domestic guest lacks a tax number', function () {
 
     $this->actingAs($setup['owner'])
         ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
-        ->assertSessionHas('error');
+        ->assertInertiaFlash('toast.type', 'error');
 
     expect(EInvoiceSubmission::where('folio_id', $setup['folio']->id)->exists())->toBeFalse();
 });
@@ -359,7 +372,7 @@ it('refuses submission if buyer city is missing', function () {
 
     $this->actingAs($setup['owner'])
         ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
-        ->assertSessionHas('error');
+        ->assertInertiaFlash('toast.type', 'error');
 
     expect(EInvoiceSubmission::where('folio_id', $setup['folio']->id)->exists())->toBeFalse();
 });
@@ -370,7 +383,7 @@ it('refuses submission if foreign guest lacks a passport number', function () {
 
     $this->actingAs($setup['owner'])
         ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
-        ->assertSessionHas('error');
+        ->assertInertiaFlash('toast.type', 'error');
 
     expect(EInvoiceSubmission::where('folio_id', $setup['folio']->id)->exists())->toBeFalse();
 });
@@ -504,4 +517,200 @@ it('does not submit a folio while the feature is off, so checkout auto-submit st
 
     expect($result->ok)->toBeFalse()
         ->and(EInvoiceSubmission::query()->count())->toBe(0);
+});
+
+it('lets staff resubmit a folio after LHDN rejected its e-invoice', function () {
+    $setup = submissionSetup();
+    MockMyInvoisClient::$documentDetailsOverride = fn (string $uuid): array => ['uuid' => $uuid, 'status' => 'Invalid'];
+
+    $rejected = submitSetupFolio($setup);
+    expect($rejected->status)->toBe(EInvoiceStatus::Invalid);
+
+    MockMyInvoisClient::resetOverrides();
+    submitSetupFolio($setup);
+
+    expect(EInvoiceSubmission::query()->where('folio_id', $setup['folio']->id)->pluck('status')->all())
+        ->toBe([EInvoiceStatus::Invalid, EInvoiceStatus::Valid]);
+});
+
+it('refuses an individual e-invoice for a stay already in a consolidated batch', function () {
+    $setup = submissionSetup();
+    $batch = EInvoiceSubmission::factory()->for($setup['property'])->create([
+        'scenario' => EInvoiceScenario::Consolidation,
+        'is_consolidated' => true,
+        'status' => EInvoiceStatus::Valid,
+    ]);
+    $batch->folios()->attach($setup['folio']->id);
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
+        ->assertInertiaFlash('toast.type', 'error');
+
+    expect(EInvoiceSubmission::query()->where('folio_id', $setup['folio']->id)->exists())->toBeFalse();
+});
+
+it('sends a three-letter buyer country on a credit note for a front-desk e-invoice', function () {
+    $setup = submissionSetup();
+
+    $this->actingAs($setup['owner'])->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice", [
+        'buyer_snapshot' => [
+            'name' => 'Ahmad Razak', 'tin' => 'IG1234567890', 'id_type' => 'NRIC', 'id_value' => '900101125555',
+            'email' => 'ahmad@example.my', 'phone' => '+60123456789', 'address_line1' => 'Jalan Ampang',
+            'city' => 'Kuala Lumpur', 'postal_code' => '50450', 'state_code' => '14', 'country_code' => 'MY',
+        ],
+    ])->assertInertiaFlash('toast.type', 'success');
+    $original = EInvoiceSubmission::query()->where('folio_id', $setup['folio']->id)->firstOrFail();
+
+    $this->post("/p/{$setup['property']->code}/finance/e-invoices/{$original->id}/credit-note", [
+        'credit_note_number' => 'CN-2026-002', 'amount' => '10.00', 'reason' => 'Late checkout fee waived',
+    ])->assertInertiaFlash('toast.type', 'success');
+
+    $creditNote = EInvoiceSubmission::query()->where('original_submission_id', $original->id)->firstOrFail();
+    $country = $creditNote->document_payload['Invoice'][0]['AccountingCustomerParty'][0]['Party'][0]['PostalAddress'][0]['Country'][0]['IdentificationCode'][0]['_'];
+
+    expect($original->buyer_snapshot['country_code'])->toBe('MYS')
+        ->and($country)->toBe('MYS');
+});
+
+it('shows the LHDN error when a status refresh fails', function () {
+    $setup = submissionSetup();
+    $submission = EInvoiceSubmission::factory()->for($setup['property'])->create([
+        'folio_id' => $setup['folio']->id,
+        'scenario' => EInvoiceScenario::Folio,
+        'status' => EInvoiceStatus::Submitted,
+        'uuid' => 'MOCK-UUID-1',
+    ]);
+    MockMyInvoisClient::$documentDetailsOverride = fn (string $uuid): array => throw new MyInvoisApiException('It seems that you are not authorized to get document details', 403);
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}/refresh")
+        ->assertInertiaFlash('toast.type', 'error')
+        ->assertInertiaFlash('toast.description', 'It seems that you are not authorized to get document details');
+
+    expect($submission->fresh()->status)->toBe(EInvoiceStatus::Submitted);
+});
+
+it('lists the reasons from LHDN validation steps on a rejected e-invoice', function () {
+    $submission = EInvoiceSubmission::factory()->make([
+        'error_details' => ['validationResults' => ['status' => 'Invalid', 'validationSteps' => [
+            ['status' => 'Valid', 'name' => 'Step04-Code Field Validator'],
+            ['status' => 'Invalid', 'name' => 'Step05-Taxpayer Profile Validator', 'error' => [
+                'error' => 'Step05-Invalid Taxpayer Profile Validator',
+                'innerError' => [['errorCode' => 'ERR206', 'error' => 'NRIC/ARMY mismatch or not exist in HITS']],
+            ]],
+        ]]],
+    ]);
+
+    expect($submission->errorMessages())->toBe(['NRIC/ARMY mismatch or not exist in HITS']);
+});
+
+it('shows a hotel manager the e-invoice in plain terms, without the LHDN payload', function () {
+    $setup = submissionSetup();
+    $submission = submitSetupFolio($setup);
+
+    $this->actingAs($setup['owner'])
+        ->get("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('finance/e-invoices/show')
+            ->where('submission.status.value', 'valid')
+            ->where('submission.amounts.total', '350.00')
+            ->where('submission.buyer.name', 'Ahmad Razak')
+            ->where('submission.reservation.folio_id', $setup['folio']->id)
+            ->where('submission.can_credit_note', true)
+            ->missing('submission.document_payload')
+            ->missing('submission.raw_response')
+            ->missing('submission.submission_uid')
+            ->etc());
+});
+
+it('masks the buyer ID and explains an LHDN rejection with a fix', function () {
+    $setup = submissionSetup();
+    $submission = EInvoiceSubmission::factory()->for($setup['property'])->create([
+        'folio_id' => $setup['folio']->id,
+        'scenario' => EInvoiceScenario::Folio,
+        'status' => EInvoiceStatus::Invalid,
+        'buyer_snapshot' => ['name' => 'Test Guest', 'tin' => 'IG12345678900', 'id_type' => 'NRIC', 'id_value' => '900101125555', 'city' => 'Kota Kinabalu'],
+        'error_details' => ['validationResults' => ['status' => 'Invalid', 'validationSteps' => [
+            ['status' => 'Invalid', 'name' => 'Step05-Taxpayer Profile Validator', 'error' => ['innerError' => [
+                ['errorCode' => 'ERR206', 'error' => 'NRIC/ARMY mismatch or not exist in HITS Please refer to https://sdk.myinvois.hasil.gov.my/x'],
+            ]]],
+            ['status' => 'Invalid', 'name' => 'Step04-Code Field Validator', 'error' => ['innerError' => [
+                ['errorCode' => 'XX999', 'error' => 'Something new Please refer to https://sdk.myinvois.hasil.gov.my/y'],
+            ]]],
+        ]]],
+    ]);
+
+    $this->actingAs($setup['owner'])
+        ->get("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}")
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('submission.buyer.id_label', 'IC (MyKad)')
+            ->where('submission.buyer.id_number', '•••• 5555')
+            ->where('submission.reasons', [
+                ['message' => "The guest's IC number does not match their tax number at LHDN.", 'fix' => 'Check the IC and tax number with the guest, then submit again.'],
+                ['message' => 'Something new', 'fix' => 'Check the buyer details, then submit again.'],
+            ])
+            ->etc());
+});
+
+it('finds e-invoices by the guest or company name and filters by type', function () {
+    $setup = submissionSetup();
+    $ahmad = EInvoiceSubmission::factory()->for($setup['property'])->create(['internal_id' => 'INV-1', 'buyer_snapshot' => ['name' => 'Ahmad Razak']]);
+    EInvoiceSubmission::factory()->for($setup['property'])->create(['internal_id' => 'INV-2', 'buyer_snapshot' => ['name' => 'Sabah Energy Sdn Bhd']]);
+    $summary = EInvoiceSubmission::factory()->for($setup['property'])->create(['internal_id' => 'CONS-1', 'is_consolidated' => true, 'scenario' => EInvoiceScenario::Consolidation]);
+
+    $this->actingAs($setup['owner'])
+        ->get("/p/{$setup['property']->code}/finance/e-invoices?search=ahmad")
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('submissions.data', 1)
+            ->where('submissions.data.0.id', $ahmad->id)
+            ->where('submissions.data.0.billed_to', 'Ahmad Razak')
+            ->etc());
+
+    $this->get("/p/{$setup['property']->code}/finance/e-invoices?type=summary")
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('submissions.data', 1)
+            ->where('submissions.data.0.id', $summary->id)
+            ->where('submissions.data.0.billed_to', 'General public')
+            ->etc());
+});
+
+it('emails the guest their e-invoice in the property wording, with the MyInvois link', function () {
+    Notification::fake();
+    $setup = submissionSetup();
+    $submission = submitSetupFolio($setup);
+    PropertyGuestEmail::factory()->for($setup['property'])->create([
+        'subject' => 'Receipt {invoice_number} from {hotel_name}',
+        'body' => "Hi {guest_name},\n\nYour e-invoice is {amount}.",
+    ]);
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}/email", ['to' => 'ahmad@example.my'])
+        ->assertInertiaFlash('toast.type', 'success');
+
+    Notification::assertSentOnDemand(EInvoiceForGuest::class, function (EInvoiceForGuest $mail, array $channels, object $notifiable) use ($setup, $submission): bool {
+        return $notifiable->routes['mail'] === 'ahmad@example.my'
+            && $mail->subject === "Receipt {$submission->internal_id} from {$setup['property']->name}"
+            && $mail->paragraphs === ['Hi Ahmad Razak,', 'Your e-invoice is MYR 350.00.']
+            && $mail->viewUrl === $submission->fresh()->validationUrl();
+    });
+    expect(Activity::query()->where('event', 'einvoice.emailed')->count())->toBe(1);
+});
+
+it('does not email an e-invoice LHDN has not accepted', function () {
+    Notification::fake();
+    $setup = submissionSetup();
+    $submission = EInvoiceSubmission::factory()->for($setup['property'])->create([
+        'folio_id' => $setup['folio']->id,
+        'scenario' => EInvoiceScenario::Folio,
+        'status' => EInvoiceStatus::Invalid,
+    ]);
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}/email", ['to' => 'ahmad@example.my'])
+        ->assertInertiaFlash('toast.type', 'error');
+
+    Notification::assertNothingSent();
+    expect(Activity::query()->where('event', 'einvoice.emailed')->count())->toBe(0);
 });

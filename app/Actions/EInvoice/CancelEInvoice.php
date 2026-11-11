@@ -23,19 +23,19 @@ class CancelEInvoice
         }
 
         if (trim($reason) === '') {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REASON_REQUIRED, __('A cancellation reason is required by LHDN.'));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REASON_REQUIRED, __('Enter a reason. LHDN keeps it with the e-invoice.'));
         }
 
         if (! $submission->isValid() || empty($submission->uuid)) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_NOT_CANCELLABLE, __('Only valid submissions with an LHDN UUID can be cancelled.'));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_NOT_CANCELLABLE, __('Only an e-invoice LHDN accepted can be cancelled.'));
         }
 
         if ($submission->cancellationDeadline() !== null && CarbonImmutable::now()->isAfter($submission->cancellationDeadline())) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_WINDOW_CLOSED, __('The 72-hour LHDN cancellation window has expired. Please issue a Credit Note instead.'));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_WINDOW_CLOSED, __('The 72 hours to cancel have passed. Issue a credit note instead.'));
         }
 
         if ($submission->adjustments()->where('status', '!=', EInvoiceStatus::Cancelled)->exists()) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REFERENCED_BY_ADJUSTMENT, __('This e-invoice is referenced by an active credit or debit note and cannot be cancelled directly.'));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REFERENCED_BY_ADJUSTMENT, __('A credit note corrects this e-invoice, so it cannot be cancelled. Cancel the credit note first.'));
         }
 
         return DB::transaction(function () use ($submission, $reason, $actor, $setting): EInvoiceResult {

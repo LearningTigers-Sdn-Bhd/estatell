@@ -4927,6 +4927,7 @@ export type GatewayRefundStatus = 'pending' | 'processed' | 'failed';
 export type Gender = 'male' | 'female';
 export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
+export type GuestEmail = 'e_invoice';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
 export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' | 'set_priority' | 'clear_priority' | 'add_remark' | 'needs_maintenance';
 export type HousekeepingReason = 'departed' | 'stay_over';

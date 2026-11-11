@@ -13,6 +13,7 @@ use App\Features\EInvoicing;
 use App\Features\Kiosks;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Notifications\GuestEmailText;
 use Laravel\Pennant\Feature;
 
 /**
@@ -163,14 +164,20 @@ class SettingsNavigation
                     active: request()->routeIs('settings.roles.*'),
                 ) : null,
             ]))),
-            new NavGroupData(label: __('System'), items: array_filter([
+            new NavGroupData(label: __('System'), items: array_values(array_filter([
                 $user->can(PermissionEnum::NotificationManage->value) ? new NavItemData(
                     title: __('Notifications'),
                     href: route('settings.notifications.index', ['property' => $property->code], absolute: false),
                     icon: 'bell',
                     active: request()->routeIs('settings.notifications.*'),
                 ) : null,
-            ])),
+                $user->can(PermissionEnum::SettingsManage->value) && app(GuestEmailText::class)->available($property) !== [] ? new NavItemData(
+                    title: __('Emails'),
+                    href: route('settings.emails.edit', ['property' => $property->code], absolute: false),
+                    icon: 'mail',
+                    active: request()->routeIs('settings.emails.*'),
+                ) : null,
+            ]))),
         ];
     }
 }

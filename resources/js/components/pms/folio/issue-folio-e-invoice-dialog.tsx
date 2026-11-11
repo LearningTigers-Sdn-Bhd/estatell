@@ -124,18 +124,17 @@ function IssueFolioEInvoiceForm({
             variant="sheet"
             open={open}
             onOpenChange={onOpenChange}
-            title="Issue statutory e-invoice"
-            description={`Submits folio ${folio.number ?? folio.name} to LHDN MyInvois for official CTC validation and legal stamping.`}
+            title="Issue e-invoice"
+            description={`Sends folio ${folio.number ?? folio.name} to LHDN as the guest's own e-invoice. Check the details with the guest first: LHDN rejects a tax number that does not match the IC or company registration.`}
             errors={errors}
             onSubmit={submit}
-            submitLabel="Submit to LHDN MyInvois"
+            submitLabel="Send to LHDN"
             processing={form.processing}
         >
             <FieldSet>
-                <FieldLegend>Guest / Buyer Tax Identity</FieldLegend>
+                <FieldLegend>Billed to</FieldLegend>
                 <FieldDescription>
-                    Statutory taxpayer identification transmitted on the
-                    e-invoice.
+                    The person or company named on the e-invoice.
                 </FieldDescription>
 
                 <Field data-invalid={!!errors['buyer_snapshot.name']}>

@@ -146,7 +146,7 @@ it('tests connection successfully with Mock environment', function () {
         ->from("/p/{$property->code}/settings/e-invoice")
         ->post("/p/{$property->code}/settings/e-invoice/test")
         ->assertRedirect("/p/{$property->code}/settings/e-invoice")
-        ->assertSessionHas('success');
+        ->assertInertiaFlash('toast.type', 'success');
 });
 
 it('requires confirmation when switching to production environment', function () {

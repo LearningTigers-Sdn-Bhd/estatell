@@ -182,6 +182,17 @@ class EInvoiceSubmission extends Model
     }
 
     /**
+     * Submissions that stand on LHDN or may still stand: not Cancelled and not rejected as Invalid. An Invalid
+     * document was never accepted, so it does not block a corrected resubmission.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->whereNotIn('status', [EInvoiceStatus::Cancelled, EInvoiceStatus::Invalid]);
+    }
+
+    /**
      * @param  Builder<self>  $query
      */
     public function scopeValid(Builder $query): void
@@ -276,6 +287,28 @@ class EInvoiceSubmission extends Model
                 if (! empty($detail['message'])) {
                     $messages[] = (string) $detail['message'];
                 }
+            }
+        }
+
+        if (! empty($messages)) {
+            return $messages;
+        }
+
+        // A document LHDN accepted and then failed in validation lists its reasons per validation step.
+        foreach (data_get($this->error_details, 'validationResults.validationSteps', []) as $step) {
+            if (($step['status'] ?? null) !== 'Invalid') {
+                continue;
+            }
+
+            $inner = data_get($step, 'error.innerError', []);
+            if (is_array($inner) && $inner !== []) {
+                foreach ($inner as $error) {
+                    if (! empty($error['error'])) {
+                        $messages[] = (string) $error['error'];
+                    }
+                }
+            } elseif (! empty(data_get($step, 'error.error'))) {
+                $messages[] = (string) data_get($step, 'error.error');
             }
         }
 

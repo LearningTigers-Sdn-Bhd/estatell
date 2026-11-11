@@ -124,7 +124,9 @@ class EInvoiceSettingsController extends Controller
 
         $saveAction($property, $validated, $request->user());
 
-        return back()->with('success', __('E-invoice settings have been updated successfully.'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice settings have been updated successfully.')]);
+
+        return back();
     }
 
     public function test(Property $property): RedirectResponse
@@ -135,7 +137,9 @@ class EInvoiceSettingsController extends Controller
 
         $setting = $property->eInvoiceSetting;
         if ($setting === null || ! $setting->isReadyToSubmit()) {
-            return back()->with('error', __('Please enter and save your MyInvois credentials first.'));
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Please enter and save your MyInvois credentials first.')]);
+
+            return back();
         }
 
         try {
@@ -144,9 +148,13 @@ class EInvoiceSettingsController extends Controller
                 $client->getAccessToken();
             }
 
-            return back()->with('success', __('MyInvois credentials verified successfully with LHDN!'));
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('MyInvois credentials verified successfully with LHDN!')]);
+
+            return back();
         } catch (MyInvoisApiException $e) {
-            return back()->with('error', "MyInvois connection test failed: {$e->getMessage()}");
+            Inertia::flash('toast', ['type' => 'error', 'message' => "MyInvois connection test failed: {$e->getMessage()}"]);
+
+            return back();
         }
     }
 }

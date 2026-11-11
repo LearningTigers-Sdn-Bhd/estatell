@@ -86,6 +86,7 @@ Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('/', [EInvoiceSubmissionsController::class, 'index'])->name('index');
         Route::get('{submission}', [EInvoiceSubmissionsController::class, 'show'])->name('show');
         Route::post('{submission}/refresh', [EInvoiceSubmissionsController::class, 'refresh'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('refresh');
+        Route::post('{submission}/email', [EInvoiceSubmissionsController::class, 'email'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('email');
         Route::post('{submission}/cancel', [EInvoiceSubmissionsController::class, 'cancel'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('cancel');
         Route::post('{submission}/credit-note', [EInvoiceSubmissionsController::class, 'creditNote'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('credit-note');
         Route::post('consolidate', [EInvoiceSubmissionsController::class, 'consolidate'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('consolidate');

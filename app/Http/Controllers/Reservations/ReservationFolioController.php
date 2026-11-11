@@ -282,14 +282,14 @@ class ReservationFolioController extends Controller
         $result = $submitAction($folio, $request->user(), $requestedByGuest, $buyerSnapshot);
 
         if (! $result->ok) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('Unable to submit e-invoice.')]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('The e-invoice was not sent.')]);
 
-            return back(fallback: $this->page($property, $reservation, $folio))->with('error', $result->message ?? __('Unable to submit e-invoice.'));
+            return back(fallback: $this->page($property, $reservation, $folio));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice submitted to LHDN MyInvois.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice sent to LHDN.')]);
 
-        return back(fallback: $this->page($property, $reservation, $folio))->with('success', __('E-invoice submitted to LHDN MyInvois.'));
+        return back(fallback: $this->page($property, $reservation, $folio));
     }
 
     public function cancelEInvoice(
@@ -309,14 +309,14 @@ class ReservationFolioController extends Controller
         $result = $cancelAction($submission, $request->string('reason'), $request->user());
 
         if (! $result->ok) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('Unable to cancel e-invoice.')]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('The e-invoice was not cancelled.')]);
 
-            return back(fallback: $this->page($property, $reservation, $folio))->with('error', $result->message ?? __('Unable to cancel e-invoice.'));
+            return back(fallback: $this->page($property, $reservation, $folio));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice has been cancelled.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice cancelled.')]);
 
-        return back(fallback: $this->page($property, $reservation, $folio))->with('success', __('E-invoice has been cancelled.'));
+        return back(fallback: $this->page($property, $reservation, $folio));
     }
 
     private function page(Property $property, Reservation $reservation, Folio $folio): string

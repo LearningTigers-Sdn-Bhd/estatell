@@ -39,11 +39,11 @@ class SubmitArEInvoice
         $existing = EInvoiceSubmission::query()
             ->where('ar_invoice_id', $invoice->id)
             ->where('document_type', EInvoiceDocumentType::Invoice)
-            ->where('status', '!=', EInvoiceStatus::Cancelled)
+            ->active()
             ->first();
 
         if ($existing !== null) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('An active e-invoice already exists for this AR invoice.'));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('This invoice already has an e-invoice.'));
         }
 
         try {
@@ -100,7 +100,13 @@ class SubmitArEInvoice
                     $submission->status = EInvoiceStatus::Submitted;
                     $submission->save();
 
-                    $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    // LHDN often refuses a status read for the first seconds while it validates. The queued
+                    // refresh below tries again, so an error here leaves the document Submitted.
+                    try {
+                        $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    } catch (MyInvoisApiException) {
+                        $refreshed = $submission;
+                    }
 
                     // LHDN validates in the background, so keep checking until it answers.
                     if ($refreshed->status === EInvoiceStatus::Submitted) {

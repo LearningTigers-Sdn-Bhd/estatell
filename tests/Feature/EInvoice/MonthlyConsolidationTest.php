@@ -98,7 +98,7 @@ it('consolidates unconsolidated folios from previous month into a batch submissi
             'month' => $lastMonth->format('Y-m'),
         ])
         ->assertRedirect("/p/{$setup['property']->code}/finance/e-invoices")
-        ->assertSessionHas('success');
+        ->assertInertiaFlash('toast.type', 'success');
 
     $consolidated = EInvoiceSubmission::where('property_id', $setup['property']->id)
         ->where('is_consolidated', true)
@@ -189,4 +189,64 @@ it('excludes folios that were already individually submitted to LHDN', function 
 
     // No folios remain eligible for consolidation
     expect($results)->toBeEmpty();
+});
+
+it('consolidates a closed folio whose payments brought its balance to 0', function () {
+    $setup = consolidationSetup();
+    $lastMonth = CarbonImmutable::now()->subMonth();
+    $guest = Guest::factory()->for($setup['property'])->create();
+    $folio = Folio::factory()->for($setup['property'])->closed()->create([
+        'reservation_id' => Reservation::factory()->for($setup['property'])->create(['booker_guest_id' => $guest->id])->id,
+        'payer_guest_id' => $guest->id,
+        'type' => FolioType::Master,
+        'closed_at' => $lastMonth->startOfMonth()->addDays(3),
+    ]);
+    $postingDate = $lastMonth->startOfMonth()->addDays(2)->toDateString();
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $setup['chargeCode']->id, 'kind' => TransactionKind::Charge, 'amount' => '200.00', 'posting_date' => $postingDate]);
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $setup['chargeCode']->id, 'kind' => TransactionKind::Tax, 'amount' => '16.00', 'posting_date' => $postingDate]);
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $setup['chargeCode']->id, 'kind' => TransactionKind::Payment, 'amount' => '-216.00', 'posting_date' => $postingDate]);
+
+    $batches = app(ConsolidateMonthlyEInvoices::class)($setup['property'], $lastMonth);
+
+    expect($batches)->toHaveCount(1)
+        ->and($batches[0]->totalAmount())->toBe(216.0);
+});
+
+it('lets the next run consolidate stays from a batch LHDN rejected', function () {
+    $setup = consolidationSetup();
+    $lastMonth = CarbonImmutable::now()->subMonth();
+    $guest = Guest::factory()->for($setup['property'])->create();
+    $folio = Folio::factory()->for($setup['property'])->closed()->create([
+        'reservation_id' => Reservation::factory()->for($setup['property'])->create(['booker_guest_id' => $guest->id])->id,
+        'payer_guest_id' => $guest->id,
+        'type' => FolioType::Master,
+        'closed_at' => $lastMonth->startOfMonth()->addDays(3),
+    ]);
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $setup['chargeCode']->id, 'kind' => TransactionKind::Charge, 'amount' => '200.00', 'posting_date' => $lastMonth->startOfMonth()->addDays(2)->toDateString()]);
+    $rejected = EInvoiceSubmission::factory()->for($setup['property'])->create(['scenario' => EInvoiceScenario::Consolidation, 'is_consolidated' => true, 'status' => EInvoiceStatus::Invalid]);
+    $rejected->folios()->attach($folio->id);
+
+    $batches = app(ConsolidateMonthlyEInvoices::class)($setup['property'], $lastMonth);
+
+    expect($batches)->toHaveCount(1)
+        ->and($batches[0]->folios()->pluck('folios.id')->all())->toBe([$folio->id]);
+});
+
+it('consolidates the chosen month even late in the current month', function () {
+    $setup = consolidationSetup();
+    $this->travelTo(CarbonImmutable::parse('2026-11-30 10:00', 'Asia/Kuala_Lumpur'));
+    $guest = Guest::factory()->for($setup['property'])->create();
+    $folio = Folio::factory()->for($setup['property'])->closed()->create([
+        'reservation_id' => Reservation::factory()->for($setup['property'])->create(['booker_guest_id' => $guest->id])->id,
+        'payer_guest_id' => $guest->id,
+        'type' => FolioType::Master,
+        'closed_at' => CarbonImmutable::parse('2026-02-10 12:00'),
+    ]);
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $setup['chargeCode']->id, 'kind' => TransactionKind::Charge, 'amount' => '120.00', 'posting_date' => '2026-02-09']);
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/finance/e-invoices/consolidate", ['month' => '2026-02'])
+        ->assertInertiaFlash('toast.type', 'success');
+
+    expect(EInvoiceSubmission::query()->where('is_consolidated', true)->first()?->folios()->pluck('folios.id')->all())->toBe([$folio->id]);
 });

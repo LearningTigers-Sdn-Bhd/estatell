@@ -44,7 +44,7 @@ class ConsolidateMonthlyEInvoices
             ->where('property_id', $property->id)
             ->where('document_type', EInvoiceDocumentType::Invoice)
             ->where('is_consolidated', false)
-            ->where('status', '!=', EInvoiceStatus::Cancelled)
+            ->active()
             ->whereNotNull('folio_id')
             ->pluck('folio_id')
             ->all();
@@ -53,7 +53,7 @@ class ConsolidateMonthlyEInvoices
         $alreadyConsolidatedFolioIds = DB::table('e_invoice_submission_folios')
             ->join('e_invoice_submissions', 'e_invoice_submissions.id', '=', 'e_invoice_submission_folios.submission_id')
             ->where('e_invoice_submissions.property_id', $property->id)
-            ->where('e_invoice_submissions.status', '!=', EInvoiceStatus::Cancelled->value)
+            ->whereNotIn('e_invoice_submissions.status', [EInvoiceStatus::Cancelled->value, EInvoiceStatus::Invalid->value])
             ->pluck('e_invoice_submission_folios.folio_id')
             ->all();
 
@@ -156,7 +156,13 @@ class ConsolidateMonthlyEInvoices
                     $submission->status = EInvoiceStatus::Submitted;
                     $submission->save();
 
-                    $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    // LHDN often refuses a status read for the first seconds while it validates. The queued
+                    // refresh below tries again, so an error here leaves the document Submitted.
+                    try {
+                        $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    } catch (MyInvoisApiException) {
+                        $refreshed = $submission;
+                    }
 
                     // LHDN validates in the background, so keep checking until it answers.
                     if ($refreshed->status === EInvoiceStatus::Submitted) {

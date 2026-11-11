@@ -35,11 +35,11 @@ class IssueEInvoiceCreditNote
         }
 
         if (! $originalSubmission->isValid() || empty($originalSubmission->uuid)) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ORIGINAL_NOT_VALID, __('Cannot issue Credit Note: the original e-invoice is not in Valid status or is missing an LHDN UUID.'));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ORIGINAL_NOT_VALID, __('A credit note needs an e-invoice LHDN accepted.'));
         }
 
         if (trim($reason) === '') {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REASON_REQUIRED, __('A reason is required to issue a credit note.'));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REASON_REQUIRED, __('Enter a reason for the credit note.'));
         }
 
         try {
@@ -97,7 +97,13 @@ class IssueEInvoiceCreditNote
                     $submission->status = EInvoiceStatus::Submitted;
                     $submission->save();
 
-                    $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    // LHDN often refuses a status read for the first seconds while it validates. The queued
+                    // refresh below tries again, so an error here leaves the document Submitted.
+                    try {
+                        $refreshed = ($this->refreshEInvoiceStatus)($submission);
+                    } catch (MyInvoisApiException) {
+                        $refreshed = $submission;
+                    }
 
                     // LHDN validates in the background, so keep checking until it answers.
                     if ($refreshed->status === EInvoiceStatus::Submitted) {

@@ -16,7 +16,7 @@ enum EInvoiceStatus: string
         return match ($this) {
             self::Draft => __('Draft'),
             self::Pending => __('Preparing'),
-            self::Submitted => __('Submitted'),
+            self::Submitted => __('Being checked'),
             self::Valid => __('Valid'),
             self::Invalid => __('Rejected'),
             self::Cancelled => __('Cancelled'),

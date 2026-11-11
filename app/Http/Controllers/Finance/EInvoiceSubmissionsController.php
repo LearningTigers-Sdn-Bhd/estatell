@@ -4,154 +4,93 @@ namespace App\Http\Controllers\Finance;
 
 use App\Actions\EInvoice\CancelEInvoice;
 use App\Actions\EInvoice\ConsolidateMonthlyEInvoices;
+use App\Actions\EInvoice\EmailEInvoiceToGuest;
 use App\Actions\EInvoice\IssueEInvoiceCreditNote;
 use App\Actions\EInvoice\RefreshEInvoiceStatus;
-use App\Enums\EInvoiceScenario;
+use App\Data\Property\CurrencyData;
+use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceStatus;
+use App\Enums\PermissionEnum;
 use App\Features\EInvoicing;
 use App\Http\Controllers\Controller;
 use App\Models\EInvoiceSubmission;
 use App\Models\Property;
+use App\Services\EInvoice\MyInvoisApiException;
+use App\Services\EInvoice\SubmissionView;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Pennant\Feature;
 
 class EInvoiceSubmissionsController extends Controller
 {
-    public function index(Property $property, Request $request): Response
+    public function index(Property $property, Request $request, SubmissionView $view): Response
     {
-        if (! Feature::for($property)->active(EInvoicing::class)) {
-            abort(404);
-        }
-
-        $query = $property->eInvoiceSubmissions()
-            ->with(['folio.reservation', 'arInvoice.company', 'originalSubmission'])
-            ->recentFirst();
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->string('status'));
-        }
-
-        if ($request->filled('scenario')) {
-            $query->where('scenario', $request->string('scenario'));
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->string('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('internal_id', 'ilike', "%{$search}%")
-                    ->orWhere('uuid', 'ilike', "%{$search}%")
-                    ->orWhere('submission_uid', 'ilike', "%{$search}%");
-            });
-        }
-
-        $submissions = $query->paginate(25)->withQueryString()->through(fn (EInvoiceSubmission $sub): array => [
-            'id' => $sub->id,
-            'internal_id' => $sub->internal_id,
-            'uuid' => $sub->uuid,
-            'submission_uid' => $sub->submission_uid,
-            'document_type' => $sub->document_type->value,
-            'document_type_label' => $sub->document_type->label(),
-            'document_type_short' => $sub->document_type->shortLabel(),
-            'scenario' => $sub->scenario->value,
-            'scenario_label' => $sub->scenario->label(),
-            'status' => $sub->status->value,
-            'status_label' => $sub->status->label(),
-            'status_tone' => $sub->status->tone()->value,
-            'is_consolidated' => $sub->is_consolidated,
-            'requested_by_guest' => $sub->requested_by_guest,
-            'is_cancellable' => $sub->isCancellable(),
-            'is_retryable' => $sub->isRetryable(),
-            'cancellation_deadline' => $sub->cancellationDeadline()?->toIso8601String(),
-            'validation_url' => $sub->validationUrl(),
-            'buyer_name' => $sub->buyer_snapshot['name'] ?? 'Buyer',
-            'buyer_tin' => $sub->buyer_snapshot['tin'] ?? '',
-            'submitted_at' => $sub->submitted_at?->toIso8601String(),
-            'validated_at' => $sub->validated_at?->toIso8601String(),
-            'cancelled_at' => $sub->cancelled_at?->toIso8601String(),
-            'created_at' => $sub->created_at?->toIso8601String(),
-            'errors' => $sub->errorMessages(),
-            'folio_number' => $sub->folio?->number,
-            'ar_invoice_number' => $sub->arInvoice?->number,
-        ]);
-
-        $stats = [
-            'total' => $property->eInvoiceSubmissions()->count(),
-            'valid' => $property->eInvoiceSubmissions()->where('status', EInvoiceStatus::Valid)->count(),
-            'invalid' => $property->eInvoiceSubmissions()->where('status', EInvoiceStatus::Invalid)->count(),
-            'pending' => $property->eInvoiceSubmissions()->whereIn('status', [EInvoiceStatus::Pending, EInvoiceStatus::Submitted])->count(),
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'type' => (string) $request->query('type', ''),
+            'status' => (string) $request->query('status', ''),
         ];
 
+        $query = $property->eInvoiceSubmissions()
+            ->with(['property.settings', 'folio.reservation', 'arInvoice.company'])
+            ->withCount('folios')
+            ->recentFirst();
+
+        if (EInvoiceStatus::tryFrom($filters['status']) !== null) {
+            $query->where('status', $filters['status']);
+        }
+
+        match ($filters['type']) {
+            'summary' => $query->where('is_consolidated', true),
+            'credit_note' => $query->where('document_type', EInvoiceDocumentType::CreditNote),
+            'invoice' => $query->where('is_consolidated', false)->where('document_type', EInvoiceDocumentType::Invoice),
+            default => null,
+        };
+
+        if ($filters['search'] !== '') {
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $filters['search']).'%';
+            $query->where(fn ($q) => $q
+                ->where('internal_id', 'ilike', $like)
+                ->orWhereRaw("buyer_snapshot->>'name' ilike ?", [$like])
+                ->orWhereHas('folio.reservation', fn ($r) => $r->where('reference', 'ilike', $like))
+                ->orWhereHas('arInvoice', fn ($a) => $a->where('number', 'ilike', $like)));
+        }
+
+        $submissions = $query->paginate(25)->withQueryString()->through(fn (EInvoiceSubmission $sub): array => $view->row($sub));
+
         return Inertia::render('finance/e-invoices/index', [
-            'submissions' => $submissions,
-            'filters' => $request->only(['status', 'scenario', 'search']),
-            'sort' => $request->string('sort')->toString(),
-            'statusOptions' => EInvoiceStatus::options(),
-            'scenarioOptions' => EInvoiceScenario::options(),
-            'stats' => $stats,
-            'setting' => [
-                'enabled' => $property->eInvoiceSetting->enabled ?? false,
-                'environment' => $property->eInvoiceSetting->api_environment->value ?? 'sandbox',
-                'consolidation_enabled' => $property->eInvoiceSetting->consolidation_enabled ?? false,
+            'submissions' => [
+                'data' => $submissions->items(),
+                'links' => $submissions->linkCollection()->toArray(),
+                'meta' => Arr::except($submissions->toArray(), ['data', 'links']),
             ],
+            'filters' => $filters,
+            'types' => [
+                ['value' => 'invoice', 'label' => __('E-invoice')],
+                ['value' => 'credit_note', 'label' => __('Credit note')],
+                ['value' => 'summary', 'label' => __('Monthly summary')],
+            ],
+            'statuses' => array_values(array_filter(EInvoiceStatus::options(), fn (array $option): bool => $option['value'] !== EInvoiceStatus::Draft->value)),
+            'rejected' => $property->eInvoiceSubmissions()->where('status', EInvoiceStatus::Invalid)->count(),
+            'canRunSummary' => ($property->eInvoiceSetting->consolidation_enabled ?? false) && $request->user()->can(PermissionEnum::EInvoiceManage->value),
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
-    public function show(Property $property, EInvoiceSubmission $submission): Response
+    public function show(Property $property, EInvoiceSubmission $submission, SubmissionView $view): Response
     {
         if (! Feature::for($property)->active(EInvoicing::class) || $submission->property_id !== $property->id) {
             abort(404);
         }
 
-        $submission->load(['folio.reservation', 'arInvoice.company', 'originalSubmission', 'adjustments']);
-
         return Inertia::render('finance/e-invoices/show', [
-            'submission' => [
-                'id' => $submission->id,
-                'internal_id' => $submission->internal_id,
-                'uuid' => $submission->uuid,
-                'submission_uid' => $submission->submission_uid,
-                'long_id' => $submission->long_id,
-                'document_type' => $submission->document_type->value,
-                'document_type_label' => $submission->document_type->label(),
-                'scenario' => $submission->scenario->value,
-                'scenario_label' => $submission->scenario->label(),
-                'status' => $submission->status->value,
-                'status_label' => $submission->status->label(),
-                'status_tone' => $submission->status->tone()->value,
-                'is_consolidated' => $submission->is_consolidated,
-                'requested_by_guest' => $submission->requested_by_guest,
-                'cancel_reason' => $submission->cancel_reason,
-                'is_cancellable' => $submission->isCancellable(),
-                'cancellation_deadline' => $submission->cancellationDeadline()?->toIso8601String(),
-                'validation_url' => $submission->validationUrl(),
-                'buyer_snapshot' => $submission->buyer_snapshot,
-                'document_payload' => $submission->document_payload,
-                'raw_response' => $submission->raw_response,
-                'error_details' => $submission->error_details,
-                'error_messages' => $submission->errorMessages(),
-                'submitted_at' => $submission->submitted_at?->toIso8601String(),
-                'validated_at' => $submission->validated_at?->toIso8601String(),
-                'cancelled_at' => $submission->cancelled_at?->toIso8601String(),
-                'created_at' => $submission->created_at?->toIso8601String(),
-                'folio_number' => $submission->folio?->number,
-                'ar_invoice_number' => $submission->arInvoice?->number,
-                'original_submission' => $submission->originalSubmission ? [
-                    'id' => $submission->originalSubmission->id,
-                    'internal_id' => $submission->originalSubmission->internal_id,
-                    'uuid' => $submission->originalSubmission->uuid,
-                ] : null,
-                'adjustments' => $submission->adjustments->map(fn ($adj) => [
-                    'id' => $adj->id,
-                    'internal_id' => $adj->internal_id,
-                    'uuid' => $adj->uuid,
-                    'status' => $adj->status->value,
-                    'status_label' => $adj->status->label(),
-                ]),
-            ],
+            'submission' => $view->for($submission),
+            'currency' => CurrencyData::forProperty($property),
+            'canEditEmail' => request()->user()->can(PermissionEnum::SettingsManage->value),
         ]);
     }
 
@@ -161,9 +100,31 @@ class EInvoiceSubmissionsController extends Controller
             abort(404);
         }
 
-        $refreshAction($submission);
+        try {
+            $refreshed = $refreshAction($submission);
+        } catch (MyInvoisApiException $e) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('LHDN did not answer. Try again in a minute.'), 'description' => $e->getMessage()]);
 
-        return back()->with('success', __('E-invoice status refreshed from LHDN MyInvois.'));
+            return back();
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice status: :status.', ['status' => $refreshed->status->label()])]);
+
+        return back();
+    }
+
+    public function email(Property $property, EInvoiceSubmission $submission, Request $request, EmailEInvoiceToGuest $emailAction): RedirectResponse
+    {
+        abort_unless($submission->property_id === $property->id, 404);
+
+        $validated = $request->validate(['to' => ['required', 'email:rfc', 'max:255']]);
+        $result = $emailAction($submission, $validated['to'], $request->user());
+
+        Inertia::flash('toast', $result->ok
+            ? ['type' => 'success', 'message' => __('E-invoice emailed to :email.', ['email' => $validated['to']])]
+            : ['type' => 'error', 'message' => $result->message ?? __('The e-invoice was not emailed.')]);
+
+        return back();
     }
 
     public function cancel(Property $property, EInvoiceSubmission $submission, Request $request, CancelEInvoice $cancelAction): RedirectResponse
@@ -179,10 +140,14 @@ class EInvoiceSubmissionsController extends Controller
         $result = $cancelAction($submission, $validated['reason'], $request->user());
 
         if (! $result->ok) {
-            return back()->with('error', $result->message ?? __('Unable to cancel e-invoice.'));
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('The e-invoice was not cancelled.')]);
+
+            return back();
         }
 
-        return back()->with('success', __('E-invoice has been successfully cancelled on LHDN.'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice cancelled.')]);
+
+        return back();
     }
 
     public function creditNote(
@@ -210,10 +175,14 @@ class EInvoiceSubmissionsController extends Controller
         );
 
         if (! $result->ok) {
-            return back()->with('error', $result->message ?? __('Unable to issue e-invoice credit note.'));
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('The credit note was not sent.')]);
+
+            return back();
         }
 
-        return back()->with('success', __('E-invoice credit note has been submitted to LHDN.'));
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Credit note sent to LHDN.')]);
+
+        return back();
     }
 
     public function consolidate(Property $property, Request $request, ConsolidateMonthlyEInvoices $consolidateAction): RedirectResponse
@@ -227,17 +196,21 @@ class EInvoiceSubmissionsController extends Controller
         ]);
 
         $monthDate = $request->filled('month')
-            ? CarbonImmutable::createFromFormat('Y-m', $request->string('month'))
+            ? CarbonImmutable::createFromFormat('!Y-m', $request->string('month'), 'Asia/Kuala_Lumpur')
             : CarbonImmutable::now('Asia/Kuala_Lumpur')->subMonth();
 
         $submissions = $consolidateAction($property, $monthDate, $request->user());
 
         if (empty($submissions)) {
-            return back()->with('info', __('No unconsolidated folios were found for this period.'));
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('No stays to send for that month. They are filed already, or none closed.')]);
+
+            return back();
         }
 
         $count = count($submissions);
 
-        return back()->with('success', __("Successfully created {$count} consolidated e-invoice submission(s)."));
+        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice('Monthly summary sent to LHDN.|Monthly summary sent to LHDN in :count parts.', $count, ['count' => $count])]);
+
+        return back();
     }
 }

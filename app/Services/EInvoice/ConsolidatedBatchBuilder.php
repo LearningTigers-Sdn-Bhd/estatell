@@ -2,6 +2,7 @@
 
 namespace App\Services\EInvoice;
 
+use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
@@ -309,11 +310,15 @@ class ConsolidatedBatchBuilder
         ];
     }
 
+    /**
+     * What the stay cost the guest: charges, adjustments and taxes that were not reversed. Payments are left out,
+     * because a closed folio's payments always bring its balance to 0.
+     */
     public static function calculateFolioGrossAmount(Folio $folio): float
     {
         $sum = BigDecimal::zero();
         foreach ($folio->lines as $line) {
-            if ($line->reversal_of_id === null && $line->reversal === null) {
+            if ($line->kind !== TransactionKind::Payment && $line->reversal_of_id === null && $line->reversal === null) {
                 $sum = $sum->plus($line->amount);
             }
         }

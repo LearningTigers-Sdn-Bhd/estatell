@@ -53,7 +53,8 @@ class FolioDocumentBuilder
      *     document: string,
      *     documentHash: string,
      *     codeNumber: string,
-     *     payload: array<string, mixed>
+     *     payload: array<string, mixed>,
+     *     buyer: array<string, mixed>
      * }
      */
     public function build(): array
@@ -69,6 +70,7 @@ class FolioDocumentBuilder
             'documentHash' => hash('sha256', $payloadJson),
             'codeNumber' => $this->internalId(),
             'payload' => $payload,
+            'buyer' => $this->resolveBuyer(),
         ];
     }
 
@@ -110,7 +112,8 @@ class FolioDocumentBuilder
      */
     private function resolveBuyer(): array
     {
-        $buyer = $this->buyerSnapshot ?? BuyerResolver::forFolio($this->folio);
+        $optionalFields = ['tin' => '', 'sst_registration' => null, 'email' => '', 'phone' => '', 'address_line1' => 'NA', 'address_line2' => '', 'postal_code' => '', 'state_code' => ''];
+        $buyer = array_merge($optionalFields, array_filter($this->buyerSnapshot ?? BuyerResolver::forFolio($this->folio), fn ($value): bool => $value !== null));
         $countryCode = BuyerResolver::lhdnCountryCode($buyer['country_code'] ?? null);
         $isDomestic = $countryCode === 'MYS';
 
