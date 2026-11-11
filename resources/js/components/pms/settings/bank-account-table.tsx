@@ -1,4 +1,5 @@
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, Banknote } from 'lucide-react';
+import { EmptyState } from '@/components/pms/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -53,6 +54,17 @@ export function BankAccountTable({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
+                    {bankAccounts.length === 0 && (
+                        <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={6}>
+                                <EmptyState
+                                    icon={Banknote}
+                                    title="No bank accounts yet."
+                                    description="Add the accounts companies transfer to."
+                                />
+                            </TableCell>
+                        </TableRow>
+                    )}
                     {bankAccounts.map((bankAccount) => {
                         const activePosition = activePositions.get(
                             bankAccount.id,

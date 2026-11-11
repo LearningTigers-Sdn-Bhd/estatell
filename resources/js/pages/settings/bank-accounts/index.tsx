@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { Banknote, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
 import {
     BankAccountForm,
@@ -81,13 +80,6 @@ export default function BankAccountsIndex({
             );
     };
 
-    const addButton = (
-        <Button onClick={() => setEditing(null)}>
-            <Plus data-icon="inline-start" />
-            Add account
-        </Button>
-    );
-
     return (
         <>
             <Head title="Bank accounts" />
@@ -96,25 +88,21 @@ export default function BankAccountsIndex({
                 <PageHeader
                     title="Bank accounts"
                     description="Companies see available accounts in the portal. Documents print them too."
-                    actions={addButton}
+                    actions={
+                        <Button onClick={() => setEditing(null)}>
+                            <Plus data-icon="inline-start" />
+                            Add account
+                        </Button>
+                    }
                 />
 
-                {bankAccounts.length === 0 ? (
-                    <EmptyState
-                        icon={Banknote}
-                        title="No bank accounts"
-                        description="Add the accounts companies transfer to."
-                        action={addButton}
-                    />
-                ) : (
-                    <BankAccountTable
-                        bankAccounts={sorted}
-                        onEdit={setEditing}
-                        onMove={move}
-                        onToggleActive={toggleActive}
-                        togglingIds={togglingIds}
-                    />
-                )}
+                <BankAccountTable
+                    bankAccounts={sorted}
+                    onEdit={setEditing}
+                    onMove={move}
+                    onToggleActive={toggleActive}
+                    togglingIds={togglingIds}
+                />
             </div>
 
             <Sheet

@@ -53,7 +53,7 @@ Available  Bank        Account name              Number · SWIFT
 - **Available** is a Switch in the first column and saves at once.
 - Up and down arrow buttons move available accounts.
 - **Add account** and **Edit** open a Sheet: Bank name, Account name, Account number, SWIFT code (optional, "For agents paying from abroad").
-- An empty list shows "Add the accounts companies transfer to."
+- An empty list keeps the table header and shows "No bank accounts yet. Add the accounts companies transfer to." in one row, like Boat fares.
 
 ## Actions
 
