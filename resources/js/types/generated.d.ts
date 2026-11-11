@@ -412,6 +412,14 @@ required: boolean,
 };
 }
 namespace Catalogues {
+export type BankAccountData = {
+id: number,
+bankName: string,
+accountName: string,
+accountNumber: string,
+swiftCode: string | null,
+active: boolean,
+};
 export type ChargeItemChildPriceData = {
 ageGroupId: number,
 label: string,

@@ -38,7 +38,7 @@ payment_proofs           + bank_account_id (nullable, FK property_bank_accounts,
 
 ## UI
 
-Settings › Billing setup › **Bank accounts** (`settings.manage`, icon `banknote`), after Agent payments. The page copies [Payment methods](04-payment-methods.md):
+Settings › Billing setup › **Bank accounts** (`settings.manage`, icon `banknote`), after Agent payments. The page copies [Payment methods](04-payment-methods.md), without the search. The table and the Sheet form are `components/pms/settings/bank-account-table.tsx` and `bank-account-form.tsx`:
 
 ```
 Bank accounts                                                     [+ Add account]
@@ -57,10 +57,11 @@ Available  Bank        Account name              Number · SWIFT
 
 ## Actions
 
-| Action                | Does                                                                                                                                          |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SaveBankAccount`     | Adds or edits one account, including Available. A new one goes to the end; one turned on again too. Logs `bank_account.created` or `.updated` |
-| `ReorderBankAccounts` | Saves the order of the available accounts                                                                                                     |
+| Action                | Does                                                                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateBankAccount`   | Adds an account at the end of the available list. Logs `bank_account.created`                                                             |
+| `UpdateBankAccount`   | Saves an account, including Available. One turned on again goes to the end. Logs `bank_account.updated`, and nothing when nothing changed |
+| `ReorderBankAccounts` | Saves the order of the available accounts. Refuses a list that is not exactly them. Logs `bank_account.reordered`                         |
 
 `BankAccountRequest` validates the four fields, Available and the unique number per property. The Switch sends the account's fields with the new value, like Payment methods.
 
@@ -68,11 +69,11 @@ Available  Bank        Account name              Number · SWIFT
 
 All need `settings.manage`.
 
-| Route                                  | Name                            |
-| -------------------------------------- | ------------------------------- |
-| `GET /p/{code}/settings/bank-accounts` | `settings.bank-accounts.index`  |
-| `POST …/bank-accounts`                 | `settings.bank-accounts.store`  |
-| `PUT …/bank-accounts/order`            | `settings.bank-accounts.order`  |
-| `PUT …/bank-accounts/{bankAccount}`    | `settings.bank-accounts.update` |
+| Route                                  | Name                             |
+| -------------------------------------- | -------------------------------- |
+| `GET /p/{code}/settings/bank-accounts` | `settings.bank-accounts.index`   |
+| `POST …/bank-accounts`                 | `settings.bank-accounts.store`   |
+| `PUT …/bank-accounts/order`            | `settings.bank-accounts.reorder` |
+| `PUT …/bank-accounts/{bankAccount}`    | `settings.bank-accounts.update`  |
 
 `{bankAccount}` is scoped to the property in the URL; another property's account is a 404.
