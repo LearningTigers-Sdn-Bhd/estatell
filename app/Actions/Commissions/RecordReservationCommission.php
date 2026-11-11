@@ -30,16 +30,10 @@ class RecordReservationCommission
     public function __invoke(Reservation $reservation, CarbonImmutable $dueDate): void
     {
         foreach (CommissionService::cases() as $service) {
-            $ruleClass = $service->rule();
-
-            if ($ruleClass === null) {
-                continue;
-            }
-
             /** @var CommissionRule $rule */
-            $rule = app($ruleClass);
+            $rule = app($service->rule());
 
-            if ($rule->appliesTo($reservation)) {
+            if ($rule->appliesTo($reservation, $dueDate)) {
                 $this->record($reservation, $service, $rule, $dueDate);
             }
         }

@@ -7,6 +7,8 @@ use App\Models\Reservation;
 use App\Services\BookingEngine\OnlineBookingMoney;
 use App\Services\Folio\ReservationRoomRevenue;
 use Brick\Math\BigDecimal;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Booking engine commission: a reservation on the Booking Engine source whose payment Estatell collected. The base is the
@@ -20,7 +22,15 @@ class BookingEngineCommission implements CommissionRule
         private ReservationRoomRevenue $roomRevenue,
     ) {}
 
-    public function appliesTo(Reservation $reservation): bool
+    /**
+     * @return Builder<Reservation>
+     */
+    public function candidates(): Builder
+    {
+        return Reservation::query()->whereHas('bookingSource', fn (Builder $query) => $query->where('type', BookingSourceType::BookingEngine));
+    }
+
+    public function appliesTo(Reservation $reservation, CarbonImmutable $dueDate): bool
     {
         return $reservation->bookingSource->type === BookingSourceType::BookingEngine
             && $this->onlineBookingMoney->forReservation($reservation) !== null;

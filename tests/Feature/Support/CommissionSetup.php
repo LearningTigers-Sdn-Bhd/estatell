@@ -6,12 +6,19 @@ use App\Enums\GatewayRefundStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\BusinessDate;
+use App\Models\ChannelBookingRevision;
+use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\GatewayPayment;
 use App\Models\GatewayRefund;
+use App\Models\PlatformSetting;
+use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
+use App\Services\Platform\PlatformSettings;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * A confirmed online booking paid through the Curlec webhook: RM 200 for each room, a booked room total of RM 200 for each
@@ -89,4 +96,29 @@ function processedCommissionRefund(GatewayPayment $payment, string $amount): Gat
         'status' => GatewayRefundStatus::Processed,
         'gateway_refund_id' => 'rfnd_'.fake()->unique()->numerify('#####'),
     ]);
+}
+
+/**
+ * An OTA reservation with one unit (departing 2026-10-14) and a master folio, on a live property with an open business
+ * date of today. `fromChannex` adds the Channex revision that marks it as a channel manager booking.
+ */
+function channelCommissionReservation(bool $fromChannex = true): Reservation
+{
+    $property = Property::factory()->live()->create();
+    BusinessDate::factory()->create(['property_id' => $property->id]);
+    $reservation = Reservation::factory()->ota()->create(['property_id' => $property->id]);
+    ReservationUnit::factory()->create(['reservation_id' => $reservation->id, 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+    Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+
+    if ($fromChannex) {
+        ChannelBookingRevision::factory()->create(['reservation_id' => $reservation->id]);
+    }
+
+    return $reservation;
+}
+
+function setChannelManagerCommissionFrom(?string $date): void
+{
+    PlatformSetting::query()->whereKey(1)->update(['channel_manager_commission_from' => $date]);
+    Cache::forget(PlatformSettings::CACHE_KEY);
 }

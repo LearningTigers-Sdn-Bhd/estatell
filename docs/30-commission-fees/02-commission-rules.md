@@ -25,7 +25,10 @@ Decide which bookings pay commission, on what amount, and on which date. Each se
 The due date decides which payout cycle an entry goes into.
 
 - A booking ends when every unit is checked out, cancelled or no-show (`UnitStatus::hasEnded()`).
-- An hourly run (`RecordDueCommissions`) looks at booking engine reservations whose stay ended in the last 90 days or has not ended. The first time it sees a booking ended, it records the money and the commission with the property's **current business date** as the due date.
+- An hourly run (`RecordDueCommissions`) asks each rule for its candidate reservations and keeps the ended ones that are:
+    - **new:** nothing recorded yet, with a departure in the last 90 days, or
+    - **changed:** already recorded, with a folio line posted or a unit changed in the last 3 hours. Folio lines are never edited, so a charge, reversal, discount or refund always shows as a new line.
+- It records each one with the property's **current business date** as the due date: the booking engine money first, then every service's commission.
 - Units do not store when they were cancelled or marked no-show, and ledger postings use business dates, so the business date of that run is the due date. The drift is at most one hour.
 - A refund or a commission change found on a later run takes that run's business date.
 - An undone check-out records nothing; the commission is worked out again when the booking ends again.
@@ -49,7 +52,9 @@ Example: an Agoda booking is cancelled and the property keeps RM 200 before tax.
 
 ## Channel manager start date
 
-Properties already used the channel manager before this module. Admins set a go-live date for channel manager commission. Only reservations whose due date is on or after it pay commission.
+Properties already used the channel manager before this module. Admins set a start date for channel manager commission (`platform_settings.channel_manager_commission_from`). A Channex reservation pays only when its due date is on or after it. With no date, no channel manager commission is charged, and the hourly run does not look at Channex reservations. Bookings imported from Channex when a property connected follow the same rule.
+
+The commission applies to every reservation that came through Channex, even if the property's `ChannelManager` flag is turned off later. OTA cancellations arrive with no fee, so they pay nothing unless staff post a cancellation or no-show fee.
 
 ## Corrections
 
@@ -57,16 +62,16 @@ On every run, `RecordReservationCommission` works out each service's commission 
 
 ## Code shape
 
-| Part                                 | What it is                                                                                                      |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `CommissionService` enum             | `BookingEngine`, `ChannelManager`. `label()`, `featureClass()`, and `rule()` (null while a service has no rule) |
-| `CommissionRule` interface           | `appliesTo(Reservation)`, `base(Reservation)`                                                                   |
-| `BookingEngineCommission`            | The booking engine rule                                                                                         |
-| `ChannelManagerCommission`           | The channel manager rule (next item)                                                                            |
-| `ReservationRoomRevenue` (Folio)     | The room revenue before tax of a reservation                                                                    |
-| `OnlineBookingMoney` (BookingEngine) | The collected payment, Curlec's fee, the booked room total and the processed refunds                            |
-| `RecordBookingEngineMoney` Action    | Writes collected, refunded and refund fee entries once each                                                     |
-| `RecordReservationCommission` Action | Runs every service's rule for an ended reservation and keeps the commission entry in line                       |
-| `RecordDueCommissions` Action        | The hourly run, scheduled in `routes/console.php`                                                               |
+| Part                                 | What it is                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `CommissionService` enum             | `BookingEngine`, `ChannelManager`. `label()`, `featureClass()` and `rule()`                 |
+| `CommissionRule` interface           | `candidates()`, `appliesTo(Reservation, $dueDate)`, `base(Reservation)`                     |
+| `BookingEngineCommission`            | The booking engine rule                                                                     |
+| `ChannelManagerCommission`           | The channel manager rule. Uses `ChannexReservations` (Channels)                             |
+| `ReservationRoomRevenue` (Folio)     | The room revenue before tax of a reservation. `ReservationFolioActivity` finds recent lines |
+| `OnlineBookingMoney` (BookingEngine) | The collected payment, Curlec's fee, the booked room total and the processed refunds        |
+| `RecordBookingEngineMoney` Action    | Writes collected, refunded and refund fee entries once each                                 |
+| `RecordReservationCommission` Action | Runs every service's rule for an ended reservation and keeps the commission entry in line   |
+| `RecordDueCommissions` Action        | The hourly run, scheduled in `routes/console.php`                                           |
 
-Adding a service later is one enum case, one rule class, and widening the hourly run to its reservations.
+Adding a service later is one enum case and one rule class: the hourly run asks every rule for its candidates.

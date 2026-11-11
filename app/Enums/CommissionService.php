@@ -5,6 +5,7 @@ namespace App\Enums;
 use App\Features\BookingEngine;
 use App\Features\ChannelManager;
 use App\Services\Commissions\BookingEngineCommission;
+use App\Services\Commissions\ChannelManagerCommission;
 use App\Services\Commissions\CommissionRule;
 
 /**
@@ -33,15 +34,15 @@ enum CommissionService: string
     }
 
     /**
-     * The rule that decides this service's commission. Null while a service has no rule yet: it records nothing.
+     * The rule that decides this service's commission.
      *
-     * @return class-string<CommissionRule>|null
+     * @return class-string<CommissionRule>
      */
-    public function rule(): ?string
+    public function rule(): string
     {
         return match ($this) {
             self::BookingEngine => BookingEngineCommission::class,
-            self::ChannelManager => null,
+            self::ChannelManager => ChannelManagerCommission::class,
         };
     }
 
