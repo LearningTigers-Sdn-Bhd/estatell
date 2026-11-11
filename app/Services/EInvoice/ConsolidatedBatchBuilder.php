@@ -114,26 +114,18 @@ class ConsolidatedBatchBuilder
     private function supplierParty(): array
     {
         $tin = $this->setting->supplier_tin ?: $this->property->tin;
-        if (empty($tin)) {
-            throw new \InvalidArgumentException('Property TIN is missing for e-invoice consolidation.');
-        }
+        MissingEInvoiceDetails::hotel($tin, $this->setting->supplier_email ?: $this->property->contact_email, $this->setting->supplier_city ?: $this->property->city);
 
         $brn = $this->property->registration_number ?: 'NA';
         $name = $this->setting->supplier_name ?: $this->property->legal_name ?: $this->property->name;
         $msic = $this->setting->supplier_msic_code ?: $this->property->msic_code ?: '55101';
         $desc = $this->setting->supplier_business_description ?: $this->property->business_description ?: 'Hotel and accommodation services';
         $email = $this->setting->supplier_email ?: $this->property->contact_email;
-        if (empty($email)) {
-            throw new \InvalidArgumentException('Property contact email is missing for e-invoice consolidation.');
-        }
         $phone = PhoneFormatter::format($this->setting->supplier_phone ?: $this->property->contact_phone);
 
         $addressLine1 = $this->setting->supplier_address_line1 ?: $this->property->address_line1 ?: 'NA';
         $addressLine2 = $this->setting->supplier_address_line2 ?: $this->property->address_line2 ?: '';
         $city = $this->setting->supplier_city ?: $this->property->city;
-        if (empty($city)) {
-            throw new \InvalidArgumentException('Property city is missing for e-invoice consolidation.');
-        }
         $postalCode = $this->setting->supplier_postal_code ?: $this->property->postal_code ?: '00000';
         $stateCode = $this->setting->supplier_state_code ?: $this->property->state_code ?: '14';
 

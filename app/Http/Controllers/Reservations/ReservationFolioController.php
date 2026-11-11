@@ -27,6 +27,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\CityLedger\ArInvoiceRefusals;
+use App\Services\EInvoice\SubmissionToast;
 use App\Services\Folio\DiscountQuote;
 use App\Services\Folio\FolioInvoice;
 use App\Services\Folio\FolioRefusals;
@@ -252,7 +253,8 @@ class ReservationFolioController extends Controller
         Property $property,
         Reservation $reservation,
         Folio $folio,
-        SubmitFolioEInvoice $submitAction
+        SubmitFolioEInvoice $submitAction,
+        SubmissionToast $submissionToast,
     ): RedirectResponse {
         abort_unless($folio->reservation_id === $reservation->id, 404);
 
@@ -287,7 +289,7 @@ class ReservationFolioController extends Controller
             return back(fallback: $this->page($property, $reservation, $folio));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice sent to LHDN.')]);
+        Inertia::flash('toast', $submissionToast->for($result->submission));
 
         return back(fallback: $this->page($property, $reservation, $folio));
     }

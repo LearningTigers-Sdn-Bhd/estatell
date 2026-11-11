@@ -2,6 +2,7 @@
 
 namespace App\Services\EInvoice;
 
+use App\Actions\EInvoice\EInvoiceResult;
 use App\Models\ArInvoice;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
@@ -60,29 +61,24 @@ class ArInvoiceDocumentBuilder
 
     private function validateRequiredData(): void
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
-        if (empty($tin)) {
-            throw new \InvalidArgumentException('Property TIN is missing. Configure E-Invoice Settings before submitting.');
-        }
-
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
-        if (empty($email)) {
-            throw new \InvalidArgumentException('Property contact email is missing. Configure E-Invoice Settings before submitting.');
-        }
-
-        $city = $this->setting?->supplier_city ?: $this->property->city;
-        if (empty($city)) {
-            throw new \InvalidArgumentException('Property city is missing. Configure Property Address before submitting.');
-        }
+        MissingEInvoiceDetails::hotel(
+            $this->setting?->supplier_tin ?: $this->property->tin,
+            $this->setting?->supplier_email ?: $this->property->contact_email,
+            $this->setting?->supplier_city ?: $this->property->city,
+        );
 
         $buyer = BuyerResolver::forCompany($this->invoice->company, $this->property);
 
         if (empty($buyer['tin'])) {
-            throw new \InvalidArgumentException('Company TIN is required for B2B e-invoicing.');
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, __("Add the company's tax number (TIN) on the company record, then send again."));
+        }
+
+        if (in_array(strtoupper((string) $buyer['id_value']), ['', 'NA'], true)) {
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE, __("Add the company's registration number on the company record, then send again. LHDN checks it against the tax number."));
         }
 
         if (empty($buyer['city'])) {
-            throw new \InvalidArgumentException('Company city is required for LHDN e-invoicing.');
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE, __("Add the company's billing city on the company record, then send again."));
         }
     }
 

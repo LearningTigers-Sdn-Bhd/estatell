@@ -2,6 +2,7 @@
 
 namespace App\Services\EInvoice;
 
+use App\Actions\EInvoice\EInvoiceResult;
 use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -76,34 +77,37 @@ class FolioDocumentBuilder
 
     private function validateRequiredData(): void
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
-        if (empty($tin)) {
-            throw new \InvalidArgumentException('Property TIN is missing. Configure E-Invoice Settings before submitting.');
-        }
-
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
-        if (empty($email)) {
-            throw new \InvalidArgumentException('Property contact email is missing. Configure E-Invoice Settings before submitting.');
-        }
-
-        $city = $this->setting?->supplier_city ?: $this->property->city;
-        if (empty($city)) {
-            throw new \InvalidArgumentException('Property city is missing. Configure Property Address before submitting.');
-        }
+        MissingEInvoiceDetails::hotel(
+            $this->setting?->supplier_tin ?: $this->property->tin,
+            $this->setting?->supplier_email ?: $this->property->contact_email,
+            $this->setting?->supplier_city ?: $this->property->city,
+        );
 
         $buyer = $this->resolveBuyer();
+        $isCompany = strtoupper((string) ($buyer['id_type'] ?? '')) === 'BRN';
+        $hasId = ! in_array(strtoupper((string) ($buyer['id_value'] ?? '')), ['', 'NA'], true);
+        $isDomestic = ($buyer['country_code'] ?? 'MYS') === 'MYS';
 
         if (empty($buyer['city'])) {
-            throw new \InvalidArgumentException('Buyer city is required for LHDN e-invoicing.');
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE, $isCompany
+                ? __("Add the company's billing city on the company record, then send again.")
+                : __("Enter the guest's city."));
         }
 
-        $isDomestic = ($buyer['country_code'] ?? 'MYS') === 'MYS';
         if ($isDomestic && empty($buyer['tin'])) {
-            throw new \InvalidArgumentException('Domestic buyer requires a valid tax identification number (TIN) for individual e-invoicing. Stays without a guest TIN can be consolidated monthly.');
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, $isCompany
+                ? __("Add the company's tax number (TIN) on the company record, then send again.")
+                : __("Enter the guest's tax number (TIN). A guest who has none does not need their own e-invoice: the stay goes into the monthly summary."));
         }
 
-        if (! $isDomestic && ($buyer['id_value'] === 'NA' || empty($buyer['id_value']))) {
-            throw new \InvalidArgumentException("Enter the foreign guest's passport number before issuing an individual e-invoice.");
+        if ($isDomestic && ! $hasId) {
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE, $isCompany
+                ? __("Add the company's registration number on the company record, then send again. LHDN checks it against the tax number.")
+                : __("Enter the guest's IC number. LHDN checks it against the tax number."));
+        }
+
+        if (! $isDomestic && ! $hasId) {
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_PASSPORT_REQUIRED, __("Enter the guest's passport number."));
         }
     }
 

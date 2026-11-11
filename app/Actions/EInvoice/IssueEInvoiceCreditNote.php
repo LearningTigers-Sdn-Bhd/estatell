@@ -8,6 +8,7 @@ use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\EInvoiceSubmission;
 use App\Models\User;
 use App\Services\EInvoice\CreditNoteDocumentBuilder;
+use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\MyInvoisClientFactory;
 use Carbon\CarbonImmutable;
@@ -42,15 +43,24 @@ class IssueEInvoiceCreditNote
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REASON_REQUIRED, __('Enter a reason for the credit note.'));
         }
 
+        // Credit notes LHDN has or is checking already take their share of the e-invoice.
+        $credited = $originalSubmission->adjustments()
+            ->where('document_type', EInvoiceDocumentType::CreditNote)
+            ->active()
+            ->get()
+            ->sum(fn (EInvoiceSubmission $note): float => $note->totalAmount() ?? 0.0);
+        $total = $originalSubmission->totalAmount();
+        $remaining = round(($total ?? 0.0) - $credited, 2);
+
+        if ($total !== null && round($amount, 2) > $remaining) {
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_CREDIT_EXCEEDS_REMAINING, __('A credit note can take off at most :amount, what is left on this e-invoice.', ['amount' => number_format(max($remaining, 0), 2)]));
+        }
+
         try {
             $builder = new CreditNoteDocumentBuilder($originalSubmission, $creditNoteNumber, $amount, $reason);
             $built = $builder->build();
-        } catch (\InvalidArgumentException $e) {
-            $refusal = str_contains($e->getMessage(), 'Property')
-                ? EInvoiceResult::REFUSAL_SUPPLIER_PROFILE_INCOMPLETE
-                : EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE;
-
-            return EInvoiceResult::refused($refusal, $e->getMessage());
+        } catch (MissingEInvoiceDetails $e) {
+            return EInvoiceResult::refused($e->refusal, $e->getMessage());
         }
 
         return DB::transaction(function () use ($originalSubmission, $creditNoteNumber, $reason, $actor, $built, $setting): EInvoiceResult {

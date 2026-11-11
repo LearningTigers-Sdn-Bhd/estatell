@@ -461,7 +461,9 @@ export function FolioTab({
                                     onClick={() => setIssuingEInvoice(true)}
                                 >
                                     <FileCheck data-icon="inline-start" />
-                                    Issue e-invoice
+                                    {folio.eInvoiceStatus === 'invalid'
+                                        ? 'Fix and send again'
+                                        : 'Issue e-invoice'}
                                 </Button>
                             )}
                             {folio.canClose && (
@@ -609,7 +611,9 @@ export function FolioTab({
                                             }
                                         >
                                             <FileCheck data-icon="inline-start" />
-                                            Issue e-invoice
+                                            {folio.eInvoiceStatus === 'invalid'
+                                                ? 'Fix and send again'
+                                                : 'Issue e-invoice'}
                                         </Button>
                                     )}
                                     {folio.eInvoiceSubmissionId !== null && (

@@ -356,7 +356,13 @@ class FolioStatement
             ->latest('id')
             ->first() : null;
 
-        $canSubmitEInvoice = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed && ($latestSubmission === null || $latestSubmission->status === EInvoiceStatus::Invalid);
+        // The e-invoice LHDN holds for this folio, its own or a monthly summary it is in.
+        $eInvoiceHold = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed ? $this->folioEInvoiceLock->for($folio) : null;
+        if ($eInvoiceHold?->is_consolidated) {
+            $latestSubmission = $eInvoiceHold;
+        }
+        // A stay billed to a company gets its e-invoice through the city ledger invoice instead.
+        $canSubmitEInvoice = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed && $billedBy === null && $eInvoiceHold === null;
         $buyer = $folio !== null ? BuyerResolver::forFolio($folio, $property) : null;
         $rejected = $canSubmitEInvoice && $latestSubmission?->status === EInvoiceStatus::Invalid ? $latestSubmission : null;
         if ($rejected !== null && $buyer !== null) {
@@ -382,7 +388,7 @@ class FolioStatement
             onlineRefunds: $this->onlineRefunds($folio, $isOpen && ($can['refund'] ?? false), $posted),
             canRefundOtherMethod: $user?->can(PermissionEnum::PaymentRefundOtherMethod->value) ?? false,
             canClose: $isOpen && ($can['close'] ?? false),
-            canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio) && $this->folioEInvoiceLock->for($folio) === null,
+            canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio) && ($eInvoiceEnabled ? $eInvoiceHold === null : $this->folioEInvoiceLock->for($folio) === null),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: array_values($postUnits),
@@ -408,7 +414,7 @@ class FolioStatement
             canManageManually: $isOpen && ($can['manual'] ?? false),
             eInvoiceSubmissionId: $latestSubmission?->id,
             eInvoiceStatus: $latestSubmission?->status->value,
-            eInvoiceStatusLabel: $latestSubmission?->status->label(),
+            eInvoiceStatusLabel: $latestSubmission?->is_consolidated ? __('In monthly summary') : $latestSubmission?->status->label(),
             eInvoiceStatusTone: $latestSubmission?->status->tone()->value,
             eInvoiceUuid: $latestSubmission?->uuid,
             canSubmitEInvoice: $canSubmitEInvoice,

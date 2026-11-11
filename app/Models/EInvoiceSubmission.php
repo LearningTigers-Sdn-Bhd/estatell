@@ -264,8 +264,8 @@ class EInvoiceSubmission extends Model
             return null;
         }
 
-        $rootKey = $this->document_type === EInvoiceDocumentType::CreditNote ? 'CreditNote' : 'Invoice';
-        $amount = data_get($payload, "{$rootKey}.0.LegalMonetaryTotal.0.PayableAmount.0._");
+        // A credit note is sent under the Invoice root too, with type code 02.
+        $amount = data_get($payload, 'Invoice.0.LegalMonetaryTotal.0.PayableAmount.0._') ?? data_get($payload, 'CreditNote.0.LegalMonetaryTotal.0.PayableAmount.0._');
 
         return $amount !== null ? (float) $amount : null;
     }

@@ -11,6 +11,7 @@ use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\IdentityDocumentType;
 use App\Enums\TransactionKind;
 use App\Features\EInvoicing;
 use App\Jobs\RefreshEInvoiceStatusJob;
@@ -33,6 +34,8 @@ use App\Notifications\EInvoiceForGuest;
 use App\Services\EInvoice\MockMyInvoisClient;
 use App\Services\EInvoice\MyInvoisApiException;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -82,6 +85,8 @@ function submissionSetup(): array
         'phone' => '+60123456789',
         'state_code' => '14',
     ]);
+
+    GuestIdentityDocument::factory()->for($guest)->create(['type' => IdentityDocumentType::MyKad, 'number' => '900101125555']);
 
     $reservation = Reservation::factory()->for($property)->create([
         'booker_guest_id' => $guest->id,
@@ -525,7 +530,11 @@ it('lets staff resubmit a folio after LHDN rejected its e-invoice', function () 
     $setup = submissionSetup();
     MockMyInvoisClient::$documentDetailsOverride = fn (string $uuid): array => ['uuid' => $uuid, 'status' => 'Invalid'];
 
-    $rejected = submitSetupFolio($setup);
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
+        ->assertInertiaFlash('toast.type', 'error')
+        ->assertInertiaFlash('toast.message', 'LHDN rejected e-invoice '.EInvoiceSubmission::query()->sole()->internal_id.'. Nothing was filed.');
+    $rejected = EInvoiceSubmission::query()->sole();
     expect($rejected->status)->toBe(EInvoiceStatus::Invalid);
 
     MockMyInvoisClient::resetOverrides();
@@ -805,4 +814,148 @@ it('keeps a folio in a monthly summary closed', function () {
     $result = app(ReopenFolio::class)($setup['owner'], $setup['folio']);
 
     expect($result->refusal)->toBe(FolioStatusResult::REFUSAL_HAS_E_INVOICE);
+});
+
+it('checks a tax number with LHDN from the Issue e-invoice form', function (?string $tin, string $result, ?string $answerTin) {
+    $setup = submissionSetup();
+    MockMyInvoisClient::$taxNumbers = ['NRIC:900101125555' => 'IG12345678900'];
+
+    $this->actingAs($setup['owner'])
+        ->postJson("/p/{$setup['property']->code}/finance/e-invoices/tax-number/check", ['tin' => $tin, 'id_type' => 'NRIC', 'id_value' => '900101-12-5555'])
+        ->assertOk()
+        ->assertJson(['result' => $result, 'tin' => $answerTin]);
+})->with([
+    'matches' => ['IG12345678900', 'match', 'IG12345678900'],
+    'another number' => ['IG99999999990', 'found', 'IG12345678900'],
+    'no number given' => [null, 'found', 'IG12345678900'],
+]);
+
+it('says when LHDN has no tax number for the ID', function () {
+    $setup = submissionSetup();
+
+    $this->actingAs($setup['owner'])
+        ->postJson("/p/{$setup['property']->code}/finance/e-invoices/tax-number/check", ['tin' => 'IG99999999990', 'id_type' => 'NRIC', 'id_value' => '900101125555'])
+        ->assertOk()
+        ->assertJson(['result' => 'not_found', 'message' => 'LHDN has no tax number for this IC. Check the IC number with the buyer.']);
+});
+
+it('finds the tax number for a rejected e-invoice and sends it again with it', function () {
+    $setup = submissionSetup();
+    MockMyInvoisClient::$taxNumbers = ['NRIC:900101125555' => 'IG12345678900'];
+    $rejected = EInvoiceSubmission::factory()->for($setup['property'])->create([
+        'folio_id' => $setup['folio']->id,
+        'status' => EInvoiceStatus::Invalid,
+        'buyer_snapshot' => ['name' => 'Ahmad Razak', 'tin' => 'IG99999999990', 'id_type' => 'NRIC', 'id_value' => '900101125555', 'country_code' => 'MYS', 'state_code' => '12', 'city' => 'Kota Kinabalu', 'address_line1' => '1 Jalan Pantai', 'phone' => '+60123456789', 'email' => 'ahmad@example.my'],
+        'error_details' => ['validationResults' => ['status' => 'Invalid', 'validationSteps' => [
+            ['status' => 'Invalid', 'name' => 'Step05', 'error' => ['innerError' => [['errorCode' => 'ERR206', 'error' => 'NRIC mismatch']]]],
+        ]]],
+    ]);
+    $base = "/p/{$setup['property']->code}/finance/e-invoices/{$rejected->id}";
+
+    $this->actingAs($setup['owner'])->get($base)->assertInertia(fn (Assert $page) => $page->where('submission.can_find_tax_number', true)->etc());
+
+    $this->postJson("{$base}/tax-number")->assertOk()->assertJson(['result' => 'found', 'tin' => 'IG12345678900']);
+
+    $this->post("{$base}/resubmit", ['tin' => 'IG12345678900'])->assertInertiaFlash('toast.type', 'success');
+
+    $resent = EInvoiceSubmission::query()->where('folio_id', $setup['folio']->id)->whereKeyNot($rejected->id)->sole();
+    expect($resent->status)->toBe(EInvoiceStatus::Valid)
+        ->and($resent->buyer_snapshot['tin'])->toBe('IG12345678900')
+        ->and($resent->buyer_snapshot['id_value'])->toBe('900101125555');
+});
+
+it('refuses to resend a City ledger e-invoice with a tax number', function () {
+    $setup = submissionSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    $invoice = ArInvoice::factory()->for($setup['property'])->create(['company_id' => $company->id]);
+    $rejected = EInvoiceSubmission::factory()->for($setup['property'])->create(['ar_invoice_id' => $invoice->id, 'status' => EInvoiceStatus::Invalid]);
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/finance/e-invoices/{$rejected->id}/resubmit", ['tin' => 'C12345678900'])
+        ->assertInertiaFlash('toast.message', 'Only a rejected stay e-invoice can be sent again from here.');
+});
+
+it('sends a stay billed to a company through its city ledger invoice, not the folio or the monthly summary', function () {
+    $setup = submissionSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    ArInvoice::factory()->for($setup['property'])->create(['company_id' => $company->id, 'folio_id' => $setup['folio']->id, 'number' => 'AR-0042']);
+
+    $result = app(SubmitFolioEInvoice::class)($setup['folio'], $setup['owner']);
+    expect($result->refusal)->toBe('billed_to_city_ledger')
+        ->and($result->message)->toBe('This stay was billed to a company on city ledger invoice AR-0042. Send the e-invoice from that invoice instead.');
+
+    $this->actingAs($setup['owner'])
+        ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('folio.canSubmitEInvoice', false)->etc());
+
+    expect(app(ConsolidateMonthlyEInvoices::class)($setup['property'], CarbonImmutable::now('Asia/Kuala_Lumpur'), $setup['owner']))->toBe([]);
+});
+
+it('shows a folio in a monthly summary as such and offers no e-invoice of its own', function () {
+    $setup = submissionSetup();
+    $summary = EInvoiceSubmission::factory()->for($setup['property'])->create(['is_consolidated' => true, 'scenario' => EInvoiceScenario::Consolidation, 'status' => EInvoiceStatus::Valid]);
+    $summary->folios()->attach($setup['folio']->id);
+
+    $this->actingAs($setup['owner'])
+        ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('folio.canSubmitEInvoice', false)
+            ->where('folio.eInvoiceSubmissionId', $summary->id)
+            ->where('folio.eInvoiceStatusLabel', 'In monthly summary')
+            ->etc());
+});
+
+it('asks for the guest IC before sending, since LHDN checks it against the tax number', function () {
+    $setup = submissionSetup();
+    $setup['folio']->payerGuest->documents()->delete();
+
+    $result = app(SubmitFolioEInvoice::class)($setup['folio'], $setup['owner']);
+
+    expect($result->message)->toBe("Enter the guest's IC number. LHDN checks it against the tax number.")
+        ->and(EInvoiceSubmission::query()->count())->toBe(0);
+});
+
+it('names the missing hotel details and where to add them', function () {
+    $setup = submissionSetup();
+    $setup['setting']->update(['supplier_city' => null, 'supplier_email' => null]);
+    $setup['property']->forceFill(['city' => null, 'contact_email' => null])->save();
+
+    $result = app(SubmitFolioEInvoice::class)($setup['folio']->fresh(), $setup['owner']);
+
+    expect($result->message)->toBe("Your hotel's email and city are missing. Add them in E-invoice settings, then send again.");
+});
+
+it('refuses a credit note larger than what is left on the e-invoice', function () {
+    $setup = submissionSetup();
+    $original = submitSetupFolio($setup);
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/finance/e-invoices/{$original->id}/credit-note", ['credit_note_number' => 'CN-1', 'amount' => '400.00', 'reason' => 'Refund'])
+        ->assertInertiaFlash('toast.message', 'A credit note can take off at most 350.00, what is left on this e-invoice.');
+});
+
+it('records an LHDN timeout as a send that did not reach LHDN, instead of failing the page', function () {
+    $setup = submissionSetup();
+    $setup['setting']->update(['api_environment' => EInvoiceEnvironment::Sandbox]);
+    Http::fake(fn () => throw new ConnectionException('Operation timed out'));
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
+        ->assertInertiaFlash('toast.type', 'error')
+        ->assertInertiaFlash('toast.description', 'We could not reach LHDN. Submit again in a few minutes.');
+
+    expect(EInvoiceSubmission::query()->sole()->status)->toBe(EInvoiceStatus::Invalid);
+});
+
+it('offers Send e-invoice on a City ledger invoice and says what the company record is missing', function () {
+    $setup = submissionSetup();
+    $company = Company::factory()->for($setup['property'])->create(['tin' => null]);
+    $invoice = ArInvoice::factory()->for($setup['property'])->create(['company_id' => $company->id, 'folio_id' => $setup['folio']->id]);
+
+    $this->actingAs($setup['owner'])
+        ->get("/p/{$setup['property']->code}/finance/city-ledger/invoices/{$invoice->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('eInvoice.can_send', true)->where('eInvoice.submission', null)->etc());
+
+    $this->post("/p/{$setup['property']->code}/finance/city-ledger/invoices/{$invoice->id}/e-invoice")
+        ->assertInertiaFlash('toast.message', "Add the company's tax number (TIN) on the company record, then send again.");
 });

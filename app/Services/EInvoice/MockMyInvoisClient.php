@@ -13,10 +13,18 @@ class MockMyInvoisClient
     /** @var (callable(string): array<string, mixed>)|null */
     public static $documentDetailsOverride = null;
 
+    /**
+     * The TIN each `idType:idValue` belongs to. A pair that is not listed has no TIN, like an unknown ID at LHDN.
+     *
+     * @var array<string, string>
+     */
+    public static array $taxNumbers = [];
+
     public static function resetOverrides(): void
     {
         self::$submitDocumentsOverride = null;
         self::$documentDetailsOverride = null;
+        self::$taxNumbers = [];
     }
 
     /**
@@ -98,6 +106,23 @@ class MockMyInvoisClient
      */
     public function validateTin(string $tin, string $idType, string $idValue): array
     {
+        if ((self::$taxNumbers["{$idType}:{$idValue}"] ?? null) !== $tin) {
+            throw new MyInvoisApiException('MyInvois API Error: Not Found', 404, []);
+        }
+
         return [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function searchTin(string $idType, string $idValue): array
+    {
+        $tin = self::$taxNumbers["{$idType}:{$idValue}"] ?? null;
+        if ($tin === null) {
+            throw new MyInvoisApiException('MyInvois API Error: Not Found', 404, []);
+        }
+
+        return ['tin' => $tin];
     }
 }

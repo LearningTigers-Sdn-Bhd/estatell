@@ -3,6 +3,7 @@
 namespace App\Services\EInvoice;
 
 use App\Models\PropertyEInvoiceSetting;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -99,19 +100,33 @@ class MyInvoisClient
         ]);
     }
 
+    /**
+     * The one TIN LHDN holds for an ID (`NRIC`, `PASSPORT`, `BRN`, `ARMY`). Throws with status 404 when none matches,
+     * and 400 when the ID is malformed or several TINs match.
+     *
+     * @return array<string, mixed>
+     */
+    public function searchTin(string $idType, string $idValue): array
+    {
+        return $this->get('/api/v1.0/taxpayer/search/tin', [
+            'idType' => $idType,
+            'idValue' => $idValue,
+        ]);
+    }
+
     public function getAccessToken(): string
     {
         $cacheKey = "myinvois_token_{$this->tin}_{$this->environment}";
 
         return Cache::remember($cacheKey, 3000, function () {
-            $response = Http::asForm()
+            $response = $this->send(fn () => Http::asForm()
                 ->timeout(15)
                 ->post("{$this->baseUrl}/connect/token", [
                     'grant_type' => 'client_credentials',
                     'client_id' => $this->clientId,
                     'client_secret' => $this->clientSecret,
                     'scope' => 'InvoicingAPI',
-                ]);
+                ]));
 
             if (! $response->successful()) {
                 throw new MyInvoisApiException(
@@ -132,10 +147,10 @@ class MyInvoisClient
     private function get(string $path, array $query = []): array
     {
         $token = $this->getAccessToken();
-        $response = Http::withToken($token)
+        $response = $this->send(fn () => Http::withToken($token)
             ->acceptJson()
             ->timeout(30)
-            ->get("{$this->baseUrl}{$path}", $query);
+            ->get("{$this->baseUrl}{$path}", $query));
 
         return $this->handleResponse($response);
     }
@@ -147,10 +162,10 @@ class MyInvoisClient
     private function post(string $path, array $payload): array
     {
         $token = $this->getAccessToken();
-        $response = Http::withToken($token)
+        $response = $this->send(fn () => Http::withToken($token)
             ->acceptJson()
             ->timeout(30)
-            ->post("{$this->baseUrl}{$path}", $payload);
+            ->post("{$this->baseUrl}{$path}", $payload));
 
         return $this->handleResponse($response);
     }
@@ -162,12 +177,27 @@ class MyInvoisClient
     private function put(string $path, array $payload): array
     {
         $token = $this->getAccessToken();
-        $response = Http::withToken($token)
+        $response = $this->send(fn () => Http::withToken($token)
             ->acceptJson()
             ->timeout(30)
-            ->put("{$this->baseUrl}{$path}", $payload);
+            ->put("{$this->baseUrl}{$path}", $payload));
 
         return $this->handleResponse($response);
+    }
+
+    /**
+     * Runs one HTTP call. A timeout or a dropped connection becomes an API error with status 0, so callers record
+     * "could not reach LHDN" instead of failing the page.
+     *
+     * @param  callable(): Response  $call
+     */
+    private function send(callable $call): Response
+    {
+        try {
+            return $call();
+        } catch (ConnectionException $exception) {
+            throw new MyInvoisApiException('Could not reach MyInvois: '.$exception->getMessage(), 0, null, $exception);
+        }
     }
 
     /**

@@ -20,6 +20,8 @@ use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArInvoicePrinter;
 use App\Services\CityLedger\ArInvoiceRefusals;
+use App\Services\EInvoice\ArInvoiceEInvoice;
+use App\Services\EInvoice\SubmissionToast;
 use App\Services\Property\PrintedPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,12 +51,13 @@ class ArInvoiceController extends Controller
         ]);
     }
 
-    public function show(Request $request, Property $property, ArInvoice $invoice, ArInvoiceDetail $detail): Response
+    public function show(Request $request, Property $property, ArInvoice $invoice, ArInvoiceDetail $detail, ArInvoiceEInvoice $eInvoice): Response
     {
         $data = $detail->build($invoice, $request->user());
 
         return Inertia::render('finance/city-ledger/invoices/show', [
             'invoice' => $data,
+            'eInvoice' => $eInvoice->for($invoice, $request->user()),
             'openCreditNote' => $data->canCreditNote && $request->boolean('credit'),
             'currency' => CurrencyData::forProperty($property),
         ]);
@@ -109,7 +112,7 @@ class ArInvoiceController extends Controller
         return back(fallback: $this->page($property, $invoice));
     }
 
-    public function submitEInvoice(Request $request, Property $property, ArInvoice $invoice, SubmitArEInvoice $submitAction): RedirectResponse
+    public function submitEInvoice(Request $request, Property $property, ArInvoice $invoice, SubmitArEInvoice $submitAction, SubmissionToast $submissionToast): RedirectResponse
     {
         $result = $submitAction($invoice, $request->user());
 
@@ -119,7 +122,7 @@ class ArInvoiceController extends Controller
             return back(fallback: $this->page($property, $invoice));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice sent to LHDN.')]);
+        Inertia::flash('toast', $submissionToast->for($result->submission));
 
         return back(fallback: $this->page($property, $invoice));
     }

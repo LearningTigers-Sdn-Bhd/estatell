@@ -2,16 +2,19 @@
 
 namespace App\Actions\EInvoice;
 
+use App\Enums\ArInvoiceStatus;
 use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use App\Enums\FolioStatus;
 use App\Features\EInvoicing;
 use App\Jobs\RefreshEInvoiceStatusJob;
+use App\Models\ArInvoice;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\User;
 use App\Services\EInvoice\FolioDocumentBuilder;
+use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\MyInvoisClientFactory;
 use Carbon\CarbonImmutable;
@@ -64,19 +67,16 @@ class SubmitFolioEInvoice
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('This stay is already in a monthly summary, so it cannot get its own e-invoice.'));
         }
 
+        $billedBy = ArInvoice::query()->where('folio_id', $folio->id)->where('status', '<>', ArInvoiceStatus::Void)->first();
+        if ($billedBy !== null) {
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_BILLED_TO_CITY_LEDGER, __('This stay was billed to a company on city ledger invoice :number. Send the e-invoice from that invoice instead.', ['number' => $billedBy->number]));
+        }
+
         try {
             $builder = new FolioDocumentBuilder($folio, $buyerSnapshot);
             $built = $builder->build();
-        } catch (\InvalidArgumentException $e) {
-            $refusal = str_contains($e->getMessage(), 'TIN')
-                ? EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED
-                : (str_contains($e->getMessage(), 'passport')
-                    ? EInvoiceResult::REFUSAL_PASSPORT_REQUIRED
-                    : (str_contains($e->getMessage(), 'Property')
-                        ? EInvoiceResult::REFUSAL_SUPPLIER_PROFILE_INCOMPLETE
-                        : EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE));
-
-            return EInvoiceResult::refused($refusal, $e->getMessage());
+        } catch (MissingEInvoiceDetails $e) {
+            return EInvoiceResult::refused($e->refusal, $e->getMessage());
         }
 
         // Keep the buyer exactly as LHDN received it, so a credit note names the same buyer.

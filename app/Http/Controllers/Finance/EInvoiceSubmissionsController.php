@@ -15,7 +15,9 @@ use App\Features\EInvoicing;
 use App\Http\Controllers\Controller;
 use App\Models\EInvoiceSubmission;
 use App\Models\Property;
+use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisApiException;
+use App\Services\EInvoice\SubmissionToast;
 use App\Services\EInvoice\SubmissionView;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -154,7 +156,8 @@ class EInvoiceSubmissionsController extends Controller
         Property $property,
         EInvoiceSubmission $submission,
         Request $request,
-        IssueEInvoiceCreditNote $creditNoteAction
+        IssueEInvoiceCreditNote $creditNoteAction,
+        SubmissionToast $submissionToast,
     ): RedirectResponse {
         if (! Feature::for($property)->active(EInvoicing::class) || $submission->property_id !== $property->id) {
             abort(404);
@@ -180,12 +183,12 @@ class EInvoiceSubmissionsController extends Controller
             return back();
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Credit note sent to LHDN.')]);
+        Inertia::flash('toast', $submissionToast->for($result->submission));
 
         return back();
     }
 
-    public function consolidate(Property $property, Request $request, ConsolidateMonthlyEInvoices $consolidateAction): RedirectResponse
+    public function consolidate(Property $property, Request $request, ConsolidateMonthlyEInvoices $consolidateAction, SubmissionToast $submissionToast): RedirectResponse
     {
         if (! Feature::for($property)->active(EInvoicing::class)) {
             abort(404);
@@ -199,7 +202,13 @@ class EInvoiceSubmissionsController extends Controller
             ? CarbonImmutable::createFromFormat('!Y-m', $request->string('month'), 'Asia/Kuala_Lumpur')
             : CarbonImmutable::now('Asia/Kuala_Lumpur')->subMonth();
 
-        $submissions = $consolidateAction($property, $monthDate, $request->user());
+        try {
+            $submissions = $consolidateAction($property, $monthDate, $request->user());
+        } catch (MissingEInvoiceDetails $e) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The monthly summary was not sent.'), 'description' => $e->getMessage()]);
+
+            return back();
+        }
 
         if (empty($submissions)) {
             Inertia::flash('toast', ['type' => 'info', 'message' => __('No stays to send for that month. They are filed already, or none closed.')]);
@@ -208,8 +217,13 @@ class EInvoiceSubmissionsController extends Controller
         }
 
         $count = count($submissions);
+        $rejected = collect($submissions)->filter(fn (EInvoiceSubmission $submission): bool => $submission->status === EInvoiceStatus::Invalid);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice('Monthly summary sent to LHDN.|Monthly summary sent to LHDN in :count parts.', $count, ['count' => $count])]);
+        Inertia::flash('toast', match (true) {
+            $count === 1 => $submissionToast->for($submissions[0]),
+            $rejected->isNotEmpty() => ['type' => 'error', 'message' => __('LHDN rejected :rejected of the :count parts of the monthly summary.', ['rejected' => $rejected->count(), 'count' => $count]), 'description' => __('Open them in the list to see why.')],
+            default => ['type' => 'success', 'message' => __('Monthly summary sent to LHDN in :count parts.', ['count' => $count])],
+        });
 
         return back();
     }

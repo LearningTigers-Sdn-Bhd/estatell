@@ -2,6 +2,7 @@
 
 namespace App\Services\EInvoice;
 
+use App\Actions\EInvoice\EInvoiceResult;
 use App\Models\EInvoiceSubmission;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
@@ -82,33 +83,24 @@ class CreditNoteDocumentBuilder
             return BuyerResolver::forCompany($this->originalSubmission->arInvoice->company, $this->property);
         }
 
-        throw new \InvalidArgumentException('Original submission buyer details are missing.');
+        throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE, __('The original e-invoice has no buyer details, so no credit note can be made for it.'));
     }
 
     private function validateRequiredData(): void
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
-        if (empty($tin)) {
-            throw new \InvalidArgumentException('Property TIN is missing. Configure E-Invoice Settings before submitting.');
-        }
-
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
-        if (empty($email)) {
-            throw new \InvalidArgumentException('Property contact email is missing. Configure E-Invoice Settings before submitting.');
-        }
-
-        $city = $this->setting?->supplier_city ?: $this->property->city;
-        if (empty($city)) {
-            throw new \InvalidArgumentException('Property city is missing. Configure Property Address before submitting.');
-        }
+        MissingEInvoiceDetails::hotel(
+            $this->setting?->supplier_tin ?: $this->property->tin,
+            $this->setting?->supplier_email ?: $this->property->contact_email,
+            $this->setting?->supplier_city ?: $this->property->city,
+        );
 
         $buyer = $this->resolveBuyer();
         if (empty($buyer['tin'])) {
-            throw new \InvalidArgumentException('Buyer TIN is required to issue an e-invoice credit note.');
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, __('The original e-invoice has no buyer tax number, so no credit note can be made for it.'));
         }
 
         if (empty($buyer['city'])) {
-            throw new \InvalidArgumentException('Buyer city is required for LHDN e-invoicing.');
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE, __('The original e-invoice has no buyer city, so no credit note can be made for it.'));
         }
     }
 

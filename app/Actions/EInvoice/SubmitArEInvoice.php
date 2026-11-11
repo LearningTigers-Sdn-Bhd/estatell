@@ -11,6 +11,7 @@ use App\Models\EInvoiceSubmission;
 use App\Models\User;
 use App\Services\EInvoice\ArInvoiceDocumentBuilder;
 use App\Services\EInvoice\BuyerResolver;
+use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\MyInvoisClientFactory;
 use Carbon\CarbonImmutable;
@@ -49,12 +50,8 @@ class SubmitArEInvoice
         try {
             $builder = new ArInvoiceDocumentBuilder($invoice);
             $built = $builder->build();
-        } catch (\InvalidArgumentException $e) {
-            $refusal = str_contains($e->getMessage(), 'Property')
-                ? EInvoiceResult::REFUSAL_SUPPLIER_PROFILE_INCOMPLETE
-                : EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE;
-
-            return EInvoiceResult::refused($refusal, $e->getMessage());
+        } catch (MissingEInvoiceDetails $e) {
+            return EInvoiceResult::refused($e->refusal, $e->getMessage());
         }
 
         $buyer = BuyerResolver::forCompany($invoice->company, $property);

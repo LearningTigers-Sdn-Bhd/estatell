@@ -114,6 +114,26 @@ class LhdnRejectionReasons
     }
 
     /**
+     * Whether LHDN refused the buyer's tax number (the `ERR2…` taxpayer checks, such as `ERR206` IC and tax number do not
+     * match), so looking up the tax number LHDN holds for the ID can fix it.
+     */
+    public function concernsTaxNumber(EInvoiceSubmission $submission): bool
+    {
+        $details = $submission->error_details;
+        if (! is_array($details)) {
+            return false;
+        }
+
+        foreach ($this->lhdnErrors($details) as [$code]) {
+            if (str_starts_with($code, 'ERR2')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Every [code, text, field path] in the error, from the validation steps (a document LHDN accepted and then rejected) or
      * from the submission reply (a document LHDN refused on arrival).
      *

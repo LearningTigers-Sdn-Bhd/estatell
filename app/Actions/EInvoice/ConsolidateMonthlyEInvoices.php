@@ -2,17 +2,20 @@
 
 namespace App\Actions\EInvoice;
 
+use App\Enums\ArInvoiceStatus;
 use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use App\Enums\FolioStatus;
 use App\Jobs\RefreshEInvoiceStatusJob;
+use App\Models\ArInvoice;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\EInvoice\ConsolidatedBatchBuilder;
 use App\Services\EInvoice\MalaysiaStates;
+use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\MyInvoisClientFactory;
 use Carbon\CarbonImmutable;
@@ -64,6 +67,8 @@ class ConsolidateMonthlyEInvoices
             ->where('status', FolioStatus::Closed)
             ->whereBetween('closed_at', [$monthStart, $monthEnd])
             ->whereNotIn('id', $excludedFolioIds)
+            // A stay billed to a company is e-invoiced through its city ledger invoice, not the general public summary.
+            ->whereNotIn('id', ArInvoice::query()->whereNotNull('folio_id')->where('status', '<>', ArInvoiceStatus::Void)->select('folio_id'))
             ->with(['lines.transactionCode', 'lines.reversal'])
             ->get();
 
@@ -105,6 +110,9 @@ class ConsolidateMonthlyEInvoices
         try {
             $builder = new ConsolidatedBatchBuilder($property, $chunk, $month);
             $built = $builder->build();
+        } catch (MissingEInvoiceDetails $e) {
+            // Staff must see what to fill in, not "no stays to send".
+            throw $e;
         } catch (\Throwable $e) {
             Log::error("Failed to build consolidated e-invoice batch: {$e->getMessage()}");
 

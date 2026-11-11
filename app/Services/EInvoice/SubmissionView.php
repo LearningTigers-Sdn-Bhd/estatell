@@ -15,7 +15,7 @@ use Carbon\CarbonImmutable;
  */
 class SubmissionView
 {
-    public function __construct(private LhdnRejectionReasons $rejectionReasons, private EInvoiceGuestEmail $guestEmail) {}
+    public function __construct(private LhdnRejectionReasons $rejectionReasons, private EInvoiceGuestEmail $guestEmail, private FolioEInvoiceLock $folioEInvoiceLock) {}
 
     /**
      * @return array<string, mixed>
@@ -73,6 +73,10 @@ class SubmissionView
             'lhdn_reference' => $submission->uuid,
             'reasons' => $status === EInvoiceStatus::Invalid ? $this->rejectionReasons->for($submission) : [],
             'can_resubmit' => $this->canResubmit($submission),
+            'can_find_tax_number' => $status === EInvoiceStatus::Invalid
+                && ! $submission->is_consolidated
+                && ! in_array(strtoupper((string) ($submission->buyer_snapshot['id_value'] ?? 'NA')), ['', 'NA'], true)
+                && $this->rejectionReasons->concernsTaxNumber($submission),
             'history' => $this->history($submission, $at),
         ];
     }
@@ -113,12 +117,15 @@ class SubmissionView
             return false;
         }
 
+        if ($submission->ar_invoice_id === null && $submission->folio !== null) {
+            // Also covers a monthly summary that took the stay in after the rejection.
+            return $this->folioEInvoiceLock->for($submission->folio) === null;
+        }
+
         return ! EInvoiceSubmission::query()
             ->where('property_id', $submission->property_id)
             ->where('document_type', EInvoiceDocumentType::Invoice)
-            ->when($submission->ar_invoice_id !== null,
-                fn ($query) => $query->where('ar_invoice_id', $submission->ar_invoice_id),
-                fn ($query) => $query->where('folio_id', $submission->folio_id)->whereNull('ar_invoice_id'))
+            ->where('ar_invoice_id', $submission->ar_invoice_id)
             ->active()
             ->exists();
     }

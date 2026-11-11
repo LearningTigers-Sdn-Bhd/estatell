@@ -102,6 +102,22 @@ For guests who do not request an individual e-invoice upon check-out:
 - Closed folios can be submitted individually by front desk staff via the **Issue e-invoice** action in the folio tab.
 - A dedicated sheet (`IssueFolioEInvoiceDialog`) allows staff to input or verify the guest's statutory tax identification (TIN, NRIC, or Passport), billing address, and contact details before transmitting to LHDN.
 - Once submitted, the folio tab displays the live e-invoice status badge with a direct link to the submission details.
+- **Who sends what.** A stay billed to a company (a live City ledger invoice) is e-invoiced from the City ledger invoice page (**Send e-invoice to LHDN**), never from the folio or the monthly summary, so LHDN gets it once. A folio in a monthly summary shows **In monthly summary** and offers no e-invoice of its own.
+- **Checked before sending.** Nothing goes to LHDN while a detail is missing. The refusal names it and where to add it (`MissingEInvoiceDetails`): the hotel's tax number, email or city (E-invoice settings), the guest's tax number, IC or passport, or the company's tax number, registration number or billing city (the company record). A Malaysian guest needs both a tax number and an IC: LHDN checks one against the other (`ERR206`).
+- **The answer is reported as it is.** After sending, the toast says whether LHDN accepted it, is still checking it, or rejected it, with the first reason (`SubmissionToast`). A rejected send is an error, not a success.
+- **LHDN not reachable.** A timeout or dropped connection is recorded as a send that did not reach LHDN ("Submit again in a few minutes"), not a crash.
+- **Credit notes** cannot take off more than what is left on the e-invoice after earlier credit notes.
+
+## Checking a tax number
+
+LHDN has two lookups (MyInvois SDK: Validate Taxpayer's TIN and Search Taxpayer's TIN). `TaxNumberCheck` uses them only when staff ask, because LHDN throttles a client that checks before every submission (about 60 calls a minute per Client ID). A property gets 20 checks a minute.
+
+| Where                                                                                 | What it does                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Check with LHDN** in the Issue e-invoice form                                       | Validates the tax number against the IC, passport or registration number. On a mismatch it looks up the tax number LHDN holds for the ID, and **Use IG…** puts it in the form.                                                                    |
+| **Find the tax number with LHDN** on a rejected e-invoice (an `ERR2…` taxpayer error) | Looks up the tax number for the ID that was sent. **Submit again with IG…** sends the stay again with it and every other detail unchanged (`ResubmitWithTaxNumber`). For a City ledger e-invoice it says to put the number on the company record. |
+
+Answers: confirmed, another tax number found, no tax number for the ID, LHDN not reachable, too many checks. Preprod returns 404 for an unknown pair and 400 for a malformed one (verified 11 Nov 2026); it holds no real taxpayers, so a match was not seen there.
 
 ## Staff pages
 
@@ -112,16 +128,17 @@ Finance › E-invoicing › **E-invoices** is written for owners, managers and f
 - **Rejections** are explained by `LhdnRejectionReasons`: each LHDN code becomes a plain reason and a fix (`ERR206`: the IC does not match the tax number; for a company buyer, the registration number). An unknown code shows LHDN's own sentence without its developer link. Each reason also says whose details to fix (`where`). LHDN's field path decides first: a field under `AccountingSupplierParty` is the hotel's, one under `AccountingCustomerParty` is the buyer's.
 - **Fixing a rejection**: the buttons go where the rejected details are kept.
 
-  | Rejected | Where | Button |
-  | --- | --- | --- |
-  | Buyer, stay e-invoice | The folio's **Issue e-invoice** form | **Fix and submit again** opens the folio with the form open, filled with what was sent and LHDN's reasons on top |
-  | Buyer, City ledger invoice | The company record (tax numbers, billing address) | **Edit company details**, then **Submit again** on the e-invoice page |
-  | Buyer, credit note | The original e-invoice (a credit note copies its buyer) | **Issue a new credit note** opens the original with the credit note form open |
-  | Hotel details or MyInvois login | E-invoice settings | **E-invoice settings**, then submit again |
-  | LHDN could not be reached | Nothing to fix | **Submit again** |
-  | Monthly summary | E-invoice settings when the hotel details were rejected | **Submit the month again** |
+    | Rejected                        | Where                                                   | Button                                                                                                           |
+    | ------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+    | Buyer, stay e-invoice           | The folio's **Issue e-invoice** form                    | **Fix and submit again** opens the folio with the form open, filled with what was sent and LHDN's reasons on top |
+    | Buyer, City ledger invoice      | The company record (tax numbers, billing address)       | **Edit company details**, then **Submit again** on the e-invoice page                                            |
+    | Buyer, credit note              | The original e-invoice (a credit note copies its buyer) | **Issue a new credit note** opens the original with the credit note form open                                    |
+    | Hotel details or MyInvois login | E-invoice settings                                      | **E-invoice settings**, then submit again                                                                        |
+    | LHDN could not be reached       | Nothing to fix                                          | **Submit again**                                                                                                 |
+    | Monthly summary                 | E-invoice settings when the hotel details were rejected | **Submit the month again**                                                                                       |
 
-  The resubmit buttons show only while nothing newer has replaced the rejected e-invoice. Corrections typed in the folio form go to LHDN only; they do not update the guest profile.
+    The resubmit buttons show only while nothing newer has replaced the rejected e-invoice. Corrections typed in the folio form go to LHDN only; they do not update the guest profile.
+
 - **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and a preview of the email. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
 - **Credit notes** show the 3 latest, with **Show all**, under "Credited X of Y".
 - **Privacy**: the page never receives the UBL document or LHDN's raw replies, and shows only the last four characters of the buyer's IC, passport or registration number. `SubmissionView` builds what the page gets.

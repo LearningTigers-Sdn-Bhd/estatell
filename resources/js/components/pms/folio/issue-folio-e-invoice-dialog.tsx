@@ -1,5 +1,6 @@
-import { useForm } from '@inertiajs/react';
-import { CircleAlert } from 'lucide-react';
+import { useForm, useHttp } from '@inertiajs/react';
+import { CircleAlert, CircleCheck, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
@@ -13,8 +14,11 @@ import {
     FieldSet,
 } from '@/components/ui/field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
+import { check as checkTaxNumber } from '@/routes/finance/e-invoices/tax-number';
 import { eInvoice } from '@/routes/reservations/folios';
 
 const MALAYSIA_STATES = [
@@ -43,6 +47,105 @@ const ID_TYPES = [
     { value: 'BRN', label: 'Business Registration (BRN)' },
     { value: 'ARMY', label: 'Military / Police ID' },
 ];
+
+type TaxNumberAnswer = {
+    result: 'match' | 'found' | 'not_found' | 'unavailable' | 'too_many';
+    tin: string | null;
+    message: string;
+};
+
+/**
+ * Asks LHDN whether the tax number belongs to the ID before sending, so a mismatch is fixed here instead of coming
+ * back as a rejection. When LHDN holds another tax number for the ID, one press puts it in the form.
+ */
+function TaxNumberCheck({
+    tin,
+    idType,
+    idValue,
+    onUse,
+}: {
+    tin: string;
+    idType: string;
+    idValue: string;
+    onUse: (tin: string) => void;
+}) {
+    const http = useHttp<
+        { tin: string; id_type: string; id_value: string },
+        TaxNumberAnswer
+    >({ tin: '', id_type: '', id_value: '' });
+    const [answer, setAnswer] = useState<{
+        for: string;
+        value: TaxNumberAnswer;
+    } | null>(null);
+    const [failed, setFailed] = useState(false);
+    const asked = `${tin}|${idType}|${idValue}`;
+    const current = answer?.for === asked ? answer.value : null;
+
+    const ask = () => {
+        setFailed(false);
+        http.transform(() => ({ tin, id_type: idType, id_value: idValue }));
+        http.post(checkTaxNumber.url())
+            .then((value) => setAnswer({ for: asked, value }))
+            .catch(() => setFailed(true));
+    };
+
+    return (
+        <div className="flex flex-col gap-2">
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="self-start"
+                onClick={ask}
+                disabled={http.processing || idValue.trim() === ''}
+                focusableWhenDisabled
+            >
+                {http.processing ? (
+                    <Spinner data-icon="inline-start" />
+                ) : (
+                    <ShieldCheck data-icon="inline-start" />
+                )}
+                Check with LHDN
+            </Button>
+            {idValue.trim() === '' && (
+                <p className="text-sm text-muted-foreground">
+                    Enter the ID number to check the tax number with LHDN.
+                </p>
+            )}
+            {failed && (
+                <p className="text-sm text-destructive">
+                    The check did not go through. Try again.
+                </p>
+            )}
+            {current && (
+                <Alert
+                    variant={
+                        current.result === 'match' ? 'default' : 'destructive'
+                    }
+                >
+                    {current.result === 'match' ? (
+                        <CircleCheck className="text-success" />
+                    ) : (
+                        <CircleAlert />
+                    )}
+                    <AlertDescription className="flex flex-col gap-2">
+                        <p>{current.message}</p>
+                        {current.result === 'found' && current.tin && (
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="self-start"
+                                onClick={() => onUse(current.tin!)}
+                            >
+                                Use {current.tin}
+                            </Button>
+                        )}
+                    </AlertDescription>
+                </Alert>
+            )}
+        </div>
+    );
+}
 
 type Props = {
     open: boolean;
@@ -261,10 +364,13 @@ function IssueFolioEInvoiceForm({
                             value={data.buyer_snapshot.country_code}
                             onChange={(e) => {
                                 const country = e.target.value.toUpperCase();
-                                updateSnapshot('country_code', country);
-                                if (country !== 'MYS' && country !== 'MY') {
-                                    updateSnapshot('state_code', '17');
-                                }
+                                form.setData('buyer_snapshot', {
+                                    ...data.buyer_snapshot,
+                                    country_code: country,
+                                    ...(country !== 'MYS' && country !== 'MY'
+                                        ? { state_code: '17' }
+                                        : {}),
+                                });
                             }}
                             maxLength={3}
                             placeholder="MYS"
@@ -279,6 +385,13 @@ function IssueFolioEInvoiceForm({
                         </FieldError>
                     </Field>
                 </FieldGroup>
+
+                <TaxNumberCheck
+                    tin={data.buyer_snapshot.tin}
+                    idType={data.buyer_snapshot.id_type}
+                    idValue={data.buyer_snapshot.id_value}
+                    onUse={(tin) => updateSnapshot('tin', tin)}
+                />
 
                 <Field
                     data-invalid={!!errors['buyer_snapshot.sst_registration']}

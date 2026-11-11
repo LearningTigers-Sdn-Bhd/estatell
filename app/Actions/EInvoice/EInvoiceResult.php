@@ -34,6 +34,10 @@ class EInvoiceResult
 
     public const string REFUSAL_NOT_EMAILABLE = 'not_emailable';
 
+    public const string REFUSAL_CREDIT_EXCEEDS_REMAINING = 'credit_exceeds_remaining';
+
+    public const string REFUSAL_BILLED_TO_CITY_LEDGER = 'billed_to_city_ledger';
+
     private function __construct(
         public readonly bool $ok,
         public readonly ?EInvoiceSubmission $submission = null,
