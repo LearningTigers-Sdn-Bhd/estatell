@@ -6,6 +6,7 @@ use App\Features\AccountingIntegration;
 use App\Features\Boats;
 use App\Features\BookingEngine;
 use App\Features\ChannelManager;
+use App\Features\Concierge;
 use App\Features\DoorLocks;
 use App\Features\Kiosks;
 
@@ -20,6 +21,7 @@ enum PlatformFeature: string
     case DoorLocks = 'door-locks';
     case Kiosks = 'kiosks';
     case BookingEngine = 'booking-engine';
+    case Concierge = 'concierge';
 
     public function label(): string
     {
@@ -30,6 +32,7 @@ enum PlatformFeature: string
             self::DoorLocks => __('Door locks'),
             self::Kiosks => __('Kiosks'),
             self::BookingEngine => __('Booking engine'),
+            self::Concierge => __('Concierge page'),
         };
     }
 
@@ -42,6 +45,7 @@ enum PlatformFeature: string
             self::DoorLocks => __('Door locks for each stay: TTLock PINs and cards from the cloud, and eLock key cards written at the front desk. Choose which the property uses.'),
             self::Kiosks => __('Self check-in kiosks: pairing, settings and the kiosk API for this property.'),
             self::BookingEngine => __('Let guests book and pay online, on a booking website or through the API.'),
+            self::Concierge => __('Guest self check-in on the guest\'s own phone, from a lobby QR code or the pre-check-in link.'),
         };
     }
 
@@ -57,6 +61,7 @@ enum PlatformFeature: string
             self::DoorLocks => DoorLocks::class,
             self::Kiosks => Kiosks::class,
             self::BookingEngine => BookingEngine::class,
+            self::Concierge => Concierge::class,
         };
     }
 }

@@ -82,8 +82,8 @@ test('front desk navigation puts house status and Boat Trips under rooms, and no
             $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
             $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
 
-            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'House status'])
-                ->and($rooms['items'][2])->toMatchArray([
+            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'Requests', 'House status'])
+                ->and($rooms['items'][3])->toMatchArray([
                     'title' => 'House status',
                     'href' => "/p/{$code}/reports/house-status",
                     'icon' => 'layout-grid',
@@ -99,8 +99,8 @@ test('front desk navigation puts house status and Boat Trips under rooms, and no
             $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
             $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
 
-            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'Boat Trips', 'House status'])
-                ->and($rooms['items'][2])->toMatchArray([
+            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'Requests', 'Boat Trips', 'House status'])
+                ->and($rooms['items'][3])->toMatchArray([
                     'title' => 'Boat Trips',
                     'href' => "/p/{$code}/boats",
                     'icon' => 'ship',

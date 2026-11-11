@@ -44,6 +44,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $charter_charge_item_id The charge item a Charter boat trip adds once (Sand Bay: Charter Boat RM280). Null: nothing is added.
  * @property KioskKeyMode $kiosk_key_mode
  * @property bool $kiosk_walk_in_enabled
+ * @property bool $concierge_walk_in_enabled
+ * @property string|null $house_rules
+ * @property bool $concierge_refund_requests_enabled
  * @property int $kiosk_idle_timeout_seconds
  */
 #[Fillable([
@@ -53,7 +56,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
     'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
     'migration_window_days', 'charter_charge_item_id', 'agent_deposit_percent', 'agent_deposit_hours', 'agent_full_payment_days',
-    'kiosk_key_mode', 'kiosk_walk_in_enabled', 'kiosk_idle_timeout_seconds',
+    'kiosk_key_mode', 'kiosk_walk_in_enabled', 'kiosk_idle_timeout_seconds', 'concierge_walk_in_enabled', 'house_rules', 'concierge_refund_requests_enabled',
 ])]
 class PropertySetting extends Model
 {
@@ -84,6 +87,8 @@ class PropertySetting extends Model
             'agent_full_payment_days' => 'integer',
             'kiosk_key_mode' => KioskKeyMode::class,
             'kiosk_walk_in_enabled' => 'boolean',
+            'concierge_walk_in_enabled' => 'boolean',
+            'concierge_refund_requests_enabled' => 'boolean',
             'kiosk_idle_timeout_seconds' => 'integer',
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Actions\Payments;
 
 use App\Actions\BookingEngine\ConfirmBookingHold;
 use App\Actions\BookingEngine\MarkBookingHoldPaid;
+use App\Actions\Concierge\RecordStayPayment;
 use App\Enums\GatewayPaymentStatus;
 use App\Models\GatewayEvent;
 use App\Models\GatewayPayment;
@@ -28,6 +29,7 @@ class ProcessCurlecEvent
         private RequestOnlineRefund $requestOnlineRefund,
         private CompleteOnlineRefund $completeOnlineRefund,
         private FailOnlineRefund $failOnlineRefund,
+        private RecordStayPayment $recordStayPayment,
     ) {}
 
     public function __invoke(GatewayEvent $event, bool $isFirstAttempt = true): bool
@@ -60,6 +62,16 @@ class ProcessCurlecEvent
         }
 
         $this->record($payment, GatewayPaymentStatus::Paid, $event);
+
+        if ($payment->booking_hold_id === null) {
+            $recorded = ($this->recordStayPayment)($payment->refresh(), (string) $payment->gateway_payment_id);
+
+            if (! $recorded && $isFirstAttempt) {
+                ($this->alert)($payment, __('A guest paid for a stay and the payment could not be posted to the folio. It will be tried again.'));
+            }
+
+            return $recorded;
+        }
 
         $hold = $payment->hold;
 

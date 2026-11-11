@@ -18,6 +18,7 @@ use App\Http\Controllers\Catalogues\RoomRevenueDayUseController;
 use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
+use App\Http\Controllers\Concierge\ConciergeSettingsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\DoorLocks\KeyportSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
@@ -299,6 +300,15 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('/', [KioskController::class, 'store'])->name('store');
         Route::put('settings', [KioskController::class, 'update'])->name('update');
         Route::post('{kiosk}/revoke', [KioskController::class, 'revoke'])->name('revoke');
+    });
+
+    Route::prefix('concierge')->name('concierge.')->middleware(['concierge', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('/', [ConciergeSettingsController::class, 'index'])->name('index');
+        Route::put('/', [ConciergeSettingsController::class, 'update'])->name('update');
+        Route::post('wifi', [ConciergeSettingsController::class, 'storeWifi'])->name('wifi.store');
+        Route::delete('wifi/{wifiNetwork}', [ConciergeSettingsController::class, 'destroyWifi'])->name('wifi.destroy');
+        Route::post('faqs', [ConciergeSettingsController::class, 'storeFaq'])->name('faqs.store');
+        Route::delete('faqs/{faq}', [ConciergeSettingsController::class, 'destroyFaq'])->name('faqs.destroy');
     });
 
     Route::prefix('booking-sources')->name('booking-sources.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

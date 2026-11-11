@@ -70,6 +70,9 @@ enum PermissionEnum: string
     case BookingWebsiteManage = 'booking-website.manage';
     case BookingWebsitePublish = 'booking-website.publish';
     case BookingWebsiteApi = 'booking-website.api';
+    case GuestRequestsView = 'guest-requests.view';
+    case GuestRequestsManage = 'guest-requests.manage';
+    case GuestRequestsResolve = 'guest-requests.resolve';
 
     public function label(): string
     {
@@ -136,6 +139,9 @@ enum PermissionEnum: string
             self::BookingWebsiteManage => __('Edit the booking website settings'),
             self::BookingWebsitePublish => __('Publish or unpublish the booking website'),
             self::BookingWebsiteApi => __('Manage the booking API token and return addresses'),
+            self::GuestRequestsView => __('View guest requests'),
+            self::GuestRequestsManage => __('Record, assign, cancel and reopen guest requests'),
+            self::GuestRequestsResolve => __('Start and resolve guest requests'),
         };
     }
 
@@ -161,6 +167,7 @@ enum PermissionEnum: string
             self::ReportsView => __('Reports'),
             self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes => __('Housekeeping'),
             self::BookingWebsiteManage, self::BookingWebsitePublish, self::BookingWebsiteApi => __('Booking website'),
+            self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve => __('Guest requests'),
         };
     }
 

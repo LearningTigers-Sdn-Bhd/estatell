@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureBookingClientReach;
 use App\Http\Middleware\EnsureBookingEngineIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
+use App\Http\Middleware\EnsureConciergeIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureKeyportVersion;
@@ -70,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'door-locks' => EnsureDoorLocksAreActive::class,
             'kiosks' => EnsureKiosksAreActive::class,
             'booking-engine' => EnsureBookingEngineIsActive::class,
+            'concierge' => EnsureConciergeIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'keyport.device' => AuthenticateKeyportDevice::class,
             'keyport.version' => EnsureKeyportVersion::class,
@@ -84,6 +86,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList([ThrottleRequests::class, ThrottleRequestsWithRedis::class], AuthenticateApiToken::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePortalAccess::class);
+        $middleware->appendToPriorityList(SubstituteBindings::class, EnsureConciergeIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);

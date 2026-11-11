@@ -403,6 +403,24 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(Kiosk::class);
     }
 
+    /** @return HasMany<GuestRequest, $this> */
+    public function guestRequests(): HasMany
+    {
+        return $this->hasMany(GuestRequest::class);
+    }
+
+    /** @return HasMany<PropertyWifiNetwork, $this> */
+    public function wifiNetworks(): HasMany
+    {
+        return $this->hasMany(PropertyWifiNetwork::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** @return HasMany<PropertyFaq, $this> */
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(PropertyFaq::class)->orderBy('position')->orderBy('id');
+    }
+
     /** @return BelongsToMany<NearbyPlace, $this> */
     public function nearbyPlaces(): BelongsToMany
     {
