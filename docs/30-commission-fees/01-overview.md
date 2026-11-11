@@ -4,7 +4,7 @@
 
 Track what Estatell earns from each property's bookings, hold the money Estatell collects for properties, and pay it out on fixed dates. Platform admins see every property; each property sees its own bookings and payouts.
 
-**Status: in build.** Planned on 2026-11-11. Rates, the ledger and the Commissions settings tab are built. Build order is in the [checklist](../checklist.md#30-commission-fees).
+**Status: in build.** Planned on 2026-11-11. Rates, the ledger, the Commissions settings tab and booking engine recording are built. Build order is in the [checklist](../checklist.md#30-commission-fees).
 
 ## Decisions
 
@@ -72,18 +72,18 @@ Money that Estatell holds for properties is a liability, not income. Only commis
 
 The module reads other modules through their events, Actions and Services. It never writes to their tables.
 
-| Need                         | Used from                                                                  |
-| ---------------------------- | -------------------------------------------------------------------------- |
-| Money collected              | `gateway_payments` (booking engine)                                        |
-| Refunds and their cost       | `gateway_refunds` (payments)                                               |
-| Which service a booking used | `booking_sources` (Booking Engine source), `channel_booking_revisions`     |
-| Commission base              | The booking's room total, and the folio's room revenue lines before tax    |
-| When a booking ends          | `StayCheckedOut`, `ReservationChanged`, and the cancel and no-show Actions |
-| Is the service on            | The Pennant features                                                       |
-| Voucher number               | `document_sequences`                                                       |
-| Where to pay                 | `property_bank_accounts`                                                   |
+| Need                         | Used from                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| Money collected              | `OnlineBookingMoney` (booking engine), over `gateway_payments`                        |
+| Refunds and their cost       | `gateway_refunds` (payments)                                                          |
+| Which service a booking used | `booking_sources` (Booking Engine source), `channel_booking_revisions`                |
+| Commission base              | `ReservationRoomRevenue` (Folio); the booking engine caps it at the room total booked |
+| When a booking ends          | The hourly `RecordDueCommissions` run: every unit checked out, cancelled or no-show   |
+| Is the service on            | The Pennant features                                                                  |
+| Voucher number               | `document_sequences`                                                                  |
+| Where to pay                 | `property_bank_accounts`                                                              |
 
-Code lives in `app/Actions/Commissions` and `app/Services/Commissions`. When an event the module needs does not exist yet (for example a captured Curlec payment or a cancellation), the build item that needs it adds it to the owning module.
+Code lives in `app/Actions/Commissions` and `app/Services/Commissions`. An hourly run finds ended bookings, because no single event marks the end of a booking.
 
 ## Later
 

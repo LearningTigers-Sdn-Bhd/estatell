@@ -13,16 +13,16 @@ Record every amount Estatell holds for a property, or owes it, or is owed by it.
 
 ## Entry types
 
-| Type              | Sign | Written when                                   | Idempotency key                             |
-| ----------------- | ---- | ---------------------------------------------- | ------------------------------------------- |
-| `collected`       | +    | A Curlec payment is captured                   | `collected:{gateway_payment_id}`            |
-| `refunded`        | −    | A Curlec refund succeeds                       | `refunded:{gateway_refund_id}`              |
-| `refund_fee`      | −    | A Curlec refund succeeds (kept fee + RM 0.50)  | `refund-fee:{gateway_refund_id}`            |
-| `commission`      | −    | The booking ends                               | `commission:{service}:{reservation_id}:{n}` |
-| `adjustment`      | ±    | A platform admin adds one, with a reason       | none (manual)                               |
-| `carried_forward` | ±    | A voucher is carried forward into the next one | `carried:{payout_voucher_id}`               |
+| Type              | Sign | Written when                                                  | Idempotency key                             |
+| ----------------- | ---- | ------------------------------------------------------------- | ------------------------------------------- |
+| `collected`       | +    | The booking ends                                              | `collected:{gateway_payment_id}`            |
+| `refunded`        | −    | The booking ends, or a later run finds a new processed refund | `refunded:{gateway_refund_id}`              |
+| `refund_fee`      | −    | With its `refunded` entry                                     | `refund-fee:{gateway_refund_id}`            |
+| `commission`      | −    | The booking ends                                              | `commission:{service}:{reservation_id}:{n}` |
+| `adjustment`      | ±    | A platform admin adds one, with a reason                      | none (manual)                               |
+| `carried_forward` | ±    | A voucher is carried forward into the next one                | `carried:{payout_voucher_id}`               |
 
-`collected` and `refunded` take the due date of their reservation. Until the reservation ends, they count in Total Cash Liability but not in a voucher.
+Money entries are written when the booking ends, together with the commission and with the same due date, so they always land in the same cycle. Entries never change, so the due date cannot be filled in later. Until the booking ends, its money is counted from `gateway_payments` and `gateway_refunds` directly (see Totals).
 
 ## Writing entries
 
@@ -32,7 +32,7 @@ Record every amount Estatell holds for a property, or owes it, or is owed by it.
 
 ## Refund cost
 
-On a full refund, the property pays the fee Curlec kept and the RM 0.50 refund fee. On a partial refund, the property pays the RM 0.50 only, because Estatell pays Curlec's normal fee from its commission. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#cost).
+Each refund costs the property RM 0.50 (`services.curlec.refund_fee`). The refund that gives back the whole payment also costs the fee Curlec kept: the `fee` on Curlec's payment entity, tax included, in sen. When the payment entity has no `fee`, only the RM 0.50 is charged. On a partial refund, Estatell pays Curlec's normal fee from its commission. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#cost).
 
 ## Tables
 
@@ -75,9 +75,9 @@ Indexes: (`property_id`, `due_date`), (`property_id`, `payout_voucher_id`), `res
 
 ## Totals
 
-| Total                | Meaning                                                                                        |
-| -------------------- | ---------------------------------------------------------------------------------------------- |
-| Total Cash Liability | Sum of `collected` and `refunded` entries for all properties that are not in a paid voucher    |
-| Immediate Payable    | Sum of the next voucher run: entries with a due date up to the last cut-off, not yet vouchered |
-| Owed to Estatell     | Sum of negative property balances                                                              |
-| Estatell income      | Sum of `commission` entries (shown as a positive number)                                       |
+| Total                | Meaning                                                                                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Total Cash Liability | Ledger money not yet in a paid voucher, plus paid Curlec payments minus processed refunds of booking engine reservations that have not ended |
+| Immediate Payable    | Sum of the next voucher run: entries with a due date up to the last cut-off, not yet vouchered                                               |
+| Owed to Estatell     | Sum of negative property balances                                                                                                            |
+| Estatell income      | Sum of `commission` entries (shown as a positive number)                                                                                     |

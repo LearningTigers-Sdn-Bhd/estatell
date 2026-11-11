@@ -4,6 +4,8 @@ namespace App\Enums;
 
 use App\Features\BookingEngine;
 use App\Features\ChannelManager;
+use App\Services\Commissions\BookingEngineCommission;
+use App\Services\Commissions\CommissionRule;
 
 /**
  * A service Estatell charges commission on. Each case is turned on per property by its feature flag.
@@ -28,6 +30,19 @@ enum CommissionService: string
     public static function options(): array
     {
         return array_map(fn (self $service): array => ['value' => $service->value, 'label' => $service->label()], self::cases());
+    }
+
+    /**
+     * The rule that decides this service's commission. Null while a service has no rule yet: it records nothing.
+     *
+     * @return class-string<CommissionRule>|null
+     */
+    public function rule(): ?string
+    {
+        return match ($this) {
+            self::BookingEngine => BookingEngineCommission::class,
+            self::ChannelManager => null,
+        };
     }
 
     /**
