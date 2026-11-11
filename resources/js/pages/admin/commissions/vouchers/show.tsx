@@ -23,6 +23,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { dashboard } from '@/routes/admin';
+import { index as commissions } from '@/routes/admin/commissions';
 import { index, pdf, show } from '@/routes/admin/commissions/vouchers';
 
 type Props = { voucher: App.Data.Commissions.PayoutVoucherData };
@@ -262,7 +263,8 @@ export default function PayoutVoucherShow({ voucher: detail }: Props) {
 PayoutVoucherShow.layout = (props: Props) => ({
     breadcrumbs: [
         { title: 'Admin', href: dashboard() },
-        { title: 'Payout vouchers', href: index() },
+        { title: 'Commissions', href: commissions() },
+        { title: 'Vouchers', href: index() },
         {
             title: props.voucher.voucher.number,
             href: show(props.voucher.voucher.id),

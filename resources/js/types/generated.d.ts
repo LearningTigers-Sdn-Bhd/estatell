@@ -927,6 +927,28 @@ balance: string,
 };
 }
 namespace Commissions {
+export type CommissionBookingFilters = {
+period: App.Enums.CommissionPeriod,
+date: string,
+from: string,
+to: string,
+propertyId: number | null,
+service: App.Enums.CommissionService | null,
+};
+export type CommissionBookingRowData = {
+reservationId: number,
+propertyName: string,
+bookingReference: string,
+sourceName: string,
+bookedAt: string,
+checkIn: string | null,
+checkOut: string | null,
+guestName: string,
+value: string,
+commissions: Record<string, string>,
+outstanding: string,
+currency: App.Data.Property.CurrencyData | null,
+};
 export type CommissionEntryInputData = {
 type: App.Enums.CommissionEntryType,
 amount: string,
@@ -948,6 +970,14 @@ serviceLabel: string,
 rate: string,
 effectiveFrom: string,
 status: App.Data.Shared.BadgeData,
+};
+export type CommissionTotalsData = {
+cashLiability: string,
+immediatePayable: string,
+payableOn: string,
+owedToEstatell: string,
+propertiesOwing: number,
+currency: App.Data.Property.CurrencyData,
 };
 export type PayoutVoucherData = {
 voucher: App.Data.Commissions.PayoutVoucherRowData,
@@ -4997,6 +5027,7 @@ export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_ni
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
 export type CommissionEntryType = 'collected' | 'refunded' | 'refund_fee' | 'commission' | 'adjustment' | 'carried_forward';
+export type CommissionPeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
 export type CommissionRateStatus = 'scheduled' | 'current' | 'past';
 export type CommissionService = 'booking_engine' | 'channel_manager';
 export type CompanyAccess = 'everyone' | 'all' | 'selected';

@@ -49,6 +49,20 @@ function commissionBooking(int $rooms = 1, ?int $curlecFeeSen = 472): array
 }
 
 /**
+ * Another paid online booking on the property of `commissionBooking()`, with its own Curlec order.
+ *
+ * @param  array<string, mixed>  $setup
+ */
+function anotherCommissionBooking(array $setup, string $orderId = 'order_two'): Reservation
+{
+    $hold = curlecHold($setup);
+    curlecOrder($hold, $orderId);
+    postCurlecWebhook(curlecOrderPaid($orderId, 'pay_'.$orderId), 'evt_'.$orderId)->assertOk();
+
+    return Reservation::query()->findOrFail($hold->refresh()->reservation_id);
+}
+
+/**
  * Posts a line with a system code on the reservation's first folio. Charges and their discounts only; tax lines use
  * `TransactionKind::Tax`.
  */

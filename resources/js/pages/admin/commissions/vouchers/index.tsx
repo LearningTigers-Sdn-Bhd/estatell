@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { ReceiptText } from 'lucide-react';
 import { useCallback } from 'react';
+import { CommissionTabs } from '@/components/pms/commissions/commission-tabs';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -11,6 +12,7 @@ import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes/admin';
+import { index as commissions } from '@/routes/admin/commissions';
 import { index, show } from '@/routes/admin/commissions/vouchers';
 
 type Row = App.Data.Commissions.PayoutVoucherRowData;
@@ -123,83 +125,89 @@ export default function PayoutVouchersIndex({
 
             <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
-                    title="Payout vouchers"
+                    title="Commissions"
                     description="One voucher per property for each cycle from the 16th to the 15th, paid on the 1st."
                 />
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <EnumSelect
-                        options={cycles}
-                        value={filters.cycle}
-                        onValueChange={(cycle) => visit({ cycle })}
-                        allLabel="All cycles"
-                        aria-label="Cycle"
-                        className="w-60"
-                    />
-                    <EnumSelect
-                        options={statuses}
-                        value={filters.status}
-                        onValueChange={(status) => visit({ status })}
-                        allLabel="All statuses"
-                        aria-label="Status"
-                        className="w-44"
-                    />
-                    <EnumSelect
-                        options={properties}
-                        value={filters.property}
-                        onValueChange={(property) => visit({ property })}
-                        allLabel="All properties"
-                        aria-label="Property"
-                        className="w-52"
-                    />
-                </div>
-
-                <DataTable
-                    columns={columns}
-                    data={vouchers.data}
-                    getRowId={(row) => String(row.id)}
-                    columnAlign={{ amount: 'right' }}
-                    sort={sort}
-                    onSortChange={(next) => visit({ sort: next })}
-                    onRowClick={(row) => router.visit(show(row.id))}
-                    pagination={{
-                        currentPage: vouchers.meta.current_page,
-                        lastPage: vouchers.meta.last_page,
-                        from: vouchers.meta.from,
-                        to: vouchers.meta.to,
-                        total: vouchers.meta.total,
-                        prevUrl: vouchers.meta.prev_page_url,
-                        nextUrl: vouchers.meta.next_page_url,
-                    }}
-                    empty={
-                        hasFilters ? (
-                            <EmptyState
-                                icon={ReceiptText}
-                                title="No vouchers match these filters"
-                                action={
-                                    <Button
-                                        variant="outline"
-                                        onClick={() =>
-                                            visit({
-                                                cycle: '',
-                                                status: '',
-                                                property: '',
-                                            })
-                                        }
-                                    >
-                                        Clear filters
-                                    </Button>
+                <CommissionTabs activeTab="vouchers">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <EnumSelect
+                                options={cycles}
+                                value={filters.cycle}
+                                onValueChange={(cycle) => visit({ cycle })}
+                                allLabel="All cycles"
+                                aria-label="Cycle"
+                                className="w-60"
+                            />
+                            <EnumSelect
+                                options={statuses}
+                                value={filters.status}
+                                onValueChange={(status) => visit({ status })}
+                                allLabel="All statuses"
+                                aria-label="Status"
+                                className="w-44"
+                            />
+                            <EnumSelect
+                                options={properties}
+                                value={filters.property}
+                                onValueChange={(property) =>
+                                    visit({ property })
                                 }
+                                allLabel="All properties"
+                                aria-label="Property"
+                                className="w-52"
                             />
-                        ) : (
-                            <EmptyState
-                                icon={ReceiptText}
-                                title="No vouchers yet"
-                                description="The first vouchers are made on the 16th."
-                            />
-                        )
-                    }
-                />
+                        </div>
+
+                        <DataTable
+                            columns={columns}
+                            data={vouchers.data}
+                            getRowId={(row) => String(row.id)}
+                            columnAlign={{ amount: 'right' }}
+                            sort={sort}
+                            onSortChange={(next) => visit({ sort: next })}
+                            onRowClick={(row) => router.visit(show(row.id))}
+                            pagination={{
+                                currentPage: vouchers.meta.current_page,
+                                lastPage: vouchers.meta.last_page,
+                                from: vouchers.meta.from,
+                                to: vouchers.meta.to,
+                                total: vouchers.meta.total,
+                                prevUrl: vouchers.meta.prev_page_url,
+                                nextUrl: vouchers.meta.next_page_url,
+                            }}
+                            empty={
+                                hasFilters ? (
+                                    <EmptyState
+                                        icon={ReceiptText}
+                                        title="No vouchers match these filters"
+                                        action={
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    visit({
+                                                        cycle: '',
+                                                        status: '',
+                                                        property: '',
+                                                    })
+                                                }
+                                            >
+                                                Clear filters
+                                            </Button>
+                                        }
+                                    />
+                                ) : (
+                                    <EmptyState
+                                        icon={ReceiptText}
+                                        title="No vouchers yet"
+                                        description="The first vouchers are made on the 16th."
+                                    />
+                                )
+                            }
+                        />
+                    </div>
+                </CommissionTabs>
             </div>
         </>
     );
@@ -208,6 +216,7 @@ export default function PayoutVouchersIndex({
 PayoutVouchersIndex.layout = {
     breadcrumbs: [
         { title: 'Admin', href: dashboard() },
-        { title: 'Payout vouchers', href: index() },
+        { title: 'Commissions', href: commissions() },
+        { title: 'Vouchers', href: index() },
     ],
 };

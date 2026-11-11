@@ -62,7 +62,7 @@ Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md
 - [x] `feat(commissions): record channel manager commission` — `ChannelManagerCommission` on the folio's room revenue lines before tax, including cancellation and no-show fees, from the start date. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md).
 - [x] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the entry lock. The PDF moved to the next item. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
 - [x] `feat(commissions): approve, pay and print payout vouchers` — the Vouchers list, the voucher page, adjustments, approve, mark as paid, the voucher PDF and the Commissions sidebar link. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#voucher-page).
-- [ ] `feat(commissions): add the platform commissions dashboard` — the Bookings tab at `/admin/commissions` with Total Cash Liability, Immediate Payable and Owed to Estatell, the period, property and service filters, and the CSV export. Needs: approve, pay and print payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#bookings-tab).
+- [x] `feat(commissions): add the platform commissions dashboard` — the Bookings tab at `/admin/commissions` with Total Cash Liability, Immediate Payable and Owed to Estatell, the period, property and service filters, and the CSV export. Needs: approve, pay and print payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#bookings-tab).
 - [ ] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
 
 ### 18 Front desk
@@ -499,6 +499,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `5aaaa9ee` | feat(commissions): record booking engine money and commission            |
 | `ff6a8e5f` | feat(commissions): record channel manager commission                     |
 | `86feac8e` | feat(commissions): generate payout vouchers on the 16th                  |
+| `e5c2c1b4` | feat(commissions): approve, pay and print payout vouchers                |
 
 Smaller fixes and reverts are in `git log`.
 

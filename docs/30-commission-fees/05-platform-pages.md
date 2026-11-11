@@ -31,14 +31,21 @@ Let platform admins track money held for properties, commission per service, and
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- One row per reservation with at least one commission service. The row opens the reservation through view as.
-- Columns follow the requirements sheet: Property, Booking number, Source, Booked at, Check-in, Check-out, Guest, Total booking value, one column per `CommissionService`, Outstanding to hotel.
-- **Total booking value** depends on the source: the guest's payment for the booking engine, the folio's room revenue before tax for the channel manager.
-- The period filter uses the due date. Totals sit in the table footer. CSV export uses the report export.
+- **Rows:** one per reservation with ledger entries due in the period (`CommissionBookings`), newest due first, 25 to a page. A booking shows once it has ended. A refund recorded a month later shows in that later period too, because rows follow due dates like vouchers.
+- **Columns:** Property, Booking, Source, Booked, Check-in, Check-out, Guest, Value, one commission column per `CommissionService` (positive), Outstanding to hotel (signed: negative means the property owes Estatell).
+- **Value:** what Estatell collected for a booking engine booking; otherwise the commission base, the room revenue before tax (reversals cancel out).
+- **Filters in the URL:** period (day, week from Monday, month, quarter or year) around a date, property and service. The default is this month in Malaysia time.
+- **Footer:** totals of every row the filters keep, not only the page.
+- **Header cards** (`CommissionTotals`) are figures as of now. They follow the property filter and ignore the period. Amounts are in ringgit, the currency Curlec settles in.
+    - **Total cash liability:** each property's positive balance of entries not in a paid voucher, plus money held for booking engine bookings not yet in the ledger (`OnlineBookingMoney::heldOutsideLedger`).
+    - **Immediate payable:** the open Draft and Approved vouchers with the earliest payout date. With none, a forecast of the coming cut-off from unvouchered entries. Only properties Estatell pays count.
+    - **Owed to Estatell:** each property's negative balance, shown positive, with the number of properties.
+- **Export CSV:** every filtered row with the page columns, `commissions-{from}-to-{to}.csv`.
+- A row does not open the reservation yet: admins see staff pages only through view as.
 
 ## Vouchers tab
 
-`/admin/commissions/vouchers` (Index). Until the Bookings tab is built, it is a page of its own and the **Commissions** sidebar link opens it.
+`/admin/commissions/vouchers` (Index), the second tab. The **Commissions** sidebar link opens the Bookings tab.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐

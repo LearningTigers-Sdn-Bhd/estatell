@@ -8,6 +8,7 @@ use App\Enums\PayoutVoucherStatus;
 use App\Models\CommissionEntry;
 use App\Models\PayoutVoucher;
 use App\Models\Property;
+use App\Services\Commissions\PayoutCycle;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -26,12 +27,14 @@ class GenerateDraftVouchers
 
     public const int MAX_CARRIES_IN_A_ROW = 2;
 
-    public function __construct(private PostCommissionEntry $postCommissionEntry) {}
+    public function __construct(
+        private PostCommissionEntry $postCommissionEntry,
+        private PayoutCycle $payoutCycle,
+    ) {}
 
     public function __invoke(?CarbonImmutable $runOn = null): int
     {
-        $runOn ??= now('Asia/Kuala_Lumpur')->toImmutable();
-        $periodEnd = ($runOn->day >= 16 ? $runOn : $runOn->subMonthNoOverflow())->setDay(15)->startOfDay();
+        $periodEnd = $this->payoutCycle->lastEndedOn($runOn ?? $this->payoutCycle->today());
 
         $propertyIds = CommissionEntry::query()
             ->whereNull('payout_voucher_id')
@@ -66,9 +69,9 @@ class GenerateDraftVouchers
             $voucher = PayoutVoucher::query()->create([
                 'property_id' => $property->id,
                 'number' => 'PV-'.$periodEnd->format('Ym').'-'.$property->code,
-                'period_start' => $periodEnd->subMonthNoOverflow()->addDay()->toDateString(),
+                'period_start' => $this->payoutCycle->startOf($periodEnd)->toDateString(),
                 'period_end' => $periodEnd->toDateString(),
-                'due_on' => $this->payoutDate($periodEnd)->toDateString(),
+                'due_on' => $this->payoutCycle->payoutDate($periodEnd)->toDateString(),
                 'amount' => (string) $amount,
                 'status' => $carries ? PayoutVoucherStatus::CarriedForward : PayoutVoucherStatus::Draft,
             ]);
@@ -121,19 +124,5 @@ class GenerateDraftVouchers
             dueDate: $periodEnd->addDay(),
             idempotencyKey: 'carried:'.$voucher->id,
         ));
-    }
-
-    /**
-     * The 1st after the cycle, moved to Monday when it falls on a weekend. There is no public holiday calendar.
-     */
-    private function payoutDate(CarbonImmutable $periodEnd): CarbonImmutable
-    {
-        $date = $periodEnd->startOfMonth()->addMonthNoOverflow();
-
-        while ($date->isWeekend()) {
-            $date = $date->addDay();
-        }
-
-        return $date;
     }
 }
