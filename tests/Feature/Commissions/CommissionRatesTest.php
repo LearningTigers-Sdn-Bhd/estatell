@@ -2,7 +2,6 @@
 
 use App\Enums\CommissionService;
 use App\Models\CommissionRate;
-use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Services\Commissions\CommissionRates;
 use Carbon\CarbonImmutable;
@@ -36,7 +35,6 @@ test('the commissions tab lists rates as scheduled, current and past', function 
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/settings/edit')
             ->where('activeTab', 'commissions')
-            ->where('settings.channelManagerCommissionFrom', null)
             ->missing('settings.requireGoLiveApproval')
             ->where('commissionServices.0.value', 'booking_engine')
             ->where('commissionRates.0.rate', '8.00')
@@ -101,25 +99,4 @@ test('rates are admin only and need two-factor to save', function () {
         ->assertRedirect();
 
     expect(CommissionRate::query()->count())->toBe(2);
-});
-
-test('an admin sets the channel manager commission start date', function () {
-    $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
-        ->put(route('admin.settings.commissions.update'), ['channel_manager_commission_from' => '2026-12-01'])
-        ->assertRedirect(route('admin.settings.commissions'))
-        ->assertSessionHasNoErrors();
-
-    expect(PlatformSetting::query()->find(1)->channel_manager_commission_from->toDateString())->toBe('2026-12-01')
-        ->and(Activity::query()->sole()->attribute_changes->toArray())->toBe([
-            'attributes' => ['channel_manager_commission_from' => '2026-12-01 00:00:00'],
-            'old' => ['channel_manager_commission_from' => null],
-        ]);
-});
-
-test('the channel manager commission start date cannot be in the past', function () {
-    $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
-        ->put(route('admin.settings.commissions.update'), ['channel_manager_commission_from' => '2026-10-13'])
-        ->assertSessionHasErrors(['channel_manager_commission_from' => 'Choose today or a later date.']);
-
-    expect(PlatformSetting::query()->find(1)->channel_manager_commission_from)->toBeNull();
 });

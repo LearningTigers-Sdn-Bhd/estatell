@@ -50,9 +50,17 @@ Example: an Agoda booking is cancelled and the property keeps RM 200 before tax.
 - The rate for a booking is the one in force on the date the booking was made.
 - Each commission entry saves the base and the rate it used. A later rate change never changes past entries.
 
-## Channel manager start date
+## Charging periods
 
-Properties already used the channel manager before this module. Admins set a start date for channel manager commission (`platform_settings.channel_manager_commission_from`). A Channex reservation pays only when its due date is on or after it. With no date, no channel manager commission is charged, and the hourly run does not look at Channex reservations. Bookings imported from Channex when a property connected follow the same rule.
+Each property is charged per service only inside its **charging periods** (`property_commission_periods`). Admins start, stop and cancel them on the admin property page, Commissions tab.
+
+- **No period, no commission.** A new property, or one an admin never started, pays nothing for that service. This holds for the booking engine too.
+- **Charge date.** A booking is charged when its **check-out date** (the latest unit departure date) falls inside a period, end date included. The check-out date does not move when the booking is checked again later, so a period that starts after a booking ended never charges it, and a correction after a stop still follows the booking.
+- **Money is not a commission.** Booking engine money (collected, refunded, refund fee) is recorded with or without a period, because Estatell holds the guest's money either way.
+- **Start:** from today or a later date (Malaysia time), with no end. A service has at most one open period, and a new period cannot overlap an old one.
+- **Stop:** sets the last day charged, today or later and not before the start. Commission already recorded stays and is paid out as usual; stopping is never a refund.
+- **Cancel:** removes a period that has not started yet, to fix a wrong start date. A period that has started is kept, because recorded commission depends on it.
+- Every start, stop and cancel is logged. Past dates cannot be changed.
 
 The commission applies to every reservation that came through Channex, even if the property's `ChannelManager` flag is turned off later. OTA cancellations arrive with no fee, so they pay nothing unless staff post a cancellation or no-show fee.
 
@@ -65,13 +73,14 @@ On every run, `RecordReservationCommission` works out each service's commission 
 | Part                                 | What it is                                                                                  |
 | ------------------------------------ | ------------------------------------------------------------------------------------------- |
 | `CommissionService` enum             | `BookingEngine`, `ChannelManager`. `label()`, `featureClass()` and `rule()`                 |
-| `CommissionRule` interface           | `candidates()`, `appliesTo(Reservation, $dueDate)`, `base(Reservation)`                     |
+| `CommissionRule` interface           | `candidates()`, `appliesTo(Reservation)`, `base(Reservation)`                               |
 | `BookingEngineCommission`            | The booking engine rule                                                                     |
 | `ChannelManagerCommission`           | The channel manager rule. Uses `ChannexReservations` (Channels)                             |
 | `ReservationRoomRevenue` (Folio)     | The room revenue before tax of a reservation. `ReservationFolioActivity` finds recent lines |
 | `OnlineBookingMoney` (BookingEngine) | The collected payment, Curlec's fee, the booked room total and the processed refunds        |
 | `RecordBookingEngineMoney` Action    | Writes collected, refunded and refund fee entries once each                                 |
+| `PropertyCommissionPeriods`          | `chargeDate()`, `covers()`, and the rows of the property Commissions tab                    |
 | `RecordReservationCommission` Action | Runs every service's rule for an ended reservation and keeps the commission entry in line   |
 | `RecordDueCommissions` Action        | The hourly run, scheduled in `routes/console.php`                                           |
 
-Adding a service later is one enum case and one rule class: the hourly run asks every rule for its candidates.
+Adding a service later is one enum case and one rule class: the hourly run asks every rule for its candidates, and charging periods work for it as they are.

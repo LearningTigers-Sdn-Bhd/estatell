@@ -7,6 +7,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { today } from '@/components/pms/commissions/today';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -21,7 +22,6 @@ import {
     InputGroupAddon,
     InputGroupInput,
 } from '@/components/ui/input-group';
-import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -30,19 +30,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { update } from '@/routes/admin/settings/commissions';
 import { store } from '@/routes/admin/settings/commissions/rates';
 
 type Option = { value: string; label: string };
-
-/** Today as `Y-m-d` in the browser's time zone, the earliest start date a form offers. */
-function today(): string {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-
-    return `${now.getFullYear()}-${month}-${day}`;
-}
 
 type ChangeRateProps = {
     open: boolean;
@@ -129,71 +119,16 @@ function ChangeRateDialog(props: ChangeRateProps) {
     return <ChangeRateForm key={useFreshOnOpen(props.open)} {...props} />;
 }
 
-function ChannelManagerStartForm({ value }: { value: string | null }) {
-    const form = useForm({ channel_manager_commission_from: value ?? '' });
-    const error = form.errors.channel_manager_commission_from;
-
-    return (
-        <form
-            className="flex flex-col gap-4"
-            onSubmit={(event) => {
-                event.preventDefault();
-                form.put(update.url(), { preserveScroll: true });
-            }}
-        >
-            <FieldSet>
-                <FieldLegend>Channel manager commission start</FieldLegend>
-                <FieldDescription>
-                    Only bookings that check out on or after this date pay
-                    channel manager commission. With no date, no channel manager
-                    commission is charged.
-                </FieldDescription>
-                <Field data-invalid={!!error} className="max-w-xs">
-                    <FieldLabel htmlFor="channel_manager_commission_from">
-                        Start date
-                    </FieldLabel>
-                    <DatePicker
-                        id="channel_manager_commission_from"
-                        value={form.data.channel_manager_commission_from}
-                        onChange={(next) =>
-                            form.setData(
-                                'channel_manager_commission_from',
-                                next,
-                            )
-                        }
-                        min={today()}
-                        placeholder="Not set"
-                        aria-invalid={!!error}
-                    />
-                    <FieldError>{error}</FieldError>
-                </Field>
-            </FieldSet>
-            <div className="flex justify-end">
-                <Button
-                    type="submit"
-                    disabled={form.processing || !form.isDirty}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner />}
-                    Save changes
-                </Button>
-            </div>
-        </form>
-    );
-}
-
 /**
- * The Commissions tab of platform settings: every rate with its start date, and the channel manager commission start
- * date. See docs/30-commission-fees/05-platform-pages.md#commission-rates.
+ * The Commissions tab of platform settings: every rate with its start date. Each property's charging periods are set
+ * on its admin page. See docs/30-commission-fees/05-platform-pages.md#commission-rates.
  */
 export function CommissionSettings({
     rates,
     services,
-    channelManagerCommissionFrom,
 }: {
     rates: App.Data.Commissions.CommissionRateData[];
     services: Option[];
-    channelManagerCommissionFrom: string | null;
 }) {
     const [changing, setChanging] = useState(false);
 
@@ -246,8 +181,6 @@ export function CommissionSettings({
                     </Table>
                 </div>
             </FieldSet>
-
-            <ChannelManagerStartForm value={channelManagerCommissionFrom} />
 
             <ChangeRateDialog
                 open={changing}

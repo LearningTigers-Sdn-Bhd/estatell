@@ -7,7 +7,6 @@ use App\Models\Reservation;
 use App\Services\BookingEngine\OnlineBookingMoney;
 use App\Services\Folio\ReservationRoomRevenue;
 use Brick\Math\BigDecimal;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -30,7 +29,7 @@ class BookingEngineCommission implements CommissionRule
         return Reservation::query()->whereHas('bookingSource', fn (Builder $query) => $query->where('type', BookingSourceType::BookingEngine));
     }
 
-    public function appliesTo(Reservation $reservation, CarbonImmutable $dueDate): bool
+    public function appliesTo(Reservation $reservation): bool
     {
         return $reservation->bookingSource->type === BookingSourceType::BookingEngine
             && $this->onlineBookingMoney->forReservation($reservation) !== null;

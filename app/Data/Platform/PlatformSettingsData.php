@@ -13,7 +13,6 @@ class PlatformSettingsData extends Data
         public bool $requireGoLiveApproval,
         public DormStrategy $defaultDormStrategy,
         public MediaDisk $mediaDisk,
-        public ?string $channelManagerCommissionFrom,
     ) {}
 
     public static function fromModel(PlatformSetting $settings): self
@@ -22,7 +21,6 @@ class PlatformSettingsData extends Data
             requireGoLiveApproval: $settings->require_go_live_approval,
             defaultDormStrategy: $settings->default_dorm_strategy,
             mediaDisk: $settings->media_disk,
-            channelManagerCommissionFrom: $settings->channel_manager_commission_from?->toDateString(),
         );
     }
 }

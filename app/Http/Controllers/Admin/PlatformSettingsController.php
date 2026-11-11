@@ -36,7 +36,7 @@ class PlatformSettingsController extends Controller
     }
 
     /**
-     * The commission rates and the channel manager commission start date. See docs/30-commission-fees/05-platform-pages.md#commission-rates.
+     * The commission rates. See docs/30-commission-fees/05-platform-pages.md#commission-rates.
      */
     public function commissions(PlatformSettings $platformSettings, CommissionRates $commissionRates): Response
     {
@@ -61,11 +61,6 @@ class PlatformSettingsController extends Controller
         return $this->save($request, $updatePlatformSettings, 'admin.settings.storage');
     }
 
-    public function updateCommissions(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
-    {
-        return $this->save($request, $updatePlatformSettings, 'admin.settings.commissions');
-    }
-
     /**
      * @param  array<string, mixed>  $props
      */
@@ -74,13 +69,13 @@ class PlatformSettingsController extends Controller
         $field = match ($tab) {
             'channels' => 'defaultDormStrategy',
             'storage' => 'mediaDisk',
-            'commissions' => 'channelManagerCommissionFrom',
+            'commissions' => null,
             default => 'requireGoLiveApproval',
         };
 
         return Inertia::render('admin/settings/edit', [
             'activeTab' => $tab,
-            'settings' => PlatformSettingsData::fromModel($platformSettings->current())->only($field),
+            'settings' => $field === null ? [] : PlatformSettingsData::fromModel($platformSettings->current())->only($field),
             ...match ($tab) {
                 'channels' => ['dormStrategies' => DormStrategy::options()],
                 'storage' => ['mediaDisks' => MediaDisk::options()],

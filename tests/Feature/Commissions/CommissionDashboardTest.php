@@ -28,7 +28,6 @@ function dashboardAdmin(): User
  */
 function recordedBookings(): array
 {
-    setChannelManagerCommissionFrom('2026-10-01');
     $setup = commissionBooking();
     $online = $setup['reservation'];
     commissionFolioLine($online, SystemTransactionCode::RoomRevenue, '200.00');

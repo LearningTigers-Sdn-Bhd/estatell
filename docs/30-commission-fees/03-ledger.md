@@ -47,7 +47,21 @@ Each refund costs the property RM 0.50 (`services.curlec.refund_fee`). The refun
 | `created_by`     | foreign key  | `users`                              |
 | timestamps       |              | Unique (`service`, `effective_from`) |
 
-The migration seeds booking engine 10.00 and channel manager 3.00, both from 2026-01-01, so every booking has a rate. The channel manager start date is `platform_settings.channel_manager_commission_from`, empty by default: no channel manager commission until an admin sets it.
+The migration seeds booking engine 10.00 and channel manager 3.00, both from 2026-01-01, so every booking has a rate.
+
+### `property_commission_periods`
+
+| Column        | Type                        | Notes                                  |
+| ------------- | --------------------------- | -------------------------------------- |
+| `id`          | bigint                      |                                        |
+| `property_id` | foreign key, cascade delete |                                        |
+| `service`     | string(30)                  | A `CommissionService` value            |
+| `starts_on`   | date                        |                                        |
+| `ends_on`     | date, nullable              | Empty means open. The last day charged |
+| `created_by`  | foreign key users, nullable |                                        |
+| timestamps    |                             |                                        |
+
+CHECK `ends_on >= starts_on`, and a partial unique index allows one open period per property and service. Overlaps are refused by `StartCommissionPeriod` under a property lock. See [Charging periods](02-commission-rules.md#charging-periods).
 
 ### `commission_entries`
 

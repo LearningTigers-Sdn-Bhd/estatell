@@ -4,7 +4,7 @@
 
 Track what Estatell earns from each property's bookings, hold the money Estatell collects for properties, and pay it out on fixed dates. Platform admins see every property; each property sees its own bookings and payouts.
 
-**Status: in build.** Planned on 2026-11-11. Rates, the ledger, the Commissions settings tab, booking engine and channel manager recording, payout vouchers and the platform Commissions page are built. The property Payouts page is next. Build order is in the [checklist](../checklist.md#30-commission-fees).
+**Status: in build.** Planned on 2026-11-11. Rates, the ledger, the Commissions settings tab, booking engine and channel manager recording, payout vouchers, the platform Commissions page and charging periods per property are built. The property Payouts page is next. Build order is in the [checklist](../checklist.md#30-commission-fees).
 
 ## Decisions
 
@@ -12,10 +12,9 @@ Track what Estatell earns from each property's bookings, hold the money Estatell
 | ------------------------ | ----------------------------------------------------------------------------------------------------- |
 | Services in this release | Booking engine (10%) and channel manager (3%)                                                         |
 | Commission base          | The amount before tax                                                                                 |
-| Turning a service on     | The existing feature flag per property (`BookingEngine`, `ChannelManager`). No new switch             |
+| Turning a service on     | A charging period per property and service, started and stopped by admins. No period, no commission   |
 | Rates                    | One platform rate per service, with history. No rate per property in this release                     |
 | Rate change              | Applies to bookings made on or after the change date                                                  |
-| Channel manager start    | Only bookings that check out on or after a go-live date that admins set. No charge for older bookings |
 | Curlec's normal fee      | Estatell pays it from its commission                                                                  |
 | Curlec's refund cost     | The property pays the fee Curlec keeps and the RM 0.50 refund fee, from its next payout               |
 | Cut-off and payout       | Cut-off on the 15th, payout on the 1st (the Monday if it is a weekend), by due date                   |
@@ -65,7 +64,7 @@ Money that Estatell holds for properties is a liability, not income. Only commis
 | 1   | Commission rules | Decides which bookings pay commission, on what amount and when      | [Commission rules](02-commission-rules.md) |
 | 2   | Ledger           | Records money collected, refunds, fees and commission, never edited | [Ledger](03-ledger.md)                     |
 | 3   | Payout vouchers  | Groups each property's entries by cycle, then approve and pay       | [Payout vouchers](04-payout-vouchers.md)   |
-| 4   | Platform pages   | Admin dashboard, vouchers and commission rates                      | [Platform pages](05-platform-pages.md)     |
+| 4   | Platform pages   | Admin dashboard, vouchers, rates and each property's periods        | [Platform pages](05-platform-pages.md)     |
 | 5   | Property payouts | The property's own bookings, next payout and past payouts           | [Property payouts](06-property-payouts.md) |
 
 ## What goes where

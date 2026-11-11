@@ -164,9 +164,6 @@ export default function PlatformSettings({
                         <CommissionSettings
                             rates={commissionRates}
                             services={commissionServices}
-                            channelManagerCommissionFrom={
-                                settings.channelManagerCommissionFrom ?? null
-                            }
                         />
                     ) : (
                         <Form

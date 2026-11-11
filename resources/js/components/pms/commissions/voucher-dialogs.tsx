@@ -4,6 +4,7 @@ import { DatePicker } from '@/components/pms/date-picker';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { today } from '@/components/pms/commissions/today';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -33,15 +34,6 @@ type DialogProps = {
     onOpenChange: (open: boolean) => void;
     voucher: Voucher;
 };
-
-/** Today as `Y-m-d` in the browser's time zone. */
-function today(): string {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-
-    return `${now.getFullYear()}-${month}-${day}`;
-}
 
 /** Confirms locking a Draft voucher. */
 export function ApproveVoucherDialog({

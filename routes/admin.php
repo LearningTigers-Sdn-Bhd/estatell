@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\PropertyBookingEngineModeController;
 use App\Http\Controllers\Admin\PropertyChannelConnectionController;
 use App\Http\Controllers\Admin\PropertyChannelController;
+use App\Http\Controllers\Admin\PropertyCommissionController;
 use App\Http\Controllers\Admin\PropertyController;
 use App\Http\Controllers\Admin\PropertyFeatureController;
 use App\Http\Controllers\Admin\PropertyGoLiveController;
@@ -61,6 +62,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
         Route::post('properties/{property:code}/channels/connections/{connection}/import-bookings', [PropertyChannelConnectionController::class, 'import'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'connection' => '[0-9]+'])->middleware('support.2fa')->name('properties.channels.connections.import');
     });
     Route::put('properties/{property:code}/features/{feature}', [PropertyFeatureController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.features.update');
+    Route::get('properties/{property:code}/commissions', [PropertyController::class, 'commissions'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.commissions');
+    Route::post('properties/{property:code}/commissions/periods', [PropertyCommissionController::class, 'start'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.commissions.start');
+    Route::put('properties/{property:code}/commissions/periods/{commissionPeriod}/stop', [PropertyCommissionController::class, 'stop'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'commissionPeriod' => '[0-9]+'])->middleware('support.2fa')->scopeBindings()->name('properties.commissions.stop');
+    Route::delete('properties/{property:code}/commissions/periods/{commissionPeriod}', [PropertyCommissionController::class, 'cancel'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'commissionPeriod' => '[0-9]+'])->middleware('support.2fa')->scopeBindings()->name('properties.commissions.cancel');
     Route::put('properties/{property:code}/booking-engine-mode', [PropertyBookingEngineModeController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.booking-engine-mode.update');
     Route::get('properties/{property:code}/go-live', [PropertyGoLiveController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.go-live.show');
     Route::post('properties/{property:code}/go-live/approve', [PropertyGoLiveController::class, 'approve'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.go-live.approve');
@@ -127,6 +132,5 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('commissions/vouchers/{voucher}/paid', [PayoutVoucherController::class, 'markPaid'])->whereNumber('voucher')->middleware('support.2fa')->name('commissions.vouchers.paid');
     Route::post('commissions/vouchers/{voucher}/adjustments', [PayoutVoucherController::class, 'storeAdjustment'])->whereNumber('voucher')->middleware('support.2fa')->name('commissions.vouchers.adjustments.store');
     Route::get('settings/commissions', [PlatformSettingsController::class, 'commissions'])->name('settings.commissions');
-    Route::put('settings/commissions', [PlatformSettingsController::class, 'updateCommissions'])->middleware('support.2fa')->name('settings.commissions.update');
     Route::post('settings/commissions/rates', [CommissionRateController::class, 'store'])->middleware('support.2fa')->name('settings.commissions.rates.store');
 });

@@ -123,17 +123,34 @@ A **Commissions** tab on platform settings, `/admin/settings/commissions`, next 
 │ │Booking engine    │ 10.00% │01 Jan 2026   │Current     │                    │
 │ │Channel manager   │  3.00% │01 Jan 2026   │Current     │                    │
 │ └──────────────────┴────────┴──────────────┴────────────┘                    │
-│                                                                              │
-│ Channel manager commission start                                             │
-│ Only bookings that check out on or after this date pay CM commission.        │
-│ Start date [Not set ▾]                                       [Save changes]  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - The table lists every rate, newest first per service, so it is also the history. Status is worked out against today: Scheduled, Current or Past.
 - **Change rate** opens a Dialog with the service, the rate (0 to 100, up to 2 decimals) and the start date. A past date, or a date the service already has, is refused. The change is logged.
-- **Channel manager commission start** is empty until an admin sets it. While empty, no channel manager commission is charged. A past date is refused; saving it is logged like the other platform settings.
+- Which properties are charged, and from when, is set per property on the [property Commissions tab](#property-commissions-tab).
 - Saving needs two-factor, like every admin write.
+
+## Property Commissions tab
+
+A **Commissions** tab on the admin property page, `/admin/properties/{code}/commissions`, after Channels.
+
+```
+┌ Commissions ───────────────────────────────────────────────┐
+│ Service          Rate    Charged                           │
+│ Booking engine   10.00%  Since 1 Dec 2026          [Stop]  │
+│ Channel manager   3.00%  Not charged               [Start] │
+├ History ───────────────────────────────────────────────────┤
+│ Service          From          To            By            │
+│ Booking engine   1 Dec 2026    Open          Aina          │
+└────────────────────────────────────────────────────────────┘
+```
+
+- One row per service with today's platform rate and its running or next period: **Not charged**, **From** (not started), **Since** (running) or **Until** (stopped later).
+- The button follows the period: **Start** with no period or after a stop, **Stop** on a running open period, **Cancel** on a period that has not started.
+- Start and Stop open a Dialog with one date, today or later. Cancel asks to confirm.
+- **History** lists every period, newest first, with who started it.
+- Rules: [Charging periods](02-commission-rules.md#charging-periods). Writes need two-factor.
 
 ## Access
 

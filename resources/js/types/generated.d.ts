@@ -1022,6 +1022,21 @@ owedToEstatell: boolean,
 currency: App.Data.Property.CurrencyData | null,
 status: App.Data.Shared.BadgeData,
 };
+export type PropertyCommissionPeriodData = {
+id: number,
+service: App.Enums.CommissionService,
+serviceLabel: string,
+startsOn: string,
+endsOn: string | null,
+hasStarted: boolean,
+createdBy: string | null,
+};
+export type PropertyCommissionServiceData = {
+service: App.Enums.CommissionService,
+label: string,
+rate: string | null,
+period: App.Data.Commissions.PropertyCommissionPeriodData | null,
+};
 }
 namespace Dashboard {
 export type ChannelMixCompanyData = {
@@ -2568,13 +2583,11 @@ export type PlatformSettingsData = {
 requireGoLiveApproval: boolean,
 defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
-channelManagerCommissionFrom: string | null,
 };
 export type PlatformSettingsInputData = {
 requireGoLiveApproval: boolean | null,
 defaultDormStrategy: App.Enums.DormStrategy | null,
 mediaDisk: App.Enums.MediaDisk | null,
-channelManagerCommissionFrom: string | null,
 };
 export type PropertyFeatureData = {
 feature: App.Enums.PlatformFeature,

@@ -10,8 +10,6 @@ use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\CommissionEntry;
 
-beforeEach(fn () => setChannelManagerCommissionFrom('2026-10-01'));
-
 test('a checked-out Channex stay records 3% of room revenue before tax and no money', function () {
     $reservation = channelCommissionReservation();
     commissionFolioLine($reservation, SystemTransactionCode::RoomRevenue, '300.00');
@@ -39,9 +37,8 @@ test('an OTA booking that did not come through Channex records nothing', functio
     expect(CommissionEntry::query()->count())->toBe(0);
 });
 
-test('the start date decides whether a stay pays', function (?string $startsOn, int $entries) {
-    setChannelManagerCommissionFrom($startsOn);
-    $reservation = channelCommissionReservation();
+test('the charging period decides whether a stay pays', function (?string $startsOn, int $entries) {
+    $reservation = channelCommissionReservation(chargedFrom: $startsOn);
     commissionFolioLine($reservation, SystemTransactionCode::RoomRevenue, '300.00');
     endCommissionStay($reservation);
 
@@ -49,9 +46,9 @@ test('the start date decides whether a stay pays', function (?string $startsOn, 
 
     expect(CommissionEntry::query()->count())->toBe($entries);
 })->with([
-    'no start date' => [null, 0],
-    'starts the day after the due date' => ['2026-10-15', 0],
-    'starts on the due date' => ['2026-10-14', 1],
+    'no period' => [null, 0],
+    'starts the day after check-out' => ['2026-10-15', 0],
+    'starts on the check-out date' => ['2026-10-14', 1],
 ]);
 
 test('a cancellation from the OTA with no fee records nothing', function () {

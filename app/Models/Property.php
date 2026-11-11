@@ -154,6 +154,14 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     }
 
     /**
+     * @return HasMany<PropertyCommissionPeriod, $this>
+     */
+    public function commissionPeriods(): HasMany
+    {
+        return $this->hasMany(PropertyCommissionPeriod::class);
+    }
+
+    /**
      * @return HasMany<StaffInvitation, $this>
      */
     public function staffInvitations(): HasMany

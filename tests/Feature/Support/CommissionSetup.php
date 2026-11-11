@@ -2,6 +2,7 @@
 
 require_once __DIR__.'/CurlecSetup.php';
 
+use App\Enums\CommissionService;
 use App\Enums\GatewayRefundStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
@@ -12,23 +13,23 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\GatewayPayment;
 use App\Models\GatewayRefund;
-use App\Models\PlatformSetting;
 use App\Models\Property;
+use App\Models\PropertyCommissionPeriod;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
-use App\Services\Platform\PlatformSettings;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * A confirmed online booking paid through the Curlec webhook: RM 200 for each room, a booked room total of RM 200 for each
- * room before tax, and Curlec's fee on the payment in sen (null leaves the fee out of the payment entity).
+ * room before tax, and Curlec's fee on the payment in sen (null leaves the fee out of the payment entity). The property
+ * is charged booking engine commission from 2026-01-01.
  *
  * @return array<string, mixed> The `curlecSetup()` keys plus `hold`, `payment` and `reservation`.
  */
 function commissionBooking(int $rooms = 1, ?int $curlecFeeSen = 472): array
 {
     $setup = curlecSetup();
+    startCommission($setup['property']->id, CommissionService::BookingEngine);
     $hold = curlecHold($setup, rooms: $rooms);
     curlecOrder($hold);
 
@@ -114,11 +115,17 @@ function processedCommissionRefund(GatewayPayment $payment, string $amount): Gat
 
 /**
  * An OTA reservation with one unit (departing 2026-10-14) and a master folio, on a live property with an open business
- * date of today. `fromChannex` adds the Channex revision that marks it as a channel manager booking.
+ * date of today. `fromChannex` adds the Channex revision that marks it as a channel manager booking. `chargedFrom` starts
+ * the property's channel manager charging period (null leaves it uncharged).
  */
-function channelCommissionReservation(bool $fromChannex = true): Reservation
+function channelCommissionReservation(bool $fromChannex = true, ?string $chargedFrom = '2026-10-01'): Reservation
 {
     $property = Property::factory()->live()->create();
+
+    if ($chargedFrom !== null) {
+        startCommission($property->id, CommissionService::ChannelManager, $chargedFrom);
+    }
+
     BusinessDate::factory()->create(['property_id' => $property->id]);
     $reservation = Reservation::factory()->ota()->create(['property_id' => $property->id]);
     ReservationUnit::factory()->create(['reservation_id' => $reservation->id, 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
@@ -131,8 +138,10 @@ function channelCommissionReservation(bool $fromChannex = true): Reservation
     return $reservation;
 }
 
-function setChannelManagerCommissionFrom(?string $date): void
+/**
+ * A charging period for a property and service, open-ended unless `endsOn` is given.
+ */
+function startCommission(int $propertyId, CommissionService $service, string $startsOn = '2026-01-01', ?string $endsOn = null): PropertyCommissionPeriod
 {
-    PlatformSetting::query()->whereKey(1)->update(['channel_manager_commission_from' => $date]);
-    Cache::forget(PlatformSettings::CACHE_KEY);
+    return PropertyCommissionPeriod::factory()->create(['property_id' => $propertyId, 'service' => $service, 'starts_on' => $startsOn, 'ends_on' => $endsOn]);
 }
