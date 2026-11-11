@@ -36,6 +36,8 @@ class FolioDocumentBuilder
 
     private DocumentSigner $documentSigner;
 
+    private LhdnTaxType $taxTypes;
+
     /**
      * @param  array<string, mixed>|null  $buyerSnapshot
      */
@@ -46,6 +48,7 @@ class FolioDocumentBuilder
         $this->property = $folio->property;
         $this->setting = $this->property->eInvoiceSetting;
         $this->documentSigner = new DocumentSigner($this->setting);
+        $this->taxTypes = new LhdnTaxType;
     }
 
     /**
@@ -77,11 +80,7 @@ class FolioDocumentBuilder
 
     private function validateRequiredData(): void
     {
-        MissingEInvoiceDetails::hotel(
-            $this->setting?->supplier_tin ?: $this->property->tin,
-            $this->setting?->supplier_email ?: $this->property->contact_email,
-            $this->setting?->supplier_city ?: $this->property->city,
-        );
+        MissingEInvoiceDetails::hotel($this->property);
 
         $buyer = $this->resolveBuyer();
         $isCompany = strtoupper((string) ($buyer['id_type'] ?? '')) === 'BRN';
@@ -95,9 +94,11 @@ class FolioDocumentBuilder
         }
 
         if ($isDomestic && empty($buyer['tin'])) {
-            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, $isCompany
-                ? __("Add the company's tax number (TIN) on the company record, then send again.")
-                : __("Enter the guest's tax number (TIN). A guest who has none does not need their own e-invoice: the stay goes into the monthly summary."));
+            throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, match (true) {
+                $isCompany => __("Add the company's tax number (TIN) on the company record, then send again."),
+                StaysNeedingOwnEInvoice::isOverLimit($this->folio->loadMissing('lines.reversal')) => __("This stay is over RM10,000, so LHDN needs its own e-invoice with the guest's own tax number. Enter the IC and press Check with LHDN to find it."),
+                default => __("Enter the guest's tax number (TIN). A guest who has none does not need their own e-invoice: the stay goes into the monthly summary."),
+            });
         }
 
         if ($isDomestic && ! $hasId) {
@@ -184,56 +185,7 @@ class FolioDocumentBuilder
      */
     private function supplierParty(): array
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
-        $brn = $this->property->registration_number ?: 'NA';
-        $name = $this->setting?->supplier_name ?: $this->property->legal_name ?: $this->property->name;
-        $msic = $this->setting?->supplier_msic_code ?: $this->property->msic_code ?: '55101';
-        $desc = $this->setting?->supplier_business_description ?: $this->property->business_description ?: 'Hotel and accommodation services';
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
-        $phone = PhoneFormatter::format($this->setting?->supplier_phone ?: $this->property->contact_phone);
-
-        $addressLine1 = $this->setting?->supplier_address_line1 ?: $this->property->address_line1 ?: 'NA';
-        $addressLine2 = $this->setting?->supplier_address_line2 ?: $this->property->address_line2 ?: '';
-        $city = $this->setting?->supplier_city ?: $this->property->city;
-        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '00000';
-        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '14';
-
-        $partyIdentifications = [
-            ['ID' => [['_' => $tin, 'schemeID' => 'TIN']]],
-            ['ID' => [['_' => preg_replace('/[^A-Za-z0-9]/', '', $brn) ?: 'NA', 'schemeID' => 'BRN']]],
-        ];
-
-        $sst = $this->setting?->supplier_sst_registration;
-        if (! empty($sst)) {
-            $partyIdentifications[] = ['ID' => [['_' => $sst, 'schemeID' => 'SST']]];
-        }
-
-        $party = [
-            'IndustryClassificationCode' => [['_' => $msic, 'name' => $desc]],
-            'PartyIdentification' => $partyIdentifications,
-            'PostalAddress' => [
-                [
-                    'CityName' => [['_' => $city]],
-                    'PostalZone' => [['_' => $postalCode]],
-                    'CountrySubentityCode' => [['_' => $stateCode]],
-                    'AddressLine' => [
-                        ['Line' => [['_' => $addressLine1]]],
-                        ['Line' => [['_' => $addressLine2]]],
-                        ['Line' => [['_' => '']]],
-                    ],
-                    'Country' => [['IdentificationCode' => [['_' => 'MYS']]]],
-                ],
-            ],
-            'PartyLegalEntity' => [['RegistrationName' => [['_' => $name]]]],
-            'Contact' => [
-                [
-                    'Telephone' => [['_' => $phone]],
-                    'ElectronicMail' => [['_' => $email]],
-                ],
-            ],
-        ];
-
-        return $party;
+        return app(SupplierDetails::class)->party($this->property);
     }
 
     /**
@@ -482,15 +434,7 @@ class FolioDocumentBuilder
 
     private function resolveTaxCode(FolioLine $taxLine): string
     {
-        $desc = strtolower($taxLine->description.' '.($taxLine->transactionCode->name ?? ''));
-        if (str_contains($desc, 'sst') || str_contains($desc, 'service tax')) {
-            return '02';
-        }
-        if (str_contains($desc, 'ttx') || str_contains($desc, 'tourism')) {
-            return '03';
-        }
-
-        return '06';
+        return $this->taxTypes->for($taxLine);
     }
 
     /**

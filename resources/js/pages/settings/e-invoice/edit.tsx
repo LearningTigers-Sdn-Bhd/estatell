@@ -1,5 +1,13 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Cloud, Cpu, ExternalLink, Globe, Plug, Shield } from 'lucide-react';
+import {
+    CircleAlert,
+    Cloud,
+    Cpu,
+    ExternalLink,
+    Globe,
+    Plug,
+    Shield,
+} from 'lucide-react';
 import { useState } from 'react';
 import EInvoiceSettingsController from '@/actions/App/Http/Controllers/Property/EInvoiceSettingsController';
 import { ChoiceCards } from '@/components/pms/choice-cards';
@@ -11,6 +19,7 @@ import {
 } from '@/components/pms/settings/form-fields';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +41,7 @@ type SettingData = {
     has_client_secret: boolean;
     supplier_name: string | null;
     supplier_tin: string | null;
+    supplier_brn: string | null;
     supplier_sst_registration: string | null;
     supplier_ttx_registration: string | null;
     supplier_msic_code: string | null;
@@ -50,13 +60,22 @@ type SettingData = {
 
 type Option = { value: string; label: string };
 
+const ENVIRONMENT_LABEL: Record<string, string> = {
+    mock: 'Test (offline)',
+    sandbox: 'LHDN test site',
+    production: 'LHDN (live)',
+};
+
 type Props = {
     setting: SettingData | null;
+    /** What stops e-invoices from going out while e-invoicing is on, by field. */
+    problems: Record<string, string>;
     environmentOptions: Option[];
     malaysiaStates: Option[];
     propertyDefaults: {
         tin: string | null;
         registration_number: string | null;
+        brn: string;
         legal_name: string | null;
         msic_code: string | null;
         business_description: string | null;
@@ -72,6 +91,7 @@ type Props = {
 
 export default function EInvoiceSettings({
     setting,
+    problems,
     malaysiaStates,
     propertyDefaults,
 }: Props) {
@@ -90,55 +110,71 @@ export default function EInvoiceSettings({
 
     return (
         <>
-            <Head title="E-Invoicing" />
+            <Head title="E-invoicing" />
 
             <div className="flex flex-col gap-4 p-4">
                 <PageHeader
-                    title="E-Invoicing"
-                    description="Connect your property to the Inland Revenue Board of Malaysia (LHDN / IRBM) MyInvois gateway for Continuous Transaction Control (CTC)."
+                    title="E-invoicing"
+                    description="Send e-invoices to LHDN (the Malaysian tax authority) through MyInvois. Every detail below is printed on each e-invoice, so check it against your SSM and tax records."
                 />
+
+                {Object.keys(problems).length > 0 && (
+                    <Alert variant="destructive">
+                        <CircleAlert />
+                        <AlertTitle>
+                            E-invoices cannot go out until these are fixed
+                        </AlertTitle>
+                        <AlertDescription>
+                            <ul className="flex list-disc flex-col gap-1 ps-4">
+                                {Object.entries(problems).map(
+                                    ([field, problem]) => (
+                                        <li key={field}>{problem}</li>
+                                    ),
+                                )}
+                            </ul>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="flex flex-col gap-4 lg:col-span-2">
                         <SettingsSection
                             guardUnsavedChanges
                             form={EInvoiceSettingsController.update.form()}
-                            title="Connection & Tax Profile"
-                            description="API credentials, environment, and supplier identity transmitted on every e-invoice submission."
+                            title="E-invoicing"
+                            description="How estatell connects to MyInvois, and the hotel details printed on every e-invoice."
                             submitLabel="Save settings"
                             contentClassName="flex flex-col gap-6"
                         >
                             {(errors) => (
                                 <>
                                     <FieldSet>
-                                        <FieldLegend>
-                                            Environment & Automation
-                                        </FieldLegend>
+                                        <FieldLegend>Connection</FieldLegend>
                                         <ChoiceCards
                                             id="api_environment"
                                             name="api_environment"
-                                            legend="Gateway environment"
+                                            legend="Send e-invoices to"
                                             columns={3}
                                             choices={[
                                                 {
                                                     value: 'mock',
-                                                    label: 'Mock',
+                                                    label: 'Test (offline)',
                                                     description:
-                                                        'Local simulator for sandbox development and fast tests.',
+                                                        'Nothing leaves estatell. For trying the screens.',
                                                     icon: Cpu,
                                                 },
                                                 {
                                                     value: 'sandbox',
-                                                    label: 'Sandbox',
+                                                    label: 'LHDN test site',
                                                     description:
-                                                        'LHDN Pre-production environment for integration testing.',
+                                                        'LHDN’s practice copy of MyInvois. Nothing is filed.',
                                                     icon: Cloud,
                                                 },
                                                 {
                                                     value: 'production',
-                                                    label: 'Production',
+                                                    label: 'LHDN (live)',
                                                     description:
-                                                        'LHDN Live gateway for legally binding statutory e-invoices.',
+                                                        'Real e-invoices, filed with LHDN.',
                                                     icon: Globe,
                                                 },
                                             ]}
@@ -152,15 +188,12 @@ export default function EInvoiceSettings({
                                                 'production' && (
                                                 <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
                                                     <p className="font-semibold text-amber-600 dark:text-amber-400">
-                                                        Switching to Production
-                                                        Gateway
+                                                        Switching to live LHDN
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Submissions in
-                                                        Production file legally
-                                                        binding statutory
-                                                        e-invoices directly with
-                                                        LHDN Malaysia.
+                                                        From now on every
+                                                        e-invoice is filed with
+                                                        LHDN and counts for tax.
                                                     </p>
                                                     <label className="flex cursor-pointer items-center gap-2 pt-1">
                                                         <input
@@ -196,18 +229,18 @@ export default function EInvoiceSettings({
                                                 checked={
                                                     setting?.enabled ?? false
                                                 }
-                                                description="Transmit eligible guest folios and AR invoices to LHDN MyInvois."
+                                                description="Lets staff send e-invoices for stays and City ledger invoices. Needs every hotel detail below."
                                                 error={errors.enabled}
                                             />
                                             <SettingsSwitch
                                                 bordered
                                                 name="auto_submit_on_checkout"
-                                                label="Submit upon checkout"
+                                                label="Send at check-out"
                                                 checked={
                                                     setting?.auto_submit_on_checkout ??
                                                     false
                                                 }
-                                                description="Automatically submit e-invoices when a reservation folio is closed."
+                                                description="Sends the e-invoice by itself when a guest who gave a tax number checks out."
                                                 error={
                                                     errors.auto_submit_on_checkout
                                                 }
@@ -216,12 +249,12 @@ export default function EInvoiceSettings({
                                                 <SettingsSwitch
                                                     bordered
                                                     name="consolidation_enabled"
-                                                    label="Monthly B2C consolidation"
+                                                    label="Monthly summary"
                                                     checked={
                                                         setting?.consolidation_enabled ??
                                                         true
                                                     }
-                                                    description="Aggregate unconsolidated stays under RM10,000 on the 1st of each month with General Public TIN EI00000000010."
+                                                    description="On the 1st of each month, files one summary for last month's stays whose guests did not ask for their own e-invoice. Stays over RM10,000 need their own."
                                                     error={
                                                         errors.consolidation_enabled
                                                     }
@@ -232,20 +265,20 @@ export default function EInvoiceSettings({
 
                                     <FieldSet>
                                         <FieldLegend>
-                                            LHDN API Credentials
+                                            MyInvois login
                                         </FieldLegend>
                                         <FieldGroup className="grid md:grid-cols-2">
                                             <SettingsInput
                                                 name="client_id"
                                                 label="Client ID"
                                                 value={setting?.client_id ?? ''}
-                                                placeholder="From MyInvois Taxpayer Portal"
-                                                description="Generated in the MyInvois ERP integration profile."
+                                                placeholder="From the MyInvois portal"
+                                                description="In the MyInvois portal, under the hotel's ERP (system) registration."
                                                 error={errors.client_id}
                                             />
                                             <SettingsInput
                                                 name="client_secret"
-                                                label="Client Secret"
+                                                label="Client secret"
                                                 type="password"
                                                 value=""
                                                 placeholder={
@@ -253,16 +286,14 @@ export default function EInvoiceSettings({
                                                         ? '•••••••• (Leave blank to keep saved secret)'
                                                         : 'Paste secret here'
                                                 }
-                                                description="Stored securely with AES-256 encryption."
+                                                description="Stored encrypted. Leave blank to keep the saved one."
                                                 error={errors.client_secret}
                                             />
                                         </FieldGroup>
                                     </FieldSet>
 
                                     <FieldSet>
-                                        <FieldLegend>
-                                            Supplier Tax Profile
-                                        </FieldLegend>
+                                        <FieldLegend>Hotel details</FieldLegend>
                                         <FieldGroup className="grid md:grid-cols-2">
                                             <SettingsInput
                                                 name="supplier_name"
@@ -276,37 +307,48 @@ export default function EInvoiceSettings({
                                             />
                                             <SettingsInput
                                                 name="supplier_tin"
-                                                label="Tax Identification Number (TIN)"
+                                                label="Tax number (TIN)"
                                                 value={
                                                     setting?.supplier_tin ??
                                                     propertyDefaults.tin
                                                 }
                                                 placeholder="e.g. C1234567890"
-                                                description="Your company income tax number (e.g. C or IG prefix)."
+                                                description="The company's LHDN tax number, starting with C (or IG for a sole owner)."
                                                 error={errors.supplier_tin}
                                             />
                                             <SettingsInput
+                                                name="supplier_brn"
+                                                label="Company registration number (SSM)"
+                                                value={
+                                                    setting?.supplier_brn ??
+                                                    propertyDefaults.brn
+                                                }
+                                                placeholder="e.g. 202001012345"
+                                                description="The 12-digit number on your SSM certificate."
+                                                error={errors.supplier_brn}
+                                            />
+                                            <SettingsInput
                                                 name="supplier_sst_registration"
-                                                label="SST registration number (optional)"
+                                                label="SST registration number"
                                                 value={
                                                     setting?.supplier_sst_registration ??
                                                     ''
                                                 }
                                                 placeholder="e.g. W10-1808-12345678"
-                                                description="Required if registered for Sales and Service Tax."
+                                                description="Needed when the hotel charges SST."
                                                 error={
                                                     errors.supplier_sst_registration
                                                 }
                                             />
                                             <SettingsInput
                                                 name="supplier_ttx_registration"
-                                                label="Tourism Tax (TTx) number (optional)"
+                                                label="Tourism tax registration number"
                                                 value={
                                                     setting?.supplier_ttx_registration ??
                                                     ''
                                                 }
                                                 placeholder="e.g. TTX-12345678"
-                                                description="Required if registered for Malaysian Tourism Tax."
+                                                description="Needed when the hotel charges tourism tax."
                                                 error={
                                                     errors.supplier_ttx_registration
                                                 }
@@ -318,7 +360,7 @@ export default function EInvoiceSettings({
                                                     setting?.supplier_msic_code ??
                                                     propertyDefaults.msic_code
                                                 }
-                                                description="5-digit code. Default 55101 for Hotels and resort hotels."
+                                                description="5-digit business activity code: 55101 for hotels, 55103 for homestays."
                                                 error={
                                                     errors.supplier_msic_code
                                                 }
@@ -330,7 +372,7 @@ export default function EInvoiceSettings({
                                                     setting?.supplier_business_description ??
                                                     propertyDefaults.business_description
                                                 }
-                                                description="Describes accommodation services."
+                                                description="Short, for example: Hotel accommodation."
                                                 error={
                                                     errors.supplier_business_description
                                                 }
@@ -340,7 +382,7 @@ export default function EInvoiceSettings({
 
                                     <FieldSet>
                                         <FieldLegend>
-                                            Supplier Address & Contact
+                                            Hotel address and contact
                                         </FieldLegend>
                                         <FieldGroup>
                                             <SettingsInput
@@ -377,7 +419,7 @@ export default function EInvoiceSettings({
                                                 />
                                                 <SettingsInput
                                                     name="supplier_postal_code"
-                                                    label="Postal code"
+                                                    label="Postcode"
                                                     value={
                                                         setting?.supplier_postal_code ??
                                                         propertyDefaults.postal_code
@@ -395,7 +437,6 @@ export default function EInvoiceSettings({
                                                         '12'
                                                     }
                                                     options={malaysiaStates}
-                                                    description="LHDN prescribed state code."
                                                     error={
                                                         errors.supplier_state_code
                                                     }
@@ -404,7 +445,7 @@ export default function EInvoiceSettings({
                                             <FieldGroup className="grid md:grid-cols-2">
                                                 <SettingsInput
                                                     name="supplier_email"
-                                                    label="Finance email"
+                                                    label="Email for e-invoice matters"
                                                     type="email"
                                                     value={
                                                         setting?.supplier_email ??
@@ -416,12 +457,12 @@ export default function EInvoiceSettings({
                                                 />
                                                 <SettingsInput
                                                     name="supplier_phone"
-                                                    label="Finance phone"
+                                                    label="Phone"
                                                     value={
                                                         setting?.supplier_phone ??
                                                         propertyDefaults.contact_phone
                                                     }
-                                                    description="Formatted to E.164 (e.g. +60123456789)."
+                                                    description="With country code, for example +60123456789."
                                                     error={
                                                         errors.supplier_phone
                                                     }
@@ -439,7 +480,7 @@ export default function EInvoiceSettings({
                             <CardHeader>
                                 <CardTitle>Status</CardTitle>
                                 <CardDescription>
-                                    Connection readiness and active mode.
+                                    Whether e-invoices can go out now.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex flex-col gap-4">
@@ -454,12 +495,18 @@ export default function EInvoiceSettings({
                                                     value: setting?.enabled
                                                         ? 'active'
                                                         : 'inactive',
-                                                    label: setting?.enabled
-                                                        ? 'Active'
-                                                        : 'Disabled',
-                                                    tone: setting?.enabled
-                                                        ? 'success'
-                                                        : 'neutral',
+                                                    label: !setting?.enabled
+                                                        ? 'Off'
+                                                        : Object.keys(problems)
+                                                                .length > 0
+                                                          ? 'On, details missing'
+                                                          : 'On',
+                                                    tone: !setting?.enabled
+                                                        ? 'neutral'
+                                                        : Object.keys(problems)
+                                                                .length > 0
+                                                          ? 'danger'
+                                                          : 'success',
                                                 }}
                                             />
                                         </dd>
@@ -470,12 +517,11 @@ export default function EInvoiceSettings({
                                             Environment
                                         </dt>
                                         <dd>
-                                            <Badge
-                                                variant="outline"
-                                                className="capitalize"
-                                            >
-                                                {setting?.api_environment ??
-                                                    apiEnvironment}
+                                            <Badge variant="outline">
+                                                {ENVIRONMENT_LABEL[
+                                                    setting?.api_environment ??
+                                                        apiEnvironment
+                                                ] ?? apiEnvironment}
                                             </Badge>
                                         </dd>
                                     </div>
@@ -493,7 +539,7 @@ export default function EInvoiceSettings({
                                                 }
                                             >
                                                 {isConfigured
-                                                    ? 'Configured'
+                                                    ? 'Saved'
                                                     : 'Not set'}
                                             </Badge>
                                         </dd>
@@ -502,7 +548,7 @@ export default function EInvoiceSettings({
                                     {setting?.effective_from && (
                                         <div className="flex items-center justify-between gap-3">
                                             <dt className="text-muted-foreground">
-                                                Effective since
+                                                On since
                                             </dt>
                                             <dd className="tabular-nums">
                                                 {new Date(
@@ -550,7 +596,7 @@ export default function EInvoiceSettings({
                                     }
                                 >
                                     <ExternalLink />
-                                    Open MyInvois Portal
+                                    Open MyInvois portal
                                 </Button>
                             </CardContent>
                         </Card>
@@ -559,37 +605,25 @@ export default function EInvoiceSettings({
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                                     <Shield className="size-4 text-primary" />
-                                    Compliance Guidelines
+                                    LHDN rules in short
                                 </CardTitle>
-                                <CardDescription>
-                                    Malaysian LHDN rules for hospitality.
-                                </CardDescription>
                             </CardHeader>
                             <CardContent className="flex flex-col gap-3 text-xs text-muted-foreground">
                                 <p>
-                                    • <strong>72-Hour Window:</strong> LHDN
-                                    allows cancellations strictly within 72
-                                    hours of validation. Any later corrections
-                                    must be filed as a Credit Note (02).
+                                    • <strong>72 hours to cancel.</strong> After
+                                    that, a mistake is corrected with a credit
+                                    or refund note.
                                 </p>
                                 <p>
-                                    • <strong>B2C Consolidation:</strong> Stays
-                                    where guests do not request an invoice can
-                                    be consolidated monthly within 7 days of
-                                    month-end with General Public TIN
-                                    EI00000000010.
+                                    • <strong>Monthly summary.</strong> Stays
+                                    whose guests did not ask for an e-invoice go
+                                    into one summary, filed within 7 days of the
+                                    month&apos;s end.
                                 </p>
                                 <p>
-                                    • <strong>RM10,000 Rule:</strong> Any
-                                    transaction exceeding RM10,000 cannot be
-                                    consolidated and must be individually
-                                    e-invoiced in real time.
-                                </p>
-                                <p>
-                                    • <strong>Exemption:</strong> Operators with
-                                    annual turnover under RM3,000,000 are exempt
-                                    from mandatory issuance unless requested by
-                                    a buyer.
+                                    • <strong>Over RM10,000.</strong> A stay
+                                    over RM10,000 needs its own e-invoice with
+                                    the guest&apos;s own tax number.
                                 </p>
                             </CardContent>
                         </Card>

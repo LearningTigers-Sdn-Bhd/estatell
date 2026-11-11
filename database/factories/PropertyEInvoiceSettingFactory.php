@@ -30,6 +30,7 @@ class PropertyEInvoiceSettingFactory extends Factory
             'signing_private_key' => null,
             'supplier_name' => fake()->company(),
             'supplier_tin' => 'C'.fake()->numerify('##########'),
+            'supplier_brn' => fake()->numerify('20##0#######'),
             'supplier_sst_registration' => 'S10-'.fake()->numerify('####-########'),
             'supplier_ttx_registration' => null,
             'supplier_msic_code' => '55101',

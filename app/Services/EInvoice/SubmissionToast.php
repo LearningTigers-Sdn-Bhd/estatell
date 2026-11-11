@@ -53,6 +53,7 @@ class SubmissionToast
         return match (true) {
             $submission->is_consolidated => __('monthly summary :number', ['number' => $submission->internal_id]),
             $submission->document_type === EInvoiceDocumentType::CreditNote => __('credit note :number', ['number' => $submission->internal_id]),
+            $submission->document_type === EInvoiceDocumentType::RefundNote => __('refund note :number', ['number' => $submission->internal_id]),
             default => __('e-invoice :number', ['number' => $submission->internal_id]),
         };
     }

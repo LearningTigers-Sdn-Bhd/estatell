@@ -281,7 +281,7 @@ class ReservationFolioController extends Controller
             $buyerSnapshot = $validated['buyer_snapshot'];
         }
 
-        $result = $submitAction($folio, $request->user(), $requestedByGuest, $buyerSnapshot);
+        $result = $submitAction($folio, $request->user(), $requestedByGuest, $buyerSnapshot, $request->boolean('save_to_guest'));
 
         if (! $result->ok) {
             Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('The e-invoice was not sent.')]);

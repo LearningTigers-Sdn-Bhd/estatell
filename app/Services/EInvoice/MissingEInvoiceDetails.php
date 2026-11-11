@@ -3,6 +3,7 @@
 namespace App\Services\EInvoice;
 
 use App\Actions\EInvoice\EInvoiceResult;
+use App\Models\Property;
 use InvalidArgumentException;
 
 /**
@@ -17,20 +18,16 @@ class MissingEInvoiceDetails extends InvalidArgumentException
     }
 
     /**
-     * The hotel's own details, kept in E-invoice settings.
+     * The hotel's own details (`SupplierDetails`), kept in E-invoice settings. Names the first problem.
      */
-    public static function hotel(?string $taxNumber, ?string $email, ?string $city): void
+    public static function hotel(Property $property): void
     {
-        $missing = array_keys(array_filter([
-            __('tax number') => blank($taxNumber),
-            __('email') => blank($email),
-            __('city') => blank($city),
-        ]));
+        $problems = app(SupplierDetails::class)->missing($property);
 
-        if ($missing !== []) {
-            throw new self(EInvoiceResult::REFUSAL_SUPPLIER_PROFILE_INCOMPLETE, count($missing) === 1
-                ? __("Your hotel's :detail is missing. Add it in E-invoice settings, then send again.", ['detail' => $missing[0]])
-                : __("Your hotel's :details are missing. Add them in E-invoice settings, then send again.", ['details' => implode(__(' and '), $missing)]));
+        if ($problems !== []) {
+            throw new self(EInvoiceResult::REFUSAL_SUPPLIER_PROFILE_INCOMPLETE, __("The hotel's e-invoice details are not complete: :problem Complete them in E-invoice settings, then send again.", [
+                'problem' => lcfirst((string) reset($problems)),
+            ]));
         }
     }
 }

@@ -26,7 +26,8 @@ class IssueEInvoiceCreditNote
         string $creditNoteNumber,
         float $amount,
         string $reason,
-        User $actor
+        User $actor,
+        EInvoiceDocumentType $type = EInvoiceDocumentType::CreditNote,
     ): EInvoiceResult {
         $property = $originalSubmission->property;
         $setting = $property->eInvoiceSetting;
@@ -43,9 +44,9 @@ class IssueEInvoiceCreditNote
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REASON_REQUIRED, __('Enter a reason for the credit note.'));
         }
 
-        // Credit notes LHDN has or is checking already take their share of the e-invoice.
+        // Credit and refund notes LHDN has or is checking already take their share of the e-invoice.
         $credited = $originalSubmission->adjustments()
-            ->where('document_type', EInvoiceDocumentType::CreditNote)
+            ->whereIn('document_type', [EInvoiceDocumentType::CreditNote, EInvoiceDocumentType::RefundNote])
             ->active()
             ->get()
             ->sum(fn (EInvoiceSubmission $note): float => $note->totalAmount() ?? 0.0);
@@ -53,17 +54,17 @@ class IssueEInvoiceCreditNote
         $remaining = round(($total ?? 0.0) - $credited, 2);
 
         if ($total !== null && round($amount, 2) > $remaining) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_CREDIT_EXCEEDS_REMAINING, __('A credit note can take off at most :amount, what is left on this e-invoice.', ['amount' => number_format(max($remaining, 0), 2)]));
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_CREDIT_EXCEEDS_REMAINING, __('A :document can take off at most :amount, what is left on this e-invoice.', ['amount' => number_format(max($remaining, 0), 2), 'document' => $type === EInvoiceDocumentType::RefundNote ? __('refund note') : __('credit note')]));
         }
 
         try {
-            $builder = new CreditNoteDocumentBuilder($originalSubmission, $creditNoteNumber, $amount, $reason);
+            $builder = new CreditNoteDocumentBuilder($originalSubmission, $creditNoteNumber, $amount, $reason, $type);
             $built = $builder->build();
         } catch (MissingEInvoiceDetails $e) {
             return EInvoiceResult::refused($e->refusal, $e->getMessage());
         }
 
-        return DB::transaction(function () use ($originalSubmission, $creditNoteNumber, $reason, $actor, $built, $setting): EInvoiceResult {
+        return DB::transaction(function () use ($originalSubmission, $creditNoteNumber, $reason, $actor, $built, $setting, $type): EInvoiceResult {
             $submission = new EInvoiceSubmission([
                 'property_id' => $originalSubmission->property_id,
                 'folio_id' => $originalSubmission->folio_id,
@@ -71,7 +72,7 @@ class IssueEInvoiceCreditNote
                 'reservation_id' => $originalSubmission->reservation_id,
                 'company_id' => $originalSubmission->company_id,
                 'original_submission_id' => $originalSubmission->id,
-                'document_type' => EInvoiceDocumentType::CreditNote,
+                'document_type' => $type,
                 'scenario' => $originalSubmission->scenario,
                 'status' => EInvoiceStatus::Pending,
                 'internal_id' => $creditNoteNumber,

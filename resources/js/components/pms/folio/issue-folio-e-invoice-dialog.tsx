@@ -1,7 +1,9 @@
-import { useForm, useHttp } from '@inertiajs/react';
+import { useForm, useHttp, usePage } from '@inertiajs/react';
 import { CircleAlert, CircleCheck, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { CountrySelect } from '@/components/pms/country-select';
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import {
@@ -15,6 +17,7 @@ import {
 } from '@/components/ui/field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
@@ -22,30 +25,30 @@ import { check as checkTaxNumber } from '@/routes/finance/e-invoices/tax-number'
 import { eInvoice } from '@/routes/reservations/folios';
 
 const MALAYSIA_STATES = [
-    { value: '01', label: '01 - Johor' },
-    { value: '02', label: '02 - Kedah' },
-    { value: '03', label: '03 - Kelantan' },
-    { value: '04', label: '04 - Melaka' },
-    { value: '05', label: '05 - Negeri Sembilan' },
-    { value: '06', label: '06 - Pahang' },
-    { value: '07', label: '07 - Pulau Pinang' },
-    { value: '08', label: '08 - Perak' },
-    { value: '09', label: '09 - Perlis' },
-    { value: '10', label: '10 - Selangor' },
-    { value: '11', label: '11 - Terengganu' },
-    { value: '12', label: '12 - Sabah' },
-    { value: '13', label: '13 - Sarawak' },
-    { value: '14', label: '14 - Wilayah Persekutuan Kuala Lumpur' },
-    { value: '15', label: '15 - Wilayah Persekutuan Labuan' },
-    { value: '16', label: '16 - Wilayah Persekutuan Putrajaya' },
-    { value: '17', label: '17 - Not applicable (outside Malaysia)' },
+    { value: '01', label: 'Johor' },
+    { value: '02', label: 'Kedah' },
+    { value: '03', label: 'Kelantan' },
+    { value: '04', label: 'Melaka' },
+    { value: '05', label: 'Negeri Sembilan' },
+    { value: '06', label: 'Pahang' },
+    { value: '07', label: 'Pulau Pinang' },
+    { value: '08', label: 'Perak' },
+    { value: '09', label: 'Perlis' },
+    { value: '10', label: 'Selangor' },
+    { value: '11', label: 'Terengganu' },
+    { value: '12', label: 'Sabah' },
+    { value: '13', label: 'Sarawak' },
+    { value: '14', label: 'Wilayah Persekutuan Kuala Lumpur' },
+    { value: '15', label: 'Wilayah Persekutuan Labuan' },
+    { value: '16', label: 'Wilayah Persekutuan Putrajaya' },
+    { value: '17', label: 'Not applicable (outside Malaysia)' },
 ];
 
 const ID_TYPES = [
-    { value: 'NRIC', label: 'Malaysian NRIC (MyKad)' },
+    { value: 'NRIC', label: 'Malaysian IC (MyKad)' },
     { value: 'PASSPORT', label: 'Passport' },
-    { value: 'BRN', label: 'Business Registration (BRN)' },
-    { value: 'ARMY', label: 'Military / Police ID' },
+    { value: 'BRN', label: 'Company registration number' },
+    { value: 'ARMY', label: 'Army or police ID' },
 ];
 
 type TaxNumberAnswer = {
@@ -161,12 +164,17 @@ function IssueFolioEInvoiceForm({
     folio,
 }: Props) {
     const buyer = folio.eInvoiceBuyer ?? null;
-    const initialCountry = (buyer?.country_code as string | undefined) ?? 'MYS';
-    const isInitiallyForeign =
-        initialCountry !== 'MYS' && initialCountry !== 'MY';
+    const countries =
+        usePage<{ eInvoiceCountries?: EnumOption[] }>().props
+            .eInvoiceCountries ?? [];
+    const initialCountry = (buyer?.country_code as string | undefined) ?? 'MY';
+    const isInitiallyForeign = initialCountry !== 'MY';
+    // A company payer's details live on the company record, not a guest profile.
+    const isGuestBuyer = (buyer?.id_type as string | undefined) !== 'BRN';
 
     const form = useForm({
         requested_by_guest: true,
+        save_to_guest: isGuestBuyer,
         buyer_snapshot: {
             name: (buyer?.name as string | undefined) ?? folio.name,
             tin: (buyer?.tin as string | undefined) ?? '',
@@ -197,9 +205,7 @@ function IssueFolioEInvoiceForm({
 
     const { data, errors } = form;
     const rejection = folio.eInvoiceRejection;
-    const isForeign =
-        data.buyer_snapshot.country_code !== 'MYS' &&
-        data.buyer_snapshot.country_code !== 'MY';
+    const isForeign = data.buyer_snapshot.country_code !== 'MY';
 
     const submit = () => {
         form.post(
@@ -272,7 +278,7 @@ function IssueFolioEInvoiceForm({
 
                 <Field data-invalid={!!errors['buyer_snapshot.name']}>
                     <FieldLabel htmlFor="einvoice-buyer-name">
-                        Guest / Company Name *
+                        Name on the e-invoice *
                     </FieldLabel>
                     <Input
                         id="einvoice-buyer-name"
@@ -287,7 +293,7 @@ function IssueFolioEInvoiceForm({
                 <FieldGroup className="grid gap-4 sm:grid-cols-2">
                     <Field data-invalid={!!errors['buyer_snapshot.id_type']}>
                         <FieldLabel htmlFor="einvoice-id-type">
-                            Identification Type *
+                            ID type *
                         </FieldLabel>
                         <EnumSelect
                             id="einvoice-id-type"
@@ -305,7 +311,7 @@ function IssueFolioEInvoiceForm({
 
                     <Field data-invalid={!!errors['buyer_snapshot.id_value']}>
                         <FieldLabel htmlFor="einvoice-id-value">
-                            ID / Passport Number *
+                            ID number *
                         </FieldLabel>
                         <Input
                             id="einvoice-id-value"
@@ -330,8 +336,8 @@ function IssueFolioEInvoiceForm({
                     <Field data-invalid={!!errors['buyer_snapshot.tin']}>
                         <FieldLabel htmlFor="einvoice-buyer-tin">
                             {isForeign
-                                ? 'Malaysian TIN (Optional for Foreigners)'
-                                : 'Tax Identification Number (TIN) *'}
+                                ? 'Malaysian tax number (optional)'
+                                : 'Tax number (TIN) *'}
                         </FieldLabel>
                         <Input
                             id="einvoice-buyer-tin"
@@ -341,14 +347,14 @@ function IssueFolioEInvoiceForm({
                             }
                             placeholder={
                                 isForeign
-                                    ? 'Leave blank for foreign TIN EI00000000020'
+                                    ? 'Leave empty if none'
                                     : 'e.g. IG1234567890 or C1234567890'
                             }
                         />
                         <FieldDescription>
                             {isForeign
-                                ? 'Foreign buyers without a Malaysian TIN automatically use LHDN general foreign TIN (EI00000000020).'
-                                : 'Required for individual e-invoices issued to Malaysian citizens.'}
+                                ? 'Leave it empty if the guest has none. LHDN accepts a foreign guest without one.'
+                                : 'Starts with IG for a person or C for a company. Use Check with LHDN if unsure.'}
                         </FieldDescription>
                         <FieldError>{errors['buyer_snapshot.tin']}</FieldError>
                     </Field>
@@ -357,29 +363,27 @@ function IssueFolioEInvoiceForm({
                         data-invalid={!!errors['buyer_snapshot.country_code']}
                     >
                         <FieldLabel htmlFor="einvoice-country-code">
-                            Country (ISO Alpha-3) *
+                            Country *
                         </FieldLabel>
-                        <Input
+                        <CountrySelect
                             id="einvoice-country-code"
                             value={data.buyer_snapshot.country_code}
-                            onChange={(e) => {
-                                const country = e.target.value.toUpperCase();
+                            options={countries}
+                            invalid={!!errors['buyer_snapshot.country_code']}
+                            onValueChange={(country) =>
                                 form.setData('buyer_snapshot', {
                                     ...data.buyer_snapshot,
                                     country_code: country,
-                                    ...(country !== 'MYS' && country !== 'MY'
+                                    // A buyer outside Malaysia has no Malaysian state.
+                                    ...(country !== 'MY'
                                         ? { state_code: '17' }
-                                        : {}),
-                                });
-                            }}
-                            maxLength={3}
-                            placeholder="MYS"
-                            required
+                                        : data.buyer_snapshot.state_code ===
+                                            '17'
+                                          ? { state_code: '' }
+                                          : {}),
+                                })
+                            }
                         />
-                        <FieldDescription>
-                            Use 3-letter ISO code: MYS (Malaysia), SGP
-                            (Singapore), AUS (Australia), GBR (UK).
-                        </FieldDescription>
                         <FieldError>
                             {errors['buyer_snapshot.country_code']}
                         </FieldError>
@@ -393,11 +397,30 @@ function IssueFolioEInvoiceForm({
                     onUse={(tin) => updateSnapshot('tin', tin)}
                 />
 
+                {isGuestBuyer && (
+                    <Field orientation="horizontal">
+                        <Checkbox
+                            id="einvoice-save-to-guest"
+                            checked={data.save_to_guest}
+                            onCheckedChange={(checked) =>
+                                form.setData('save_to_guest', checked === true)
+                            }
+                        />
+                        <FieldLabel
+                            htmlFor="einvoice-save-to-guest"
+                            className="font-normal"
+                        >
+                            Save the tax number and ID to the guest profile when
+                            LHDN accepts it
+                        </FieldLabel>
+                    </Field>
+                )}
+
                 <Field
                     data-invalid={!!errors['buyer_snapshot.sst_registration']}
                 >
                     <FieldLabel htmlFor="einvoice-sst">
-                        SST Registration (Optional)
+                        SST registration number (optional)
                     </FieldLabel>
                     <Input
                         id="einvoice-sst"
@@ -405,7 +428,7 @@ function IssueFolioEInvoiceForm({
                         onChange={(e) =>
                             updateSnapshot('sst_registration', e.target.value)
                         }
-                        placeholder="For registered business entities"
+                        placeholder="Only for a company registered for SST"
                     />
                     <FieldError>
                         {errors['buyer_snapshot.sst_registration']}
@@ -414,14 +437,14 @@ function IssueFolioEInvoiceForm({
             </FieldSet>
 
             <FieldSet>
-                <FieldLegend>Billing Address</FieldLegend>
+                <FieldLegend>Address</FieldLegend>
                 <FieldDescription>
-                    LHDN requires the buyer city and state on all e-invoices.
+                    LHDN needs the city and state on every e-invoice.
                 </FieldDescription>
 
                 <Field data-invalid={!!errors['buyer_snapshot.address_line1']}>
                     <FieldLabel htmlFor="einvoice-address-1">
-                        Street Address
+                        Street address
                     </FieldLabel>
                     <Input
                         id="einvoice-address-1"
@@ -453,7 +476,7 @@ function IssueFolioEInvoiceForm({
 
                     <Field data-invalid={!!errors['buyer_snapshot.state_code']}>
                         <FieldLabel htmlFor="einvoice-state-code">
-                            State / Territory *
+                            State *
                         </FieldLabel>
                         <EnumSelect
                             id="einvoice-state-code"
@@ -489,16 +512,14 @@ function IssueFolioEInvoiceForm({
             </FieldSet>
 
             <FieldSet>
-                <FieldLegend>Contact Delivery (Optional)</FieldLegend>
+                <FieldLegend>Contact (optional)</FieldLegend>
                 <FieldDescription>
-                    Contact details for e-invoice notification and delivery.
+                    Used to email the guest their e-invoice.
                 </FieldDescription>
 
                 <FieldGroup className="grid gap-4 sm:grid-cols-2">
                     <Field data-invalid={!!errors['buyer_snapshot.email']}>
-                        <FieldLabel htmlFor="einvoice-email">
-                            Email Address
-                        </FieldLabel>
+                        <FieldLabel htmlFor="einvoice-email">Email</FieldLabel>
                         <Input
                             id="einvoice-email"
                             type="email"
@@ -514,9 +535,7 @@ function IssueFolioEInvoiceForm({
                     </Field>
 
                     <Field data-invalid={!!errors['buyer_snapshot.phone']}>
-                        <FieldLabel htmlFor="einvoice-phone">
-                            Phone Number
-                        </FieldLabel>
+                        <FieldLabel htmlFor="einvoice-phone">Phone</FieldLabel>
                         <Input
                             id="einvoice-phone"
                             value={data.buyer_snapshot.phone}

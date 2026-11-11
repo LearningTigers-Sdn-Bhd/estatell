@@ -10,7 +10,7 @@ use App\Models\User;
 /**
  * Sends a rejected stay e-invoice again with a corrected tax number, usually the one LHDN holds for the guest's IC
  * (Find the tax number on the e-invoice page). Every other buyer detail stays as LHDN received it. `SubmitFolioEInvoice`
- * does the sending and its own checks. A City ledger e-invoice takes its buyer from the company record, so it is
+ * does the sending and its own checks, and the tax number goes to the guest profile once LHDN accepts it. A City ledger e-invoice takes its buyer from the company record, so it is
  * refused here (`not_resubmittable`). See docs/30-einvoice/01-lhdn-myinvois.md#checking-a-tax-number.
  */
 class ResubmitWithTaxNumber
@@ -31,6 +31,6 @@ class ResubmitWithTaxNumber
 
         $buyer = [...($rejected->buyer_snapshot ?? []), 'tin' => strtoupper(trim($tin))];
 
-        return ($this->submitFolioEInvoice)($rejected->folio, $actor, (bool) $rejected->requested_by_guest, $buyer);
+        return ($this->submitFolioEInvoice)($rejected->folio, $actor, (bool) $rejected->requested_by_guest, $buyer, saveToGuest: true);
     }
 }

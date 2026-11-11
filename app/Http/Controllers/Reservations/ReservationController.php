@@ -292,6 +292,7 @@ class ReservationController extends Controller
                     'maxLines' => FolioVoucher::MAX_LINES,
                 ],
                 'canManageRouting' => $canManageRouting,
+                'eInvoiceCountries' => $folio?->canSubmitEInvoice ? app(CountryOptions::class)->optionsWithMalaysiaFirst() : [],
                 'routingRules' => Inertia::optional(fn (): ?RoutingRulesData => $canManageRouting ? $routingRuleList->build($reservation, $units) : null),
                 'creditInvoice' => Inertia::optional(function () use ($request, $property, $folioProps, $invoiceDetail): ?ArInvoiceData {
                     $folio = $folioProps['folio'] ?? null;

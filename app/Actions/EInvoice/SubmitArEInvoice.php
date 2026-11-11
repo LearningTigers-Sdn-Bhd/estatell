@@ -11,6 +11,7 @@ use App\Models\EInvoiceSubmission;
 use App\Models\User;
 use App\Services\EInvoice\ArInvoiceDocumentBuilder;
 use App\Services\EInvoice\BuyerResolver;
+use App\Services\EInvoice\FolioEInvoiceLock;
 use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\MyInvoisClientFactory;
@@ -21,7 +22,8 @@ use Illuminate\Support\Facades\Log;
 class SubmitArEInvoice
 {
     public function __construct(
-        private RefreshEInvoiceStatus $refreshEInvoiceStatus
+        private RefreshEInvoiceStatus $refreshEInvoiceStatus,
+        private FolioEInvoiceLock $folioEInvoiceLock,
     ) {}
 
     public function __invoke(ArInvoice $invoice, User $actor): EInvoiceResult
@@ -45,6 +47,14 @@ class SubmitArEInvoice
 
         if ($existing !== null) {
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('This invoice already has an e-invoice.'));
+        }
+
+        // The stay may already be with LHDN: in a monthly summary from before it was billed, or as its own e-invoice.
+        $reported = $invoice->folio === null ? null : $this->folioEInvoiceLock->for($invoice->folio);
+        if ($reported !== null && $reported->ar_invoice_id !== $invoice->id) {
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_REPORTED, $reported->is_consolidated
+                ? __('This stay is already in monthly summary :number, so LHDN has it. If the company needs its own e-invoice, cancel the summary within 72 hours and send both again.', ['number' => $reported->internal_id])
+                : __('This stay already has e-invoice :number, so LHDN has it.', ['number' => $reported->internal_id]));
         }
 
         try {

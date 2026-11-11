@@ -6,6 +6,7 @@ use App\Enums\EInvoiceEnvironment;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use App\Enums\FolioType;
+use App\Enums\TaxRateType;
 use App\Enums\TransactionKind;
 use App\Features\EInvoicing;
 use App\Models\BusinessDate;
@@ -17,9 +18,11 @@ use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
+use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 
 /**
@@ -249,4 +252,70 @@ it('consolidates the chosen month even late in the current month', function () {
         ->assertInertiaFlash('toast.type', 'success');
 
     expect(EInvoiceSubmission::query()->where('is_consolidated', true)->first()?->folios()->pluck('folios.id')->all())->toBe([$folio->id]);
+});
+
+it('reports the SST and tourism tax in each stay of the monthly summary, not as exempt', function () {
+    $setup = consolidationSetup();
+    $lastMonth = CarbonImmutable::now()->subMonth();
+    $sst = Tax::factory()->for($setup['property'])->create(['code' => 'SST', 'name' => 'Government tax']);
+    $tourism = Tax::factory()->for($setup['property'])->create(['code' => 'TTX', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00']);
+    $setup['property']->eInvoiceSetting->update(['supplier_ttx_registration' => '141-2017-10000123']);
+    $postingDate = $lastMonth->startOfMonth()->addDays(2)->toDateString();
+    $stay = function (array $taxes) use ($setup, $lastMonth, $postingDate): void {
+        $guest = Guest::factory()->for($setup['property'])->create();
+        $folio = Folio::factory()->for($setup['property'])->closed()->create([
+            'reservation_id' => Reservation::factory()->for($setup['property'])->create(['booker_guest_id' => $guest->id])->id,
+            'payer_guest_id' => $guest->id,
+            'type' => FolioType::Master,
+            'closed_at' => $lastMonth->startOfMonth()->addDays(3),
+        ]);
+        FolioLine::factory()->for($folio)->create(['transaction_code_id' => $setup['chargeCode']->id, 'kind' => TransactionKind::Charge, 'amount' => '200.00', 'posting_date' => $postingDate]);
+        foreach ($taxes as [$tax, $amount]) {
+            FolioLine::factory()->for($folio)->create(['transaction_code_id' => $tax->transaction_code_id, 'kind' => TransactionKind::Tax, 'amount' => $amount, 'posting_date' => $postingDate]);
+        }
+    };
+    $stay([[$sst, '16.00'], [$tourism, '10.00']]);
+    $stay([]);
+
+    $document = app(ConsolidateMonthlyEInvoices::class)($setup['property'], $lastMonth)[0]->document_payload['Invoice'][0];
+    $byType = collect($document['TaxTotal'][0]['TaxSubtotal'])->mapWithKeys(fn (array $subtotal): array => [
+        $subtotal['TaxCategory'][0]['ID'][0]['_'] => [$subtotal['TaxableAmount'][0]['_'], $subtotal['TaxAmount'][0]['_']],
+    ]);
+
+    expect($document['TaxTotal'][0]['TaxAmount'][0]['_'])->toEqual(26)
+        ->and($byType->all())->toEqual(['02' => [200, 16], '03' => [200, 10], 'E' => [200, 0]])
+        ->and($document['LegalMonetaryTotal'][0]['TaxExclusiveAmount'][0]['_'])->toEqual(400)
+        ->and($document['LegalMonetaryTotal'][0]['PayableAmount'][0]['_'])->toEqual(426)
+        ->and($document['InvoiceLine'][0]['LineExtensionAmount'][0]['_'])->toEqual(200)
+        ->and($document['InvoiceLine'][0]['TaxTotal'][0]['TaxAmount'][0]['_'])->toEqual(26);
+});
+
+it('lists the stays of a monthly summary with the amounts LHDN received, to check against the folios', function () {
+    $setup = consolidationSetup();
+    $lastMonth = CarbonImmutable::now()->subMonth();
+    $sst = Tax::factory()->for($setup['property'])->create(['code' => 'SST']);
+    $guest = Guest::factory()->for($setup['property'])->create(['full_name' => 'Aisyah Rahman']);
+    $reservation = Reservation::factory()->for($setup['property'])->create(['booker_guest_id' => $guest->id]);
+    $folio = Folio::factory()->for($setup['property'])->closed()->create([
+        'reservation_id' => $reservation->id,
+        'payer_guest_id' => $guest->id,
+        'type' => FolioType::Master,
+        'closed_at' => $lastMonth->startOfMonth()->addDays(3),
+    ]);
+    $postingDate = $lastMonth->startOfMonth()->addDays(2)->toDateString();
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $setup['chargeCode']->id, 'kind' => TransactionKind::Charge, 'amount' => '200.00', 'posting_date' => $postingDate]);
+    FolioLine::factory()->for($folio)->create(['transaction_code_id' => $sst->transaction_code_id, 'kind' => TransactionKind::Tax, 'amount' => '16.00', 'posting_date' => $postingDate]);
+
+    $summary = app(ConsolidateMonthlyEInvoices::class)($setup['property'], $lastMonth)[0];
+
+    $this->actingAs($setup['owner'])
+        ->get("/p/{$setup['property']->code}/finance/e-invoices/{$summary->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('submission.stays', 1)
+            ->where('submission.stays.0.reservation_id', $reservation->id)
+            ->where('submission.stays.0.guest', 'Aisyah Rahman')
+            ->where('submission.stays.0.net', '200.00')
+            ->where('submission.stays.0.tax', '16.00')
+            ->where('submission.stays.0.total', '216.00')
+            ->etc());
 });

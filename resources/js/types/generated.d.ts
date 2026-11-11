@@ -1252,6 +1252,7 @@ eInvoiceRejection: {
 message: string,
 fix: string,
 }[],
+eInvoiceRequired: boolean,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -1598,6 +1599,7 @@ state: string | null,
 postalCode: string | null,
 countryCode: string | null,
 countryName: string | null,
+tin: string | null,
 isVip: boolean,
 blacklistedAt: string | null,
 blacklistReason: string | null,

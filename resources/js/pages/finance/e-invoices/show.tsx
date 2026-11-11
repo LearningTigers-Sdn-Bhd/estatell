@@ -11,10 +11,12 @@ import {
     Mail,
     RefreshCw,
     Search,
+    Undo2,
     Wrench,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { ChoiceCards } from '@/components/pms/choice-cards';
 import { DateText } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
@@ -46,6 +48,14 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/toast';
 import { useClipboard } from '@/hooks/use-clipboard';
@@ -77,7 +87,7 @@ type Where = 'buyer' | 'hotel' | 'login' | 'retry';
 type Submission = {
     id: number;
     number: string;
-    kind: 'invoice' | 'credit_note' | 'summary';
+    kind: 'invoice' | 'credit_note' | 'refund_note' | 'summary';
     status: Badge;
     amounts: {
         subtotal: string | null;
@@ -95,6 +105,17 @@ type Submission = {
         address: string | null;
     } | null;
     stays_included: number | null;
+    stays: {
+        folio_id: number;
+        reservation_id: number;
+        reference: string | null;
+        guest: string | null;
+        folio_number: string | null;
+        closed_on: string | null;
+        net: string;
+        tax: string;
+        total: string;
+    }[];
     reservation: {
         id: number;
         reference: string;
@@ -112,6 +133,7 @@ type Submission = {
     credit_notes: {
         id: number;
         number: string;
+        kind: { value: string; label: string };
         amount: string | null;
         status: Badge;
         issued_at: string | null;
@@ -132,6 +154,12 @@ type Submission = {
     } | null;
     lhdn_reference: string | null;
     reasons: { message: string; fix: string; where: Where }[];
+    replaced_by: {
+        id: number;
+        number: string;
+        kind: { value: string; label: string };
+        status: Badge;
+    } | null;
     can_resubmit: boolean;
     can_find_tax_number: boolean;
     history: { label: string; at: string | null }[];
@@ -148,8 +176,16 @@ const VISIBLE_CREDIT_NOTES = 3;
 const KIND_LABEL: Record<Submission['kind'], string> = {
     invoice: 'E-invoice',
     credit_note: 'Credit note',
+    refund_note: 'Refund note',
     summary: 'Monthly summary',
 };
+
+/** A credit or refund note: it adjusts another e-invoice and copies its buyer. */
+function isAdjustment(submission: Submission): boolean {
+    return (
+        submission.kind === 'credit_note' || submission.kind === 'refund_note'
+    );
+}
 
 function Figure({ label, children }: { label: string; children: ReactNode }) {
     return (
@@ -204,6 +240,9 @@ function CreditNoteList({
                         >
                             {note.number}
                         </Link>
+                        <span className="text-muted-foreground">
+                            {note.kind.label}
+                        </span>
                         <span className="text-muted-foreground tabular-nums">
                             {note.issued_at}
                         </span>
@@ -345,16 +384,124 @@ function FindTaxNumber({ submission }: { submission: Submission }) {
     );
 }
 
+/**
+ * The stays in a monthly summary, to check against the folios. Amounts are split as LHDN received them; the totals
+ * row matches the summary.
+ */
+function SummaryStays({
+    submission,
+    currency,
+}: {
+    submission: Submission;
+    currency: App.Data.Property.CurrencyData | null;
+}) {
+    const money = (amount: string) => (
+        <MoneyText amount={amount} currency={currency} />
+    );
+    const sum = (key: 'net' | 'tax' | 'total') =>
+        submission.stays
+            .reduce((total, stay) => total + Number(stay[key]), 0)
+            .toFixed(2);
+
+    return (
+        <section className="flex flex-col gap-2">
+            <h2 className="text-sm font-medium">
+                Stays in this summary ({submission.stays.length})
+            </h2>
+            <p className="text-sm text-muted-foreground">
+                Each stay as LHDN received it. Open a reservation to check its
+                folio.
+            </p>
+            <div className="overflow-x-auto rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Reservation</TableHead>
+                            <TableHead>Guest</TableHead>
+                            <TableHead>Folio</TableHead>
+                            <TableHead>Closed</TableHead>
+                            <TableHead className="text-right">
+                                Before tax
+                            </TableHead>
+                            <TableHead className="text-right">Tax</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {submission.stays.map((stay) => (
+                            <TableRow key={stay.folio_id}>
+                                <TableCell>
+                                    <Link
+                                        href={folioTab.url(
+                                            {
+                                                reservation:
+                                                    stay.reservation_id,
+                                            },
+                                            {
+                                                query: {
+                                                    folio: String(
+                                                        stay.folio_id,
+                                                    ),
+                                                },
+                                            },
+                                        )}
+                                        className="font-medium underline-offset-2 hover:underline"
+                                    >
+                                        {stay.reference ?? 'Reservation'}
+                                    </Link>
+                                </TableCell>
+                                <TableCell>{stay.guest ?? '—'}</TableCell>
+                                <TableCell className="text-muted-foreground">
+                                    {stay.folio_number ?? '—'}
+                                </TableCell>
+                                <TableCell className="tabular-nums">
+                                    {stay.closed_on ? (
+                                        <DateText date={stay.closed_on} />
+                                    ) : (
+                                        '—'
+                                    )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {money(stay.net)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {money(stay.tax)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {money(stay.total)}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        <TableRow className="font-medium">
+                            <TableCell colSpan={4}>Total</TableCell>
+                            <TableCell className="text-right">
+                                {money(sum('net'))}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                {money(sum('tax'))}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                {money(sum('total'))}
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
+        </section>
+    );
+}
+
 /** One line under the reasons that says where the details live. */
 function WhereToFix({ submission }: { submission: Submission }) {
     const needs = rejection(submission);
 
-    if (submission.kind === 'credit_note' && submission.original) {
+    if (isAdjustment(submission) && submission.original) {
         return (
             <p>
-                A credit note uses the buyer from the original e-invoice. Open{' '}
+                A {KIND_LABEL[submission.kind].toLowerCase()} uses the buyer
+                from the original e-invoice. Open{' '}
                 <strong>{submission.original.number}</strong> and issue a new
-                credit note.
+                one.
             </p>
         );
     }
@@ -420,9 +567,11 @@ function StatusNotice({
                                 e-invoice. Nothing more to do.
                             </>
                         )}
-                        {submission.kind === 'credit_note' && (
+                        {isAdjustment(submission) && (
                             <>
-                                It reduces e-invoice{' '}
+                                {submission.kind === 'refund_note'
+                                    ? 'It records money paid back on e-invoice'
+                                    : 'It reduces e-invoice'}{' '}
                                 <strong>{submission.original?.number}</strong>{' '}
                                 by{' '}
                                 <strong>
@@ -447,9 +596,34 @@ function StatusNotice({
                         <p>
                             You can cancel it until{' '}
                             <strong>{submission.cancel_until}</strong>. After
-                            that, correct it with a credit note.
+                            that, correct it with a credit or refund note.
                         </p>
                     )}
+                </AlertDescription>
+            </Alert>
+        );
+    }
+
+    if (submission.replaced_by) {
+        const next = submission.replaced_by;
+
+        return (
+            <Alert>
+                <CircleCheck className="text-success" />
+                <AlertTitle>
+                    Rejected by LHDN, then sent again. Nothing more to do.
+                </AlertTitle>
+                <AlertDescription>
+                    <p>
+                        It went again as {next.kind.label.toLowerCase()}{' '}
+                        <Link
+                            href={show.url({ submission: next.id })}
+                            className="font-medium underline underline-offset-2"
+                        >
+                            {next.number}
+                        </Link>{' '}
+                        ({next.status.label.toLowerCase()}).
+                    </p>
                 </AlertDescription>
             </Alert>
         );
@@ -608,19 +782,21 @@ function CreditNoteForm({
     currency: App.Data.Property.CurrencyData | null;
 }) {
     const form = useForm({
+        kind: 'credit_note' as 'credit_note' | 'refund_note',
         amount: '',
         reason: '',
-        credit_note_number: `CN-${submission.number}`,
+        credit_note_number: `CN-${submission.number}-${submission.credit_notes.length + 1}`,
     });
     const { data, errors } = form;
+    const isRefund = data.kind === 'refund_note';
 
     return (
         <FormOverlay
             variant="dialog"
             open={open}
             onOpenChange={onOpenChange}
-            title="Issue credit note"
-            description={`Use this when the guest should pay less than ${submission.number}, for example a refund after checkout. The e-invoice stays filed and LHDN records the credit note against it.`}
+            title={isRefund ? 'Issue refund note' : 'Issue credit note'}
+            description={`Lowers what ${submission.number} charged. The e-invoice stays filed and LHDN records the note against it.`}
             errors={errors}
             onSubmit={() =>
                 form.post(creditNote.url({ submission: submission.id }), {
@@ -628,9 +804,38 @@ function CreditNoteForm({
                     onSuccess: () => onOpenChange(false),
                 })
             }
-            submitLabel="Issue credit note"
+            submitLabel={isRefund ? 'Issue refund note' : 'Issue credit note'}
             processing={form.processing}
         >
+            <ChoiceCards
+                id="adjustment-kind"
+                legend="Was money paid back to the guest?"
+                value={data.kind}
+                onValueChange={(kind) => {
+                    const next = kind as 'credit_note' | 'refund_note';
+                    form.setData({
+                        ...data,
+                        kind: next,
+                        credit_note_number: `${next === 'refund_note' ? 'RN' : 'CN'}-${submission.number}-${submission.credit_notes.length + 1}`,
+                    });
+                }}
+                choices={[
+                    {
+                        value: 'credit_note',
+                        label: 'No, the amount is lowered',
+                        description:
+                            'A credit note. For example a fee waived before the guest paid it.',
+                        icon: FilePlus2,
+                    },
+                    {
+                        value: 'refund_note',
+                        label: 'Yes, money was paid back',
+                        description:
+                            'A refund note. Not needed for an overpayment, a payment made by mistake or a returned deposit.',
+                        icon: Undo2,
+                    },
+                ]}
+            />
             <Field data-invalid={!!errors.amount}>
                 <FieldLabel htmlFor="credit-amount">Amount</FieldLabel>
                 <Input
@@ -673,7 +878,7 @@ function CreditNoteForm({
             </Field>
             <Field data-invalid={!!errors.credit_note_number}>
                 <FieldLabel htmlFor="credit-number">
-                    Credit note number
+                    {isRefund ? 'Refund note number' : 'Credit note number'}
                 </FieldLabel>
                 <Input
                     id="credit-number"
@@ -801,7 +1006,7 @@ function RejectedActions({ submission }: { submission: Submission }) {
         </Link>
     );
 
-    if (submission.kind === 'credit_note') {
+    if (isAdjustment(submission)) {
         return (
             <>
                 {submission.original && (
@@ -813,7 +1018,7 @@ function RejectedActions({ submission }: { submission: Submission }) {
                         className={buttonVariants()}
                     >
                         <FilePlus2 data-icon="inline-start" />
-                        Issue a new credit note
+                        Issue a new {KIND_LABEL[submission.kind].toLowerCase()}
                     </Link>
                 )}
                 {settingsLink}
@@ -914,7 +1119,7 @@ export default function EInvoiceShow({
         );
     const title = `${KIND_LABEL[submission.kind]} ${submission.number}`;
     const showCreditNotes =
-        submission.kind !== 'credit_note' &&
+        !isAdjustment(submission) &&
         (submission.credit_notes.length > 0 || submission.can_credit_note);
 
     const copyAndTell = async (text: string, message: string) => {
@@ -940,10 +1145,12 @@ export default function EInvoiceShow({
                     badge={<StatusBadge status={submission.status} />}
                     actions={
                         <>
-                            {submission.status.value === 'invalid' && (
-                                <RejectedActions submission={submission} />
-                            )}
                             {submission.status.value === 'invalid' &&
+                                !submission.replaced_by && (
+                                    <RejectedActions submission={submission} />
+                                )}
+                            {submission.status.value === 'invalid' &&
+                                !submission.replaced_by &&
                                 submission.kind === 'summary' &&
                                 submission.period && (
                                     <Form
@@ -1024,7 +1231,7 @@ export default function EInvoiceShow({
                                     onClick={() => setCrediting(true)}
                                 >
                                     <FilePlus2 data-icon="inline-start" />
-                                    Issue credit note
+                                    Issue credit or refund note
                                 </Button>
                             )}
                             {submission.can_cancel && (
@@ -1039,14 +1246,14 @@ export default function EInvoiceShow({
                 <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <Figure
                         label={
-                            submission.kind === 'credit_note'
-                                ? 'Credit amount'
+                            isAdjustment(submission)
+                                ? `${KIND_LABEL[submission.kind]} amount`
                                 : 'Total incl. tax'
                         }
                     >
                         <span className="flex flex-col">
                             {money(submission.amounts.total)}
-                            {submission.kind !== 'credit_note' &&
+                            {!isAdjustment(submission) &&
                                 submission.amounts.tax !== null && (
                                     <span className="text-xs font-normal text-muted-foreground">
                                         Tax {money(submission.amounts.tax)}
@@ -1181,7 +1388,7 @@ export default function EInvoiceShow({
                         {showCreditNotes && (
                             <section className="flex flex-col gap-3">
                                 <h2 className="text-base font-medium">
-                                    Credit notes
+                                    Credit and refund notes
                                 </h2>
                                 {submission.credit_notes.length === 0 ? (
                                     <p className="rounded-lg border p-3 text-sm text-muted-foreground">
@@ -1197,6 +1404,10 @@ export default function EInvoiceShow({
                             </section>
                         )}
                     </div>
+                )}
+
+                {submission.stays.length > 0 && (
+                    <SummaryStays submission={submission} currency={currency} />
                 )}
 
                 {submission.history.length > 0 && (

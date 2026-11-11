@@ -38,6 +38,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property array<string, mixed>|null $error_details
  * @property bool $is_consolidated
  * @property bool $requested_by_guest
+ * @property bool $save_buyer_to_guest
  * @property string|null $cancel_reason
  * @property CarbonImmutable|null $submitted_at
  * @property CarbonImmutable|null $validated_at
@@ -72,6 +73,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'error_details',
     'is_consolidated',
     'requested_by_guest',
+    'save_buyer_to_guest',
     'cancel_reason',
     'submitted_at',
     'validated_at',
@@ -102,6 +104,7 @@ class EInvoiceSubmission extends Model
             'error_details' => 'array',
             'is_consolidated' => 'boolean',
             'requested_by_guest' => 'boolean',
+            'save_buyer_to_guest' => 'boolean',
             'submitted_at' => 'immutable_datetime',
             'validated_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',

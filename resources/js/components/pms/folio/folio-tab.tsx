@@ -588,6 +588,17 @@ export function FolioTab({
                         currency={currency}
                         canRetry={canCorrectMoney}
                     />
+                    {folio.eInvoiceRequired && (
+                        <Alert variant="destructive">
+                            <Info />
+                            <AlertDescription>
+                                This stay is over RM10,000, so LHDN needs its
+                                own e-invoice. The monthly summary cannot take
+                                it. Press <strong>Issue e-invoice</strong> and
+                                use the guest's own tax number.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     {folio.closedNotice && (
                         <Alert className="flex flex-wrap items-center gap-x-2 gap-y-2 has-data-[slot=alert-action]:pr-2.5 *:[svg]:translate-y-0">
                             <Info />

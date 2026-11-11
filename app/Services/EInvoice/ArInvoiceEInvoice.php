@@ -20,8 +20,10 @@ use Laravel\Pennant\Feature;
  */
 class ArInvoiceEInvoice
 {
+    public function __construct(private FolioEInvoiceLock $folioEInvoiceLock) {}
+
     /**
-     * @return array{submission: array{id: int, number: string, status: BadgeData}|null, can_send: bool}|null
+     * @return array{submission: array{id: int, number: string, status: BadgeData}|null, reported_in: array{id: int, number: string, summary: bool}|null, can_send: bool}|null
      */
     public function for(ArInvoice $invoice, User $user): ?array
     {
@@ -39,6 +41,9 @@ class ArInvoiceEInvoice
             ->latest('id')
             ->first();
         $active = $latest !== null && ! in_array($latest->status, [EInvoiceStatus::Cancelled, EInvoiceStatus::Invalid], true);
+        // Already with LHDN through the folio: a monthly summary from before it was billed, or the stay's own e-invoice.
+        $hold = $invoice->folio === null ? null : $this->folioEInvoiceLock->for($invoice->folio);
+        $reportedIn = $hold !== null && $hold->ar_invoice_id !== $invoice->id ? $hold : null;
 
         return [
             'submission' => $latest === null ? null : [
@@ -46,7 +51,8 @@ class ArInvoiceEInvoice
                 'number' => $latest->internal_id,
                 'status' => new BadgeData($latest->status->value, $latest->status->label(), $latest->status->tone()),
             ],
-            'can_send' => ! $active && $invoice->status !== ArInvoiceStatus::Void && $user->can(PermissionEnum::EInvoiceManage->value),
+            'reported_in' => $reportedIn === null ? null : ['id' => $reportedIn->id, 'number' => $reportedIn->internal_id, 'summary' => $reportedIn->is_consolidated],
+            'can_send' => ! $active && $reportedIn === null && $invoice->status !== ArInvoiceStatus::Void && $user->can(PermissionEnum::EInvoiceManage->value),
         ];
     }
 }

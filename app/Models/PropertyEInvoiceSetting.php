@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $signing_passphrase
  * @property string|null $supplier_name
  * @property string|null $supplier_tin
+ * @property string|null $supplier_brn
  * @property string|null $supplier_sst_registration
  * @property string|null $supplier_ttx_registration
  * @property string|null $supplier_msic_code
@@ -53,6 +54,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'signing_passphrase',
     'supplier_name',
     'supplier_tin',
+    'supplier_brn',
     'supplier_sst_registration',
     'supplier_ttx_registration',
     'supplier_msic_code',

@@ -109,4 +109,34 @@ class MalaysiaStates
 
         return self::NOT_APPLICABLE;
     }
+
+    /**
+     * The LHDN code for a Malaysian state given as a code or a name, such as "Sabah", "Penang" or "Kuala Lumpur".
+     * Null when it is not a Malaysian state.
+     */
+    public static function codeFor(?string $state): ?string
+    {
+        $state = trim((string) $state);
+        if ($state === '') {
+            return null;
+        }
+
+        if (self::isValid($state) && $state !== self::NOT_APPLICABLE) {
+            return $state;
+        }
+
+        $name = strtolower((string) preg_replace('/^(wilayah persekutuan|w\.?\s?p\.?|federal territory( of)?)\s+/i', '', $state));
+        $aliases = ['penang' => '07', 'pulau pinang' => '07', 'malacca' => '04', 'kl' => '14', 'kuala lumpur' => '14', 'labuan' => '15', 'putrajaya' => '16', 'negri sembilan' => '05'];
+        if (isset($aliases[$name])) {
+            return $aliases[$name];
+        }
+
+        foreach (self::CODES as $code => $label) {
+            if ((string) $code !== self::NOT_APPLICABLE && strtolower((string) preg_replace('/^Wilayah Persekutuan\s+/', '', $label)) === $name) {
+                return (string) $code;
+            }
+        }
+
+        return null;
+    }
 }

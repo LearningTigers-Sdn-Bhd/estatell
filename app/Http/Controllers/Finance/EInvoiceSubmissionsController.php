@@ -17,6 +17,7 @@ use App\Models\EInvoiceSubmission;
 use App\Models\Property;
 use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisApiException;
+use App\Services\EInvoice\StaysNeedingOwnEInvoice;
 use App\Services\EInvoice\SubmissionToast;
 use App\Services\EInvoice\SubmissionView;
 use Carbon\CarbonImmutable;
@@ -29,7 +30,7 @@ use Laravel\Pennant\Feature;
 
 class EInvoiceSubmissionsController extends Controller
 {
-    public function index(Property $property, Request $request, SubmissionView $view): Response
+    public function index(Property $property, Request $request, SubmissionView $view, StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice): Response
     {
         $filters = [
             'search' => trim((string) $request->query('search', '')),
@@ -49,6 +50,7 @@ class EInvoiceSubmissionsController extends Controller
         match ($filters['type']) {
             'summary' => $query->where('is_consolidated', true),
             'credit_note' => $query->where('document_type', EInvoiceDocumentType::CreditNote),
+            'refund_note' => $query->where('document_type', EInvoiceDocumentType::RefundNote),
             'invoice' => $query->where('is_consolidated', false)->where('document_type', EInvoiceDocumentType::Invoice),
             default => null,
         };
@@ -74,10 +76,12 @@ class EInvoiceSubmissionsController extends Controller
             'types' => [
                 ['value' => 'invoice', 'label' => __('E-invoice')],
                 ['value' => 'credit_note', 'label' => __('Credit note')],
+                ['value' => 'refund_note', 'label' => __('Refund note')],
                 ['value' => 'summary', 'label' => __('Monthly summary')],
             ],
             'statuses' => array_values(array_filter(EInvoiceStatus::options(), fn (array $option): bool => $option['value'] !== EInvoiceStatus::Draft->value)),
-            'rejected' => $property->eInvoiceSubmissions()->where('status', EInvoiceStatus::Invalid)->count(),
+            'rejected' => $view->rejectedToFix($property->id),
+            'needOwnEInvoice' => array_slice($staysNeedingOwnEInvoice->for($property), 0, 20),
             'canRunSummary' => ($property->eInvoiceSetting->consolidation_enabled ?? false) && $request->user()->can(PermissionEnum::EInvoiceManage->value),
             'currency' => CurrencyData::forProperty($property),
         ]);
@@ -90,7 +94,7 @@ class EInvoiceSubmissionsController extends Controller
         }
 
         return Inertia::render('finance/e-invoices/show', [
-            'submission' => $view->for($submission),
+            'submission' => $view->for($submission, request()->user()->can(PermissionEnum::GuestsViewDocuments->value)),
             'currency' => CurrencyData::forProperty($property),
             'canEditEmail' => request()->user()->can(PermissionEnum::SettingsManage->value),
         ]);
@@ -167,6 +171,7 @@ class EInvoiceSubmissionsController extends Controller
             'credit_note_number' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0'],
             'reason' => ['required', 'string', 'max:500'],
+            'kind' => ['nullable', 'in:credit_note,refund_note'],
         ]);
 
         $result = $creditNoteAction(
@@ -174,7 +179,8 @@ class EInvoiceSubmissionsController extends Controller
             $validated['credit_note_number'],
             (float) $validated['amount'],
             $validated['reason'],
-            $request->user()
+            $request->user(),
+            ($validated['kind'] ?? null) === 'refund_note' ? EInvoiceDocumentType::RefundNote : EInvoiceDocumentType::CreditNote,
         );
 
         if (! $result->ok) {
@@ -188,7 +194,7 @@ class EInvoiceSubmissionsController extends Controller
         return back();
     }
 
-    public function consolidate(Property $property, Request $request, ConsolidateMonthlyEInvoices $consolidateAction, SubmissionToast $submissionToast): RedirectResponse
+    public function consolidate(Property $property, Request $request, ConsolidateMonthlyEInvoices $consolidateAction, SubmissionToast $submissionToast, StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice): RedirectResponse
     {
         if (! Feature::for($property)->active(EInvoicing::class)) {
             abort(404);
@@ -210,8 +216,11 @@ class EInvoiceSubmissionsController extends Controller
             return back();
         }
 
+        $leftOut = count($staysNeedingOwnEInvoice->for($property));
+        $leftOutNote = $leftOut === 0 ? null : trans_choice(':count stay over RM10,000 was left out. It needs its own e-invoice.|:count stays over RM10,000 were left out. Each needs its own e-invoice.', $leftOut, ['count' => $leftOut]);
+
         if (empty($submissions)) {
-            Inertia::flash('toast', ['type' => 'info', 'message' => __('No stays to send for that month. They are filed already, or none closed.')]);
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('No stays to send for that month. They are filed already, or none closed.'), ...($leftOutNote === null ? [] : ['description' => $leftOutNote])]);
 
             return back();
         }
@@ -219,11 +228,15 @@ class EInvoiceSubmissionsController extends Controller
         $count = count($submissions);
         $rejected = collect($submissions)->filter(fn (EInvoiceSubmission $submission): bool => $submission->status === EInvoiceStatus::Invalid);
 
-        Inertia::flash('toast', match (true) {
+        $toast = match (true) {
             $count === 1 => $submissionToast->for($submissions[0]),
             $rejected->isNotEmpty() => ['type' => 'error', 'message' => __('LHDN rejected :rejected of the :count parts of the monthly summary.', ['rejected' => $rejected->count(), 'count' => $count]), 'description' => __('Open them in the list to see why.')],
             default => ['type' => 'success', 'message' => __('Monthly summary sent to LHDN in :count parts.', ['count' => $count])],
-        });
+        };
+        if ($leftOutNote !== null) {
+            $toast['description'] = trim(($toast['description'] ?? '').' '.$leftOutNote);
+        }
+        Inertia::flash('toast', $toast);
 
         return back();
     }

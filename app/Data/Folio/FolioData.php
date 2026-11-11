@@ -90,5 +90,7 @@ class FolioData extends Data
         public ?array $eInvoiceBuyer = null,
         /** @var list<array{message: string, fix: string}> What LHDN said about the rejected buyer details, to fix them in the Issue e-invoice form. */
         public array $eInvoiceRejection = [],
+        /** Over RM10,000 with no e-invoice yet: LHDN needs its own e-invoice, the monthly summary cannot take it. */
+        public bool $eInvoiceRequired = false,
     ) {}
 }

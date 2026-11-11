@@ -34,6 +34,9 @@ class ConsolidatedBatchBuilder
 
     private PropertyEInvoiceSetting $setting;
 
+    /** @var list<array{folio: Folio, net: float, tax: float, taxes: array<string, float>}>|null */
+    private ?array $stays = null;
+
     private DocumentSigner $documentSigner;
 
     /**
@@ -113,56 +116,9 @@ class ConsolidatedBatchBuilder
      */
     private function supplierParty(): array
     {
-        $tin = $this->setting->supplier_tin ?: $this->property->tin;
-        MissingEInvoiceDetails::hotel($tin, $this->setting->supplier_email ?: $this->property->contact_email, $this->setting->supplier_city ?: $this->property->city);
+        MissingEInvoiceDetails::hotel($this->property);
 
-        $brn = $this->property->registration_number ?: 'NA';
-        $name = $this->setting->supplier_name ?: $this->property->legal_name ?: $this->property->name;
-        $msic = $this->setting->supplier_msic_code ?: $this->property->msic_code ?: '55101';
-        $desc = $this->setting->supplier_business_description ?: $this->property->business_description ?: 'Hotel and accommodation services';
-        $email = $this->setting->supplier_email ?: $this->property->contact_email;
-        $phone = PhoneFormatter::format($this->setting->supplier_phone ?: $this->property->contact_phone);
-
-        $addressLine1 = $this->setting->supplier_address_line1 ?: $this->property->address_line1 ?: 'NA';
-        $addressLine2 = $this->setting->supplier_address_line2 ?: $this->property->address_line2 ?: '';
-        $city = $this->setting->supplier_city ?: $this->property->city;
-        $postalCode = $this->setting->supplier_postal_code ?: $this->property->postal_code ?: '00000';
-        $stateCode = $this->setting->supplier_state_code ?: $this->property->state_code ?: '14';
-
-        $partyIdentifications = [
-            ['ID' => [['_' => $tin, 'schemeID' => 'TIN']]],
-            ['ID' => [['_' => preg_replace('/[^A-Za-z0-9]/', '', $brn) ?: 'NA', 'schemeID' => 'BRN']]],
-        ];
-
-        $sst = $this->setting->supplier_sst_registration;
-        if (! empty($sst)) {
-            $partyIdentifications[] = ['ID' => [['_' => $sst, 'schemeID' => 'SST']]];
-        }
-
-        return [
-            'IndustryClassificationCode' => [['_' => $msic, 'name' => $desc]],
-            'PartyIdentification' => $partyIdentifications,
-            'PostalAddress' => [
-                [
-                    'CityName' => [['_' => $city]],
-                    'PostalZone' => [['_' => $postalCode]],
-                    'CountrySubentityCode' => [['_' => $stateCode]],
-                    'AddressLine' => [
-                        ['Line' => [['_' => $addressLine1]]],
-                        ['Line' => [['_' => $addressLine2]]],
-                        ['Line' => [['_' => '']]],
-                    ],
-                    'Country' => [['IdentificationCode' => [['_' => 'MYS']]]],
-                ],
-            ],
-            'PartyLegalEntity' => [['RegistrationName' => [['_' => $name]]]],
-            'Contact' => [
-                [
-                    'Telephone' => [['_' => $phone]],
-                    'ElectronicMail' => [['_' => $email]],
-                ],
-            ],
-        ];
+        return app(SupplierDetails::class)->party($this->property);
     }
 
     /**
@@ -199,6 +155,9 @@ class ConsolidatedBatchBuilder
     }
 
     /**
+     * One line per stay: its charges before tax, and the taxes posted on it by LHDN tax type (SST is Service Tax
+     * `02`). A stay without tax is exempt (`E`). The stay's own total, tax included, is what the guest paid.
+     *
      * @return list<array<string, mixed>>
      */
     private function invoiceLines(): array
@@ -206,18 +165,13 @@ class ConsolidatedBatchBuilder
         $lines = [];
         $idx = 1;
 
-        foreach ($this->folios as $folio) {
-            $amount = (float) self::calculateFolioGrossAmount($folio);
-            if ($amount <= 0.0 || $amount > self::MAX_INDIVIDUAL_STAY_AMOUNT) {
-                continue;
-            }
-
-            $folioNumber = $folio->invoice_number ?: $folio->number;
+        foreach ($this->stays() as $stay) {
+            $folioNumber = $stay['folio']->invoice_number ?: $stay['folio']->number;
 
             $lines[] = [
                 'ID' => [['_' => (string) $idx++]],
                 'InvoicedQuantity' => [['_' => 1, 'unitCode' => self::UNIT_CODE_EACH]],
-                'LineExtensionAmount' => [['_' => round($amount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
+                'LineExtensionAmount' => [['_' => $stay['net'], 'currencyID' => self::DEFAULT_CURRENCY]],
                 'AllowanceCharge' => [
                     [
                         'ChargeIndicator' => [['_' => false]],
@@ -226,20 +180,8 @@ class ConsolidatedBatchBuilder
                 ],
                 'TaxTotal' => [
                     [
-                        'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                        'TaxSubtotal' => [
-                            [
-                                'TaxableAmount' => [['_' => round($amount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
-                                'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                                'TaxCategory' => [
-                                    [
-                                        'ID' => [['_' => 'E']],
-                                        'TaxExemptionReason' => [['_' => 'Consolidated line-level exemption']],
-                                        'TaxScheme' => [['ID' => [['_' => 'OTH', 'schemeID' => 'UN/ECE 5153', 'schemeAgencyID' => '6']]]],
-                                    ],
-                                ],
-                            ],
-                        ],
+                        'TaxAmount' => [['_' => $stay['tax'], 'currencyID' => self::DEFAULT_CURRENCY]],
+                        'TaxSubtotal' => $this->taxSubtotals($stay['taxes'], $stay['net']),
                     ],
                 ],
                 'Item' => [
@@ -251,8 +193,8 @@ class ConsolidatedBatchBuilder
                         'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
                     ],
                 ],
-                'Price' => [['PriceAmount' => [['_' => round($amount, 4), 'currencyID' => self::DEFAULT_CURRENCY]]]],
-                'ItemPriceExtension' => [['Amount' => [['_' => round($amount, 2), 'currencyID' => self::DEFAULT_CURRENCY]]]],
+                'Price' => [['PriceAmount' => [['_' => $stay['net'], 'currencyID' => self::DEFAULT_CURRENCY]]]],
+                'ItemPriceExtension' => [['Amount' => [['_' => $stay['net'], 'currencyID' => self::DEFAULT_CURRENCY]]]],
             ];
         }
 
@@ -260,25 +202,77 @@ class ConsolidatedBatchBuilder
     }
 
     /**
+     * The document's tax: each tax type's total over the stays that carry it, with those stays' charges as its
+     * taxable amount, plus an exempt subtotal for the stays without tax.
+     *
      * @return array<string, mixed>
      */
     private function taxTotalBlock(): array
     {
-        $subtotal = $this->totalAmount();
+        $byType = [];
+        $untaxed = 0.0;
+        $total = 0.0;
+
+        foreach ($this->stays() as $stay) {
+            $total += $stay['tax'];
+            if ($stay['taxes'] === []) {
+                $untaxed += $stay['net'];
+
+                continue;
+            }
+
+            foreach ($stay['taxes'] as $type => $amount) {
+                $byType[$type] ??= ['taxable' => 0.0, 'tax' => 0.0];
+                $byType[$type]['taxable'] += $stay['net'];
+                $byType[$type]['tax'] += $amount;
+            }
+        }
+
+        $subtotals = [];
+        foreach ($byType as $type => $sums) {
+            $subtotals[] = $this->taxSubtotal((string) $type, round($sums['taxable'], 2), round($sums['tax'], 2));
+        }
+        if ($untaxed > 0.0 || $subtotals === []) {
+            $subtotals[] = $this->taxSubtotal('E', round($untaxed, 2), 0.0);
+        }
 
         return [
-            'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxSubtotal' => [
+            'TaxAmount' => [['_' => round($total, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxSubtotal' => $subtotals,
+        ];
+    }
+
+    /**
+     * @param  array<string, float>  $taxes  Tax amount by LHDN tax type.
+     * @return list<array<string, mixed>>
+     */
+    private function taxSubtotals(array $taxes, float $net): array
+    {
+        if ($taxes === []) {
+            return [$this->taxSubtotal('E', $net, 0.0)];
+        }
+
+        $subtotals = [];
+        foreach ($taxes as $type => $amount) {
+            $subtotals[] = $this->taxSubtotal((string) $type, $net, $amount);
+        }
+
+        return $subtotals;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function taxSubtotal(string $type, float $taxable, float $tax): array
+    {
+        return [
+            'TaxableAmount' => [['_' => $taxable, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxAmount' => [['_' => $tax, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxCategory' => [
                 [
-                    'TaxableAmount' => [['_' => $subtotal, 'currencyID' => self::DEFAULT_CURRENCY]],
-                    'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                    'TaxCategory' => [
-                        [
-                            'ID' => [['_' => 'E']],
-                            'TaxExemptionReason' => [['_' => 'Consolidated document']],
-                            'TaxScheme' => [['ID' => [['_' => 'OTH', 'schemeID' => 'UN/ECE 5153', 'schemeAgencyID' => '6']]]],
-                        ],
-                    ],
+                    'ID' => [['_' => $type]],
+                    'TaxExemptionReason' => [['_' => $type === 'E' ? 'No tax charged on these stays' : '']],
+                    'TaxScheme' => [['ID' => [['_' => 'OTH', 'schemeID' => 'UN/ECE 5153', 'schemeAgencyID' => '6']]]],
                 ],
             ],
         ];
@@ -289,16 +283,83 @@ class ConsolidatedBatchBuilder
      */
     private function monetaryTotal(): array
     {
-        $total = $this->totalAmount();
+        $net = 0.0;
+        $gross = 0.0;
+        foreach ($this->stays() as $stay) {
+            $net += $stay['net'];
+            $gross += $stay['net'] + $stay['tax'];
+        }
+        $net = round($net, 2);
+        $gross = round($gross, 2);
 
         return [
-            'LineExtensionAmount' => [['_' => $total, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxExclusiveAmount' => [['_' => $total, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxInclusiveAmount' => [['_' => $total, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'LineExtensionAmount' => [['_' => $net, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxExclusiveAmount' => [['_' => $net, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxInclusiveAmount' => [['_' => $gross, 'currencyID' => self::DEFAULT_CURRENCY]],
             'AllowanceTotalAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
             'ChargeTotalAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
             'PayableRoundingAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'PayableAmount' => [['_' => $total, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'PayableAmount' => [['_' => $gross, 'currencyID' => self::DEFAULT_CURRENCY]],
+        ];
+    }
+
+    /**
+     * The stays that go in the summary (over RM0 and at most RM10,000), each split into charges and taxes.
+     *
+     * @return list<array{folio: Folio, net: float, tax: float, taxes: array<string, float>}>
+     */
+    private function stays(): array
+    {
+        if ($this->stays !== null) {
+            return $this->stays;
+        }
+
+        $taxTypes = new LhdnTaxType;
+        $this->stays = [];
+
+        foreach ($this->folios as $folio) {
+            $gross = self::calculateFolioGrossAmount($folio);
+            if ($gross <= 0.0 || $gross > self::MAX_INDIVIDUAL_STAY_AMOUNT) {
+                continue;
+            }
+
+            $split = self::split($folio, $taxTypes);
+            $this->stays[] = ['folio' => $folio, ...$split];
+        }
+
+        return $this->stays;
+    }
+
+    /**
+     * A stay's charges before tax and its taxes by LHDN tax type, as the summary reports them. Expects `lines.reversal`.
+     *
+     * @return array{net: float, tax: float, taxes: array<string, float>}
+     */
+    public static function split(Folio $folio, ?LhdnTaxType $taxTypes = null): array
+    {
+        $taxTypes ??= new LhdnTaxType;
+        $net = BigDecimal::zero();
+        $tax = BigDecimal::zero();
+        $taxes = [];
+
+        foreach ($folio->lines as $line) {
+            if ($line->kind === TransactionKind::Payment || $line->reversal_of_id !== null || $line->reversal !== null) {
+                continue;
+            }
+
+            if ($line->kind === TransactionKind::Tax) {
+                $type = $taxTypes->for($line);
+                $taxes[$type] = ($taxes[$type] ?? 0.0) + (float) $line->amount;
+                $tax = $tax->plus($line->amount);
+            } else {
+                $net = $net->plus($line->amount);
+            }
+        }
+
+        return [
+            'net' => (float) (string) $net->toScale(2),
+            'tax' => (float) (string) $tax->toScale(2),
+            'taxes' => array_map(fn (float $amount): float => round($amount, 2), $taxes),
         ];
     }
 
@@ -312,19 +373,6 @@ class ConsolidatedBatchBuilder
         foreach ($folio->lines as $line) {
             if ($line->kind !== TransactionKind::Payment && $line->reversal_of_id === null && $line->reversal === null) {
                 $sum = $sum->plus($line->amount);
-            }
-        }
-
-        return (float) (string) $sum->toScale(2);
-    }
-
-    private function totalAmount(): float
-    {
-        $sum = BigDecimal::zero();
-        foreach ($this->folios as $folio) {
-            $amt = self::calculateFolioGrossAmount($folio);
-            if ($amt > 0.0 && $amt <= self::MAX_INDIVIDUAL_STAY_AMOUNT) {
-                $sum = $sum->plus(BigDecimal::of((string) $amt));
             }
         }
 

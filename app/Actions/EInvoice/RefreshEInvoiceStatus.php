@@ -10,6 +10,8 @@ use Carbon\CarbonImmutable;
 
 class RefreshEInvoiceStatus
 {
+    public function __construct(private SaveBuyerToGuest $saveBuyerToGuest) {}
+
     /**
      * Read the document's status from LHDN and record Valid, Invalid or Cancelled. Anything else leaves it unchanged.
      *
@@ -39,6 +41,8 @@ class RefreshEInvoiceStatus
                 : CarbonImmutable::now();
             $submission->raw_response = array_merge($submission->raw_response ?? [], $details);
             $submission->save();
+
+            ($this->saveBuyerToGuest)($submission);
         } elseif ($statusStr === 'invalid') {
             $submission->status = EInvoiceStatus::Invalid;
             $submission->error_details = $details['error'] ?? $details;

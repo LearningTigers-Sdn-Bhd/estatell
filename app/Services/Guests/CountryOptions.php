@@ -85,6 +85,23 @@ class CountryOptions
     }
 
     /**
+     * The ISO 3166-1 alpha-2 code for an alpha-3 code (MYS becomes MY). An alpha-2 code is returned as it is. Null
+     * when the code is empty or unknown.
+     */
+    public function alpha2(?string $code): ?string
+    {
+        $code = strtoupper(trim((string) $code));
+
+        if (strlen($code) === 2) {
+            return array_key_exists($code, $this->alpha3ByAlpha2()) ? $code : null;
+        }
+
+        $alpha2 = array_search($code, $this->alpha3ByAlpha2(), true);
+
+        return $alpha2 === false ? null : $alpha2;
+    }
+
+    /**
      * ICU codeMappings rows are [alpha-2, numeric, alpha-3].
      *
      * @return array<string, string>

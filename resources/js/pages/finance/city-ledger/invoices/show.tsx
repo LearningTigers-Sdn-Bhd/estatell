@@ -110,6 +110,7 @@ type EInvoice = {
         number: string;
         status: { value: string; label: string; tone: App.Enums.Tone };
     } | null;
+    reported_in: { id: number; number: string; summary: boolean } | null;
     can_send: boolean;
 } | null;
 
@@ -171,6 +172,20 @@ export default function InvoiceShow({
                             <StatusBadge status={row.status} />
                             {row.migrated && (
                                 <Badge variant="secondary">Migrated</Badge>
+                            )}
+                            {eInvoice?.reported_in && (
+                                <Link
+                                    href={showEInvoice.url({
+                                        submission: eInvoice.reported_in.id,
+                                    })}
+                                    title="Open the e-invoice"
+                                >
+                                    <Badge variant="secondary">
+                                        {eInvoice.reported_in.summary
+                                            ? `In monthly summary ${eInvoice.reported_in.number}`
+                                            : `E-invoiced as ${eInvoice.reported_in.number}`}
+                                    </Badge>
+                                </Link>
                             )}
                             {eInvoice?.submission && (
                                 <Link

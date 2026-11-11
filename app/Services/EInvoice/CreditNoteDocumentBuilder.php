@@ -3,11 +3,16 @@
 namespace App\Services\EInvoice;
 
 use App\Actions\EInvoice\EInvoiceResult;
+use App\Enums\EInvoiceDocumentType;
 use App\Models\EInvoiceSubmission;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
 use RuntimeException;
 
+/**
+ * Builds a credit note (`02`, the amount is lowered) or a refund note (`04`, money paid back to the buyer) against an
+ * e-invoice LHDN accepted. Both take the original buyer and reference the original UUID.
+ */
 class CreditNoteDocumentBuilder
 {
     public const string INVOICE_TYPE_CODE = '02';
@@ -30,7 +35,8 @@ class CreditNoteDocumentBuilder
         private EInvoiceSubmission $originalSubmission,
         private string $creditNoteNumber,
         private float $amount,
-        private string $reason
+        private string $reason,
+        private EInvoiceDocumentType $type = EInvoiceDocumentType::CreditNote,
     ) {
         $this->property = $originalSubmission->property;
         $this->setting = $this->property->eInvoiceSetting;
@@ -88,11 +94,7 @@ class CreditNoteDocumentBuilder
 
     private function validateRequiredData(): void
     {
-        MissingEInvoiceDetails::hotel(
-            $this->setting?->supplier_tin ?: $this->property->tin,
-            $this->setting?->supplier_email ?: $this->property->contact_email,
-            $this->setting?->supplier_city ?: $this->property->city,
-        );
+        MissingEInvoiceDetails::hotel($this->property);
 
         $buyer = $this->resolveBuyer();
         if (empty($buyer['tin'])) {
@@ -119,7 +121,7 @@ class CreditNoteDocumentBuilder
             'ID' => [['_' => $this->creditNoteNumber]],
             'IssueDate' => [['_' => $issuedAt->toDateString()]],
             'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
-            'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $this->documentSigner->documentVersion()]],
+            'InvoiceTypeCode' => [['_' => $this->type->value, 'listVersionID' => $this->documentSigner->documentVersion()]],
             'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'BillingReference' => [
@@ -215,54 +217,7 @@ class CreditNoteDocumentBuilder
      */
     private function supplierParty(): array
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
-        $brn = $this->property->registration_number ?: 'NA';
-        $name = $this->setting?->supplier_name ?: $this->property->legal_name ?: $this->property->name;
-        $msic = $this->setting?->supplier_msic_code ?: $this->property->msic_code ?: '55101';
-        $desc = $this->setting?->supplier_business_description ?: $this->property->business_description ?: 'Hotel and accommodation services';
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
-        $phone = PhoneFormatter::format($this->setting?->supplier_phone ?: $this->property->contact_phone);
-
-        $addressLine1 = $this->setting?->supplier_address_line1 ?: $this->property->address_line1 ?: 'NA';
-        $addressLine2 = $this->setting?->supplier_address_line2 ?: $this->property->address_line2 ?: '';
-        $city = $this->setting?->supplier_city ?: $this->property->city;
-        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '00000';
-        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '14';
-
-        $partyIdentifications = [
-            ['ID' => [['_' => $tin, 'schemeID' => 'TIN']]],
-            ['ID' => [['_' => preg_replace('/[^A-Za-z0-9]/', '', $brn) ?: 'NA', 'schemeID' => 'BRN']]],
-        ];
-
-        $sst = $this->setting?->supplier_sst_registration;
-        if (! empty($sst)) {
-            $partyIdentifications[] = ['ID' => [['_' => $sst, 'schemeID' => 'SST']]];
-        }
-
-        return [
-            'IndustryClassificationCode' => [['_' => $msic, 'name' => $desc]],
-            'PartyIdentification' => $partyIdentifications,
-            'PostalAddress' => [
-                [
-                    'CityName' => [['_' => $city]],
-                    'PostalZone' => [['_' => $postalCode]],
-                    'CountrySubentityCode' => [['_' => $stateCode]],
-                    'AddressLine' => [
-                        ['Line' => [['_' => $addressLine1]]],
-                        ['Line' => [['_' => $addressLine2]]],
-                        ['Line' => [['_' => '']]],
-                    ],
-                    'Country' => [['IdentificationCode' => [['_' => 'MYS']]]],
-                ],
-            ],
-            'PartyLegalEntity' => [['RegistrationName' => [['_' => $name]]]],
-            'Contact' => [
-                [
-                    'Telephone' => [['_' => $phone]],
-                    'ElectronicMail' => [['_' => $email]],
-                ],
-            ],
-        ];
+        return app(SupplierDetails::class)->party($this->property);
     }
 
     /**

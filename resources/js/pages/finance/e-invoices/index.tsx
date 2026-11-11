@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CircleAlert, FileCheck, Layers } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { consolidate, index, show } from '@/routes/finance/e-invoices';
+import { folio as folioTab } from '@/routes/reservations';
 
 type Row = {
     id: number;
@@ -47,6 +48,14 @@ type Props = {
     types: EnumOption[];
     statuses: EnumOption[];
     rejected: number;
+    needOwnEInvoice: {
+        folio_id: number;
+        reservation_id: number | null;
+        reference: string | null;
+        guest: string | null;
+        amount: string;
+        closed_on: string | null;
+    }[];
     canRunSummary: boolean;
     currency: App.Data.Property.CurrencyData | null;
 };
@@ -117,6 +126,7 @@ export default function EInvoicesIndex({
     types,
     statuses,
     rejected,
+    needOwnEInvoice,
     canRunSummary,
     currency,
 }: Props) {
@@ -236,6 +246,60 @@ export default function EInvoicesIndex({
                                 Show rejected
                             </Button>
                         </AlertAction>
+                    </Alert>
+                )}
+
+                {needOwnEInvoice.length > 0 && (
+                    <Alert variant="destructive">
+                        <CircleAlert />
+                        <AlertTitle>
+                            {needOwnEInvoice.length === 1
+                                ? '1 stay over RM10,000 needs its own e-invoice'
+                                : `${needOwnEInvoice.length} stays over RM10,000 need their own e-invoice`}
+                        </AlertTitle>
+                        <AlertDescription className="flex flex-col gap-2">
+                            <p>
+                                LHDN does not allow a sale over RM10,000 in the
+                                monthly summary. Issue each one with the guest's
+                                own tax number.
+                            </p>
+                            <ul className="flex flex-col gap-1">
+                                {needOwnEInvoice.map((stay) => (
+                                    <li key={stay.folio_id}>
+                                        {stay.reservation_id !== null ? (
+                                            <Link
+                                                href={folioTab.url(
+                                                    {
+                                                        reservation:
+                                                            stay.reservation_id,
+                                                    },
+                                                    {
+                                                        query: {
+                                                            folio: String(
+                                                                stay.folio_id,
+                                                            ),
+                                                            e_invoice: 'fix',
+                                                        },
+                                                    },
+                                                )}
+                                                className="font-medium underline underline-offset-2"
+                                            >
+                                                {stay.reference ?? 'Stay'}
+                                            </Link>
+                                        ) : (
+                                            <span className="font-medium">
+                                                Stay
+                                            </span>
+                                        )}
+                                        {stay.guest && ` · ${stay.guest}`} ·{' '}
+                                        <MoneyText
+                                            amount={stay.amount}
+                                            currency={currency}
+                                        />
+                                    </li>
+                                ))}
+                            </ul>
+                        </AlertDescription>
                     </Alert>
                 )}
 

@@ -38,6 +38,10 @@ class EInvoiceResult
 
     public const string REFUSAL_BILLED_TO_CITY_LEDGER = 'billed_to_city_ledger';
 
+    public const string REFUSAL_NOTHING_TO_REPORT = 'nothing_to_report';
+
+    public const string REFUSAL_ALREADY_REPORTED = 'already_reported';
+
     private function __construct(
         public readonly bool $ok,
         public readonly ?EInvoiceSubmission $submission = null,

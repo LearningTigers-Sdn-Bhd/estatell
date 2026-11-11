@@ -13,6 +13,18 @@ use InvalidArgumentException;
 class SaveEInvoiceSettings
 {
     /**
+     * The hotel details sent to LHDN as the supplier (`SupplierDetails`).
+     *
+     * @var list<string>
+     */
+    public const array SUPPLIER_FIELDS = [
+        'supplier_name', 'supplier_tin', 'supplier_brn', 'supplier_sst_registration', 'supplier_ttx_registration',
+        'supplier_msic_code', 'supplier_business_description', 'supplier_email', 'supplier_phone',
+        'supplier_address_line1', 'supplier_address_line2', 'supplier_city', 'supplier_postal_code',
+        'supplier_state_code',
+    ];
+
+    /**
      * @param  array{
      *     enabled?: bool,
      *     api_environment?: string|EInvoiceEnvironment,
@@ -24,6 +36,7 @@ class SaveEInvoiceSettings
      *     signing_passphrase?: ?string,
      *     supplier_name?: ?string,
      *     supplier_tin?: ?string,
+     *     supplier_brn?: ?string,
      *     supplier_sst_registration?: ?string,
      *     supplier_ttx_registration?: ?string,
      *     supplier_msic_code?: ?string,
@@ -84,12 +97,7 @@ class SaveEInvoiceSettings
                 $setting->signing_passphrase = $attributes['signing_passphrase'];
             }
 
-            foreach ([
-                'supplier_name', 'supplier_tin', 'supplier_sst_registration', 'supplier_ttx_registration',
-                'supplier_msic_code', 'supplier_business_description', 'supplier_email', 'supplier_phone',
-                'supplier_address_line1', 'supplier_address_line2', 'supplier_city', 'supplier_postal_code',
-                'supplier_state_code',
-            ] as $field) {
+            foreach (self::SUPPLIER_FIELDS as $field) {
                 if (array_key_exists($field, $attributes)) {
                     $setting->{$field} = $attributes[$field];
                 }

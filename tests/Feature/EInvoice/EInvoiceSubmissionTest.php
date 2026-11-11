@@ -635,7 +635,7 @@ it('shows a hotel manager the e-invoice in plain terms, without the LHDN payload
             ->etc());
 });
 
-it('masks the buyer ID and explains an LHDN rejection with a fix', function () {
+it('shows the full buyer ID to staff who may see ID documents and explains an LHDN rejection with a fix', function () {
     $setup = submissionSetup();
     $submission = EInvoiceSubmission::factory()->for($setup['property'])->create([
         'folio_id' => $setup['folio']->id,
@@ -657,7 +657,7 @@ it('masks the buyer ID and explains an LHDN rejection with a fix', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('submission.buyer.id_label', 'IC (MyKad)')
-            ->where('submission.buyer.id_number', '•••• 5555')
+            ->where('submission.buyer.id_number', '900101125555')
             ->where('submission.reasons', [
                 ['message' => "The guest's IC number does not match their tax number at LHDN.", 'fix' => 'Check the IC and tax number with the guest, then submit again.', 'where' => 'buyer'],
                 ['message' => 'Something new', 'fix' => 'Check the buyer details, then submit again.', 'where' => 'buyer'],
@@ -922,7 +922,7 @@ it('names the missing hotel details and where to add them', function () {
 
     $result = app(SubmitFolioEInvoice::class)($setup['folio']->fresh(), $setup['owner']);
 
-    expect($result->message)->toBe("Your hotel's email and city are missing. Add them in E-invoice settings, then send again.");
+    expect($result->message)->toBe("The hotel's e-invoice details are not complete: enter an email for e-invoice matters. Complete them in E-invoice settings, then send again.");
 });
 
 it('refuses a credit note larger than what is left on the e-invoice', function () {
@@ -958,4 +958,124 @@ it('offers Send e-invoice on a City ledger invoice and says what the company rec
 
     $this->post("/p/{$setup['property']->code}/finance/city-ledger/invoices/{$invoice->id}/e-invoice")
         ->assertInertiaFlash('toast.message', "Add the company's tax number (TIN) on the company record, then send again.");
+});
+
+it('issues a refund note when money was paid back, and counts it against the e-invoice', function () {
+    $setup = submissionSetup();
+    $original = submitSetupFolio($setup);
+    $url = "/p/{$setup['property']->code}/finance/e-invoices/{$original->id}/credit-note";
+
+    $this->actingAs($setup['owner'])
+        ->post($url, ['kind' => 'refund_note', 'credit_note_number' => 'RN-1', 'amount' => '300.00', 'reason' => 'Early departure refund'])
+        ->assertInertiaFlash('toast.message', 'LHDN accepted refund note RN-1.');
+
+    $note = EInvoiceSubmission::query()->where('internal_id', 'RN-1')->sole();
+    expect($note->document_type)->toBe(EInvoiceDocumentType::RefundNote)
+        ->and(data_get($note->document_payload, 'Invoice.0.InvoiceTypeCode.0._'))->toBe('04');
+
+    $this->post($url, ['kind' => 'credit_note', 'credit_note_number' => 'CN-1', 'amount' => '60.00', 'reason' => 'Fee waived'])
+        ->assertInertiaFlash('toast.message', 'A credit note can take off at most 50.00, what is left on this e-invoice.');
+});
+
+it('saves the accepted tax number and IC to the guest profile when staff ask, and not a rejected one', function (string $lhdnStatus, bool $saved) {
+    $setup = submissionSetup();
+    MockMyInvoisClient::$documentDetailsOverride = fn (string $uuid): array => ['uuid' => $uuid, 'status' => $lhdnStatus];
+    $guest = $setup['folio']->payerGuest;
+
+    $this->actingAs($setup['owner'])->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice", [
+        'save_to_guest' => true,
+        'buyer_snapshot' => ['name' => 'Ahmad Razak', 'tin' => 'IG55555555550', 'id_type' => 'NRIC', 'id_value' => '850505-12-5050', 'city' => 'Kota Kinabalu', 'country_code' => 'MY', 'state_code' => '12'],
+    ]);
+
+    expect($guest->fresh()->tin)->toBe($saved ? 'IG55555555550' : 'IG1234567890')
+        ->and($guest->documents()->where('type', IdentityDocumentType::MyKad)->sole()->number)->toBe($saved ? '850505125050' : '900101125555')
+        ->and(EInvoiceSubmission::query()->sole()->save_buyer_to_guest)->toBe(! $saved);
+})->with([
+    'accepted' => ['Valid', true],
+    'rejected' => ['Invalid', false],
+]);
+
+it('sends the country picked by its two-letter code to LHDN as the three-letter one', function () {
+    $setup = submissionSetup();
+    GuestIdentityDocument::factory()->passport()->for($setup['folio']->payerGuest)->create(['number' => 'E1234567A']);
+
+    $this->actingAs($setup['owner'])->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice", [
+        'buyer_snapshot' => ['name' => 'Tan Wei', 'tin' => '', 'id_type' => 'PASSPORT', 'id_value' => 'E1234567A', 'city' => 'Singapore', 'country_code' => 'SG', 'state_code' => '17'],
+    ])->assertInertiaFlash('toast.type', 'success');
+
+    $buyer = EInvoiceSubmission::query()->sole()->document_payload['Invoice'][0]['AccountingCustomerParty'][0]['Party'][0];
+    expect($buyer['PostalAddress'][0]['Country'][0]['IdentificationCode'][0]['_'])->toBe('SGP');
+});
+
+it('marks a stay over RM10,000 as needing its own e-invoice everywhere staff look', function () {
+    $setup = submissionSetup();
+    FolioLine::factory()->for($setup['folio'])->create(['transaction_code_id' => TransactionCode::factory()->create(['property_id' => $setup['property']->id])->id, 'kind' => TransactionKind::Charge, 'amount' => '9800.00', 'unit_amount' => '9800.00', 'description' => 'Villa']);
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['owner'])
+        ->get(route('reservations.folio', ['property' => $code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('folio.eInvoiceRequired', true)->etc());
+
+    $this->get("/p/{$code}/finance/e-invoices")
+        ->assertInertia(fn (Assert $page) => $page->where('needOwnEInvoice.0.folio_id', $setup['folio']->id)->where('needOwnEInvoice.0.amount', '10150.00')->etc());
+
+    $this->post("/p/{$code}/finance/e-invoices/consolidate", ['month' => now('Asia/Kuala_Lumpur')->format('Y-m')])
+        ->assertInertiaFlash('toast.description', '1 stay over RM10,000 was left out. It needs its own e-invoice.');
+
+    $setup['folio']->payerGuest->update(['tin' => null]);
+    expect(app(SubmitFolioEInvoice::class)($setup['folio']->fresh(), $setup['owner'])->message)
+        ->toBe("This stay is over RM10,000, so LHDN needs its own e-invoice with the guest's own tax number. Enter the IC and press Check with LHDN to find it.");
+});
+
+it('treats a rejection that was sent again as done, on the page and in the rejected count', function () {
+    $setup = submissionSetup();
+    $rejected = EInvoiceSubmission::factory()->for($setup['property'])->create(['folio_id' => $setup['folio']->id, 'status' => EInvoiceStatus::Invalid]);
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['owner'])->get("/p/{$code}/finance/e-invoices")->assertInertia(fn (Assert $page) => $page->where('rejected', 1)->etc());
+
+    submitSetupFolio($setup);
+    $resent = EInvoiceSubmission::query()->where('folio_id', $setup['folio']->id)->whereKeyNot($rejected->id)->sole();
+
+    $this->get("/p/{$code}/finance/e-invoices")->assertInertia(fn (Assert $page) => $page->where('rejected', 0)->etc());
+    $this->get("/p/{$code}/finance/e-invoices/{$rejected->id}")->assertInertia(fn (Assert $page) => $page
+        ->where('submission.replaced_by.id', $resent->id)
+        ->where('submission.can_resubmit', false)
+        ->where('submission.can_find_tax_number', false)
+        ->etc());
+});
+
+it('says a foreign guest has no tax number instead of showing the LHDN placeholder', function () {
+    $setup = submissionSetup();
+    $submission = EInvoiceSubmission::factory()->for($setup['property'])->create(['folio_id' => $setup['folio']->id, 'buyer_snapshot' => ['name' => 'Tan Wei', 'tin' => 'EI00000000020', 'id_type' => 'PASSPORT', 'id_value' => 'E1234567A']]);
+
+    $this->actingAs($setup['owner'])->get("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('submission.buyer.tax_number', 'None (foreign guest)')->etc());
+});
+
+it('offers no e-invoice for a folio whose charges were all reversed', function () {
+    $setup = submissionSetup();
+    $line = $setup['folio']->lines()->sole();
+    FolioLine::factory()->for($setup['folio'])->create(['transaction_code_id' => $line->transaction_code_id, 'kind' => TransactionKind::Charge, 'amount' => '-350.00', 'unit_amount' => '-350.00', 'reversal_of_id' => $line->id, 'description' => 'Reversal']);
+
+    $this->actingAs($setup['owner'])
+        ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('folio.canSubmitEInvoice', false)->etc());
+
+    expect(app(SubmitFolioEInvoice::class)($setup['folio']->fresh(), $setup['owner'])->refusal)->toBe('nothing_to_report');
+});
+
+it('does not send a City ledger invoice whose stay is already in a monthly summary', function () {
+    $setup = submissionSetup();
+    $summary = EInvoiceSubmission::factory()->for($setup['property'])->create(['internal_id' => 'CONS-9', 'is_consolidated' => true, 'scenario' => EInvoiceScenario::Consolidation, 'status' => EInvoiceStatus::Valid]);
+    $summary->folios()->attach($setup['folio']->id);
+    $company = Company::factory()->for($setup['property'])->create();
+    $invoice = ArInvoice::factory()->for($setup['property'])->create(['company_id' => $company->id, 'folio_id' => $setup['folio']->id]);
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['owner'])->get("/p/{$code}/finance/city-ledger/invoices/{$invoice->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('eInvoice.can_send', false)->where('eInvoice.reported_in.number', 'CONS-9')->etc());
+
+    $this->post("/p/{$code}/finance/city-ledger/invoices/{$invoice->id}/e-invoice")
+        ->assertInertiaFlash('toast.message', 'This stay is already in monthly summary CONS-9, so LHDN has it. If the company needs its own e-invoice, cancel the summary within 72 hours and send both again.');
 });

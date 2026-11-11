@@ -41,6 +41,7 @@ class GuestRequest extends FormRequest
     {
         return [
             ...GuestProfileRules::for($this->phoneRegion()),
+            'tin' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
             'tags' => ['nullable', 'array', 'max:20'],
             'tags.*' => ['required', 'string', 'max:50'],
             'identity_document_id' => ['nullable', 'integer', Rule::exists('guest_identity_documents', 'id')->where('guest_id', $this->identityGuestId())],
@@ -57,6 +58,7 @@ class GuestRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'tin.regex' => 'Use letters and digits only, such as IG12345678900.',
             'identity_number.required_with' => 'The ID number can\'t be left blank. To remove this ID, use the bin icon.',
         ];
     }
@@ -68,7 +70,15 @@ class GuestRequest extends FormRequest
      */
     public function profileAttributes(): array
     {
-        return GuestProfileRules::attributes($this->safe()->except(['tags', 'identity_document_id', 'identity_number', 'identity_type', 'identity_country_code', 'identity_photo']), $this->phoneRegion());
+        $validated = $this->safe()->except(['tags', 'identity_document_id', 'identity_number', 'identity_type', 'identity_country_code', 'identity_photo']);
+        $attributes = GuestProfileRules::attributes($validated, $this->phoneRegion());
+
+        // The tax number is only on the guest form, not the booking forms that share the profile rules.
+        if (array_key_exists('tin', $validated)) {
+            $attributes['tin'] = filled($validated['tin']) ? strtoupper((string) $validated['tin']) : null;
+        }
+
+        return $attributes;
     }
 
     /**

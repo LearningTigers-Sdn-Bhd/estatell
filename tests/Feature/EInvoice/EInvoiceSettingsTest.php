@@ -5,7 +5,9 @@ use App\Features\EInvoicing;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
 use App\Models\PropertySetting;
+use App\Models\Tax;
 use App\Models\User;
+use App\Services\EInvoice\SupplierDetails;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 
@@ -55,6 +57,7 @@ it('saves e-invoice settings and encrypts sensitive credentials', function () {
         'signature_enabled' => false,
         'supplier_name' => 'Seaside Resort Sdn Bhd',
         'supplier_tin' => 'C1234567890',
+        'supplier_brn' => '202001012345',
         'supplier_sst_registration' => 'W10-1808-12345678',
         'supplier_msic_code' => '55101',
         'supplier_business_description' => 'Hotels and resort hotels',
@@ -117,7 +120,7 @@ it('ignores digital signing fields because signing is not LHDN-compliant yet', f
     $this->actingAs($owner)
         ->from("/p/{$property->code}/settings/e-invoice")
         ->put("/p/{$property->code}/settings/e-invoice", [
-            'enabled' => true,
+            'enabled' => false,
             'api_environment' => EInvoiceEnvironment::Sandbox->value,
             'signature_enabled' => true,
             'signing_certificate' => '-----BEGIN CERTIFICATE-----abc-----END CERTIFICATE-----',
@@ -188,4 +191,51 @@ it('switches to production environment when confirmation is checked', function (
         ->assertSessionHasNoErrors();
 
     expect($property->eInvoiceSetting()->firstOrFail()->api_environment)->toBe(EInvoiceEnvironment::Production);
+});
+
+it('will not switch e-invoicing on until the hotel details LHDN needs are complete', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    Feature::for($property)->activate(EInvoicing::class);
+    $property->forceFill(['state_code' => 'Sabah', 'registration_number' => '201901012345 (123456-A)', 'postal_code' => null])->save();
+    Tax::factory()->for($property)->create(['code' => 'SST', 'enabled' => true]);
+
+    $this->actingAs($owner)
+        ->put("/p/{$property->code}/settings/e-invoice", [
+            'enabled' => true,
+            'api_environment' => EInvoiceEnvironment::Sandbox->value,
+            'supplier_name' => 'Seaside Resort Sdn Bhd',
+            'supplier_tin' => 'C1234567890',
+            'supplier_msic_code' => '55101',
+            'supplier_email' => 'finance@seasideresort.com',
+            'supplier_phone' => '+60123456789',
+            'supplier_address_line1' => '123 Beach Road',
+            'supplier_city' => 'Kota Kinabalu',
+        ])
+        ->assertSessionHasErrors([
+            'supplier_postal_code' => 'Enter the 5-digit postcode.',
+            'supplier_sst_registration' => 'The hotel charges SST, so enter its SST registration number.',
+            'enabled' => 'Complete the hotel details below before switching e-invoicing on.',
+        ])
+        ->assertSessionDoesntHaveErrors(['supplier_brn', 'supplier_state_code']);
+
+    expect($property->fresh()->eInvoiceSetting?->enabled)->not->toBeTrue();
+
+    $details = app(SupplierDetails::class)->for($property->fresh());
+    expect($details['brn'])->toBe('201901012345')
+        ->and($details['state_code'])->toBe('12');
+});
+
+it('warns when e-invoicing is already on with hotel details missing', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    Feature::for($property)->activate(EInvoicing::class);
+    PropertyEInvoiceSetting::factory()->for($property)->create(['supplier_postal_code' => null, 'supplier_brn' => null]);
+    $property->forceFill(['postal_code' => null, 'registration_number' => null])->save();
+
+    $this->actingAs($owner)->get("/p/{$property->code}/settings/e-invoice")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('problems.supplier_postal_code', 'Enter the 5-digit postcode.')
+            ->where('problems.supplier_brn', 'Enter the company registration number (SSM).')
+            ->etc());
 });

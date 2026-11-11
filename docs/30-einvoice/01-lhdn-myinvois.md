@@ -9,8 +9,8 @@ Automate statutory e-invoicing compliance with the Inland Revenue Board of Malay
 | Now                                                                        | Later                                                  |
 | -------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Submission of closed reservation folios (`01` Invoice)                     | Self-billed e-invoices (`11`) for OTA commissions      |
-| Submission of City Ledger AR invoices (`01` Invoice)                       | Debit Notes (`03`) and Refund Notes (`04`)             |
-| Credit Notes (`02`) referencing original validated submission UUID         | Webhook receiver for real-time buyer rejections        |
+| Submission of City Ledger AR invoices (`01` Invoice)                       | Debit Notes (`03`)                                     |
+| Credit (`02`) and Refund Notes (`04`) referencing the original UUID        | Webhook receiver for real-time buyer rejections        |
 | Monthly B2C consolidation batching with General Public TIN `EI00000000010` | Automated XML/UBL export download button               |
 | 72-hour cancellation window enforcement on LHDN                            |                                                        |
 | Unsigned v1.0 documents (SHA-256 document hash)                            | Digital signing (v1.1), once `DocumentSigner` is fixed |
@@ -80,7 +80,25 @@ Signing is hidden, the same as in WAStays. `DocumentSigner` does not yet build t
 > [!IMPORTANT]
 > LHDN strictly forbids submitting non-consolidated individual invoices using `EI00000000010`. Doing so returns validation error `ERR228`. Individual hotel guests must be identified by NRIC, Passport, or personal TIN.
 
+## Hotel details
+
+`SupplierDetails` resolves the hotel (the supplier on every document) once for all four builders: each detail from E-invoice settings, else from the property. Nothing is made up. `missing()` lists what is empty or malformed, and:
+
+- **Switching e-invoicing on** is refused until it is empty (errors on each settings field).
+- **Every send** checks it again (`MissingEInvoiceDetails::hotel`), so clearing a detail later stops sending instead of filling in a placeholder.
+- **The settings page** shows "E-invoices cannot go out until these are fixed" when e-invoicing is already on with gaps.
+
+Required: registered name; tax number (letters then digits); company registration number (`supplier_brn`, 12 digits, read out of forms such as `201901012345 (123456-A)`); 5-digit MSIC code; email; phone; street address; city; 5-digit postcode; state (the property's state may be a name such as "Sabah"; `MalaysiaStates::codeFor` turns it into LHDN's code). A hotel with an enabled SST tax must give its SST registration number, and one with tourism tax (`TTX`) its tourism tax registration number; both are sent as supplier identifications (verified on preprod, 11 Nov 2026). The business description defaults to "Hotel and accommodation services".
+
+## Tax
+
+Each tax line's LHDN type comes from the tax catalogue (`LhdnTaxType`): `SST` is Service Tax `02`, `TTX` Tourism Tax `03`, any other levy (for example a council heritage fee) `06` Not applicable. A stay e-invoice reports each line's taxes; the monthly summary reports each stay's charges before tax with its taxes by type, an exempt (`E`) subtotal for stays without tax, and document totals by type (verified on preprod, 11 Nov 2026). Summaries sent before this fix reported SST inside the stay amount as exempt.
+
+The summary page lists its stays (reservation, guest, folio, closed date, before tax, tax, total) with a totals row, read from the document LHDN received, so managers can check each stay against its folio.
+
 ## Cancellation & Credit Note Rules
+
+- **Refund note (`04`)**: LHDN requires a refund note for money paid back to the buyer, except an overpayment, a payment made by mistake or a returned security deposit (General FAQ question 54). The **Issue credit or refund note** form asks "Was money paid back to the guest?": No issues a credit note, Yes a refund note. Both reference the original, copy its buyer, and together cannot take off more than the e-invoice's total.
 
 - **72-Hour Cancellation Window**: LHDN allows cancellation strictly within 72 hours from `validated_at`. A cancellation reason is mandatory.
 - **Credit Note (`02`)**: After 72 hours, or if an adjustment is required without cancelling the entire invoice, a Credit Note must be issued referencing the original invoice UUID and code number in `BillingReference`.
@@ -92,10 +110,11 @@ For guests who do not request an individual e-invoice upon check-out:
 
 1. **Window**: Consolidated documents must be submitted within 7 calendar days after month-end.
 2. **Chunking**: LHDN allows a maximum of 100 stays per consolidated document. Stays in excess of 100 are automatically chunked into consecutive batches.
-3. **RM 10,000 Threshold Exemption**: Any stay whose total charges exceed RM 10,000 cannot be consolidated into a batch and must be submitted individually under LHDN regulations. Folios submitted in consolidated batches are recorded in `e_invoice_submission_folios` to prevent double-filing.
-4. **Stay amount**: charges, adjustments and taxes that were not reversed. Payments are left out, because a closed folio always balances to 0.
-5. **Rejected batches**: stays in an Invalid batch are picked up again by the next run. A stay in an active batch cannot get an individual e-invoice until that batch is cancelled.
-6. **Scheduled Automation**: `App\Jobs\MonthlyConsolidationJob` runs automatically on the 1st of every month at 04:00 (Asia/Kuala_Lumpur) for properties with `consolidation_enabled = true`.
+3. **Stays over RM10,000**: since 1 January 2026 LHDN does not allow a sale over RM10,000 in a consolidated e-invoice. Such a stay needs its own e-invoice with the guest's own tax number, because LHDN refuses the general public TIN on an individual e-invoice (`ERR228`, "General TIN (010) is not allowed for NON-consolidated e-invoice", seen in wastays). `StaysNeedingOwnEInvoice` lists closed stays over the limit with no e-invoice (since e-invoicing was set up): the e-invoice list shows them in an alert linking to each folio's Issue e-invoice form, the folio shows a red notice, the summary toast counts the ones left out, and a missing tax number says to find it from the IC with **Check with LHDN**. Folios submitted in consolidated batches are recorded in `e_invoice_submission_folios` to prevent double-filing.
+4. **Company payers**: a company-paid stay that is not billed to the City ledger goes into the general public summary like any guest who did not ask for an e-invoice. If the company asks for one, issue it from the folio before the month's summary.
+5. **Stay amount**: charges, adjustments and taxes that were not reversed. Payments are left out, because a closed folio always balances to 0.
+6. **Rejected batches**: stays in an Invalid batch are picked up again by the next run. A stay in an active batch cannot get an individual e-invoice until that batch is cancelled.
+7. **Scheduled Automation**: `App\Jobs\MonthlyConsolidationJob` runs automatically on the 1st of every month at 04:00 (Asia/Kuala_Lumpur) for properties with `consolidation_enabled = true`.
 
 ## Front Desk Issuance
 
@@ -107,6 +126,10 @@ For guests who do not request an individual e-invoice upon check-out:
 - **The answer is reported as it is.** After sending, the toast says whether LHDN accepted it, is still checking it, or rejected it, with the first reason (`SubmissionToast`). A rejected send is an error, not a success.
 - **LHDN not reachable.** A timeout or dropped connection is recorded as a send that did not reach LHDN ("Submit again in a few minutes"), not a crash.
 - **Credit notes** cannot take off more than what is left on the e-invoice after earlier credit notes.
+- **Nothing to report.** A folio whose charges were all reversed (total RM0) offers no e-invoice.
+- **City ledger stays already with LHDN.** A City ledger invoice whose stay is already in a monthly summary, or has its own e-invoice, shows that instead of **Send e-invoice to LHDN**, and sending is refused (`already_reported`).
+- **Rejections that were fixed.** A rejected document that was sent again (or whose stay went into a monthly summary, or a later credit or refund note on the same e-invoice) shows "Rejected, sent again" with a link to what replaced it, offers no fixes, and is not counted in the list's rejected alert.
+- **Debit notes are not built.** A late extra (minibar, damage) is a new sale on a new folio with its own e-invoice, and an error found within 72 hours is fixed by cancelling and sending again. A debit note is only for an undercharge on the same stay found after 72 hours; building it also needs a rule so the money collected for it is not e-invoiced a second time.
 
 ## Checking a tax number
 
@@ -141,7 +164,7 @@ Finance › E-invoicing › **E-invoices** is written for owners, managers and f
 
 - **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and a preview of the email. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
 - **Credit notes** show the 3 latest, with **Show all**, under "Credited X of Y".
-- **Privacy**: the page never receives the UBL document or LHDN's raw replies, and shows only the last four characters of the buyer's IC, passport or registration number. `SubmissionView` builds what the page gets.
+- **Privacy**: the page never receives the UBL document or LHDN's raw replies, and shows the buyer's full IC, passport or registration number only to staff with `guests.view-documents` (others see the last four characters, as on the guest profile). `SubmissionView` builds what the page gets.
 - **Statuses**: Preparing, Being checked, Valid, Rejected, Cancelled.
 - Times are stored as plain `timestamp` like the rest of the schema, and shown in the property's time zone.
 
