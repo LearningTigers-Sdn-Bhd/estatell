@@ -389,6 +389,76 @@
     },
     {
         "visual": {
+            "type": "phone"
+        },
+        "slug": "self-check-in",
+        "name": "Self Check-in",
+        "metaTitle": "Kiosk-free Hotel Self Check-in from Any Phone",
+        "description": "Guests scan a lobby QR, upload their ID, pay online and receive a smart-lock PIN on their own phone. No kiosk hardware, connected to your Estatell PMS.",
+        "headline": ["Self Check-in.", "Scan. Verify. Open the door."],
+        "answer": "Estatell self check-in lets guests check in on their own phone by scanning a QR code in your lobby. Walk-in and pre-booked guests upload a passport or ID, pay online if unpaid, and receive a smart-lock PIN once confirmed. No kiosk hardware is needed, and everything stays in sync with your PMS.",
+        "featuresTitle": "Why hotels go kiosk-free",
+        "features": [
+            {
+                "title": "No hardware in the lobby",
+                "body": "A QR code is all you need. Lean lobbies and cardless properties can offer 24-hour check-in without a kiosk unit."
+            },
+            {
+                "title": "Walk-in or pre-booked",
+                "body": "Walk-in guests book direct from their phone and pay online. Pre-booked guests enter their booking number."
+            },
+            {
+                "title": "Ends at the smart lock",
+                "body": "After identity is confirmed, the guest receives a smart-lock PIN. No key card, no front desk."
+            },
+            {
+                "title": "Connected to your PMS",
+                "body": "Guest records, payments and room status stay in sync, so your team sees every arrival."
+            }
+        ],
+        "flow": {
+            "title": "Three steps on the guest's phone",
+            "steps": [
+                {
+                    "title": "Scan the lobby QR",
+                    "body": "Walk-in guests book direct. Pre-booked guests enter their booking number."
+                },
+                {
+                    "title": "Verify and pay",
+                    "body": "Upload a passport or ID, and pay online if the booking is unpaid."
+                },
+                {
+                    "title": "Get the PIN",
+                    "body": "A smart-lock PIN is issued after confirmation."
+                }
+            ]
+        },
+        "faqs": [
+            {
+                "q": "What is kiosk-free self check-in?",
+                "a": "Guests check in on their own smartphone by scanning a QR code in the lobby, instead of using a kiosk. They still verify identity and pay before receiving a smart-lock PIN."
+            },
+            {
+                "q": "What does the guest receive?",
+                "a": "A smart-lock PIN, issued after identity is confirmed. There is no physical key card."
+            },
+            {
+                "q": "Can walk-in guests use it?",
+                "a": "Yes. Walk-in guests book direct on their phone, pay online, upload their ID and then receive the PIN."
+            },
+            {
+                "q": "How is it different from the Check-in Kiosk?",
+                "a": "The kiosk is a lobby unit that can also dispense a physical key card. Self check-in needs no hardware and is cardless, using the guest's phone and a smart lock."
+            },
+            {
+                "q": "Does it need smart locks?",
+                "a": "Yes. Every check-in ends with a smart-lock PIN, coupled with your Estatell PMS."
+            }
+        ],
+        "blurb": "Scan the lobby QR, verify ID, get a PIN."
+    },
+    {
+        "visual": {
             "type": "photo",
             "src": "/images/landing/self-checkin-kiosk-v2.webp",
             "alt": "The Estatell self check-in kiosk showing a welcome screen with Scan booking QR, Verify your ID and Collect your key.",

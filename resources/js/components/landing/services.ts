@@ -10,7 +10,8 @@ export type Visual =
     | { type: 'photo'; src: string; alt: string; width: number; height: number }
     | { type: 'pin' }
     | { type: 'chat' }
-    | { type: 'sync' };
+    | { type: 'sync' }
+    | { type: 'phone' };
 
 export type Service = {
     visual: Visual;
