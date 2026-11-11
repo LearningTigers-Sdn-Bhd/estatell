@@ -7,12 +7,15 @@ use App\Enums\FolioStatus;
 use App\Models\ArInvoice;
 use App\Models\Folio;
 use App\Models\User;
+use App\Services\EInvoice\FolioEInvoiceLock;
 use Illuminate\Support\Facades\DB;
 
 class ReopenFolio
 {
+    public function __construct(private FolioEInvoiceLock $eInvoiceLock) {}
+
     /**
-     * Reopen a Closed folio. A Voided folio cannot reopen, and neither can one with an AR invoice that is not Void (`folio_has_ar_invoice`). The invoice number stays on the folio, so closing it again
+     * Reopen a Closed folio. A Voided folio cannot reopen, and neither can one with an AR invoice that is not Void (`folio_has_ar_invoice`) or on an e-invoice LHDN holds (`folio_has_e_invoice`, see `FolioEInvoiceLock`). The invoice number stays on the folio, so closing it again
      * issues no new number. The folio row is locked first and a refusal writes and logs nothing. Permissions are
      * checked by the route. See docs/13-folio/01-folios-and-lines.md.
      */
@@ -27,6 +30,10 @@ class ReopenFolio
 
             if (ArInvoice::query()->where('folio_id', $current->id)->where('status', '<>', ArInvoiceStatus::Void)->exists()) {
                 return FolioStatusResult::refused(FolioStatusResult::REFUSAL_HAS_AR_INVOICE);
+            }
+
+            if ($this->eInvoiceLock->for($current) !== null) {
+                return FolioStatusResult::refused(FolioStatusResult::REFUSAL_HAS_E_INVOICE);
             }
 
             $current->forceFill([

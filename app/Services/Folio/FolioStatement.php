@@ -39,6 +39,7 @@ use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\EInvoice\BuyerResolver;
+use App\Services\EInvoice\FolioEInvoiceLock;
 use App\Services\EInvoice\LhdnRejectionReasons;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -69,6 +70,7 @@ class FolioStatement
         private CheckOutSettlement $checkOutSettlement,
         private OnlineRefundLedger $onlineRefundLedger,
         private LhdnRejectionReasons $lhdnRejectionReasons,
+        private FolioEInvoiceLock $folioEInvoiceLock,
     ) {}
 
     /**
@@ -380,7 +382,7 @@ class FolioStatement
             onlineRefunds: $this->onlineRefunds($folio, $isOpen && ($can['refund'] ?? false), $posted),
             canRefundOtherMethod: $user?->can(PermissionEnum::PaymentRefundOtherMethod->value) ?? false,
             canClose: $isOpen && ($can['close'] ?? false),
-            canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio),
+            canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio) && $this->folioEInvoiceLock->for($folio) === null,
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: array_values($postUnits),

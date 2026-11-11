@@ -2,6 +2,8 @@
 
 use App\Actions\EInvoice\ConsolidateMonthlyEInvoices;
 use App\Actions\EInvoice\SubmitFolioEInvoice;
+use App\Actions\Folio\FolioStatusResult;
+use App\Actions\Folio\ReopenFolio;
 use App\Enums\ArInvoiceType;
 use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceEnvironment;
@@ -769,4 +771,38 @@ it('does not email an e-invoice LHDN has not accepted', function () {
 
     Notification::assertNothingSent();
     expect(Activity::query()->where('event', 'einvoice.emailed')->count())->toBe(0);
+});
+
+it('keeps a folio closed while LHDN holds its e-invoice, and frees it once rejected or cancelled', function (EInvoiceStatus $status, bool $reopens) {
+    $setup = submissionSetup();
+    EInvoiceSubmission::factory()->for($setup['property'])->create(['folio_id' => $setup['folio']->id, 'internal_id' => 'INV-7', 'status' => $status]);
+
+    if (! $reopens) {
+        $this->actingAs($setup['owner'])
+            ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('folio.canReopen', false)
+                ->where('folio.closedNotice', 'On e-invoice INV-7 sent to LHDN, so it cannot reopen. Post a late charge on a new folio. To lower the amount, issue a credit note on the e-invoice.')
+                ->etc());
+    }
+
+    $result = app(ReopenFolio::class)($setup['owner'], $setup['folio']);
+
+    expect($result->refusal)->toBe($reopens ? null : FolioStatusResult::REFUSAL_HAS_E_INVOICE)
+        ->and($setup['folio']->fresh()->status)->toBe($reopens ? FolioStatus::Open : FolioStatus::Closed);
+})->with([
+    'valid' => [EInvoiceStatus::Valid, false],
+    'being checked' => [EInvoiceStatus::Submitted, false],
+    'rejected' => [EInvoiceStatus::Invalid, true],
+    'cancelled' => [EInvoiceStatus::Cancelled, true],
+]);
+
+it('keeps a folio in a monthly summary closed', function () {
+    $setup = submissionSetup();
+    $summary = EInvoiceSubmission::factory()->for($setup['property'])->create(['is_consolidated' => true, 'scenario' => EInvoiceScenario::Consolidation, 'status' => EInvoiceStatus::Valid]);
+    $summary->folios()->attach($setup['folio']->id);
+
+    $result = app(ReopenFolio::class)($setup['owner'], $setup['folio']);
+
+    expect($result->refusal)->toBe(FolioStatusResult::REFUSAL_HAS_E_INVOICE);
 });

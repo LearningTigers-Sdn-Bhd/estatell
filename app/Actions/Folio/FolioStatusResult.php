@@ -18,6 +18,8 @@ class FolioStatusResult
 
     public const REFUSAL_HAS_AR_INVOICE = 'folio_has_ar_invoice';
 
+    public const REFUSAL_HAS_E_INVOICE = 'folio_has_e_invoice';
+
     public const REFUSAL_UNITS_IN_HOUSE = 'units_in_house';
 
     public const REFUSAL_RECEIVES_SCHEDULED_CHARGES = 'folio_receives_scheduled_charges';
