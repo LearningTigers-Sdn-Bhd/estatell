@@ -4130,6 +4130,7 @@ guestId: number | null,
 profile: Record<string, any>,
 updateProfile: boolean,
 unitIndex: number | null,
+identity: App.Data.Guests.IdentityDocumentInputData | null,
 };
 export type NewReservationData = {
 bookerGuestId: number,

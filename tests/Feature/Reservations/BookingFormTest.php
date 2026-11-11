@@ -389,6 +389,42 @@ test('a booking creates a guest, updates another and attaches both to their unit
         ->and($units[1]->guests()->where('is_primary', true)->sole()->guest_id)->toBe($created->id);
 });
 
+test('a new guest can get an ID on the booking, saved as its first ID document', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertInertia(fn (Assert $page) => $page->where('canAddIdentity', true)->has('identityDocumentTypes', 3));
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
+        'guests' => [['full_name' => 'Nur Aina', 'nationality_code' => 'MY', 'identity_type' => 'mykad', 'identity_number' => '900101-14-5678', 'stays_in' => 0]],
+    ]))->assertSessionHasNoErrors();
+
+    $document = Guest::query()->where('full_name', 'Nur Aina')->sole()->documents()->sole();
+    expect($document->type->value)->toBe('mykad')->and($document->number)->toBe('900101145678');
+});
+
+test('a booking ID is refused when it is not valid or the user may not see documents, and ignored for a linked guest', function () {
+    $setup = bookingSetup();
+    $tab = ['full_name' => 'Nur Aina', 'nationality_code' => 'MY', 'identity_type' => 'mykad', 'stays_in' => 0];
+
+    $this->actingAs($setup['user'])->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [[...$tab, 'identity_number' => '12345']]]))
+        ->assertSessionHasErrors(['guests.0.identity_number' => 'A MyKad number has 12 digits.']);
+
+    $user = User::factory()->create(['property_id' => $setup['property']->id]);
+    actionsRoleWith($user, ['reservations.view', 'reservations.manage', 'guests.view', 'guests.manage']);
+    $this->actingAs($user)->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [[...$tab, 'identity_number' => '900101145678']]]))
+        ->assertSessionHasErrors(['guests.0.identity_number' => 'You may not add an ID.']);
+    $this->get(bookingFormUrl($setup, 'reservations.new'))->assertInertia(fn (Assert $page) => $page->where('canAddIdentity', false));
+
+    expect(Reservation::query()->count())->toBe(0);
+
+    $this->actingAs($setup['user'])->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
+        'guests' => [['guest_id' => $setup['guest']->id, 'update_profile' => true, 'full_name' => 'Tan Wei Ming', 'identity_type' => 'mykad', 'identity_number' => '900101145678', 'stays_in' => 0]],
+    ]))->assertSessionHasNoErrors();
+
+    expect($setup['guest']->documents()->count())->toBe(0);
+});
+
 test('a linked guest keeps its profile unless the update is on', function () {
     $setup = bookingSetup();
 

@@ -4,15 +4,12 @@ import { useEffect, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import {
-    ID_GROUP,
-    ID_TYPE_SELECT,
-} from '@/components/pms/guest-identity-fields';
-import {
     EMPTY_GUEST_DETAILS,
     GuestDetailsFields,
 } from '@/components/pms/guests/guest-details-fields';
 import type { GuestDetails } from '@/components/pms/guests/guest-details-fields';
 import { PhoneInput } from '@/components/pms/phone-input';
+import { PortalIdField } from '@/components/pms/portal/portal-id-field';
 import type { GuestRow } from '@/components/pms/portal/booking-guest-rows';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +19,6 @@ import {
 } from '@/components/ui/collapsible';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput,
-} from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { update } from '@/routes/portal/bookings/guests';
@@ -210,44 +202,20 @@ function DetailFields({
                     />
                     <FieldError>{errors.email}</FieldError>
                 </Field>
-                <Field data-invalid={!!idError}>
-                    <FieldLabel htmlFor={`${idPrefix}-id-number`}>
-                        IC / Passport number
-                    </FieldLabel>
-                    <InputGroup className={ID_GROUP}>
-                        <InputGroupAddon className="border-r p-0">
-                            <EnumSelect
-                                id={`${idPrefix}-id-type`}
-                                name="id_type"
-                                aria-label="Identity document type"
-                                options={options.idTypes}
-                                allLabel="No ID"
-                                value={values.id_type}
-                                onValueChange={(value) =>
-                                    onChange({ id_type: value })
-                                }
-                                className={ID_TYPE_SELECT}
-                            />
-                        </InputGroupAddon>
-                        <InputGroupInput
-                            id={`${idPrefix}-id-number`}
-                            name="id_number"
-                            placeholder={
-                                hasIdOnFile
-                                    ? 'On file. Type a new number to replace it'
-                                    : 'e.g. 900101-14-1234'
-                            }
-                            maxLength={40}
-                            autoComplete="off"
-                            value={values.id_number}
-                            onChange={(event) =>
-                                onChange({ id_number: event.target.value })
-                            }
-                            aria-invalid={!!idError}
-                        />
-                    </InputGroup>
-                    <FieldError>{idError}</FieldError>
-                </Field>
+                <PortalIdField
+                    idPrefix={idPrefix}
+                    idType={values.id_type}
+                    idNumber={values.id_number}
+                    idTypes={options.idTypes}
+                    error={idError}
+                    placeholder={
+                        hasIdOnFile
+                            ? 'On file. Type a new number to replace it'
+                            : undefined
+                    }
+                    named
+                    onChange={onChange}
+                />
             </div>
             <GuestDetailsFields
                 columns={2}
