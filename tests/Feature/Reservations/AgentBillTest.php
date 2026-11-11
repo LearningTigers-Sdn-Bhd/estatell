@@ -3,7 +3,9 @@
 use App\Actions\Folio\ReverseLine;
 use App\Actions\NightAudit\PostRoomCharges;
 use App\Enums\BillingMode;
+use App\Enums\ChargingUnit;
 use App\Enums\FolioType;
+use App\Enums\InclusionStart;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
 use App\Enums\TransactionCategory;
@@ -16,6 +18,7 @@ use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
 use App\Models\PropertySetting;
+use App\Models\RatePlanInclusion;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
@@ -74,6 +77,19 @@ test('on Master pays the agent pays the room, and the guest pays the tourism tax
         ->and($bill->agentTotal)->toBe('600.00')
         ->and(agentBillShape($bill->guestLines))->toBe([['Jetty Fee', 2, '20.00'], ['Tourism tax', 2, '20.00']])
         ->and($bill->guestTotal)->toBe('40.00')
+        ->and($bill->total)->toBe('640.00');
+});
+
+test('on Master pays a package inclusion is billed to the agent with the room', function () {
+    $setup = agentBillSetup();
+    $fare = ChargeItem::factory()->create(['property_id' => $setup['unit']->property_id, 'name' => 'Speedboat Fare']);
+    $fare->transactionCode->forceFill(['category' => TransactionCategory::Transport])->save();
+    RatePlanInclusion::factory()->create(['rate_plan_id' => $setup['unit']->rate_plan_id, 'charge_item_id' => $fare->id, 'charging_unit' => ChargingUnit::PerGuest, 'starts_on' => InclusionStart::ArrivalDay, 'allocated_amount' => '15.00']);
+
+    $bill = app(AgentBill::class)->for($setup['reservation']);
+
+    expect(agentBillShape($bill->agentLines))->toBe([['Room', 2, '570.00'], ['Speedboat Fare', 1, '30.00']])
+        ->and(agentBillShape($bill->guestLines))->toBe([['Jetty Fee', 2, '20.00'], ['Tourism tax', 2, '20.00']])
         ->and($bill->total)->toBe('640.00');
 });
 

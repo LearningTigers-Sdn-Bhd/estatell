@@ -57,7 +57,7 @@ class ScheduledFolioRows
      * `guestTax`: they stay with the guest, so Move charges never routes them.
      *
      * @param  array<int, string>  $unitLabels  Short unit label (room, or room type) by unit id.
-     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>, guestTax?: true}>
+     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>, guestTax?: true}>
      */
     public function forReservation(Property $property, Reservation $reservation, array $unitLabels): array
     {
@@ -105,10 +105,11 @@ class ScheduledFolioRows
 
                 foreach ($quote->isRefused() ? [] : $quote->charges as $charge) {
                     $blocks[] = [
-                        'target' => $resolve($unit, $charge->code),
+                        'target' => $resolve($unit, $charge->code, $charge->follows),
                         'unit' => $unit->id,
                         'date' => $unit->dayUse->date->toDateString(),
                         'code' => $charge->code,
+                        'follows' => $charge->follows,
                         'rows' => $this->chargeRows($charge, $unit->dayUse->date->toDateString(), false, $label),
                     ];
                 }
@@ -129,7 +130,7 @@ class ScheduledFolioRows
                 }
 
                 foreach ($quote->charges as $index => $charge) {
-                    $target = $resolve($unit, $charge->code);
+                    $target = $resolve($unit, $charge->code, $charge->follows);
                     $rows = $this->chargeRows($charge, $night->date->toDateString(), $charge->key === 'night:'.$night->id && $night->override_amount !== null, $label);
                     $guestKeys = array_map(fn (int $taxId): string => $charge->key.':tax:'.$taxId, $index === 0 ? $guestTaxIds($unit, $target) : []);
                     $blocks[] = [
@@ -137,6 +138,7 @@ class ScheduledFolioRows
                         'unit' => $unit->id,
                         'date' => $night->date->toDateString(),
                         'code' => $charge->code,
+                        'follows' => $charge->follows,
                         'rows' => array_values(array_filter($rows, fn (FolioRowData $row): bool => ! in_array($row->key, $guestKeys, true))),
                     ];
                     $guestRows = array_values(array_filter($rows, fn (FolioRowData $row): bool => in_array($row->key, $guestKeys, true)));

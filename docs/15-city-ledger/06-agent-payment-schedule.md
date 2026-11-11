@@ -66,7 +66,7 @@ You pay                              Guest pays at the resort
 | A folio a company pays (Master, or a third-party folio) | Agent |
 | The guest's unit folio, another folio, or no folio yet  | Guest |
 
-- **Staff decide with the existing settings.** **Company pays tourism tax** moves the tourism tax to the agent. Billing mode **Master folio pays all** moves add-ons such as the jetty fee to the agent. Under **Master folio pays** they stay with the guest, except on a portal booking: there, the automatic add-ons such as the jetty fee go to the agent, because the agent sold them in the package (decided 6 Nov 2026). Other extras such as food stay with the guest. A routing rule or Move charges moves a charge, and the breakdown follows.
+- **Staff decide with the existing settings.** **Company pays tourism tax** moves the tourism tax to the agent. Billing mode **Master folio pays all** moves add-ons such as the jetty fee to the agent. Under **Master folio pays** they stay with the guest, except on a portal booking: there, the automatic add-ons such as the jetty fee go to the agent, because the agent sold them in the package (decided 6 Nov 2026). Other extras such as food stay with the guest. Package inclusions (a boat fare or meals in the plan) are billed with the room, so the agent pays them under either Master mode ([Inclusions follow their room](../13-folio/03-routing.md#rules), decided 11 Nov 2026). A routing rule or Move charges moves a charge, and the breakdown follows.
 - Room nights make one line. Other charges keep their name, with the quantity. A line and its reversal are left out.
 - The portal's **Total** on the booking is the whole booking from this breakdown, tax included. The bookings list still shows rooms and add-ons before tax.
 
