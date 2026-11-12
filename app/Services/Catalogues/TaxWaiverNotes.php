@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 
 /**
  * The notes a customer document prints for the taxes waived on its units, so a reader (the guest, the accountant)
- * sees why a tax is missing: "Tourism tax paid by Trip.com (ref 1128152109837544)." or "Tourism tax paid by the
+ * sees why a tax is missing: "Tourism tax paid by Trip.com (ref 1128000012345678)." or "Tourism tax paid by the
  * guest (receipt TTX-88231)." Units that share a waiver (the same tax, payer and reference) give one note. It reads
  * only. See docs/06-catalogues/03-taxes.md#tax-waivers.
  */

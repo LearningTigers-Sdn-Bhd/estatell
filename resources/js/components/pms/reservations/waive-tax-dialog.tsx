@@ -164,7 +164,7 @@ function TaxWaiverFields({
                     maxLength={60}
                     placeholder={
                         paidElsewhere
-                            ? 'e.g. 1128152109837544'
+                            ? 'e.g. 1128000012345678'
                             : 'e.g. TTX-88231'
                     }
                     value={data.reference}
