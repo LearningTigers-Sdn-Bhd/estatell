@@ -21,6 +21,7 @@ import {
     VipButton,
 } from '@/components/pms/guests/guest-actions';
 import { PageHeader } from '@/components/pms/page-header';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -300,6 +301,15 @@ export default function GuestShow({
                                 />
                             ) : (
                                 <div className="flex flex-col gap-6">
+                                    <PanelHeading
+                                        icon={FileText}
+                                        title="Details"
+                                        description={
+                                            formOptions
+                                                ? 'Contact, identity, personal details and address. Save changes to keep them.'
+                                                : 'Contact, identity, personal details and address.'
+                                        }
+                                    />
                                     {formOptions ? (
                                         <GuestForm
                                             key={guestFormKey(guest)}
