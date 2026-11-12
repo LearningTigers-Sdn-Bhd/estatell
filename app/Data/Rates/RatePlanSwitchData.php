@@ -37,12 +37,11 @@ class RatePlanSwitchData extends Data
      */
     public static function forProperty(Property $property, RatePlan $current): array
     {
-        return $property->ratePlans()
+        return array_values($property->ratePlans()
             ->where(fn ($query) => $query->whereNull('archived_at')->orWhere('id', $current->id))
             ->ordered()
             ->get()
             ->map(fn (RatePlan $ratePlan): self => self::fromModel($ratePlan))
-            ->values()
-            ->all();
+            ->all());
     }
 }

@@ -31,12 +31,11 @@ class RoomTypeSwitchData extends Data
      */
     public static function forProperty(Property $property, RoomType $current): array
     {
-        return $property->roomTypes()
+        return array_values($property->roomTypes()
             ->where(fn ($query) => $query->whereNull('archived_at')->orWhere('id', $current->id))
             ->ordered()
             ->get()
             ->map(fn (RoomType $roomType): self => self::fromModel($roomType))
-            ->values()
-            ->all();
+            ->all());
     }
 }
