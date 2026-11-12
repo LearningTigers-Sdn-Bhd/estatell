@@ -24,7 +24,7 @@ function guestLayoutPayload(array $order = [], array $hidden = []): array
 
 test('a manager saves the guest list layout and the list follows it', function () {
     [$user, $property] = reportSetup();
-    $order = ['spend', 'email', 'phone', 'nationality', 'tags', 'last_visit', 'stays', 'created_at'];
+    $order = ['spend', 'full_name', 'email', 'phone', 'nationality', 'tags', 'last_visit', 'stays', 'created_at'];
 
     $this->actingAs($user)
         ->put("/p/{$property->code}/reports/guests/layout", guestLayoutPayload($order, ['tags']))
@@ -36,7 +36,8 @@ test('a manager saves the guest list layout and the list follows it', function (
         ->assertInertia(fn (Assert $page) => $page
             ->where('canEditLayout', true)
             ->where('layout.columns.0.key', 'spend')
-            ->where('layout.columns.4.visible', false));
+            ->where('layout.columns.1.key', 'full_name')
+            ->where('layout.columns.5.visible', false));
 });
 
 test('a sort on a hidden column falls back to name', function () {

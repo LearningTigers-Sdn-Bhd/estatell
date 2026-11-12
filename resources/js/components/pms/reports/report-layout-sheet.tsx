@@ -84,6 +84,8 @@ type Props = {
     footerActions?: ReactNode;
     /** False for a screen-only layout (the guest list): no Orientation and no Preview PDF. */
     printable?: boolean;
+    /** Columns that always show: their switch stays on and cannot be turned off. They can still move. */
+    lockedKeys?: string[];
 };
 
 const PREVIEW_FORM_ID = 'report-layout-preview';
@@ -169,6 +171,7 @@ export function ReportLayoutSheet({
     description,
     footerActions,
     printable = true,
+    lockedKeys = [],
 }: Props) {
     const { csrfToken } = usePage().props;
     const [processing, setProcessing] = useState(false);
@@ -386,10 +389,18 @@ export function ReportLayoutSheet({
                                             <Switch
                                                 size="sm"
                                                 id={`column-${column.key}`}
-                                                checked={column.visible}
+                                                checked={
+                                                    column.visible ||
+                                                    lockedKeys.includes(
+                                                        column.key,
+                                                    )
+                                                }
                                                 disabled={
-                                                    column.visible &&
-                                                    visibleCount === 1
+                                                    lockedKeys.includes(
+                                                        column.key,
+                                                    ) ||
+                                                    (column.visible &&
+                                                        visibleCount === 1)
                                                 }
                                                 onCheckedChange={(checked) =>
                                                     toggle(index, checked)

@@ -123,8 +123,8 @@ A guest with no stays shows 0 and "No stays yet". An archived guest keeps the ti
 The guest list uses the shared report [column layout](../22-reports/01-core-reports.md#column-layouts-per-property): one layout per property, shared by every user.
 
 - `ReportKey::Guests` (slug `guests`) holds the columns. It is not listed in the Reports menu, like Housekeeping tasks. It has **no exports**: no PDF, no spreadsheet and no Preview PDF. `ReportKey::hasExports()` is false for it, and the export and preview routes take only keys that have exports, so `guests` returns 404 there. `report()` has no rows for it.
-- Columns, in default order, all visible: Email, Phone, Nationality, Tags, Last visit, Stays (right), Spend (right), Added. Keys: `email`, `phone`, `nationality`, `tags`, `last_visit`, `stays`, `spend`, `created_at`.
-- **Name is not in the layout.** It is always the first column, because it opens the guest. The checkbox column stays before it.
+- Columns, in default order, all visible: Name, Email, Phone, Nationality, Tags, Last visit, Stays (right), Spend (right), Added. Keys: `full_name`, `email`, `phone`, `nationality`, `tags`, `last_visit`, `stays`, `spend`, `created_at`.
+- **Name always shows**, because it opens the guest. It is in the Sheet so it can move and align, but its switch is locked on (`lockedKeys` on `ReportLayoutSheet`). The page shows it even if a stored layout says hidden. The checkbox column stays first.
 - Staff with `settings.manage` (and `reports.view`, as the layout routes sit under Reports) see a **Layout** button next to Add guest. It opens `ReportLayoutSheet` without the Orientation choice and without Preview PDF (`printable={false}`). Hide, show, reorder and align work as on reports, and the table behind the Sheet follows the draft.
 - A sort on a hidden column falls back to Name. The page gets the sort it used.
 

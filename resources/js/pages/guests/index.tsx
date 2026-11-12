@@ -49,7 +49,7 @@ type Props = {
     returningOptions: EnumOption[];
     contactOptions: EnumOption[];
     currency: Currency;
-    /** The column layout of the list. Name is not in it: it is always first. */
+    /** The column layout of the list. Name always shows, wherever it is placed. */
     layout: Layout;
     canEditLayout: boolean;
     countries: EnumOption[];
@@ -72,7 +72,7 @@ function ContactCell({
 }
 
 function guestColumns(currency: Currency) {
-    const [name, ...others] = [
+    return [
         column.accessor('fullName', {
             id: 'full_name',
             header: 'Name',
@@ -91,6 +91,7 @@ function guestColumns(currency: Currency) {
             ),
         }),
         column.accessor('email', {
+            id: 'email',
             header: 'Email',
             cell: (info) =>
                 info.row.original.isAnonymized ? (
@@ -100,6 +101,7 @@ function guestColumns(currency: Currency) {
                 ),
         }),
         column.accessor('phone', {
+            id: 'phone',
             header: 'Phone',
             cell: (info) =>
                 info.row.original.isAnonymized ? (
@@ -114,6 +116,7 @@ function guestColumns(currency: Currency) {
             cell: (info) => info.getValue() ?? '—',
         }),
         column.accessor('tags', {
+            id: 'tags',
             header: 'Tags',
             enableSorting: false,
             cell: (info) => (
@@ -156,11 +159,13 @@ function guestColumns(currency: Currency) {
             },
         }),
         column.accessor('stays', {
+            id: 'stays',
             header: 'Stays',
             sortDescFirst: true,
             cell: (info) => info.getValue(),
         }),
         column.accessor('spend', {
+            id: 'spend',
             header: currency ? `Spend (${currency.code})` : 'Spend',
             sortDescFirst: true,
             cell: (info) => {
@@ -179,21 +184,15 @@ function guestColumns(currency: Currency) {
             cell: (info) => <DateText date={info.getValue()} />,
         }),
     ];
-
-    return { name, others };
 }
 
-/** Name first, then the visible layout columns in the layout order. */
+/** The visible layout columns in the layout order. Name always shows: it opens the guest. */
 function layoutColumns(currency: Currency, layout: Layout) {
-    const { name, others } = guestColumns(currency);
-    const byId = new Map(others.map((one) => [one.id, one]));
+    const byId = new Map(guestColumns(currency).map((one) => [one.id, one]));
 
-    return [
-        name,
-        ...layout.columns
-            .filter((one) => one.visible)
-            .flatMap((one) => byId.get(one.key) ?? []),
-    ];
+    return layout.columns
+        .filter((one) => one.visible || one.key === 'full_name')
+        .flatMap((one) => byId.get(one.key) ?? []);
 }
 
 export default function GuestsIndex({
@@ -453,7 +452,8 @@ export default function GuestsIndex({
                     dates={{}}
                     onDone={() => setLayoutDraft(null)}
                     printable={false}
-                    description="Choose the columns, in the order they show, and how each aligns. Name is always first. The table behind this panel shows your changes."
+                    lockedKeys={['full_name']}
+                    description="Choose the columns, in the order they show, and how each aligns. Name always shows. The table behind this panel shows your changes."
                 />
             )}
 

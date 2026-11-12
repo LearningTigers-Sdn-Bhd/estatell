@@ -674,6 +674,7 @@ enum ReportKey: string
                 new ReportColumn('needs_maintenance', __('Maintenance'), ColumnAlign::Left, false),
             ],
             self::Guests => [
+                new ReportColumn('full_name', __('Name'), ColumnAlign::Left, true),
                 new ReportColumn('email', __('Email'), ColumnAlign::Left, true),
                 new ReportColumn('phone', __('Phone'), ColumnAlign::Left, true),
                 new ReportColumn('nationality', __('Nationality'), ColumnAlign::Left, true),
