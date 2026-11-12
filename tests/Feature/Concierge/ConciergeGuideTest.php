@@ -1,11 +1,13 @@
 <?php
 
+use App\Actions\Catalogues\SeedRoomRevenuePolicies;
 use App\Enums\BookingEngineMode;
 use App\Enums\FolioStatus;
 use App\Enums\GuestRequestSource;
 use App\Enums\GuestRequestStatus;
 use App\Enums\GuestRequestType;
 use App\Enums\PermissionEnum;
+use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Features\BookingEngine;
 use App\Features\Concierge;
@@ -85,7 +87,13 @@ it('shows the property guide sections: about, facilities, policies and FAQs', fu
         ->where('details.checkOutTime', '11:00')
         ->has('sections', 4)
         ->where('wifi', []));
-    $this->get("/stay/{$property->code}/info/policies")->assertInertia(fn (Assert $page) => $page->where('policies.houseRules', 'Quiet hours from 10 pm.')->where('policies.checkInTime', '15:00'));
+    app(SeedRoomRevenuePolicies::class)($property);
+    $property->roomRevenuePolicies()->where('code', SystemTransactionCode::CancellationRevenue)->update(['text_en' => 'Free until 48 hours before arrival.']);
+    $this->get("/stay/{$property->code}/info/policies")->assertInertia(fn (Assert $page) => $page
+        ->where('policies.houseRules', 'Quiet hours from 10 pm.')
+        ->where('policies.checkInTime', '15:00')
+        ->where('policies.terms.0.label', 'Cancellation')
+        ->where('policies.terms.0.text', 'Free until 48 hours before arrival.'));
     $this->get("/stay/{$property->code}/info/amenities")->assertInertia(fn (Assert $page) => $page->has('amenities', 1)->where('amenities.0.name', 'Pool'));
     $this->get("/stay/{$property->code}/info/faqs")->assertInertia(fn (Assert $page) => $page->has('faqs', 1)->where('faqs.0.question', 'Is breakfast included?'));
 });
@@ -98,13 +106,15 @@ it('never gives the Wi-Fi to a lobby visitor', function () {
     $this->get("/stay/{$property->code}/info")->assertInertia(fn (Assert $page) => $page->where('wifi', []));
 });
 
-it('shows the public places nearby', function () {
+it('shows the public places nearby, with the distance when the property has a location', function () {
     ['property' => $property] = conciergeSetup();
-    $property->nearbyPlaces()->attach(NearbyPlace::factory()->create(['name' => 'Pasar Besar']), ['display_name' => 'Night market', 'description' => null, 'position' => 1, 'active' => true]);
+    $property->forceFill(['latitude' => 3.1390, 'longitude' => 101.6869])->save();
+    $property->nearbyPlaces()->attach(NearbyPlace::factory()->create(['name' => 'Pasar Besar', 'latitude' => 3.1490, 'longitude' => 101.6869]), ['display_name' => 'Night market', 'description' => null, 'position' => 1, 'active' => true]);
 
     $this->get("/stay/{$property->code}/nearby")->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('concierge/nearby')
         ->where('places.0.name', 'Night market')
+        ->where('places.0.distance', '1.1 km')
         ->where('back.href', "/stay/{$property->code}"));
 });
 
@@ -162,7 +172,10 @@ it('lets staff keep the Wi-Fi networks and FAQs, and encrypts the password', fun
         ->where('wifiNetworks.0.name', 'Guest Wi-Fi')
         ->where('faqs.0.answer', '7 to 10 am')
         ->where('refundRequestsEnabled', true)
-        ->where('houseRules', 'Quiet hours'));
+        ->where('houseRules', 'Quiet hours')
+        ->where('sections.amenities', 0)
+        ->where('sections.nearbyPlaces', 0)
+        ->has('policyTerms'));
 
     $this->actingAs($owner)->delete(route('settings.concierge.wifi.destroy', [$property, $network]))->assertRedirect();
     $this->actingAs($owner)->delete(route('settings.concierge.faqs.destroy', [$property, PropertyFaq::query()->sole()]))->assertRedirect();

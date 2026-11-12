@@ -12,6 +12,7 @@ class ConciergePropertyData extends Data
 {
     /**
      * @param  list<string>  $addressLines
+     * @param  list<ConciergeTopicData>  $topics
      */
     public function __construct(
         public string $name,
@@ -21,5 +22,10 @@ class ConciergePropertyData extends Data
         public ?string $mapsUrl,
         public string $checkInTime,
         public string $checkOutTime,
+        public ?string $about = null,
+        public ?string $arrivalInstructions = null,
+        public ?string $departureInstructions = null,
+        public ?ConciergeTransportData $transport = null,
+        public array $topics = [],
     ) {}
 }

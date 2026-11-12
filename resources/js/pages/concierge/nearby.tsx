@@ -40,7 +40,9 @@ export default function ConciergeNearby({
                                     </span>
                                 )}
                                 <span className="text-xs text-muted-foreground">
-                                    Open in maps
+                                    {place.distance
+                                        ? `${place.distance} away · Open in maps`
+                                        : 'Open in maps'}
                                 </span>
                             </span>
                         </a>

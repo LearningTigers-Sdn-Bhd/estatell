@@ -2,14 +2,21 @@
 
 namespace App\Services\Concierge;
 
+use App\Data\Concierge\ConciergeContactData;
 use App\Data\Concierge\ConciergeFaqData;
 use App\Data\Concierge\ConciergePoliciesData;
+use App\Data\Concierge\ConciergePolicyTermData;
 use App\Data\Concierge\ConciergePropertyData;
+use App\Data\Concierge\ConciergeTopicData;
+use App\Data\Concierge\ConciergeTransportData;
 use App\Data\Concierge\ConciergeWifiData;
 use App\Enums\BookingEngineMode;
+use App\Enums\Locale;
+use App\Enums\PolicyTab;
 use App\Features\BookingEngine;
 use App\Models\Property;
 use App\Models\PropertyFaq;
+use App\Models\PropertySetting;
 use App\Models\PropertyWifiNetwork;
 use Laravel\Pennant\Feature;
 
@@ -36,7 +43,100 @@ class ConciergeGuide
             mapsUrl: $this->mapsUrl($property),
             checkInTime: $this->time($property->settings->check_in_time),
             checkOutTime: $this->time($property->settings->check_out_time),
+            about: $property->settings->about,
+            arrivalInstructions: $property->settings->arrival_instructions,
+            departureInstructions: $property->settings->departure_instructions,
+            transport: $this->transport($property),
+            topics: array_values($property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->all()),
         );
+    }
+
+    /**
+     * What a guest reads about the front desk and who to call in an emergency. The duty manager and the out-of-hours
+     * message are given only while the desk is closed.
+     */
+    public function contacts(Property $property): ConciergeContactData
+    {
+        $settings = $property->settings;
+        $open = $this->deskOpen($settings);
+        $closed = $open === false;
+        $digits = preg_replace('/\D+/', '', (string) $settings?->front_desk_whatsapp);
+
+        return new ConciergeContactData(
+            deskOpen: $open,
+            deskHours: $settings === null || $settings->front_desk_open_24h || $settings->front_desk_opens_at === null || $settings->front_desk_closes_at === null
+                ? null
+                : $this->time($settings->front_desk_opens_at).' – '.$this->time($settings->front_desk_closes_at),
+            whatsappUrl: $digits === '' ? null : 'https://wa.me/'.$digits,
+            whatsappNumber: $settings?->front_desk_whatsapp,
+            afterHoursMessage: $closed ? $settings->after_hours_message : null,
+            dutyManagerPhone: $closed ? $settings->duty_manager_phone : null,
+            emergencyPhone: $settings?->emergency_phone,
+            emergencyServicesNumber: $settings?->emergency_services_number,
+            emergencyInstructions: $settings?->emergency_instructions,
+        );
+    }
+
+    /**
+     * True or false when the property has set its desk hours, null when it has not. A desk that closes after midnight is
+     * open from its opening time until the closing time of the next morning.
+     */
+    private function deskOpen(?PropertySetting $settings): ?bool
+    {
+        if ($settings === null) {
+            return null;
+        }
+
+        if ($settings->front_desk_open_24h) {
+            return true;
+        }
+
+        if ($settings->front_desk_opens_at === null || $settings->front_desk_closes_at === null) {
+            return null;
+        }
+
+        $now = now($settings->time_zone)->format('H:i');
+        $opens = $this->time($settings->front_desk_opens_at);
+        $closes = $this->time($settings->front_desk_closes_at);
+
+        return $opens <= $closes ? $now >= $opens && $now < $closes : $now >= $opens || $now < $closes;
+    }
+
+    private function transport(Property $property): ?ConciergeTransportData
+    {
+        $transport = $property->transportDetail;
+
+        if ($transport === null) {
+            return null;
+        }
+
+        $data = new ConciergeTransportData(
+            directions: $transport->directions,
+            airport: $this->trip($transport->airport_distance_km, $transport->airport_travel_minutes),
+            station: $this->trip($transport->station_distance_km, $transport->station_travel_minutes),
+            cityCentre: $this->trip($transport->city_centre_distance_km, $transport->city_centre_travel_minutes),
+            nearestTransitStop: $transport->nearest_transit_stop,
+            airportTransferOffered: $transport->airport_transfer_offered,
+            airportTransferPrice: $transport->airport_transfer_offered && $transport->airport_transfer_price !== null
+                ? $property->settings->currency.' '.number_format((float) $transport->airport_transfer_price, 2)
+                : null,
+            airportTransferLead: $transport->airport_transfer_offered && $transport->airport_transfer_lead_hours !== null
+                ? __('Book :hours hours ahead', ['hours' => $transport->airport_transfer_lead_hours])
+                : null,
+            pickupPoint: $transport->pickup_point,
+            shuttleSchedule: $transport->shuttle_schedule,
+            parkingNotes: $transport->parking_notes,
+            notes: $transport->transport_notes,
+        );
+
+        return array_filter($data->toArray(), fn (mixed $value): bool => $value !== null && $value !== false && $value !== '') === [] ? null : $data;
+    }
+
+    private function trip(?int $km, ?int $minutes): ?string
+    {
+        $parts = array_filter([$km === null ? null : __(':km km', ['km' => $km]), $minutes === null ? null : __(':minutes min', ['minutes' => $minutes])]);
+
+        return $parts === [] ? null : implode(' · ', $parts);
     }
 
     public function policies(Property $property): ConciergePoliciesData
@@ -47,7 +147,31 @@ class ConciergeGuide
             $this->time($property->settings->check_in_time),
             $this->time($property->settings->check_out_time),
             $property->settings->house_rules,
+            $this->terms($property),
         );
+    }
+
+    /**
+     * The owner's wording for each charge policy, in Malay when the property default is Malay and that text is set.
+     *
+     * @return list<ConciergePolicyTermData>
+     */
+    public function terms(Property $property): array
+    {
+        $policies = $property->roomRevenuePolicies()->get()->keyBy(fn ($policy): string => $policy->code->value);
+        $malay = $property->settings?->default_locale === Locale::Malay;
+        $terms = [];
+
+        foreach ([PolicyTab::Cancellation, PolicyTab::NoShow, PolicyTab::LateCheckout, PolicyTab::EarlyDeparture] as $tab) {
+            $policy = $policies->get($tab->code()->value);
+            $text = $policy === null ? '' : trim($malay && filled(trim($policy->text_ms)) ? $policy->text_ms : $policy->text_en);
+
+            if ($text !== '') {
+                $terms[] = new ConciergePolicyTermData($tab->label(), $text);
+            }
+        }
+
+        return $terms;
     }
 
     /**

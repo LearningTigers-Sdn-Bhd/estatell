@@ -317,6 +317,11 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::delete('wifi/{wifiNetwork}', [ConciergeSettingsController::class, 'destroyWifi'])->name('wifi.destroy');
         Route::post('faqs', [ConciergeSettingsController::class, 'storeFaq'])->name('faqs.store');
         Route::delete('faqs/{faq}', [ConciergeSettingsController::class, 'destroyFaq'])->name('faqs.destroy');
+        Route::put('amenities/{amenity}', [ConciergeSettingsController::class, 'updateAmenity'])->whereNumber('amenity')->name('amenities.update');
+        Route::put('hotel-info', [ConciergeSettingsController::class, 'updateHotelInfo'])->name('hotel-info.update');
+        Route::put('contacts', [ConciergeSettingsController::class, 'updateContacts'])->name('contacts.update');
+        Route::post('topics', [ConciergeSettingsController::class, 'storeTopic'])->name('topics.store');
+        Route::delete('topics/{infoTopic}', [ConciergeSettingsController::class, 'destroyTopic'])->name('topics.destroy');
     });
 
     Route::prefix('booking-sources')->name('booking-sources.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

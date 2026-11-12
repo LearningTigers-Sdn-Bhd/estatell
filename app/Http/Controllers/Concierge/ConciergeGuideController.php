@@ -33,6 +33,7 @@ class ConciergeGuideController extends Controller
         return Inertia::render('concierge/contact', [
             'property' => PropertySummaryData::fromModel($property),
             'details' => $guide->property($property),
+            'contacts' => $guide->contacts($property),
             'back' => ['href' => route('concierge.lobby', ['property' => $property->code], absolute: false), 'label' => __('Home')],
         ]);
     }
@@ -80,6 +81,7 @@ class ConciergeGuideController extends Controller
         return Inertia::render('concierge/contact', [
             'property' => PropertySummaryData::fromModel($property),
             'details' => $guide->property($property),
+            'contacts' => $guide->contacts($property),
             'back' => ['href' => route('concierge.show', ['token' => $token], absolute: false), 'label' => __('Your stay')],
         ]);
     }

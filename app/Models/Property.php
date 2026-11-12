@@ -443,6 +443,18 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(PropertyFaq::class)->orderBy('position')->orderBy('id');
     }
 
+    /** @return HasMany<PropertyInfoTopic, $this> */
+    public function infoTopics(): HasMany
+    {
+        return $this->hasMany(PropertyInfoTopic::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** @return HasOne<PropertyTransportDetail, $this> */
+    public function transportDetail(): HasOne
+    {
+        return $this->hasOne(PropertyTransportDetail::class);
+    }
+
     /** @return BelongsToMany<NearbyPlace, $this> */
     public function nearbyPlaces(): BelongsToMany
     {
@@ -452,7 +464,7 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     /** @return BelongsToMany<Amenity, $this> */
     public function amenities(): BelongsToMany
     {
-        return $this->belongsToMany(Amenity::class, 'property_amenities');
+        return $this->belongsToMany(Amenity::class, 'property_amenities')->withPivot(['location', 'opening_hours', 'fee_information', 'reservation_required', 'reservation_instructions', 'guest_notes']);
     }
 
     /** @return HasOne<PropertyBookingSite, $this> */

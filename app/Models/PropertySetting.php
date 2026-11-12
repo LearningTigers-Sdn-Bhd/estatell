@@ -48,6 +48,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $house_rules
  * @property bool $concierge_refund_requests_enabled
  * @property int $kiosk_idle_timeout_seconds
+ * @property string|null $about
+ * @property string|null $arrival_instructions
+ * @property string|null $departure_instructions
+ * @property bool $front_desk_open_24h
+ * @property string|null $front_desk_opens_at
+ * @property string|null $front_desk_closes_at
+ * @property string|null $front_desk_whatsapp
+ * @property string|null $after_hours_message
+ * @property string|null $duty_manager_phone
+ * @property string|null $emergency_phone
+ * @property string|null $emergency_services_number
+ * @property string|null $emergency_instructions
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -57,6 +69,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
     'migration_window_days', 'charter_charge_item_id', 'agent_deposit_percent', 'agent_deposit_hours', 'agent_full_payment_days',
     'kiosk_key_mode', 'kiosk_walk_in_enabled', 'kiosk_idle_timeout_seconds', 'concierge_walk_in_enabled', 'house_rules', 'concierge_refund_requests_enabled',
+    'about', 'arrival_instructions', 'departure_instructions', 'front_desk_open_24h', 'front_desk_opens_at', 'front_desk_closes_at',
+    'front_desk_whatsapp', 'after_hours_message', 'duty_manager_phone', 'emergency_phone', 'emergency_services_number', 'emergency_instructions',
 ])]
 class PropertySetting extends Model
 {
@@ -89,6 +103,7 @@ class PropertySetting extends Model
             'kiosk_walk_in_enabled' => 'boolean',
             'concierge_walk_in_enabled' => 'boolean',
             'concierge_refund_requests_enabled' => 'boolean',
+            'front_desk_open_24h' => 'boolean',
             'kiosk_idle_timeout_seconds' => 'integer',
         ];
     }

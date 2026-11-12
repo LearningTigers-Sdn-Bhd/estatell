@@ -1052,6 +1052,23 @@ namespace Concierge {
 export type ConciergeAmenityData = {
 name: string,
 category: string,
+location: string | null,
+openingHours: string | null,
+feeInformation: string | null,
+reservationRequired: boolean,
+reservationInstructions: string | null,
+guestNotes: string | null,
+};
+export type ConciergeAmenitySettingsData = {
+id: number,
+name: string,
+category: string,
+location: string | null,
+openingHours: string | null,
+feeInformation: string | null,
+reservationRequired: boolean,
+reservationInstructions: string | null,
+guestNotes: string | null,
 };
 export type ConciergeBillData = {
 lines: App.Data.Concierge.ConciergeBillLineData[],
@@ -1070,6 +1087,28 @@ amount: string,
 kind: string,
 date: string,
 };
+export type ConciergeContactData = {
+deskOpen: boolean | null,
+deskHours: string | null,
+whatsappUrl: string | null,
+whatsappNumber: string | null,
+afterHoursMessage: string | null,
+dutyManagerPhone: string | null,
+emergencyPhone: string | null,
+emergencyServicesNumber: string | null,
+emergencyInstructions: string | null,
+};
+export type ConciergeContactSettingsData = {
+frontDeskOpen24h: boolean,
+frontDeskOpensAt: string | null,
+frontDeskClosesAt: string | null,
+frontDeskWhatsapp: string | null,
+afterHoursMessage: string | null,
+dutyManagerPhone: string | null,
+emergencyPhone: string | null,
+emergencyServicesNumber: string | null,
+emergencyInstructions: string | null,
+};
 export type ConciergeDocumentData = {
 label: string,
 url: string,
@@ -1078,6 +1117,26 @@ export type ConciergeFaqData = {
 id: number,
 question: string,
 answer: string,
+};
+export type ConciergeHotelInfoSettingsData = {
+about: string | null,
+arrivalInstructions: string | null,
+departureInstructions: string | null,
+directions: string | null,
+airportDistanceKm: number | null,
+airportTravelMinutes: number | null,
+stationDistanceKm: number | null,
+stationTravelMinutes: number | null,
+cityCentreDistanceKm: number | null,
+cityCentreTravelMinutes: number | null,
+nearestTransitStop: string | null,
+airportTransferOffered: boolean,
+airportTransferPrice: string | null,
+airportTransferLeadHours: number | null,
+pickupPoint: string | null,
+shuttleSchedule: string | null,
+parkingNotes: string | null,
+transportNotes: string | null,
 };
 export type ConciergeOfferData = {
 roomTypeId: number,
@@ -1095,11 +1154,17 @@ export type ConciergePlaceData = {
 name: string,
 description: string | null,
 mapsUrl: string,
+distance: string | null,
 };
 export type ConciergePoliciesData = {
 checkInTime: string,
 checkOutTime: string,
 houseRules: string | null,
+terms: App.Data.Concierge.ConciergePolicyTermData[],
+};
+export type ConciergePolicyTermData = {
+label: string,
+text: string,
 };
 export type ConciergePropertyData = {
 name: string,
@@ -1109,6 +1174,11 @@ email: string | null,
 mapsUrl: string | null,
 checkInTime: string,
 checkOutTime: string,
+about: string | null,
+arrivalInstructions: string | null,
+departureInstructions: string | null,
+transport: App.Data.Concierge.ConciergeTransportData | null,
+topics: App.Data.Concierge.ConciergeTopicData[],
 };
 export type ConciergeRequestData = {
 id: number,
@@ -1141,6 +1211,25 @@ export type ConciergeTermsData = {
 version: number,
 text: string,
 locale: string,
+};
+export type ConciergeTopicData = {
+id: number,
+title: string,
+body: string,
+};
+export type ConciergeTransportData = {
+directions: string | null,
+airport: string | null,
+station: string | null,
+cityCentre: string | null,
+nearestTransitStop: string | null,
+airportTransferOffered: boolean,
+airportTransferPrice: string | null,
+airportTransferLead: string | null,
+pickupPoint: string | null,
+shuttleSchedule: string | null,
+parkingNotes: string | null,
+notes: string | null,
 };
 export type ConciergeWifiData = {
 id: number,

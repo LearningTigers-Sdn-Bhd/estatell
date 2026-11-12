@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { Check, Copy } from 'lucide-react';
+import { AmenityGroups } from '@/components/concierge/amenity-groups';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { Button } from '@/components/ui/button';
 import { useClipboard } from '@/hooks/use-clipboard';
@@ -23,6 +24,78 @@ function Times({ checkIn, checkOut }: { checkIn: string; checkOut: string }) {
                 </dd>
             </div>
         </dl>
+    );
+}
+
+function TextSection({ title, text }: { title: string; text: string }) {
+    return (
+        <section className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {text}
+            </p>
+        </section>
+    );
+}
+
+function Transport({
+    transport,
+}: {
+    transport: App.Data.Concierge.ConciergeTransportData;
+}) {
+    const facts = [
+        ['Airport', transport.airport],
+        ['Train station', transport.station],
+        ['City centre', transport.cityCentre],
+        ['Nearest stop', transport.nearestTransitStop],
+        [
+            'Airport transfer',
+            transport.airportTransferOffered
+                ? [
+                      'Available',
+                      transport.airportTransferPrice,
+                      transport.airportTransferLead,
+                  ]
+                      .filter(Boolean)
+                      .join(' · ')
+                : null,
+        ],
+        ['Pickup point', transport.pickupPoint],
+        ['Shuttle', transport.shuttleSchedule],
+    ].filter(([, value]) => value) as [string, string][];
+
+    return (
+        <section className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold">Getting here</h2>
+            {transport.directions && (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {transport.directions}
+                </p>
+            )}
+            {facts.length > 0 && (
+                <dl className="flex flex-col gap-2">
+                    {facts.map(([label, value]) => (
+                        <div
+                            key={label}
+                            className="flex justify-between gap-4 rounded-lg border p-3 text-sm"
+                        >
+                            <dt className="text-muted-foreground">{label}</dt>
+                            <dd className="text-right font-medium">{value}</dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
+            {transport.parkingNotes && (
+                <p className="text-sm text-muted-foreground">
+                    Parking: {transport.parkingNotes}
+                </p>
+            )}
+            {transport.notes && (
+                <p className="text-sm text-muted-foreground">
+                    {transport.notes}
+                </p>
+            )}
+        </section>
     );
 }
 
@@ -87,14 +160,6 @@ export default function ConciergeInfo({
     faqs: App.Data.Concierge.ConciergeFaqData[];
     wifi: App.Data.Concierge.ConciergeWifiData[];
 }) {
-    const groups = Object.entries(
-        amenities.reduce<Record<string, string[]>>((all, amenity) => {
-            (all[amenity.category] ??= []).push(amenity.name);
-
-            return all;
-        }, {}),
-    );
-
     return (
         <GuestFrame
             back={back}
@@ -122,10 +187,28 @@ export default function ConciergeInfo({
 
             {section === 'property' && details && (
                 <div className="flex flex-col gap-4">
+                    {details.about && (
+                        <TextSection
+                            title="About the property"
+                            text={details.about}
+                        />
+                    )}
                     <Times
                         checkIn={details.checkInTime}
                         checkOut={details.checkOutTime}
                     />
+                    {details.arrivalInstructions && (
+                        <TextSection
+                            title="Arrival"
+                            text={details.arrivalInstructions}
+                        />
+                    )}
+                    {details.departureInstructions && (
+                        <TextSection
+                            title="Departure"
+                            text={details.departureInstructions}
+                        />
+                    )}
                     {details.addressLines.length > 0 && (
                         <p className="text-pretty">
                             {details.addressLines.join(', ')}
@@ -141,6 +224,16 @@ export default function ConciergeInfo({
                             Open in maps
                         </a>
                     )}
+                    {details.transport && (
+                        <Transport transport={details.transport} />
+                    )}
+                    {details.topics.map((topic) => (
+                        <TextSection
+                            key={topic.id}
+                            title={topic.title}
+                            text={topic.body}
+                        />
+                    ))}
                 </div>
             )}
 
@@ -163,33 +256,25 @@ export default function ConciergeInfo({
                             </p>
                         )}
                     </section>
+                    {policies.terms.map((term) => (
+                        <section
+                            key={term.label}
+                            className="flex flex-col gap-2"
+                        >
+                            <h2 className="text-lg font-semibold">
+                                {term.label}
+                            </h2>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                {term.text}
+                            </p>
+                        </section>
+                    ))}
                 </div>
             )}
 
             {section === 'amenities' && (
                 <div className="flex flex-col gap-4">
-                    {groups.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                            The property has not listed its facilities yet.
-                        </p>
-                    )}
-                    {groups.map(([category, names]) => (
-                        <section key={category} className="flex flex-col gap-2">
-                            <h2 className="text-lg font-semibold">
-                                {category}
-                            </h2>
-                            <ul className="flex flex-wrap gap-2">
-                                {names.map((name) => (
-                                    <li
-                                        key={name}
-                                        className="rounded-full border px-3 py-1 text-sm"
-                                    >
-                                        {name}
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    ))}
+                    <AmenityGroups amenities={amenities} />
                 </div>
             )}
 

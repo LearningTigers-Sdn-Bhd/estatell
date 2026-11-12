@@ -3,24 +3,43 @@
 namespace App\Http\Controllers\Concierge;
 
 use App\Actions\Concierge\AddFaq;
+use App\Actions\Concierge\AddInfoTopic;
 use App\Actions\Concierge\AddWifiNetwork;
 use App\Actions\Concierge\RemoveFaq;
+use App\Actions\Concierge\RemoveInfoTopic;
 use App\Actions\Concierge\RemoveWifiNetwork;
+use App\Actions\Concierge\SaveAmenityDetail;
+use App\Actions\Concierge\SaveGuestContacts;
+use App\Actions\Concierge\SaveHotelInfo;
 use App\Actions\Concierge\UpdateConciergeSettings;
+use App\Data\Concierge\ConciergeAmenitySettingsData;
+use App\Data\Concierge\ConciergeContactSettingsData;
 use App\Data\Concierge\ConciergeFaqData;
+use App\Data\Concierge\ConciergeHotelInfoSettingsData;
+use App\Data\Concierge\ConciergeTopicData;
 use App\Data\Concierge\ConciergeWifiData;
+use App\Enums\PermissionEnum;
+use App\Features\BookingEngine;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concierge\SaveAmenityDetailRequest;
+use App\Http\Requests\Concierge\SaveGuestContactsRequest;
+use App\Http\Requests\Concierge\SaveHotelInfoRequest;
 use App\Http\Requests\Concierge\StoreFaqRequest;
+use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
 use App\Http\Requests\Concierge\UpdateSettingsRequest;
+use App\Models\Amenity;
 use App\Models\Property;
 use App\Models\PropertyFaq;
+use App\Models\PropertyInfoTopic;
 use App\Models\PropertyWifiNetwork;
+use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergeLobbyQr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 
 /**
  * The staff side of the Concierge page: the lobby QR, the switches and the content guests read (house rules, Wi-Fi
@@ -31,7 +50,7 @@ class ConciergeSettingsController extends Controller
     /**
      * The staff page with the lobby address and its QR code to print.
      */
-    public function index(Property $property, ConciergeLobbyQr $qr): Response
+    public function index(Request $request, Property $property, ConciergeLobbyQr $qr, ConciergeGuide $guide): Response
     {
         $url = route('concierge.lobby', ['property' => $property->code]);
 
@@ -45,6 +64,18 @@ class ConciergeSettingsController extends Controller
             'houseRules' => $property->settings?->house_rules,
             'wifiNetworks' => $property->wifiNetworks()->get()->map(ConciergeWifiData::fromModel(...))->values(),
             'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
+            'hotelInfo' => ConciergeHotelInfoSettingsData::fromProperty($property->loadMissing('transportDetail')),
+            'contacts' => ConciergeContactSettingsData::fromProperty($property),
+            'amenities' => $property->amenities()->with('category')->orderBy('position')->get()->map(ConciergeAmenitySettingsData::fromModel(...))->values(),
+            'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
+            'policyTerms' => $guide->terms($property),
+            'sections' => [
+                'hasAddress' => filled($property->address_line1),
+                'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
+                'amenities' => $property->amenities()->count(),
+                'nearbyPlaces' => $property->nearbyPlaces()->wherePivot('active', true)->count(),
+            ],
+            'bookingEngine' => Feature::for($property)->active(BookingEngine::class) && $request->user()->can(PermissionEnum::BookingWebsiteManage->value),
         ]);
     }
 
@@ -93,6 +124,55 @@ class ConciergeSettingsController extends Controller
         $removeFaq($request->user(), $faq);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Question removed.')]);
+
+        return to_route('settings.concierge.index', $property);
+    }
+
+    public function updateHotelInfo(SaveHotelInfoRequest $request, Property $property, SaveHotelInfo $saveHotelInfo): RedirectResponse
+    {
+        $saveHotelInfo($request->user(), $property, $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Hotel info saved.')]);
+
+        return to_route('settings.concierge.index', $property);
+    }
+
+    public function updateContacts(SaveGuestContactsRequest $request, Property $property, SaveGuestContacts $saveContacts): RedirectResponse
+    {
+        $saveContacts($request->user(), $property, $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Contacts saved.')]);
+
+        return to_route('settings.concierge.index', $property);
+    }
+
+    public function storeTopic(StoreInfoTopicRequest $request, Property $property, AddInfoTopic $addTopic): RedirectResponse
+    {
+        $topic = $addTopic($request->user(), $property, $request->string('title')->toString(), $request->string('body')->toString());
+
+        Inertia::flash('toast', $topic === null
+            ? ['type' => 'error', 'message' => __('A property can list up to :count extra topics.', ['count' => AddInfoTopic::MAX])]
+            : ['type' => 'success', 'message' => __('Topic added.')]);
+
+        return to_route('settings.concierge.index', $property);
+    }
+
+    public function destroyTopic(Request $request, Property $property, PropertyInfoTopic $infoTopic, RemoveInfoTopic $removeTopic): RedirectResponse
+    {
+        $removeTopic($request->user(), $infoTopic);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Topic removed.')]);
+
+        return to_route('settings.concierge.index', $property);
+    }
+
+    public function updateAmenity(SaveAmenityDetailRequest $request, Property $property, Amenity $amenity, SaveAmenityDetail $saveDetail): RedirectResponse
+    {
+        $saved = $saveDetail($request->user(), $property, $amenity, $request->validated());
+
+        Inertia::flash('toast', $saved
+            ? ['type' => 'success', 'message' => __(':name details saved.', ['name' => $amenity->name])]
+            : ['type' => 'error', 'message' => __('The property no longer offers this amenity. Reload the page.')]);
 
         return to_route('settings.concierge.index', $property);
     }
