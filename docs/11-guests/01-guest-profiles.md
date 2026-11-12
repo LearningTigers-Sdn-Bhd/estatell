@@ -113,7 +113,7 @@ A guest with no stays shows 0 and "No stays yet". An archived guest keeps the ti
 ### Guest list
 
 - Columns: Last visit, Stays and Spend (MYR), each sortable (`last_visit`, `stays`, `spend`, descending first). Sorting puts guests with no stays last. Source shows under Last visit in small muted text.
-- Contact: an empty email or phone shows a warning "No email" or "No phone" in the Contact column.
+- Email and Phone: an empty value shows a warning "No email" or "No phone". Archived guests show "—".
 - Filters, in the URL: `filter[source]` (a booking source id: guests with any stay from it), `filter[returning]` (`first` or `returning`) and `filter[contact]` (`no_email`, `no_phone` or `missing`, which is either).
 - The figures come from one grouped subquery joined to the page query, so the list stays one query whatever the page size.
 

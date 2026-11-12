@@ -1802,6 +1802,11 @@ isBlacklisted: boolean,
 isAnonymized: boolean,
 tags: string[],
 createdAt: string,
+stays: number,
+spend: string | null,
+lastVisit: string | null,
+inHouse: boolean,
+source: string | null,
 };
 export type GuestStayData = {
 unitId: number,

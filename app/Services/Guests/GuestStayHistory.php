@@ -137,6 +137,50 @@ class GuestStayHistory
     }
 
     /**
+     * The ids of the property's guests with a stay from the booking source, for the guest list filter.
+     */
+    public function guestIdsWithSource(Property $property, int $bookingSourceId): Builder
+    {
+        return DB::table('unit_guests')
+            ->join('reservation_units as source_units', 'source_units.id', '=', 'unit_guests.reservation_unit_id')
+            ->join('reservations as source_reservations', 'source_reservations.id', '=', 'source_units.reservation_id')
+            ->where('source_units.property_id', $property->id)
+            ->whereIn('source_units.status', self::stayStatuses())
+            ->where('source_reservations.booking_source_id', $bookingSourceId)
+            ->select('unit_guests.guest_id');
+    }
+
+    /**
+     * The source of each guest's latest stay (newest arrival): the company name, else the booking source name. Guests
+     * with no stays are not in the result.
+     *
+     * @param  list<int>  $guestIds
+     * @return array<int, string>
+     */
+    public function latestSources(Property $property, array $guestIds): array
+    {
+        if ($guestIds === []) {
+            return [];
+        }
+
+        return DB::table('unit_guests')
+            ->join('reservation_units as latest_units', 'latest_units.id', '=', 'unit_guests.reservation_unit_id')
+            ->join('reservations as latest_reservations', 'latest_reservations.id', '=', 'latest_units.reservation_id')
+            ->join('booking_sources', 'booking_sources.id', '=', 'latest_reservations.booking_source_id')
+            ->leftJoin('companies', 'companies.id', '=', 'latest_reservations.company_id')
+            ->where('latest_units.property_id', $property->id)
+            ->whereIn('latest_units.status', self::stayStatuses())
+            ->whereIn('unit_guests.guest_id', $guestIds)
+            ->selectRaw('DISTINCT ON (unit_guests.guest_id) unit_guests.guest_id, COALESCE(companies.name, booking_sources.name) AS source')
+            ->orderBy('unit_guests.guest_id')
+            ->orderByDesc('latest_units.arrival_date')
+            ->orderByDesc('latest_units.id')
+            ->pluck('source', 'guest_id')
+            ->map(fn (mixed $source): string => (string) $source)
+            ->all();
+    }
+
+    /**
      * The total spend of the stays, from their `spend` attribute, counting only the stays where the guest is primary.
      *
      * @param  Collection<int, ReservationUnit>  $stays

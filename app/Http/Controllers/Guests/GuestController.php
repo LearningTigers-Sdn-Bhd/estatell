@@ -26,6 +26,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Guests\BlacklistGuestRequest;
 use App\Http\Requests\Guests\BulkUpdateGuestsRequest;
 use App\Http\Requests\Guests\GuestRequest;
+use App\Models\BookingSource;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
@@ -60,6 +61,9 @@ class GuestController extends Controller
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),
                 'tag' => $request->string('filter.tag')->toString(),
+                'source' => $request->string('filter.source')->toString(),
+                'returning' => $request->string('filter.returning')->toString(),
+                'contact' => $request->string('filter.contact')->toString(),
             ],
             'sort' => $request->string('sort', 'full_name')->toString(),
             'statuses' => [
@@ -68,6 +72,20 @@ class GuestController extends Controller
                 ['value' => GuestDirectory::STATUS_ANONYMIZED, 'label' => __('Archived')],
             ],
             'tags' => $this->tags($property),
+            'sources' => $property->bookingSources()->ordered()->get()
+                ->map(fn (BookingSource $source): array => ['value' => (string) $source->id, 'label' => $source->name])
+                ->values()
+                ->all(),
+            'returningOptions' => [
+                ['value' => GuestDirectory::RETURNING_FIRST, 'label' => __('First stay')],
+                ['value' => GuestDirectory::RETURNING_YES, 'label' => __('Returning')],
+            ],
+            'contactOptions' => [
+                ['value' => GuestDirectory::CONTACT_MISSING, 'label' => __('Missing email or phone')],
+                ['value' => GuestDirectory::CONTACT_NO_EMAIL, 'label' => __('No email')],
+                ['value' => GuestDirectory::CONTACT_NO_PHONE, 'label' => __('No phone')],
+            ],
+            'currency' => CurrencyData::forProperty($property->loadMissing('settings')),
             'countries' => $canManage ? app(CountryOptions::class)->options() : [],
             'canManage' => $canManage,
             'maxBulkGuests' => BulkUpdateGuestsRequest::MAX_GUESTS,

@@ -223,3 +223,54 @@ test('the Stays tab needs guests.view and the guest of the property', function (
         ->get(route('guests.stays.index', [$viewer->property->code, $foreign]))
         ->assertNotFound();
 });
+
+test('the guest list shows the stay figures and sorts by spend with guests without stays last', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $big = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Big Spender']);
+    $small = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Small Spender']);
+    Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aaron New']);
+
+    foreach ([[$big, '900.00'], [$small, '100.00']] as [$guest, $amount]) {
+        $unit = stayFor($guest, reservation: Reservation::factory()->ota('Agoda')->create(['property_id' => $property->id]));
+        FolioLine::factory()->create(['folio_id' => unitFolio($unit)->id, 'amount' => $amount]);
+    }
+
+    $this->actingAs($owner)
+        ->get(route('guests.index', [$property->code, 'sort' => '-spend']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('guests.data.0.fullName', 'Big Spender')
+            ->where('guests.data.0.stays', 1)
+            ->where('guests.data.0.spend', '900.00')
+            ->where('guests.data.0.lastVisit', '2026-11-05')
+            ->where('guests.data.0.source', 'Agoda')
+            ->where('guests.data.1.fullName', 'Small Spender')
+            ->where('guests.data.2.fullName', 'Aaron New')
+            ->where('guests.data.2.stays', 0)
+            ->where('guests.data.2.spend', null));
+
+    $this->get(route('guests.index', [$property->code, 'sort' => 'spend']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('guests.data.0.fullName', 'Small Spender')
+            ->where('guests.data.2.fullName', 'Aaron New'));
+});
+
+test('the guest list filters by source, returning and missing contact', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $agoda = Reservation::factory()->ota('Agoda')->create(['property_id' => $property->id]);
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Returning Guest', 'email' => null]);
+    stayFor($returning, reservation: $agoda);
+    stayFor($returning);
+    $first = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'First Guest', 'phone' => null, 'email' => 'first@example.com']);
+    stayFor($first);
+
+    $names = fn (array $filter): array => collect($this->actingAs($owner)->get(route('guests.index', [$property->code, 'filter' => $filter]))
+        ->viewData('page')['props']['guests']['data'])->pluck('fullName')->sort()->values()->all();
+
+    expect($names(['returning' => 'returning']))->toBe(['Returning Guest'])
+        ->and($names(['returning' => 'first']))->toBe(['First Guest'])
+        ->and($names(['source' => (string) $agoda->booking_source_id]))->toBe(['Returning Guest'])
+        ->and($names(['contact' => 'no_email']))->toBe(['Returning Guest'])
+        ->and($names(['contact' => 'no_phone']))->toBe(['First Guest']);
+});
