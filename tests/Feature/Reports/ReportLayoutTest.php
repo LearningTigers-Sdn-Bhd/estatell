@@ -227,7 +227,7 @@ test('the arrivals page receives the saved layout and canEditLayout', function (
         ->where('canEditLayout', true)
         ->where('layout.orientation', 'landscape')
         ->has('layout.columns', 15)
-        ->where('layout.columns.0', ['key' => 'balance', 'label' => 'Balance', 'align' => 'right', 'visible' => true, 'defaultAlign' => 'right'])
+        ->where('layout.columns.0', ['key' => 'balance', 'label' => 'Balance', 'align' => 'right', 'visible' => true, 'defaultAlign' => 'right', 'money' => true])
         ->where('layout.columns.2.visible', false)
         ->missing('columns'));
 
@@ -288,6 +288,7 @@ test('the report view prints only the visible columns in layout order', function
         'totals' => null,
         'breakdown' => null,
         'selectedOnly' => false,
+        'orientation' => $layout->orientation,
     ])->render();
 
     expect($html)->toContain($booking->reference)
@@ -358,6 +359,7 @@ test('the report view aligns the cells as the layout says', function () {
         'totals' => null,
         'breakdown' => null,
         'selectedOnly' => false,
+        'orientation' => $layout->orientation,
     ])->render();
 
     expect($html)->toContain('<th class="center">Guest</th>')
@@ -376,4 +378,17 @@ test('a layout stored before the split columns resolves with each one hidden rig
     expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'balance'])
         ->and($visible['room_type'] || $visible['room'] || $visible['adults'] || $visible['children'])->toBeFalse()
         ->and($visible['arrival_time'])->toBeTrue();
+});
+
+test('the Payments report prints landscape by default and saved Payments layouts move to landscape', function () {
+    [, $property] = reportSetup();
+    [, $other] = reportSetup();
+    $payments = ReportLayout::factory()->create(['property_id' => $property->id, 'report_key' => ReportKey::Payments, 'orientation' => PageOrientation::Portrait]);
+    $arrivals = storeLayout($other, [['balance', true]]);
+
+    (require database_path('migrations/2026_11_12_030041_set_payments_report_layouts_to_landscape.php'))->up();
+
+    expect(ReportKey::Payments->defaultOrientation())->toBe(PageOrientation::Landscape)
+        ->and($payments->refresh()->orientation)->toBe(PageOrientation::Landscape)
+        ->and($arrivals->refresh()->orientation)->toBe(PageOrientation::Portrait);
 });

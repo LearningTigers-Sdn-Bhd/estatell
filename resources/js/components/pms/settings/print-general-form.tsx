@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { AArrowDown, AArrowUp, Type } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { PrintSampleTable } from '@/components/pms/settings/print-sample-table';
 import {
     Field,
     FieldContent,
@@ -24,6 +25,9 @@ const fontSizeIcons: Record<string, LucideIcon> = {
     large: AArrowUp,
 };
 
+/** A table style from `PdfTableStyle::options()`. */
+export type TableStyleOption = EnumOption & { description: string };
+
 /** A font style from `PdfFont::options()`, with the CSS families its sample uses. */
 export type FontStyleOption = EnumOption & {
     headingFamily: string;
@@ -31,13 +35,14 @@ export type FontStyleOption = EnumOption & {
 };
 
 /**
- * Font style, font size and footer text. Each change saves by itself; the footer saves on blur.
+ * Font style, font size, table style and footer text. Each change saves by itself; the footer saves on blur.
  */
 export function PrintGeneralForm({
     value,
     propertyName,
     fonts,
     fontSizes,
+    tableStyles,
     onChange,
     onDraft,
 }: {
@@ -45,6 +50,7 @@ export function PrintGeneralForm({
     propertyName: string;
     fonts: FontStyleOption[];
     fontSizes: FontSizeOption[];
+    tableStyles: TableStyleOption[];
     onChange: (next: Settings, options?: { delay?: number }) => void;
     onDraft: (next: Settings) => void;
 }) {
@@ -130,6 +136,78 @@ export function PrintGeneralForm({
                             </FieldLabel>
                         );
                     })}
+                </RadioGroup>
+            </FieldSet>
+            <FieldSet>
+                <FieldLegend variant="label">Table style</FieldLegend>
+                <FieldDescription>
+                    Reports, receipts, invoices, statements and vouchers.
+                </FieldDescription>
+                <RadioGroup
+                    value={value.tableStyle}
+                    onValueChange={(tableStyle) =>
+                        onChange({
+                            ...value,
+                            tableStyle: tableStyle as Settings['tableStyle'],
+                        })
+                    }
+                    className="grid gap-3 sm:grid-cols-3"
+                >
+                    {tableStyles.map((option) => (
+                        <FieldLabel
+                            key={option.value}
+                            htmlFor={`table-style-${option.value}`}
+                        >
+                            <Field orientation="horizontal">
+                                <FieldContent className="min-w-0">
+                                    <FieldTitle>{option.label}</FieldTitle>
+                                    <FieldDescription>
+                                        {option.description}
+                                    </FieldDescription>
+                                    <PrintSampleTable
+                                        tableStyle={
+                                            option.value as Settings['tableStyle']
+                                        }
+                                        className="mt-1 text-xs"
+                                        columns={[
+                                            { key: 'date', label: 'Date' },
+                                            {
+                                                key: 'amount',
+                                                label: 'Amount',
+                                                align: 'right',
+                                            },
+                                        ]}
+                                        groups={[
+                                            {
+                                                rows: [
+                                                    {
+                                                        date: '12 Oct',
+                                                        amount: '250.00',
+                                                    },
+                                                    {
+                                                        date: '13 Oct',
+                                                        amount: '250.00',
+                                                    },
+                                                    {
+                                                        date: '14 Oct',
+                                                        amount: '250.00',
+                                                    },
+                                                ],
+                                            },
+                                        ]}
+                                        total={{
+                                            label: 'Total',
+                                            amount: '750.00',
+                                        }}
+                                    />
+                                </FieldContent>
+                                <RadioGroupItem
+                                    id={`table-style-${option.value}`}
+                                    value={option.value}
+                                />
+                            </Field>
+                        </FieldLabel>
+                    ))}
                 </RadioGroup>
             </FieldSet>
             <Field>

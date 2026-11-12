@@ -41,11 +41,19 @@ class BookingWebsiteGeneralData extends Data
             slug: $slug,
             slugLocked: $site->isPublished(),
             baseUrl: $baseUrl,
-            webAddress: $baseUrl.'/'.$slug,
+            webAddress: self::webAddressFor($property),
             googleMapsUrl: $property->google_maps_url,
             aboutText: $site->about_text,
             checklist: $checklist->items($site),
             canPublish: $checklist->isComplete($site),
         );
+    }
+
+    /**
+     * The microsite address of a property: the booking site base URL and the property's slug.
+     */
+    public static function webAddressFor(Property $property): string
+    {
+        return rtrim((string) config('estatell.booking_site_url'), '/').'/'.$property->slug;
     }
 }

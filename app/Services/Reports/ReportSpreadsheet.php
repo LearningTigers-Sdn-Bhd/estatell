@@ -13,8 +13,8 @@ use Illuminate\Support\Str;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 
 /**
- * Writes the rows of a report to a CSV or XLSX file: a header row of the visible column labels in layout order, then
- * one row per report row with its typed `values()` (money and counts are numbers), then the total row when the report has one.
+ * Writes the rows of a report to a CSV or XLSX file: a header row of the visible column headings in layout order (a
+ * money column carries the currency, `ADR (MYR)`), then one row per report row with its typed `values()` (money and counts are numbers), then the total row when the report has one.
  */
 class ReportSpreadsheet
 {
@@ -23,14 +23,15 @@ class ReportSpreadsheet
      *
      * @param  list<ReportRow>  $rows
      * @param  ReportTotals|null  $totals  Written as the last row when given.
+     * @param  string|null  $currency  The property currency code for the money headings.
      */
-    public function write(ReportLayoutData $layout, array $rows, SpreadsheetFormat $format, ?ReportTotals $totals = null): string
+    public function write(ReportLayoutData $layout, array $rows, SpreadsheetFormat $format, ?ReportTotals $totals = null, ?string $currency = null): string
     {
         $columns = $layout->visibleColumns();
         $path = sys_get_temp_dir().'/'.Str::uuid().'.'.$format->value;
 
         $writer = SimpleExcelWriter::create($path)
-            ->addHeader(array_map(fn (ReportLayoutColumnData $column): string => $column->label, $columns));
+            ->addHeader(array_map(fn (ReportLayoutColumnData $column): string => $column->heading($currency), $columns));
 
         foreach ($rows as $row) {
             $values = $row->values();

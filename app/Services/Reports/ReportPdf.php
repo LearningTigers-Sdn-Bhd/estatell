@@ -65,6 +65,7 @@ class ReportPdf
             'totals' => $report->totals($rows),
             'breakdown' => $report->breakdown($property, $rows, $filters),
             'selectedOnly' => $rowKeys !== null,
+            'orientation' => $layout->orientation,
         ], $layout->orientation->value);
     }
 

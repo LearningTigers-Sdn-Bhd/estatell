@@ -130,7 +130,7 @@ test('the PDF and CSV keep the group and total only the selected rows', function
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
     expect($rows)->toHaveCount(4)
-        ->and($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Base', 'Tax amount'])
+        ->and($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Base (MYR)', 'Tax amount (MYR)'])
         ->and(end($rows))->toBe(['Total', '', '4', '0', '24']);
 });
 
@@ -254,7 +254,7 @@ test('the CSV has the Base column, blank for a flat tax, and the total of the ba
     $response = $this->actingAs($user)->post("/p/{$property->code}/reports/tax/spreadsheet", ['from' => '2026-10-09', 'to' => '2026-10-09', 'format' => 'csv']);
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
-    expect($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Base', 'Tax amount'])
+    expect($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Base (MYR)', 'Tax amount (MYR)'])
         ->and(collect($rows)->slice(1, 2)->pluck(3)->sort()->values()->all())->toBe(['', '100'])
         ->and(end($rows))->toBe(['Total', '', '2', '100', '18']);
 });

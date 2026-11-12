@@ -720,3 +720,20 @@ test('the identity export is logged when only the ID number column is visible an
 
     expect(Activity::query()->where('event', 'report.exported_identity_numbers')->count())->toBe(1);
 });
+
+test('the police report PDF prints the ID type over the number, the date over the time and the status on one line', function () {
+    [$finance, $property] = reportSetup(DefaultRoleEnum::Finance, ['time_zone' => 'Asia/Kuala_Lumpur']);
+    $unit = registerUnit($property, '2026-10-09', '2026-10-12', 'SG');
+    registerDocument(registerGuest($unit, ['nationality_code' => 'SG'], primary: true), 'passport', 'A1234567');
+    $captured = new stdClass;
+    View::composer('pdf.report', function ($view) use ($captured): void {
+        $captured->data = $view->getData();
+    });
+
+    $this->actingAs($finance)->post("/p/{$property->code}/reports/police-report/pdf", registerRange())->assertOk();
+    $html = view('pdf.report', $captured->data)->render();
+
+    expect($html)->toContain('<td class="">Passport<br><span class="nowrap">•••• 4567</span></td>')
+        ->toContain('<td class="nowrap"><span class="nowrap">10 Oct 2026</span><br><span class="nowrap">20:00</span></td>')
+        ->toContain('<th class="nowrap">Status</th>');
+});

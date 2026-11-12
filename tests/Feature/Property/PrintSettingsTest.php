@@ -3,6 +3,7 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
+use App\Enums\PdfTableStyle;
 use App\Models\Property;
 use App\Models\PropertyBankAccount;
 use App\Models\PropertySetting;
@@ -57,16 +58,17 @@ test('the back-fill gives existing properties their print settings', function ()
 
     expect($settings->font)->toBe(PdfFont::Office)
         ->and($settings->font_size)->toBe(PdfFontSize::Medium)
+        ->and($settings->table_style)->toBe(PdfTableStyle::Minimal)
         ->and($settings->show_logo)->toBeTrue()
         ->and($settings->show_tin)->toBeFalse()
         ->and($settings->footer_text)->toBeNull();
 });
 
-test('staff save the font, the size and the footer and the change is logged', function () {
+test('staff save the font, the size, the table style and the footer and the change is logged', function () {
     [$owner, $property] = printingProperty();
 
     $this->actingAs($owner)
-        ->put(printSettingsUrl($property, 'printing'), ['font' => 'fancy', 'font_size' => 'large', 'footer_text' => '  Thank you for staying with us.  '])
+        ->put(printSettingsUrl($property, 'printing'), ['font' => 'fancy', 'font_size' => 'large', 'table_style' => 'shaded', 'footer_text' => '  Thank you for staying with us.  '])
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 
@@ -75,15 +77,43 @@ test('staff save the font, the size and the footer and the change is logged', fu
 
     expect($settings->font)->toBe(PdfFont::Fancy)
         ->and($settings->font_size)->toBe(PdfFontSize::Large)
+        ->and($settings->table_style)->toBe(PdfTableStyle::Shaded)
         ->and($settings->footer_text)->toBe('Thank you for staying with us.')
-        ->and($activity->properties['changed'])->toBe(['font', 'font_size', 'footer_text']);
+        ->and($activity->properties['changed'])->toBe(['font', 'font_size', 'footer_text', 'table_style']);
 });
+
+test('the table style must be one of the styles', function () {
+    [$owner, $property] = printingProperty();
+
+    $this->actingAs($owner)
+        ->put(printSettingsUrl($property, 'printing'), ['font' => 'office', 'font_size' => 'medium', 'table_style' => 'striped'])
+        ->assertSessionHasErrors('table_style');
+
+    expect($property->printSetting->refresh()->table_style)->toBe(PdfTableStyle::Minimal);
+});
+
+test('the PDF layout draws the saved table style on the rows and the total', function (PdfTableStyle $style, ?string $css) {
+    [, $property] = printingProperty();
+    $property->printSetting->update(['table_style' => $style]);
+
+    $html = view('pdf.print-sample', ['print' => app(PrintProfile::class)->for($property->refresh()), 'currency' => 'MYR'])->render();
+
+    foreach (['.total td { border: 0.5pt', '.rule th, .total td { background-color:'] as $styleCss) {
+        $styleCss === $css ? expect($html)->toContain($styleCss) : expect($html)->not->toContain($styleCss);
+    }
+
+    expect(app(PrintedPdf::class)->make($property, 'pdf.print-sample', ['currency' => 'MYR'])->output())->toStartWith('%PDF');
+})->with([
+    'minimal' => [PdfTableStyle::Minimal, null],
+    'lined' => [PdfTableStyle::Lined, '.total td { border: 0.5pt'],
+    'shaded' => [PdfTableStyle::Shaded, '.rule th, .total td { background-color:'],
+]);
 
 test('an empty footer is stored as null and an unchanged save is not logged', function () {
     [$owner, $property] = printingProperty();
 
     $this->actingAs($owner)
-        ->put(printSettingsUrl($property, 'printing'), ['font' => 'office', 'font_size' => 'medium', 'footer_text' => '   '])
+        ->put(printSettingsUrl($property, 'printing'), ['font' => 'office', 'font_size' => 'medium', 'table_style' => 'minimal', 'footer_text' => '   '])
         ->assertSessionHasNoErrors();
 
     expect($property->printSetting->refresh()->footer_text)->toBeNull()
@@ -350,12 +380,14 @@ test('the printing tabs send the settings, the profile and the taxes in the Taxe
             ->has('fonts', 4)
             ->where('fonts.2', ['value' => 'fancy', 'label' => 'Fancy', 'headingFamily' => 'Playfair Display', 'bodyFamily' => 'Lora'])
             ->where('fontSizes.2', ['value' => 'large', 'label' => 'Large', 'description' => '10.5 pt body text'])
+            ->where('settings.tableStyle', 'minimal')
+            ->where('tableStyles.1', ['value' => 'lined', 'label' => 'Lined', 'description' => 'A border around every cell'])
             ->where('navigation.contexts.3.groups.0.items.2.title', 'Printing')
             ->where('navigation.contexts.3.groups.0.items.2.active', true));
 
     $this->actingAs($owner)
         ->get(printSettingsUrl($property, 'printing/header'))
-        ->assertInertia(fn (Assert $page) => $page->where('tab', 'header')->has('fonts', 4)->missing('fontSizes'));
+        ->assertInertia(fn (Assert $page) => $page->where('tab', 'header')->has('fonts', 4)->missing('fontSizes')->missing('tableStyles'));
 });
 
 test('the printing pages send a property without settings to the Details page', function () {

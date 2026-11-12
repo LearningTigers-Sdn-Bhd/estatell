@@ -10,17 +10,22 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { PropertyCommissions } from '@/components/pms/commissions/property-commissions';
-import { DetailLayout } from '@/components/pms/detail-layout';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { MovePropertyPartner } from '@/components/pms/properties/move-property-partner';
-import { PropertyChannels } from '@/components/pms/properties/property-channels';
+import {
+    ChannelSectionList,
+    PropertyChannels,
+    useChannelSection,
+} from '@/components/pms/properties/property-channels';
 import { PropertyFeatures } from '@/components/pms/properties/property-features';
 import { PropertyOtaLists } from '@/components/pms/properties/property-ota-lists';
 import { PropertyOverview } from '@/components/pms/properties/property-overview';
 import { PropertyStaff } from '@/components/pms/properties/property-staff';
 import { PropertySummary } from '@/components/pms/properties/property-summary';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { TabLinks } from '@/components/pms/tab-links';
+import { Workspace } from '@/components/pms/workspace';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -75,6 +80,7 @@ export default function PropertyShow({
     partnerOptions,
     commissionServices = [],
     commissionHistory = [],
+    overview,
 }: {
     property: Property;
     tab: Tab;
@@ -88,14 +94,19 @@ export default function PropertyShow({
     partnerOptions: EnumOption[];
     commissionServices?: App.Data.Commissions.PropertyCommissionServiceData[];
     commissionHistory?: App.Data.Commissions.PropertyCommissionPeriodData[];
+    overview?: App.Data.Platform.AdminPropertyOverviewData;
 }) {
     const [suspendOpen, setSuspendOpen] = useState(false);
+    const [channelSection, setChannelSection] = useChannelSection();
 
     return (
         <>
             <Head title={property.name} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div
+                scroll-region=""
+                className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden"
+            >
                 <PageHeader
                     title={property.name}
                     back={{ href: index(), label: 'Properties' }}
@@ -210,8 +221,11 @@ export default function PropertyShow({
                     </Alert>
                 )}
 
-                <DetailLayout
+                <TabLinks
                     activeTab={tab}
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                     tabs={[
                         {
                             value: 'overview',
@@ -254,50 +268,69 @@ export default function PropertyShow({
                             href: commissionsTab(property.code),
                         },
                     ]}
-                    summary={
-                        <PropertySummary property={property} showPartner />
-                    }
                 >
-                    {tab === 'overview' && (
-                        <PropertyOverview property={property} />
-                    )}
-                    {tab === 'staff' && (
-                        <PropertyStaff code={property.code} staff={staff} />
-                    )}
-                    {tab === 'features' && (
-                        <PropertyFeatures
-                            code={property.code}
-                            features={features}
-                            bookingEngineMode={bookingEngineMode}
-                        />
-                    )}
-                    {tab === 'ota-lists' && (
-                        <PropertyOtaLists
-                            code={property.code}
-                            rows={otaLists}
-                            channels={otaChannels}
-                        />
-                    )}
-                    {tab === 'commissions' && (
-                        <PropertyCommissions
-                            code={property.code}
-                            services={commissionServices}
-                            history={commissionHistory}
-                        />
-                    )}
-                    {tab === 'channels' && channel && (
-                        <PropertyChannels
-                            code={property.code}
-                            channel={channel}
-                        />
-                    )}
-                </DetailLayout>
+                    <Workspace
+                        list={
+                            tab === 'channels' && channel ? (
+                                <ChannelSectionList
+                                    channel={channel}
+                                    section={channelSection}
+                                    onSectionChange={setChannelSection}
+                                />
+                            ) : undefined
+                        }
+                        asideLabel="Property summary"
+                        aside={
+                            <PropertySummary property={property} showPartner />
+                        }
+                    >
+                        {tab === 'overview' && (
+                            <PropertyOverview
+                                property={property}
+                                overview={overview}
+                            />
+                        )}
+                        {tab === 'staff' && (
+                            <PropertyStaff code={property.code} staff={staff} />
+                        )}
+                        {tab === 'features' && (
+                            <PropertyFeatures
+                                code={property.code}
+                                features={features}
+                                bookingEngineMode={bookingEngineMode}
+                            />
+                        )}
+                        {tab === 'ota-lists' && (
+                            <PropertyOtaLists
+                                code={property.code}
+                                rows={otaLists}
+                                channels={otaChannels}
+                            />
+                        )}
+                        {tab === 'commissions' && (
+                            <PropertyCommissions
+                                code={property.code}
+                                services={commissionServices}
+                                history={commissionHistory}
+                            />
+                        )}
+                        {tab === 'channels' && channel && (
+                            <PropertyChannels
+                                code={property.code}
+                                channel={channel}
+                                section={channelSection}
+                                onSectionChange={setChannelSection}
+                            />
+                        )}
+                    </Workspace>
+                </TabLinks>
             </div>
         </>
     );
 }
 
 PropertyShow.layout = (props: { property: Property }) => ({
+    variant: 'fixed' as const,
     breadcrumbs: [
         { title: 'Admin', href: dashboard() },
         { title: 'Properties', href: index() },

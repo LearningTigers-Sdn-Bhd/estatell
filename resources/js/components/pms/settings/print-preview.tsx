@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react';
 import type { FontStyleOption } from '@/components/pms/settings/print-general-form';
+import { PrintSampleTable } from '@/components/pms/settings/print-sample-table';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { sample } from '@/routes/settings/printing';
@@ -131,14 +132,27 @@ export function PrintPreview({
                     >
                         Sample report
                     </p>
-                    <div className="flex justify-between gap-2 tabular-nums">
-                        <span className="truncate">Aisyah binti Rahman</span>
-                        <span>480.00</span>
-                    </div>
-                    <div className="flex justify-between gap-2 tabular-nums">
-                        <span className="truncate">Daniel Lim</span>
-                        <span>210.00</span>
-                    </div>
+                    <PrintSampleTable
+                        tableStyle={settings.tableStyle}
+                        className="mt-2"
+                        columns={[
+                            { key: 'guest', label: 'Guest' },
+                            { key: 'amount', label: 'Amount', align: 'right' },
+                        ]}
+                        groups={[
+                            {
+                                rows: [
+                                    {
+                                        guest: 'Aisyah binti Rahman',
+                                        amount: '480.00',
+                                    },
+                                    { guest: 'Daniel Lim', amount: '210.00' },
+                                    { guest: 'Tan Wei Ming', amount: '560.00' },
+                                ],
+                            },
+                        ]}
+                        total={{ label: 'Total', amount: '1,250.00' }}
+                    />
                 </div>
                 {settings.footerText && (
                     <p

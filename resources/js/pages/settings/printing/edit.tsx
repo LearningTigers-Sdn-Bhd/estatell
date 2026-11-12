@@ -5,6 +5,7 @@ import { AutoSaveStatus } from '@/components/pms/settings/auto-save-status';
 import type {
     FontSizeOption,
     FontStyleOption,
+    TableStyleOption,
 } from '@/components/pms/settings/print-general-form';
 import { PrintDocumentsForm } from '@/components/pms/settings/print-documents-form';
 import { PrintDocumentsPreview } from '@/components/pms/settings/print-documents-preview';
@@ -27,6 +28,7 @@ const request = (tab: Tab) => (value: Settings) =>
               data: {
                   font: value.font,
                   font_size: value.fontSize,
+                  table_style: value.tableStyle,
                   footer_text: value.footerText,
               },
           }
@@ -62,6 +64,7 @@ export default function PrintingSettings({
     taxes,
     fonts = [],
     fontSizes = [],
+    tableStyles = [],
     bankAccounts = [],
 }: {
     tab: Tab;
@@ -69,7 +72,10 @@ export default function PrintingSettings({
     profile: App.Data.Property.PropertyProfileData;
     taxes: App.Data.Property.PrintTaxData[];
     fonts?: FontStyleOption[];
+    /** General tab only. */
     fontSizes?: FontSizeOption[];
+    /** General tab only. */
+    tableStyles?: TableStyleOption[];
     /** Documents tab only. */
     bankAccounts?: string[];
 }) {
@@ -120,6 +126,7 @@ export default function PrintingSettings({
                                     propertyName={profile.name}
                                     fonts={fonts}
                                     fontSizes={fontSizes}
+                                    tableStyles={tableStyles}
                                     onChange={form.change}
                                     onDraft={form.draft}
                                 />

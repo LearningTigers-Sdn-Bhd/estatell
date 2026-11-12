@@ -138,7 +138,7 @@ test('the PDF and the CSV export the checked out units', function () {
 
     $lines = array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF"))));
 
-    expect(str_getcsv($lines[0]))->toBe(['Booking', 'Guest', 'Room', 'Checked out', 'Balance'])
+    expect(str_getcsv($lines[0]))->toBe(['Booking', 'Guest', 'Room', 'Checked out', 'Balance (MYR)'])
         ->and($lines)->toHaveCount(2);
 });
 

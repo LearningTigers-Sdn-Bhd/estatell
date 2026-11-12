@@ -4,6 +4,7 @@ namespace App\Http\Requests\Property;
 
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
+use App\Enums\PdfTableStyle;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,7 @@ class UpdatePrintSettingsRequest extends FormRequest
         return [
             'font' => ['required', Rule::enum(PdfFont::class)],
             'font_size' => ['required', Rule::enum(PdfFontSize::class)],
+            'table_style' => ['required', Rule::enum(PdfTableStyle::class)],
             'footer_text' => ['nullable', 'string', 'max:500'],
         ];
     }

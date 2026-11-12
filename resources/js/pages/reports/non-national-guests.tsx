@@ -33,13 +33,13 @@ const cells: ReportCells<Row> = {
     arrival: (row) => <DateText date={row.arrival} />,
     departure: (row) => <DateText date={row.departure} />,
     tourism_tax: (row, currency) => (
-        <MoneyText amount={row.tourism_tax} currency={currency} />
+        <MoneyText amount={row.tourism_tax} currency={currency} plain />
     ),
 };
 
 const totalCells: ReportTotalCells = {
     tourism_tax: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 
