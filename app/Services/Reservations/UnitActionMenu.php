@@ -10,6 +10,7 @@ use App\Enums\StayType;
 use App\Enums\UnitAction;
 use App\Models\BusinessDate;
 use App\Models\ReservationUnit;
+use App\Models\Tax;
 use App\Models\User;
 use App\Services\FrontDesk\EarlyCheckOutRule;
 use App\Services\FrontDesk\EndedStayCheckIn;
@@ -45,7 +46,8 @@ class UnitActionMenu
         return array_values(collect(UnitAction::cases())
             ->filter(fn (UnitAction $action): bool => $action->isOpenFor($unit->status)
                 && $user->can($action->permission()->value)
-                && $this->isTimely($action, $unit, $current, $user))
+                && $this->isTimely($action, $unit, $current, $user)
+                && ($action !== UnitAction::WaiveTax || $this->hasTaxToWaiveOrRemove($unit)))
             ->map(fn (UnitAction $action): UnitActionData => $this->item($action, $unit, $current))
             ->values()
             ->all());
@@ -122,6 +124,14 @@ class UnitActionMenu
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,
         };
+    }
+
+    /**
+     * Taxes paid elsewhere needs a tax that can be paid elsewhere, or a waiver on the unit to remove.
+     */
+    private function hasTaxToWaiveOrRemove(ReservationUnit $unit): bool
+    {
+        return $unit->taxWaivers()->exists() || Tax::query()->where('property_id', $unit->property_id)->waivable()->exists();
     }
 
     private function checkInDay(ReservationUnit $unit, BusinessDate $current): string

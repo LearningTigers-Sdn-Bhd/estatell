@@ -12,6 +12,8 @@ final readonly class TaxWaiverResult
 
     public const string REFUSAL_TAX_NOT_FOUND = 'tax_not_found';
 
+    public const string REFUSAL_TAX_NOT_WAIVABLE = 'tax_not_waivable';
+
     public const string REFUSAL_ALREADY_WAIVED = 'already_waived';
 
     public const string REFUSAL_WAIVER_NOT_FOUND = 'waiver_not_found';

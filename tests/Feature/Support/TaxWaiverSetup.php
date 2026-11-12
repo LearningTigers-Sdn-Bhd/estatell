@@ -33,7 +33,7 @@ function wtSetup(DefaultRoleEnum $role = DefaultRoleEnum::FrontDesk): array
     BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-12']);
     $room = TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $property->id]);
     $sst = Tax::factory()->for($property)->create(['rate' => '8.00', 'rate_type' => TaxRateType::Percent, 'name' => 'Service Tax', 'code' => 'SST']);
-    $tourism = Tax::factory()->for($property)->create(['rate' => '10.00', 'rate_type' => TaxRateType::Flat, 'name' => 'Tourism tax', 'code' => 'TTX', 'collect_at_check_in' => true]);
+    $tourism = Tax::factory()->for($property)->create(['rate' => '10.00', 'rate_type' => TaxRateType::Flat, 'name' => 'Tourism tax', 'code' => 'TTX', 'collect_at_check_in' => true, 'can_be_waived' => true]);
     $sst->applicableTransactionCodes()->attach($room);
     $tourism->applicableTransactionCodes()->attach($room);
     $reservation = Reservation::factory()->create(['property_id' => $property->id]);

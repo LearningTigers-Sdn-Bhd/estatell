@@ -78,22 +78,24 @@ test('a tax already waived refuses the request and writes nothing', function () 
     $setup = wtSetup();
     wtWaive($setup);
 
-    $result = wtWaive($setup, [$setup['sst']->id, $setup['tourism']->id]);
+    $result = wtWaive($setup);
 
     expect($result->refusal)->toBe(TaxWaiverResult::REFUSAL_ALREADY_WAIVED)
         ->and(ReservationUnitTaxWaiver::query()->count())->toBe(1)
         ->and(Activity::query()->where('event', 'reservation.unit_tax_waived')->count())->toBe(1);
 });
 
-test('a cancelled unit or another property\'s tax is refused', function () {
+test('a cancelled unit, another property\'s tax or a tax that cannot be paid elsewhere is refused', function () {
     $setup = wtSetup();
     $otherTax = Tax::factory()->create();
 
     $foreign = wtWaive($setup, [$otherTax->id]);
+    $notWaivable = wtWaive($setup, [$setup['sst']->id, $setup['tourism']->id]);
     $setup['unit']->forceFill(['status' => UnitStatus::Cancelled])->save();
     $cancelled = wtWaive($setup);
 
     expect($foreign->refusal)->toBe(TaxWaiverResult::REFUSAL_TAX_NOT_FOUND)
+        ->and($notWaivable->refusal)->toBe(TaxWaiverResult::REFUSAL_TAX_NOT_WAIVABLE)
         ->and($cancelled->refusal)->toBe(TaxWaiverResult::REFUSAL_UNIT_NOT_WAIVABLE)
         ->and(ReservationUnitTaxWaiver::query()->count())->toBe(0);
 });
@@ -172,15 +174,28 @@ test('the unit panel shows the waiver and the form starts with the booking sourc
     $setup = wtSetup();
     $source = BookingSource::factory()->for($setup['property'])->ota(name: 'Trip.com')->create();
     $setup['reservation']->forceFill(['booking_source_id' => $source->id, 'external_reference' => '1128152109837544'])->save();
-    wtWaive($setup, [$setup['sst']->id]);
+    $levy = Tax::factory()->for($setup['property'])->waivable()->create(['name' => 'Heritage levy']);
+    wtWaive($setup);
 
     $this->actingAs($setup['user'])
         ->get("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}?unit={$setup['unit']->id}")
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('unit.taxWaivers', [['taxId' => $setup['sst']->id, 'taxName' => 'Service Tax', 'summary' => 'Paid by Trip.com · 1128152109837544']])
-            ->where('unit.taxWaiverForm.taxes', [['value' => (string) $setup['tourism']->id, 'label' => 'Tourism tax']])
+            ->where('unit.taxWaivers', [['taxId' => $setup['tourism']->id, 'taxName' => 'Tourism tax', 'summary' => 'Paid by Trip.com · 1128152109837544']])
+            ->where('unit.taxWaiverForm.taxes', [['value' => (string) $levy->id, 'label' => 'Heritage levy']])
             ->where('unit.taxWaiverForm.paidTo', 'Trip.com')
             ->where('unit.taxWaiverForm.reference', '1128152109837544')
             ->where('unit.actions', fn ($actions): bool => collect($actions)->pluck('key')->contains('waive-tax')));
+});
+
+test('without a tax that can be paid elsewhere the menus leave out taxes paid elsewhere', function () {
+    $setup = wtSetup();
+    $setup['tourism']->update(['can_be_waived' => false]);
+
+    $this->actingAs($setup['user'])
+        ->get("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}?unit={$setup['unit']->id}")
+        ->assertInertia(fn ($page) => $page
+            ->where('canWaiveTax', false)
+            ->where('unit.taxWaiverForm.taxes', [])
+            ->where('unit.actions', fn ($actions): bool => ! collect($actions)->pluck('key')->contains('waive-tax')));
 });

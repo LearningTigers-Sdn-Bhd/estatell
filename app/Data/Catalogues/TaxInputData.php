@@ -20,6 +20,7 @@ class TaxInputData extends Data
         public bool $isInclusive,
         public bool $foreignGuestsOnly,
         public bool $collectAtCheckIn,
+        public bool $canBeWaived,
         public ?string $registrationNumber,
         public bool $enabled,
     ) {}
@@ -37,6 +38,7 @@ class TaxInputData extends Data
             isInclusive: $tax->is_inclusive,
             foreignGuestsOnly: $tax->foreign_guests_only,
             collectAtCheckIn: $tax->collect_at_check_in,
+            canBeWaived: $tax->can_be_waived,
             registrationNumber: $tax->registration_number,
             enabled: $enabled ?? $tax->enabled,
         );

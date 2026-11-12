@@ -136,7 +136,7 @@ test('the group waiver needs the waive taxes permission', function () {
     expect(ReservationUnitTaxWaiver::query()->count())->toBe(0);
 });
 
-test('the group form options list the enabled taxes when asked for', function () {
+test('the group form options list the taxes that can be paid elsewhere when asked for', function () {
     $setup = wgSetup();
     $setup['reservation']->forceFill(['external_reference' => '1128152109837544'])->save();
 
@@ -147,7 +147,6 @@ test('the group form options list the enabled taxes when asked for', function ()
             ->missing('taxWaiverOptions')
             ->reloadOnly('taxWaiverOptions', fn (Assert $reload) => $reload
                 ->where('taxWaiverOptions.taxes', [
-                    ['value' => (string) $setup['sst']->id, 'label' => 'Service Tax'],
                     ['value' => (string) $setup['tourism']->id, 'label' => 'Tourism tax'],
                 ])
                 ->where('taxWaiverOptions.reference', '1128152109837544')));

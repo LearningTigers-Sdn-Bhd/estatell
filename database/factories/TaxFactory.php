@@ -36,9 +36,18 @@ class TaxFactory extends Factory
             'is_inclusive' => false,
             'foreign_guests_only' => false,
             'collect_at_check_in' => false,
+            'can_be_waived' => false,
             'registration_number' => null,
             'enabled' => true,
         ];
+    }
+
+    /**
+     * A tax staff can mark as paid elsewhere, such as tourism tax.
+     */
+    public function waivable(): static
+    {
+        return $this->state(fn (array $attributes) => ['can_be_waived' => true]);
     }
 
     public function disabled(): static

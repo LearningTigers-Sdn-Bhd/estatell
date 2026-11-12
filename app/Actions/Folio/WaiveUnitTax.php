@@ -54,6 +54,10 @@ class WaiveUnitTax
                 return TaxWaiverResult::refused(TaxWaiverResult::REFUSAL_TAX_NOT_FOUND);
             }
 
+            if ($taxes->contains(fn (Tax $tax): bool => ! $tax->can_be_waived)) {
+                return TaxWaiverResult::refused(TaxWaiverResult::REFUSAL_TAX_NOT_WAIVABLE);
+            }
+
             if ($locked->taxWaivers()->whereIn('tax_id', $taxIds)->exists()) {
                 return TaxWaiverResult::refused(TaxWaiverResult::REFUSAL_ALREADY_WAIVED);
             }

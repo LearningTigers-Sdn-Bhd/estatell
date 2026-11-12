@@ -371,7 +371,7 @@ class ReservationController extends Controller
         }
 
         $waived = $unit->loadMissing('taxWaivers')->taxWaivers->pluck('tax_id')->all();
-        $taxes = Tax::query()->where('property_id', $unit->property_id)->where('enabled', true)->whereNotIn('id', $waived)->orderBy('id')->get();
+        $taxes = Tax::query()->where('property_id', $unit->property_id)->waivable()->whereNotIn('id', $waived)->orderBy('id')->get();
 
         return UnitTaxWaiverFormData::forReservation($reservation->loadMissing('bookingSource', 'company'), $taxes);
     }
@@ -465,9 +465,9 @@ class ReservationController extends Controller
             'hasUnitToCheckIn' => $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canCancelReservation' => $user->can(PermissionEnum::ReservationsManage->value) && $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
-            'canWaiveTax' => $user->can(PermissionEnum::FolioWaiveTax->value),
+            'canWaiveTax' => $user->can(PermissionEnum::FolioWaiveTax->value) && Tax::query()->where('property_id', $property->id)->waivable()->exists(),
             'taxWaiverOptions' => Inertia::optional(fn (): ?UnitTaxWaiverFormData => $user->can(PermissionEnum::FolioWaiveTax->value)
-                ? UnitTaxWaiverFormData::forReservation($reservation, Tax::query()->where('property_id', $property->id)->where('enabled', true)->orderBy('id')->get())
+                ? UnitTaxWaiverFormData::forReservation($reservation, Tax::query()->where('property_id', $property->id)->waivable()->orderBy('id')->get())
                 : null),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
