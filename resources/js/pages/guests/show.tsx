@@ -217,6 +217,7 @@ export default function GuestShow({
                             badge={
                                 <GuestFlags
                                     isVip={guest.isVip}
+                                    isReturning={staySummary.stays >= 2}
                                     isAnonymized={isAnonymized}
                                     isBlacklisted={guest.blacklistedAt !== null}
                                 />

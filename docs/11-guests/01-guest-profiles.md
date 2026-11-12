@@ -86,7 +86,7 @@ A simple view of how often a guest stays, how much they spend and where they com
 | Last visit         | The latest departure of a checked-out stay. A guest with a Checked in stay also shows **In house now**.                                                                                                                |
 | Source             | The latest stay's company (Perfect Holiday, Sandakan Travel) when the reservation has one, else its booking source.                                                                                                    |
 | Spend              | Charge and Adjustment lines (discounts) after reversals. Tax and Payment lines and the Opening balance code are left out. Lines copied from the old system count. Counted whoever pays, so a company-paid stay counts. |
-| Returning          | 2 or more stays. One stay is **First stay**.                                                                                                                                                                           |
+| Returning          | 2 or more stays. One stay is **First stay**. A returning guest gets a `RefreshCw` flag ("Returning guest" tooltip) next to the name, with VIP and Blacklisted, on the guest list and the guest page.                   |
 
 **Which stay a line belongs to.** As in `LineSourceUnits`: a tax or discount child takes its parent's source. A unit night, an add-on or a reservation unit source gives the unit. With no unit source, the line takes its folio's unit. A line on a Master or Third party folio with no unit source takes the reservation's first stay (lowest unit id). Lines of units that are not stays are not counted.
 

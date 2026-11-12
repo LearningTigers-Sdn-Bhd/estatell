@@ -78,6 +78,7 @@ function guestColumns(currency: Currency) {
                     </span>
                     <GuestFlags
                         isVip={info.row.original.isVip}
+                        isReturning={info.row.original.stays >= 2}
                         isAnonymized={info.row.original.isAnonymized}
                         isBlacklisted={info.row.original.isBlacklisted}
                     />
