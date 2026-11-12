@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
 use App\Services\Webhooks\WebhookPayload;
+use Carbon\CarbonImmutable;
 
 /**
  * Hand one event to every active endpoint that hears it. Each endpoint gets its own delivery row and job, so one slow
@@ -22,7 +23,7 @@ class BroadcastWebhook
     /**
      * @param  array<string, mixed>  $data
      */
-    public function __invoke(WebhookEvent $event, ?Property $property, array $data): int
+    public function __invoke(WebhookEvent $event, ?Property $property, array $data, ?CarbonImmutable $occurredAt = null): int
     {
         $endpoints = WebhookEndpoint::query()->listeningFor($event, $property?->id)->get(['id']);
 
@@ -31,7 +32,7 @@ class BroadcastWebhook
         }
 
         $eventId = $this->payload->newEventId();
-        $body = $this->payload->envelope($eventId, $event, $property, $data, now());
+        $body = $this->payload->envelope($eventId, $event, $property, $data, $occurredAt ?? now());
 
         foreach ($endpoints as $endpoint) {
             $delivery = WebhookDelivery::query()->create([

@@ -2,7 +2,9 @@
 
 namespace App\Actions\Guests;
 
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Guests\IdentityDocumentInputData;
+use App\Enums\WebhookEvent;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\User;
@@ -40,6 +42,8 @@ class CreateGuest
                 ->event('guest.created')
                 ->withProperties(['property_id' => $property->id])
                 ->log('Guest created');
+
+            app(TriggerWebhook::class)(WebhookEvent::GuestCreated, $guest->property_id, Guest::class, $guest->id);
 
             return $guest;
         });

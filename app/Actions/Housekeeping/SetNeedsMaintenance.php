@@ -2,6 +2,8 @@
 
 namespace App\Actions\Housekeeping;
 
+use App\Actions\Webhooks\TriggerWebhook;
+use App\Enums\WebhookEvent;
 use App\Models\Room;
 use App\Models\RoomStatus;
 use App\Models\User;
@@ -32,6 +34,10 @@ class SetNeedsMaintenance
                     'room_id' => $room->id,
                 ])
                 ->log($needsMaintenance ? 'Room flagged for maintenance' : 'Room maintenance flag cleared');
+
+            if ($needsMaintenance) {
+                app(TriggerWebhook::class)(WebhookEvent::RoomMaintenanceFlagged, $room->property_id, Room::class, $room->id);
+            }
         });
     }
 }

@@ -7,9 +7,11 @@ use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\PostDayUseBlock;
 use App\Actions\NightAudit\PostMissedNights;
 use App\Actions\Reservations\SyncReservationStatus;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Folio\NewChargeData;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Events\StayCheckedIn;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
@@ -167,6 +169,8 @@ class CheckInUnit
                 ($this->syncReservationStatus)($locked->reservation);
 
                 StayCheckedIn::dispatch($locked->property_id, $locked->id);
+
+                app(TriggerWebhook::class)(WebhookEvent::StayCheckedIn, $locked->property_id, ReservationUnit::class, $locked->id);
 
                 return UnitStayResult::done($locked);
             });

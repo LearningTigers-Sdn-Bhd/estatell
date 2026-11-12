@@ -2,6 +2,15 @@
 
 namespace App\Enums;
 
+use App\Services\Webhooks\Payloads\BookingWebhookPayload;
+use App\Services\Webhooks\Payloads\ChannelAlertWebhookPayload;
+use App\Services\Webhooks\Payloads\FolioWebhookPayload;
+use App\Services\Webhooks\Payloads\GuestWebhookPayload;
+use App\Services\Webhooks\Payloads\NightAuditWebhookPayload;
+use App\Services\Webhooks\Payloads\PaymentWebhookPayload;
+use App\Services\Webhooks\Payloads\RoomWebhookPayload;
+use App\Services\Webhooks\Payloads\WebhookPayloadBuilder;
+
 /**
  * The events an outgoing webhook endpoint can hear. The value is the `event` field of the payload, so a value never
  * changes. See docs/32-webhooks/01-outgoing-webhooks.md.
@@ -61,6 +70,24 @@ enum WebhookEvent: string
             self::GuestCreated, self::GuestUpdated, self::GuestMerged, self::GuestAnonymized => __('Guest'),
             self::RoomCleaned, self::RoomMaintenanceFlagged => __('Housekeeping'),
             self::NightAuditCompleted, self::ChannelAlert => __('Operations'),
+        };
+    }
+
+    /**
+     * The class that builds the event's `data`.
+     *
+     * @return class-string<WebhookPayloadBuilder>
+     */
+    public function payloadBuilder(): string
+    {
+        return match ($this) {
+            self::BookingCreated, self::BookingUpdated, self::BookingCancelled, self::BookingNoShow, self::StayCheckedIn, self::StayCheckedOut => BookingWebhookPayload::class,
+            self::PaymentReceived, self::PaymentRefunded => PaymentWebhookPayload::class,
+            self::FolioClosed => FolioWebhookPayload::class,
+            self::GuestCreated, self::GuestUpdated, self::GuestMerged, self::GuestAnonymized => GuestWebhookPayload::class,
+            self::RoomCleaned, self::RoomMaintenanceFlagged => RoomWebhookPayload::class,
+            self::NightAuditCompleted => NightAuditWebhookPayload::class,
+            self::ChannelAlert => ChannelAlertWebhookPayload::class,
         };
     }
 

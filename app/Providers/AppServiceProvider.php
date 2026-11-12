@@ -10,6 +10,7 @@ use App\Actions\EInvoice\QueueFolioEInvoiceOnClose;
 use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\NotifySupportMoneyCorrection;
 use App\Actions\Platform\RecordImpersonationEnd;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
 use App\Events\ChannelStructureChanged;
@@ -36,6 +37,7 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
@@ -156,6 +158,13 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayKeyCards::class)($event));
         Event::listen(FolioClosed::class, fn (FolioClosed $event) => app(QueueFolioEInvoiceOnClose::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
+
+        // A wastays import replays old stays: it sends no webhooks, also from the jobs it queues.
+        Event::listen(CommandStarting::class, function (CommandStarting $event): void {
+            if (str_starts_with((string) $event->command, 'wastays:')) {
+                Context::addHidden(TriggerWebhook::MUTED, true);
+            }
+        });
 
         RatePlan::saved(function (RatePlan $ratePlan): void {
             $restored = $ratePlan->wasChanged('archived_at') && $ratePlan->archived_at === null;

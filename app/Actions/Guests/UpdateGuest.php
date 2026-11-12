@@ -2,7 +2,9 @@
 
 namespace App\Actions\Guests;
 
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Guests\IdentityDocumentInputData;
+use App\Enums\WebhookEvent;
 use App\Models\Guest;
 use App\Models\User;
 use App\Services\Guests\GuestName;
@@ -54,6 +56,8 @@ class UpdateGuest
                 ->event('guest.updated')
                 ->withProperties(['property_id' => $guest->property_id, 'changed' => $changed])
                 ->log('Guest updated');
+
+            app(TriggerWebhook::class)(WebhookEvent::GuestUpdated, $guest->property_id, Guest::class, $guest->id);
 
             return true;
         });
