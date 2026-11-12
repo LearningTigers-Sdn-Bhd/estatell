@@ -24,7 +24,7 @@ guest_tag      guest_id, tag_id
 - A blacklisted guest must have a reason (`CHECK`). `merged_into_id` cannot point to the guest itself.
 - A tag name is unique per property, ignoring case (a unique index on `lower(name)`).
 - `merged_into_id` and `anonymized_at` exist from the start. They are used by merging and privacy.
-- Notes are add-only: no edit, no delete, no pinning. wastays had no guest notes, only booking notes that could be edited, with the edit history kept in jsonb.
+- Notes are add-only: no edit, no delete, no pinning. The Notes tab lists them in a table (Date, Note, By), newest first. A note longer than three lines is cut with Show more. wastays had no guest notes, only booking notes that could be edited, with the edit history kept in jsonb.
 
 ## Enums
 

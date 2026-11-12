@@ -4,70 +4,63 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { AddNoteDialog } from '@/components/pms/guests/add-note-dialog';
 import { PanelHeading } from '@/components/pms/panel-heading';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 type Guest = App.Data.Guests.GuestData;
 type Note = App.Data.Guests.GuestNoteData;
 
 /**
- * One note. A long note is cut to six lines with a Show more button.
+ * The note text, cut to three lines with a Show more button when it is longer. Line breaks are kept.
  */
-function NoteCard({ note }: { note: Note }) {
+function NoteBody({ body }: { body: string }) {
     const bodyRef = useRef<HTMLParagraphElement>(null);
     const [expanded, setExpanded] = useState(false);
     const [clamped, setClamped] = useState(false);
 
     useLayoutEffect(() => {
-        const body = bodyRef.current;
+        const element = bodyRef.current;
 
-        if (body && !expanded) {
-            setClamped(body.scrollHeight > body.clientHeight);
+        if (element && !expanded) {
+            setClamped(element.scrollHeight > element.clientHeight);
         }
-    }, [note.body, expanded]);
+    }, [body, expanded]);
 
     return (
-        <Card size="sm" className="h-fit">
-            <CardContent className="flex flex-col gap-2">
-                <p
-                    ref={bodyRef}
-                    className={cn(
-                        'text-sm wrap-anywhere whitespace-pre-wrap',
-                        !expanded && 'line-clamp-6',
-                    )}
-                >
-                    {note.body}
-                </p>
-                {(clamped || expanded) && (
-                    <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="h-auto self-start p-0"
-                        onClick={() => setExpanded((open) => !open)}
-                    >
-                        {expanded ? 'Show less' : 'Show more'}
-                    </Button>
+        <div className="flex flex-col items-start gap-1">
+            <p
+                ref={bodyRef}
+                className={cn(
+                    'wrap-anywhere whitespace-pre-wrap',
+                    !expanded && 'line-clamp-3',
                 )}
-            </CardContent>
-            <CardFooter className="text-xs text-muted-foreground">
-                {note.authorName ?? 'Former staff member'} ·{' '}
-                <time dateTime={note.createdAt} className="ml-1">
-                    {new Date(note.createdAt).toLocaleString('en-GB', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    })}
-                </time>
-            </CardFooter>
-        </Card>
+            >
+                {body}
+            </p>
+            {(clamped || expanded) && (
+                <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0"
+                    onClick={() => setExpanded((open) => !open)}
+                >
+                    {expanded ? 'Show less' : 'Show more'}
+                </Button>
+            )}
+        </div>
     );
 }
 
 /**
- * The Notes tab: a section title with the add-note dialog, then the note cards, newest first.
+ * The Notes tab: the heading with the add-note dialog, then the notes in a table, newest first.
  */
 export function NotesTab({
     guest,
@@ -93,10 +86,42 @@ export function NotesTab({
                     description="Notes about preferences or past stays show here."
                 />
             ) : (
-                <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {notes.map((note) => (
-                        <NoteCard key={note.id} note={note} />
-                    ))}
+                <div className="overflow-auto rounded-xl border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-44">Date</TableHead>
+                                <TableHead>Note</TableHead>
+                                <TableHead className="w-44">By</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {notes.map((note) => (
+                                <TableRow key={note.id}>
+                                    <TableCell className="align-top tabular-nums">
+                                        <time dateTime={note.createdAt}>
+                                            {new Date(
+                                                note.createdAt,
+                                            ).toLocaleString('en-GB', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </time>
+                                    </TableCell>
+                                    <TableCell className="min-w-64 align-top whitespace-normal">
+                                        <NoteBody body={note.body} />
+                                    </TableCell>
+                                    <TableCell className="align-top">
+                                        {note.authorName ??
+                                            'Former staff member'}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
             )}
         </div>
