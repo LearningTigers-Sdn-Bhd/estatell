@@ -35,8 +35,9 @@ it('shows the lobby address and a QR code made from it', function () {
 it('saves the walk-in switch and logs only what changed', function () {
     ['owner' => $owner, 'property' => $property] = conciergeSettingsSetup();
 
-    $this->actingAs($owner)->put(route('settings.concierge.update', $property), ['walk_in_enabled' => true, 'refund_requests_enabled' => false, 'house_rules' => null])
-        ->assertRedirect(route('settings.concierge.index', $property));
+    // Back to the page it came from, so the open tab stays in the URL.
+    $this->actingAs($owner)->from(route('settings.concierge.index', [$property, 'tab' => 'lobby']))->put(route('settings.concierge.update', $property), ['walk_in_enabled' => true, 'refund_requests_enabled' => false, 'house_rules' => null])
+        ->assertRedirect(route('settings.concierge.index', [$property, 'tab' => 'lobby']));
     $this->actingAs($owner)->put(route('settings.concierge.update', $property), ['walk_in_enabled' => true, 'refund_requests_enabled' => false, 'house_rules' => null]);
 
     expect($property->refresh()->settings->concierge_walk_in_enabled)->toBeTrue()

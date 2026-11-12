@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Concierge;
 
+use App\Actions\BookingEngine\SetPropertyAmenity;
 use App\Actions\Concierge\AddFaq;
 use App\Actions\Concierge\AddInfoTopic;
 use App\Actions\Concierge\AddWifiNetwork;
@@ -12,15 +13,18 @@ use App\Actions\Concierge\SaveAmenityDetail;
 use App\Actions\Concierge\SaveGuestContacts;
 use App\Actions\Concierge\SaveHotelInfo;
 use App\Actions\Concierge\UpdateConciergeSettings;
+use App\Data\BookingEngine\AmenityPickerData;
+use App\Data\BookingEngine\NearbyPlaceSuggestionData;
+use App\Data\BookingEngine\PropertyNearbyPlaceData;
 use App\Data\Concierge\ConciergeAmenitySettingsData;
 use App\Data\Concierge\ConciergeContactSettingsData;
 use App\Data\Concierge\ConciergeFaqData;
 use App\Data\Concierge\ConciergeHotelInfoSettingsData;
 use App\Data\Concierge\ConciergeTopicData;
 use App\Data\Concierge\ConciergeWifiData;
-use App\Enums\PermissionEnum;
-use App\Features\BookingEngine;
+use App\Enums\AmenityType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BookingEngine\SetAmenityRequest;
 use App\Http\Requests\Concierge\SaveAmenityDetailRequest;
 use App\Http\Requests\Concierge\SaveGuestContactsRequest;
 use App\Http\Requests\Concierge\SaveHotelInfoRequest;
@@ -29,17 +33,18 @@ use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
 use App\Http\Requests\Concierge\UpdateSettingsRequest;
 use App\Models\Amenity;
+use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Models\PropertyFaq;
 use App\Models\PropertyInfoTopic;
 use App\Models\PropertyWifiNetwork;
+use App\Services\BookingEngine\NearbyPlaceSuggestions;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergeLobbyQr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Pennant\Feature;
 
 /**
  * The staff side of the Concierge page: the lobby QR, the switches and the content guests read (house rules, Wi-Fi
@@ -50,7 +55,7 @@ class ConciergeSettingsController extends Controller
     /**
      * The staff page with the lobby address and its QR code to print.
      */
-    public function index(Request $request, Property $property, ConciergeLobbyQr $qr, ConciergeGuide $guide): Response
+    public function index(Request $request, Property $property, ConciergeLobbyQr $qr, ConciergeGuide $guide, NearbyPlaceSuggestions $suggestions): Response
     {
         $url = route('concierge.lobby', ['property' => $property->code]);
 
@@ -66,7 +71,10 @@ class ConciergeSettingsController extends Controller
             'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
             'hotelInfo' => ConciergeHotelInfoSettingsData::fromProperty($property->loadMissing('transportDetail')),
             'contacts' => ConciergeContactSettingsData::fromProperty($property),
-            'amenities' => $property->amenities()->with('category')->orderBy('position')->get()->map(ConciergeAmenitySettingsData::fromModel(...))->values(),
+            'amenities' => AmenityPickerData::forType(AmenityType::Property, $property->amenities()->get()),
+            'amenityDetails' => $property->amenities()->with('category')->orderBy('position')->get()->map(ConciergeAmenitySettingsData::fromModel(...))->values(),
+            'page' => max(1, $request->integer('page', 1)),
+            'listUrl' => $request->url(),
             'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
             'policyTerms' => $guide->terms($property),
             'sections' => [
@@ -75,7 +83,8 @@ class ConciergeSettingsController extends Controller
                 'amenities' => $property->amenities()->count(),
                 'nearbyPlaces' => $property->nearbyPlaces()->wherePivot('active', true)->count(),
             ],
-            'bookingEngine' => Feature::for($property)->active(BookingEngine::class) && $request->user()->can(PermissionEnum::BookingWebsiteManage->value),
+            'nearbyPlaces' => $suggestions->ownPlaces($property)->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
+            'suggestions' => $suggestions->for($property)->map(fn (NearbyPlace $place): NearbyPlaceSuggestionData => NearbyPlaceSuggestionData::fromModel($place))->values(),
         ]);
     }
 
@@ -85,7 +94,7 @@ class ConciergeSettingsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Concierge settings saved.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function storeWifi(StoreWifiRequest $request, Property $property, AddWifiNetwork $addNetwork): RedirectResponse
@@ -96,7 +105,7 @@ class ConciergeSettingsController extends Controller
             ? ['type' => 'error', 'message' => __('A property can list up to :count Wi-Fi networks.', ['count' => AddWifiNetwork::MAX])]
             : ['type' => 'success', 'message' => __('Wi-Fi network added.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function destroyWifi(Request $request, Property $property, PropertyWifiNetwork $wifiNetwork, RemoveWifiNetwork $removeNetwork): RedirectResponse
@@ -105,7 +114,7 @@ class ConciergeSettingsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Wi-Fi network removed.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function storeFaq(StoreFaqRequest $request, Property $property, AddFaq $addFaq): RedirectResponse
@@ -116,7 +125,7 @@ class ConciergeSettingsController extends Controller
             ? ['type' => 'error', 'message' => __('A property can list up to :count questions.', ['count' => AddFaq::MAX])]
             : ['type' => 'success', 'message' => __('Question added.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function destroyFaq(Request $request, Property $property, PropertyFaq $faq, RemoveFaq $removeFaq): RedirectResponse
@@ -125,7 +134,7 @@ class ConciergeSettingsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Question removed.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function updateHotelInfo(SaveHotelInfoRequest $request, Property $property, SaveHotelInfo $saveHotelInfo): RedirectResponse
@@ -134,7 +143,7 @@ class ConciergeSettingsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Hotel info saved.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function updateContacts(SaveGuestContactsRequest $request, Property $property, SaveGuestContacts $saveContacts): RedirectResponse
@@ -143,7 +152,7 @@ class ConciergeSettingsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Contacts saved.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function storeTopic(StoreInfoTopicRequest $request, Property $property, AddInfoTopic $addTopic): RedirectResponse
@@ -154,7 +163,7 @@ class ConciergeSettingsController extends Controller
             ? ['type' => 'error', 'message' => __('A property can list up to :count extra topics.', ['count' => AddInfoTopic::MAX])]
             : ['type' => 'success', 'message' => __('Topic added.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 
     public function destroyTopic(Request $request, Property $property, PropertyInfoTopic $infoTopic, RemoveInfoTopic $removeTopic): RedirectResponse
@@ -163,7 +172,19 @@ class ConciergeSettingsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Topic removed.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
+    }
+
+    /**
+     * One switch of the amenity list. Same Action and rules as the Booking website page, so either screen edits the same list.
+     */
+    public function toggleAmenity(SetAmenityRequest $request, Property $property, SetPropertyAmenity $setPropertyAmenity): RedirectResponse
+    {
+        if (! $setPropertyAmenity($request->user(), $property, $request->integer('amenity_id'), $request->boolean('active'))) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The amenity list changed. Reload the page and try again.')]);
+        }
+
+        return back();
     }
 
     public function updateAmenity(SaveAmenityDetailRequest $request, Property $property, Amenity $amenity, SaveAmenityDetail $saveDetail): RedirectResponse
@@ -174,6 +195,6 @@ class ConciergeSettingsController extends Controller
             ? ['type' => 'success', 'message' => __(':name details saved.', ['name' => $amenity->name])]
             : ['type' => 'error', 'message' => __('The property no longer offers this amenity. Reload the page.')]);
 
-        return to_route('settings.concierge.index', $property);
+        return back();
     }
 }

@@ -331,7 +331,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::delete('wifi/{wifiNetwork}', [ConciergeSettingsController::class, 'destroyWifi'])->name('wifi.destroy');
         Route::post('faqs', [ConciergeSettingsController::class, 'storeFaq'])->name('faqs.store');
         Route::delete('faqs/{faq}', [ConciergeSettingsController::class, 'destroyFaq'])->name('faqs.destroy');
+        Route::put('amenities', [ConciergeSettingsController::class, 'toggleAmenity'])->name('amenities.toggle');
         Route::put('amenities/{amenity}', [ConciergeSettingsController::class, 'updateAmenity'])->whereNumber('amenity')->name('amenities.update');
+        Route::prefix('nearby-places')->name('nearby-places.')->group(function () {
+            Route::post('/', [NearbyPlaceController::class, 'store'])->name('store');
+            Route::put('order', [NearbyPlaceController::class, 'reorder'])->name('reorder');
+            Route::post('{nearbyPlace}/suggested', [NearbyPlaceController::class, 'storeSuggested'])->withoutScopedBindings()->whereNumber('nearbyPlace')->name('suggested');
+            Route::put('{nearbyPlace}', [NearbyPlaceController::class, 'update'])->whereNumber('nearbyPlace')->name('update');
+            Route::put('{nearbyPlace}/active', [NearbyPlaceController::class, 'active'])->whereNumber('nearbyPlace')->name('active.update');
+            Route::delete('{nearbyPlace}', [NearbyPlaceController::class, 'destroy'])->whereNumber('nearbyPlace')->name('destroy');
+        });
         Route::put('hotel-info', [ConciergeSettingsController::class, 'updateHotelInfo'])->name('hotel-info.update');
         Route::put('contacts', [ConciergeSettingsController::class, 'updateContacts'])->name('contacts.update');
         Route::post('topics', [ConciergeSettingsController::class, 'storeTopic'])->name('topics.store');

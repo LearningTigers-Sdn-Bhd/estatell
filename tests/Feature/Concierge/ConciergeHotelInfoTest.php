@@ -2,8 +2,10 @@
 
 use App\Actions\Concierge\AddInfoTopic;
 use App\Enums\PermissionEnum;
+use App\Features\BookingEngine;
 use App\Features\Concierge;
 use App\Models\Amenity;
+use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Models\PropertyInfoTopic;
 use App\Models\PropertyTransportDetail;
@@ -150,9 +152,11 @@ it('lets staff write the guest details of an amenity the property offers, and sh
         ->and($property->amenities()->whereKey($gym->id)->first()->pivot->location)->toBeNull();
 
     $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
-        ->has('amenities', 2)
-        ->where('amenities.1.name', 'Pool')
-        ->where('amenities.1.openingHours', '7 am to 10 pm'));
+        ->has('amenityDetails', 2)
+        ->where('amenityDetails.1.name', 'Pool')
+        ->where('amenityDetails.1.openingHours', '7 am to 10 pm')
+        ->has('amenities.amenities', 2)
+        ->has('amenities.selectedIds', 2));
 
     $this->get("/stay/{$property->code}/info/amenities")->assertInertia(fn (Assert $page) => $page
         ->where('amenities.1.name', 'Pool')
@@ -176,4 +180,56 @@ it('refuses details for an amenity the property does not offer, bad input, and s
     $this->actingAs($owner)->put(route('settings.concierge.amenities.update', [$property, $other]), ['reservation_required' => false])->assertNotFound();
     $this->actingAs($owner)->put(route('settings.concierge.amenities.update', [$property, $offered]), ['reservation_required' => false, 'location' => str_repeat('x', 201)])->assertSessionHasErrors('location');
     $this->actingAs($staff)->put(route('settings.concierge.amenities.update', [$property, $offered]), ['reservation_required' => false])->assertForbidden();
+});
+
+it('lets staff switch an amenity on and off from Concierge without the booking engine', function () {
+    [$owner, $property] = liveOwner();
+    $pool = Amenity::factory()->create(['name' => 'Pool']);
+
+    expect(Feature::for($property)->active(BookingEngine::class))->toBeFalse();
+
+    $this->actingAs($owner)->put(route('settings.concierge.amenities.toggle', $property), ['amenity_id' => $pool->id, 'active' => true])->assertRedirect();
+    expect($property->amenities()->whereKey($pool->id)->exists())->toBeTrue();
+
+    $this->put(route('settings.concierge.amenities.toggle', $property), ['amenity_id' => $pool->id, 'active' => false])->assertRedirect();
+    expect($property->amenities()->whereKey($pool->id)->exists())->toBeFalse();
+});
+
+it('does not let an amenity switch work when Concierge is off', function () {
+    $owner = User::factory()->owner()->create();
+    $pool = Amenity::factory()->create();
+
+    $this->actingAs($owner)->put(route('settings.concierge.amenities.toggle', $owner->property), ['amenity_id' => $pool->id, 'active' => true])->assertNotFound();
+});
+
+it('lets staff manage nearby places from Concierge without the booking engine', function () {
+    [$owner, $property] = liveOwner();
+    [$a, $b] = NearbyPlace::factory()->count(2)->create();
+    $property->nearbyPlaces()->attach($a->id, ['position' => 1]);
+    $suggested = NearbyPlace::factory()->create();
+
+    expect(Feature::for($property)->active(BookingEngine::class))->toBeFalse();
+
+    $this->actingAs($owner)->post(route('settings.concierge.nearby-places.suggested', [$property, $suggested]))->assertRedirect();
+    $this->put(route('settings.concierge.nearby-places.update', [$property, $a]), ['description' => 'Five minutes by car'])->assertSessionHasNoErrors();
+    $this->put(route('settings.concierge.nearby-places.active.update', [$property, $a]), ['active' => false])->assertRedirect();
+    $this->put(route('settings.concierge.nearby-places.reorder', $property), ['order' => [$suggested->id, $a->id]])->assertSessionHasNoErrors();
+
+    expect($property->nearbyPlaces()->pluck('nearby_places.id')->all())->toBe([$suggested->id, $a->id])
+        ->and($property->nearbyPlaces()->whereKey($a->id)->first()->pivot->active)->toBeFalse();
+
+    $this->delete(route('settings.concierge.nearby-places.destroy', [$property, $a]))->assertRedirect();
+
+    expect($property->nearbyPlaces()->pluck('nearby_places.id')->all())->toBe([$suggested->id]);
+
+    $this->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
+        ->has('nearbyPlaces', 1)
+        ->has('suggestions'));
+});
+
+it('does not let nearby place changes work when Concierge is off', function () {
+    $owner = User::factory()->owner()->create();
+    $place = NearbyPlace::factory()->create();
+
+    $this->actingAs($owner)->post(route('settings.concierge.nearby-places.suggested', [$owner->property, $place]))->assertNotFound();
 });

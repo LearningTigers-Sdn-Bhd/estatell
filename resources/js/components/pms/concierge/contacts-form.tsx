@@ -1,12 +1,19 @@
 import { Form } from '@inertiajs/react';
 import { useState } from 'react';
-import { TextField } from '@/components/pms/concierge/content-fields';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+    keepPage,
+    SubmitButton,
+    SwitchRow,
+    TextField,
+} from '@/components/pms/concierge/content-fields';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { FieldGroup } from '@/components/ui/field';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import { Switch } from '@/components/ui/switch';
 import { update } from '@/routes/settings/concierge/contacts';
 
 /** Front desk hours, out-of-hours contacts and emergency numbers. The property phone and email live on the property profile. */
@@ -18,12 +25,19 @@ export function ContactsForm({
     const [open24h, setOpen24h] = useState(contacts.frontDeskOpen24h);
 
     return (
-        <Card className="max-w-md print:hidden">
+        <Card className="print:hidden">
+            <CardHeader>
+                <CardTitle>Front desk and emergency contacts</CardTitle>
+                <CardDescription>
+                    Set desk hours and the numbers guests should use when they
+                    need help.
+                </CardDescription>
+            </CardHeader>
             <CardContent>
                 <Form
                     action={update.url()}
                     method="put"
-                    options={{ preserveScroll: true, preserveState: true }}
+                    options={keepPage}
                     className="flex flex-col gap-5"
                 >
                     {({ processing, errors }) => (
@@ -34,16 +48,13 @@ export function ContactsForm({
                                 value={open24h ? '1' : '0'}
                             />
                             <FieldGroup>
-                                <div className="flex items-center justify-between gap-4">
-                                    <Label htmlFor="front_desk_24h_switch">
-                                        Front desk open 24 hours
-                                    </Label>
-                                    <Switch
-                                        id="front_desk_24h_switch"
-                                        checked={open24h}
-                                        onCheckedChange={setOpen24h}
-                                    />
-                                </div>
+                                <SwitchRow
+                                    id="front_desk_24h_switch"
+                                    title="Front desk open 24 hours"
+                                    checked={open24h}
+                                    onChange={setOpen24h}
+                                    className="items-center"
+                                />
                                 {!open24h && (
                                     <>
                                         <TextField
@@ -66,6 +77,7 @@ export function ContactsForm({
                                         />
                                         <TextField
                                             name="after_hours_message"
+                                            placeholder="e.g. The desk is closed. Call the duty manager for urgent help."
                                             label="Message when the desk is closed"
                                             defaultValue={
                                                 contacts.afterHoursMessage
@@ -76,6 +88,7 @@ export function ContactsForm({
                                         />
                                         <TextField
                                             name="duty_manager_phone"
+                                            placeholder="e.g. +60 12 345 6789"
                                             label="Duty manager phone (urgent only, shown while closed)"
                                             type="tel"
                                             defaultValue={
@@ -97,6 +110,7 @@ export function ContactsForm({
                                 />
                                 <TextField
                                     name="emergency_phone"
+                                    placeholder="e.g. +60 3 1234 5678"
                                     label="Property security phone"
                                     type="tel"
                                     defaultValue={contacts.emergencyPhone}
@@ -116,6 +130,7 @@ export function ContactsForm({
                                 />
                                 <TextField
                                     name="emergency_instructions"
+                                    placeholder="e.g. Call 999, then the security phone. The assembly point is the car park."
                                     label="Emergency instructions"
                                     defaultValue={
                                         contacts.emergencyInstructions
@@ -125,17 +140,9 @@ export function ContactsForm({
                                     maxLength={1000}
                                 />
                             </FieldGroup>
-                            <Button
-                                type="submit"
-                                className="self-end"
-                                disabled={processing}
-                                focusableWhenDisabled
-                            >
-                                {processing && (
-                                    <Spinner data-icon="inline-start" />
-                                )}
+                            <SubmitButton processing={processing}>
                                 Save
-                            </Button>
+                            </SubmitButton>
                         </>
                     )}
                 </Form>
