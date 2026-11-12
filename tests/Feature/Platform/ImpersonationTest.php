@@ -348,7 +348,7 @@ test('stop says how long the session lasted', function () {
 
 test('a write during a session records the support user as causer with the impersonated user', function () {
     $tax = Tax::factory()->for($this->property)->create();
-    $payload = ['name' => 'City levy', 'code' => 'CITY', 'rate_type' => TaxRateType::Flat->value, 'rate' => '3.00', 'is_inclusive' => false, 'foreign_guests_only' => false, 'collect_at_check_in' => false, 'enabled' => true];
+    $payload = ['name' => 'City levy', 'code' => 'CITY', 'rate_type' => TaxRateType::Flat->value, 'rate' => '3.00', 'is_inclusive' => false, 'foreign_guests_only' => false, 'collect_at_check_in' => false, 'can_be_waived' => false, 'enabled' => true];
 
     $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
     $this->put(route('settings.taxes.update', ['ES10142', $tax]), $payload)->assertRedirect();
@@ -361,7 +361,7 @@ test('a write during a session records the support user as causer with the imper
 
 test('a write outside a session keeps its own causer', function () {
     $tax = Tax::factory()->for($this->property)->create();
-    $payload = ['name' => 'City levy', 'code' => 'CITY', 'rate_type' => TaxRateType::Flat->value, 'rate' => '3.00', 'is_inclusive' => false, 'foreign_guests_only' => false, 'collect_at_check_in' => false, 'enabled' => true];
+    $payload = ['name' => 'City levy', 'code' => 'CITY', 'rate_type' => TaxRateType::Flat->value, 'rate' => '3.00', 'is_inclusive' => false, 'foreign_guests_only' => false, 'collect_at_check_in' => false, 'can_be_waived' => false, 'enabled' => true];
 
     $this->actingAs($this->owner)->put(route('settings.taxes.update', ['ES10142', $tax]), $payload);
 
