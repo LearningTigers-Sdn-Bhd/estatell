@@ -25,6 +25,8 @@ type SectionActions = ReactNode | ((state: { isDirty: boolean }) => ReactNode);
  * One settings section = one form, saved on its own. Field ids must match field names so the first error gets focus.
  * `readOnly` hides the save button for users who may only view; disable the fields as well.
  * `actions` sit on the right of the header, and wrap below the description on a phone.
+ * `hideHeader` leaves the title and description out when the page header already says them; the title still names
+ * the unsaved changes dialog.
  */
 export function SettingsSection({
     form,
@@ -38,6 +40,7 @@ export function SettingsSection({
     headerClassName,
     submitInHeader = false,
     submitIcon,
+    hideHeader = false,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -54,6 +57,8 @@ export function SettingsSection({
     submitInHeader?: boolean;
     /** An icon before the save button label. */
     submitIcon?: LucideIcon;
+    /** Leaves out the title and description, for a section that repeats the page header. */
+    hideHeader?: boolean;
     children: (errors: Record<string, string>) => ReactNode;
 }) {
     const afterSave = useRef<(() => void) | null>(null);
@@ -81,6 +86,7 @@ export function SettingsSection({
                     headerClassName={headerClassName}
                     submitInHeader={submitInHeader}
                     submitIcon={submitIcon}
+                    hideHeader={hideHeader}
                     processing={processing}
                     isDirty={isDirty}
                     onSave={(onSaved) => {
@@ -106,6 +112,7 @@ function SettingsSectionContent({
     headerClassName,
     submitInHeader,
     submitIcon: SubmitIcon,
+    hideHeader,
     processing,
     isDirty,
     onSave,
@@ -121,6 +128,7 @@ function SettingsSectionContent({
     headerClassName?: string;
     submitInHeader: boolean;
     submitIcon?: LucideIcon;
+    hideHeader: boolean;
     processing: boolean;
     isDirty: boolean;
     onSave: (onSaved: () => void) => void;
@@ -168,7 +176,7 @@ function SettingsSectionContent({
                         {showSaveInHeader && saveButton}
                     </div>
                 </header>
-            ) : (
+            ) : hideHeader ? null : (
                 <header className={cn('space-y-1', headerClassName)}>
                     <h3 className="text-base font-medium">{title}</h3>
                     <p className="text-sm text-muted-foreground">
