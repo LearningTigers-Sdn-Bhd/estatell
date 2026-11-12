@@ -1,13 +1,29 @@
 import { Head, router } from '@inertiajs/react';
-import { ExternalLink, LayoutTemplate, Plus } from 'lucide-react';
+import {
+    Archive,
+    CircleCheck,
+    Ellipsis,
+    ExternalLink,
+    LayoutTemplate,
+    Pencil,
+    PencilLine,
+    Plus,
+    Wrench,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { SiteTemplateSheet } from '@/components/pms/site-templates/site-template-sheet';
-import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -16,25 +32,62 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { dashboard } from '@/routes/admin';
 import { index } from '@/routes/admin/site-templates';
 import { update as updateStatus } from '@/routes/admin/site-templates/status';
 
 type Template = App.Data.BookingEngine.SiteTemplateData;
 
+/** The order of the Availability buttons. */
+const statusOrder = ['available', 'retired', 'draft'];
+
+const typeIcons: Record<string, LucideIcon> = {
+    standard: LayoutTemplate,
+    custom: Wrench,
+};
+
+const statusIcons: Record<string, LucideIcon> = {
+    available: CircleCheck,
+    retired: Archive,
+    draft: PencilLine,
+};
+
+function TypeLabel({ template }: { template: Template }) {
+    const Icon = typeIcons[template.type];
+
+    return (
+        <span className="flex items-center gap-1.5">
+            {Icon && <Icon className="size-4 text-muted-foreground" />}
+            {template.typeLabel}
+        </span>
+    );
+}
+
 export default function SiteTemplatesIndex({
     templates,
     typeOptions,
+    statusOptions,
     properties,
 }: {
     templates: Template[];
     typeOptions: EnumOption[];
+    statusOptions: EnumOption[];
     properties: EnumOption[];
 }) {
     const [adding, setAdding] = useState(false);
     const [editing, setEditing] = useState<Template | null>(null);
     const [search, setSearch] = useState('');
     const [moving, setMoving] = useState<number | null>(null);
+    const orderedStatuses = useMemo(
+        () =>
+            [...statusOptions].sort(
+                (first, second) =>
+                    statusOrder.indexOf(first.value) -
+                    statusOrder.indexOf(second.value),
+            ),
+        [statusOptions],
+    );
 
     const visible = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -86,9 +139,11 @@ export default function SiteTemplatesIndex({
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-px">
+                                    Availability
+                                </TableHead>
                                 <TableHead>Template</TableHead>
                                 <TableHead>Type</TableHead>
-                                <TableHead>Status</TableHead>
                                 <TableHead className="text-right">
                                     Slots
                                 </TableHead>
@@ -104,6 +159,49 @@ export default function SiteTemplatesIndex({
                             {visible.map((template) => (
                                 <TableRow key={template.id}>
                                     <TableCell>
+                                        <ToggleGroup
+                                            variant="outline"
+                                            size="sm"
+                                            spacing={0}
+                                            value={[template.status.value]}
+                                            disabled={moving === template.id}
+                                            onValueChange={(value) =>
+                                                value[0] &&
+                                                value[0] !==
+                                                    template.status.value &&
+                                                move(template, value[0])
+                                            }
+                                            aria-label={`Availability of ${template.name}`}
+                                        >
+                                            {orderedStatuses.map((option) => {
+                                                const Icon =
+                                                    statusIcons[option.value];
+
+                                                return (
+                                                    <ToggleGroupItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                        disabled={
+                                                            option.value !==
+                                                                template.status
+                                                                    .value &&
+                                                            !template.transitions.some(
+                                                                (transition) =>
+                                                                    transition.value ===
+                                                                    option.value,
+                                                            )
+                                                        }
+                                                    >
+                                                        {Icon && (
+                                                            <Icon data-icon="inline-start" />
+                                                        )}
+                                                        {option.label}
+                                                    </ToggleGroupItem>
+                                                );
+                                            })}
+                                        </ToggleGroup>
+                                    </TableCell>
+                                    <TableCell>
                                         <div className="flex flex-col">
                                             <span className="font-medium">
                                                 {template.name}
@@ -115,16 +213,13 @@ export default function SiteTemplatesIndex({
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span>{template.typeLabel}</span>
+                                            <TypeLabel template={template} />
                                             {template.propertyLabel && (
                                                 <span className="text-xs text-muted-foreground">
                                                     {template.propertyLabel}
                                                 </span>
                                             )}
                                         </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <StatusBadge status={template.status} />
                                     </TableCell>
                                     <TableCell className="text-right tabular-nums">
                                         {template.slots.length}
@@ -145,37 +240,29 @@ export default function SiteTemplatesIndex({
                                                     <ExternalLink className="size-4" />
                                                 </a>
                                             )}
-                                            {template.transitions.map(
-                                                (transition) => (
-                                                    <Button
-                                                        key={transition.value}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled={
-                                                            moving ===
-                                                            template.id
-                                                        }
-                                                        focusableWhenDisabled
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger
+                                                    render={
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                            aria-label={`Actions for ${template.name}`}
+                                                        />
+                                                    }
+                                                >
+                                                    <Ellipsis />
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
                                                         onClick={() =>
-                                                            move(
-                                                                template,
-                                                                transition.value,
-                                                            )
+                                                            setEditing(template)
                                                         }
                                                     >
-                                                        {transition.label}
-                                                    </Button>
-                                                ),
-                                            )}
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setEditing(template)
-                                                }
-                                            >
-                                                Edit
-                                            </Button>
+                                                        <Pencil />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </TableCell>
                                 </TableRow>
