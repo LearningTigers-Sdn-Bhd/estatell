@@ -22,7 +22,7 @@ require_once __DIR__.'/../Support/TaxWaiverSetup.php';
 
 function wtWaive(array $setup, ?array $taxIds = null): TaxWaiverResult
 {
-    return app(WaiveUnitTax::class)($setup['user'], $setup['unit'], $taxIds ?? [$setup['tourism']->id], TaxWaiverReason::PaidElsewhere, 'Trip.com', '1128152109837544');
+    return app(WaiveUnitTax::class)($setup['user'], $setup['unit'], $taxIds ?? [$setup['tourism']->id], TaxWaiverReason::PaidElsewhere, 'Trip.com', '1128000012345678');
 }
 
 function wtUrl(array $setup, string $path = 'tax-waivers'): string
@@ -43,11 +43,11 @@ test('waiving a tax reverses it on posted nights and the audit stops charging it
             'reservation_unit_id' => $setup['unit']->id,
             'tax_id' => $setup['tourism']->id,
             'paid_to' => 'Trip.com',
-            'reference' => '1128152109837544',
+            'reference' => '1128000012345678',
             'user_id' => $setup['user']->id,
         ])
         ->and(wtLiveTaxes())->toBe(['Service Tax' => '8.00'])
-        ->and(FolioManualBatch::query()->sole()->reason)->toBe('Tax paid by Trip.com · 1128152109837544')
+        ->and(FolioManualBatch::query()->sole()->reason)->toBe('Tax paid by Trip.com · 1128000012345678')
         ->and(Activity::query()->where('event', 'reservation.unit_tax_waived')->sole()->properties['tax_ids'])->toBe([$setup['tourism']->id]);
 
     wtPostNight($setup, '2026-10-13');
@@ -132,7 +132,7 @@ test('front desk waives a tax from the unit panel', function () {
     $setup = wtSetup();
 
     $this->actingAs($setup['user'])
-        ->post(wtUrl($setup), ['tax_ids' => [$setup['tourism']->id], 'reason' => 'paid_elsewhere', 'paid_to' => 'Trip.com', 'reference' => '1128152109837544'])
+        ->post(wtUrl($setup), ['tax_ids' => [$setup['tourism']->id], 'reason' => 'paid_elsewhere', 'paid_to' => 'Trip.com', 'reference' => '1128000012345678'])
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 
@@ -173,7 +173,7 @@ test('waiving needs the waive taxes permission and the property of the unit', fu
 test('the unit panel shows the waiver and the form starts with the booking source and reference', function () {
     $setup = wtSetup();
     $source = BookingSource::factory()->for($setup['property'])->ota(name: 'Trip.com')->create();
-    $setup['reservation']->forceFill(['booking_source_id' => $source->id, 'external_reference' => '1128152109837544'])->save();
+    $setup['reservation']->forceFill(['booking_source_id' => $source->id, 'external_reference' => '1128000012345678'])->save();
     $levy = Tax::factory()->for($setup['property'])->waivable()->create(['name' => 'Heritage levy']);
     wtWaive($setup);
 
@@ -181,10 +181,10 @@ test('the unit panel shows the waiver and the form starts with the booking sourc
         ->get("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}?unit={$setup['unit']->id}")
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('unit.taxWaivers', [['taxId' => $setup['tourism']->id, 'taxName' => 'Tourism tax', 'summary' => 'Paid by Trip.com · 1128152109837544']])
+            ->where('unit.taxWaivers', [['taxId' => $setup['tourism']->id, 'taxName' => 'Tourism tax', 'summary' => 'Paid by Trip.com · 1128000012345678']])
             ->where('unit.taxWaiverForm.taxes', [['value' => (string) $levy->id, 'label' => 'Heritage levy']])
             ->where('unit.taxWaiverForm.paidTo', 'Trip.com')
-            ->where('unit.taxWaiverForm.reference', '1128152109837544')
+            ->where('unit.taxWaiverForm.reference', '1128000012345678')
             ->where('unit.actions', fn ($actions): bool => collect($actions)->pluck('key')->contains('waive-tax')));
 });
 

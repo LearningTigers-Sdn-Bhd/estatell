@@ -544,12 +544,12 @@ test('the printed summary notes each waived tax once, and the page summary reads
     $first = bsUnit($setup['reservation']);
     $second = bsUnit($setup['reservation']);
     $third = bsUnit($setup['reservation']);
-    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $first->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128152109837544']);
-    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $second->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128152109837544']);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $first->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128000012345678']);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $second->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128000012345678']);
     ReservationUnitTaxWaiver::factory()->guestReceipt()->create(['reservation_unit_id' => $third->id, 'tax_id' => $tax->id, 'reference' => 'TTX-88231']);
 
     expect(bsSummary($setup, forPrint: true)->taxNotes)->toBe([
-        'Service tax 8% paid by Trip.com (ref 1128152109837544).',
+        'Service tax 8% paid by Trip.com (ref 1128000012345678).',
         'Service tax 8% paid by the guest (receipt TTX-88231).',
     ])
         ->and(bsSummary($setup)->taxNotes)->toBe([]);

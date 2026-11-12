@@ -746,13 +746,13 @@ test('paid elsewhere names who collected a waived foreign-guest tax and leaves o
     $none = registerUnit($property, '2026-10-02', '2026-10-04');
     $tax = foreignTax($property);
     $localTax = Tax::factory()->create(['property_id' => $property->id, 'foreign_guests_only' => false]);
-    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $ota->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128152109837544']);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $ota->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128000012345678']);
     ReservationUnitTaxWaiver::factory()->guestReceipt()->create(['reservation_unit_id' => $receipt->id, 'tax_id' => $tax->id, 'reference' => 'TTX-88231']);
     ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $none->id, 'tax_id' => $localTax->id, 'paid_to' => 'Agoda', 'reference' => '9']);
 
     $rows = collect(app(NonNationalGuestsReport::class)->rows($property, new ReportFilters('2026-10-01', '2026-10-31')))->keyBy('key');
 
-    expect($rows[$ota->id]->paid_elsewhere)->toBe('Trip.com · 1128152109837544')
+    expect($rows[$ota->id]->paid_elsewhere)->toBe('Trip.com · 1128000012345678')
         ->and($rows[$receipt->id]->paid_elsewhere)->toBe('Guest receipt · TTX-88231')
         ->and($rows[$none->id]->paid_elsewhere)->toBe('');
 });
