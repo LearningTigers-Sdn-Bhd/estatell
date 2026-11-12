@@ -44,7 +44,7 @@ function wgSetup(): array
  */
 function wgWaive(array $setup, array $unitIds): GroupTaxWaiverResult
 {
-    return app(WaiveGroupTax::class)($setup['user'], $setup['reservation'], $unitIds, [$setup['tourism']->id], TaxWaiverReason::PaidElsewhere, 'Trip.com', '1128152109837544');
+    return app(WaiveGroupTax::class)($setup['user'], $setup['reservation'], $unitIds, [$setup['tourism']->id], TaxWaiverReason::PaidElsewhere, 'Trip.com', '1128000012345678');
 }
 
 function wgUrl(array $setup): string
@@ -108,7 +108,7 @@ test('front desk waives a tax for the chosen rooms from More', function () {
     $setup = wgSetup();
 
     $this->actingAs($setup['user'])
-        ->post(wgUrl($setup), ['unit_ids' => [$setup['unit']->id, $setup['second']->id], 'tax_ids' => [$setup['tourism']->id], 'reason' => 'paid_elsewhere', 'paid_to' => 'Trip.com', 'reference' => '1128152109837544'])
+        ->post(wgUrl($setup), ['unit_ids' => [$setup['unit']->id, $setup['second']->id], 'tax_ids' => [$setup['tourism']->id], 'reason' => 'paid_elsewhere', 'paid_to' => 'Trip.com', 'reference' => '1128000012345678'])
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 
@@ -138,7 +138,7 @@ test('the group waiver needs the waive taxes permission', function () {
 
 test('the group form options list the taxes that can be paid elsewhere when asked for', function () {
     $setup = wgSetup();
-    $setup['reservation']->forceFill(['external_reference' => '1128152109837544'])->save();
+    $setup['reservation']->forceFill(['external_reference' => '1128000012345678'])->save();
 
     $this->actingAs($setup['user'])
         ->get("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}")
@@ -149,5 +149,5 @@ test('the group form options list the taxes that can be paid elsewhere when aske
                 ->where('taxWaiverOptions.taxes', [
                     ['value' => (string) $setup['tourism']->id, 'label' => 'Tourism tax'],
                 ])
-                ->where('taxWaiverOptions.reference', '1128152109837544')));
+                ->where('taxWaiverOptions.reference', '1128000012345678')));
 });

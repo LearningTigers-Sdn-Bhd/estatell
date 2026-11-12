@@ -386,8 +386,8 @@ test('a folio with no migrated line prints no Old system block', function () {
 test('the invoice notes a tax waived for a unit on the folio', function () {
     $setup = fiSetup();
     $folio = fiClosedFolio($setup);
-    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $folio->reservation_unit_id, 'tax_id' => $setup['tax']->id, 'paid_to' => 'Trip.com', 'reference' => '1128152109837544']);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $folio->reservation_unit_id, 'tax_id' => $setup['tax']->id, 'paid_to' => 'Trip.com', 'reference' => '1128000012345678']);
 
-    expect(fiInvoice($folio)->taxNotes)->toBe(['Service tax 8% paid by Trip.com (ref 1128152109837544).'])
-        ->and(fiHtml($setup, $folio))->toContain('Service tax 8% paid by Trip.com (ref 1128152109837544).');
+    expect(fiInvoice($folio)->taxNotes)->toBe(['Service tax 8% paid by Trip.com (ref 1128000012345678).'])
+        ->and(fiHtml($setup, $folio))->toContain('Service tax 8% paid by Trip.com (ref 1128000012345678).');
 });
