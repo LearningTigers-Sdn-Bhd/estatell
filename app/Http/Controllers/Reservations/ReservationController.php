@@ -16,6 +16,7 @@ use App\Data\Reservations\ReservationMoneyData;
 use App\Data\Reservations\ReservationStatusCountData;
 use App\Data\Reservations\ReservationUnitData;
 use App\Data\Reservations\ReservationUnitOptionData;
+use App\Data\Reservations\UnitTaxWaiverFormData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
@@ -29,6 +30,7 @@ use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\TransactionKind;
+use App\Enums\UnitAction;
 use App\Enums\UnitMovement;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
@@ -40,6 +42,7 @@ use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
@@ -354,7 +357,23 @@ class ReservationController extends Controller
                 && in_array($unit->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)
                 && $unit->stay_type === StayType::Overnight
                 && $unit->roomType->sell_unit === SellUnit::Room,
+            taxWaiverForm: $this->taxWaiverForm($user, $reservation, $unit),
         );
+    }
+
+    /**
+     * The Taxes paid elsewhere Dialog of the unit, for a user who may waive taxes on a unit that can take a waiver.
+     */
+    private function taxWaiverForm(User $user, Reservation $reservation, ReservationUnit $unit): ?UnitTaxWaiverFormData
+    {
+        if (! $user->can(PermissionEnum::FolioWaiveTax->value) || ! UnitAction::WaiveTax->isOpenFor($unit->status)) {
+            return null;
+        }
+
+        $waived = $unit->loadMissing('taxWaivers')->taxWaivers->pluck('tax_id')->all();
+        $taxes = Tax::query()->where('property_id', $unit->property_id)->where('enabled', true)->whereNotIn('id', $waived)->orderBy('id')->get();
+
+        return UnitTaxWaiverFormData::forReservation($reservation->loadMissing('bookingSource', 'company'), $taxes);
     }
 
     /**
@@ -446,6 +465,10 @@ class ReservationController extends Controller
             'hasUnitToCheckIn' => $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canCancelReservation' => $user->can(PermissionEnum::ReservationsManage->value) && $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
+            'canWaiveTax' => $user->can(PermissionEnum::FolioWaiveTax->value),
+            'taxWaiverOptions' => Inertia::optional(fn (): ?UnitTaxWaiverFormData => $user->can(PermissionEnum::FolioWaiveTax->value)
+                ? UnitTaxWaiverFormData::forReservation($reservation, Tax::query()->where('property_id', $property->id)->where('enabled', true)->orderBy('id')->get())
+                : null),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
             'manualReasons' => ManualFolioReason::options(),

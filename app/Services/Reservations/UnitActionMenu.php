@@ -139,7 +139,7 @@ class UnitActionMenu
             UnitAction::CheckIn => $businessDate === $date,
             UnitAction::CheckOut, UnitAction::NoShow => $businessDate >= $date,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate <= $date,
-            UnitAction::Cancel => true,
+            UnitAction::Cancel, UnitAction::WaiveTax => true,
             UnitAction::LateCheckOut, UnitAction::CheckOutAsDayUse, UnitAction::ChangeDates, UnitAction::UndoCheckIn, UnitAction::UndoCheckOut => false,
         };
     }

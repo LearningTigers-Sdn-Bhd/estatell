@@ -347,20 +347,20 @@ test('the unit menu offers a day use unit only what its status and the date allo
     $menu = fn (): array => array_map(fn ($action): string => $action->key->value, app(UnitActionMenu::class)->for($setup['actor'], $setup['unit']->fresh()));
 
     setBusinessDate($setup, $setup['date']->subDay());
-    expect($menu())->toBe(['cancel', 'move-room']);
+    expect($menu())->toBe(['cancel', 'move-room', 'waive-tax']);
 
     setBusinessDate($setup, $setup['date']);
-    expect($menu())->toBe(['check-in', 'cancel', 'no-show', 'move-room']);
+    expect($menu())->toBe(['check-in', 'cancel', 'no-show', 'move-room', 'waive-tax']);
 
     setBusinessDate($setup, $setup['date']->addDay());
-    expect($menu())->toBe(['cancel', 'no-show']);
+    expect($menu())->toBe(['cancel', 'no-show', 'waive-tax']);
 
     setBusinessDate($setup, $setup['date']);
     $setup['unit']->forceFill(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()])->save();
-    expect($menu())->toBe(['check-out', 'move-room']);
+    expect($menu())->toBe(['check-out', 'move-room', 'waive-tax']);
 
     setBusinessDate($setup, $setup['date']->addDay());
-    expect($menu())->toBe(['check-out']);
+    expect($menu())->toBe(['check-out', 'waive-tax']);
 
     $setup['unit']->forceFill(['status' => UnitStatus::NoShow])->save();
     setBusinessDate($setup, $setup['date']);

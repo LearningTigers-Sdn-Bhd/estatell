@@ -12,7 +12,8 @@ type OptionProp =
     | 'boatPicks'
     | 'boatSetup'
     | 'manualFolios'
-    | 'manualTaxes';
+    | 'manualTaxes'
+    | 'taxWaiverOptions';
 
 /**
  * Asks the server for an optional page prop each time an overlay opens, so a list changed elsewhere (a payment method
@@ -51,4 +52,5 @@ export const KEEP_OPTIONS = [
     'boatSetup',
     'manualFolios',
     'manualTaxes',
+    'taxWaiverOptions',
 ];

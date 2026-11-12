@@ -118,11 +118,11 @@ test('the unit menu lists only what the status and the permissions allow', funct
             ->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === $expected)
             ->where('canWaiveFees', $role === DefaultRoleEnum::Owner));
 })->with([
-    'confirmed' => [[], DefaultRoleEnum::Owner, ['check-in', 'change-dates', 'cancel', 'no-show', 'move-room']],
-    'checked in' => [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()], DefaultRoleEnum::Owner, ['check-out', 'check-out-as-day-use', 'change-dates', 'move-room', 'undo-check-in']],
+    'confirmed' => [[], DefaultRoleEnum::Owner, ['check-in', 'change-dates', 'cancel', 'no-show', 'move-room', 'waive-tax']],
+    'checked in' => [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()], DefaultRoleEnum::Owner, ['check-out', 'check-out-as-day-use', 'change-dates', 'move-room', 'undo-check-in', 'waive-tax']],
     'cancelled' => [['status' => UnitStatus::Cancelled], DefaultRoleEnum::Owner, ['reinstate']],
     'no-show' => [['status' => UnitStatus::NoShow], DefaultRoleEnum::FrontDesk, ['reinstate']],
-    'checked out' => [['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()], DefaultRoleEnum::Owner, ['undo-check-out']],
+    'checked out' => [['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()], DefaultRoleEnum::Owner, ['undo-check-out', 'waive-tax']],
 ]);
 
 test('reinstate is not offered once the stay has ended', function () {
@@ -1004,7 +1004,7 @@ test('the menu offers check-out, late check-out and no check-in on the departure
 
     $this->actingAs($setup['user'])
         ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
-        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['check-out', 'late-check-out', 'change-dates']));
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['check-out', 'late-check-out', 'change-dates', 'waive-tax']));
 });
 
 test('check in is offered for a calendar-date arrival while the audit is pending and not when it is overdue', function () {
@@ -1024,7 +1024,7 @@ test('check in is not offered before the arrival date or on the departure date',
 
     $this->actingAs($setup['user'])
         ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
-        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['change-dates', 'cancel', 'no-show', 'move-room']));
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['change-dates', 'cancel', 'no-show', 'move-room', 'waive-tax']));
 });
 
 test('the front desk routes need their own permission', function (string $route) {
@@ -1293,7 +1293,7 @@ test('the menu offers check-out before the departure date only to staff who can 
     $showUrl = route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]);
 
     $this->actingAs($setup['user'])->get($showUrl)
-        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['check-out', 'change-dates', 'move-room']));
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['check-out', 'change-dates', 'move-room', 'waive-tax']));
 
     $checkOutOnly = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out'])->create();
 

@@ -4583,6 +4583,8 @@ canSetBoatIn: boolean,
 canSetBoatOut: boolean,
 hasPriceOverride: boolean,
 canChangeGuests: boolean,
+taxWaivers: App.Data.Reservations.UnitTaxWaiverData[],
+taxWaiverForm: App.Data.Reservations.UnitTaxWaiverFormData | null,
 };
 export type ReservationUnitOptionData = {
 id: number,
@@ -4786,6 +4788,23 @@ export type UnitReinstatePreviewData = {
 previousTotal: string | null,
 newTotal: string | null,
 error: string | null,
+};
+export type UnitTaxWaiverData = {
+taxId: number,
+taxName: string,
+summary: string,
+};
+export type UnitTaxWaiverFormData = {
+taxes: {
+value: string,
+label: string,
+}[],
+reasons: {
+value: string,
+label: string,
+}[],
+paidTo: string | null,
+reference: string | null,
 };
 export type UnitUndoPreviewData = {
 charges: {
@@ -5262,7 +5281,7 @@ export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view';
 export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
@@ -5305,13 +5324,14 @@ export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal'
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment';
 export type TabbedReport = 'guest-list' | 'daily-report';
 export type TaxRateType = 'percent' | 'flat';
+export type TaxWaiverReason = 'paid_elsewhere' | 'guest_receipt';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';
 export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'online' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
-export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out';
+export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out' | 'waive-tax';
 export type UnitMovement = 'arrivals' | 'departures';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type WastaysEventType = 'create' | 'check_in' | 'charge' | 'adjustment' | 'repair' | 'payment' | 'deposit' | 'refund' | 'reversal' | 'folio_movement' | 'stay_change' | 'early_departure' | 'check_out';

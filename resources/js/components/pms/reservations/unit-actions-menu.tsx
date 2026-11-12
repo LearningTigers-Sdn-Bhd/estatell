@@ -5,6 +5,7 @@ import {
     LogOut,
     MoreHorizontal,
     MoveRight,
+    ReceiptText,
     RotateCcw,
     Undo2,
     UserX,
@@ -21,6 +22,7 @@ import { LateCheckOutDialog } from '@/components/pms/reservations/late-check-out
 import { ReinstateUnitDialog } from '@/components/pms/reservations/reinstate-unit-dialog';
 import { UndoStayDialog } from '@/components/pms/reservations/undo-stay-dialog';
 import { UnitPolicyFeeDialog } from '@/components/pms/reservations/unit-policy-fee-dialog';
+import { WaiveTaxDialog } from '@/components/pms/reservations/waive-tax-dialog';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -43,6 +45,7 @@ const ICONS: Record<App.Enums.UnitAction, LucideIcon> = {
     'move-room': MoveRight,
     'undo-check-in': Undo2,
     'undo-check-out': Undo2,
+    'waive-tax': ReceiptText,
 };
 
 type DialogProps = {
@@ -139,6 +142,12 @@ export function UnitActionDialogs({
                 open={action === 'change-dates'}
                 canWaiveFees={canWaiveFees}
                 canOverrideRestrictions={canOverrideRestrictions}
+            />
+            <WaiveTaxDialog
+                open={action === 'waive-tax'}
+                onOpenChange={common.onOpenChange}
+                reservationId={reservationId}
+                unit={unit}
             />
         </>
     );

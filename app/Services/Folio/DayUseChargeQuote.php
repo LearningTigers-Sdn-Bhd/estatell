@@ -11,6 +11,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitDayUse;
 use App\Services\Catalogues\TaxCalculationResult;
 use App\Services\Catalogues\TaxCalculator;
+use App\Services\Catalogues\TaxWaivers;
 use App\Services\Packages\InclusionAllocator;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
@@ -19,7 +20,7 @@ use Illuminate\Support\Collection;
  * Works out the lines of one day use block, for the folio page to show as a Scheduled row now and for check in to post
  * later, so the two never differ. It reads and writes nothing. The block price is split by `InclusionAllocator` into
  * the room and the plan's inclusions, which are allocated as for one night (every inclusion once). The tax comes from
- * the taxes of the DAY_USE code, which never follows the Taxes tab. The stored amount includes any price override. There is no discount. The booker's
+ * the taxes of the DAY_USE code, which never follows the Taxes tab. The stored amount includes any price override. There is no discount. A tax waived for the unit (`TaxWaivers`) is left out. The booker's
  * nationality drives foreign-guest taxes, as `PostCharge` does. The unit needs `ratePlan.inclusions.chargeItem.transactionCode`
  * loaded. Keys: `dayuse:{unit_id}` and `dayuse:{unit_id}:incl:{inclusion_id}`. See docs/12-reservations/10-day-use.md.
  */
@@ -28,6 +29,7 @@ class DayUseChargeQuote
     public function __construct(
         private TaxCalculator $taxCalculator,
         private InclusionAllocator $inclusionAllocator,
+        private TaxWaivers $taxWaivers,
     ) {}
 
     /**
@@ -35,6 +37,7 @@ class DayUseChargeQuote
      */
     public function quote(Property $property, Collection $propertyTaxes, ReservationUnit $unit, UnitDayUse $dayUse, TransactionCode $dayUseCode, ?string $nationality): NightQuote
     {
+        $propertyTaxes = $this->taxWaivers->without($propertyTaxes, $unit);
         $currency = $property->settings->currency->getCurrencyCode();
         $gross = Money::of($dayUse->amount, $currency);
         $room = $gross;

@@ -60,6 +60,8 @@ type Props = {
     hasUnitToCheckIn: boolean;
     singleUnit: App.Data.Reservations.ReservationUnitData | null;
     canWaiveFees: boolean;
+    canWaiveTax: boolean;
+    taxWaiverOptions?: App.Data.Reservations.UnitTaxWaiverFormData | null;
     canOverrideRestrictions: boolean;
     billingModes: EnumOption[];
     manualReasons: EnumOption[];
@@ -163,6 +165,8 @@ export default function ReservationShow({
     hasUnitToCheckIn,
     singleUnit,
     canWaiveFees,
+    canWaiveTax,
+    taxWaiverOptions,
     canOverrideRestrictions,
     billingModes,
     manualReasons,
@@ -362,6 +366,9 @@ export default function ReservationShow({
                             paymentOptions={paymentOptions}
                             hasBoats={hasBoats}
                             boatDepartures={boatDepartures}
+                            canWaiveTax={canWaiveTax}
+                            units={units}
+                            taxWaiverOptions={taxWaiverOptions}
                             boatSetup={boatSetup}
                             receiptPaymentIds={receiptPaymentIds}
                             canOverrideCredit={canOverrideCredit}
