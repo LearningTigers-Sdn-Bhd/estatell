@@ -5,9 +5,11 @@ namespace App\Navigation;
 use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
+use App\Features\EInvoicing;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Commissions\PropertyPayouts;
+use Laravel\Pennant\Feature;
 
 /**
  * Sidebar groups for the Finance context. Items the user has no permission for are left out.
@@ -43,9 +45,19 @@ class FinanceNavigation
             ) : null,
         ]));
 
+        $eInvoices = Feature::for($property)->active(EInvoicing::class) && $user->can(PermissionEnum::EInvoiceView->value) ? [
+            new NavItemData(
+                title: __('E-invoices'),
+                href: route('finance.e-invoices.index', ['property' => $property->code], absolute: false),
+                icon: 'file-check',
+                active: request()->routeIs('finance.e-invoices.*'),
+            ),
+        ] : [];
+
         return [
             new NavGroupData(label: __('City ledger'), items: $cityLedger),
-            new NavGroupData(label: __('Estatell'), items: $this->showsPayouts($property, $user, $cityLedger) ? [
+            new NavGroupData(label: __('E-invoicing'), items: $eInvoices),
+            new NavGroupData(label: __('Estatell'), items: $this->showsPayouts($property, $user, [...$cityLedger, ...$eInvoices]) ? [
                 new NavItemData(
                     title: __('Payouts'),
                     href: route('finance.payouts.index', ['property' => $property->code], absolute: false),
@@ -60,15 +72,15 @@ class FinanceNavigation
      * Whether the Payouts item is listed. Its visibility check runs queries, so it runs only on Finance pages, or when
      * Payouts alone decides whether the user has a Finance area at all. Elsewhere the Finance sidebar is not drawn.
      *
-     * @param  list<NavItemData>  $cityLedger
+     * @param  list<NavItemData>  $otherItems  The Finance items listed before Payouts.
      */
-    private function showsPayouts(Property $property, User $user, array $cityLedger): bool
+    private function showsPayouts(Property $property, User $user, array $otherItems): bool
     {
         if (! $user->can(PermissionEnum::PayoutsView->value)) {
             return false;
         }
 
-        if ($cityLedger !== [] && ! request()->routeIs('finance.*')) {
+        if ($otherItems !== [] && ! request()->routeIs('finance.*')) {
             return false;
         }
 

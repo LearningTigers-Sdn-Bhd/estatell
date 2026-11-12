@@ -1,5 +1,5 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { FilePlus2, Printer } from 'lucide-react';
+import { FileCheck, FilePlus2, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ReverseAllocationDialog } from '@/components/pms/city-ledger/reverse-allocation-dialog';
 import { useCreditNoteFlow } from '@/components/pms/city-ledger/use-credit-note-flow';
@@ -19,6 +19,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Table,
@@ -32,11 +33,13 @@ import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import {
+    eInvoice as sendEInvoice,
     index,
     pdf,
     show,
     voidMethod as voidInvoice,
 } from '@/routes/finance/city-ledger/invoices';
+import { show as showEInvoice } from '@/routes/finance/e-invoices';
 import { show as showReservation } from '@/routes/reservations';
 
 type Invoice = App.Data.CityLedger.ArInvoiceData;
@@ -101,12 +104,24 @@ function VoidAction({ invoice }: { invoice: Invoice }) {
     );
 }
 
+type EInvoice = {
+    submission: {
+        id: number;
+        number: string;
+        status: { value: string; label: string; tone: App.Enums.Tone };
+    } | null;
+    reported_in: { id: number; number: string; summary: boolean } | null;
+    can_send: boolean;
+} | null;
+
 export default function InvoiceShow({
     invoice,
+    eInvoice,
     currency,
     openCreditNote,
 }: {
     invoice: Invoice;
+    eInvoice: EInvoice;
     currency: App.Data.Property.CurrencyData | null;
     openCreditNote: boolean;
 }) {
@@ -158,6 +173,35 @@ export default function InvoiceShow({
                             {row.migrated && (
                                 <Badge variant="secondary">Migrated</Badge>
                             )}
+                            {eInvoice?.reported_in && (
+                                <Link
+                                    href={showEInvoice.url({
+                                        submission: eInvoice.reported_in.id,
+                                    })}
+                                    title="Open the e-invoice"
+                                >
+                                    <Badge variant="secondary">
+                                        {eInvoice.reported_in.summary
+                                            ? `In monthly summary ${eInvoice.reported_in.number}`
+                                            : `E-invoiced as ${eInvoice.reported_in.number}`}
+                                    </Badge>
+                                </Link>
+                            )}
+                            {eInvoice?.submission && (
+                                <Link
+                                    href={showEInvoice.url({
+                                        submission: eInvoice.submission.id,
+                                    })}
+                                    title="Open the e-invoice"
+                                >
+                                    <StatusBadge
+                                        status={{
+                                            ...eInvoice.submission.status,
+                                            label: `E-invoice: ${eInvoice.submission.status.label}`,
+                                        }}
+                                    />
+                                </Link>
+                            )}
                         </>
                     }
                     actions={
@@ -186,6 +230,29 @@ export default function InvoiceShow({
                             )}
                             {invoice.canVoid && canCorrectMoney && (
                                 <VoidAction invoice={invoice} />
+                            )}
+                            {eInvoice?.can_send && (
+                                <Form
+                                    {...sendEInvoice.form({ invoice: row.id })}
+                                    options={{ preserveScroll: true }}
+                                >
+                                    {({ processing }) => (
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing ? (
+                                                <Spinner data-icon="inline-start" />
+                                            ) : (
+                                                <FileCheck data-icon="inline-start" />
+                                            )}
+                                            {eInvoice.submission
+                                                ? 'Send e-invoice again'
+                                                : 'Send e-invoice to LHDN'}
+                                        </Button>
+                                    )}
+                                </Form>
                             )}
                         </>
                     }

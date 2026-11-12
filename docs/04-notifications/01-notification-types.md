@@ -60,6 +60,8 @@ Define every notification once, with its channels, defaults and recipients.
 
 `SupportAccessUsed` (label "Money correction by support") is in-app only. It is sent once for each money correction (refund, void, credit note, allocation reversal) that support makes while viewing a property as its staff, right when the activity log entry is created (`NotifySupportMoneyCorrection`). The recipient is the property's first active Owner. It names the support user, the partner, the action, the amount and the reference. Starting and ending a session send nothing. The enum value stays `support_access_used`, so the check constraints are unchanged.
 
+`EInvoiceForGuest` is a plain notification class, like `OnlineBookingConfirmed`: staff send it to a guest from an e-invoice, with the property's own wording. See [Guest emails](04-guest-emails.md).
+
 ## Base class
 
 `PropertyNotification` extends Laravel `Notification`:

@@ -9,6 +9,7 @@ use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
 use App\Actions\Payments\ResendWaitingOnlineRefunds;
 use App\Jobs\ExpireDoorCredentials;
+use App\Jobs\MonthlyConsolidationJob;
 use App\Jobs\ReleaseExpiredKioskHolds;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -81,7 +82,7 @@ Schedule::command('agent-payments:send-reminders')->everyFifteenMinutes()->witho
 
 Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 Schedule::command('channels:pull-revisions')->everyFiveMinutes()->onOneServer();
-
+Schedule::job(new MonthlyConsolidationJob)->monthlyOn(1, '04:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 Schedule::job(new ReleaseExpiredKioskHolds)->everyMinute()->onOneServer();
 
 Schedule::job(new ExpireDoorCredentials)->everyFiveMinutes()->onOneServer();

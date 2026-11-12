@@ -9,7 +9,7 @@ A simple guest CRM, scoped to one property.
 ```
 guests         id, property_id, full_name, name_key, email, phone (E.164), nationality_code,
                date_of_birth, gender (Gender), preferred_locale (Locale),
-               address_line1, address_line2, city, state, postal_code, country_code,
+               address_line1, address_line2, city, state, postal_code, country_code, tin,
                is_vip, blacklisted_at, blacklist_reason, marketing_consent_at,
                merged_into_id (nullable), anonymized_at, timestamps
 guest_notes    id, guest_id, author_id (nullable), body, timestamps
@@ -18,6 +18,7 @@ guest_tag      guest_id, tag_id
 ```
 
 - `name_key` is the normalized name used to find duplicates. See [Matching and merging](03-matching-and-merging.md). `CreateGuest` and `UpdateGuest` keep it in step.
+- `tin` is the guest's LHDN tax number for e-invoices (`IG…`), uppercase letters and digits. Staff edit it on the guest form (E-invoice). It is not on the booking forms. When staff tick "Save to the guest profile" on an e-invoice, `SetGuestTaxDetails` saves the tax number and IC or passport once LHDN accepts it. See [E-invoices](../31-einvoice/01-lhdn-myinvois.md#checking-a-tax-number).
 - `state` is free text, because guests come from any country. Country codes are ISO 3166-1 alpha-2.
 - Email and phone are not unique. Family members often share them. [Matching and merging](03-matching-and-merging.md) handles duplicates.
 - A blacklisted guest must have a reason (`CHECK`). `merged_into_id` cannot point to the guest itself.
@@ -31,7 +32,7 @@ guest_tag      guest_id, tag_id
 
 ## Actions
 
-`CreateGuest`, `UpdateGuest`, `SetVip`, `BlacklistGuest`, `UnblacklistGuest`, `AddGuestNote`, `SyncGuestTags`.
+`CreateGuest`, `UpdateGuest`, `SetVip`, `BlacklistGuest`, `UnblacklistGuest`, `AddGuestNote`, `SyncGuestTags`, `SetGuestTaxDetails`.
 
 - Tags are saved with the guest as names. A name that matches an existing tag of the property, ignoring case, reuses it. Any other name creates a tag.
 - Create, update, VIP, blacklist and unblacklist are written to the activity log. The update log lists the changed field names, not their values.

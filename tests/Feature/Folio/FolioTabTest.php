@@ -319,6 +319,6 @@ test('the folio tab runs the same queries for few and many units', function () {
     $few = $queries(2);
     $many = $queries(8);
 
-    // The header's `money` prop (BookingSummary) runs on every tab and adds about 25 queries. Each room's own nationality in the Scheduled rows adds 3 per read. The manual row menu adds 2, and the go-live date read for the Scheduled rows adds 1 for each of the two callers. The Copy old folio link adds 4: the migration window, the go-live date and a check for a unit that arrived before it.
-    expect($many)->toBe($few)->and($many)->toBeLessThanOrEqual(80);
+    // The header's `money` prop (BookingSummary) runs on every tab and adds about 25 queries. Each room's own nationality in the Scheduled rows adds 3 per read. The manual row menu adds 2, and the go-live date read for the Scheduled rows adds 1 for each of the two callers. The Copy old folio link adds 4: the migration window, the go-live date and a check for a unit that arrived before it. E-invoicing adds 4 for setting and submission status.
+    expect($many)->toBe($few)->and($many)->toBeLessThanOrEqual(84);
 });

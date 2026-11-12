@@ -10,6 +10,7 @@ use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
 use App\Models\Folio;
 use App\Models\User;
+use App\Services\EInvoice\FolioEInvoiceLock;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
@@ -19,13 +20,15 @@ use Carbon\CarbonImmutable;
  * `front-desk.check-out` may also reopen a Unit folio closed during the current business date, because most late
  * charges are found the same day; after the night audit the day is final and a manager reopens. A folio with an AR
  * invoice that is not Void never reopens: `ReopenFolio` refuses it, and the notice points to a third-party folio or a
- * credit note. It reads only. See docs/13-folio/01-folios-and-lines.md#close-and-reopen.
+ * credit note. Nor does a folio on an e-invoice LHDN holds (`FolioEInvoiceLock`): the notice points to a new folio, a
+ * credit note, or cancelling the e-invoice within 72 hours. It reads only. See docs/13-folio/01-folios-and-lines.md#close-and-reopen.
  */
 class FolioReopenRule
 {
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private PropertyToday $propertyToday,
+        private FolioEInvoiceLock $eInvoiceLock,
     ) {}
 
     /**
@@ -73,6 +76,14 @@ class FolioReopenRule
                 'company' => $invoice->company->name,
                 'number' => $invoice->number,
             ]);
+        }
+
+        $eInvoice = $this->eInvoiceLock->for($folio);
+
+        if ($eInvoice !== null) {
+            return $eInvoice->is_consolidated
+                ? __('In the monthly summary :number sent to LHDN, so it cannot reopen. Post a late charge on a new folio.', ['number' => $eInvoice->internal_id])
+                : __('On e-invoice :number sent to LHDN, so it cannot reopen. Post a late charge on a new folio. To lower the amount, issue a credit note on the e-invoice.', ['number' => $eInvoice->internal_id]);
         }
 
         $property = $folio->loadMissing('property.settings')->property;

@@ -119,6 +119,9 @@ function Details({ guest }: { guest: Guest }) {
                     ? address.map((line) => <p key={line}>{line}</p>)
                     : NOT_SET}
             </Section>
+            <Section title="Tax number (TIN)">
+                {guest.tin ? <p>{guest.tin}</p> : NOT_SET}
+            </Section>
             <Section title="Personal">
                 {personal.length
                     ? personal.map((line) => <p key={line}>{line}</p>)

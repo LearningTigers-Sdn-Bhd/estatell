@@ -389,3 +389,15 @@ test('guest Details offers masked ID documents and hides them from staff without
     $this->actingAs($staff)->get($url)->assertInertia(fn (Assert $page) => $page
         ->missing('documents')->missing('documentFormOptions')->where('guest.photoUrl', null));
 });
+
+test('the guest form saves the tax number for e-invoices, in capitals', function () {
+    $owner = User::factory()->owner()->create();
+    $guest = Guest::factory()->for($owner->property)->create(['tin' => null]);
+
+    $this->actingAs($owner)->post(route('guests.update', [$owner->property->code, $guest]), guestPayload(['_method' => 'put', 'tin' => 'ig12345678900']))
+        ->assertSessionHasNoErrors();
+    expect($guest->fresh()->tin)->toBe('IG12345678900');
+
+    $this->post(route('guests.update', [$owner->property->code, $guest]), guestPayload(['_method' => 'put', 'tin' => 'IG 123-456']))
+        ->assertSessionHasErrors(['tin' => 'Use letters and digits only, such as IG12345678900.']);
+});

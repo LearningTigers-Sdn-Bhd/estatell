@@ -4,6 +4,8 @@ namespace App\Http\Controllers\CityLedger;
 
 use App\Actions\CityLedger\IssueCreditNote;
 use App\Actions\CityLedger\VoidArInvoice;
+use App\Actions\EInvoice\CancelEInvoice;
+use App\Actions\EInvoice\SubmitArEInvoice;
 use App\Data\CityLedger\ArInvoiceRowData;
 use App\Data\Property\CurrencyData;
 use App\Enums\ArInvoiceStatus;
@@ -18,6 +20,8 @@ use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArInvoicePrinter;
 use App\Services\CityLedger\ArInvoiceRefusals;
+use App\Services\EInvoice\ArInvoiceEInvoice;
+use App\Services\EInvoice\SubmissionToast;
 use App\Services\Property\PrintedPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,12 +51,13 @@ class ArInvoiceController extends Controller
         ]);
     }
 
-    public function show(Request $request, Property $property, ArInvoice $invoice, ArInvoiceDetail $detail): Response
+    public function show(Request $request, Property $property, ArInvoice $invoice, ArInvoiceDetail $detail, ArInvoiceEInvoice $eInvoice): Response
     {
         $data = $detail->build($invoice, $request->user());
 
         return Inertia::render('finance/city-ledger/invoices/show', [
             'invoice' => $data,
+            'eInvoice' => $eInvoice->for($invoice, $request->user()),
             'openCreditNote' => $data->canCreditNote && $request->boolean('credit'),
             'currency' => CurrencyData::forProperty($property),
         ]);
@@ -103,6 +108,41 @@ class ArInvoiceController extends Controller
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
             : ['type' => 'success', 'message' => __(':number voided.', ['number' => $invoice->number])]);
+
+        return back(fallback: $this->page($property, $invoice));
+    }
+
+    public function submitEInvoice(Request $request, Property $property, ArInvoice $invoice, SubmitArEInvoice $submitAction, SubmissionToast $submissionToast): RedirectResponse
+    {
+        $result = $submitAction($invoice, $request->user());
+
+        if (! $result->ok) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('The e-invoice was not sent.')]);
+
+            return back(fallback: $this->page($property, $invoice));
+        }
+
+        Inertia::flash('toast', $submissionToast->for($result->submission));
+
+        return back(fallback: $this->page($property, $invoice));
+    }
+
+    public function cancelEInvoice(Request $request, Property $property, ArInvoice $invoice, CancelEInvoice $cancelAction): RedirectResponse
+    {
+        $submission = $invoice->latestEInvoiceSubmission;
+        abort_unless($submission !== null, 404);
+
+        $request->validate(['reason' => ['required', 'string', 'max:500']]);
+
+        $result = $cancelAction($submission, $request->string('reason'), $request->user());
+
+        if (! $result->ok) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('The e-invoice was not cancelled.')]);
+
+            return back(fallback: $this->page($property, $invoice));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice cancelled.')]);
 
         return back(fallback: $this->page($property, $invoice));
     }

@@ -27,7 +27,8 @@ class UndoCheckOut
      * every check runs before the first write, so a refusal writes and logs nothing: the unit is CheckedOut
      * (`invalid_status`), a business date exists (`no_business_date`), a reason is given (`reason_required`),
      * `UndoCheckOutRule` (`undo_too_late` after the night audit, `room_taken` when another unit holds the room
-     * tonight, `folio_has_ar_invoice` when a folio to reopen was settled to the city ledger).
+     * tonight, `folio_has_ar_invoice` when a folio to reopen was settled to the city ledger, `folio_has_e_invoice` when one is on
+     * an e-invoice LHDN holds).
      *
      * It keeps every payment and refund made at check-out, and after an early check-out the removed nights and the
      * early departure fee stay as they are: extend the stay and reverse the fee from the folio if they no longer

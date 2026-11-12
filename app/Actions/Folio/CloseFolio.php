@@ -4,6 +4,7 @@ namespace App\Actions\Folio;
 
 use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
+use App\Events\FolioClosed;
 use App\Models\Folio;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
@@ -31,7 +32,7 @@ class CloseFolio
      * the webhook must still post on it. The folio row is locked first, and every check runs before the first
      * write, so a refusal writes and logs nothing. Closing changes the status and assigns `invoice_number` once: a
      * folio that was reopened keeps its number. `$issueInvoiceNumber` false (only `CreateOldStay` passes it) closes
-     * an empty folio without using a number of the invoice sequence; a later close with lines issues one. Ledger lines are never touched. Permissions are checked by the route.
+     * an empty folio without using a number of the invoice sequence; a later close with lines issues one. Ledger lines are never touched. Raises `FolioClosed` (e-invoicing listens). Permissions are checked by the route.
      * See docs/13-folio/01-folios-and-lines.md.
      */
     public function __invoke(?User $actor, Folio $folio, bool $issueInvoiceNumber = true): FolioStatusResult
@@ -80,6 +81,8 @@ class CloseFolio
                     'invoice_number' => $current->invoice_number,
                 ])
                 ->log('Folio closed');
+
+            FolioClosed::dispatch($current->property_id, $current->id, $actor?->id);
 
             return FolioStatusResult::done($current);
         });
