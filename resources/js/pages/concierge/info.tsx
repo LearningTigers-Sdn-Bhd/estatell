@@ -1,8 +1,10 @@
 import { Link } from '@inertiajs/react';
 import { Check, Copy } from 'lucide-react';
+import { useState } from 'react';
 import { AmenityGroups } from '@/components/concierge/amenity-groups';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +26,25 @@ function Times({ checkIn, checkOut }: { checkIn: string; checkOut: string }) {
                 </dd>
             </div>
         </dl>
+    );
+}
+
+function Facts({ facts }: { facts: [string, string | null][] }) {
+    const shown = facts.filter(([, value]) => value);
+
+    return (
+        shown.length > 0 && (
+            <dl className="grid grid-cols-2 gap-3">
+                {shown.map(([label, value]) => (
+                    <div key={label} className="rounded-lg border p-4">
+                        <dt className="text-sm text-muted-foreground">
+                            {label}
+                        </dt>
+                        <dd className="font-semibold">{value}</dd>
+                    </div>
+                ))}
+            </dl>
+        )
     );
 }
 
@@ -62,6 +83,19 @@ function Transport({
         ],
         ['Pickup point', transport.pickupPoint],
         ['Shuttle', transport.shuttleSchedule],
+        ['Parking', transport.parkingAvailability],
+        ['Parking type', transport.parkingType],
+        ['Parking price', transport.parkingPrice],
+        [
+            'Parking spaces',
+            transport.parkingSpaces ? String(transport.parkingSpaces) : null,
+        ],
+        ['Parking height limit', transport.parkingHeightLimit],
+        ['EV charging', transport.parkingEvCharging ? 'Available' : null],
+        [
+            'Parking booking',
+            transport.parkingBookingRequired ? 'Book ahead' : null,
+        ],
     ].filter(([, value]) => value) as [string, string][];
 
     return (
@@ -99,6 +133,60 @@ function Transport({
     );
 }
 
+/** Questions grouped under their topic. A search box appears once the list is long enough to need one. */
+function FaqList({ faqs }: { faqs: App.Data.Concierge.ConciergeFaqData[] }) {
+    const [query, setQuery] = useState('');
+    const needle = query.trim().toLowerCase();
+    const shown = faqs.filter(
+        (faq) =>
+            !needle ||
+            `${faq.question} ${faq.answer}`.toLowerCase().includes(needle),
+    );
+    const topics = [...new Set(shown.map((faq) => faq.topic ?? ''))];
+
+    return (
+        <div className="flex flex-col gap-4">
+            {faqs.length >= 6 && (
+                <Input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search questions"
+                    aria-label="Search questions"
+                    className="min-h-11"
+                />
+            )}
+            {shown.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    No question matches your search.
+                </p>
+            )}
+            {topics.map((topic) => (
+                <section key={topic} className="flex flex-col gap-3">
+                    {topic && (
+                        <h2 className="text-lg font-semibold">{topic}</h2>
+                    )}
+                    {shown
+                        .filter((faq) => (faq.topic ?? '') === topic)
+                        .map((faq) => (
+                            <details
+                                key={faq.id}
+                                className="rounded-lg border p-4"
+                            >
+                                <summary className="cursor-pointer font-medium">
+                                    {faq.question}
+                                </summary>
+                                <p className="mt-2 text-sm leading-relaxed text-pretty whitespace-pre-wrap">
+                                    {faq.answer}
+                                </p>
+                            </details>
+                        ))}
+                </section>
+            ))}
+        </div>
+    );
+}
+
 function WifiNetwork({
     network,
 }: {
@@ -108,7 +196,14 @@ function WifiNetwork({
 
     return (
         <li className="flex flex-col gap-2 rounded-lg border p-4">
-            <p className="font-medium">{network.name}</p>
+            <p className="font-medium">
+                {network.name}
+                {network.primary && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        Main network
+                    </span>
+                )}
+            </p>
             {network.note && (
                 <p className="text-sm text-muted-foreground">{network.note}</p>
             )}
@@ -243,6 +338,12 @@ export default function ConciergeInfo({
                         checkIn={policies.checkInTime}
                         checkOut={policies.checkOutTime}
                     />
+                    <Facts
+                        facts={[
+                            ['Smoking', policies.smoking],
+                            ['Pets', policies.pets],
+                        ]}
+                    />
                     <section className="flex flex-col gap-2">
                         <h2 className="text-lg font-semibold">House rules</h2>
                         {policies.houseRules ? (
@@ -256,6 +357,22 @@ export default function ConciergeInfo({
                             </p>
                         )}
                     </section>
+                    {(
+                        [
+                            ['Room terms', policies.roomPolicy],
+                            ['Payment and deposits', policies.paymentPolicy],
+                            ['Other policies', policies.otherPolicies],
+                        ] as [string, string | null][]
+                    ).map(
+                        ([title, text]) =>
+                            text && (
+                                <TextSection
+                                    key={title}
+                                    title={title}
+                                    text={text}
+                                />
+                            ),
+                    )}
                     {policies.terms.map((term) => (
                         <section
                             key={term.label}
@@ -285,16 +402,7 @@ export default function ConciergeInfo({
                             The property has not listed questions yet.
                         </p>
                     )}
-                    {faqs.map((faq) => (
-                        <details key={faq.id} className="rounded-lg border p-4">
-                            <summary className="cursor-pointer font-medium">
-                                {faq.question}
-                            </summary>
-                            <p className="mt-2 text-sm leading-relaxed text-pretty">
-                                {faq.answer}
-                            </p>
-                        </details>
-                    ))}
+                    <FaqList faqs={faqs} />
                 </div>
             )}
 

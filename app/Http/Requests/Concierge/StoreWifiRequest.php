@@ -21,6 +21,8 @@ class StoreWifiRequest extends FormRequest
             'name' => ['required', 'string', 'max:100', 'regex:/\S/'],
             'password' => ['nullable', 'string', 'max:100'],
             'note' => ['nullable', 'string', 'max:200'],
+            'active' => ['sometimes', 'boolean'],
+            'primary_network' => ['sometimes', 'boolean'],
         ];
     }
 }

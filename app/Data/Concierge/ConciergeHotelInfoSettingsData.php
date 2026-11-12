@@ -28,6 +28,14 @@ class ConciergeHotelInfoSettingsData extends Data
         public ?string $pickupPoint,
         public ?string $shuttleSchedule,
         public ?string $parkingNotes,
+        public ?string $parkingAvailability,
+        public ?string $parkingType,
+        public ?string $parkingPrice,
+        public ?string $parkingPriceUnit,
+        public ?int $parkingSpaces,
+        public ?string $parkingHeightLimitM,
+        public bool $parkingEvCharging,
+        public bool $parkingBookingRequired,
         public ?string $transportNotes,
     ) {}
 
@@ -54,6 +62,14 @@ class ConciergeHotelInfoSettingsData extends Data
             $transport?->pickup_point,
             $transport?->shuttle_schedule,
             $transport?->parking_notes,
+            $transport?->parking_availability?->value,
+            $transport?->parking_type?->value,
+            $transport?->parking_price,
+            $transport?->parking_price_unit?->value,
+            $transport?->parking_spaces,
+            $transport?->parking_height_limit_m,
+            (bool) $transport?->parking_ev_charging,
+            (bool) $transport?->parking_booking_required,
             $transport?->transport_notes,
         );
     }

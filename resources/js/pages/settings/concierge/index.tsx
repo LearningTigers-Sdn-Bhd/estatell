@@ -12,7 +12,10 @@ import {
     guideReadiness,
     type Sections,
 } from '@/components/pms/concierge/guide-sections';
-import { HotelInfoForm } from '@/components/pms/concierge/hotel-info-form';
+import {
+    HotelInfoForm,
+    type ParkingOptions,
+} from '@/components/pms/concierge/hotel-info-form';
 import { InfoTopics } from '@/components/pms/concierge/info-topics';
 import { NearbyTab } from '@/components/pms/concierge/nearby-tab';
 import { LobbyPrintCard } from '@/components/pms/concierge/lobby-qr';
@@ -36,6 +39,9 @@ export default function ConciergeSettings({
     walkInEnabled,
     refundRequestsEnabled,
     houseRules,
+    locationCheckEnabled,
+    hasLocation,
+    policyTexts,
     wifiNetworks,
     faqs,
     policyTerms,
@@ -43,6 +49,7 @@ export default function ConciergeSettings({
     nearbyPlaces,
     suggestions,
     hotelInfo,
+    parkingOptions,
     contacts,
     topics,
     amenities,
@@ -55,6 +62,13 @@ export default function ConciergeSettings({
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
     houseRules: string | null;
+    locationCheckEnabled: boolean;
+    hasLocation: boolean;
+    policyTexts: {
+        roomPolicy: string | null;
+        paymentPolicy: string | null;
+        otherPolicies: string | null;
+    };
     wifiNetworks: App.Data.Concierge.ConciergeWifiData[];
     faqs: App.Data.Concierge.ConciergeFaqData[];
     policyTerms: App.Data.Concierge.ConciergePolicyTermData[];
@@ -62,6 +76,7 @@ export default function ConciergeSettings({
     nearbyPlaces: App.Data.BookingEngine.PropertyNearbyPlaceData[];
     suggestions: App.Data.BookingEngine.NearbyPlaceSuggestionData[];
     hotelInfo: App.Data.Concierge.ConciergeHotelInfoSettingsData;
+    parkingOptions: ParkingOptions;
     contacts: App.Data.Concierge.ConciergeContactSettingsData;
     topics: App.Data.Concierge.ConciergeTopicData[];
     amenities: App.Data.BookingEngine.AmenityPickerData;
@@ -129,6 +144,8 @@ export default function ConciergeSettings({
                             houseRules={houseRules}
                             walkInEnabled={walkInEnabled}
                             refundRequestsEnabled={refundRequestsEnabled}
+                            locationCheckEnabled={locationCheckEnabled}
+                            hasLocation={hasLocation}
                             onOpen={openTab}
                         />
                     </TabsContent>
@@ -148,13 +165,17 @@ export default function ConciergeSettings({
                                 </>
                             }
                         >
-                            <HotelInfoForm info={hotelInfo} />
+                            <HotelInfoForm
+                                info={hotelInfo}
+                                parkingOptions={parkingOptions}
+                            />
                         </ContentGrid>
                     </TabsContent>
 
                     <TabsContent value="policies" className="pt-2">
                         <PoliciesTab
                             houseRules={houseRules}
+                            policyTexts={policyTexts}
                             policyTerms={policyTerms}
                             walkInEnabled={walkInEnabled}
                             refundRequestsEnabled={refundRequestsEnabled}

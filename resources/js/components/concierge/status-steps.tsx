@@ -22,6 +22,31 @@ export function CheckInStep({
 }) {
     const [busy, setBusy] = useState(false);
 
+    const send = (position?: GeolocationPosition) =>
+        router.post(
+            checkIn.url({ token: stay.token }),
+            position
+                ? {
+                      latitude: position.coords.latitude,
+                      longitude: position.coords.longitude,
+                  }
+                : {},
+            {
+                onStart: () => setBusy(true),
+                onFinish: () => setBusy(false),
+            },
+        );
+
+    // A property that checks the guest's position gets it from the browser. A refused prompt sends none, and the server
+    // tells the guest to allow location access.
+    const checkInNow = () =>
+        stay.locationRequired && navigator.geolocation
+            ? navigator.geolocation.getCurrentPosition(send, () => send(), {
+                  enableHighAccuracy: true,
+                  timeout: 15000,
+              })
+            : send();
+
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1">
@@ -35,16 +60,7 @@ export function CheckInStep({
                 className="h-12 w-full rounded-full"
                 disabled={busy}
                 focusableWhenDisabled
-                onClick={() =>
-                    router.post(
-                        checkIn.url({ token: stay.token }),
-                        {},
-                        {
-                            onStart: () => setBusy(true),
-                            onFinish: () => setBusy(false),
-                        },
-                    )
-                }
+                onClick={checkInNow}
             >
                 {busy && <Spinner data-icon="inline-start" />}
                 Check in now

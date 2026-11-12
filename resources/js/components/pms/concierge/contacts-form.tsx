@@ -109,6 +109,31 @@ export function ContactsForm({
                                     placeholder="e.g. +60 12 345 6789"
                                 />
                                 <TextField
+                                    name="front_desk_phone"
+                                    label="Front desk phone"
+                                    type="tel"
+                                    defaultValue={contacts.frontDeskPhone}
+                                    error={errors.front_desk_phone}
+                                    maxLength={30}
+                                    placeholder="e.g. +60 3 1234 5678"
+                                />
+                                <TextField
+                                    name="front_desk_extension"
+                                    label="Front desk extension (dial from a room phone)"
+                                    defaultValue={contacts.frontDeskExtension}
+                                    error={errors.front_desk_extension}
+                                    maxLength={10}
+                                    placeholder="e.g. 0"
+                                />
+                                <TextField
+                                    name="front_desk_email"
+                                    label="Front desk email"
+                                    defaultValue={contacts.frontDeskEmail}
+                                    error={errors.front_desk_email}
+                                    maxLength={120}
+                                    placeholder="e.g. frontdesk@hotel.com"
+                                />
+                                <TextField
                                     name="emergency_phone"
                                     placeholder="e.g. +60 3 1234 5678"
                                     label="Property security phone"

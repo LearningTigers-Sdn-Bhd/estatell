@@ -12,10 +12,12 @@ class ConciergeWifiData extends Data
         public string $name,
         public ?string $password,
         public ?string $note,
+        public bool $active,
+        public bool $primary,
     ) {}
 
     public static function fromModel(PropertyWifiNetwork $network): self
     {
-        return new self($network->id, $network->name, $network->password, $network->note);
+        return new self($network->id, $network->name, $network->password, $network->note, $network->active, $network->primary_network);
     }
 }

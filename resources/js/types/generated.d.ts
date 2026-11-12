@@ -1097,6 +1097,9 @@ dutyManagerPhone: string | null,
 emergencyPhone: string | null,
 emergencyServicesNumber: string | null,
 emergencyInstructions: string | null,
+deskPhone: string | null,
+deskEmail: string | null,
+deskExtension: string | null,
 };
 export type ConciergeContactSettingsData = {
 frontDeskOpen24h: boolean,
@@ -1108,6 +1111,9 @@ dutyManagerPhone: string | null,
 emergencyPhone: string | null,
 emergencyServicesNumber: string | null,
 emergencyInstructions: string | null,
+frontDeskPhone: string | null,
+frontDeskEmail: string | null,
+frontDeskExtension: string | null,
 };
 export type ConciergeDocumentData = {
 label: string,
@@ -1117,6 +1123,7 @@ export type ConciergeFaqData = {
 id: number,
 question: string,
 answer: string,
+topic: string | null,
 };
 export type ConciergeHotelInfoSettingsData = {
 about: string | null,
@@ -1136,6 +1143,14 @@ airportTransferLeadHours: number | null,
 pickupPoint: string | null,
 shuttleSchedule: string | null,
 parkingNotes: string | null,
+parkingAvailability: string | null,
+parkingType: string | null,
+parkingPrice: string | null,
+parkingPriceUnit: string | null,
+parkingSpaces: number | null,
+parkingHeightLimitM: string | null,
+parkingEvCharging: boolean,
+parkingBookingRequired: boolean,
 transportNotes: string | null,
 };
 export type ConciergeOfferData = {
@@ -1160,6 +1175,11 @@ export type ConciergePoliciesData = {
 checkInTime: string,
 checkOutTime: string,
 houseRules: string | null,
+roomPolicy: string | null,
+paymentPolicy: string | null,
+otherPolicies: string | null,
+smoking: string | null,
+pets: string | null,
 terms: App.Data.Concierge.ConciergePolicyTermData[],
 };
 export type ConciergePolicyTermData = {
@@ -1206,6 +1226,7 @@ documents: App.Data.Concierge.ConciergeDocumentData[],
 canRequestRefund: boolean,
 checkOutAsked: boolean,
 refundRequest: App.Data.Concierge.ConciergeRequestData | null,
+locationRequired: boolean,
 };
 export type ConciergeTermsData = {
 version: number,
@@ -1229,6 +1250,13 @@ airportTransferLead: string | null,
 pickupPoint: string | null,
 shuttleSchedule: string | null,
 parkingNotes: string | null,
+parkingAvailability: string | null,
+parkingType: string | null,
+parkingPrice: string | null,
+parkingSpaces: number | null,
+parkingHeightLimit: string | null,
+parkingEvCharging: boolean,
+parkingBookingRequired: boolean,
 notes: string | null,
 };
 export type ConciergeWifiData = {
@@ -1236,6 +1264,8 @@ id: number,
 name: string,
 password: string | null,
 note: string | null,
+active: boolean,
+primary: boolean,
 };
 }
 namespace Dashboard {
@@ -5369,6 +5399,9 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PageOrientation = 'portrait' | 'landscape';
+export type ParkingAvailability = 'none' | 'on_site' | 'nearby';
+export type ParkingPriceUnit = 'free' | 'hour' | 'night' | 'entry';
+export type ParkingType = 'self' | 'valet' | 'both';
 export type PartnerStatus = 'invited' | 'active' | 'suspended';
 export type PasscodeKind = 'generated' | 'custom';
 export type PasscodeMode = 'generated' | 'custom';

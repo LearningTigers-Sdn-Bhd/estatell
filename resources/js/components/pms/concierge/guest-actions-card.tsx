@@ -14,13 +14,18 @@ export function GuestActionsCard({
     houseRules,
     walkInEnabled,
     refundRequestsEnabled,
+    locationCheckEnabled,
+    hasLocation,
 }: {
     houseRules: string | null;
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
+    locationCheckEnabled: boolean;
+    hasLocation: boolean;
 }) {
     const [walkIn, setWalkIn] = useState(walkInEnabled);
     const [refunds, setRefunds] = useState(refundRequestsEnabled);
+    const [locationCheck, setLocationCheck] = useState(locationCheckEnabled);
 
     return (
         <Card>
@@ -36,6 +41,7 @@ export function GuestActionsCard({
                         house_rules: houseRules ?? '',
                         walk_in_enabled: walkIn,
                         refund_requests_enabled: refunds,
+                        location_check_enabled: locationCheck,
                     }}
                 >
                     {() => (
@@ -53,6 +59,17 @@ export function GuestActionsCard({
                                 body="Let a guest ask for a refund after check-out. It reaches the Requests list for staff to answer. Nothing is refunded automatically."
                                 checked={refunds}
                                 onChange={setRefunds}
+                            />
+                            <SwitchRow
+                                id="location_check_enabled"
+                                title="Check in at the property only"
+                                body={
+                                    hasLocation
+                                        ? 'Ask the guest to allow location access, and check in only within 50 m of the property.'
+                                        : 'Add the property location to the property profile first. Without it, this has no effect.'
+                                }
+                                checked={locationCheck}
+                                onChange={setLocationCheck}
                             />
                         </>
                     )}

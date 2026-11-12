@@ -27,6 +27,18 @@ export default function ConciergeContact({
             value: contacts.dutyManagerPhone,
             href: `tel:${contacts.dutyManagerPhone}`,
         },
+        contacts.deskPhone && {
+            icon: Phone,
+            label: 'Front desk',
+            value: contacts.deskPhone,
+            href: `tel:${contacts.deskPhone}`,
+        },
+        contacts.deskExtension && {
+            icon: Phone,
+            label: 'From a room phone, dial',
+            value: contacts.deskExtension,
+            href: null,
+        },
         details.phone && {
             icon: Phone,
             label: 'Phone',
@@ -38,6 +50,12 @@ export default function ConciergeContact({
             label: 'WhatsApp',
             value: contacts.whatsappNumber ?? 'Message us',
             href: contacts.whatsappUrl,
+        },
+        contacts.deskEmail && {
+            icon: Mail,
+            label: 'Front desk email',
+            value: contacts.deskEmail,
+            href: `mailto:${contacts.deskEmail}`,
         },
         details.email && {
             icon: Mail,

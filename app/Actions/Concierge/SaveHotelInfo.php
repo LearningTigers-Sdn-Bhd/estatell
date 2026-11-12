@@ -14,6 +14,8 @@ class SaveHotelInfo
         'directions', 'airport_distance_km', 'airport_travel_minutes', 'station_distance_km', 'station_travel_minutes',
         'city_centre_distance_km', 'city_centre_travel_minutes', 'nearest_transit_stop', 'airport_transfer_offered',
         'airport_transfer_price', 'airport_transfer_lead_hours', 'pickup_point', 'shuttle_schedule', 'parking_notes', 'transport_notes',
+        'parking_availability', 'parking_type', 'parking_price', 'parking_price_unit', 'parking_spaces', 'parking_height_limit_m',
+        'parking_ev_charging', 'parking_booking_required',
     ];
 
     /**
@@ -33,6 +35,8 @@ class SaveHotelInfo
             $transport = $property->transportDetail()->firstOrNew();
             $transport->fill(array_intersect_key($clean, array_flip(self::TRANSPORT_FIELDS)));
             $transport->airport_transfer_offered = (bool) ($clean['airport_transfer_offered'] ?? false);
+            $transport->parking_ev_charging = (bool) ($clean['parking_ev_charging'] ?? false);
+            $transport->parking_booking_required = (bool) ($clean['parking_booking_required'] ?? false);
 
             $changed = [...array_keys($settings->getDirty()), ...array_keys($transport->getDirty())];
 

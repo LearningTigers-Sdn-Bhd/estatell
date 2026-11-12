@@ -21,6 +21,13 @@ class ConciergeTransportData extends Data
         public ?string $pickupPoint,
         public ?string $shuttleSchedule,
         public ?string $parkingNotes,
+        public ?string $parkingAvailability,
+        public ?string $parkingType,
+        public ?string $parkingPrice,
+        public ?int $parkingSpaces,
+        public ?string $parkingHeightLimit,
+        public bool $parkingEvCharging,
+        public bool $parkingBookingRequired,
         public ?string $notes,
     ) {}
 }

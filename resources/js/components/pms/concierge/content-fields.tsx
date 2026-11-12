@@ -1,10 +1,18 @@
 import { router } from '@inertiajs/react';
 import { Trash2, type LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,6 +72,48 @@ export function TextField({
                     className="min-h-11"
                 />
             )}
+            <FieldError>{error}</FieldError>
+        </Field>
+    );
+}
+
+/** One labelled dropdown of a Concierge content form. A blank choice is sent as an empty value. */
+export function SelectField({
+    name,
+    label,
+    options,
+    defaultValue,
+    error,
+    placeholder = 'Not set',
+}: {
+    name: string;
+    label: string;
+    options: { value: string; label: string }[];
+    defaultValue?: string | null;
+    error?: string;
+    placeholder?: string;
+}) {
+    return (
+        <Field data-invalid={!!error}>
+            <FieldLabel htmlFor={name}>{label}</FieldLabel>
+            <Select
+                name={name}
+                items={options}
+                defaultValue={defaultValue ?? undefined}
+            >
+                <SelectTrigger id={name} className="min-h-11 w-full">
+                    <SelectValue placeholder={placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectGroup>
+                        {options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                </SelectContent>
+            </Select>
             <FieldError>{error}</FieldError>
         </Field>
     );
@@ -129,6 +179,35 @@ export function SwitchRow({
             </div>
             <Switch id={id} checked={checked} onCheckedChange={onChange} />
         </div>
+    );
+}
+
+/** A SwitchRow that sends `1` or `0` under `name` with the native form around it. */
+export function SwitchInput({
+    name,
+    title,
+    body,
+    defaultChecked,
+}: {
+    name: string;
+    title: string;
+    body?: string;
+    defaultChecked: boolean;
+}) {
+    const [checked, setChecked] = useState(defaultChecked);
+
+    return (
+        <>
+            <input type="hidden" name={name} value={checked ? '1' : '0'} />
+            <SwitchRow
+                id={`${name}_switch`}
+                title={title}
+                body={body}
+                checked={checked}
+                onChange={setChecked}
+                className="items-center rounded-lg border p-4"
+            />
+        </>
     );
 }
 

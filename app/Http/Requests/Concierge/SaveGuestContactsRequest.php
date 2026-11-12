@@ -29,6 +29,9 @@ class SaveGuestContactsRequest extends FormRequest
             'emergency_phone' => $phone,
             'emergency_services_number' => $phone,
             'emergency_instructions' => ['nullable', 'string', 'max:1000'],
+            'front_desk_phone' => $phone,
+            'front_desk_email' => ['nullable', 'email', 'max:120'],
+            'front_desk_extension' => ['nullable', 'string', 'max:10', 'regex:/^[0-9#*\-\s]+$/'],
         ];
     }
 }

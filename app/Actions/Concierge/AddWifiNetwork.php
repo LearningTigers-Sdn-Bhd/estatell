@@ -13,18 +13,24 @@ class AddWifiNetwork
 
     /**
      * Add a Wi-Fi network to the end of the property's list. Returns null, writing nothing, when the property already lists
-     * `MAX` networks. The log names the network, never its password.
+     * `MAX` networks. A new main network replaces the old one. The log names the network, never its password.
      */
-    public function __invoke(User $actor, Property $property, string $name, ?string $password, ?string $note): ?PropertyWifiNetwork
+    public function __invoke(User $actor, Property $property, string $name, ?string $password, ?string $note, bool $active = true, bool $primary = false): ?PropertyWifiNetwork
     {
         if ($property->wifiNetworks()->count() >= self::MAX) {
             return null;
+        }
+
+        if ($primary) {
+            $property->wifiNetworks()->update(['primary_network' => false]);
         }
 
         $network = $property->wifiNetworks()->create([
             'name' => trim($name),
             'password' => filled($password) ? trim((string) $password) : null,
             'note' => filled($note) ? trim((string) $note) : null,
+            'active' => $active,
+            'primary_network' => $primary,
             'position' => (int) $property->wifiNetworks()->max('position') + 1,
         ]);
 

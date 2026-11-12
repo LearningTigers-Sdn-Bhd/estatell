@@ -20,5 +20,8 @@ class ConciergeContactData extends Data
         public ?string $emergencyPhone,
         public ?string $emergencyServicesNumber,
         public ?string $emergencyInstructions,
+        public ?string $deskPhone,
+        public ?string $deskEmail,
+        public ?string $deskExtension,
     ) {}
 }

@@ -148,6 +148,33 @@ it('checks the guest in with the front desk rules and shows the key step', funct
         ->where('stay.pin.status', 'failed'));
 });
 
+it('asks the guest to be at the property to check in, when the property turns that on', function () {
+    ['token' => $token, 'guest' => $guest, 'unit' => $unit, 'property' => $property] = conciergeSetup();
+    $property->forceFill(['latitude' => 3.1390, 'longitude' => 101.6869])->save();
+    $property->settings->forceFill(['concierge_location_check_enabled' => true])->save();
+    conciergeIdentityDone($guest);
+
+    conciergeStep($token, 'check_in')->assertInertia(fn (Assert $page) => $page->where('stay.locationRequired', true));
+
+    $this->post("/c/{$token}/check-in")->assertInertiaFlash('toast.message', 'Allow location access so we can see you are at the property, then try again.');
+    $this->post("/c/{$token}/check-in", ['latitude' => 3.1590, 'longitude' => 101.6869])->assertInertiaFlash('toast.message', 'Check-in opens when you are at the property. Try again when you arrive.');
+    expect($unit->refresh()->status)->toBe(UnitStatus::Confirmed);
+
+    $this->post("/c/{$token}/check-in", ['latitude' => 3.13905, 'longitude' => 101.68695])->assertRedirect("/c/{$token}");
+    expect($unit->refresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+it('does not ask for the location while the switch is off or the property has none', function () {
+    ['token' => $token, 'guest' => $guest, 'unit' => $unit, 'property' => $property] = conciergeSetup();
+    $property->settings->forceFill(['concierge_location_check_enabled' => true])->save();
+    $property->forceFill(['latitude' => null, 'longitude' => null])->save();
+    conciergeIdentityDone($guest);
+
+    $this->post("/c/{$token}/check-in")->assertRedirect("/c/{$token}");
+
+    expect($unit->refresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
 it('checks in once and answers the same room again on a retry', function () {
     ['token' => $token, 'guest' => $guest] = conciergeSetup();
     conciergeIdentityDone($guest);

@@ -15,7 +15,7 @@ class AddFaq
      * Add a question and its answer to the end of the property's list. Returns null, writing nothing, when the property
      * already lists `MAX` questions.
      */
-    public function __invoke(User $actor, Property $property, string $question, string $answer): ?PropertyFaq
+    public function __invoke(User $actor, Property $property, string $question, string $answer, ?string $topic = null): ?PropertyFaq
     {
         if ($property->faqs()->count() >= self::MAX) {
             return null;
@@ -24,6 +24,7 @@ class AddFaq
         $faq = $property->faqs()->create([
             'question' => trim($question),
             'answer' => trim($answer),
+            'topic' => filled($topic) ? trim($topic) : null,
             'position' => (int) $property->faqs()->max('position') + 1,
         ]);
 

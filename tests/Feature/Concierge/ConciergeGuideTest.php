@@ -73,6 +73,16 @@ it('shows how to reach the property, with a map link from the owner or from the 
     $this->get("/stay/{$property->code}/contact")->assertInertia(fn (Assert $page) => $page->where('details.mapsUrl', 'https://www.google.com/maps?q=6.3500000,99.8000000'));
 });
 
+it('gives the guest the room, payment and other policy texts', function () {
+    ['property' => $property] = conciergeSetup();
+    $property->settings->forceFill(['room_policy' => 'No pets.', 'payment_policy' => 'Deposit RM 100.'])->save();
+
+    $this->get("/stay/{$property->code}/info/policies")->assertInertia(fn (Assert $page) => $page
+        ->where('policies.roomPolicy', 'No pets.')
+        ->where('policies.paymentPolicy', 'Deposit RM 100.')
+        ->where('policies.otherPolicies', null));
+});
+
 it('shows the property guide sections: about, facilities, policies and FAQs', function () {
     ['property' => $property] = conciergeSetup();
     $property->settings->forceFill(['check_in_time' => '15:00:00', 'check_out_time' => '11:00:00', 'house_rules' => 'Quiet hours from 10 pm.'])->save();
@@ -148,6 +158,57 @@ it('shows the contact page from a stay link', function () {
     ['token' => $token] = conciergeInStaySetup();
 
     $this->get("/c/{$token}/contact")->assertOk()->assertInertia(fn (Assert $page) => $page->component('concierge/contact')->where('back.href', "/c/{$token}"));
+});
+
+it('lists the main Wi-Fi network first and keeps a staff-only network from the guest', function () {
+    ['token' => $token, 'property' => $property] = conciergeInStaySetup();
+    $owner = User::factory()->owner()->create(['property_id' => $property->id]);
+    PropertyWifiNetwork::factory()->create(['property_id' => $property->id, 'name' => 'Lobby', 'position' => 1]);
+
+    $this->actingAs($owner)->post(route('settings.concierge.wifi.store', $property), ['name' => 'Rooms', 'primary_network' => true])->assertRedirect();
+    $this->actingAs($owner)->post(route('settings.concierge.wifi.store', $property), ['name' => 'Back office', 'active' => false])->assertRedirect();
+    $this->actingAs($owner)->post(route('settings.concierge.wifi.store', $property), ['name' => 'Pool', 'primary_network' => true])->assertRedirect();
+    auth()->logout();
+
+    $this->get("/c/{$token}/info/wifi")->assertInertia(fn (Assert $page) => $page
+        ->has('wifi', 3)
+        ->where('wifi.0.name', 'Pool')
+        ->where('wifi.0.primary', true)
+        ->where('wifi.1.primary', false));
+    expect(PropertyWifiNetwork::query()->where('primary_network', true)->count())->toBe(1);
+});
+
+it('lets staff change the main and guest switches of a network, in their own property only', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $property->forceFill(['status' => 'live'])->save();
+    Feature::for($property)->activate(Concierge::class);
+    $first = PropertyWifiNetwork::factory()->create(['property_id' => $property->id, 'primary_network' => true]);
+    $second = PropertyWifiNetwork::factory()->create(['property_id' => $property->id]);
+    $other = PropertyWifiNetwork::factory()->create(['property_id' => Property::factory()->create()->id]);
+
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['active' => true, 'primary_network' => true])->assertRedirect();
+    expect($first->refresh()->primary_network)->toBeFalse()->and($second->refresh()->primary_network)->toBeTrue();
+
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['active' => false, 'primary_network' => true]);
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['active' => false, 'primary_network' => true]);
+    expect($second->refresh()->active)->toBeFalse()
+        ->and(Activity::query()->where('event', 'concierge.wifi-updated')->count())->toBe(2);
+
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $other]), ['active' => false, 'primary_network' => false])->assertNotFound();
+});
+
+it('groups the questions under a topic', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $property->forceFill(['status' => 'live'])->save();
+    Feature::for($property)->activate(Concierge::class);
+
+    $this->actingAs($owner)->post(route('settings.concierge.faqs.store', $property), ['topic' => ' Breakfast ', 'question' => 'When?', 'answer' => '7 to 10 am'])->assertRedirect();
+    $this->actingAs($owner)->post(route('settings.concierge.faqs.store', $property), ['question' => 'Parking?', 'answer' => 'Basement'])->assertRedirect();
+
+    expect(PropertyFaq::query()->orderBy('id')->pluck('topic')->all())->toBe(['Breakfast', null]);
+    $this->get("/stay/{$property->code}/info/faqs")->assertInertia(fn (Assert $page) => $page->where('faqs.0.topic', 'Breakfast')->where('faqs.1.topic', null));
 });
 
 it('lets staff keep the Wi-Fi networks and FAQs, and encrypts the password', function () {

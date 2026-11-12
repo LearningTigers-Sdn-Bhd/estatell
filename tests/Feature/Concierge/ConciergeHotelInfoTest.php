@@ -9,6 +9,7 @@ use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Models\PropertyInfoTopic;
 use App\Models\PropertyTransportDetail;
+use App\Models\RoomType;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
@@ -76,6 +77,61 @@ it('shows the hotel info to guests, and a part with nothing filled does not show
 
     PropertyTransportDetail::query()->update(['directions' => null, 'airport_distance_km' => null, 'airport_travel_minutes' => null, 'airport_transfer_offered' => false, 'airport_transfer_price' => null]);
     $this->get("/stay/{$property->code}/info")->assertInertia(fn (Assert $page) => $page->where('details.transport', null));
+});
+
+it('saves structured parking details and words them for the guest', function () {
+    [$owner, $property] = liveOwner();
+
+    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), [
+        'airport_transfer_offered' => false, 'parking_availability' => 'on_site', 'parking_type' => 'both', 'parking_price' => '10',
+        'parking_price_unit' => 'night', 'parking_spaces' => 20, 'parking_height_limit_m' => '2.1', 'parking_ev_charging' => true,
+        'parking_booking_required' => true,
+    ])->assertRedirect();
+
+    $transport = PropertyTransportDetail::query()->sole();
+    expect($transport->parking_ev_charging)->toBeTrue()->and($transport->parking_spaces)->toBe(20);
+
+    $this->get("/stay/{$property->code}/info")->assertInertia(fn (Assert $page) => $page
+        ->where('details.transport.parkingAvailability', 'On-site')
+        ->where('details.transport.parkingType', 'Self parking and valet')
+        ->where('details.transport.parkingPrice', fn (string $price) => str_ends_with($price, '10.00 per night'))
+        ->where('details.transport.parkingHeightLimit', '2.1 m')
+        ->where('details.transport.parkingEvCharging', true)
+        ->where('details.transport.parkingBookingRequired', true));
+
+    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), ['airport_transfer_offered' => false, 'parking_availability' => 'none', 'parking_price' => '10', 'parking_ev_charging' => true])->assertRedirect();
+    $this->get("/stay/{$property->code}/info")->assertInertia(fn (Assert $page) => $page
+        ->where('details.transport.parkingAvailability', 'No parking')
+        ->where('details.transport.parkingPrice', null)
+        ->where('details.transport.parkingEvCharging', false));
+
+    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), ['airport_transfer_offered' => false, 'parking_availability' => 'roof'])->assertSessionHasErrors('parking_availability');
+});
+
+it('tells the guest what the room types say about smoking and pets', function () {
+    ['property' => $property] = conciergeSetup();
+    $property->roomTypes()->update(['archived_at' => now()]);
+    $this->get("/stay/{$property->code}/info/policies")->assertInertia(fn (Assert $page) => $page->where('policies.smoking', null)->where('policies.pets', null));
+
+    RoomType::factory()->create(['property_id' => $property->id, 'smoking_allowed' => false, 'pets_allowed' => false]);
+    $this->get("/stay/{$property->code}/info/policies")->assertInertia(fn (Assert $page) => $page->where('policies.smoking', 'Not allowed in rooms')->where('policies.pets', 'Not allowed'));
+
+    RoomType::factory()->create(['property_id' => $property->id, 'pets_allowed' => true]);
+    $this->get("/stay/{$property->code}/info/policies")->assertInertia(fn (Assert $page) => $page->where('policies.pets', 'Allowed in some rooms'));
+});
+
+it('saves the front desk phone, email and extension and shows them to the guest', function () {
+    [$owner, $property] = liveOwner();
+
+    $this->actingAs($owner)->put(route('settings.concierge.contacts.update', $property), [
+        'front_desk_open_24h' => true, 'front_desk_phone' => '+60 3 1234 5678', 'front_desk_email' => 'desk@hotel.test', 'front_desk_extension' => '0',
+    ])->assertRedirect();
+    $this->get("/stay/{$property->code}/contact")->assertInertia(fn (Assert $page) => $page
+        ->where('contacts.deskPhone', '+60 3 1234 5678')
+        ->where('contacts.deskEmail', 'desk@hotel.test')
+        ->where('contacts.deskExtension', '0'));
+
+    $this->actingAs($owner)->put(route('settings.concierge.contacts.update', $property), ['front_desk_open_24h' => true, 'front_desk_email' => 'not-an-email'])->assertSessionHasErrors('front_desk_email');
 });
 
 it('gives the duty manager and the out-of-hours message only while the desk is closed', function () {

@@ -34,5 +34,6 @@ class ConciergeStayData extends Data
         public bool $canRequestRefund = false,
         public bool $checkOutAsked = false,
         public ?ConciergeRequestData $refundRequest = null,
+        public bool $locationRequired = false,
     ) {}
 }

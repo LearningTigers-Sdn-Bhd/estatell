@@ -16,11 +16,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $property_id
  * @property string $question
  * @property string $answer
+ * @property string|null $topic The heading the question is listed under. Null: no heading.
  * @property int $position
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'question', 'answer', 'position'])]
+#[Fillable(['property_id', 'question', 'answer', 'topic', 'position'])]
 class PropertyFaq extends Model
 {
     /** @use HasFactory<PropertyFaqFactory> */

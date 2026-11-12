@@ -12,11 +12,14 @@ use App\Data\Concierge\ConciergeTransportData;
 use App\Data\Concierge\ConciergeWifiData;
 use App\Enums\BookingEngineMode;
 use App\Enums\Locale;
+use App\Enums\ParkingAvailability;
+use App\Enums\ParkingPriceUnit;
 use App\Enums\PolicyTab;
 use App\Features\BookingEngine;
 use App\Models\Property;
 use App\Models\PropertyFaq;
 use App\Models\PropertySetting;
+use App\Models\PropertyTransportDetail;
 use App\Models\PropertyWifiNetwork;
 use Laravel\Pennant\Feature;
 
@@ -74,6 +77,9 @@ class ConciergeGuide
             emergencyPhone: $settings?->emergency_phone,
             emergencyServicesNumber: $settings?->emergency_services_number,
             emergencyInstructions: $settings?->emergency_instructions,
+            deskPhone: $settings?->front_desk_phone,
+            deskEmail: $settings?->front_desk_email,
+            deskExtension: $settings?->front_desk_extension,
         );
     }
 
@@ -110,6 +116,8 @@ class ConciergeGuide
             return null;
         }
 
+        $parking = $transport->parking_availability !== null && $transport->parking_availability !== ParkingAvailability::None;
+
         $data = new ConciergeTransportData(
             directions: $transport->directions,
             airport: $this->trip($transport->airport_distance_km, $transport->airport_travel_minutes),
@@ -126,10 +134,30 @@ class ConciergeGuide
             pickupPoint: $transport->pickup_point,
             shuttleSchedule: $transport->shuttle_schedule,
             parkingNotes: $transport->parking_notes,
+            parkingAvailability: $transport->parking_availability?->label(),
+            parkingType: $parking ? $transport->parking_type?->label() : null,
+            parkingPrice: $parking ? $this->parkingPrice($property, $transport) : null,
+            parkingSpaces: $parking ? $transport->parking_spaces : null,
+            parkingHeightLimit: $parking && $transport->parking_height_limit_m !== null ? __(':metres m', ['metres' => (float) $transport->parking_height_limit_m]) : null,
+            parkingEvCharging: $parking && $transport->parking_ev_charging,
+            parkingBookingRequired: $parking && $transport->parking_booking_required,
             notes: $transport->transport_notes,
         );
 
         return array_filter($data->toArray(), fn (mixed $value): bool => $value !== null && $value !== false && $value !== '') === [] ? null : $data;
+    }
+
+    private function parkingPrice(Property $property, PropertyTransportDetail $transport): ?string
+    {
+        if ($transport->parking_price_unit === ParkingPriceUnit::Free) {
+            return $transport->parking_price_unit->label();
+        }
+
+        if ($transport->parking_price === null) {
+            return null;
+        }
+
+        return $property->settings->currency.' '.number_format((float) $transport->parking_price, 2).($transport->parking_price_unit === null ? '' : ' '.mb_strtolower($transport->parking_price_unit->label()));
     }
 
     private function trip(?int $km, ?int $minutes): ?string
@@ -142,13 +170,39 @@ class ConciergeGuide
     public function policies(Property $property): ConciergePoliciesData
     {
         $property->loadMissing('settings');
+        [$smoking, $pets] = $this->roomFacts($property);
 
         return new ConciergePoliciesData(
             $this->time($property->settings->check_in_time),
             $this->time($property->settings->check_out_time),
             $property->settings->house_rules,
+            $property->settings->room_policy,
+            $property->settings->payment_policy,
+            $property->settings->other_policies,
+            $smoking,
+            $pets,
             $this->terms($property),
         );
+    }
+
+    /**
+     * What the room types say about smoking and pets, worded for a guest. Null for both when the property has no active
+     * room type, so the page states nothing it does not know.
+     *
+     * @return array{0: string|null, 1: string|null}
+     */
+    private function roomFacts(Property $property): array
+    {
+        $types = $property->roomTypes()->active()->get(['smoking_allowed', 'pets_allowed']);
+
+        if ($types->isEmpty()) {
+            return [null, null];
+        }
+
+        return [
+            $types->contains('smoking_allowed', true) ? __('Allowed in some rooms') : __('Not allowed in rooms'),
+            $types->contains('pets_allowed', true) ? __('Allowed in some rooms') : __('Not allowed'),
+        ];
     }
 
     /**
@@ -187,7 +241,7 @@ class ConciergeGuide
      */
     public function wifi(Property $property): array
     {
-        return $property->wifiNetworks()->get()->map(fn (PropertyWifiNetwork $network): ConciergeWifiData => ConciergeWifiData::fromModel($network))->all();
+        return $property->wifiNetworks()->where('active', true)->reorder()->orderByDesc('primary_network')->orderBy('position')->orderBy('id')->get()->map(fn (PropertyWifiNetwork $network): ConciergeWifiData => ConciergeWifiData::fromModel($network))->all();
     }
 
     /**

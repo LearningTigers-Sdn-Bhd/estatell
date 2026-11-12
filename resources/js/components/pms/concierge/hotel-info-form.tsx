@@ -2,6 +2,7 @@ import { Form } from '@inertiajs/react';
 import { useState, type ReactNode } from 'react';
 import {
     keepPage,
+    SelectField,
     SubmitButton,
     SwitchRow,
     TextField,
@@ -17,6 +18,11 @@ import { update } from '@/routes/settings/concierge/hotel-info';
 
 type Info = App.Data.Concierge.ConciergeHotelInfoSettingsData;
 type Errors = Record<string, string>;
+export type ParkingOptions = {
+    availability: { value: string; label: string }[];
+    types: { value: string; label: string }[];
+    priceUnits: { value: string; label: string }[];
+};
 
 /** The places guests ask the distance to. `field` is the form name, `prop` the key on the data. */
 const DISTANCES = [
@@ -65,7 +71,13 @@ function Section({
 }
 
 /** What the property tells guests about itself and how to get there. Everything is optional; an empty part is not shown. */
-export function HotelInfoForm({ info }: { info: Info }) {
+export function HotelInfoForm({
+    info,
+    parkingOptions,
+}: {
+    info: Info;
+    parkingOptions: ParkingOptions;
+}) {
     const [transfer, setTransfer] = useState(info.airportTransferOffered);
 
     return (
@@ -108,6 +120,11 @@ export function HotelInfoForm({ info }: { info: Info }) {
                                 errors={errors}
                                 transfer={transfer}
                                 onTransferChange={setTransfer}
+                            />
+                            <ParkingSection
+                                info={info}
+                                errors={errors}
+                                options={parkingOptions}
                             />
 
                             <SubmitButton processing={processing}>
@@ -214,7 +231,7 @@ function TransportSection({
     return (
         <Section
             title="Transfers and local transport"
-            description="Add pickup, parking, and public transport details in one place."
+            description="Add airport pickup, shuttle, and public transport details."
         >
             <SwitchRow
                 id="airport_transfer_switch"
@@ -271,25 +288,121 @@ function TransportSection({
                     error={errors.shuttle_schedule}
                     maxLength={200}
                 />
-                <TextField
-                    name="parking_notes"
-                    placeholder="e.g. Free for guests in the basement. First come, first served."
+            </div>
+            <TextField
+                name="transport_notes"
+                placeholder="e.g. Grab pickup is easiest at the side entrance."
+                label="Other travel notes"
+                defaultValue={info.transportNotes}
+                error={errors.transport_notes}
+                rows={2}
+                maxLength={1000}
+            />
+        </Section>
+    );
+}
+
+function ParkingSection({
+    info,
+    errors,
+    options,
+}: {
+    info: Info;
+    errors: Errors;
+    options: ParkingOptions;
+}) {
+    const [evCharging, setEvCharging] = useState(info.parkingEvCharging);
+    const [bookingRequired, setBookingRequired] = useState(
+        info.parkingBookingRequired,
+    );
+
+    return (
+        <Section
+            title="Parking"
+            description="Tell guests where to park, what it costs, and what fits."
+        >
+            <div className="grid gap-4 md:grid-cols-2">
+                <SelectField
+                    name="parking_availability"
                     label="Parking"
-                    defaultValue={info.parkingNotes}
-                    error={errors.parking_notes}
-                    rows={2}
-                    maxLength={500}
+                    options={options.availability}
+                    defaultValue={info.parkingAvailability}
+                    error={errors.parking_availability}
+                />
+                <SelectField
+                    name="parking_type"
+                    label="Parking type"
+                    options={options.types}
+                    defaultValue={info.parkingType}
+                    error={errors.parking_type}
                 />
                 <TextField
-                    name="transport_notes"
-                    placeholder="e.g. Grab pickup is easiest at the side entrance."
-                    label="Other travel notes"
-                    defaultValue={info.transportNotes}
-                    error={errors.transport_notes}
-                    rows={2}
-                    maxLength={1000}
+                    name="parking_price"
+                    placeholder="e.g. 10"
+                    label="Parking price"
+                    type="number"
+                    defaultValue={info.parkingPrice}
+                    error={errors.parking_price}
+                />
+                <SelectField
+                    name="parking_price_unit"
+                    label="Price is"
+                    options={options.priceUnits}
+                    defaultValue={info.parkingPriceUnit}
+                    error={errors.parking_price_unit}
+                />
+                <TextField
+                    name="parking_spaces"
+                    placeholder="e.g. 20"
+                    label="Number of spaces"
+                    type="number"
+                    defaultValue={info.parkingSpaces}
+                    error={errors.parking_spaces}
+                />
+                <TextField
+                    name="parking_height_limit_m"
+                    placeholder="e.g. 2.1"
+                    label="Height limit (m)"
+                    type="number"
+                    defaultValue={info.parkingHeightLimitM}
+                    error={errors.parking_height_limit_m}
                 />
             </div>
+            <TextField
+                name="parking_notes"
+                placeholder="e.g. Free for guests in the basement. First come, first served."
+                label="Parking notes"
+                defaultValue={info.parkingNotes}
+                error={errors.parking_notes}
+                rows={2}
+                maxLength={500}
+            />
+            <input
+                type="hidden"
+                name="parking_ev_charging"
+                value={evCharging ? '1' : '0'}
+            />
+            <input
+                type="hidden"
+                name="parking_booking_required"
+                value={bookingRequired ? '1' : '0'}
+            />
+            <SwitchRow
+                id="parking_ev_charging_switch"
+                title="EV charging available"
+                body="Guests with electric cars will see this."
+                checked={evCharging}
+                onChange={setEvCharging}
+                className="items-center rounded-lg border p-4"
+            />
+            <SwitchRow
+                id="parking_booking_required_switch"
+                title="Parking must be booked"
+                body="Guests are told to book a space before they arrive."
+                checked={bookingRequired}
+                onChange={setBookingRequired}
+                className="items-center rounded-lg border p-4"
+            />
         </Section>
     );
 }

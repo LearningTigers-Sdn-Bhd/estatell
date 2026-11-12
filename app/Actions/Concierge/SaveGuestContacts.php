@@ -10,6 +10,7 @@ class SaveGuestContacts
     public const array FIELDS = [
         'front_desk_open_24h', 'front_desk_opens_at', 'front_desk_closes_at', 'front_desk_whatsapp', 'after_hours_message',
         'duty_manager_phone', 'emergency_phone', 'emergency_services_number', 'emergency_instructions',
+        'front_desk_phone', 'front_desk_email', 'front_desk_extension',
     ];
 
     /**

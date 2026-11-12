@@ -18,6 +18,7 @@ class StoreFaqRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'topic' => ['nullable', 'string', 'max:100'],
             'question' => ['required', 'string', 'max:200', 'regex:/\S/'],
             'answer' => ['required', 'string', 'max:1000', 'regex:/\S/'],
         ];

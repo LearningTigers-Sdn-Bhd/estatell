@@ -24,6 +24,8 @@ export function OverviewTab({
     houseRules,
     walkInEnabled,
     refundRequestsEnabled,
+    locationCheckEnabled,
+    hasLocation,
     onOpen,
 }: {
     items: GuideSectionStatus[];
@@ -32,6 +34,8 @@ export function OverviewTab({
     houseRules: string | null;
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
+    locationCheckEnabled: boolean;
+    hasLocation: boolean;
     onOpen: (tab: string) => void;
 }) {
     const ready = items.filter((item) => item.ready).length;
@@ -77,6 +81,8 @@ export function OverviewTab({
                         houseRules={houseRules}
                         walkInEnabled={walkInEnabled}
                         refundRequestsEnabled={refundRequestsEnabled}
+                        locationCheckEnabled={locationCheckEnabled}
+                        hasLocation={hasLocation}
                     />
                 </>
             }

@@ -27,6 +27,13 @@ export function FaqsTab({
                     fields={(errors) => (
                         <>
                             <TextField
+                                name="topic"
+                                label="Topic (optional)"
+                                error={errors.topic}
+                                maxLength={100}
+                                placeholder="e.g. Breakfast"
+                            />
+                            <TextField
                                 name="question"
                                 label="Question"
                                 error={errors.question}
@@ -50,7 +57,7 @@ export function FaqsTab({
         >
             <ItemListCard
                 title="Questions guests ask"
-                description="These answers appear in the property guide before and during a stay."
+                description="These answers appear in the property guide before and during a stay, grouped by topic."
                 count={faqs.length}
                 one="question"
                 many="questions"
@@ -67,6 +74,11 @@ export function FaqsTab({
                         url={destroy.url({ faq: faq.id })}
                         label={`Remove question: ${faq.question}`}
                     >
+                        {faq.topic && (
+                            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                {faq.topic}
+                            </span>
+                        )}
                         <span className="font-medium">{faq.question}</span>
                         <span className="text-pretty whitespace-pre-wrap text-muted-foreground">
                             {faq.answer}

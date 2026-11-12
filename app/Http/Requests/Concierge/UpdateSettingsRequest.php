@@ -20,7 +20,11 @@ class UpdateSettingsRequest extends FormRequest
         return [
             'walk_in_enabled' => ['required', 'boolean'],
             'refund_requests_enabled' => ['required', 'boolean'],
+            'location_check_enabled' => ['sometimes', 'boolean'],
             'house_rules' => ['nullable', 'string', 'max:2000'],
+            'room_policy' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'payment_policy' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'other_policies' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
 }

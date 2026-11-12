@@ -71,6 +71,7 @@ class ConciergePageBuilder
             canRequestRefund: $step === ConciergeStep::CheckedOut && $this->canRequestRefund($stay),
             checkOutAsked: in_array($step, [ConciergeStep::Key, ConciergeStep::Home], true) && $this->checkOut->open($stay) !== null,
             refundRequest: $step === ConciergeStep::CheckedOut ? $this->refundRequest($stay) : null,
+            locationRequired: $stay->property->settings->concierge_location_check_enabled && filled($stay->property->latitude) && filled($stay->property->longitude),
         );
     }
 

@@ -20,6 +20,9 @@ class ConciergeContactSettingsData extends Data
         public ?string $emergencyPhone,
         public ?string $emergencyServicesNumber,
         public ?string $emergencyInstructions,
+        public ?string $frontDeskPhone,
+        public ?string $frontDeskEmail,
+        public ?string $frontDeskExtension,
     ) {}
 
     public static function fromProperty(Property $property): self
@@ -36,6 +39,9 @@ class ConciergeContactSettingsData extends Data
             $settings?->emergency_phone,
             $settings?->emergency_services_number,
             $settings?->emergency_instructions,
+            $settings?->front_desk_phone,
+            $settings?->front_desk_email,
+            $settings?->front_desk_extension,
         );
     }
 }

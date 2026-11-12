@@ -13,6 +13,7 @@ use App\Actions\Concierge\SaveAmenityDetail;
 use App\Actions\Concierge\SaveGuestContacts;
 use App\Actions\Concierge\SaveHotelInfo;
 use App\Actions\Concierge\UpdateConciergeSettings;
+use App\Actions\Concierge\UpdateWifiNetwork;
 use App\Data\BookingEngine\AmenityPickerData;
 use App\Data\BookingEngine\NearbyPlaceSuggestionData;
 use App\Data\BookingEngine\PropertyNearbyPlaceData;
@@ -23,6 +24,9 @@ use App\Data\Concierge\ConciergeHotelInfoSettingsData;
 use App\Data\Concierge\ConciergeTopicData;
 use App\Data\Concierge\ConciergeWifiData;
 use App\Enums\AmenityType;
+use App\Enums\ParkingAvailability;
+use App\Enums\ParkingPriceUnit;
+use App\Enums\ParkingType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\SetAmenityRequest;
 use App\Http\Requests\Concierge\SaveAmenityDetailRequest;
@@ -32,6 +36,7 @@ use App\Http\Requests\Concierge\StoreFaqRequest;
 use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
 use App\Http\Requests\Concierge\UpdateSettingsRequest;
+use App\Http\Requests\Concierge\UpdateWifiRequest;
 use App\Models\Amenity;
 use App\Models\NearbyPlace;
 use App\Models\Property;
@@ -67,9 +72,21 @@ class ConciergeSettingsController extends Controller
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
             'houseRules' => $property->settings?->house_rules,
+            'locationCheckEnabled' => (bool) $property->settings?->concierge_location_check_enabled,
+            'hasLocation' => filled($property->latitude) && filled($property->longitude),
+            'policyTexts' => [
+                'roomPolicy' => $property->settings?->room_policy,
+                'paymentPolicy' => $property->settings?->payment_policy,
+                'otherPolicies' => $property->settings?->other_policies,
+            ],
             'wifiNetworks' => $property->wifiNetworks()->get()->map(ConciergeWifiData::fromModel(...))->values(),
             'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
             'hotelInfo' => ConciergeHotelInfoSettingsData::fromProperty($property->loadMissing('transportDetail')),
+            'parkingOptions' => [
+                'availability' => ParkingAvailability::options(),
+                'types' => ParkingType::options(),
+                'priceUnits' => ParkingPriceUnit::options(),
+            ],
             'contacts' => ConciergeContactSettingsData::fromProperty($property),
             'amenities' => AmenityPickerData::forType(AmenityType::Property, $property->amenities()->get()),
             'amenityDetails' => $property->amenities()->with('category')->orderBy('position')->get()->map(ConciergeAmenitySettingsData::fromModel(...))->values(),
@@ -90,7 +107,7 @@ class ConciergeSettingsController extends Controller
 
     public function update(UpdateSettingsRequest $request, Property $property, UpdateConciergeSettings $updateSettings): RedirectResponse
     {
-        $updateSettings($request->user(), $property, $request->boolean('walk_in_enabled'), $request->boolean('refund_requests_enabled'), $request->input('house_rules'));
+        $updateSettings($request->user(), $property, $request->boolean('walk_in_enabled'), $request->boolean('refund_requests_enabled'), $request->input('house_rules'), $request->safe()->only(UpdateConciergeSettings::POLICY_FIELDS), $request->has('location_check_enabled') ? $request->boolean('location_check_enabled') : null);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Concierge settings saved.')]);
 
@@ -99,11 +116,20 @@ class ConciergeSettingsController extends Controller
 
     public function storeWifi(StoreWifiRequest $request, Property $property, AddWifiNetwork $addNetwork): RedirectResponse
     {
-        $network = $addNetwork($request->user(), $property, $request->string('name')->toString(), $request->input('password'), $request->input('note'));
+        $network = $addNetwork($request->user(), $property, $request->string('name')->toString(), $request->input('password'), $request->input('note'), $request->boolean('active', true), $request->boolean('primary_network'));
 
         Inertia::flash('toast', $network === null
             ? ['type' => 'error', 'message' => __('A property can list up to :count Wi-Fi networks.', ['count' => AddWifiNetwork::MAX])]
             : ['type' => 'success', 'message' => __('Wi-Fi network added.')]);
+
+        return back();
+    }
+
+    public function updateWifi(UpdateWifiRequest $request, Property $property, PropertyWifiNetwork $wifiNetwork, UpdateWifiNetwork $updateNetwork): RedirectResponse
+    {
+        $updateNetwork($request->user(), $wifiNetwork, $request->boolean('active'), $request->boolean('primary_network'));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Wi-Fi network updated.')]);
 
         return back();
     }
@@ -119,7 +145,7 @@ class ConciergeSettingsController extends Controller
 
     public function storeFaq(StoreFaqRequest $request, Property $property, AddFaq $addFaq): RedirectResponse
     {
-        $faq = $addFaq($request->user(), $property, $request->string('question')->toString(), $request->string('answer')->toString());
+        $faq = $addFaq($request->user(), $property, $request->string('question')->toString(), $request->string('answer')->toString(), $request->input('topic'));
 
         Inertia::flash('toast', $faq === null
             ? ['type' => 'error', 'message' => __('A property can list up to :count questions.', ['count' => AddFaq::MAX])]

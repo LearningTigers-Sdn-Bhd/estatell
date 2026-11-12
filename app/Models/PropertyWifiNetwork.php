@@ -17,11 +17,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $name
  * @property string|null $password
  * @property string|null $note
+ * @property bool $active Shown to guests. A hidden network is for staff only.
+ * @property bool $primary_network The main network, listed first. At most one for a property.
  * @property int $position
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'name', 'password', 'note', 'position'])]
+#[Fillable(['property_id', 'name', 'password', 'note', 'active', 'primary_network', 'position'])]
 class PropertyWifiNetwork extends Model
 {
     /** @use HasFactory<PropertyWifiNetworkFactory> */
@@ -32,7 +34,7 @@ class PropertyWifiNetwork extends Model
      */
     protected function casts(): array
     {
-        return ['password' => 'encrypted'];
+        return ['password' => 'encrypted', 'active' => 'boolean', 'primary_network' => 'boolean'];
     }
 
     /**

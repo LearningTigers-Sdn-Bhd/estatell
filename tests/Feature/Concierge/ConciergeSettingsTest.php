@@ -46,6 +46,32 @@ it('saves the walk-in switch and logs only what changed', function () {
     $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page->where('walkInEnabled', true));
 });
 
+it('saves the room, payment and other policy texts, and leaves them alone when a save omits them', function () {
+    ['owner' => $owner, 'property' => $property] = conciergeSettingsSetup();
+    $base = ['walk_in_enabled' => false, 'refund_requests_enabled' => false, 'house_rules' => null];
+
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base + ['room_policy' => '  No pets.  ', 'payment_policy' => 'Deposit RM 100.', 'other_policies' => '']);
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base);
+
+    expect($property->refresh()->settings)->room_policy->toBe('No pets.')->payment_policy->toBe('Deposit RM 100.')->other_policies->toBeNull();
+
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base + ['payment_policy' => '']);
+    expect($property->refresh()->settings)->payment_policy->toBeNull()->room_policy->toBe('No pets.');
+
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base + ['room_policy' => str_repeat('x', 2001)])->assertSessionHasErrors('room_policy');
+});
+
+it('saves the location check switch, and leaves it alone when a save omits it', function () {
+    ['owner' => $owner, 'property' => $property] = conciergeSettingsSetup();
+    $base = ['walk_in_enabled' => false, 'refund_requests_enabled' => false, 'house_rules' => null];
+
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base + ['location_check_enabled' => true]);
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base);
+
+    expect($property->refresh()->settings->concierge_location_check_enabled)->toBeTrue();
+    $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page->where('locationCheckEnabled', true));
+});
+
 it('does not let staff without the settings permission change the switch', function () {
     ['property' => $property] = conciergeSettingsSetup();
     $staff = User::factory()->for($property)->withPermissions([])->create();
