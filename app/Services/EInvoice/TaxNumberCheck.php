@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
  * which tax number LHDN holds for that ID. Staff press Check with LHDN before sending, or Find the tax number on a
  * rejected e-invoice. It calls LHDN only when staff ask: LHDN throttles a client that checks before every submission
  * (about 60 calls a minute per Client ID), so a property gets 20 checks a minute. It writes nothing.
- * See docs/30-einvoice/01-lhdn-myinvois.md#checking-a-tax-number.
+ * See docs/31-einvoice/01-lhdn-myinvois.md#checking-a-tax-number.
  */
 class TaxNumberCheck
 {

@@ -54,7 +54,7 @@ The staff app has four areas: **Front desk, Finance, Reports, Settings** (Accoun
 | Sheet       | 4–12, page behind stays visible  |
 | Full page   | 13+                              |
 
-Always a full page for repeating rows, uploads, multiple steps, needing a URL, or long editing. One overlay level only. Mobile handled by `FormOverlay`.
+Always a full page for repeating rows, uploads, multiple steps, needing a URL, or long editing (one exception: the portal Pay dialog takes one slip). One overlay level only. Mobile handled by `FormOverlay`.
 
 ## 6. Base UI rules
 

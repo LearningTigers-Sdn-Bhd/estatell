@@ -10,7 +10,7 @@ use App\Models\Tax;
  * The hotel as LHDN sees it on every e-invoice (the supplier): each detail from E-invoice settings, else from the
  * property. `missing()` lists what is empty or in the wrong form, so e-invoicing cannot be switched on and nothing is
  * sent until the hotel completes it; no detail is ever made up. A hotel that charges SST or tourism tax must give its
- * registration number for it. See docs/30-einvoice/01-lhdn-myinvois.md#hotel-details.
+ * registration number for it. See docs/31-einvoice/01-lhdn-myinvois.md#hotel-details.
  */
 class SupplierDetails
 {

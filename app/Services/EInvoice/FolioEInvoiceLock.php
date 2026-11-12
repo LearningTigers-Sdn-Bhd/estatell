@@ -11,7 +11,7 @@ use App\Models\Folio;
  * checking it (not Rejected, not Cancelled). LHDN does not allow an issued e-invoice to change, so the folio must not
  * reopen and change under it: a late charge goes on a new folio, and a lower price takes a credit note. Within 72
  * hours of acceptance staff may cancel the e-invoice instead, which frees the folio. It reads only. See
- * docs/30-einvoice/01-lhdn-myinvois.md#document-rules.
+ * docs/31-einvoice/01-lhdn-myinvois.md#document-rules.
  */
 class FolioEInvoiceLock
 {

@@ -16,6 +16,7 @@ use App\Http\Requests\Property\UpdatePrintHeaderRequest;
 use App\Http\Requests\Property\UpdatePrintSettingsRequest;
 use App\Models\Property;
 use App\Models\Tax;
+use App\Services\Catalogues\BankAccountLines;
 use App\Services\Property\PrintedPdf;
 use App\Services\Property\SampleDocument;
 use Brick\Money\Currency;
@@ -61,13 +62,13 @@ class PrintSettingsController extends Controller
     /**
      * Printing page, Documents tab: the switches the booking summary, the folio invoice and the AR invoice read.
      */
-    public function documents(Property $property): InertiaResponse|RedirectResponse
+    public function documents(Property $property, BankAccountLines $bankAccountLines): InertiaResponse|RedirectResponse
     {
         if ($property->printSetting === null) {
             return to_route('settings.edit', $property);
         }
 
-        return $this->renderTab($property, 'documents');
+        return $this->renderTab($property, 'documents', ['bankAccounts' => $bankAccountLines->for($property)]);
     }
 
     public function update(UpdatePrintSettingsRequest $request, Property $property, UpdatePrintSettings $updatePrintSettings): RedirectResponse
@@ -103,7 +104,7 @@ class PrintSettingsController extends Controller
      * The real dompdf output of the saved settings, shown inline: a sample report table, or with
      * `?document=booking-summary` a sample booking summary that reads the document switches.
      */
-    public function sample(Request $request, Property $property, PrintedPdf $printedPdf, SampleDocument $sampleDocument): Response
+    public function sample(Request $request, Property $property, PrintedPdf $printedPdf, SampleDocument $sampleDocument, BankAccountLines $bankAccountLines): Response
     {
         abort_if($property->printSetting === null, 404);
 
@@ -112,6 +113,7 @@ class PrintSettingsController extends Controller
                 'currency' => $property->settings->currency ?? Currency::of('MYR'),
                 'groups' => $sampleDocument->groups($property->printSetting),
                 'settings' => $property->printSetting,
+                'bankAccounts' => $bankAccountLines->for($property),
             ])->stream('sample-booking-summary.pdf');
         }
 

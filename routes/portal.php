@@ -28,6 +28,8 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
             Route::get('/', [PortalBookingController::class, 'index'])->name('index');
             Route::get('new', [PortalBookController::class, 'create'])->name('create');
             Route::get('{reservation}', [PortalBookingController::class, 'show'])->whereNumber('reservation')->name('show');
+            Route::get('{reservation}/guests', [PortalBookingController::class, 'guests'])->whereNumber('reservation')->name('guests');
+            Route::get('{reservation}/payments', [PortalBookingController::class, 'payments'])->whereNumber('reservation')->name('payments');
             Route::put('{reservation}/guests', [PortalBookingController::class, 'updateGuests'])->whereNumber('reservation')->name('guests.update');
             Route::put('{reservation}/boats', [PortalBookingController::class, 'updateBoats'])->whereNumber('reservation')->name('boats.update');
             Route::get('{reservation}/payment-proofs/{paymentProof}', [PortalPaymentProofController::class, 'file'])->whereNumber('reservation')->name('payment-proofs.file');
@@ -35,6 +37,7 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
             Route::post('offers', [PortalBookController::class, 'offers'])->middleware('throttle:60,1')->name('offers');
             Route::middleware('throttle:20,1')->group(function () {
                 Route::post('/', [PortalBookController::class, 'store'])->name('store');
+                Route::post('{reservation}/units/{unit}/guests', [PortalBookingController::class, 'storeGuest'])->whereNumber(['reservation', 'unit'])->name('units.guests.store');
                 Route::post('{reservation}/cancel', [PortalBookingController::class, 'cancel'])->whereNumber('reservation')->name('cancel');
                 Route::post('{reservation}/payment-proofs', [PortalPaymentProofController::class, 'store'])->whereNumber('reservation')->name('payment-proofs.store');
                 Route::post('{reservation}/cancellation-request', [PortalBookingController::class, 'requestCancellation'])->whereNumber('reservation')->name('cancellation-request');
@@ -43,6 +46,9 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
 
         Route::prefix('statements')->name('statements')->group(function () {
             Route::get('/', [PortalStatementController::class, 'show']);
+            Route::get('invoices', [PortalStatementController::class, 'invoices'])->name('.invoices');
+            Route::get('payments', [PortalStatementController::class, 'payments'])->name('.payments');
+            Route::get('slips', [PortalStatementController::class, 'slips'])->name('.slips');
             Route::get('pdf', [PortalStatementController::class, 'pdf'])->name('.pdf');
             Route::get('invoices/{invoice}/pdf', [PortalStatementController::class, 'invoicePdf'])->whereNumber('invoice')->name('.invoices.pdf');
             Route::post('payment-slips', [PortalPaymentSlipController::class, 'store'])->middleware('throttle:20,1')->name('.payment-slips.store');

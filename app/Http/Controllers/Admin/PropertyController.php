@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Services\Channels\ChannelOtaOverview;
 use App\Services\Channels\ChannelStructurePreview;
 use App\Services\Channels\ChannelSyncProgress;
+use App\Services\Commissions\PropertyCommissionPeriods;
 use App\Services\Guests\CountryOptions;
 use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingBoard;
@@ -139,9 +140,21 @@ class PropertyController extends Controller
     }
 
     /**
+     * Property page, Commissions tab: each service's charging period and the history.
+     * See docs/30-commission-fees/05-platform-pages.md#property-commissions-tab.
+     */
+    public function commissions(Property $property, PropertyCommissionPeriods $commissionPeriods): Response
+    {
+        return $this->renderTab($property, 'commissions', [
+            'commissionServices' => $commissionPeriods->servicesFor($property),
+            'commissionHistory' => $commissionPeriods->historyFor($property),
+        ]);
+    }
+
+    /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's data is sent.
      *
-     * @param  'overview'|'staff'|'features'|'ota-lists'|'channels'  $tab
+     * @param  'overview'|'staff'|'features'|'ota-lists'|'channels'|'commissions'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, string $tab, array $tabProps = []): Response

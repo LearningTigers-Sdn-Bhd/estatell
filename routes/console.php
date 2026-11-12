@@ -3,6 +3,8 @@
 use App\Actions\ApiAccess\PruneIdempotencyKeys;
 use App\Actions\BookingEngine\ExpireBookingHolds;
 use App\Actions\BookingEngine\PurgeBookingHoldGuestDetails;
+use App\Actions\Commissions\GenerateDraftVouchers;
+use App\Actions\Commissions\RecordDueCommissions;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
 use App\Actions\Payments\ResendWaitingOnlineRefunds;
@@ -67,6 +69,10 @@ Schedule::call(fn (): int => app(ExpireBookingHolds::class)())->name('expire-boo
 Schedule::call(fn (): int => app(ResendWaitingOnlineRefunds::class)())->name('resend-waiting-online-refunds')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::call(fn (): int => app(PurgeBookingHoldGuestDetails::class)())->name('purge-booking-hold-guest-details')->dailyAt('03:50')->onOneServer();
+
+Schedule::call(fn (): int => app(RecordDueCommissions::class)())->name('record-due-commissions')->hourly()->withoutOverlapping()->onOneServer();
+
+Schedule::call(fn (): int => app(GenerateDraftVouchers::class)())->name('generate-draft-vouchers')->monthlyOn(16, '06:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 

@@ -9,7 +9,7 @@ use App\Models\Tax;
  * The LHDN tax type of a posted tax line, from the property's tax catalogue (`taxes.code`), not from its wording:
  * `02` Service Tax for SST, `03` Tourism Tax for TTX, and `06` Not applicable for any other levy, such as a council
  * heritage fee. A line whose tax is not in the catalogue falls back to its name. See
- * docs/30-einvoice/01-lhdn-myinvois.md#tax.
+ * docs/31-einvoice/01-lhdn-myinvois.md#tax.
  */
 class LhdnTaxType
 {

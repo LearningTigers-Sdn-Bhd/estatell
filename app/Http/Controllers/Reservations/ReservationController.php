@@ -23,7 +23,7 @@ use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\LockProvider;
 use App\Enums\ManualFolioReason;
-use App\Enums\PaymentMethodType;
+use App\Enums\PaymentProofStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
@@ -36,7 +36,6 @@ use App\Features\DoorLocks;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
-use App\Models\PaymentMethod;
 use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -61,6 +60,7 @@ use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
 use App\Services\Keyport\UnitKeyCards;
 use App\Services\Payments\PaymentReceipt;
+use App\Services\Payments\ProofPaymentMethods;
 use App\Services\Platform\Impersonation;
 use App\Services\Property\MigrationWindow;
 use App\Services\Reservations\AgentBill;
@@ -358,31 +358,35 @@ class ReservationController extends Controller
     }
 
     /**
-     * The agent's payment proofs of the reservation, newest first, and the methods to record one with. Empty when the
-     * agent sent none.
+     * The agent's payment proofs of the reservation. Every tab gets `proofsWaiting`, the count of proofs not checked yet,
+     * for the summary card. Only the Folio tab gets the proofs, newest first, and the methods to record one with.
      *
-     * @return array{paymentProofs: list<PaymentProofData>, proofPaymentMethods: list<array{value: string, label: string}>}
+     * @return array{proofsWaiting: int, paymentProofs: list<PaymentProofData>, proofPaymentMethods: list<array{value: string, label: string}>}
      */
-    private function paymentProofProps(User $user, Property $property, Reservation $reservation): array
+    private function paymentProofProps(User $user, Property $property, Reservation $reservation, string $tab): array
     {
         // Only an agent sends proofs, from the portal, so a reservation with no company reads nothing.
-        $proofs = $reservation->company_id === null
-            ? collect()
-            : PaymentProof::query()->where('reservation_id', $reservation->id)->with('uploader')->latest('id')->get();
+        if ($reservation->company_id === null) {
+            return ['proofsWaiting' => 0, 'paymentProofs' => [], 'proofPaymentMethods' => []];
+        }
+
+        if ($tab !== 'folio') {
+            return [
+                'proofsWaiting' => PaymentProof::query()->where('reservation_id', $reservation->id)->where('status', PaymentProofStatus::Submitted)->count(),
+                'paymentProofs' => [],
+                'proofPaymentMethods' => [],
+            ];
+        }
+
+        $proofs = PaymentProof::query()->where('reservation_id', $reservation->id)->with(['uploader', 'bankAccount'])->latest('id')->get();
 
         return [
+            'proofsWaiting' => $proofs->where('status', PaymentProofStatus::Submitted)->count(),
             'paymentProofs' => array_values($proofs->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(
                 $proof,
                 route('reservations.payment-proofs.file', ['property' => $property->code, 'reservation' => $reservation->id, 'paymentProof' => $proof->id], absolute: false),
             ))->all()),
-            'proofPaymentMethods' => $proofs->isEmpty() || ! $user->can(PermissionEnum::PaymentRecord->value) ? [] : array_values(PaymentMethod::query()
-                ->where('property_id', $property->id)
-                ->active()
-                ->whereNotIn('type', [PaymentMethodType::OldSystem->value, PaymentMethodType::DirectBill->value, PaymentMethodType::OtaCollected->value])
-                ->ordered()
-                ->get()
-                ->map(fn (PaymentMethod $method): array => ['value' => (string) $method->id, 'label' => $method->name])
-                ->all()),
+            'proofPaymentMethods' => $proofs->isEmpty() || ! $user->can(PermissionEnum::PaymentRecord->value) ? [] : app(ProofPaymentMethods::class)->options($property),
         ];
     }
 
@@ -427,7 +431,7 @@ class ReservationController extends Controller
             'money' => $money,
             'paymentSchedule' => PaymentScheduleData::forReservation($reservation),
             'agentBill' => $reservation->deposit_due_at === null ? null : app(AgentBill::class)->for($reservation),
-            ...$this->paymentProofProps($user, $property, $reservation),
+            ...$this->paymentProofProps($user, $property, $reservation, $tab),
             'units' => $overview['units'],
             'tab' => $tab,
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,

@@ -16,8 +16,8 @@ import {
 import { MoveGuestDialog } from '@/components/pms/reservations/move-guest-dialog';
 import type { MovingGuest } from '@/components/pms/reservations/move-guest-dialog';
 import type { GuestsView } from '@/components/pms/reservations/use-guests-view';
-import { SummaryToggle } from '@/components/pms/reservations/summary-toggle';
-import { ViewChoiceToggle } from '@/components/pms/reservations/view-choice-toggle';
+import { SummaryToggle } from '@/components/pms/summary-toggle';
+import { ViewChoiceToggle } from '@/components/pms/view-choice-toggle';
 import {
     DraftGuestRow,
     GuestsHeader,

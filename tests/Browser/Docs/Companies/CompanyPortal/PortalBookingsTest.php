@@ -77,7 +77,7 @@ test('a booking inside the free cancellation period', function () {
         ->waitForText('Cancel booking')
         ->wait(1);
 
-    $this->shoot($page, 'portal-bookings-detail', badges: ['Edit guests', 'Cancel booking'], badgesFromLeft: 0);
+    $this->shoot($page, 'portal-bookings-detail', badges: ['Guests', 'Cancel booking'], badgesFromLeft: 0);
 
     $page->click('Cancel booking')
         ->waitForText('All rooms of this booking are cancelled with no charge.')
@@ -89,7 +89,7 @@ test('a booking inside the free cancellation period', function () {
 test('the edit guests sheet', function () {
     $reservation = portalBookingsBook($this->company, $this->link, '2026-10-28', 2, 'BT-2026-118', 'Tan Wei Ming');
 
-    $page = $this->open(route('portal.bookings.show', [$this->property->code, $reservation]))
+    $page = $this->open(route('portal.bookings.guests', [$this->property->code, $reservation]))
         ->waitForText('Edit guests')
         ->click('Edit guests')
         ->wait(1);
@@ -154,6 +154,7 @@ test('the boats dialog can cancel save and reopen without blocking the booking',
         ->assertSee('Save boats')
         ->click('[role="dialog"] [data-slot="dialog-close"]:has-text("Close")')
         ->assertDontSee('Save boats')
+        ->click('[role="tab"]:has-text("Guests")')
         ->click('Edit guests')
         ->assertSee('Save guests')
         ->assertNoJavaScriptErrors();

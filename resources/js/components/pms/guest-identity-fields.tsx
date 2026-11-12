@@ -33,6 +33,17 @@ export type GuestIdentityValue = {
     identity_country_code: string;
 };
 
+/**
+ * The ID type select inside the IC / Passport input group: no own border, background or focus ring, so it reads as
+ * part of the group. The group shows the focus ring instead, the same as when its input has focus.
+ */
+export const ID_TYPE_SELECT =
+    'h-7 w-28 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent';
+
+/** The input group around the ID type select and the number: it rings while the select has keyboard focus. */
+export const ID_GROUP =
+    'has-[[data-slot=select-trigger]:focus-visible]:border-ring has-[[data-slot=select-trigger]:focus-visible]:ring-3 has-[[data-slot=select-trigger]:focus-visible]:ring-ring/50';
+
 export function emptyGuestIdentity(
     nationality: string | null,
     document?: Document | null,
@@ -180,7 +191,7 @@ export function GuestIdentityFields({
                     </Link>
                 )}
             </div>
-            <InputGroup>
+            <InputGroup className={ID_GROUP}>
                 <InputGroupAddon className="border-r p-0">
                     <EnumSelect
                         id={`${id}-type`}
@@ -192,7 +203,7 @@ export function GuestIdentityFields({
                             change({ identity_type: value })
                         }
                         disabled={locked || !ready}
-                        className="h-7 w-28 rounded-none border-0 shadow-none"
+                        className={ID_TYPE_SELECT}
                     />
                 </InputGroupAddon>
                 <InputGroupInput

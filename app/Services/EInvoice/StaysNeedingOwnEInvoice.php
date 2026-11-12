@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  * Closed stays over RM10,000 that have no e-invoice yet. Since 1 January 2026 LHDN does not allow a sale over RM10,000
  * in a monthly summary, so each needs its own e-invoice with the guest's own tax number. A stay billed to a company is
  * e-invoiced from its City ledger invoice and is not listed. Only stays closed since e-invoicing was set up count. It
- * reads only. See docs/30-einvoice/01-lhdn-myinvois.md#stays-over-rm10000.
+ * reads only. See docs/31-einvoice/01-lhdn-myinvois.md#stays-over-rm10000.
  */
 class StaysNeedingOwnEInvoice
 {

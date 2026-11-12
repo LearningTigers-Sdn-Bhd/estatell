@@ -28,7 +28,7 @@ test('general settings send only the go-live approval setting', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/settings/edit')
             ->where('activeTab', 'general')
-            ->where('adminNavigation.3.active', true)
+            ->where('adminNavigation.4.active', true)
             ->where('settings.requireGoLiveApproval', false)
             ->missing('settings.defaultDormStrategy')
             ->missing('settings.mediaDisk')
@@ -151,7 +151,7 @@ test('storage settings send only storage data and disable R2 until configured', 
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/settings/edit')
             ->where('activeTab', 'storage')
-            ->where('adminNavigation.3.active', true)
+            ->where('adminNavigation.4.active', true)
             ->where('settings.mediaDisk', 'local')
             ->where('mediaDisks.0.disabled', false)
             ->where('mediaDisks.1.label', 'Cloudflare R2')
@@ -170,7 +170,7 @@ test('channel settings send only channel data and disable native dorm pending ve
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/settings/edit')
             ->where('activeTab', 'channels')
-            ->where('adminNavigation.3.active', true)
+            ->where('adminNavigation.4.active', true)
             ->where('settings.defaultDormStrategy', 'bed_as_unit')
             ->where('dormStrategies.0.disabled', false)
             ->where('dormStrategies.1.value', 'native_dorm')

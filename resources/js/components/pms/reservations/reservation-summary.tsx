@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import {
+    ArrowRight,
     CalendarClock,
     BedDouble,
     Building2,
@@ -21,12 +22,12 @@ import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { AgentBillBreakdown } from '@/components/pms/payments/agent-bill-breakdown';
-import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
 import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-list';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import { show as showGuest } from '@/routes/guests';
+import { folio as folioTab } from '@/routes/reservations';
 
 type Reservation = App.Data.Reservations.ReservationData;
 type Money = App.Data.Reservations.ReservationMoneyData;
@@ -61,8 +62,7 @@ export function ReservationSummary({
     money,
     paymentSchedule = null,
     agentBill = null,
-    paymentProofs = [],
-    proofPaymentMethods = [],
+    proofsWaiting = 0,
     canViewCompany,
     currency,
 }: {
@@ -70,8 +70,8 @@ export function ReservationSummary({
     money: Money;
     paymentSchedule?: App.Data.Reservations.PaymentScheduleData | null;
     agentBill?: App.Data.Reservations.AgentBillData | null;
-    paymentProofs?: App.Data.Payments.PaymentProofData[];
-    proofPaymentMethods?: { value: string; label: string }[];
+    /** Proofs the agent sent that staff have not checked; they are reviewed on the Folio tab. */
+    proofsWaiting?: number;
     canViewCompany: boolean;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -160,7 +160,7 @@ export function ReservationSummary({
                     </span>
                 </Row>
             </dl>
-            {(paymentSchedule !== null || paymentProofs.length > 0) && (
+            {(paymentSchedule !== null || proofsWaiting > 0) && (
                 <>
                     <Separator />
                     <section className="flex flex-col gap-2">
@@ -181,13 +181,28 @@ export function ReservationSummary({
                                 currency={currency}
                             />
                         )}
-                        {paymentProofs.length > 0 && (
-                            <PaymentProofReview
-                                reservationId={reservation.id}
-                                proofs={paymentProofs}
-                                methods={proofPaymentMethods}
-                                currency={currency}
-                            />
+                        {proofsWaiting > 0 && (
+                            <Link
+                                href={folioTab({ reservation: reservation.id })}
+                                className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted/50"
+                            >
+                                <span className="flex items-center gap-2">
+                                    <span
+                                        aria-hidden
+                                        className="size-2 rounded-full bg-info"
+                                    />
+                                    {proofsWaiting === 1
+                                        ? '1 proof to check'
+                                        : `${proofsWaiting} proofs to check`}
+                                </span>
+                                <span className="flex items-center gap-1 font-medium">
+                                    Review
+                                    <ArrowRight
+                                        aria-hidden
+                                        className="size-4"
+                                    />
+                                </span>
+                            </Link>
                         )}
                     </section>
                 </>

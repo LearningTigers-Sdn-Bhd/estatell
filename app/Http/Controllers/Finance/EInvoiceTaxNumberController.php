@@ -15,7 +15,7 @@ use Inertia\Inertia;
 
 /**
  * Checks a buyer's tax number with LHDN: from the Issue e-invoice form before sending, or for a rejected e-invoice,
- * which can then go again with the tax number LHDN holds. See docs/30-einvoice/01-lhdn-myinvois.md#checking-a-tax-number.
+ * which can then go again with the tax number LHDN holds. See docs/31-einvoice/01-lhdn-myinvois.md#checking-a-tax-number.
  */
 class EInvoiceTaxNumberController extends Controller
 {

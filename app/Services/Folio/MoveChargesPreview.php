@@ -206,7 +206,7 @@ class MoveChargesPreview
      * Everything read once per request: the folios and their names, the balances, the movable charges and the
      * Scheduled blocks.
      *
-     * @return array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}
+     * @return array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}
      */
     private function state(Property $property, Reservation $reservation): array
     {
@@ -327,7 +327,7 @@ class MoveChargesPreview
     /**
      * @param  list<int>  $lineIds
      * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
-     * @param  array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}  $state
+     * @param  array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}  $state
      */
     private function compute(Property $property, Reservation $reservation, Folio $target, array $lineIds, array $schedules, array $state): MovePreviewData
     {
@@ -389,7 +389,7 @@ class MoveChargesPreview
      */
     private function scheduled(Reservation $reservation, Folio $target, array $schedules, Collection $ticked, array $state, array $labels, array $unitLabels, string $toLabel, callable $money): array
     {
-        /** @var list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}> $blocks */
+        /** @var list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}> $blocks */
         $blocks = $state['blocks'];
         /** @var EloquentCollection<int, ReservationUnit> $units */
         $units = $state['units'];
@@ -406,8 +406,8 @@ class MoveChargesPreview
 
         foreach ($candidates as $unit) {
             $own = array_filter($offTarget, fn (array $block): bool => $block['unit'] === $unit->id);
-            $roomMoved = array_filter($own, fn (array $block): bool => $resolveRoom($unit, $block['code']) === $target->id);
-            $allMoved = array_filter($own, fn (array $block): bool => $resolveAll($unit, $block['code']) === $target->id);
+            $roomMoved = array_filter($own, fn (array $block): bool => $resolveRoom($unit, $block['code'], $block['follows'] ?? null) === $target->id);
+            $allMoved = array_filter($own, fn (array $block): bool => $resolveAll($unit, $block['code'], $block['follows'] ?? null) === $target->id);
 
             if ($allMoved === []) {
                 continue;
@@ -435,7 +435,7 @@ class MoveChargesPreview
         foreach ($blocks as $block) {
             $unit = $units->get($block['unit']);
 
-            if ($unit !== null && $resolve($unit, $block['code']) === $target->id) {
+            if ($unit !== null && $resolve($unit, $block['code'], $block['follows'] ?? null) === $target->id) {
                 $afterRows[] = $block;
             }
         }
@@ -448,8 +448,8 @@ class MoveChargesPreview
             }
 
             $left = collect($blocks)
-                ->filter(fn (array $block): bool => $block['unit'] === $unitId && $block['code']->category === TransactionCategory::Room && $resolve($unit, $block['code']) !== $target->id)
-                ->groupBy(fn (array $block): int => (int) $resolve($unit, $block['code']));
+                ->filter(fn (array $block): bool => $block['unit'] === $unitId && $block['code']->category === TransactionCategory::Room && $resolve($unit, $block['code'], $block['follows'] ?? null) !== $target->id)
+                ->groupBy(fn (array $block): int => (int) $resolve($unit, $block['code'], $block['follows'] ?? null));
 
             foreach ($left as $folioId => $group) {
                 if ($folioId === 0) {
@@ -465,7 +465,7 @@ class MoveChargesPreview
         foreach ($schedules as $schedule) {
             $unit = $schedule['unit'];
             $mine = array_filter($blocks, fn (array $block): bool => $block['unit'] === $unit->id);
-            $landed = array_filter($mine, fn (array $block): bool => $block['target'] !== $target->id && $resolve($unit, $block['code']) === $target->id);
+            $landed = array_filter($mine, fn (array $block): bool => $block['target'] !== $target->id && $resolve($unit, $block['code'], $block['follows'] ?? null) === $target->id);
 
             if ($landed !== []) {
                 $room = array_filter($landed, fn (array $block): bool => $block['code']->category === TransactionCategory::Room);
@@ -482,8 +482,8 @@ class MoveChargesPreview
 
             foreach ($mine as $block) {
                 $inScope = $schedule['scope'] === self::SCOPE_ALL || $block['code']->category === TransactionCategory::Room;
-                $stays = $inScope && $resolve($unit, $block['code']) !== $target->id;
-                $rule = $stays ? $pick($unit, $block['code']) : null;
+                $stays = $inScope && $resolve($unit, $block['code'], $block['follows'] ?? null) !== $target->id;
+                $rule = $stays ? $pick($unit, $block['code'], $block['follows'] ?? null) : null;
 
                 if ($rule !== null) {
                     $notes[] = __(':charge stays on :folio: a rule sends :what charges there.', [
@@ -539,7 +539,7 @@ class MoveChargesPreview
     /**
      * "15–16 Oct · 2 nights · MYR 540.00". With `$withAmount` false it stops after the nights.
      *
-     * @param  array<int, array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>  $blocks
+     * @param  array<int, array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>  $blocks
      */
     private function nightsText(array $blocks, callable $money, bool $withAmount = true): string
     {
@@ -556,7 +556,7 @@ class MoveChargesPreview
     /**
      * "Room nights, Island trip 16 Oct and any later charge · MYR 900.00".
      *
-     * @param  array<int, array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>  $blocks
+     * @param  array<int, array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>  $blocks
      */
     private function everythingText(array $blocks, callable $money): string
     {

@@ -10,7 +10,7 @@ use App\Models\EInvoiceSubmission;
 /**
  * Once LHDN accepts a stay e-invoice that staff asked to remember ("Save to the guest profile"), saves its tax number
  * and IC or passport to the paying guest's profile, then clears the request. Waiting for Valid matters: a tax number
- * that does not match the IC comes back rejected minutes after sending. See docs/30-einvoice/01-lhdn-myinvois.md.
+ * that does not match the IC comes back rejected minutes after sending. See docs/31-einvoice/01-lhdn-myinvois.md.
  */
 class SaveBuyerToGuest
 {

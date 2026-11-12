@@ -8,28 +8,28 @@ Let guests book and pay for a room online, on a property's microsite or on the o
 
 ## Decisions
 
-| Area                   | Decision                                                                                                   |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Modes                  | Microsite and API only, both in the first release. A property uses one mode at a time, set by an admin     |
-| Feature flag           | `BookingEngine`, per property, off by default, set by admins                                               |
-| Microsite address      | `booking.estatell.com/{property-slug}`                                                                     |
-| Microsite design       | A template with replaceable images, or a custom design by quotation                                        |
-| Microsite stack        | Astro with React parts, one Node app on Coolify, in its own repo `estatell-booking-microsite`              |
-| Payment                | Full payment at booking. estatell collects through Razorpay Curlec in both modes                           |
-| Curlec account         | Reuse the existing account, with new API keys                                                              |
-| Room hold              | 20 minutes                                                                                                 |
-| Booking window         | At most 6 months ahead, because Curlec's normal refunds fail on older payments                             |
-| Paid after hold expiry | Confirm if the room is still free; otherwise refund automatically and alert staff                          |
-| Guests                 | Always a new guest record. Staff merge duplicates                                                          |
-| Booking source         | A system source named "Booking Engine", in both modes                                                      |
-| Cancel and refund      | Guest cancellations refund automatically. Staff are notified. No new module                                |
-| Refund cost            | The property pays Curlec's kept fee and the refund fee, from its next payout                               |
-| API test mode          | `demo.estatell.com` with a fixed test token and Curlec test keys                                           |
-| Publishing             | Anyone with the permission, including admins through view as                                               |
-| Channex amenities      | No sync in the first release                                                                               |
-| new-wastays            | WIP. The API provides its endpoints, but the app is not built                                              |
-| Commission fees        | A separate module, [planned later](../checklist.md#wip-not-planned-yet). It reads what this module records |
-| Landing page wording   | Stays as it is                                                                                             |
+| Area                   | Decision                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Modes                  | Microsite and API only, both in the first release. A property uses one mode at a time, set by an admin        |
+| Feature flag           | `BookingEngine`, per property, off by default, set by admins                                                  |
+| Microsite address      | `booking.estatell.com/{property-slug}`                                                                        |
+| Microsite design       | A template with replaceable images, or a custom design by quotation                                           |
+| Microsite stack        | Astro with React parts, one Node app on Coolify, in its own repo `estatell-booking-microsite`                 |
+| Payment                | Full payment at booking. estatell collects through Razorpay Curlec in both modes                              |
+| Curlec account         | Reuse the existing account, with new API keys                                                                 |
+| Room hold              | 20 minutes                                                                                                    |
+| Booking window         | At most 6 months ahead, because Curlec's normal refunds fail on older payments                                |
+| Paid after hold expiry | Confirm if the room is still free; otherwise refund automatically and alert staff                             |
+| Guests                 | Always a new guest record. Staff merge duplicates                                                             |
+| Booking source         | A system source named "Booking Engine", in both modes                                                         |
+| Cancel and refund      | Guest cancellations refund automatically. Staff are notified. No new module                                   |
+| Refund cost            | The property pays Curlec's kept fee and the refund fee, from its next payout                                  |
+| API test mode          | `demo.estatell.com` with a fixed test token and Curlec test keys                                              |
+| Publishing             | Anyone with the permission, including admins through view as                                                  |
+| Channex amenities      | No sync in the first release                                                                                  |
+| new-wastays            | WIP. The API provides its endpoints, but the app is not built                                                 |
+| Commission fees        | A separate module: [Commission fees](../30-commission-fees/01-overview.md). It reads what this module records |
+| Landing page wording   | Stays as it is                                                                                                |
 
 ## How it fits together
 

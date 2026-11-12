@@ -5,12 +5,14 @@ import {
     CircleCheck,
     Cloud,
     HardDrive,
+    Percent,
     Settings,
     ShieldCheck,
     Waypoints,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import PlatformSettingsController from '@/actions/App/Http/Controllers/Admin/PlatformSettingsController';
+import { CommissionSettings } from '@/components/pms/commissions/commission-settings';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +30,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes/admin';
-import { channels, edit, storage } from '@/routes/admin/settings';
+import { channels, commissions, edit, storage } from '@/routes/admin/settings';
 
 type Option<T extends string> = {
     value: T;
@@ -36,7 +38,7 @@ type Option<T extends string> = {
     description: string;
     disabled: boolean;
 };
-type Tab = 'general' | 'channels' | 'storage';
+type Tab = 'general' | 'channels' | 'storage' | 'commissions';
 
 const dormIcons: Record<App.Enums.DormStrategy, LucideIcon> = {
     bed_as_unit: BedSingle,
@@ -52,11 +54,15 @@ export default function PlatformSettings({
     settings,
     dormStrategies = [],
     mediaDisks = [],
+    commissionRates = [],
+    commissionServices = [],
 }: {
     activeTab: Tab;
     settings: Partial<App.Data.Platform.PlatformSettingsData>;
     dormStrategies?: Option<App.Enums.DormStrategy>[];
     mediaDisks?: Option<App.Enums.MediaDisk>[];
+    commissionRates?: App.Data.Commissions.CommissionRateData[];
+    commissionServices?: { value: string; label: string }[];
 }) {
     const sections = {
         general: {
@@ -113,7 +119,7 @@ export default function PlatformSettings({
             })),
         },
     };
-    const section = sections[activeTab];
+    const section = activeTab === 'commissions' ? null : sections[activeTab];
 
     return (
         <>
@@ -146,104 +152,125 @@ export default function PlatformSettings({
                             icon: HardDrive,
                             href: storage(),
                         },
+                        {
+                            value: 'commissions',
+                            label: 'Commissions',
+                            icon: Percent,
+                            href: commissions(),
+                        },
                     ]}
                 >
-                    <Form
-                        key={activeTab}
-                        {...section.form}
-                        options={{ preserveScroll: true }}
-                        className="flex max-w-xl flex-col gap-8"
-                    >
-                        {({ processing, errors }) => (
-                            <>
-                                <FieldSet>
-                                    <FieldLegend id={`${section.name}-label`}>
-                                        {section.title}
-                                    </FieldLegend>
-                                    <FieldDescription
-                                        id={`${section.name}-description`}
-                                    >
-                                        {section.description}
-                                    </FieldDescription>
-                                    <RadioGroup
-                                        name={section.name}
-                                        defaultValue={section.value}
-                                        aria-labelledby={`${section.name}-label`}
-                                        aria-describedby={`${section.name}-description${errors[section.name] ? ` ${section.name}-error` : ''}`}
-                                        aria-invalid={Boolean(
-                                            errors[section.name],
-                                        )}
-                                    >
-                                        {section.options.map((option) => (
-                                            <FieldLabel
-                                                key={option.value}
-                                                htmlFor={`${section.name}-${option.value}`}
-                                            >
-                                                <Field
-                                                    orientation="horizontal"
-                                                    data-disabled={
-                                                        option.disabled
-                                                    }
-                                                    data-invalid={Boolean(
-                                                        errors[section.name],
-                                                    )}
+                    {section === null ? (
+                        <CommissionSettings
+                            rates={commissionRates}
+                            services={commissionServices}
+                        />
+                    ) : (
+                        <Form
+                            key={activeTab}
+                            {...section.form}
+                            options={{ preserveScroll: true }}
+                            className="flex max-w-xl flex-col gap-8"
+                        >
+                            {({ processing, errors }) => (
+                                <>
+                                    <FieldSet>
+                                        <FieldLegend
+                                            id={`${section.name}-label`}
+                                        >
+                                            {section.title}
+                                        </FieldLegend>
+                                        <FieldDescription
+                                            id={`${section.name}-description`}
+                                        >
+                                            {section.description}
+                                        </FieldDescription>
+                                        <RadioGroup
+                                            name={section.name}
+                                            defaultValue={section.value}
+                                            aria-labelledby={`${section.name}-label`}
+                                            aria-describedby={`${section.name}-description${errors[section.name] ? ` ${section.name}-error` : ''}`}
+                                            aria-invalid={Boolean(
+                                                errors[section.name],
+                                            )}
+                                        >
+                                            {section.options.map((option) => (
+                                                <FieldLabel
+                                                    key={option.value}
+                                                    htmlFor={`${section.name}-${option.value}`}
                                                 >
-                                                    <option.icon
-                                                        aria-hidden
-                                                        className="mt-0.5 size-5 shrink-0"
-                                                    />
-                                                    <FieldContent className="min-w-0">
-                                                        <FieldTitle>
-                                                            {option.label}
-                                                        </FieldTitle>
-                                                        <FieldDescription
-                                                            id={`${section.name}-${option.value}-description`}
-                                                        >
-                                                            {option.description}
-                                                        </FieldDescription>
-                                                        {option.disabled && (
-                                                            <Badge variant="secondary">
-                                                                {
-                                                                    option.disabledReason
-                                                                }
-                                                            </Badge>
-                                                        )}
-                                                    </FieldContent>
-                                                    <RadioGroupItem
-                                                        id={`${section.name}-${option.value}`}
-                                                        value={option.value}
-                                                        disabled={
+                                                    <Field
+                                                        orientation="horizontal"
+                                                        data-disabled={
                                                             option.disabled
                                                         }
-                                                        aria-describedby={`${section.name}-${option.value}-description`}
-                                                        aria-invalid={Boolean(
+                                                        data-invalid={Boolean(
                                                             errors[
                                                                 section.name
                                                             ],
                                                         )}
-                                                    />
-                                                </Field>
-                                            </FieldLabel>
-                                        ))}
-                                    </RadioGroup>
-                                    <FieldError id={`${section.name}-error`}>
-                                        {errors[section.name]}
-                                    </FieldError>
-                                </FieldSet>
+                                                    >
+                                                        <option.icon
+                                                            aria-hidden
+                                                            className="mt-0.5 size-5 shrink-0"
+                                                        />
+                                                        <FieldContent className="min-w-0">
+                                                            <FieldTitle>
+                                                                {option.label}
+                                                            </FieldTitle>
+                                                            <FieldDescription
+                                                                id={`${section.name}-${option.value}-description`}
+                                                            >
+                                                                {
+                                                                    option.description
+                                                                }
+                                                            </FieldDescription>
+                                                            {option.disabled && (
+                                                                <Badge variant="secondary">
+                                                                    {
+                                                                        option.disabledReason
+                                                                    }
+                                                                </Badge>
+                                                            )}
+                                                        </FieldContent>
+                                                        <RadioGroupItem
+                                                            id={`${section.name}-${option.value}`}
+                                                            value={option.value}
+                                                            disabled={
+                                                                option.disabled
+                                                            }
+                                                            aria-describedby={`${section.name}-${option.value}-description`}
+                                                            aria-invalid={Boolean(
+                                                                errors[
+                                                                    section.name
+                                                                ],
+                                                            )}
+                                                        />
+                                                    </Field>
+                                                </FieldLabel>
+                                            ))}
+                                        </RadioGroup>
+                                        <FieldError
+                                            id={`${section.name}-error`}
+                                        >
+                                            {errors[section.name]}
+                                        </FieldError>
+                                    </FieldSet>
 
-                                <div className="flex justify-end">
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                        focusableWhenDisabled
-                                    >
-                                        {processing && <Spinner />}
-                                        Save changes
-                                    </Button>
-                                </div>
-                            </>
-                        )}
-                    </Form>
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && <Spinner />}
+                                            Save changes
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </Form>
+                    )}
                 </TabLinks>
             </div>
         </>

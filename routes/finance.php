@@ -13,6 +13,8 @@ use App\Http\Controllers\CityLedger\CompanyStatementController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
 use App\Http\Controllers\Finance\EInvoiceSubmissionsController;
 use App\Http\Controllers\Finance\EInvoiceTaxNumberController;
+use App\Http\Controllers\Payouts\PayoutBookingController;
+use App\Http\Controllers\Payouts\PayoutVoucherController;
 use App\Http\Requests\CityLedger\CompanyRequest;
 use Illuminate\Support\Facades\Route;
 
@@ -100,5 +102,16 @@ Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('/', [AgingController::class, 'index'])->name('city-ledger.aging');
         Route::get('csv', [AgingController::class, 'csv'])->name('city-ledger.aging.csv');
         Route::get('pdf', [AgingController::class, 'pdf'])->name('city-ledger.aging.pdf');
+    });
+
+    Route::prefix('payouts')->name('payouts.')->middleware(['can:'.PermissionEnum::PayoutsView->value, 'payouts'])->group(function () {
+        Route::get('/', [PayoutBookingController::class, 'index'])->name('index');
+        Route::get('export', [PayoutBookingController::class, 'export'])->name('export');
+
+        Route::prefix('vouchers')->name('vouchers.')->scopeBindings()->group(function () {
+            Route::get('/', [PayoutVoucherController::class, 'index'])->name('index');
+            Route::get('{payoutVoucher}', [PayoutVoucherController::class, 'show'])->whereNumber('payoutVoucher')->name('show');
+            Route::get('{payoutVoucher}/pdf', [PayoutVoucherController::class, 'pdf'])->whereNumber('payoutVoucher')->name('pdf');
+        });
     });
 });

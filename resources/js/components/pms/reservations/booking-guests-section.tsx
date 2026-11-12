@@ -2,6 +2,10 @@ import { ChevronRight, Plus, TriangleAlert, X } from 'lucide-react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { EnumSelect } from '@/components/pms/enum-select';
+import {
+    GuestIdentityFields,
+    emptyGuestIdentity,
+} from '@/components/pms/guest-identity-fields';
 import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
 import { GuestAutocompleteField } from '@/components/pms/guests/guest-autocomplete-field';
 import { GuestDetailsFields } from '@/components/pms/guests/guest-details-fields';
@@ -72,6 +76,8 @@ function GuestRow({
     guests,
     units,
     canManageGuests,
+    canAddIdentity,
+    identityDocumentTypes,
     mykadTarget,
     countries,
     genders,
@@ -85,6 +91,8 @@ function GuestRow({
     guests: BookingGuest[];
     units: UnitOption[];
     canManageGuests: boolean;
+    canAddIdentity: boolean;
+    identityDocumentTypes: EnumOption[];
     mykadTarget: MykadTargetControls;
     countries: EnumOption[];
     genders: EnumOption[];
@@ -281,7 +289,46 @@ function GuestRow({
                             {canManageGuests && (
                                 <GuestDetailsFields
                                     columns={3}
+                                    order="contact-first"
                                     leading={parts.email}
+                                    trailing={
+                                        guest.guest === null &&
+                                        canAddIdentity && (
+                                            <GuestIdentityFields
+                                                guestId={null}
+                                                values={
+                                                    guest.identity ??
+                                                    emptyGuestIdentity(
+                                                        guest.nationality_code,
+                                                    )
+                                                }
+                                                types={identityDocumentTypes}
+                                                errors={{
+                                                    identity_type:
+                                                        error('identity_type'),
+                                                    identity_number:
+                                                        error(
+                                                            'identity_number',
+                                                        ),
+                                                    identity_country_code:
+                                                        error(
+                                                            'identity_country_code',
+                                                        ),
+                                                }}
+                                                onChange={(patch) =>
+                                                    onChange({
+                                                        identity: {
+                                                            ...(guest.identity ??
+                                                                emptyGuestIdentity(
+                                                                    guest.nationality_code,
+                                                                )),
+                                                            ...patch,
+                                                        },
+                                                    })
+                                                }
+                                            />
+                                        )
+                                    }
                                     idPrefix={`guest-${index}-`}
                                     errorPrefix={prefix}
                                     values={guest}
@@ -326,6 +373,8 @@ export function BookingGuestsSection({
     guests,
     units,
     canManageGuests,
+    canAddIdentity = false,
+    identityDocumentTypes = [],
     countries,
     defaultNationalityCode,
     genders,
@@ -336,6 +385,9 @@ export function BookingGuestsSection({
     guests: BookingGuest[];
     units: UnitOption[];
     canManageGuests: boolean;
+    /** Whether a new guest's ID may be typed (`guests.manage` and `guests.view-documents`). */
+    canAddIdentity?: boolean;
+    identityDocumentTypes?: EnumOption[];
     countries: EnumOption[];
     defaultNationalityCode: string;
     genders: EnumOption[];
@@ -367,6 +419,8 @@ export function BookingGuestsSection({
                             guests={guests}
                             units={units}
                             canManageGuests={canManageGuests}
+                            canAddIdentity={canAddIdentity}
+                            identityDocumentTypes={identityDocumentTypes}
                             mykadTarget={mykadTarget}
                             countries={countries}
                             genders={genders}

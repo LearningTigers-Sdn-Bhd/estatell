@@ -4,6 +4,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
 use App\Models\Property;
+use App\Models\PropertyBankAccount;
 use App\Models\PropertySetting;
 use App\Models\Tax;
 use App\Models\User;
@@ -505,6 +506,8 @@ test('the documents routes need settings.manage and Basics', function () {
 test('the documents tab sends the document switches', function () {
     [$owner, $property] = printingProperty();
     $property->printSetting->update(['bank_details' => 'Maybank 5141', 'show_amount_in_words' => true]);
+    PropertyBankAccount::factory()->for($property)->create(['bank_name' => 'Maybank', 'account_name' => 'Seaview Hospitality Sdn Bhd', 'account_number' => '5123 4567 8901']);
+    PropertyBankAccount::factory()->for($property)->inactive()->create();
 
     $this->actingAs($owner)
         ->get(printSettingsUrl($property, 'printing/documents'))
@@ -515,6 +518,7 @@ test('the documents tab sends the document switches', function () {
             ->where('settings.nightlyBreakdown', false)
             ->where('settings.showAmountInWords', true)
             ->where('settings.bankDetails', 'Maybank 5141')
+            ->where('bankAccounts', ['Maybank · Seaview Hospitality Sdn Bhd · 5123 4567 8901'])
             ->has('fonts', 4));
 });
 
@@ -532,6 +536,7 @@ test('the sample booking summary is a PDF that reads the document switches', fun
         'currency' => Currency::of('MYR'),
         'groups' => app(SampleDocument::class)->groups($property->printSetting),
         'settings' => $property->printSetting,
+        'bankAccounts' => [],
     ])->render();
 
     expect($html)->toContain('Room, 3 nights × 250.00')
@@ -545,6 +550,7 @@ test('the sample booking summary is a PDF that reads the document switches', fun
         'currency' => Currency::of('MYR'),
         'groups' => app(SampleDocument::class)->groups($property->printSetting),
         'settings' => $property->printSetting,
+        'bankAccounts' => [],
     ])->render();
 
     expect($html)->not->toContain('Cancellation policy')

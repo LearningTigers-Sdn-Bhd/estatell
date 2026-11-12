@@ -7,15 +7,18 @@ use App\Data\CityLedger\StatementData;
 use App\Data\Payments\PaymentProofData;
 use App\Data\Portal\PortalPaymentRowData;
 use App\Enums\ArInvoiceStatus;
+use App\Enums\PaymentProofStatus;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
 use App\Models\PaymentProof;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\StatementBuilder;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Reads the statements page of one company at one property: its Open and Settled AR documents, its payments that are
@@ -50,6 +53,36 @@ class PortalStatements
     }
 
     /**
+     * The staff who check a company's slips: active, not platform admins, with `city-ledger.payment` at its property.
+     *
+     * @return Collection<int, User>
+     */
+    public function slipReviewers(Company $company): Collection
+    {
+        $previousTeamId = getPermissionsTeamId();
+        setPermissionsTeamId($company->property_id);
+
+        try {
+            return User::query()
+                ->where('property_id', $company->property_id)
+                ->where('is_admin', false)
+                ->whereNull('deactivated_at')
+                ->permission('city-ledger.payment')
+                ->get();
+        } finally {
+            setPermissionsTeamId($previousTeamId);
+        }
+    }
+
+    /**
+     * How many of the company's slips wait for staff to check them, for the Slips tab label.
+     */
+    public function slipsWaiting(Company $company): int
+    {
+        return PaymentProof::query()->where('company_id', $company->id)->where('status', PaymentProofStatus::Submitted)->count();
+    }
+
+    /**
      * The slips the company sent for its account, newest first.
      *
      * @return list<PaymentProofData>
@@ -58,7 +91,7 @@ class PortalStatements
     {
         return array_values(PaymentProof::query()
             ->where('company_id', $company->id)
-            ->with('uploader')
+            ->with(['uploader', 'bankAccount', 'arInvoice'])
             ->latest('id')
             ->limit(20)
             ->get()

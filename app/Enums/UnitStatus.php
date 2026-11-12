@@ -68,6 +68,15 @@ enum UnitStatus: string
     }
 
     /**
+     * Whether the unit's stay is over: checked out, cancelled or no-show. Commission fees record a booking once every
+     * unit has ended. See docs/30-commission-fees/02-commission-rules.md#due-date.
+     */
+    public function hasEnded(): bool
+    {
+        return in_array($this, [self::CheckedOut, self::Cancelled, self::NoShow], true);
+    }
+
+    /**
      * Whether a unit in this status takes its room or bed off sale on its nights.
      * Cancelled and no-show units release their nights. Checked-out units keep them, so past nights stay sold.
      */

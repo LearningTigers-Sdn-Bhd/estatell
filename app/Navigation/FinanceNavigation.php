@@ -8,6 +8,7 @@ use App\Enums\PermissionEnum;
 use App\Features\EInvoicing;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Commissions\PropertyPayouts;
 use Laravel\Pennant\Feature;
 
 /**
@@ -16,42 +17,73 @@ use Laravel\Pennant\Feature;
  */
 class FinanceNavigation
 {
+    public function __construct(private PropertyPayouts $payouts) {}
+
     /**
      * @return list<NavGroupData>
      */
     public function groups(Property $property, User $user): array
     {
+        $cityLedger = array_values(array_filter([
+            $user->can(PermissionEnum::CompanyView->value) ? new NavItemData(
+                title: __('Companies'),
+                href: route('finance.city-ledger.companies.index', ['property' => $property->code], absolute: false),
+                icon: 'building',
+                active: request()->routeIs('finance.city-ledger.companies.*'),
+            ) : null,
+            $user->can(PermissionEnum::CompanyView->value) ? new NavItemData(
+                title: __('Invoices'),
+                href: route('finance.city-ledger.invoices.index', ['property' => $property->code], absolute: false),
+                icon: 'receipt',
+                active: request()->routeIs('finance.city-ledger.invoices.*'),
+            ) : null,
+            $user->can(PermissionEnum::CompanyView->value) ? new NavItemData(
+                title: __('Aging'),
+                href: route('finance.city-ledger.aging', ['property' => $property->code], absolute: false),
+                icon: 'chart-column',
+                active: request()->routeIs('finance.city-ledger.aging*'),
+            ) : null,
+        ]));
+
+        $eInvoices = Feature::for($property)->active(EInvoicing::class) && $user->can(PermissionEnum::EInvoiceView->value) ? [
+            new NavItemData(
+                title: __('E-invoices'),
+                href: route('finance.e-invoices.index', ['property' => $property->code], absolute: false),
+                icon: 'file-check',
+                active: request()->routeIs('finance.e-invoices.*'),
+            ),
+        ] : [];
+
         return [
-            new NavGroupData(label: __('City ledger'), items: array_values(array_filter([
-                $user->can(PermissionEnum::CompanyView->value) ? new NavItemData(
-                    title: __('Companies'),
-                    href: route('finance.city-ledger.companies.index', ['property' => $property->code], absolute: false),
-                    icon: 'building',
-                    active: request()->routeIs('finance.city-ledger.companies.*'),
-                ) : null,
-                $user->can(PermissionEnum::CompanyView->value) ? new NavItemData(
-                    title: __('Invoices'),
-                    href: route('finance.city-ledger.invoices.index', ['property' => $property->code], absolute: false),
-                    icon: 'receipt',
-                    active: request()->routeIs('finance.city-ledger.invoices.*'),
-                ) : null,
-                $user->can(PermissionEnum::CompanyView->value) ? new NavItemData(
-                    title: __('Aging'),
-                    href: route('finance.city-ledger.aging', ['property' => $property->code], absolute: false),
-                    icon: 'chart-column',
-                    active: request()->routeIs('finance.city-ledger.aging*'),
-                ) : null,
-            ]))),
-            ...(Feature::for($property)->active(EInvoicing::class) && $user->can(PermissionEnum::EInvoiceView->value) ? [
-                new NavGroupData(label: __('E-invoicing'), items: [
-                    new NavItemData(
-                        title: __('E-invoices'),
-                        href: route('finance.e-invoices.index', ['property' => $property->code], absolute: false),
-                        icon: 'file-check',
-                        active: request()->routeIs('finance.e-invoices.*'),
-                    ),
-                ]),
+            new NavGroupData(label: __('City ledger'), items: $cityLedger),
+            new NavGroupData(label: __('E-invoicing'), items: $eInvoices),
+            new NavGroupData(label: __('Estatell'), items: $this->showsPayouts($property, $user, [...$cityLedger, ...$eInvoices]) ? [
+                new NavItemData(
+                    title: __('Payouts'),
+                    href: route('finance.payouts.index', ['property' => $property->code], absolute: false),
+                    icon: 'banknote',
+                    active: request()->routeIs('finance.payouts.*'),
+                ),
             ] : []),
         ];
+    }
+
+    /**
+     * Whether the Payouts item is listed. Its visibility check runs queries, so it runs only on Finance pages, or when
+     * Payouts alone decides whether the user has a Finance area at all. Elsewhere the Finance sidebar is not drawn.
+     *
+     * @param  list<NavItemData>  $otherItems  The Finance items listed before Payouts.
+     */
+    private function showsPayouts(Property $property, User $user, array $otherItems): bool
+    {
+        if (! $user->can(PermissionEnum::PayoutsView->value)) {
+            return false;
+        }
+
+        if ($otherItems !== [] && ! request()->routeIs('finance.*')) {
+            return false;
+        }
+
+        return $this->payouts->isShown($property);
     }
 }

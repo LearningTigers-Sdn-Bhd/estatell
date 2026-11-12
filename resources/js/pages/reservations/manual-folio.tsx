@@ -35,7 +35,7 @@ import { FormActions } from '@/components/pms/form-actions';
 import { FormError } from '@/components/pms/form-error';
 import { PageHeader } from '@/components/pms/page-header';
 import { Workspace } from '@/components/pms/workspace';
-import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
+import { useSummaryHidden } from '@/components/pms/use-summary-hidden';
 import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-dialog';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';

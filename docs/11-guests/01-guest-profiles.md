@@ -18,7 +18,7 @@ guest_tag      guest_id, tag_id
 ```
 
 - `name_key` is the normalized name used to find duplicates. See [Matching and merging](03-matching-and-merging.md). `CreateGuest` and `UpdateGuest` keep it in step.
-- `tin` is the guest's LHDN tax number for e-invoices (`IG…`), uppercase letters and digits. Staff edit it on the guest form (E-invoice). It is not on the booking forms. When staff tick "Save to the guest profile" on an e-invoice, `SetGuestTaxDetails` saves the tax number and IC or passport once LHDN accepts it. See [E-invoices](../30-einvoice/01-lhdn-myinvois.md#checking-a-tax-number).
+- `tin` is the guest's LHDN tax number for e-invoices (`IG…`), uppercase letters and digits. Staff edit it on the guest form (E-invoice). It is not on the booking forms. When staff tick "Save to the guest profile" on an e-invoice, `SetGuestTaxDetails` saves the tax number and IC or passport once LHDN accepts it. See [E-invoices](../31-einvoice/01-lhdn-myinvois.md#checking-a-tax-number).
 - `state` is free text, because guests come from any country. Country codes are ISO 3166-1 alpha-2.
 - Email and phone are not unique. Family members often share them. [Matching and merging](03-matching-and-merging.md) handles duplicates.
 - A blacklisted guest must have a reason (`CHECK`). `merged_into_id` cannot point to the guest itself.

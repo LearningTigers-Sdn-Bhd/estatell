@@ -41,13 +41,15 @@ class PortalBookingData extends Data
 
     /**
      * Load `booker.documents`, `units` with their `roomType`, `ratePlan`, `nights`, `dayUse`, `guests.guest.documents` and
-     * `addOns.chargeItem` first.
+     * `addOns.chargeItem` first. `$addableUnitIds` are the units that take another guest.
+     *
+     * @param  list<int>  $addableUnitIds
      */
-    public static function fromReservation(Reservation $reservation, bool $canEditGuests, PortalCancelMode $cancelMode, ?string $freeUntil): self
+    public static function fromReservation(Reservation $reservation, bool $canEditGuests, PortalCancelMode $cancelMode, ?string $freeUntil, array $addableUnitIds = []): self
     {
         $units = $reservation->units->sortBy('id')->values();
         $live = $units->reject(fn (ReservationUnit $unit): bool => in_array($unit->status->value, ['cancelled', 'no_show'], true));
-        $unitData = $units->map(fn (ReservationUnit $unit): PortalBookingUnitData => PortalBookingUnitData::fromUnit($unit));
+        $unitData = $units->map(fn (ReservationUnit $unit): PortalBookingUnitData => PortalBookingUnitData::fromUnit($unit, in_array($unit->id, $addableUnitIds, true)));
         $total = $live->reduce(fn (BigDecimal $sum, ReservationUnit $unit): BigDecimal => $sum->plus($unitData->firstWhere('id', $unit->id)->total), BigDecimal::zero());
 
         $guests = $units->flatMap(fn (ReservationUnit $unit) => $unit->guests->pluck('guest'))->push($reservation->booker)->unique('id');
