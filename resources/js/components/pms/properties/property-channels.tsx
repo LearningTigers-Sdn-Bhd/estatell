@@ -69,6 +69,7 @@ import { resolve as resolveAlert } from '@/routes/admin/properties/channels/aler
 import { destroy as destroyRatePlan } from '@/routes/admin/properties/channels/rate-plans';
 import { retry as retryRevision } from '@/routes/admin/properties/channels/revisions';
 import { destroy as destroyRoomType } from '@/routes/admin/properties/channels/room-types';
+import { destroy as destroyRoomTypeRatePlans } from '@/routes/admin/properties/channels/room-types/rate-plans';
 
 type Channel = App.Data.Channels.ChannelTabData;
 type SyncedRoomType = App.Data.Channels.ChannelSyncedRoomTypeData;
@@ -730,6 +731,25 @@ function SyncedItems({
                                             <RemoveMenu
                                                 label={`Remove options for ${item.name}`}
                                                 items={[
+                                                    ...(item.ratePlans.length >
+                                                    0
+                                                        ? [
+                                                              {
+                                                                  text: 'Remove all rate plans',
+                                                                  title: `Remove ${item.ratePlans.length === 1 ? 'the rate plan' : `all ${item.ratePlans.length} rate plans`} of ${item.name} from Channex?`,
+                                                                  description:
+                                                                      'They are deleted at Channex one at a time. If Channex refuses one because an OTA still uses it, the rest stay and the ones before stay removed.',
+                                                                  action: destroyRoomTypeRatePlans.form(
+                                                                      {
+                                                                          property:
+                                                                              code,
+                                                                          roomTypeMapping:
+                                                                              item.mappingId,
+                                                                      },
+                                                                  ),
+                                                              },
+                                                          ]
+                                                        : []),
                                                     {
                                                         text: 'Remove room type',
                                                         title: `Remove ${item.name} from Channex?`,

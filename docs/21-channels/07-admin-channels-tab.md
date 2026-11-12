@@ -13,17 +13,18 @@ The one place where the estatell team syncs a property to Channex, connects and 
 
 The tab shows one section at a time, so it does not need a long scroll. A section list sits in the left panel of the page `Workspace`, beside the tab content and the property summary. Below `lg` the list is a select.
 
-| Section                        | Shows                                                                                                                                                                                                                                                                                                 |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Channex and OTAs** (default) | The Channex status with **Full refresh** and **Sync again**, the sync progress, the waiting, paused and last-error notices, then the OTA table. When alerts are open, one line says "N alerts need action" with **View alerts**.                                                                      |
-| **Alerts**                     | Bookings not saved (**Retry**) and open alerts (**Close**). The list shows the open count.                                                                                                                                                                                                            |
-| **On Channex**                 | A table of the room types Channex has, each a muted group row that opens to show its rate plans (closed at first). Each row has a trash icon menu. A room type has **Remove room type** (off while it still has rate plans). A rate plan has **Remove rate plan**. Each asks first in an AlertDialog. |
-| **Bookings**                   | The last 20 revisions Channex sent.                                                                                                                                                                                                                                                                   |
+| Section                        | Shows                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channex and OTAs** (default) | The Channex status with **Full refresh** and **Sync again**, the sync progress, the waiting, paused and last-error notices, then the OTA table. When alerts are open, one line says "N alerts need action" with **View alerts**.                                                                                                    |
+| **Alerts**                     | Bookings not saved (**Retry**) and open alerts (**Close**). The list shows the open count.                                                                                                                                                                                                                                          |
+| **On Channex**                 | A table of the room types Channex has, each a muted group row that opens to show its rate plans (closed at first). Each row has a trash icon menu. A room type has **Remove all rate plans** and **Remove room type** (off while it still has rate plans). A rate plan has **Remove rate plan**. Each asks first in an AlertDialog. |
+| **Bookings**                   | The last 20 revisions Channex sent.                                                                                                                                                                                                                                                                                                 |
 
 - The open section is kept in `?section=` (`alerts`, `on-channex`, `bookings`), so a refresh keeps it. No value or an unknown value opens **Channex and OTAs**.
 - Switching sections makes no request: the tab already has every section's data. The URL changes on the client (`router.replace`).
 - Before the first sync only **Channex and OTAs** has content. The other sections say "Sync to Channex first".
 - The ASCII layouts below show what each part holds, not the panel layout.
+- **Remove all rate plans** (`RemoveChannelRoomTypeRatePlans`) runs `RemoveChannelRatePlan` for each rate plan of the room type, in order, after an AlertDialog. It stops at the first one Channex refuses: the toast says "1 of 2 rate plans removed." and the reason, and the ones removed before stay removed. Each removal is logged as `channel.rate_plan_removed`.
 
 ## Tab states
 
@@ -247,27 +248,28 @@ When staff change a room type, a rate plan or the room types a plan sells, the c
 
 All are `auth`, `can:admin`, return 404 when `ChannelManager` is off, and need `support.2fa` for writes.
 
-| Method and URL                                                        | Name                                             |
-| --------------------------------------------------------------------- | ------------------------------------------------ |
-| `GET /admin/properties/{code}/channels`                               | `admin.properties.channels`                      |
-| `POST /admin/properties/{code}/channels/preview`                      | `admin.properties.channels.preview` (JSON)       |
-| `POST /admin/properties/{code}/channels/sync`                         | `admin.properties.channels.sync`                 |
-| `POST /admin/properties/{code}/channels/full-refresh`                 | `admin.properties.channels.full-refresh`         |
-| `PUT /admin/properties/{code}/channels/paused`                        | `admin.properties.channels.paused`               |
-| `GET /admin/properties/{code}/channels/connect/{otaChannel}`          | `admin.properties.channels.connect`              |
-| `POST /admin/properties/{code}/channels/connect/{otaChannel}/test`    | `admin.properties.channels.test` (JSON)          |
-| `POST /admin/properties/{code}/channels/connect/{otaChannel}/details` | `admin.properties.channels.details` (JSON)       |
-| `POST /admin/properties/{code}/channels/connections`                  | `admin.properties.channels.connections.store`    |
-| `GET …/connections/{connection}/map`                                  | `admin.properties.channels.connections.map`      |
-| `PUT /admin/properties/{code}/channels/connections/{connection}`      | `admin.properties.channels.connections.update`   |
-| `POST …/connections/{connection}/activate`                            | `admin.properties.channels.connections.activate` |
-| `PUT …/connections/{connection}/paused`                               | `admin.properties.channels.connections.paused`   |
-| `DELETE …/connections/{connection}`                                   | `admin.properties.channels.connections.destroy`  |
-| `POST …/connections/{connection}/import-bookings`                     | `admin.properties.channels.connections.import`   |
-| `POST …/connections/{connection}/help`                                | `admin.properties.channels.help.store`           |
-| `PUT …/connections/{connection}/help/resolved`                        | `admin.properties.channels.help.resolve`         |
-| `POST /admin/properties/{code}/channels/revisions/{revision}/retry`   | `admin.properties.channels.revisions.retry`      |
-| `POST /admin/properties/{code}/channels/changes/retry`                | `admin.properties.channels.changes.retry`        |
+| Method and URL                                                        | Name                                                      |
+| --------------------------------------------------------------------- | --------------------------------------------------------- |
+| `GET /admin/properties/{code}/channels`                               | `admin.properties.channels`                               |
+| `POST /admin/properties/{code}/channels/preview`                      | `admin.properties.channels.preview` (JSON)                |
+| `POST /admin/properties/{code}/channels/sync`                         | `admin.properties.channels.sync`                          |
+| `POST /admin/properties/{code}/channels/full-refresh`                 | `admin.properties.channels.full-refresh`                  |
+| `PUT /admin/properties/{code}/channels/paused`                        | `admin.properties.channels.paused`                        |
+| `GET /admin/properties/{code}/channels/connect/{otaChannel}`          | `admin.properties.channels.connect`                       |
+| `POST /admin/properties/{code}/channels/connect/{otaChannel}/test`    | `admin.properties.channels.test` (JSON)                   |
+| `POST /admin/properties/{code}/channels/connect/{otaChannel}/details` | `admin.properties.channels.details` (JSON)                |
+| `POST /admin/properties/{code}/channels/connections`                  | `admin.properties.channels.connections.store`             |
+| `GET …/connections/{connection}/map`                                  | `admin.properties.channels.connections.map`               |
+| `PUT /admin/properties/{code}/channels/connections/{connection}`      | `admin.properties.channels.connections.update`            |
+| `POST …/connections/{connection}/activate`                            | `admin.properties.channels.connections.activate`          |
+| `PUT …/connections/{connection}/paused`                               | `admin.properties.channels.connections.paused`            |
+| `DELETE …/connections/{connection}`                                   | `admin.properties.channels.connections.destroy`           |
+| `POST …/connections/{connection}/import-bookings`                     | `admin.properties.channels.connections.import`            |
+| `POST …/connections/{connection}/help`                                | `admin.properties.channels.help.store`                    |
+| `PUT …/connections/{connection}/help/resolved`                        | `admin.properties.channels.help.resolve`                  |
+| `DELETE …/room-types/{roomTypeMapping}/rate-plans`                    | `admin.properties.channels.room-types.rate-plans.destroy` |
+| `POST /admin/properties/{code}/channels/revisions/{revision}/retry`   | `admin.properties.channels.revisions.retry`               |
+| `POST /admin/properties/{code}/channels/changes/retry`                | `admin.properties.channels.changes.retry`                 |
 
 ## Logging
 

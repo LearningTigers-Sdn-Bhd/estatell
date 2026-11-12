@@ -285,6 +285,77 @@ test('another property\'s link is a 404', function () {
     expect(ChannelRatePlanMapping::query()->count())->toBe(1)->and(channexCalls())->toBeEmpty();
 });
 
+test('an admin removes every rate plan of a room type at once', function () {
+    $property = channelOn(channelProperty());
+    $roomType = channelRoomType($property);
+    $otherRoomType = channelRoomType($property, 'Twin Garden');
+    $standard = channelRatePlan($property, [$roomType, $otherRoomType], 'Standard');
+    $breakfast = channelRatePlan($property, [$roomType], 'Breakfast');
+    $channelProperty = channelSyncedProperty($property);
+    $roomMapping = ChannelRoomTypeMapping::factory()->for($channelProperty)->create(['room_type_id' => $roomType->id, 'external_room_type_id' => 'rt-1']);
+    ChannelRatePlanMapping::factory()->for($channelProperty)->create(['rate_plan_id' => $standard->id, 'room_type_id' => $roomType->id, 'external_rate_plan_id' => 'rp-1']);
+    ChannelRatePlanMapping::factory()->for($channelProperty)->create(['rate_plan_id' => $breakfast->id, 'room_type_id' => $roomType->id, 'external_rate_plan_id' => 'rp-2']);
+    $kept = ChannelRatePlanMapping::factory()->for($channelProperty)->create(['rate_plan_id' => $standard->id, 'room_type_id' => $otherRoomType->id, 'external_rate_plan_id' => 'rp-3']);
+    fakeChannex();
+
+    $this->actingAs(channelAdmin())
+        ->delete(route('admin.properties.channels.room-types.rate-plans.destroy', [$property->code, $roomMapping->id]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => '2 rate plans of Deluxe King removed from Channex.']);
+
+    expect(ChannelRatePlanMapping::query()->pluck('id')->all())->toBe([$kept->id])
+        ->and(ChannelRoomTypeMapping::query()->whereKey($roomMapping->id)->exists())->toBeTrue()
+        ->and(Activity::query()->where('event', 'channel.rate_plan_removed')->count())->toBe(2);
+});
+
+test('removing every rate plan stops at the first one Channex refuses', function () {
+    $property = channelOn(channelProperty());
+    $roomType = channelRoomType($property);
+    $standard = channelRatePlan($property, [$roomType], 'Standard');
+    $breakfast = channelRatePlan($property, [$roomType], 'Breakfast');
+    $channelProperty = channelSyncedProperty($property);
+    $roomMapping = ChannelRoomTypeMapping::factory()->for($channelProperty)->create(['room_type_id' => $roomType->id]);
+    ChannelRatePlanMapping::factory()->for($channelProperty)->create(['rate_plan_id' => $standard->id, 'room_type_id' => $roomType->id, 'external_rate_plan_id' => 'rp-1']);
+    $refused = ChannelRatePlanMapping::factory()->for($channelProperty)->create(['rate_plan_id' => $breakfast->id, 'room_type_id' => $roomType->id, 'external_rate_plan_id' => 'rp-2']);
+    Http::fake(['*/rate_plans/rp-2*' => Http::response(['errors' => ['code' => 'validation_error']], 422)]);
+    fakeChannex();
+
+    $this->actingAs(channelAdmin())
+        ->delete(route('admin.properties.channels.room-types.rate-plans.destroy', [$property->code, $roomMapping->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => '1 of 2 rate plans removed. Breakfast · Deluxe King could not be removed. An OTA may still use it.']);
+
+    expect(ChannelRatePlanMapping::query()->pluck('id')->all())->toBe([$refused->id]);
+});
+
+test('removing every rate plan of a room type with none says so', function () {
+    $property = channelOn(channelProperty());
+    $roomType = channelRoomType($property);
+    $roomMapping = ChannelRoomTypeMapping::factory()->for(channelSyncedProperty($property))->create(['room_type_id' => $roomType->id]);
+    Http::fake();
+
+    $this->actingAs(channelAdmin())
+        ->delete(route('admin.properties.channels.room-types.rate-plans.destroy', [$property->code, $roomMapping->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Deluxe King has no rate plans on Channex.']);
+
+    expect(channexCalls())->toBeEmpty();
+});
+
+test('removing every rate plan of another property\'s room type is a 404', function () {
+    $property = channelOn(channelProperty());
+    $other = channelProperty();
+    $roomType = channelRoomType($other);
+    $plan = channelRatePlan($other, [$roomType]);
+    $channelProperty = channelSyncedProperty($other);
+    $roomMapping = ChannelRoomTypeMapping::factory()->for($channelProperty)->create(['room_type_id' => $roomType->id]);
+    ChannelRatePlanMapping::factory()->for($channelProperty)->create(['rate_plan_id' => $plan->id, 'room_type_id' => $roomType->id]);
+    Http::fake();
+
+    $this->actingAs(channelAdmin())
+        ->delete(route('admin.properties.channels.room-types.rate-plans.destroy', [$property->code, $roomMapping->id]))
+        ->assertNotFound();
+
+    expect(ChannelRatePlanMapping::query()->count())->toBe(1)->and(channexCalls())->toBeEmpty();
+});
+
 test('the status badge of an error shows the last error on the tab', function () {
     $property = channelOn(channelProperty());
     ChannelProperty::factory()->for($property)->create(['status' => ChannelPropertyStatus::Error, 'last_error' => 'Channex refused the request (422).']);
