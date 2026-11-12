@@ -9,6 +9,22 @@ The one place where the estatell team syncs a property to Channex, connects and 
 - A **Channels** tab on the admin property page, after OTA lists (see [Admin properties](../01-platform/05-admin-properties.md#show)). Shown only when `ChannelManager` is on.
 - The connect steps are their own page, `pages/admin/properties/channels/connect.tsx`.
 
+## Sections
+
+The tab shows one section at a time, so it does not need a long scroll. A section list sits in the left panel of the page `Workspace`, beside the tab content and the property summary. Below `lg` the list is a select.
+
+| Section                        | Shows                                                                                                                                                                                                                                                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channex and OTAs** (default) | The Channex status with **Full refresh** and **Sync again**, the sync progress, the waiting, paused and last-error notices, then the OTA table. When alerts are open, one line says "N alerts need action" with **View alerts**.                                                                      |
+| **Alerts**                     | Bookings not saved (**Retry**) and open alerts (**Close**). The list shows the open count.                                                                                                                                                                                                            |
+| **On Channex**                 | A table of the room types Channex has, each a muted group row that opens to show its rate plans (closed at first). Each row has a trash icon menu. A room type has **Remove room type** (off while it still has rate plans). A rate plan has **Remove rate plan**. Each asks first in an AlertDialog. |
+| **Bookings**                   | The last 20 revisions Channex sent.                                                                                                                                                                                                                                                                   |
+
+- The open section is kept in `?section=` (`alerts`, `on-channex`, `bookings`), so a refresh keeps it. No value or an unknown value opens **Channex and OTAs**.
+- Switching sections makes no request: the tab already has every section's data. The URL changes on the client (`router.replace`).
+- Before the first sync only **Channex and OTAs** has content. The other sections say "Sync to Channex first".
+- The ASCII layouts below show what each part holds, not the panel layout.
+
 ## Tab states
 
 ### Not synced

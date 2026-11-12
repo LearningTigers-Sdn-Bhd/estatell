@@ -13,7 +13,11 @@ import { PropertyCommissions } from '@/components/pms/commissions/property-commi
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { MovePropertyPartner } from '@/components/pms/properties/move-property-partner';
-import { PropertyChannels } from '@/components/pms/properties/property-channels';
+import {
+    ChannelSectionList,
+    PropertyChannels,
+    useChannelSection,
+} from '@/components/pms/properties/property-channels';
 import { PropertyFeatures } from '@/components/pms/properties/property-features';
 import { PropertyOtaLists } from '@/components/pms/properties/property-ota-lists';
 import { PropertyOverview } from '@/components/pms/properties/property-overview';
@@ -91,6 +95,7 @@ export default function PropertyShow({
     commissionHistory?: App.Data.Commissions.PropertyCommissionPeriodData[];
 }) {
     const [suspendOpen, setSuspendOpen] = useState(false);
+    const [channelSection, setChannelSection] = useChannelSection();
 
     return (
         <>
@@ -263,6 +268,15 @@ export default function PropertyShow({
                     ]}
                 >
                     <Workspace
+                        list={
+                            tab === 'channels' && channel ? (
+                                <ChannelSectionList
+                                    channel={channel}
+                                    section={channelSection}
+                                    onSectionChange={setChannelSection}
+                                />
+                            ) : undefined
+                        }
                         asideLabel="Property summary"
                         aside={
                             <PropertySummary property={property} showPartner />
@@ -299,6 +313,8 @@ export default function PropertyShow({
                             <PropertyChannels
                                 code={property.code}
                                 channel={channel}
+                                section={channelSection}
+                                onSectionChange={setChannelSection}
                             />
                         )}
                     </Workspace>
