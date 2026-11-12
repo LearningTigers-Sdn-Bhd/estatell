@@ -29,12 +29,14 @@ export default function PartnerPropertyShow({
     staff = [],
     features = [],
     bookingEngineMode,
+    overview,
 }: {
     property: Property;
     tab: Tab;
     staff?: StaffMember[];
     features?: PropertyFeature[];
     bookingEngineMode?: App.Data.Platform.BookingEngineModeData;
+    overview?: App.Data.Platform.AdminPropertyOverviewData;
 }) {
     return (
         <>
@@ -81,7 +83,10 @@ export default function PartnerPropertyShow({
                         aside={<PropertySummary property={property} />}
                     >
                         {tab === 'overview' && (
-                            <PropertyOverview property={property} />
+                            <PropertyOverview
+                                property={property}
+                                overview={overview}
+                            />
                         )}
                         {tab === 'staff' && (
                             <PropertyStaff

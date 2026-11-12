@@ -158,8 +158,8 @@ function BookingWebsiteValue({ site }: { site: BookingWebsite }) {
 }
 
 /**
- * The Overview tab body, shared by the admin and partner property pages. With `overview` (the admin page) it starts
- * with the At a glance figures and shows the booking website line while Booking engine is on.
+ * The Overview tab body, shared by the admin and partner property pages. With `overview` it starts with the At a
+ * glance figures and shows the booking website line while Booking engine is on.
  */
 export function PropertyOverview({
     property,
