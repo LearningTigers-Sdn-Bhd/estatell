@@ -6,7 +6,11 @@ import { MultiCombobox } from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
 import { PostingPreview } from '@/components/pms/room-revenue/posting-preview';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
-import { RoomRevenueTabs } from '@/components/pms/room-revenue/room-revenue-tabs';
+import {
+    RoomRevenueTabs,
+    roomRevenueTabs,
+} from '@/components/pms/room-revenue/room-revenue-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { taxOptions } from '@/components/pms/room-revenue/tax-options';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -195,5 +199,9 @@ export default function RoomRevenue({
 }
 
 RoomRevenue.layout = {
-    breadcrumbs: [{ title: 'Room revenue', href: index() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Room revenue', href: index() }],
+        roomRevenueTabs(),
+        'taxes',
+    ),
 };

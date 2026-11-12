@@ -15,7 +15,8 @@ import type { PendingChanges } from '@/components/pms/rate-calendar/pending-chan
 import { PendingChangesBar } from '@/components/pms/rate-calendar/pending-changes-bar';
 import { RateCalendarGrid } from '@/components/pms/rate-calendar/rate-calendar-grid';
 import { RateCalendarToolbar } from '@/components/pms/rate-calendar/rate-calendar-toolbar';
-import { RateTabs } from '@/components/pms/rate-calendar/rate-tabs';
+import { RateTabs, rateTabs } from '@/components/pms/rate-calendar/rate-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { RatesEndingAlert } from '@/components/pms/rate-calendar/rates-ending-alert';
 import { calendar as calendarRoute } from '@/routes/rates';
 import { bulk, changes } from '@/routes/rates/calendar';
@@ -211,7 +212,13 @@ export default function RateCalendar({
     );
 }
 
-RateCalendar.layout = {
-    variant: 'fixed',
-    breadcrumbs: [{ title: 'Rate calendar', href: calendarRoute() }],
-};
+RateCalendar.layout = (props: { canManage: boolean }) => ({
+    variant: 'fixed' as const,
+    breadcrumbs: props.canManage
+        ? withTabCrumb(
+              [{ title: 'Rate calendar', href: calendarRoute() }],
+              rateTabs(calendarRoute(), bulk()),
+              'calendar',
+          )
+        : [{ title: 'Rate calendar', href: calendarRoute() }],
+});

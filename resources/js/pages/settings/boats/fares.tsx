@@ -6,7 +6,11 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { BoatFareSheet } from '@/components/pms/settings/boat-fare-sheet';
 import { BoatFareTable } from '@/components/pms/settings/boat-fare-table';
-import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
+import {
+    BoatSettingsTabs,
+    boatSettingsTabs,
+} from '@/components/pms/settings/boat-settings-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -226,5 +230,9 @@ export default function BoatFaresPage({
 }
 
 BoatFaresPage.layout = {
-    breadcrumbs: [{ title: 'Boats', href: boats() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Boats', href: boats() }],
+        boatSettingsTabs(),
+        'fares',
+    ),
 };

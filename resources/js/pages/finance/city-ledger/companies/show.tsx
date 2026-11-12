@@ -33,7 +33,8 @@ import {
     SettingsSwitch,
 } from '@/components/pms/settings/form-fields';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -563,6 +564,48 @@ function CompanyActionsMenu({
     );
 }
 
+/** The tabs of the company page, for the tab bar and the breadcrumbs. */
+function companyTabs(companyId: number): TabLink[] {
+    return [
+        {
+            value: 'details',
+            label: 'Details',
+            icon: Info,
+            href: show({ company: companyId }),
+        },
+        {
+            value: 'credit',
+            label: 'Credit',
+            icon: CreditCard,
+            href: creditTab({ company: companyId }),
+        },
+        {
+            value: 'rates',
+            label: 'Rates',
+            icon: Tag,
+            href: ratesTab({ company: companyId }),
+        },
+        {
+            value: 'portal',
+            label: 'Portal',
+            icon: Globe,
+            href: portalTab({ company: companyId }),
+        },
+        {
+            value: 'payments',
+            label: 'Payments',
+            icon: Wallet,
+            href: paymentsTab({ company: companyId }),
+        },
+        {
+            value: 'statement',
+            label: 'Statement',
+            icon: FileText,
+            href: statementTab({ company: companyId }),
+        },
+    ];
+}
+
 export default function CompanyShow({
     company,
     tab,
@@ -647,44 +690,7 @@ export default function CompanyShow({
                             ? 'default'
                             : 'full'
                     }
-                    tabs={[
-                        {
-                            value: 'details',
-                            label: 'Details',
-                            icon: Info,
-                            href: show({ company: company.id }),
-                        },
-                        {
-                            value: 'credit',
-                            label: 'Credit',
-                            icon: CreditCard,
-                            href: creditTab({ company: company.id }),
-                        },
-                        {
-                            value: 'rates',
-                            label: 'Rates',
-                            icon: Tag,
-                            href: ratesTab({ company: company.id }),
-                        },
-                        {
-                            value: 'portal',
-                            label: 'Portal',
-                            icon: Globe,
-                            href: portalTab({ company: company.id }),
-                        },
-                        {
-                            value: 'payments',
-                            label: 'Payments',
-                            icon: Wallet,
-                            href: paymentsTab({ company: company.id }),
-                        },
-                        {
-                            value: 'statement',
-                            label: 'Statement',
-                            icon: FileText,
-                            href: statementTab({ company: company.id }),
-                        },
-                    ]}
+                    tabs={companyTabs(company.id)}
                 >
                     {tab === 'details' && (
                         <SettingsSection
@@ -878,12 +884,16 @@ export default function CompanyShow({
     );
 }
 
-CompanyShow.layout = (props: { company: Company }) => ({
-    breadcrumbs: [
-        { title: 'Companies', href: index() },
-        {
-            title: props.company.name,
-            href: show({ company: props.company.id }),
-        },
-    ],
+CompanyShow.layout = (props: { company: Company; tab: Tab }) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Companies', href: index() },
+            {
+                title: props.company.name,
+                href: show({ company: props.company.id }),
+            },
+        ],
+        companyTabs(props.company.id),
+        props.tab,
+    ),
 });

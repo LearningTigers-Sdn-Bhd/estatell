@@ -14,7 +14,8 @@ import type {
     ReportTotalCells,
 } from '@/components/pms/reports/report-screen';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { reportDatePresets } from '@/lib/date-presets';
 import { dailyReport } from '@/routes/reports';
@@ -303,6 +304,14 @@ function Overview({
     );
 }
 
+/** The report tabs, for the tab bar and the breadcrumbs. */
+function dailyReportTabs(tabs: Tab[]): TabLink[] {
+    return tabs.map((item) => ({
+        ...item,
+        icon: icons[item.value as keyof typeof icons],
+    }));
+}
+
 export default function DailyReport({ tab, tabs, ...props }: Props) {
     const revenue = useMemo(
         () => (props.layout ? revenueCells(props.layout) : null),
@@ -360,10 +369,7 @@ export default function DailyReport({ tab, tabs, ...props }: Props) {
                     panelWidth="full"
                     className="flex-1 gap-4"
                     panelClassName="flex flex-1 flex-col"
-                    tabs={tabs.map((item) => ({
-                        ...item,
-                        icon: icons[item.value as keyof typeof icons],
-                    }))}
+                    tabs={dailyReportTabs(tabs)}
                 >
                     {tab === 'overview' && props.overview ? (
                         <Overview
@@ -482,6 +488,10 @@ export default function DailyReport({ tab, tabs, ...props }: Props) {
     );
 }
 
-DailyReport.layout = {
-    breadcrumbs: [{ title: 'Daily report', href: dailyReport() }],
-};
+DailyReport.layout = (props: Pick<Props, 'tab' | 'tabs'>) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Daily report', href: dailyReport() }],
+        dailyReportTabs(props.tabs),
+        props.tab,
+    ),
+});

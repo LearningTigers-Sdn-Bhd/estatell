@@ -12,7 +12,8 @@ import { PrintDocumentsPreview } from '@/components/pms/settings/print-documents
 import { PrintGeneralForm } from '@/components/pms/settings/print-general-form';
 import { PrintHeaderForm } from '@/components/pms/settings/print-header-form';
 import { PrintPreview } from '@/components/pms/settings/print-preview';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { documents, general, header, update } from '@/routes/settings/printing';
 import { update as updateDocuments } from '@/routes/settings/printing/documents';
@@ -57,6 +58,30 @@ const request = (tab: Tab) => (value: Settings) =>
                 },
             };
 
+/** The Printing tabs, for the tab bar and the breadcrumbs. */
+function printingTabs(): TabLink[] {
+    return [
+        {
+            value: 'general',
+            label: 'General',
+            icon: Type,
+            href: general(),
+        },
+        {
+            value: 'header',
+            label: 'Header',
+            icon: PanelTop,
+            href: header(),
+        },
+        {
+            value: 'documents',
+            label: 'Documents',
+            icon: FileText,
+            href: documents(),
+        },
+    ];
+}
+
 export default function PrintingSettings({
     tab,
     settings,
@@ -97,26 +122,7 @@ export default function PrintingSettings({
                     activeTab={tab}
                     className="flex flex-col gap-4"
                     panelWidth="full"
-                    tabs={[
-                        {
-                            value: 'general',
-                            label: 'General',
-                            icon: Type,
-                            href: general(),
-                        },
-                        {
-                            value: 'header',
-                            label: 'Header',
-                            icon: PanelTop,
-                            href: header(),
-                        },
-                        {
-                            value: 'documents',
-                            label: 'Documents',
-                            icon: FileText,
-                            href: documents(),
-                        },
-                    ]}
+                    tabs={printingTabs()}
                 >
                     <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
                         <div className="lg:col-span-2">
@@ -168,6 +174,10 @@ export default function PrintingSettings({
     );
 }
 
-PrintingSettings.layout = {
-    breadcrumbs: [{ title: 'Printing', href: general() }],
-};
+PrintingSettings.layout = (props: { tab: Tab }) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Printing', href: general() }],
+        printingTabs(),
+        props.tab,
+    ),
+});

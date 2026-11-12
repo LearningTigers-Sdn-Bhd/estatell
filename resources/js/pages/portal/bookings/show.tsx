@@ -14,7 +14,8 @@ import { DateText } from '@/components/pms/date-text';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { useSummaryHidden } from '@/components/pms/use-summary-hidden';
 import { useViewChoice } from '@/components/pms/use-view-choice';
 import { Workspace } from '@/components/pms/workspace';
@@ -30,6 +31,32 @@ import {
 type Booking = App.Data.Portal.PortalBookingData;
 
 type Tab = 'units' | 'guests' | 'payments';
+
+/** The Units, Guests and Payments tabs, for the tab bar and the breadcrumbs. */
+function bookingTabs(propertyCode: string, bookingId: number): TabLink[] {
+    const key = { property: propertyCode, reservation: bookingId };
+
+    return [
+        {
+            value: 'units',
+            label: 'Units',
+            icon: BedDouble,
+            href: show.url(key),
+        },
+        {
+            value: 'guests',
+            label: 'Guests',
+            icon: Users,
+            href: guestsTab.url(key),
+        },
+        {
+            value: 'payments',
+            label: 'Payments',
+            icon: Wallet,
+            href: paymentsTab.url(key),
+        },
+    ];
+}
 
 /**
  * One booking of the company, laid out like the staff reservation page: a header, link tabs (Units, Guests, Payments)
@@ -97,28 +124,8 @@ export default function PortalBookingShow({
         groups.find((group) => group.key === pickedGroup)?.key ??
         groups[0]?.key ??
         'none';
-    const key = { property: propertyCode, reservation: booking.id };
 
-    const tabs = [
-        {
-            value: 'units',
-            label: 'Units',
-            icon: BedDouble,
-            href: show.url(key),
-        },
-        {
-            value: 'guests',
-            label: 'Guests',
-            icon: Users,
-            href: guestsTab.url(key),
-        },
-        {
-            value: 'payments',
-            label: 'Payments',
-            icon: Wallet,
-            href: paymentsTab.url(key),
-        },
-    ];
+    const tabs = bookingTabs(propertyCode, booking.id);
 
     return (
         <>
@@ -278,16 +285,24 @@ export default function PortalBookingShow({
 PortalBookingShow.layout = (props: {
     propertyCode: string;
     booking: Booking;
+    tab: Tab;
 }) => ({
     variant: 'fixed',
-    breadcrumbs: [
-        { title: 'Bookings', href: index({ property: props.propertyCode }) },
-        {
-            title: props.booking.reference,
-            href: show({
-                property: props.propertyCode,
-                reservation: props.booking.id,
-            }),
-        },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            {
+                title: 'Bookings',
+                href: index({ property: props.propertyCode }),
+            },
+            {
+                title: props.booking.reference,
+                href: show({
+                    property: props.propertyCode,
+                    reservation: props.booking.id,
+                }),
+            },
+        ],
+        bookingTabs(props.propertyCode, props.booking.id),
+        props.tab,
+    ),
 });

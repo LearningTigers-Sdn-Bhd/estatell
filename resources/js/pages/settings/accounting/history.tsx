@@ -2,7 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import { History, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import AccountingSettingsController from '@/actions/App/Http/Controllers/Accounting/AccountingSettingsController';
-import { AccountingShell } from '@/components/pms/accounting/accounting-shell';
+import {
+    AccountingShell,
+    accountingTabs,
+} from '@/components/pms/accounting/accounting-shell';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -18,7 +22,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { profile } from '@/routes/settings';
-import { edit, history } from '@/routes/settings/accounting';
+import { edit } from '@/routes/settings/accounting';
 
 export default function AccountingHistory({
     setup,
@@ -226,9 +230,12 @@ export default function AccountingHistory({
 }
 
 AccountingHistory.layout = {
-    breadcrumbs: [
-        { title: 'Settings', href: profile() },
-        { title: 'Accounting', href: edit() },
-        { title: 'History', href: history() },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Settings', href: profile() },
+            { title: 'Accounting', href: edit() },
+        ],
+        accountingTabs(),
+        'history',
+    ),
 };

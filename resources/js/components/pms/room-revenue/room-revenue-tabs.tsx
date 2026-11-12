@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TabLinks } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { index } from '@/routes/settings/room-revenue';
 import { show as showDayUse } from '@/routes/settings/room-revenue/day-use';
 import { show } from '@/routes/settings/room-revenue/policies';
@@ -29,6 +30,28 @@ const policyTabs: { value: RoomRevenueTab; label: string; icon: LucideIcon }[] =
         { value: 'late-checkout', label: 'Late check-out', icon: Clock },
     ];
 
+/** The Room revenue tabs, for the tab bar and the breadcrumbs. */
+export function roomRevenueTabs(): TabLink[] {
+    return [
+        {
+            value: 'taxes',
+            label: 'Taxes',
+            icon: Landmark,
+            href: index(),
+        },
+        ...policyTabs.map((tab) => ({
+            ...tab,
+            href: show({ tab: tab.value }),
+        })),
+        {
+            value: 'day-use',
+            label: 'Day use',
+            icon: Hourglass,
+            href: showDayUse(),
+        },
+    ];
+}
+
 /**
  * The six Room revenue tabs are always available. Each is a link to its own URL, so the server sends only the open tab's data.
  */
@@ -44,24 +67,7 @@ export function RoomRevenueTabs({
             activeTab={activeTab}
             panelWidth="full"
             className="flex flex-col gap-6"
-            tabs={[
-                {
-                    value: 'taxes',
-                    label: 'Taxes',
-                    icon: Landmark,
-                    href: index(),
-                },
-                ...policyTabs.map((tab) => ({
-                    ...tab,
-                    href: show({ tab: tab.value }),
-                })),
-                {
-                    value: 'day-use',
-                    label: 'Day use',
-                    icon: Hourglass,
-                    href: showDayUse(),
-                },
-            ]}
+            tabs={roomRevenueTabs()}
         >
             {children}
         </TabLinks>

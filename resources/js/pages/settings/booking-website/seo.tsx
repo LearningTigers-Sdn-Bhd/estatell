@@ -2,7 +2,10 @@ import { Head } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
-import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import {
+    BookingWebsiteShell,
+    bookingWebsiteBreadcrumbs,
+} from '@/components/pms/booking-website/booking-website-shell';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
@@ -131,3 +134,9 @@ export default function BookingWebsiteSeo({
         </>
     );
 }
+
+BookingWebsiteSeo.layout = (
+    props: Parameters<typeof bookingWebsiteBreadcrumbs>[0],
+) => ({
+    breadcrumbs: bookingWebsiteBreadcrumbs(props, 'seo'),
+});

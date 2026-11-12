@@ -1,7 +1,11 @@
 import { Form, Head } from '@inertiajs/react';
 import { Check, ListChecks, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { AccountingShell } from '@/components/pms/accounting/accounting-shell';
+import {
+    AccountingShell,
+    accountingTabs,
+} from '@/components/pms/accounting/accounting-shell';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { EmptyState } from '@/components/pms/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,7 +28,7 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { profile } from '@/routes/settings';
-import { accounts, edit, mappings } from '@/routes/settings/accounting';
+import { edit, mappings } from '@/routes/settings/accounting';
 
 type Mapping = App.Data.Accounting.AccountingMappingData;
 type View = 'all' | 'unmapped';
@@ -265,9 +269,12 @@ export default function AccountingAccounts({
 }
 
 AccountingAccounts.layout = {
-    breadcrumbs: [
-        { title: 'Settings', href: profile() },
-        { title: 'Accounting', href: edit() },
-        { title: 'Accounts', href: accounts() },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Settings', href: profile() },
+            { title: 'Accounting', href: edit() },
+        ],
+        accountingTabs(),
+        'accounts',
+    ),
 };

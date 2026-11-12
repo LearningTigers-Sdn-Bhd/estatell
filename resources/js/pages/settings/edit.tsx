@@ -18,7 +18,8 @@ import { MealPeriodsForm } from '@/components/pms/settings/meal-periods-form';
 import { PropertyLogoField } from '@/components/pms/settings/property-logo-field';
 import { PropertyPhotos } from '@/components/pms/settings/property-photos';
 import { SettingsSection } from '@/components/pms/settings-section';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     SettingsSwitch,
     SettingsInput,
@@ -59,6 +60,60 @@ type Section =
 
 const form = (section: Exclude<Section, 'profile'>) =>
     PropertySettingsController.update.form({ section });
+
+/** The Settings tabs, for the tab bar and the breadcrumbs. */
+function settingsTabs(): TabLink[] {
+    return [
+        {
+            value: 'profile',
+            label: 'Profile',
+            icon: Building2,
+            href: profileTab(),
+        },
+        {
+            value: 'business',
+            label: 'Business licence',
+            icon: BadgeCheck,
+            href: businessTab(),
+        },
+        {
+            value: 'photos',
+            label: 'Photos',
+            icon: Images,
+            href: photosTab(),
+        },
+        {
+            value: 'general',
+            label: 'General',
+            icon: SlidersHorizontal,
+            href: general(),
+        },
+        {
+            value: 'operations',
+            label: 'Operations',
+            icon: MoonStar,
+            href: operations(),
+        },
+        {
+            value: 'age-groups',
+            label: 'Age groups',
+            icon: Baby,
+            href: ageGroupsTab(),
+        },
+        {
+            value: 'meal-periods',
+            label: 'Meal periods',
+            icon: Utensils,
+            href: mealPeriodsTab(),
+        },
+        {
+            value: 'support',
+            label: 'Support access',
+            icon: LifeBuoy,
+            href: support(),
+        },
+    ];
+}
 
 export default function PropertySettings({
     settings,
@@ -145,56 +200,7 @@ export default function PropertySettings({
                 <TabLinks
                     activeTab={tab}
                     className="flex flex-col gap-4"
-                    tabs={[
-                        {
-                            value: 'profile',
-                            label: 'Profile',
-                            icon: Building2,
-                            href: profileTab(),
-                        },
-                        {
-                            value: 'business',
-                            label: 'Business licence',
-                            icon: BadgeCheck,
-                            href: businessTab(),
-                        },
-                        {
-                            value: 'photos',
-                            label: 'Photos',
-                            icon: Images,
-                            href: photosTab(),
-                        },
-                        {
-                            value: 'general',
-                            label: 'General',
-                            icon: SlidersHorizontal,
-                            href: general(),
-                        },
-                        {
-                            value: 'operations',
-                            label: 'Operations',
-                            icon: MoonStar,
-                            href: operations(),
-                        },
-                        {
-                            value: 'age-groups',
-                            label: 'Age groups',
-                            icon: Baby,
-                            href: ageGroupsTab(),
-                        },
-                        {
-                            value: 'meal-periods',
-                            label: 'Meal periods',
-                            icon: Utensils,
-                            href: mealPeriodsTab(),
-                        },
-                        {
-                            value: 'support',
-                            label: 'Support access',
-                            icon: LifeBuoy,
-                            href: support(),
-                        },
-                    ]}
+                    tabs={settingsTabs()}
                 >
                     {tab === 'profile' && profile && (
                         <div className="flex flex-col gap-4">
@@ -497,6 +503,10 @@ export default function PropertySettings({
     );
 }
 
-PropertySettings.layout = {
-    breadcrumbs: [{ title: 'Settings', href: profileTab() }],
-};
+PropertySettings.layout = (props: { tab: Section }) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Settings', href: profileTab() }],
+        settingsTabs(),
+        props.tab,
+    ),
+});
