@@ -52,7 +52,7 @@ class ReportExportController extends Controller
         $logIdentityExport($request->user(), $property, $report, $filters, $layout, $rows, $format);
 
         return response()
-            ->download($reportSpreadsheet->write($layout, $rows, $format, $report->totals($rows)), $reportSpreadsheet->filename($report, $filters, $format))
+            ->download($reportSpreadsheet->write($layout, $rows, $format, $report->totals($rows), $property->loadMissing('settings')->settings?->currency->getCurrencyCode()), $reportSpreadsheet->filename($report, $filters, $format))
             ->deleteFileAfterSend();
     }
 }

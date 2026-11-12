@@ -85,6 +85,20 @@ test('the PDF is returned inline and lists every row that matches the dates', fu
         ->and($captured->data['selectedOnly'])->toBeFalse();
 });
 
+test('the PDF puts the currency in the money headings, not on each amount', function () {
+    [$user, $property] = reportSetup();
+    exportUnit($property, balance: '350.50');
+    $captured = capturePdfView();
+
+    $this->actingAs($user)->post(exportUrl($property, 'pdf'), ['from' => '2026-10-10', 'to' => '2026-10-10'])->assertOk();
+    $html = view('pdf.report', $captured->data)->render();
+
+    expect($html)->toContain('Balance (MYR)')
+        ->toContain('350.50')
+        ->not->toContain('MYR 350.50')
+        ->not->toContain('Guest (MYR)');
+});
+
 test('the PDF holds only the selected rows and ignores keys outside the dates or the property', function () {
     [$user, $property] = reportSetup();
     [, $other] = reportSetup();
@@ -147,7 +161,7 @@ test('the CSV follows the saved layout order and visibility and writes money as 
 
     $rows = csvRows($response->streamedContent());
 
-    expect($rows[0])->toBe(['Balance', 'Guest', 'Arrival', 'Arrival time', 'Nights', 'Room type / room', 'Status'])
+    expect($rows[0])->toBe(['Balance (MYR)', 'Guest', 'Arrival', 'Arrival time', 'Nights', 'Room type / room', 'Status'])
         ->and($rows[1])->toBe(['350.5', 'Tan', '2026-10-10', '15:00', '2', $unit->roomType->name, 'Confirmed']);
 });
 

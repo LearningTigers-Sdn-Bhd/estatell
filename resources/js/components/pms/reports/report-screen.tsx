@@ -277,7 +277,11 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     },
                     {
                         id: item.key,
-                        header: item.label,
+                        // A money column shows plain amounts, so its header carries the currency.
+                        header:
+                            item.money && currency
+                                ? `${item.label} (${currency.code})`
+                                : item.label,
                         // A report with sections keeps its row order, so its headers do not sort.
                         enableSorting: !sections,
                         cell: (info) => {

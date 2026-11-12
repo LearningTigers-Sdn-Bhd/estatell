@@ -227,7 +227,7 @@ test('the arrivals page receives the saved layout and canEditLayout', function (
         ->where('canEditLayout', true)
         ->where('layout.orientation', 'landscape')
         ->has('layout.columns', 15)
-        ->where('layout.columns.0', ['key' => 'balance', 'label' => 'Balance', 'align' => 'right', 'visible' => true, 'defaultAlign' => 'right'])
+        ->where('layout.columns.0', ['key' => 'balance', 'label' => 'Balance', 'align' => 'right', 'visible' => true, 'defaultAlign' => 'right', 'money' => true])
         ->where('layout.columns.2.visible', false)
         ->missing('columns'));
 

@@ -36,6 +36,7 @@ Imports: `pages` → `pms/{feature}`, `pms/`, `ui/`. `pms/{feature}` → `pms/`,
 - `className` on components is for layout, never for recoloring.
 - Nova default sizes. Headings use Geist through `PageHeader`.
 - Money, dates and tables use `tabular-nums`.
+- A money column in a table puts the currency in its header (`ADR (MYR)`) and shows plain amounts (`MoneyText plain`). A single amount (a summary card, a balance) and a table that mixes currencies keep the code on the value.
 
 ## 4. Pages
 

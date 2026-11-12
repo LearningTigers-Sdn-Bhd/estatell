@@ -3804,6 +3804,7 @@ label: string,
 align: App.Enums.ColumnAlign,
 defaultVisible: boolean,
 feature: string | null,
+money: boolean,
 };
 export type ReportFilters = {
 from: string,
@@ -3827,6 +3828,7 @@ label: string,
 align: App.Enums.ColumnAlign,
 visible: boolean,
 defaultAlign: App.Enums.ColumnAlign,
+money: boolean,
 };
 export type ReportLayoutData = {
 orientation: App.Enums.PageOrientation,

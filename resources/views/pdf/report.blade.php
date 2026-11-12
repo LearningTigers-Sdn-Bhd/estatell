@@ -52,9 +52,6 @@
         @if ($note !== null)
             <div class="small muted">{{ $note }}</div>
         @endif
-        @if ($currency !== '')
-            <div class="small muted">{{ $currency }}</div>
-        @endif
         @if ($selectedOnly)
             <div class="small muted">{{ __('Selected rows only') }}</div>
         @endif
@@ -65,7 +62,7 @@
         <thead>
             <tr class="rule">
                 @foreach ($columns as $column)
-                    <th @class($cellClass($column))>{{ $column->label }}</th>
+                    <th @class($cellClass($column))>{{ $column->heading($currency) }}</th>
                 @endforeach
             </tr>
         </thead>
@@ -102,7 +99,7 @@
                     <thead>
                         <tr class="rule">
                             @foreach ($columns as $column)
-                                <th @class($cellClass($column))>{{ $column->label }}</th>
+                                <th @class($cellClass($column))>{{ $column->heading($currency) }}</th>
                             @endforeach
                         </tr>
                     </thead>

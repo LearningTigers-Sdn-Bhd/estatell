@@ -49,7 +49,7 @@ const cells: ReportCells<Row> = {
         row.revenue === null ? (
             dash
         ) : (
-            <MoneyText amount={row.revenue} currency={currency} />
+            <MoneyText amount={row.revenue} currency={currency} plain />
         ),
     packet: (row) =>
         row.packet ? (

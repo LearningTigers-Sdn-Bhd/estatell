@@ -241,7 +241,7 @@ test('the PDF and CSV keep the tax columns and the distinct booking total', func
     $response = $this->actingAs($user)->post("/p/{$property->code}/reports/daily-revenue/spreadsheet", [...$base, 'format' => 'csv']);
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
-    expect($rows[0])->toBe(['Date / month', 'Bookings', 'Accommodation', 'Day use', 'Fees', 'Extras', 'SST', 'Tourism tax', 'Adjustments', 'Total'])
+    expect($rows[0])->toBe(['Date / month', 'Bookings', 'Accommodation (MYR)', 'Day use (MYR)', 'Fees (MYR)', 'Extras (MYR)', 'SST (MYR)', 'Tourism tax (MYR)', 'Adjustments (MYR)', 'Total (MYR)'])
         ->and($rows[1])->toBe(['2026-10-09', '2', '100', '40', '20', '30', '8', '10', '-10', '198'])
         ->and(end($rows))->toBe(['Total', '2', '250', '40', '20', '30', '20', '10', '-10', '360']);
 });
