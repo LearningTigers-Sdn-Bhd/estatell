@@ -18,7 +18,7 @@ media                       two single-file collections on each document: id_fro
 
 ## Enums
 
-`IdentityDocumentType`: MyKad, Passport, Other. `formatNumber()` shows a MyKad as `900101-14-1234`.
+`IdentityDocumentType`: MyKad, Passport, Other. `formatNumber()` shows a MyKad as `900101-14-1234`. `defaultIssuingCountry()` is `MY` for a MyKad: `AddIdentityDocument` and `UpdateIdentityDocument` store it when no issuing country is given, so a MyKad saved from the Details field is Malaysian. A passport or other document saved without a country keeps none. The migration `fill_mykad_issuing_country` set MY on earlier MyKads with no country.
 
 ## Rules
 

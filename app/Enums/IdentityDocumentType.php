@@ -30,6 +30,15 @@ enum IdentityDocumentType: string
     }
 
     /**
+     * The issuing country to store when none is given: a MyKad is always Malaysian. Other documents keep what was
+     * entered, because only the guest knows which country issued them.
+     */
+    public function defaultIssuingCountry(): ?string
+    {
+        return $this === self::MyKad ? 'MY' : null;
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array
