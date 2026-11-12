@@ -120,6 +120,7 @@ Empty list: "Share your signup link to add a property."
 ```
 
 - The same three tabs as the admin property page (see [Admin properties](../01-platform/05-admin-properties.md#show)), each with its own URL, rendering `pages/partner/properties/show.tsx` with a `tab` prop.
+- **Overview** is the same as on the admin page: At a glance and Property details (see [Admin properties](../01-platform/05-admin-properties.md#show)).
 - **Staff** is read-only: the same columns, no **Send setup email**.
 - **Features** is read-only: each `PlatformFeature` with On or Off, and the note "Ask estatell support to change features."
 - The tab bodies live in `components/pms/properties/`, shared by the admin and partner pages. The Features tab takes `readOnly`.

@@ -45,7 +45,7 @@ class PayoutBookingController extends Controller
         $filters = $request->filters($property);
 
         return response()
-            ->download($csv->write($filters, withProperty: false), "payouts-{$filters->from}-to-{$filters->to}.csv", ['Content-Type' => 'text/csv'])
+            ->download($csv->write($filters, withProperty: false, currency: $property->loadMissing('settings')->settings?->currency->getCurrencyCode()), "payouts-{$filters->from}-to-{$filters->to}.csv", ['Content-Type' => 'text/csv'])
             ->deleteFileAfterSend();
     }
 }

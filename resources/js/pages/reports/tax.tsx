@@ -35,19 +35,19 @@ const cells: ReportCells<Row> = {
         row.base === null ? (
             <span className="text-muted-foreground">—</span>
         ) : (
-            <MoneyText amount={row.base} currency={currency} />
+            <MoneyText amount={row.base} currency={currency} plain />
         ),
     amount: (row, currency) => (
-        <MoneyText amount={row.amount} currency={currency} />
+        <MoneyText amount={row.amount} currency={currency} plain />
     ),
 };
 
 const totalCells: ReportTotalCells = {
     base: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     amount: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 

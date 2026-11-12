@@ -101,7 +101,7 @@ test('the export has the page columns without the property', function () {
 
     $csv = file_get_contents($response->baseResponse->getFile()->getPathname());
 
-    expect($csv)->toStartWith("\u{FEFF}".'Booking,Source,Booked,Check-in,Check-out,Guest,Value,"Booking engine commission","Channel manager commission","Outstanding to hotel"')
+    expect($csv)->toStartWith("\u{FEFF}".'Booking,Source,Booked,Check-in,Check-out,Guest,"Value (MYR)","Booking engine commission (MYR)","Channel manager commission (MYR)","Outstanding to hotel (MYR)"')
         ->and($csv)->toContain($setup['reservation']->reference)
         ->and($csv)->not->toContain($setup['other']->reference);
 });

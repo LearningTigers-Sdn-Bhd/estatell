@@ -135,7 +135,7 @@ test('the PDF and the CSV export the departures', function () {
 
     $lines = array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF"))));
 
-    expect(str_getcsv($lines[0]))->toBe(['Reservation no.', 'Guest', 'Departure', 'Departure time', 'Nights', 'Room type / room', 'Status', 'Balance'])
+    expect(str_getcsv($lines[0]))->toBe(['Reservation no.', 'Guest', 'Departure', 'Departure time', 'Nights', 'Room type / room', 'Status', 'Balance (MYR)'])
         ->and($lines)->toHaveCount(2);
 });
 

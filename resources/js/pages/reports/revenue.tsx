@@ -37,14 +37,14 @@ const cells: ReportCells<Row> = {
                 query: { code: row.code, from: row.from, to: row.to },
             })}
         >
-            <MoneyText amount={row.amount} currency={currency} />
+            <MoneyText amount={row.amount} currency={currency} plain />
         </ReportCellLink>
     ),
 };
 
 const totalCells: ReportTotalCells = {
     amount: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 

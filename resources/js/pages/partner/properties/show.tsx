@@ -1,12 +1,13 @@
 import { Head } from '@inertiajs/react';
 import { Info, ToggleRight, Users } from 'lucide-react';
-import { DetailLayout } from '@/components/pms/detail-layout';
 import { PageHeader } from '@/components/pms/page-header';
 import { PropertyFeatures } from '@/components/pms/properties/property-features';
 import { PropertyOverview } from '@/components/pms/properties/property-overview';
 import { PropertyStaff } from '@/components/pms/properties/property-staff';
 import { PropertySummary } from '@/components/pms/properties/property-summary';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { TabLinks } from '@/components/pms/tab-links';
+import { Workspace } from '@/components/pms/workspace';
 import {
     features as featuresTab,
     index,
@@ -28,26 +29,34 @@ export default function PartnerPropertyShow({
     staff = [],
     features = [],
     bookingEngineMode,
+    overview,
 }: {
     property: Property;
     tab: Tab;
     staff?: StaffMember[];
     features?: PropertyFeature[];
     bookingEngineMode?: App.Data.Platform.BookingEngineModeData;
+    overview?: App.Data.Platform.AdminPropertyOverviewData;
 }) {
     return (
         <>
             <Head title={property.name} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div
+                scroll-region=""
+                className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden"
+            >
                 <PageHeader
                     title={property.name}
                     back={{ href: index(), label: 'Properties' }}
                     badge={<StatusBadge status={property.status} />}
                 />
 
-                <DetailLayout
+                <TabLinks
                     activeTab={tab}
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                     tabs={[
                         {
                             value: 'overview',
@@ -68,33 +77,41 @@ export default function PartnerPropertyShow({
                             href: featuresTab(property.code),
                         },
                     ]}
-                    summary={<PropertySummary property={property} />}
                 >
-                    {tab === 'overview' && (
-                        <PropertyOverview property={property} />
-                    )}
-                    {tab === 'staff' && (
-                        <PropertyStaff
-                            code={property.code}
-                            staff={staff}
-                            readOnly
-                        />
-                    )}
-                    {tab === 'features' && (
-                        <PropertyFeatures
-                            code={property.code}
-                            features={features}
-                            bookingEngineMode={bookingEngineMode}
-                            readOnly
-                        />
-                    )}
-                </DetailLayout>
+                    <Workspace
+                        asideLabel="Property summary"
+                        aside={<PropertySummary property={property} />}
+                    >
+                        {tab === 'overview' && (
+                            <PropertyOverview
+                                property={property}
+                                overview={overview}
+                            />
+                        )}
+                        {tab === 'staff' && (
+                            <PropertyStaff
+                                code={property.code}
+                                staff={staff}
+                                readOnly
+                            />
+                        )}
+                        {tab === 'features' && (
+                            <PropertyFeatures
+                                code={property.code}
+                                features={features}
+                                bookingEngineMode={bookingEngineMode}
+                                readOnly
+                            />
+                        )}
+                    </Workspace>
+                </TabLinks>
             </div>
         </>
     );
 }
 
 PartnerPropertyShow.layout = (props: { property: Property }) => ({
+    variant: 'fixed' as const,
     breadcrumbs: [
         { title: 'Properties', href: index() },
         { title: props.property.name, href: show(props.property.code) },

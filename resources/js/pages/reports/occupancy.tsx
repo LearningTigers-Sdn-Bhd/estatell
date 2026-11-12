@@ -42,31 +42,33 @@ const cells: ReportCells<Row> = {
         </span>
     ),
     occupancy: (row) => percent(row.occupancy),
-    adr: (row, currency) => <MoneyText amount={row.adr} currency={currency} />,
+    adr: (row, currency) => (
+        <MoneyText amount={row.adr} currency={currency} plain />
+    ),
     revpar: (row, currency) => (
-        <MoneyText amount={row.revpar} currency={currency} />
+        <MoneyText amount={row.revpar} currency={currency} plain />
     ),
     revenue: (row, currency) => (
-        <MoneyText amount={row.revenue} currency={currency} />
+        <MoneyText amount={row.revenue} currency={currency} plain />
     ),
     day_use_revenue: (row, currency) => (
-        <MoneyText amount={row.day_use_revenue} currency={currency} />
+        <MoneyText amount={row.day_use_revenue} currency={currency} plain />
     ),
 };
 
 const totalCells: ReportTotalCells = {
     occupancy: (figure) => percent(String(figure)),
     adr: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     revpar: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     revenue: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     day_use_revenue: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 

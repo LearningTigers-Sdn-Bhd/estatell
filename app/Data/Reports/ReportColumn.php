@@ -7,7 +7,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * One column of a report. The `key` is stable: stored layouts refer to it, so renaming a key is a migration. A column
- * with a `feature` (a Pennant feature class) is left out of the layout while the feature is off for the property.
+ * with a `feature` (a Pennant feature class) is left out of the layout while the feature is off for the property. A
+ * `money` column shows plain amounts; its heading carries the property currency (`ADR (MYR)`).
  */
 class ReportColumn extends Data
 {
@@ -17,5 +18,6 @@ class ReportColumn extends Data
         public ColumnAlign $align,
         public bool $defaultVisible,
         public ?string $feature = null,
+        public bool $money = false,
     ) {}
 }

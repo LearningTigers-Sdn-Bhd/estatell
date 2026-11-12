@@ -18,8 +18,16 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { NearbyPlaceLinkDialog } from '@/components/pms/nearby-place-link-dialog';
 import { PageHeader } from '@/components/pms/page-header';
-import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -39,6 +47,7 @@ import {
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import {
     Table,
     TableBody,
@@ -61,11 +70,57 @@ const statusIcons: Record<string, LucideIcon> = {
     rejected: CircleX,
 };
 
-function act(action: typeof NearbyPlaceController.approve, place: Place) {
+function approve(place: Place) {
     router.put(
-        action.url({ nearbyPlace: place.id }),
+        NearbyPlaceController.approve.url({ nearbyPlace: place.id }),
         {},
         { preserveScroll: true },
+    );
+}
+
+function RejectPlaceDialog({
+    place,
+    onClose,
+}: {
+    place: Place;
+    onClose: () => void;
+}) {
+    return (
+        <AlertDialog open onOpenChange={(open) => !open && onClose()}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Reject {place.name}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This removes the place from every property that has it
+                        and tells the owner.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Form
+                    {...NearbyPlaceController.reject.form({
+                        nearbyPlace: place.id,
+                    })}
+                    options={{ preserveScroll: true }}
+                    onSuccess={onClose}
+                >
+                    {({ processing }) => (
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                disabled={processing}
+                                focusableWhenDisabled
+                            >
+                                {processing && (
+                                    <Spinner data-icon="inline-start" />
+                                )}
+                                Reject place
+                            </Button>
+                        </AlertDialogFooter>
+                    )}
+                </Form>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }
 
@@ -146,6 +201,7 @@ export default function NearbyPlacesIndex({
 }) {
     const [adding, setAdding] = useState(false);
     const [editing, setEditing] = useState<Place | null>(null);
+    const [rejecting, setRejecting] = useState<Place | null>(null);
     const [search, setSearch] = useState('');
 
     const visible = useMemo(() => {
@@ -199,10 +255,8 @@ export default function NearbyPlacesIndex({
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>Approved</TableHead>
                                     <TableHead>Place</TableHead>
-                                    {status === ALL && (
-                                        <TableHead>Status</TableHead>
-                                    )}
                                     <TableHead className="text-right">
                                         Properties
                                     </TableHead>
@@ -215,6 +269,21 @@ export default function NearbyPlacesIndex({
                             <TableBody>
                                 {visible.map((place) => (
                                     <TableRow key={place.id}>
+                                        <TableCell>
+                                            <Switch
+                                                size="sm"
+                                                checked={
+                                                    place.statusValue ===
+                                                    'approved'
+                                                }
+                                                aria-label={`${place.statusValue === 'approved' ? 'Reject' : 'Approve'} ${place.name}`}
+                                                onCheckedChange={(checked) =>
+                                                    checked
+                                                        ? approve(place)
+                                                        : setRejecting(place)
+                                                }
+                                            />
+                                        </TableCell>
                                         <TableCell className="font-medium">
                                             <a
                                                 href={place.googleMapsUrl}
@@ -226,13 +295,6 @@ export default function NearbyPlacesIndex({
                                                 <ExternalLink className="size-3" />
                                             </a>
                                         </TableCell>
-                                        {status === ALL && (
-                                            <TableCell>
-                                                <StatusBadge
-                                                    status={place.status}
-                                                />
-                                            </TableCell>
-                                        )}
                                         <TableCell className="text-right">
                                             {place.propertiesCount}
                                         </TableCell>
@@ -264,33 +326,6 @@ export default function NearbyPlacesIndex({
                                                             <Pencil />
                                                             Edit name
                                                         </DropdownMenuItem>
-                                                        {place.canApprove && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    act(
-                                                                        NearbyPlaceController.approve,
-                                                                        place,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <CircleCheck />
-                                                                Approve
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {place.canReject && (
-                                                            <DropdownMenuItem
-                                                                variant="destructive"
-                                                                onClick={() =>
-                                                                    act(
-                                                                        NearbyPlaceController.reject,
-                                                                        place,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <CircleX />
-                                                                Reject
-                                                            </DropdownMenuItem>
-                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
@@ -299,9 +334,7 @@ export default function NearbyPlacesIndex({
                                 ))}
                                 {visible.length === 0 && (
                                     <TableRow className="hover:bg-transparent">
-                                        <TableCell
-                                            colSpan={status === ALL ? 5 : 4}
-                                        >
+                                        <TableCell colSpan={5}>
                                             {search.trim() === '' ? (
                                                 <EmptyState
                                                     icon={MapPin}
@@ -349,6 +382,13 @@ export default function NearbyPlacesIndex({
                 open={adding}
                 onOpenChange={setAdding}
             />
+            {rejecting && (
+                <RejectPlaceDialog
+                    key={rejecting.id}
+                    place={rejecting}
+                    onClose={() => setRejecting(null)}
+                />
+            )}
             {editing && (
                 <RenamePlaceDialog
                     key={editing.id}

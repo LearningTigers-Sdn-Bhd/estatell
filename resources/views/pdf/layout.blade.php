@@ -3,7 +3,7 @@
     rules of 0.5pt (light) and 1pt (strong). See docs/design-system/11-accessibility-performance-pdfs.md.
 
     A view rendered through PrintedPdf gets `$print` (App\Services\Property\PrintLayout): the property's font style,
-    font size and footer. Each font-family list ends with Noto Sans SC and Noto Sans TC, so Chinese text prints in every
+    font size, table style and footer. Each font-family list ends with Noto Sans SC and Noto Sans TC, so Chinese text prints in every
     style. Views without it (the registration card, the sign-in slips) keep DejaVu Sans at 9pt and no footer.
 --}}
 @php
@@ -13,6 +13,8 @@
     $bodyFamily = $print !== null ? \App\Enums\PdfFont::stack($print->font->bodyFamily()) : "'DejaVu Sans', sans-serif";
     // Without a print style the headings inherit the body font, which the registration card sets itself.
     $headingFamily = $print !== null ? 'font-family: '.\App\Enums\PdfFont::stack($print->font->headingFamily()).';' : '';
+    // Rows with `.rule` are table rows; the table style draws their borders and tints. Views without a print style stay Minimal.
+    $tableStyle = $print?->tableStyle ?? \App\Enums\PdfTableStyle::Minimal;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -55,6 +57,21 @@
         .letterhead .logo { width: 1pt; padding-right: 12pt; white-space: nowrap; }
         .letterhead .logo img { max-width: 72pt; max-height: 48pt; }
         .page-footer { position: fixed; left: 0; right: 0; bottom: -48pt; text-align: center; font-size: {{ $body - 1 }}pt; line-height: 1.3; color: #6b6b6b; }
+        @if ($tableStyle !== \App\Enums\PdfTableStyle::Minimal)
+            {{-- Text keeps 4pt off a border or a tint on both sides. The letterhead and the info strip are layout tables and keep their spacing. --}}
+            td, th, td:last-child, th:last-child { padding-left: 4pt; padding-right: 4pt; }
+            .letterhead td, .info-strip td { padding-left: 0; }
+            .letterhead td:last-child, .info-strip td:last-child { padding-right: 0; }
+            .letterhead .property-details { padding-right: 16pt; }
+            .info-strip td { padding-right: 12pt; }
+        @endif
+        @if ($tableStyle === \App\Enums\PdfTableStyle::Lined)
+            .rule td, .rule th { border: 0.5pt solid #c8c8c8; }
+            .total td { border: 0.5pt solid #c8c8c8; border-top: 1pt solid #1a1a1a; }
+        @elseif ($tableStyle === \App\Enums\PdfTableStyle::Shaded)
+            .rule th, .total td { background-color: #ececec; }
+            tr.rule:nth-child(even) td { background-color: #f6f6f6; }
+        @endif
     </style>
     @stack('head')
 </head>

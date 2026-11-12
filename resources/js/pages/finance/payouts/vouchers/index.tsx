@@ -19,7 +19,8 @@ type Props = {
 
 const column = dataTableColumns<Row>();
 
-const columns = [
+/** The voucher columns. The amount header carries the property currency, so its cells are plain. */
+const voucherColumns = (currency: App.Data.Property.CurrencyData | null) => [
     column.accessor('number', {
         header: 'Voucher',
         enableSorting: false,
@@ -48,12 +49,13 @@ const columns = [
     }),
     column.accessor('amount', {
         id: 'amount',
-        header: 'Amount',
+        header: currency ? `Amount (${currency.code})` : 'Amount',
         enableSorting: false,
         cell: (info) => (
             <MoneyText
                 amount={info.getValue()}
                 currency={info.row.original.currency}
+                plain
             />
         ),
     }),
@@ -85,6 +87,9 @@ const columns = [
  * See docs/30-commission-fees/06-property-payouts.md#payouts-tab.
  */
 export default function PayoutVouchersIndex({ vouchers }: Props) {
+    // Every voucher of the property has the property currency, so the first row names it.
+    const columns = voucherColumns(vouchers.data[0]?.currency ?? null);
+
     return (
         <>
             <Head title="Payouts" />

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-How every PDF of a property looks: the letterhead, the font style, the font size and the footer. Reports, receipts, AR invoices, AR statements and the aging report all use it. The Documents tab also chooses what the booking summary, the folio invoice and the AR invoice show.
+How every PDF of a property looks: the letterhead, the font style, the font size, the table style and the footer. Reports, receipts, AR invoices, AR statements and the aging report all use it. The Documents tab also chooses what the booking summary, the folio invoice and the AR invoice show.
 
 ## Data model
 
@@ -11,6 +11,7 @@ print_settings              one row per property
   id, property_id (unique FK)
   font                      PdfFont, default office
   font_size                 PdfFontSize, default medium
+  table_style               PdfTableStyle, default minimal
   show_logo                 bool, default true
   show_address              bool, default true
   show_contact              bool, default true
@@ -53,6 +54,32 @@ print_setting_taxes         the tax numbers the header shows
 
 - `PdfFont`: Office, Modern, Fancy, Handwritten. `headingFamily()` and `bodyFamily()` return the Latin fonts, `stack()` adds the fallbacks, `fontFaces()` lists the files, and `options()` sends both families for the style cards. The first font setting (Standard, Chinese) became Office.
 - `PdfFontSize`: Small (8 pt), Medium (9 pt), Large (10.5 pt). `points()` returns the body size. Small text is 1 pt less, headings 2 pt more and the title 7 pt more.
+- `PdfTableStyle`: Minimal, Lined, Shaded. `options()` sends the label and a description for the style cards. See [Table style](#table-style).
+
+## Table style
+
+The General tab picks how PDF tables look, under Font size. Each card draws a small sample table.
+
+| Style            | Look                                                      |
+| ---------------- | --------------------------------------------------------- |
+| Minimal, default | A thin line under each row (the look before this setting) |
+| Lined            | A 0.5 pt border around every cell                         |
+| Shaded           | A grey header, and every other row tinted                 |
+
+- `pdf/layout.blade.php` draws the style on the `.rule` rows, so every view that uses the layout with a `PrintProfile` follows it: reports, receipts, invoices, statements, vouchers and the booking summary. The registration card and the sign-in slips stay Minimal.
+- Lined and Shaded give each cell 4 pt of side padding, so text keeps off a border or a tint. The letterhead and the info strip are layout tables and keep their spacing.
+- Shaded tints with `tr.rule:nth-child(even) td` (dompdf supports `:nth-child`). Group heading rows count but do not tint.
+- The total row (`.total`) keeps its 1 pt top rule and bold text in every style, and matches the style:
+
+| Style   | Total row                                        |
+| ------- | ------------------------------------------------ |
+| Minimal | The 1 pt rule on top                             |
+| Lined   | Cell borders like the rows, the 1 pt rule on top |
+| Shaded  | The header grey, the 1 pt rule on top            |
+
+- Rows above the total (tax lines, subtotals) stay plain in every style.
+- Every style prints well in black and white: the tints are light grey.
+- The preview draws the same look with `PrintSampleTable` (`components/pms/settings/`): the Sample report on the General and Header tabs, and the charge lines on the Documents tab.
 
 ## Fonts
 
@@ -204,11 +231,11 @@ The booking summary always has a Rooms section. The folio invoice and the AR inv
 
 **Printing** is its own Settings sidebar item (`settings.manage`, icon `printer`), below Registration card. It has three tabs with their own URLs:
 
-| Tab       | URL                                     | Content                                  |
-| --------- | --------------------------------------- | ---------------------------------------- |
-| General   | `/p/{code}/settings/printing`           | Font style, font size, footer text       |
-| Header    | `/p/{code}/settings/printing/header`    | Header line switches, tax numbers        |
-| Documents | `/p/{code}/settings/printing/documents` | Document switches and payment notes text |
+| Tab       | URL                                     | Content                                         |
+| --------- | --------------------------------------- | ----------------------------------------------- |
+| General   | `/p/{code}/settings/printing`           | Font style, font size, table style, footer text |
+| Header    | `/p/{code}/settings/printing/header`    | Header line switches, tax numbers               |
+| Documents | `/p/{code}/settings/printing/documents` | Document switches and payment notes text        |
 
 Report column layouts are not here. They are a Sheet on each report page. See [Core reports](../22-reports/01-core-reports.md#layout-sheet).
 
@@ -226,6 +253,10 @@ All tabs use the three-column grid of the registration card Layout tab: the form
 │ Font size                                 │                        │
 │ ┌▼A Small ( )┐┌T Medium (•)┐┌▲A Large ( )┐│                        │
 │ │8 pt body   ││9 pt body   ││10.5 pt body││                        │
+│ └────────────┘└────────────┘└────────────┘│                        │
+│ Table style                               │ Guest          Amount  │
+│ ┌ Minimal (•)┐┌ Lined   ( )┐┌ Shaded  ( )┐│ Aisyah…        480.00  │
+│ │ sample rows││ sample grid││ tinted rows││ Total        1,250.00  │
 │ └────────────┘└────────────┘└────────────┘│                        │
 │ Footer text [ Thank you for staying…    ] │ Thank you for staying… │
 │                                           │ [Open sample PDF ↗]    │
@@ -251,7 +282,7 @@ All tabs use the three-column grid of the registration card Layout tab: the form
 
 ## Actions
 
-- `UpdatePrintSettings`: font style, font size and footer text.
+- `UpdatePrintSettings`: font style, font size, table style and footer text.
 - `UpdatePrintHeader`: the five switches and the tax list, synced in one transaction. Refuses a tax of another property.
 - `UpdatePrintDocuments`: the six document switches and `bank_details` (trimmed, empty stored as null). `UpdatePrintDocumentsRequest` validates six booleans and `bank_details` as nullable text of 500 characters at most.
 

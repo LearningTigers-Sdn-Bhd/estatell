@@ -5,6 +5,7 @@ namespace App\Data\Platform;
 use App\Data\Shared\BadgeData;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Guests\CountryOptions;
 use Spatie\LaravelData\Data;
 
 class AdminPropertyData extends Data
@@ -20,6 +21,7 @@ class AdminPropertyData extends Data
         public ?string $stateCode,
         public ?string $postalCode,
         public ?string $countryCode,
+        public ?string $countryName,
         public ?string $contactEmail,
         public ?string $contactPhone,
         public ?string $registrationNumber,
@@ -50,6 +52,7 @@ class AdminPropertyData extends Data
             stateCode: $property->state_code,
             postalCode: $property->postal_code,
             countryCode: $property->country_code,
+            countryName: app(CountryOptions::class)->name($property->country_code),
             contactEmail: $property->contact_email,
             contactPhone: $property->contact_phone,
             registrationNumber: $property->registration_number,

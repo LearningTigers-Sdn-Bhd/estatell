@@ -479,3 +479,21 @@ test('Old system payments and their refunds are left out of the rows, totals, me
         ->where('breakdown.rows', fn ($rows) => collect($rows)->flatten()->doesntContain('Old system')));
 
 });
+
+test('the PDF keeps document numbers and dates on one line and the breakdown on one page', function () {
+    [$user, $property] = reportSetup();
+    paymentsData($property);
+    $captured = new stdClass;
+    View::composer('pdf.report', function ($view) use ($captured): void {
+        $captured->data = $view->getData();
+    });
+
+    $this->actingAs($user)->post("/p/{$property->code}/reports/payments/pdf", ['from' => '2026-10-08', 'to' => '2026-10-10'])->assertOk();
+    $html = view('pdf.report', $captured->data)->render();
+
+    foreach (['Receipt no.', 'Folio no.', 'Invoice no.', 'Posted on'] as $heading) {
+        expect($html)->toContain('<th class="nowrap">'.$heading.'</th>');
+    }
+
+    expect($html)->toMatch('/<div class="keep-together">\s*<div class="gap-24"><strong>/');
+});

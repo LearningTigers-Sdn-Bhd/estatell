@@ -268,7 +268,9 @@ export default function AmenitiesIndex({
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Available</TableHead>
+                                            <TableHead className="w-px">
+                                                Available
+                                            </TableHead>
                                             <TableHead>Amenity</TableHead>
                                             {view === 'list' && (
                                                 <TableHead>Category</TableHead>

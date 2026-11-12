@@ -1,5 +1,15 @@
 import { Form, Link, router } from '@inertiajs/react';
-import { Ellipsis, Pause, Trash2, Download } from 'lucide-react';
+import {
+    ArrowRight,
+    Download,
+    Ellipsis,
+    Map,
+    Pause,
+    Play,
+    Plug,
+    Power,
+    Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
     AlertDialog,
@@ -47,12 +57,21 @@ export function ConnectionActions({
 
     if (connectionId === null) {
         return ota.canConnect ? (
-            <Link
-                href={connect({ property: code, otaChannel: ota.otaChannelId })}
-                className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            >
-                Connect
-            </Link>
+            <div className="flex justify-end">
+                <Link
+                    href={connect({
+                        property: code,
+                        otaChannel: ota.otaChannelId,
+                    })}
+                    className={buttonVariants({
+                        variant: 'outline',
+                        size: 'sm',
+                    })}
+                >
+                    <Plug data-icon="inline-start" />
+                    Connect
+                </Link>
+            </div>
         ) : null;
     }
 
@@ -69,10 +88,21 @@ export function ConnectionActions({
                 href={map(target)}
                 className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
-                {ota.status?.value === 'draft' ? 'Continue' : 'Mapping'}
+                {ota.status?.value === 'draft' ? (
+                    <>
+                        <ArrowRight data-icon="inline-start" />
+                        Continue
+                    </>
+                ) : (
+                    <>
+                        <Map data-icon="inline-start" />
+                        Mapping
+                    </>
+                )}
             </Link>
             {ota.canActivate && (
                 <Button size="sm" onClick={() => setAsking('activate')}>
+                    <Power data-icon="inline-start" />
                     Activate
                 </Button>
             )}
@@ -83,6 +113,7 @@ export function ConnectionActions({
                         send('put', paused(target).url, { paused: false })
                     }
                 >
+                    <Play data-icon="inline-start" />
                     Resume
                 </Button>
             )}
@@ -93,7 +124,7 @@ export function ConnectionActions({
                 >
                     <Ellipsis />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-auto min-w-48">
                     {ota.canPause && (
                         <DropdownMenuItem
                             onClick={() =>

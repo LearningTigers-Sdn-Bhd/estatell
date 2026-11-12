@@ -87,12 +87,16 @@ export default function PayoutsIndex({
     };
 
     const columns = useMemo(
-        () => commissionBookingColumns(services, { withProperty: false }),
-        [services],
+        () =>
+            commissionBookingColumns(services, {
+                withProperty: false,
+                currency: summary.currency,
+            }),
+        [services, summary.currency],
     );
 
     const money = (amount: string) => (
-        <MoneyText amount={amount} currency={summary.currency} />
+        <MoneyText amount={amount} currency={summary.currency} plain />
     );
     const owesEstatell = summary.nextAmount.startsWith('-');
     const hasFilters = Boolean(query.service || query.search);

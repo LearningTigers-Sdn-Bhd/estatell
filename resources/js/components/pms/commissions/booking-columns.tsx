@@ -4,17 +4,26 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 
 type Row = App.Data.Commissions.CommissionBookingRowData;
+type Currency = App.Data.Property.CurrencyData | null;
 
 const column = dataTableColumns<Row>();
 
 /**
  * The columns of the admin Commissions and the property Payouts Bookings tabs: one commission column per service. The
- * property page leaves out the Property column.
+ * property page leaves out the Property column and passes its `currency`: the money headers then carry the currency
+ * (`Value (MYR)`) and the cells show plain amounts. The admin page lists many properties, so each cell keeps its own.
  */
 export function commissionBookingColumns(
     services: EnumOption[],
-    { withProperty }: { withProperty: boolean },
+    {
+        withProperty,
+        currency = null,
+    }: { withProperty: boolean; currency?: Currency },
 ) {
+    const moneyHeader = (label: string) =>
+        currency ? `${label} (${currency.code})` : label;
+    const plain = currency !== null;
+
     return [
         ...(withProperty
             ? [
@@ -60,36 +69,39 @@ export function commissionBookingColumns(
         }),
         column.accessor('value', {
             id: 'value',
-            header: 'Value',
+            header: moneyHeader('Value'),
             enableSorting: false,
             cell: (info) => (
                 <MoneyText
                     amount={info.getValue()}
                     currency={info.row.original.currency}
+                    plain={plain}
                 />
             ),
         }),
         ...services.map((service) =>
             column.accessor((row) => row.commissions[service.value], {
                 id: service.value,
-                header: `${service.label} commission`,
+                header: moneyHeader(`${service.label} commission`),
                 enableSorting: false,
                 cell: (info) => (
                     <MoneyText
                         amount={info.getValue() ?? '0.00'}
                         currency={info.row.original.currency}
+                        plain={plain}
                     />
                 ),
             }),
         ),
         column.accessor('outstanding', {
             id: 'outstanding',
-            header: 'Outstanding to hotel',
+            header: moneyHeader('Outstanding to hotel'),
             enableSorting: false,
             cell: (info) => (
                 <MoneyText
                     amount={info.getValue()}
                     currency={info.row.original.currency}
+                    plain={plain}
                 />
             ),
         }),

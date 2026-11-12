@@ -43,6 +43,7 @@ Let a property track the money Estatell collects for it, the commission per serv
 - **Last payout** is the latest Paid voucher, with its paid date and bank reference.
 - A row opens the reservation when the user has `reservations.view`.
 - **Export CSV:** every filtered row with the page columns, `payouts-{from}-to-{to}.csv`.
+- **Money columns:** the Bookings and Payouts tables, and the CSV, put the property currency in the money headings (`Value (MYR)`) and show plain amounts in the cells and the total row. The summary cards keep the currency on the value. The admin Commissions tables list many properties, so each of their cells keeps its own currency.
 
 ## Payouts tab
 

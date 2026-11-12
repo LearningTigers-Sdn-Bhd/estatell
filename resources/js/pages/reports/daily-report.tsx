@@ -62,8 +62,9 @@ const icons = {
     cashier: Wallet,
 } as const;
 
+/** A table cell amount: plain, because the column header carries the currency. */
 const money = (amount: string, currency: Currency) => (
-    <MoneyText amount={amount} currency={currency} />
+    <MoneyText amount={amount} currency={currency} plain />
 );
 
 const paymentCells: ReportCells<PaymentRow> = {
@@ -284,9 +285,14 @@ function Overview({
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="text-2xl font-semibold tabular-nums">
-                                    {card.isMoney
-                                        ? money(String(card.value), currency)
-                                        : card.value}
+                                    {card.isMoney ? (
+                                        <MoneyText
+                                            amount={String(card.value)}
+                                            currency={currency}
+                                        />
+                                    ) : (
+                                        card.value
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}

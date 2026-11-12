@@ -33,25 +33,25 @@ const cells: ReportCells<Row> = {
     departure: (row) => <DateText date={row.departure} />,
     status: (row) => <StatusBadge status={row.status} />,
     charges: (row, currency) => (
-        <MoneyText amount={row.charges} currency={currency} />
+        <MoneyText amount={row.charges} currency={currency} plain />
     ),
     payments: (row, currency) => (
-        <MoneyText amount={row.payments} currency={currency} />
+        <MoneyText amount={row.payments} currency={currency} plain />
     ),
     balance: (row, currency) => (
-        <MoneyText amount={row.balance} currency={currency} />
+        <MoneyText amount={row.balance} currency={currency} plain />
     ),
 };
 
 const totalCells: ReportTotalCells = {
     charges: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     payments: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     balance: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 
