@@ -1,4 +1,5 @@
 import { useForm } from '@inertiajs/react';
+import { ListChecks, ListX } from 'lucide-react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -162,6 +163,7 @@ function WebhookEndpointForm({
                                     )
                                 }
                             >
+                                <ListChecks data-icon="inline-start" />
                                 Select all
                             </Button>
                             <Button
@@ -170,6 +172,7 @@ function WebhookEndpointForm({
                                 size="sm"
                                 onClick={() => form.setData('events', [])}
                             >
+                                <ListX data-icon="inline-start" />
                                 None
                             </Button>
                         </div>
