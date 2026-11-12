@@ -15,12 +15,16 @@ class RefreshEInvoiceStatusJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 5;
+    /**
+     * Checks over about 25 minutes: long enough for LHDN to validate, and for a document whose send answer was lost
+     * to pass the 10 minutes after which an empty look-up is reported.
+     */
+    public int $tries = 8;
 
     /**
      * @var list<int>
      */
-    public array $backoff = [30, 60, 120, 300];
+    public array $backoff = [30, 60, 120, 180, 300, 300, 600];
 
     public function __construct(public int $submissionId) {}
 
@@ -28,17 +32,14 @@ class RefreshEInvoiceStatusJob implements ShouldQueue
     {
         $submission = EInvoiceSubmission::query()->find($this->submissionId);
 
-        if ($submission === null || empty($submission->uuid)) {
-            return;
-        }
-
-        if ($submission->status !== EInvoiceStatus::Submitted && $submission->status !== EInvoiceStatus::Pending) {
+        if ($submission === null || ($submission->status !== EInvoiceStatus::Submitted && $submission->status !== EInvoiceStatus::Pending)) {
             return;
         }
 
         $refreshed = $refreshEInvoiceStatus($submission);
+        $waiting = $refreshed->status === EInvoiceStatus::Submitted || $refreshed->status === EInvoiceStatus::Pending;
 
-        if ($refreshed->status === EInvoiceStatus::Submitted && $this->attempts() < $this->tries) {
+        if ($waiting && $this->attempts() < $this->tries) {
             $this->release($this->backoff[$this->attempts() - 1] ?? 60);
         }
     }

@@ -24,12 +24,50 @@ class SubmissionToast
         return match ($submission->status) {
             EInvoiceStatus::Valid => ['type' => 'success', 'message' => __('LHDN accepted :document.', ['document' => $document])],
             EInvoiceStatus::Invalid => $this->rejected($submission, $document),
+            EInvoiceStatus::Pending => $submission->submitted_at !== null && empty($submission->uuid) ? [
+                'type' => 'warning',
+                'message' => __('We lost the connection while sending :document.', ['document' => $document]),
+                'description' => __('LHDN may have it. Do not send it again: we are checking with LHDN, and the status updates by itself within 15 minutes.'),
+            ] : [
+                'type' => 'info',
+                'message' => __(':Document is ready but was not sent.', ['document' => $document]),
+                'description' => __('Press Check status on the e-invoice in a few minutes.'),
+            ],
             default => [
                 'type' => 'success',
                 'message' => __(':Document sent to LHDN.', ['document' => $document]),
                 'description' => __('LHDN is still checking it. The status updates by itself in a few minutes.'),
             ],
         };
+    }
+
+    /**
+     * The toast after a monthly summary run: its one part as `for` reads it, or a count of the parts, with what LHDN
+     * rejected or what is still waiting for LHDN, and how many stays over RM10,000 were left out.
+     *
+     * @param  list<EInvoiceSubmission>  $parts
+     * @return array{type: string, message: string, description?: string}
+     */
+    public function forMonthlySummary(array $parts, int $leftOut): array
+    {
+        $leftOutNote = $leftOut === 0 ? null : trans_choice(':count stay over RM10,000 was left out. It needs its own e-invoice.|:count stays over RM10,000 were left out. Each needs its own e-invoice.', $leftOut, ['count' => $leftOut]);
+        $count = count($parts);
+        $rejected = count(array_filter($parts, fn (EInvoiceSubmission $part): bool => $part->status === EInvoiceStatus::Invalid));
+        $waiting = count(array_filter($parts, fn (EInvoiceSubmission $part): bool => SubmissionStatusBadge::isUnconfirmed($part)));
+
+        $toast = match (true) {
+            $count === 0 => ['type' => 'info', 'message' => __('No stays to send for that month. They are filed already, or none closed.')],
+            $count === 1 => $this->for($parts[0]),
+            $rejected > 0 => ['type' => 'error', 'message' => __('LHDN rejected :rejected of the :count parts of the monthly summary.', ['rejected' => $rejected, 'count' => $count]), 'description' => __('Open them in the list to see why.')],
+            $waiting > 0 => ['type' => 'warning', 'message' => __('We lost the connection while sending :waiting of the :count parts of the monthly summary.', ['waiting' => $waiting, 'count' => $count]), 'description' => __('LHDN may have them. Do not send them again: we are checking with LHDN, and the status updates by itself within 15 minutes.')],
+            default => ['type' => 'success', 'message' => __('Monthly summary sent to LHDN in :count parts.', ['count' => $count])],
+        };
+
+        if ($leftOutNote !== null) {
+            $toast['description'] = trim(($toast['description'] ?? '').' '.$leftOutNote);
+        }
+
+        return $toast;
     }
 
     /**

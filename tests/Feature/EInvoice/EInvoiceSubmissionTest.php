@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Support/EInvoiceSetup.php';
+
 use App\Actions\EInvoice\ConsolidateMonthlyEInvoices;
 use App\Actions\EInvoice\SubmitFolioEInvoice;
 use App\Actions\Folio\FolioStatusResult;
@@ -16,23 +18,20 @@ use App\Enums\TransactionKind;
 use App\Features\EInvoicing;
 use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\ArInvoice;
-use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
-use App\Models\Property;
-use App\Models\PropertyEInvoiceSetting;
 use App\Models\PropertyGuestEmail;
-use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\TransactionCode;
-use App\Models\User;
 use App\Notifications\EInvoiceForGuest;
+use App\Services\EInvoice\LhdnRejectionReasons;
 use App\Services\EInvoice\MockMyInvoisClient;
 use App\Services\EInvoice\MyInvoisApiException;
+use App\Services\EInvoice\SubmissionRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -42,99 +41,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
-/**
- * Setup a property with live status, open business date, and active mock E-Invoicing.
- *
- * @return array{
- *     owner: User,
- *     property: Property,
- *     setting: PropertyEInvoiceSetting,
- *     reservation: Reservation,
- *     folio: Folio
- * }
- */
-function submissionSetup(): array
-{
-    $owner = User::factory()->owner()->create();
-    $property = $owner->property;
-    $property->forceFill(['status' => 'live'])->save();
-    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
-    BusinessDate::factory()->create(['property_id' => $property->id]);
-
-    Feature::for($property)->activate(EInvoicing::class);
-
-    $setting = PropertyEInvoiceSetting::factory()->for($property)->create([
-        'enabled' => true,
-        'api_environment' => EInvoiceEnvironment::Mock,
-        'client_id' => 'mock-client-id',
-        'client_secret' => 'mock-client-secret',
-        'supplier_name' => 'Mock Grand Hotel Sdn Bhd',
-        'supplier_tin' => 'C1234567890',
-        'supplier_sst_registration' => 'W10-1808-12345678',
-        'supplier_msic_code' => '55101',
-        'supplier_business_description' => 'Hotel operations',
-        'supplier_email' => 'accounts@hotel.my',
-        'supplier_city' => 'Kuala Lumpur',
-    ]);
-
-    $guest = Guest::factory()->for($property)->create([
-        'full_name' => 'Ahmad Razak',
-        'tin' => 'IG1234567890',
-        'city' => 'Kuala Lumpur',
-        'email' => 'ahmad@example.my',
-        'phone' => '+60123456789',
-        'state_code' => '14',
-    ]);
-
-    GuestIdentityDocument::factory()->for($guest)->create(['type' => IdentityDocumentType::MyKad, 'number' => '900101125555']);
-
-    $reservation = Reservation::factory()->for($property)->create([
-        'booker_guest_id' => $guest->id,
-    ]);
-
-    $folio = Folio::factory()->for($property)->closed()->create([
-        'reservation_id' => $reservation->id,
-        'payer_guest_id' => $guest->id,
-        'type' => FolioType::Master,
-    ]);
-
-    $chargeCode = TransactionCode::factory()->create([
-        'property_id' => $property->id,
-        'category' => 'room',
-    ]);
-
-    FolioLine::factory()->for($folio)->create([
-        'transaction_code_id' => $chargeCode->id,
-        'kind' => TransactionKind::Charge,
-        'amount' => '350.00',
-        'unit_amount' => '350.00',
-        'description' => 'Deluxe King Room',
-    ]);
-
-    return [
-        'owner' => $owner,
-        'property' => $property,
-        'setting' => $setting,
-        'reservation' => $reservation,
-        'folio' => $folio,
-    ];
-}
-
 afterEach(fn () => MockMyInvoisClient::resetOverrides());
-
-/**
- * Submit the setup folio's e-invoice and return the stored submission.
- *
- * @param  array{owner: User, property: Property, reservation: Reservation, folio: Folio}  $setup
- */
-function submitSetupFolio(array $setup): EInvoiceSubmission
-{
-    test()->actingAs($setup['owner'])
-        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
-        ->assertInertiaFlash('toast.type', 'success');
-
-    return EInvoiceSubmission::where('folio_id', $setup['folio']->id)->firstOrFail();
-}
 
 it('submits a closed folio and transitions to Valid status via Mock client', function () {
     $setup = submissionSetup();
@@ -612,7 +519,11 @@ it('lists the reasons from LHDN validation steps on a rejected e-invoice', funct
         ]]],
     ]);
 
-    expect($submission->errorMessages())->toBe(['NRIC/ARMY mismatch or not exist in HITS']);
+    expect(app(LhdnRejectionReasons::class)->for($submission))->toBe([[
+        'message' => "The guest's IC number does not match their tax number at LHDN.",
+        'fix' => 'Check the IC and tax number with the guest, then submit again.',
+        'where' => 'buyer',
+    ]]);
 });
 
 it('shows a hotel manager the e-invoice in plain terms, without the LHDN payload', function () {
@@ -760,7 +671,7 @@ it('emails the guest their e-invoice in the property wording, with the MyInvois 
         return $notifiable->routes['mail'] === 'ahmad@example.my'
             && $mail->subject === "Receipt {$submission->internal_id} from {$setup['property']->name}"
             && $mail->paragraphs === ['Hi Ahmad Razak,', 'Your e-invoice is MYR 350.00.']
-            && $mail->viewUrl === $submission->fresh()->validationUrl();
+            && $mail->viewUrl === app(SubmissionRules::class)->validationUrl($submission->fresh());
     });
     expect(Activity::query()->where('event', 'einvoice.emailed')->count())->toBe(1);
 });
@@ -1078,4 +989,18 @@ it('does not send a City ledger invoice whose stay is already in a monthly summa
 
     $this->post("/p/{$code}/finance/city-ledger/invoices/{$invoice->id}/e-invoice")
         ->assertInertiaFlash('toast.message', 'This stay is already in monthly summary CONS-9, so LHDN has it. If the company needs its own e-invoice, cancel the summary within 72 hours and send both again.');
+});
+
+it("answers 404 to another property's e-invoice on every route", function () {
+    $setup = submissionSetup();
+    $other = submissionSetup();
+    $foreign = submitSetupFolio($other);
+    $base = "/p/{$setup['property']->code}/finance/e-invoices/{$foreign->id}";
+
+    $this->actingAs($setup['owner'])->get($base)->assertNotFound();
+    foreach (['refresh', 'email', 'cancel', 'credit-note', 'tax-number', 'resubmit'] as $action) {
+        $this->post("{$base}/{$action}")->assertNotFound();
+    }
+
+    expect($foreign->fresh()->status)->toBe(EInvoiceStatus::Valid);
 });

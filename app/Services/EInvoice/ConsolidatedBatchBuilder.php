@@ -2,16 +2,19 @@
 
 namespace App\Services\EInvoice;
 
-use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\Property;
-use App\Models\PropertyEInvoiceSetting;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RuntimeException;
 
+/**
+ * Builds one part of a monthly summary (`01` to LHDN's general public buyer): one line per stay with its charges
+ * before tax and its taxes by LHDN tax type, and the totals by tax type. Every amount is summed exactly
+ * (`ReportableLines`) and becomes a JSON number only at the end (`LhdnAmount`). It reads only.
+ */
 class ConsolidatedBatchBuilder
 {
     public const string INVOICE_TYPE_CODE = '01';
@@ -30,60 +33,43 @@ class ConsolidatedBatchBuilder
 
     public const int MAX_FOLIOS_PER_DOCUMENT = 100;
 
-    public const float MAX_INDIVIDUAL_STAY_AMOUNT = 10000.0;
+    /** The description of each stay's line; `SubmissionView` reads the folio number back from it. */
+    public const string LINE_DESCRIPTION = 'Consolidated stay receipt';
 
-    private PropertyEInvoiceSetting $setting;
-
-    /** @var list<array{folio: Folio, net: float, tax: float, taxes: array<string, float>}>|null */
-    private ?array $stays = null;
-
-    private DocumentSigner $documentSigner;
+    public function __construct(
+        private ReportableLines $reportableLines,
+        private SupplierDetails $supplierDetails,
+        private DocumentEncoder $documentEncoder,
+        private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
+    ) {}
 
     /**
-     * @param  Collection<int, Folio>  $folios
+     * Whether a stay belongs in a monthly summary: it cost something, and not more than RM10,000.
      */
-    public function __construct(
-        private Property $property,
-        private Collection $folios,
-        private CarbonImmutable $month
-    ) {
-        if ($this->property->eInvoiceSetting === null) {
+    public function fitsInSummary(Folio $folio): bool
+    {
+        return $this->reportableLines->gross($folio)->isPositive() && ! $this->staysNeedingOwnEInvoice->isOverLimit($folio);
+    }
+
+    /**
+     * @param  Collection<int, Folio>  $folios  At most `MAX_FOLIOS_PER_DOCUMENT`; a stay that does not fit is left out.
+     * @return array{format: string, document: string, documentHash: string, codeNumber: string, payload: array<string, mixed>, lines: array<int, int>}
+     *                                                                                                                                                  `lines` is the line number of each stay in the document, by folio id.
+     *
+     * @throws MissingEInvoiceDetails when the hotel lacks a detail LHDN needs.
+     */
+    public function build(Property $property, Collection $folios, CarbonImmutable $month): array
+    {
+        if ($property->eInvoiceSetting === null) {
             throw new RuntimeException('Property e-invoice settings are not configured.');
         }
 
-        $this->setting = $this->property->eInvoiceSetting;
-        $this->documentSigner = new DocumentSigner($this->setting);
-    }
+        MissingEInvoiceDetails::hotel($property);
 
-    /**
-     * @return array{
-     *     format: string,
-     *     document: string,
-     *     documentHash: string,
-     *     codeNumber: string,
-     *     payload: array<string, mixed>
-     * }
-     */
-    public function build(): array
-    {
-        $internalId = 'CONS-'.$this->property->id.'-'.$this->month->format('Ym').'-'.strtoupper(Str::random(6));
-        $payload = $this->buildPayload($internalId);
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $signer = new DocumentSigner($property->eInvoiceSetting);
+        $internalId = 'CONS-'.$property->id.'-'.$month->format('Ym').'-'.strtoupper(Str::random(6));
+        $stays = $this->stays($folios);
 
-        return [
-            'format' => 'JSON',
-            'document' => base64_encode($payloadJson),
-            'documentHash' => hash('sha256', $payloadJson),
-            'codeNumber' => $internalId,
-            'payload' => $payload,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function buildPayload(string $internalId): array
-    {
         // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
         $issuedAt = now('UTC');
 
@@ -91,34 +77,31 @@ class ConsolidatedBatchBuilder
             'ID' => [['_' => $internalId]],
             'IssueDate' => [['_' => $issuedAt->toDateString()]],
             'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
-            'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $this->documentSigner->documentVersion()]],
+            'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $signer->documentVersion()]],
             'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'InvoicePeriod' => [
                 [
-                    'StartDate' => [['_' => $this->month->startOfMonth()->toDateString()]],
-                    'EndDate' => [['_' => $this->month->endOfMonth()->toDateString()]],
+                    'StartDate' => [['_' => $month->startOfMonth()->toDateString()]],
+                    'EndDate' => [['_' => $month->endOfMonth()->toDateString()]],
                     'Description' => [['_' => 'Monthly Consolidated Stays']],
                 ],
             ],
-            'AccountingSupplierParty' => [['Party' => [$this->supplierParty()]]],
+            'AccountingSupplierParty' => [['Party' => [$this->supplierDetails->party($property)]]],
             'AccountingCustomerParty' => [['Party' => [$this->consolidatedBuyerParty()]]],
-            'InvoiceLine' => $this->invoiceLines(),
-            'TaxTotal' => [$this->taxTotalBlock()],
-            'LegalMonetaryTotal' => [$this->monetaryTotal()],
+            'InvoiceLine' => $this->invoiceLines($stays),
+            'TaxTotal' => [$this->taxTotalBlock($stays)],
+            'LegalMonetaryTotal' => [$this->monetaryTotal($stays)],
         ];
 
-        return $this->documentSigner->apply(array_merge(FolioDocumentBuilder::UBL_NAMESPACES, ['Invoice' => [$body]]));
-    }
+        $payload = $signer->apply(array_merge(FolioDocumentBuilder::UBL_NAMESPACES, ['Invoice' => [$body]]));
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function supplierParty(): array
-    {
-        MissingEInvoiceDetails::hotel($this->property);
+        $lines = [];
+        foreach ($stays as $index => $stay) {
+            $lines[$stay['folio']->id] = $index + 1;
+        }
 
-        return app(SupplierDetails::class)->party($this->property);
+        return [...$this->documentEncoder->encode($payload, $internalId), 'lines' => $lines];
     }
 
     /**
@@ -158,20 +141,21 @@ class ConsolidatedBatchBuilder
      * One line per stay: its charges before tax, and the taxes posted on it by LHDN tax type (SST is Service Tax
      * `02`). A stay without tax is exempt (`E`). The stay's own total, tax included, is what the guest paid.
      *
+     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>  $stays
      * @return list<array<string, mixed>>
      */
-    private function invoiceLines(): array
+    private function invoiceLines(array $stays): array
     {
         $lines = [];
-        $idx = 1;
 
-        foreach ($this->stays() as $stay) {
+        foreach ($stays as $index => $stay) {
             $folioNumber = $stay['folio']->invoice_number ?: $stay['folio']->number;
+            $net = LhdnAmount::of($stay['net']);
 
             $lines[] = [
-                'ID' => [['_' => (string) $idx++]],
+                'ID' => [['_' => (string) ($index + 1)]],
                 'InvoicedQuantity' => [['_' => 1, 'unitCode' => self::UNIT_CODE_EACH]],
-                'LineExtensionAmount' => [['_' => $stay['net'], 'currencyID' => self::DEFAULT_CURRENCY]],
+                'LineExtensionAmount' => [['_' => $net, 'currencyID' => self::DEFAULT_CURRENCY]],
                 'AllowanceCharge' => [
                     [
                         'ChargeIndicator' => [['_' => false]],
@@ -180,7 +164,7 @@ class ConsolidatedBatchBuilder
                 ],
                 'TaxTotal' => [
                     [
-                        'TaxAmount' => [['_' => $stay['tax'], 'currencyID' => self::DEFAULT_CURRENCY]],
+                        'TaxAmount' => [['_' => LhdnAmount::of($stay['tax']), 'currencyID' => self::DEFAULT_CURRENCY]],
                         'TaxSubtotal' => $this->taxSubtotals($stay['taxes'], $stay['net']),
                     ],
                 ],
@@ -189,12 +173,12 @@ class ConsolidatedBatchBuilder
                         'CommodityClassification' => [
                             ['ItemClassificationCode' => [['_' => self::CONSOLIDATED_CLASS_CODE, 'listID' => 'CLASS']]],
                         ],
-                        'Description' => [['_' => "Consolidated stay receipt {$folioNumber}"]],
+                        'Description' => [['_' => self::LINE_DESCRIPTION." {$folioNumber}"]],
                         'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
                     ],
                 ],
-                'Price' => [['PriceAmount' => [['_' => $stay['net'], 'currencyID' => self::DEFAULT_CURRENCY]]]],
-                'ItemPriceExtension' => [['Amount' => [['_' => $stay['net'], 'currencyID' => self::DEFAULT_CURRENCY]]]],
+                'Price' => [['PriceAmount' => [['_' => $net, 'currencyID' => self::DEFAULT_CURRENCY]]]],
+                'ItemPriceExtension' => [['Amount' => [['_' => $net, 'currencyID' => self::DEFAULT_CURRENCY]]]],
             ];
         }
 
@@ -205,51 +189,52 @@ class ConsolidatedBatchBuilder
      * The document's tax: each tax type's total over the stays that carry it, with those stays' charges as its
      * taxable amount, plus an exempt subtotal for the stays without tax.
      *
+     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>  $stays
      * @return array<string, mixed>
      */
-    private function taxTotalBlock(): array
+    private function taxTotalBlock(array $stays): array
     {
         $byType = [];
-        $untaxed = 0.0;
-        $total = 0.0;
+        $untaxed = BigDecimal::zero();
+        $total = BigDecimal::zero();
 
-        foreach ($this->stays() as $stay) {
-            $total += $stay['tax'];
+        foreach ($stays as $stay) {
+            $total = $total->plus($stay['tax']);
             if ($stay['taxes'] === []) {
-                $untaxed += $stay['net'];
+                $untaxed = $untaxed->plus($stay['net']);
 
                 continue;
             }
 
             foreach ($stay['taxes'] as $type => $amount) {
-                $byType[$type] ??= ['taxable' => 0.0, 'tax' => 0.0];
-                $byType[$type]['taxable'] += $stay['net'];
-                $byType[$type]['tax'] += $amount;
+                $byType[$type] ??= ['taxable' => BigDecimal::zero(), 'tax' => BigDecimal::zero()];
+                $byType[$type]['taxable'] = $byType[$type]['taxable']->plus($stay['net']);
+                $byType[$type]['tax'] = $byType[$type]['tax']->plus($amount);
             }
         }
 
         $subtotals = [];
         foreach ($byType as $type => $sums) {
-            $subtotals[] = $this->taxSubtotal((string) $type, round($sums['taxable'], 2), round($sums['tax'], 2));
+            $subtotals[] = $this->taxSubtotal((string) $type, $sums['taxable'], $sums['tax']);
         }
-        if ($untaxed > 0.0 || $subtotals === []) {
-            $subtotals[] = $this->taxSubtotal('E', round($untaxed, 2), 0.0);
+        if ($untaxed->isPositive() || $subtotals === []) {
+            $subtotals[] = $this->taxSubtotal('E', $untaxed, BigDecimal::zero());
         }
 
         return [
-            'TaxAmount' => [['_' => round($total, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxAmount' => [['_' => LhdnAmount::of($total), 'currencyID' => self::DEFAULT_CURRENCY]],
             'TaxSubtotal' => $subtotals,
         ];
     }
 
     /**
-     * @param  array<string, float>  $taxes  Tax amount by LHDN tax type.
+     * @param  array<string, BigDecimal>  $taxes  Tax amount by LHDN tax type.
      * @return list<array<string, mixed>>
      */
-    private function taxSubtotals(array $taxes, float $net): array
+    private function taxSubtotals(array $taxes, BigDecimal $net): array
     {
         if ($taxes === []) {
-            return [$this->taxSubtotal('E', $net, 0.0)];
+            return [$this->taxSubtotal('E', $net, BigDecimal::zero())];
         }
 
         $subtotals = [];
@@ -263,11 +248,11 @@ class ConsolidatedBatchBuilder
     /**
      * @return array<string, mixed>
      */
-    private function taxSubtotal(string $type, float $taxable, float $tax): array
+    private function taxSubtotal(string $type, BigDecimal $taxable, BigDecimal $tax): array
     {
         return [
-            'TaxableAmount' => [['_' => $taxable, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxAmount' => [['_' => $tax, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxableAmount' => [['_' => LhdnAmount::of($taxable), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxAmount' => [['_' => LhdnAmount::of($tax), 'currencyID' => self::DEFAULT_CURRENCY]],
             'TaxCategory' => [
                 [
                     'ID' => [['_' => $type]],
@@ -279,103 +264,46 @@ class ConsolidatedBatchBuilder
     }
 
     /**
+     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>  $stays
      * @return array<string, mixed>
      */
-    private function monetaryTotal(): array
+    private function monetaryTotal(array $stays): array
     {
-        $net = 0.0;
-        $gross = 0.0;
-        foreach ($this->stays() as $stay) {
-            $net += $stay['net'];
-            $gross += $stay['net'] + $stay['tax'];
+        $net = BigDecimal::zero();
+        $gross = BigDecimal::zero();
+        foreach ($stays as $stay) {
+            $net = $net->plus($stay['net']);
+            $gross = $gross->plus($stay['net'])->plus($stay['tax']);
         }
-        $net = round($net, 2);
-        $gross = round($gross, 2);
 
         return [
-            'LineExtensionAmount' => [['_' => $net, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxExclusiveAmount' => [['_' => $net, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxInclusiveAmount' => [['_' => $gross, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'LineExtensionAmount' => [['_' => LhdnAmount::of($net), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxExclusiveAmount' => [['_' => LhdnAmount::of($net), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxInclusiveAmount' => [['_' => LhdnAmount::of($gross), 'currencyID' => self::DEFAULT_CURRENCY]],
             'AllowanceTotalAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
             'ChargeTotalAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
             'PayableRoundingAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'PayableAmount' => [['_' => $gross, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'PayableAmount' => [['_' => LhdnAmount::of($gross), 'currencyID' => self::DEFAULT_CURRENCY]],
         ];
     }
 
     /**
-     * The stays that go in the summary (over RM0 and at most RM10,000), each split into charges and taxes.
+     * The stays that go in the summary, each split into charges and taxes.
      *
-     * @return list<array{folio: Folio, net: float, tax: float, taxes: array<string, float>}>
+     * @param  Collection<int, Folio>  $folios
+     * @return list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>
      */
-    private function stays(): array
+    private function stays(Collection $folios): array
     {
-        if ($this->stays !== null) {
-            return $this->stays;
-        }
-
         $taxTypes = new LhdnTaxType;
-        $this->stays = [];
+        $stays = [];
 
-        foreach ($this->folios as $folio) {
-            $gross = self::calculateFolioGrossAmount($folio);
-            if ($gross <= 0.0 || $gross > self::MAX_INDIVIDUAL_STAY_AMOUNT) {
-                continue;
-            }
-
-            $split = self::split($folio, $taxTypes);
-            $this->stays[] = ['folio' => $folio, ...$split];
-        }
-
-        return $this->stays;
-    }
-
-    /**
-     * A stay's charges before tax and its taxes by LHDN tax type, as the summary reports them. Expects `lines.reversal`.
-     *
-     * @return array{net: float, tax: float, taxes: array<string, float>}
-     */
-    public static function split(Folio $folio, ?LhdnTaxType $taxTypes = null): array
-    {
-        $taxTypes ??= new LhdnTaxType;
-        $net = BigDecimal::zero();
-        $tax = BigDecimal::zero();
-        $taxes = [];
-
-        foreach ($folio->lines as $line) {
-            if ($line->kind === TransactionKind::Payment || $line->reversal_of_id !== null || $line->reversal !== null) {
-                continue;
-            }
-
-            if ($line->kind === TransactionKind::Tax) {
-                $type = $taxTypes->for($line);
-                $taxes[$type] = ($taxes[$type] ?? 0.0) + (float) $line->amount;
-                $tax = $tax->plus($line->amount);
-            } else {
-                $net = $net->plus($line->amount);
+        foreach ($folios as $folio) {
+            if ($this->fitsInSummary($folio)) {
+                $stays[] = ['folio' => $folio, ...$this->reportableLines->split($folio, $taxTypes)];
             }
         }
 
-        return [
-            'net' => (float) (string) $net->toScale(2),
-            'tax' => (float) (string) $tax->toScale(2),
-            'taxes' => array_map(fn (float $amount): float => round($amount, 2), $taxes),
-        ];
-    }
-
-    /**
-     * What the stay cost the guest: charges, adjustments and taxes that were not reversed. Payments are left out,
-     * because a closed folio's payments always bring its balance to 0.
-     */
-    public static function calculateFolioGrossAmount(Folio $folio): float
-    {
-        $sum = BigDecimal::zero();
-        foreach ($folio->lines as $line) {
-            if ($line->kind !== TransactionKind::Payment && $line->reversal_of_id === null && $line->reversal === null) {
-                $sum = $sum->plus($line->amount);
-            }
-        }
-
-        return (float) (string) $sum->toScale(2);
+        return $stays;
     }
 }

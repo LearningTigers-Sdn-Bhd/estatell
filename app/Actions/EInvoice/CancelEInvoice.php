@@ -7,12 +7,14 @@ use App\Models\EInvoiceSubmission;
 use App\Models\User;
 use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\MyInvoisClientFactory;
+use App\Services\EInvoice\SubmissionRules;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CancelEInvoice
 {
+    public function __construct(private LockEInvoiceRecords $lockEInvoiceRecords, private SubmissionRules $submissionRules) {}
+
     public function __invoke(EInvoiceSubmission $submission, string $reason, User $actor): EInvoiceResult
     {
         $property = $submission->property;
@@ -26,45 +28,50 @@ class CancelEInvoice
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REASON_REQUIRED, __('Enter a reason. LHDN keeps it with the e-invoice.'));
         }
 
-        if (! $submission->isValid() || empty($submission->uuid)) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_NOT_CANCELLABLE, __('Only an e-invoice LHDN accepted can be cancelled.'));
-        }
+        // Under the e-invoice lock, so a credit note cannot be saved on it while it is being cancelled. It is the one
+        // call to LHDN made under the lock: cancelling is rare and takes one call.
+        return ($this->lockEInvoiceRecords)($property, function () use ($submission, $reason, $actor, $setting): EInvoiceResult {
+            $submission->refresh();
 
-        if ($submission->cancellationDeadline() !== null && CarbonImmutable::now()->isAfter($submission->cancellationDeadline())) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_WINDOW_CLOSED, __('The 72 hours to cancel have passed. Issue a credit note instead.'));
-        }
+            if ($submission->status !== EInvoiceStatus::Valid || empty($submission->uuid)) {
+                return EInvoiceResult::refused(EInvoiceResult::REFUSAL_NOT_CANCELLABLE, __('Only an e-invoice LHDN accepted can be cancelled.'));
+            }
 
-        if ($submission->adjustments()->where('status', '!=', EInvoiceStatus::Cancelled)->exists()) {
-            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REFERENCED_BY_ADJUSTMENT, __('A credit note corrects this e-invoice, so it cannot be cancelled. Cancel the credit note first.'));
-        }
+            $deadline = $this->submissionRules->cancellationDeadline($submission);
+            if ($deadline !== null && CarbonImmutable::now()->isAfter($deadline)) {
+                return EInvoiceResult::refused(EInvoiceResult::REFUSAL_WINDOW_CLOSED, __('The 72 hours to cancel have passed. Issue a credit note instead.'));
+            }
 
-        return DB::transaction(function () use ($submission, $reason, $actor, $setting): EInvoiceResult {
+            // A rejected or cancelled note is not on LHDN, so it does not stop the cancel.
+            if ($submission->adjustments()->active()->exists()) {
+                return EInvoiceResult::refused(EInvoiceResult::REFUSAL_REFERENCED_BY_ADJUSTMENT, __('A credit note corrects this e-invoice, so it cannot be cancelled. Cancel the credit note first.'));
+            }
+
             try {
-                $client = MyInvoisClientFactory::forSetting($setting);
-                $client->cancelDocument($submission->uuid, $reason);
-
-                $submission->status = EInvoiceStatus::Cancelled;
-                $submission->cancelled_at = CarbonImmutable::now();
-                $submission->cancel_reason = $reason;
-                $submission->save();
-
-                activity()
-                    ->performedOn($submission)
-                    ->causedBy($actor)
-                    ->event('einvoice.cancelled')
-                    ->withProperties([
-                        'submission_id' => $submission->id,
-                        'uuid' => $submission->uuid,
-                        'reason' => $reason,
-                    ])
-                    ->log('Cancelled e-invoice on LHDN MyInvois');
-
-                return EInvoiceResult::done($submission);
+                MyInvoisClientFactory::forSetting($setting)->cancelDocument($submission->uuid, $reason);
             } catch (MyInvoisApiException $e) {
                 Log::error("Failed to cancel e-invoice {$submission->uuid}: {$e->getMessage()}");
 
                 return EInvoiceResult::refused('api_error', "MyInvois cancellation failed: {$e->getMessage()}");
             }
+
+            $submission->status = EInvoiceStatus::Cancelled;
+            $submission->cancelled_at = CarbonImmutable::now();
+            $submission->cancel_reason = $reason;
+            $submission->save();
+
+            activity()
+                ->performedOn($submission)
+                ->causedBy($actor)
+                ->event('einvoice.cancelled')
+                ->withProperties([
+                    'submission_id' => $submission->id,
+                    'uuid' => $submission->uuid,
+                    'reason' => $reason,
+                ])
+                ->log('Cancelled e-invoice on LHDN MyInvois');
+
+            return EInvoiceResult::done($submission);
         });
     }
 }

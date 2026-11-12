@@ -2,12 +2,8 @@
 
 namespace App\Services\EInvoice;
 
-use App\Enums\ArInvoiceStatus;
-use App\Enums\EInvoiceDocumentType;
-use App\Enums\EInvoiceStatus;
 use App\Enums\FolioStatus;
-use App\Models\ArInvoice;
-use App\Models\EInvoiceSubmission;
+use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\Property;
 use Illuminate\Support\Facades\DB;
@@ -20,14 +16,17 @@ use Illuminate\Support\Facades\DB;
  */
 class StaysNeedingOwnEInvoice
 {
-    public const float LIMIT = ConsolidatedBatchBuilder::MAX_INDIVIDUAL_STAY_AMOUNT;
+    /** LHDN's limit for one sale in a monthly summary, from 1 January 2026. */
+    public const string LIMIT = '10000.00';
+
+    public function __construct(private ReportableLines $reportableLines, private FolioEInvoiceLock $folioEInvoiceLock) {}
 
     /**
-     * Whether this folio's total is over the limit, so it cannot go in a monthly summary. Expects `lines.reversal`.
+     * Whether this folio's total is over the limit, so it cannot go in a monthly summary.
      */
-    public static function isOverLimit(Folio $folio): bool
+    public function isOverLimit(Folio $folio): bool
     {
-        return ConsolidatedBatchBuilder::calculateFolioGrossAmount($folio) > self::LIMIT;
+        return $this->reportableLines->gross($folio)->isGreaterThan(self::LIMIT);
     }
 
     /**
@@ -40,33 +39,31 @@ class StaysNeedingOwnEInvoice
             return [];
         }
 
-        $withEInvoice = EInvoiceSubmission::query()
-            ->where('property_id', $property->id)
-            ->where('document_type', EInvoiceDocumentType::Invoice)
-            ->whereNotNull('folio_id')
-            ->active()
-            ->select('folio_id');
-        $inSummary = DB::table('e_invoice_submission_folios')
-            ->join('e_invoice_submissions', 'e_invoice_submissions.id', '=', 'e_invoice_submission_folios.submission_id')
-            ->where('e_invoice_submissions.property_id', $property->id)
-            ->whereNotIn('e_invoice_submissions.status', [EInvoiceStatus::Cancelled->value, EInvoiceStatus::Invalid->value])
-            ->select('e_invoice_submission_folios.folio_id');
-        $billed = ArInvoice::query()->whereNotNull('folio_id')->where('status', '<>', ArInvoiceStatus::Void)->select('folio_id');
+        // Totals in the database first, with the rule of `ReportableLines::gross` (no payments, no reversal lines, no
+        // line a reversal cancels), so only stays over the limit are loaded.
+        $overLimit = DB::table('folio_lines as line')
+            ->join('folios', 'folios.id', '=', 'line.folio_id')
+            ->where('folios.property_id', $property->id)
+            ->where('folios.status', FolioStatus::Closed->value)
+            ->where('line.kind', '<>', TransactionKind::Payment->value)
+            ->whereNull('line.reversal_of_id')
+            ->whereNotExists(fn ($reversal) => $reversal->from('folio_lines as reversal')->whereColumn('reversal.reversal_of_id', 'line.id'))
+            ->groupBy('line.folio_id')
+            ->havingRaw('sum(line.amount) > ?', [self::LIMIT])
+            ->select('line.folio_id');
 
-        $folios = Folio::query()
+        $folios = $this->folioEInvoiceLock->whereStillToReport(Folio::query(), $property->id)
             ->where('property_id', $property->id)
             ->where('status', FolioStatus::Closed)
             ->where('closed_at', '>=', $setting->created_at)
-            ->whereNotIn('id', $withEInvoice)
-            ->whereNotIn('id', $inSummary)
-            ->whereNotIn('id', $billed)
-            ->with(['lines.reversal', 'reservation:id,reference', 'payerGuest:id,full_name'])
+            ->whereIn('id', $overLimit)
+            ->with(['lines.transactionCode', 'reservation:id,reference', 'payerGuest:id,full_name'])
             ->orderBy('closed_at')
             ->get();
 
         $stays = [];
         foreach ($folios as $folio) {
-            if (! self::isOverLimit($folio)) {
+            if (! $this->isOverLimit($folio)) {
                 continue;
             }
 
@@ -75,7 +72,7 @@ class StaysNeedingOwnEInvoice
                 'reservation_id' => $folio->reservation_id,
                 'reference' => $folio->reservation?->reference,
                 'guest' => $folio->payerGuest?->full_name,
-                'amount' => number_format(ConsolidatedBatchBuilder::calculateFolioGrossAmount($folio), 2, '.', ''),
+                'amount' => (string) $this->reportableLines->gross($folio),
                 'closed_on' => $folio->closed_at?->toDateString(),
             ];
         }

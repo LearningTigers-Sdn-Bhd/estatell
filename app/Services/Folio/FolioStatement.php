@@ -39,10 +39,11 @@ use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\EInvoice\BuyerResolver;
-use App\Services\EInvoice\ConsolidatedBatchBuilder;
 use App\Services\EInvoice\FolioEInvoiceLock;
 use App\Services\EInvoice\LhdnRejectionReasons;
+use App\Services\EInvoice\ReportableLines;
 use App\Services\EInvoice\StaysNeedingOwnEInvoice;
+use App\Services\EInvoice\SubmissionStatusBadge;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -74,6 +75,9 @@ class FolioStatement
         private OnlineRefundLedger $onlineRefundLedger,
         private LhdnRejectionReasons $lhdnRejectionReasons,
         private FolioEInvoiceLock $folioEInvoiceLock,
+        private SubmissionStatusBadge $submissionStatusBadge,
+        private ReportableLines $reportableLines,
+        private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
     ) {}
 
     /**
@@ -367,7 +371,7 @@ class FolioStatement
         // A stay billed to a company gets its e-invoice through the city ledger invoice instead.
         // A folio whose charges were all reversed has nothing to report.
         $canSubmitEInvoice = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed && $billedBy === null && $eInvoiceHold === null
-            && ConsolidatedBatchBuilder::calculateFolioGrossAmount($folio->loadMissing('lines.reversal')) > 0;
+            && $this->reportableLines->gross($folio)->isPositive();
         $buyer = $folio !== null ? BuyerResolver::forFolio($folio, $property) : null;
         $rejected = $canSubmitEInvoice && $latestSubmission?->status === EInvoiceStatus::Invalid ? $latestSubmission : null;
         if ($rejected !== null && $buyer !== null) {
@@ -419,8 +423,8 @@ class FolioStatement
             canManageManually: $isOpen && ($can['manual'] ?? false),
             eInvoiceSubmissionId: $latestSubmission?->id,
             eInvoiceStatus: $latestSubmission?->status->value,
-            eInvoiceStatusLabel: $latestSubmission?->is_consolidated ? __('In monthly summary') : $latestSubmission?->status->label(),
-            eInvoiceStatusTone: $latestSubmission?->status->tone()->value,
+            eInvoiceStatusLabel: $latestSubmission?->is_consolidated ? __('In monthly summary') : ($latestSubmission === null ? null : $this->submissionStatusBadge->for($latestSubmission)->label),
+            eInvoiceStatusTone: $latestSubmission === null ? null : $this->submissionStatusBadge->for($latestSubmission)->tone->value,
             eInvoiceUuid: $latestSubmission?->uuid,
             canSubmitEInvoice: $canSubmitEInvoice,
             payerGuestTin: $buyer['tin'] ?? null,
@@ -429,7 +433,7 @@ class FolioStatement
             payerGuestCity: $buyer['city'] ?? null,
             // The form picks the country by its alpha-2 code like every other country picker; LHDN gets alpha-3.
             eInvoiceBuyer: $buyer === null ? null : [...$buyer, 'country_code' => app(CountryOptions::class)->alpha2($buyer['country_code'] ?? null) ?? 'MY'],
-            eInvoiceRequired: $canSubmitEInvoice && StaysNeedingOwnEInvoice::isOverLimit($folio->loadMissing('lines.reversal')),
+            eInvoiceRequired: $canSubmitEInvoice && $this->staysNeedingOwnEInvoice->isOverLimit($folio),
             eInvoiceRejection: $rejected === null ? [] : array_map(
                 fn (array $reason): array => ['message' => $reason['message'], 'fix' => $reason['fix']],
                 array_values(array_filter($this->lhdnRejectionReasons->for($rejected), fn (array $reason): bool => $reason['where'] === 'buyer')),

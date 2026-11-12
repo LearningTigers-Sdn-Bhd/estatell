@@ -39,7 +39,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ReservationFolioController extends Controller
@@ -137,17 +136,6 @@ class ReservationFolioController extends Controller
     public function close(Request $request, Property $property, Reservation $reservation, Folio $folio, CloseFolio $closeFolio, FolioRefusals $refusals): RedirectResponse
     {
         $result = $closeFolio($request->user(), $folio);
-
-        if ($result->isDone() && $property->eInvoiceSetting?->enabled && $property->eInvoiceSetting->auto_submit_on_checkout) {
-            try {
-                $eResult = app(SubmitFolioEInvoice::class)($folio, $request->user());
-                if (! $eResult->ok && $eResult->message) {
-                    Log::info("E-invoice auto-submit skipped for folio {$folio->id}: {$eResult->message}");
-                }
-            } catch (\Throwable $e) {
-                Log::error("Failed to auto-submit e-invoice for folio {$folio->id}: {$e->getMessage()}");
-            }
-        }
 
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal, $result->rooms)]

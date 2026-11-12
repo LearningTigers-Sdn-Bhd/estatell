@@ -36,7 +36,7 @@ class TaxNumberCheck
         $idValue = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $idValue));
         $setting = $property->eInvoiceSetting;
 
-        if ($setting === null || ! $setting->isReadyToSubmit()) {
+        if ($setting === null || ! MyInvoisClientFactory::isReady($setting)) {
             return $this->answer(self::UNAVAILABLE, null, $idType);
         }
 

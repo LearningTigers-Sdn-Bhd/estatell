@@ -14,6 +14,13 @@ class MockMyInvoisClient
     public static $documentDetailsOverride = null;
 
     /**
+     * What the search finds, as LHDN lists sent documents. Null finds nothing.
+     *
+     * @var (callable(CarbonImmutable, CarbonImmutable, string): list<array<string, mixed>>)|null
+     */
+    public static $searchSentDocumentsOverride = null;
+
+    /**
      * The TIN each `idType:idValue` belongs to. A pair that is not listed has no TIN, like an unknown ID at LHDN.
      *
      * @var array<string, string>
@@ -24,6 +31,7 @@ class MockMyInvoisClient
     {
         self::$submitDocumentsOverride = null;
         self::$documentDetailsOverride = null;
+        self::$searchSentDocumentsOverride = null;
         self::$taxNumbers = [];
     }
 
@@ -88,6 +96,14 @@ class MockMyInvoisClient
             'dateTimeReceived' => $now,
             'dateTimeValidated' => $now,
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function searchSentDocuments(CarbonImmutable $from, CarbonImmutable $to, string $documentTypeCode): array
+    {
+        return self::$searchSentDocumentsOverride === null ? [] : (self::$searchSentDocumentsOverride)($from, $to, $documentTypeCode);
     }
 
     /**

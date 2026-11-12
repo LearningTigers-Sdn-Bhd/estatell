@@ -10,6 +10,8 @@ use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 
 /**
  * The e-invoice detail page as a hotel manager reads it: what was billed, to whom, whether LHDN accepted it, and what
@@ -17,7 +19,7 @@ use Carbon\CarbonImmutable;
  */
 class SubmissionView
 {
-    public function __construct(private LhdnRejectionReasons $rejectionReasons, private EInvoiceGuestEmail $guestEmail, private FolioEInvoiceLock $folioEInvoiceLock) {}
+    public function __construct(private LhdnRejectionReasons $rejectionReasons, private EInvoiceGuestEmail $guestEmail, private FolioEInvoiceLock $folioEInvoiceLock, private SubmissionStatusBadge $statusBadge, private RejectionReplacements $rejectionReplacements, private SubmissionRules $submissionRules, private ReportableLines $reportableLines) {}
 
     /**
      * @return array<string, mixed>
@@ -30,6 +32,7 @@ class SubmissionView
         $isCreditNote = in_array($submission->document_type, [EInvoiceDocumentType::CreditNote, EInvoiceDocumentType::RefundNote], true);
         $status = $submission->status;
         $replacedBy = $this->replacement($submission);
+        $canCancel = $this->submissionRules->isCancellable($submission);
 
         return [
             'id' => $submission->id,
@@ -37,7 +40,7 @@ class SubmissionView
             'kind' => $this->kind($submission)['value'],
             'status' => $replacedBy !== null
                 ? new BadgeData('replaced', __('Rejected, sent again'), Tone::Neutral)
-                : new BadgeData($status->value, $status->label(), $status->tone()),
+                : $this->statusBadge->for($submission),
             'amounts' => $this->amounts($submission),
             'period' => $this->period($submission),
             'buyer' => $submission->is_consolidated ? null : $this->buyer($submission->buyer_snapshot ?? [], $showIdNumber),
@@ -65,17 +68,17 @@ class SubmissionView
                 'number' => $note->internal_id,
                 'kind' => $this->kind($note),
                 'amount' => $this->amounts($note)['total'],
-                'status' => new BadgeData($note->status->value, $note->status->label(), $note->status->tone()),
+                'status' => $this->statusBadge->for($note),
                 'issued_at' => $at($note->created_at),
             ])->all(),
             'accepted_at' => $at($submission->validated_at),
             'cancelled_at' => $at($submission->cancelled_at),
             'cancel_reason' => $submission->cancel_reason,
-            'cancel_until' => $submission->isCancellable() ? $at($submission->cancellationDeadline()) : null,
-            'can_cancel' => $submission->isCancellable(),
+            'cancel_until' => $canCancel ? $at($this->submissionRules->cancellationDeadline($submission)) : null,
+            'can_cancel' => $canCancel,
             'can_credit_note' => ! $isCreditNote && $status === EInvoiceStatus::Valid,
             'can_check_status' => in_array($status, [EInvoiceStatus::Pending, EInvoiceStatus::Submitted], true),
-            'guest_link' => $status === EInvoiceStatus::Valid ? $submission->validationUrl() : null,
+            'guest_link' => $status === EInvoiceStatus::Valid ? $this->submissionRules->validationUrl($submission) : null,
             'guest_email' => $status === EInvoiceStatus::Valid && ! $submission->is_consolidated ? $this->guestEmail->for($submission) : null,
             'lhdn_reference' => $submission->uuid,
             'reasons' => $status === EInvoiceStatus::Invalid ? $this->rejectionReasons->for($submission) : [],
@@ -83,7 +86,7 @@ class SubmissionView
                 'id' => $replacedBy->id,
                 'number' => $replacedBy->internal_id,
                 'kind' => $this->kind($replacedBy),
-                'status' => new BadgeData($replacedBy->status->value, $replacedBy->status->label(), $replacedBy->status->tone()),
+                'status' => $this->statusBadge->for($replacedBy),
             ],
             'can_resubmit' => $this->canResubmit($submission),
             'can_find_tax_number' => $status === EInvoiceStatus::Invalid
@@ -96,11 +99,23 @@ class SubmissionView
     }
 
     /**
-     * One row of the e-invoice list. Expects `folio.reservation`, `arInvoice.company` and `folios_count` loaded.
+     * The rows of one page of the e-invoice list. Expects `property.settings`, `folio.reservation`,
+     * `arInvoice.company` and `folios_count` loaded; what replaced each rejected row is read for the whole page at once.
      *
+     * @param  LengthAwarePaginator<int, EInvoiceSubmission>  $page
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    public function rows(LengthAwarePaginator $page): LengthAwarePaginator
+    {
+        $replacements = $this->rejectionReplacements->for($page->getCollection());
+
+        return $page->through(fn (EInvoiceSubmission $submission): array => $this->row($submission, $replacements[$submission->id] ?? null));
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    public function row(EInvoiceSubmission $submission): array
+    private function row(EInvoiceSubmission $submission, ?EInvoiceSubmission $replacedBy): array
     {
         $timeZone = $submission->property->settings->time_zone ?? config('app.timezone');
         $date = $submission->validated_at ?? $submission->submitted_at ?? $submission->created_at;
@@ -118,9 +133,9 @@ class SubmissionView
             },
             'amount' => $this->amounts($submission)['total'],
             'date' => $date?->setTimezone($timeZone)->toDateString(),
-            'status' => $submission->status === EInvoiceStatus::Invalid && $this->replacement($submission) !== null
+            'status' => $replacedBy !== null
                 ? new BadgeData('replaced', __('Rejected, sent again'), Tone::Neutral)
-                : new BadgeData($submission->status->value, $submission->status->label(), $submission->status->tone()),
+                : $this->statusBadge->for($submission),
         ];
     }
 
@@ -130,55 +145,20 @@ class SubmissionView
      */
     public function rejectedToFix(int $propertyId): int
     {
-        return EInvoiceSubmission::query()
+        $rejected = EInvoiceSubmission::query()
             ->where('property_id', $propertyId)
             ->where('status', EInvoiceStatus::Invalid)
-            ->with('folio')
-            ->get()
-            ->filter(fn (EInvoiceSubmission $submission): bool => $this->replacement($submission) === null)
-            ->count();
+            ->get(['id', 'property_id', 'folio_id', 'ar_invoice_id', 'original_submission_id', 'is_consolidated', 'document_type', 'status']);
+
+        return $rejected->count() - count($this->rejectionReplacements->for($rejected));
     }
 
     /**
-     * What took a rejected document's place: for a stay or City ledger e-invoice, the one LHDN now has for it (its own
-     * or a monthly summary); for a credit or refund note, a later one on the same e-invoice. Null when nothing did.
+     * What took a rejected document's place (`RejectionReplacements`), or null when nothing did.
      */
     private function replacement(EInvoiceSubmission $submission): ?EInvoiceSubmission
     {
-        if ($submission->status !== EInvoiceStatus::Invalid) {
-            return null;
-        }
-
-        if ($submission->original_submission_id !== null) {
-            return EInvoiceSubmission::query()
-                ->where('original_submission_id', $submission->original_submission_id)
-                ->where('id', '>', $submission->id)
-                ->active()
-                ->latest('id')
-                ->first();
-        }
-
-        if ($submission->is_consolidated) {
-            return EInvoiceSubmission::query()
-                ->where('property_id', $submission->property_id)
-                ->where('is_consolidated', true)
-                ->where('id', '>', $submission->id)
-                ->active()
-                ->whereHas('folios', fn ($folios) => $folios->whereIn('folios.id', $submission->folios()->pluck('folios.id')))
-                ->latest('id')
-                ->first();
-        }
-
-        if ($submission->ar_invoice_id !== null) {
-            return EInvoiceSubmission::query()
-                ->where('ar_invoice_id', $submission->ar_invoice_id)
-                ->where('document_type', EInvoiceDocumentType::Invoice)
-                ->active()
-                ->latest('id')
-                ->first();
-        }
-
-        return $submission->folio === null ? null : $this->folioEInvoiceLock->for($submission->folio);
+        return $this->rejectionReplacements->for([$submission])[$submission->id] ?? null;
     }
 
     /**
@@ -189,27 +169,30 @@ class SubmissionView
      */
     private function stays(EInvoiceSubmission $submission, string $timeZone): array
     {
-        $money = fn (float $amount): string => number_format($amount, 2, '.', '');
-
-        // What LHDN received, line by line, by the folio number in each line's description.
-        $sent = [];
+        // What LHDN received, by line number, and by the folio number in each line's text for a summary sent before
+        // its stays were linked to their line numbers.
+        $byLine = [];
+        $byNumber = [];
         foreach (data_get($submission->document_payload, 'Invoice.0.InvoiceLine', []) as $line) {
-            $number = trim((string) preg_replace('/^Consolidated stay receipt\s*/', '', (string) data_get($line, 'Item.0.Description.0._')));
-            $sent[$number] = [
-                'net' => (float) data_get($line, 'LineExtensionAmount.0._', 0),
-                'tax' => (float) data_get($line, 'TaxTotal.0.TaxAmount.0._', 0),
+            $amounts = [
+                'net' => BigDecimal::of((string) data_get($line, 'LineExtensionAmount.0._', 0)),
+                'tax' => BigDecimal::of((string) data_get($line, 'TaxTotal.0.TaxAmount.0._', 0)),
             ];
+            $byLine[(int) data_get($line, 'ID.0._')] = $amounts;
+            $byNumber[trim(Str::after((string) data_get($line, 'Item.0.Description.0._'), ConsolidatedBatchBuilder::LINE_DESCRIPTION))] = $amounts;
         }
 
         $folios = $submission->folios()
-            ->with(['lines.reversal', 'lines.transactionCode', 'reservation:id,reference', 'payerGuest:id,full_name', 'payerCompany:id,name'])
+            ->with(['lines.transactionCode', 'reservation:id,reference', 'payerGuest:id,full_name', 'payerCompany:id,name'])
             ->orderBy('folios.closed_at')
             ->get();
 
         $stays = [];
+        $taxTypes = new LhdnTaxType;
         foreach ($folios as $folio) {
             $number = (string) ($folio->invoice_number ?: $folio->number);
-            $amounts = $sent[$number] ?? ConsolidatedBatchBuilder::split($folio);
+            $line = $folio->getRelationValue('pivot')?->line_number;
+            $amounts = ($line !== null ? $byLine[(int) $line] ?? null : null) ?? $byNumber[$number] ?? $this->reportableLines->split($folio, $taxTypes);
 
             $stays[] = [
                 'folio_id' => $folio->id,
@@ -218,9 +201,9 @@ class SubmissionView
                 'guest' => $folio->payerCompany->name ?? $folio->payerGuest?->full_name,
                 'folio_number' => $number,
                 'closed_on' => $folio->closed_at?->setTimezone($timeZone)->toDateString(),
-                'net' => $money($amounts['net']),
-                'tax' => $money($amounts['tax']),
-                'total' => $money($amounts['net'] + $amounts['tax']),
+                'net' => (string) $amounts['net']->toScale(2),
+                'tax' => (string) $amounts['tax']->toScale(2),
+                'total' => (string) $amounts['net']->plus($amounts['tax'])->toScale(2),
             ];
         }
 

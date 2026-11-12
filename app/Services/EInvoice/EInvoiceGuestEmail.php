@@ -14,7 +14,7 @@ use Carbon\CarbonImmutable;
  */
 class EInvoiceGuestEmail
 {
-    public function __construct(private GuestEmailText $text) {}
+    public function __construct(private GuestEmailText $text, private SubmissionRules $submissionRules) {}
 
     /**
      * @return array{to: string|null, subject: string, paragraphs: list<string>, details: array<string, string>, view_url: string|null, reply_to: string|null, property_name: string}
@@ -53,7 +53,7 @@ class EInvoiceGuestEmail
             'subject' => $this->text->fill($text['subject'], $values),
             'paragraphs' => $paragraphs,
             'details' => $details,
-            'view_url' => $submission->validationUrl(),
+            'view_url' => $this->submissionRules->validationUrl($submission),
             'reply_to' => $property->contact_email,
             'property_name' => $property->name,
         ];

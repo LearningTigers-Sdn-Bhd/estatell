@@ -101,17 +101,4 @@ class PropertyEInvoiceSetting extends Model
     {
         return $this->belongsTo(Property::class);
     }
-
-    public function isReadyToSubmit(): bool
-    {
-        if (! $this->enabled) {
-            return false;
-        }
-
-        if ($this->api_environment === EInvoiceEnvironment::Mock) {
-            return true;
-        }
-
-        return ! empty($this->client_id) && ! empty($this->client_secret);
-    }
 }

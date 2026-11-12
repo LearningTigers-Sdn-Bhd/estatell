@@ -526,7 +526,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(EInvoiceSubmission::class);
     }
 
-    /** @return HasMany<EInvoiceSubmission, $this> */
+    /**
+     * The same as `eInvoiceSubmissions()`, named for the `{submission}` route parameter: scoped route bindings
+     * (`/finance/e-invoices/{submission}`) find the child through this name.
+     *
+     * @return HasMany<EInvoiceSubmission, $this>
+     */
     public function submissions(): HasMany
     {
         return $this->eInvoiceSubmissions();

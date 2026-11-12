@@ -21,6 +21,7 @@ use App\Models\Reservation;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\EInvoice\SubmissionRules;
 use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
@@ -113,7 +114,7 @@ it('consolidates unconsolidated folios from previous month into a batch submissi
     expect($consolidated->status)->toBe(EInvoiceStatus::Valid);
     expect($consolidated->buyer_snapshot['tin'])->toBe('EI00000000010');
     expect($consolidated->buyer_snapshot['state_code'])->toBe('17');
-    expect($consolidated->totalAmount())->toBe(600.0);
+    expect((string) app(SubmissionRules::class)->total($consolidated))->toBe('600.00');
 });
 
 it('excludes folios exceeding RM 10,000 from monthly consolidation', function () {
@@ -158,7 +159,7 @@ it('excludes folios exceeding RM 10,000 from monthly consolidation', function ()
 
     $submission = $results[0];
     // Consolidated batch total should only be RM 500 (folio 1 only, folio 2 excluded)
-    expect($submission->totalAmount())->toBe(500.0);
+    expect((string) app(SubmissionRules::class)->total($submission))->toBe('500.00');
 });
 
 it('excludes folios that were already individually submitted to LHDN', function () {
@@ -212,7 +213,7 @@ it('consolidates a closed folio whose payments brought its balance to 0', functi
     $batches = app(ConsolidateMonthlyEInvoices::class)($setup['property'], $lastMonth);
 
     expect($batches)->toHaveCount(1)
-        ->and($batches[0]->totalAmount())->toBe(216.0);
+        ->and((string) app(SubmissionRules::class)->total($batches[0]))->toBe('216.00');
 });
 
 it('lets the next run consolidate stays from a batch LHDN rejected', function () {

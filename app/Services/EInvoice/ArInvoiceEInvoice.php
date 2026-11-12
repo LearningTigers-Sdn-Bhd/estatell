@@ -20,7 +20,7 @@ use Laravel\Pennant\Feature;
  */
 class ArInvoiceEInvoice
 {
-    public function __construct(private FolioEInvoiceLock $folioEInvoiceLock) {}
+    public function __construct(private FolioEInvoiceLock $folioEInvoiceLock, private SubmissionStatusBadge $statusBadge) {}
 
     /**
      * @return array{submission: array{id: int, number: string, status: BadgeData}|null, reported_in: array{id: int, number: string, summary: bool}|null, can_send: bool}|null
@@ -49,7 +49,7 @@ class ArInvoiceEInvoice
             'submission' => $latest === null ? null : [
                 'id' => $latest->id,
                 'number' => $latest->internal_id,
-                'status' => new BadgeData($latest->status->value, $latest->status->label(), $latest->status->tone()),
+                'status' => $this->statusBadge->for($latest),
             ],
             'reported_in' => $reportedIn === null ? null : ['id' => $reportedIn->id, 'number' => $reportedIn->internal_id, 'summary' => $reportedIn->is_consolidated],
             'can_send' => ! $active && $reportedIn === null && $invoice->status !== ArInvoiceStatus::Void && $user->can(PermissionEnum::EInvoiceManage->value),

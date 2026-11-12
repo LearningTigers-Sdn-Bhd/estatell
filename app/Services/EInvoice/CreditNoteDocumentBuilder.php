@@ -6,7 +6,7 @@ use App\Actions\EInvoice\EInvoiceResult;
 use App\Enums\EInvoiceDocumentType;
 use App\Models\EInvoiceSubmission;
 use App\Models\Property;
-use App\Models\PropertyEInvoiceSetting;
+use Brick\Math\BigDecimal;
 use RuntimeException;
 
 /**
@@ -25,78 +25,57 @@ class CreditNoteDocumentBuilder
 
     public const string UNIT_CODE_EACH = 'C62';
 
-    private Property $property;
-
-    private ?PropertyEInvoiceSetting $setting;
-
-    private DocumentSigner $documentSigner;
-
     public function __construct(
-        private EInvoiceSubmission $originalSubmission,
-        private string $creditNoteNumber,
-        private float $amount,
-        private string $reason,
-        private EInvoiceDocumentType $type = EInvoiceDocumentType::CreditNote,
-    ) {
-        $this->property = $originalSubmission->property;
-        $this->setting = $this->property->eInvoiceSetting;
-        $this->documentSigner = new DocumentSigner($this->setting);
+        private SupplierDetails $supplierDetails,
+        private DocumentEncoder $documentEncoder,
+    ) {}
 
+    /**
+     * A credit or refund note of `$amount` on an e-invoice LHDN accepted, to the original buyer.
+     *
+     * @return array{format: string, document: string, documentHash: string, codeNumber: string, payload: array<string, mixed>}
+     *
+     * @throws MissingEInvoiceDetails when the hotel or the original buyer lacks a detail LHDN needs.
+     */
+    public function build(EInvoiceSubmission $originalSubmission, string $creditNoteNumber, string $amount, string $reason, EInvoiceDocumentType $type = EInvoiceDocumentType::CreditNote): array
+    {
         if (empty($originalSubmission->uuid)) {
             throw new RuntimeException('Cannot issue e-invoice Credit Note: original submission does not have an LHDN UUID.');
         }
-    }
 
-    /**
-     * @return array{
-     *     format: string,
-     *     document: string,
-     *     documentHash: string,
-     *     codeNumber: string,
-     *     payload: array<string, mixed>
-     * }
-     */
-    public function build(): array
-    {
-        $this->validateRequiredData();
+        $property = $originalSubmission->property;
+        MissingEInvoiceDetails::hotel($property);
+        $buyer = $this->buyer($originalSubmission, $property);
+        $this->checkBuyer($buyer);
 
-        $payload = $this->buildPayload();
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-
-        return [
-            'format' => 'JSON',
-            'document' => base64_encode($payloadJson),
-            'documentHash' => hash('sha256', $payloadJson),
-            'codeNumber' => $this->creditNoteNumber,
-            'payload' => $payload,
-        ];
+        return $this->documentEncoder->encode($this->payload($originalSubmission, $property, $buyer, $creditNoteNumber, $amount, $reason, $type), $creditNoteNumber);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function resolveBuyer(): array
+    private function buyer(EInvoiceSubmission $originalSubmission, Property $property): array
     {
-        if (! empty($this->originalSubmission->buyer_snapshot)) {
-            return $this->originalSubmission->buyer_snapshot;
+        if (! empty($originalSubmission->buyer_snapshot)) {
+            return $originalSubmission->buyer_snapshot;
         }
 
-        if ($this->originalSubmission->folio !== null) {
-            return BuyerResolver::forFolio($this->originalSubmission->folio);
+        if ($originalSubmission->folio !== null) {
+            return BuyerResolver::forFolio($originalSubmission->folio);
         }
 
-        if ($this->originalSubmission->arInvoice !== null) {
-            return BuyerResolver::forCompany($this->originalSubmission->arInvoice->company, $this->property);
+        if ($originalSubmission->arInvoice !== null) {
+            return BuyerResolver::forCompany($originalSubmission->arInvoice->company, $property);
         }
 
         throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE, __('The original e-invoice has no buyer details, so no credit note can be made for it.'));
     }
 
-    private function validateRequiredData(): void
+    /**
+     * @param  array<string, mixed>  $buyer
+     */
+    private function checkBuyer(array $buyer): void
     {
-        MissingEInvoiceDetails::hotel($this->property);
-
-        $buyer = $this->resolveBuyer();
         if (empty($buyer['tin'])) {
             throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, __('The original e-invoice has no buyer tax number, so no credit note can be made for it.'));
         }
@@ -107,34 +86,35 @@ class CreditNoteDocumentBuilder
     }
 
     /**
+     * @param  array<string, mixed>  $buyer
      * @return array<string, mixed>
      */
-    public function buildPayload(): array
+    private function payload(EInvoiceSubmission $originalSubmission, Property $property, array $buyer, string $creditNoteNumber, string $amount, string $reason, EInvoiceDocumentType $type): array
     {
-        $subtotal = abs($this->amount);
-        $buyer = $this->resolveBuyer();
+        $signer = new DocumentSigner($property->eInvoiceSetting);
+        $subtotal = LhdnAmount::of(BigDecimal::of($amount)->abs());
 
         // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
         $issuedAt = now('UTC');
 
         $body = [
-            'ID' => [['_' => $this->creditNoteNumber]],
+            'ID' => [['_' => $creditNoteNumber]],
             'IssueDate' => [['_' => $issuedAt->toDateString()]],
             'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
-            'InvoiceTypeCode' => [['_' => $this->type->value, 'listVersionID' => $this->documentSigner->documentVersion()]],
+            'InvoiceTypeCode' => [['_' => $type->value, 'listVersionID' => $signer->documentVersion()]],
             'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'BillingReference' => [
                 [
                     'InvoiceDocumentReference' => [
                         [
-                            'ID' => [['_' => $this->originalSubmission->internal_id]],
-                            'UUID' => [['_' => $this->originalSubmission->uuid]],
+                            'ID' => [['_' => $originalSubmission->internal_id]],
+                            'UUID' => [['_' => $originalSubmission->uuid]],
                         ],
                     ],
                 ],
             ],
-            'AccountingSupplierParty' => [['Party' => [$this->supplierParty()]]],
+            'AccountingSupplierParty' => [['Party' => [$this->supplierDetails->party($property)]]],
             'AccountingCustomerParty' => [['Party' => [$this->buyerParty($buyer)]]],
             'InvoiceLine' => [
                 [
@@ -170,7 +150,7 @@ class CreditNoteDocumentBuilder
                             'CommodityClassification' => [
                                 ['ItemClassificationCode' => [['_' => self::ACCOMMODATION_CLASS_CODE, 'listID' => 'CLASS']]],
                             ],
-                            'Description' => [['_' => "Adjustment for {$this->originalSubmission->internal_id}: {$this->reason}"]],
+                            'Description' => [['_' => "Adjustment for {$originalSubmission->internal_id}: {$reason}"]],
                             'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
                         ],
                     ],
@@ -209,15 +189,7 @@ class CreditNoteDocumentBuilder
             ],
         ];
 
-        return $this->documentSigner->apply(array_merge(FolioDocumentBuilder::UBL_NAMESPACES, ['Invoice' => [$body]]));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function supplierParty(): array
-    {
-        return app(SupplierDetails::class)->party($this->property);
+        return $signer->apply(array_merge(FolioDocumentBuilder::UBL_NAMESPACES, ['Invoice' => [$body]]));
     }
 
     /**

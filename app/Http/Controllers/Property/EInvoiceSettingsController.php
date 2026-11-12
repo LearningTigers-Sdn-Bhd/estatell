@@ -153,7 +153,7 @@ class EInvoiceSettingsController extends Controller
         }
 
         $setting = $property->eInvoiceSetting;
-        if ($setting === null || ! $setting->isReadyToSubmit()) {
+        if ($setting === null || ! MyInvoisClientFactory::isReady($setting)) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Enter and save the MyInvois Client ID and Client secret first.')]);
 
             return back();

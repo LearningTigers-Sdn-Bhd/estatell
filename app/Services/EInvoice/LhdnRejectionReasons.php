@@ -104,13 +104,29 @@ class LhdnRejectionReasons
             $reasons[] = $this->explain($code, $text, $path, $isCompany);
         }
 
+        if ($reasons === [] && ($details['not_found_at_lhdn'] ?? false)) {
+            $reasons[] = [
+                'message' => 'We lost the connection while sending it, and 10 minutes later LHDN still has no record of it.',
+                'fix' => 'Look for :number in the MyInvois portal. If it is not there, send it again. If it is there, contact support before sending anything.',
+                'where' => 'retry',
+            ];
+        }
+
+        if ($reasons === [] && ($details['not_sent'] ?? false)) {
+            $reasons[] = [
+                'message' => 'It was never sent to LHDN.',
+                'fix' => 'Send it again.',
+                'where' => 'retry',
+            ];
+        }
+
         if ($reasons === [] && isset($details['message'])) {
             $reasons[] = $this->connectionProblem((int) ($details['code'] ?? 0));
         }
 
         $reasons = array_values(array_unique($reasons, SORT_REGULAR));
 
-        return array_map(fn (array $reason): array => ['message' => __($reason['message']), 'fix' => __($reason['fix']), 'where' => $reason['where']], $reasons);
+        return array_map(fn (array $reason): array => ['message' => __($reason['message']), 'fix' => __($reason['fix'], ['number' => $submission->internal_id]), 'where' => $reason['where']], $reasons);
     }
 
     /**

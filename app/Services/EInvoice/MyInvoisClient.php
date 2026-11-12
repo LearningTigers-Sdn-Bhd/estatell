@@ -3,6 +3,7 @@
 namespace App\Services\EInvoice;
 
 use App\Models\PropertyEInvoiceSetting;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -12,8 +13,6 @@ use RuntimeException;
 class MyInvoisClient
 {
     private string $baseUrl;
-
-    private string $tin;
 
     private string $clientId;
 
@@ -27,8 +26,7 @@ class MyInvoisClient
         $this->environment = $setting->api_environment->value;
         $this->baseUrl = $setting->api_environment->apiUrl();
 
-        $tin = $setting->supplier_tin ?: $setting->property->tin;
-        if (empty($tin)) {
+        if (empty($setting->supplier_tin ?: $setting->property->tin)) {
             throw new RuntimeException('Property tax identification number (TIN) is missing.');
         }
 
@@ -36,7 +34,6 @@ class MyInvoisClient
             throw new RuntimeException('Property MyInvois API credentials (Client ID / Client Secret) are not configured.');
         }
 
-        $this->tin = $tin;
         $this->clientId = $setting->client_id;
         $this->clientSecret = $setting->client_secret;
     }
@@ -88,6 +85,26 @@ class MyInvoisClient
     }
 
     /**
+     * Documents this taxpayer sent in a submission window, newest first, at most 100 (LHDN's page size). LHDN needs
+     * the window and allows at most 31 days; it throttles this call to about one every 5 seconds, so it is only for
+     * finding one document whose send answer was lost. See docs/31-einvoice/01-lhdn-myinvois.md#unconfirmed-sends.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function searchSentDocuments(CarbonImmutable $from, CarbonImmutable $to, string $documentTypeCode): array
+    {
+        $response = $this->get('/api/v1.0/documents/search', [
+            'submissionDateFrom' => $from->utc()->format('Y-m-d\TH:i:s\Z'),
+            'submissionDateTo' => $to->utc()->format('Y-m-d\TH:i:s\Z'),
+            'invoiceDirection' => 'Sent',
+            'documentType' => $documentTypeCode,
+            'pageSize' => 100,
+        ]);
+
+        return array_values((array) ($response['result'] ?? []));
+    }
+
+    /**
      * Validates a buyer's TIN against LHDN database.
      *
      * @return array<string, mixed>
@@ -114,22 +131,31 @@ class MyInvoisClient
         ]);
     }
 
+    /**
+     * The access token for this login. A failure here means no document was sent, so it throws `MyInvoisLoginFailed`
+     * and a caller can tell it apart from a send whose answer was lost. The cache key has the Client ID, because two
+     * hotels may share a tax number but log in separately.
+     */
     public function getAccessToken(): string
     {
-        $cacheKey = "myinvois_token_{$this->tin}_{$this->environment}";
+        $cacheKey = "myinvois_token_{$this->environment}_{$this->clientId}";
 
         return Cache::remember($cacheKey, 3000, function () {
-            $response = $this->send(fn () => Http::asForm()
-                ->timeout(15)
-                ->post("{$this->baseUrl}/connect/token", [
-                    'grant_type' => 'client_credentials',
-                    'client_id' => $this->clientId,
-                    'client_secret' => $this->clientSecret,
-                    'scope' => 'InvoicingAPI',
-                ]));
+            try {
+                $response = $this->send(fn () => Http::asForm()
+                    ->timeout(15)
+                    ->post("{$this->baseUrl}/connect/token", [
+                        'grant_type' => 'client_credentials',
+                        'client_id' => $this->clientId,
+                        'client_secret' => $this->clientSecret,
+                        'scope' => 'InvoicingAPI',
+                    ]));
+            } catch (MyInvoisApiException $exception) {
+                throw new MyInvoisLoginFailed($exception->getMessage(), $exception->statusCode, $exception->responseBody, $exception);
+            }
 
             if (! $response->successful()) {
-                throw new MyInvoisApiException(
+                throw new MyInvoisLoginFailed(
                     'Failed to authenticate with MyInvois: '.($response->json('error_description') ?: $response->body()),
                     $response->status(),
                     $response->json() ?: $response->body()

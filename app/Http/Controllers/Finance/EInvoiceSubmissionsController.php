@@ -20,14 +20,18 @@ use App\Services\EInvoice\MyInvoisApiException;
 use App\Services\EInvoice\StaysNeedingOwnEInvoice;
 use App\Services\EInvoice\SubmissionToast;
 use App\Services\EInvoice\SubmissionView;
-use Carbon\CarbonImmutable;
+use App\Services\EInvoice\SummaryMonth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Pennant\Feature;
+use Throwable;
 
+/**
+ * The Finance e-invoice pages and their actions. The route group answers 404 while e-invoicing is off (`einvoicing`)
+ * and finds `{submission}` only among the property's own (scoped bindings), so the methods do not check either again.
+ */
 class EInvoiceSubmissionsController extends Controller
 {
     public function index(Property $property, Request $request, SubmissionView $view, StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice): Response
@@ -64,7 +68,7 @@ class EInvoiceSubmissionsController extends Controller
                 ->orWhereHas('arInvoice', fn ($a) => $a->where('number', 'ilike', $like)));
         }
 
-        $submissions = $query->paginate(25)->withQueryString()->through(fn (EInvoiceSubmission $sub): array => $view->row($sub));
+        $submissions = $view->rows($query->paginate(25)->withQueryString());
 
         return Inertia::render('finance/e-invoices/index', [
             'submissions' => [
@@ -89,10 +93,6 @@ class EInvoiceSubmissionsController extends Controller
 
     public function show(Property $property, EInvoiceSubmission $submission, SubmissionView $view): Response
     {
-        if (! Feature::for($property)->active(EInvoicing::class) || $submission->property_id !== $property->id) {
-            abort(404);
-        }
-
         return Inertia::render('finance/e-invoices/show', [
             'submission' => $view->for($submission, request()->user()->can(PermissionEnum::GuestsViewDocuments->value)),
             'currency' => CurrencyData::forProperty($property),
@@ -102,10 +102,6 @@ class EInvoiceSubmissionsController extends Controller
 
     public function refresh(Property $property, EInvoiceSubmission $submission, RefreshEInvoiceStatus $refreshAction): RedirectResponse
     {
-        if (! Feature::for($property)->active(EInvoicing::class) || $submission->property_id !== $property->id) {
-            abort(404);
-        }
-
         try {
             $refreshed = $refreshAction($submission);
         } catch (MyInvoisApiException $e) {
@@ -121,8 +117,6 @@ class EInvoiceSubmissionsController extends Controller
 
     public function email(Property $property, EInvoiceSubmission $submission, Request $request, EmailEInvoiceToGuest $emailAction): RedirectResponse
     {
-        abort_unless($submission->property_id === $property->id, 404);
-
         $validated = $request->validate(['to' => ['required', 'email:rfc', 'max:255']]);
         $result = $emailAction($submission, $validated['to'], $request->user());
 
@@ -135,10 +129,6 @@ class EInvoiceSubmissionsController extends Controller
 
     public function cancel(Property $property, EInvoiceSubmission $submission, Request $request, CancelEInvoice $cancelAction): RedirectResponse
     {
-        if (! Feature::for($property)->active(EInvoicing::class) || $submission->property_id !== $property->id) {
-            abort(404);
-        }
-
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:500'],
         ]);
@@ -163,10 +153,6 @@ class EInvoiceSubmissionsController extends Controller
         IssueEInvoiceCreditNote $creditNoteAction,
         SubmissionToast $submissionToast,
     ): RedirectResponse {
-        if (! Feature::for($property)->active(EInvoicing::class) || $submission->property_id !== $property->id) {
-            abort(404);
-        }
-
         $validated = $request->validate([
             'credit_note_number' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0'],
@@ -177,7 +163,7 @@ class EInvoiceSubmissionsController extends Controller
         $result = $creditNoteAction(
             $submission,
             $validated['credit_note_number'],
-            (float) $validated['amount'],
+            (string) $validated['amount'],
             $validated['reason'],
             $request->user(),
             ($validated['kind'] ?? null) === 'refund_note' ? EInvoiceDocumentType::RefundNote : EInvoiceDocumentType::CreditNote,
@@ -194,49 +180,29 @@ class EInvoiceSubmissionsController extends Controller
         return back();
     }
 
-    public function consolidate(Property $property, Request $request, ConsolidateMonthlyEInvoices $consolidateAction, SubmissionToast $submissionToast, StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice): RedirectResponse
+    public function consolidate(Property $property, Request $request, ConsolidateMonthlyEInvoices $consolidateAction, SubmissionToast $submissionToast, StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice, SummaryMonth $summaryMonth): RedirectResponse
     {
-        if (! Feature::for($property)->active(EInvoicing::class)) {
-            abort(404);
-        }
-
         $request->validate([
             'month' => ['nullable', 'date_format:Y-m'],
         ]);
 
-        $monthDate = $request->filled('month')
-            ? CarbonImmutable::createFromFormat('!Y-m', $request->string('month'), 'Asia/Kuala_Lumpur')
-            : CarbonImmutable::now('Asia/Kuala_Lumpur')->subMonth();
+        $month = $request->filled('month') ? $summaryMonth->parse($property, $request->string('month')->toString()) : $summaryMonth->previous($property);
 
         try {
-            $submissions = $consolidateAction($property, $monthDate, $request->user());
+            $submissions = $consolidateAction($property, $month, $request->user());
         } catch (MissingEInvoiceDetails $e) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('The monthly summary was not sent.'), 'description' => $e->getMessage()]);
 
             return back();
-        }
-
-        $leftOut = count($staysNeedingOwnEInvoice->for($property));
-        $leftOutNote = $leftOut === 0 ? null : trans_choice(':count stay over RM10,000 was left out. It needs its own e-invoice.|:count stays over RM10,000 were left out. Each needs its own e-invoice.', $leftOut, ['count' => $leftOut]);
-
-        if (empty($submissions)) {
-            Inertia::flash('toast', ['type' => 'info', 'message' => __('No stays to send for that month. They are filed already, or none closed.'), ...($leftOutNote === null ? [] : ['description' => $leftOutNote])]);
+        } catch (Throwable $e) {
+            // Nothing was saved or sent: the summary is built in full before any part goes to LHDN.
+            report($e);
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The monthly summary was not sent.'), 'description' => __('Something went wrong while building it, so nothing went to LHDN. Try again. If it happens again, contact support.')]);
 
             return back();
         }
 
-        $count = count($submissions);
-        $rejected = collect($submissions)->filter(fn (EInvoiceSubmission $submission): bool => $submission->status === EInvoiceStatus::Invalid);
-
-        $toast = match (true) {
-            $count === 1 => $submissionToast->for($submissions[0]),
-            $rejected->isNotEmpty() => ['type' => 'error', 'message' => __('LHDN rejected :rejected of the :count parts of the monthly summary.', ['rejected' => $rejected->count(), 'count' => $count]), 'description' => __('Open them in the list to see why.')],
-            default => ['type' => 'success', 'message' => __('Monthly summary sent to LHDN in :count parts.', ['count' => $count])],
-        };
-        if ($leftOutNote !== null) {
-            $toast['description'] = trim(($toast['description'] ?? '').' '.$leftOutNote);
-        }
-        Inertia::flash('toast', $toast);
+        Inertia::flash('toast', $submissionToast->forMonthlySummary($submissions, count($staysNeedingOwnEInvoice->for($property))));
 
         return back();
     }

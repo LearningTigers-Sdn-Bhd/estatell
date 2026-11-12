@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\EInvoiceDocumentType;
-use App\Enums\EInvoiceEnvironment;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use Carbon\CarbonImmutable;
@@ -85,11 +84,6 @@ class EInvoiceSubmission extends Model
     use HasFactory;
 
     /**
-     * LHDN permits document cancellation strictly within 72 hours of validation.
-     */
-    public const int CANCELLATION_WINDOW_HOURS = 72;
-
-    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -133,6 +127,7 @@ class EInvoiceSubmission extends Model
     public function folios(): BelongsToMany
     {
         return $this->belongsToMany(Folio::class, 'e_invoice_submission_folios', 'submission_id', 'folio_id')
+            ->withPivot('line_number')
             ->withTimestamps();
     }
 
@@ -209,121 +204,5 @@ class EInvoiceSubmission extends Model
     public function scopePendingOrSubmitted(Builder $query): void
     {
         $query->whereIn('status', [EInvoiceStatus::Pending, EInvoiceStatus::Submitted]);
-    }
-
-    public function isValid(): bool
-    {
-        return $this->status === EInvoiceStatus::Valid;
-    }
-
-    public function isCancelled(): bool
-    {
-        return $this->status === EInvoiceStatus::Cancelled;
-    }
-
-    public function isRetryable(): bool
-    {
-        return $this->status === EInvoiceStatus::Invalid ||
-            ($this->status === EInvoiceStatus::Pending && empty($this->uuid) && $this->created_at?->diffInMinutes() > 2);
-    }
-
-    public function isCancellable(): bool
-    {
-        if (! $this->isValid() || $this->cancelled_at !== null || empty($this->uuid) || $this->validated_at === null) {
-            return false;
-        }
-
-        if (CarbonImmutable::now()->isAfter($this->validated_at->addHours(self::CANCELLATION_WINDOW_HOURS))) {
-            return false;
-        }
-
-        // Check if an active credit or debit note references this submission
-        return ! $this->adjustments()
-            ->where('status', '!=', EInvoiceStatus::Cancelled->value)
-            ->exists();
-    }
-
-    public function cancellationDeadline(): ?CarbonImmutable
-    {
-        return $this->validated_at?->addHours(self::CANCELLATION_WINDOW_HOURS);
-    }
-
-    public function validationUrl(): ?string
-    {
-        if (empty($this->uuid) || empty($this->long_id)) {
-            return null;
-        }
-
-        $portalUrl = $this->property->eInvoiceSetting?->api_environment?->portalUrl()
-            ?? EInvoiceEnvironment::Sandbox->portalUrl();
-
-        return "{$portalUrl}/{$this->uuid}/share/{$this->long_id}";
-    }
-
-    public function totalAmount(): ?float
-    {
-        $payload = $this->document_payload;
-        if (! is_array($payload)) {
-            return null;
-        }
-
-        // A credit note is sent under the Invoice root too, with type code 02.
-        $amount = data_get($payload, 'Invoice.0.LegalMonetaryTotal.0.PayableAmount.0._') ?? data_get($payload, 'CreditNote.0.LegalMonetaryTotal.0.PayableAmount.0._');
-
-        return $amount !== null ? (float) $amount : null;
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function errorMessages(): array
-    {
-        if (empty($this->error_details)) {
-            return [];
-        }
-
-        $details = data_get($this->error_details, 'rejected.error.details', []);
-        $messages = [];
-
-        if (is_array($details)) {
-            foreach ($details as $detail) {
-                if (! empty($detail['message'])) {
-                    $messages[] = (string) $detail['message'];
-                }
-            }
-        }
-
-        if (! empty($messages)) {
-            return $messages;
-        }
-
-        // A document LHDN accepted and then failed in validation lists its reasons per validation step.
-        foreach (data_get($this->error_details, 'validationResults.validationSteps', []) as $step) {
-            if (($step['status'] ?? null) !== 'Invalid') {
-                continue;
-            }
-
-            $inner = data_get($step, 'error.innerError', []);
-            if (is_array($inner) && $inner !== []) {
-                foreach ($inner as $error) {
-                    if (! empty($error['error'])) {
-                        $messages[] = (string) $error['error'];
-                    }
-                }
-            } elseif (! empty(data_get($step, 'error.error'))) {
-                $messages[] = (string) data_get($step, 'error.error');
-            }
-        }
-
-        if (! empty($messages)) {
-            return $messages;
-        }
-
-        $directMessage = data_get($this->error_details, 'message');
-        if (! empty($directMessage)) {
-            return [(string) $directMessage];
-        }
-
-        return [];
     }
 }

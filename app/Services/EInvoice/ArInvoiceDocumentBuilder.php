@@ -5,7 +5,7 @@ namespace App\Services\EInvoice;
 use App\Actions\EInvoice\EInvoiceResult;
 use App\Models\ArInvoice;
 use App\Models\Property;
-use App\Models\PropertyEInvoiceSetting;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 class ArInvoiceDocumentBuilder
@@ -20,51 +20,34 @@ class ArInvoiceDocumentBuilder
 
     public const string UNIT_CODE_EACH = 'C62';
 
-    private Property $property;
-
-    private ?PropertyEInvoiceSetting $setting;
-
-    private DocumentSigner $documentSigner;
-
     public function __construct(
-        private ArInvoice $invoice
-    ) {
-        $this->property = $invoice->property;
-        $this->setting = $this->property->eInvoiceSetting;
-        $this->documentSigner = new DocumentSigner($this->setting);
+        private SupplierDetails $supplierDetails,
+        private DocumentEncoder $documentEncoder,
+    ) {}
+
+    /**
+     * The e-invoice (`01`) of a City ledger invoice, billed to its company.
+     *
+     * @return array{format: string, document: string, documentHash: string, codeNumber: string, payload: array<string, mixed>}
+     *
+     * @throws MissingEInvoiceDetails when the hotel or the company lacks a detail LHDN needs.
+     */
+    public function build(ArInvoice $invoice): array
+    {
+        $property = $invoice->property;
+        $buyer = BuyerResolver::forCompany($invoice->company, $property);
+
+        MissingEInvoiceDetails::hotel($property);
+        $this->checkBuyer($buyer);
+
+        return $this->documentEncoder->encode($this->payload($invoice, $property, $buyer), $invoice->number);
     }
 
     /**
-     * @return array{
-     *     format: string,
-     *     document: string,
-     *     documentHash: string,
-     *     codeNumber: string,
-     *     payload: array<string, mixed>
-     * }
+     * @param  array<string, mixed>  $buyer
      */
-    public function build(): array
+    private function checkBuyer(array $buyer): void
     {
-        $this->validateRequiredData();
-
-        $payload = $this->buildPayload();
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-
-        return [
-            'format' => 'JSON',
-            'document' => base64_encode($payloadJson),
-            'documentHash' => hash('sha256', $payloadJson),
-            'codeNumber' => $this->invoice->number,
-            'payload' => $payload,
-        ];
-    }
-
-    private function validateRequiredData(): void
-    {
-        MissingEInvoiceDetails::hotel($this->property);
-
-        $buyer = BuyerResolver::forCompany($this->invoice->company, $this->property);
-
         if (empty($buyer['tin'])) {
             throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, __("Add the company's tax number (TIN) on the company record, then send again."));
         }
@@ -79,31 +62,33 @@ class ArInvoiceDocumentBuilder
     }
 
     /**
+     * @param  array<string, mixed>  $buyer
      * @return array<string, mixed>
      */
-    public function buildPayload(): array
+    private function payload(ArInvoice $invoice, Property $property, array $buyer): array
     {
-        $subtotal = abs((float) $this->invoice->amount);
+        $signer = new DocumentSigner($property->eInvoiceSetting);
+        $subtotal = LhdnAmount::of(BigDecimal::of($invoice->amount)->abs());
 
         // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
         $issuedAt = now('UTC');
 
         $body = [
-            'ID' => [['_' => $this->invoice->number]],
+            'ID' => [['_' => $invoice->number]],
             'IssueDate' => [['_' => $issuedAt->toDateString()]],
             'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
-            'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $this->documentSigner->documentVersion()]],
+            'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $signer->documentVersion()]],
             'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'InvoicePeriod' => [
                 [
-                    'StartDate' => [['_' => $this->invoice->issued_on->toDateString()]],
-                    'EndDate' => [['_' => $this->invoice->due_on?->toDateString() ?: CarbonImmutable::now('Asia/Kuala_Lumpur')->addMonth()->toDateString()]],
+                    'StartDate' => [['_' => $invoice->issued_on->toDateString()]],
+                    'EndDate' => [['_' => $invoice->due_on?->toDateString() ?: CarbonImmutable::now('Asia/Kuala_Lumpur')->addMonth()->toDateString()]],
                     'Description' => [['_' => 'City Ledger Account Settlement']],
                 ],
             ],
-            'AccountingSupplierParty' => [['Party' => [$this->supplierParty()]]],
-            'AccountingCustomerParty' => [['Party' => [$this->buyerParty()]]],
+            'AccountingSupplierParty' => [['Party' => [$this->supplierDetails->party($property)]]],
+            'AccountingCustomerParty' => [['Party' => [$this->buyerParty($buyer)]]],
             'InvoiceLine' => [
                 [
                     'ID' => [['_' => '1']],
@@ -138,7 +123,7 @@ class ArInvoiceDocumentBuilder
                             'CommodityClassification' => [
                                 ['ItemClassificationCode' => [['_' => self::ACCOMMODATION_CLASS_CODE, 'listID' => 'CLASS']]],
                             ],
-                            'Description' => [['_' => $this->invoice->reason ?: "City Ledger Invoice {$this->invoice->number}"]],
+                            'Description' => [['_' => $invoice->reason ?: "City Ledger Invoice {$invoice->number}"]],
                             'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
                         ],
                     ],
@@ -177,23 +162,15 @@ class ArInvoiceDocumentBuilder
             ],
         ];
 
-        return $this->documentSigner->apply(array_merge(FolioDocumentBuilder::UBL_NAMESPACES, ['Invoice' => [$body]]));
+        return $signer->apply(array_merge(FolioDocumentBuilder::UBL_NAMESPACES, ['Invoice' => [$body]]));
     }
 
     /**
+     * @param  array<string, mixed>  $buyer
      * @return array<string, mixed>
      */
-    private function supplierParty(): array
+    private function buyerParty(array $buyer): array
     {
-        return app(SupplierDetails::class)->party($this->property);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function buyerParty(): array
-    {
-        $buyer = BuyerResolver::forCompany($this->invoice->company, $this->property);
 
         $partyIdentifications = [
             ['ID' => [['_' => $buyer['tin'], 'schemeID' => 'TIN']]],

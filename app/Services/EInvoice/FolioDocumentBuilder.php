@@ -3,15 +3,17 @@
 namespace App\Services\EInvoice;
 
 use App\Actions\EInvoice\EInvoiceResult;
-use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
-use App\Models\Property;
-use App\Models\PropertyEInvoiceSetting;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 
+/**
+ * Builds the LHDN e-invoice (`01`) of one closed folio: one line per standing charge with its own taxes, the tax
+ * totals by LHDN tax type, and the buyer from the paying guest or company (or what staff entered). Every amount is
+ * summed exactly (`ReportableLines`) and becomes a JSON number only at the end (`LhdnAmount`). It reads only.
+ */
 class FolioDocumentBuilder
 {
     public const string INVOICE_TYPE_CODE = '01';
@@ -30,59 +32,64 @@ class FolioDocumentBuilder
         '_B' => 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
     ];
 
-    private Property $property;
-
-    private ?PropertyEInvoiceSetting $setting;
-
-    private DocumentSigner $documentSigner;
-
-    private LhdnTaxType $taxTypes;
-
-    /**
-     * @param  array<string, mixed>|null  $buyerSnapshot
-     */
     public function __construct(
-        private Folio $folio,
-        private ?array $buyerSnapshot = null
-    ) {
-        $this->property = $folio->property;
-        $this->setting = $this->property->eInvoiceSetting;
-        $this->documentSigner = new DocumentSigner($this->setting);
-        $this->taxTypes = new LhdnTaxType;
+        private ReportableLines $reportableLines,
+        private SupplierDetails $supplierDetails,
+        private DocumentEncoder $documentEncoder,
+        private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
+    ) {}
+
+    /**
+     * @param  array<string, mixed>|null  $buyerSnapshot  What staff entered in the Issue e-invoice form; null reads the folio's payer.
+     * @return array{format: string, document: string, documentHash: string, codeNumber: string, payload: array<string, mixed>, buyer: array<string, mixed>}
+     *
+     * @throws MissingEInvoiceDetails when the hotel or the buyer lacks a detail LHDN needs.
+     */
+    public function build(Folio $folio, ?array $buyerSnapshot = null): array
+    {
+        $property = $folio->property;
+        $buyer = $this->buyer($folio, $buyerSnapshot);
+
+        MissingEInvoiceDetails::hotel($property);
+        $this->checkBuyer($folio, $buyer);
+
+        $signer = new DocumentSigner($property->eInvoiceSetting);
+        $internalId = $this->internalId($folio);
+        $taxTypes = new LhdnTaxType;
+
+        // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
+        $issuedAt = now('UTC');
+
+        $body = [
+            'ID' => [['_' => $internalId]],
+            'IssueDate' => [['_' => $issuedAt->toDateString()]],
+            'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
+            'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $signer->documentVersion()]],
+            'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
+            'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
+            'InvoicePeriod' => [$this->invoicePeriod($folio)],
+            'AccountingSupplierParty' => [['Party' => [$this->supplierDetails->party($property)]]],
+            'AccountingCustomerParty' => [['Party' => [$this->buyerParty($buyer)]]],
+            'InvoiceLine' => $this->invoiceLines($folio, $taxTypes),
+            'TaxTotal' => [$this->taxTotalBlock($folio, $taxTypes)],
+            'LegalMonetaryTotal' => [$this->monetaryTotal($folio)],
+        ];
+
+        $payload = $signer->apply(array_merge(self::UBL_NAMESPACES, ['Invoice' => [$body]]));
+
+        return [...$this->documentEncoder->encode($payload, $internalId), 'buyer' => $buyer];
+    }
+
+    public function internalId(Folio $folio): string
+    {
+        return $folio->invoice_number ?: $folio->number;
     }
 
     /**
-     * @return array{
-     *     format: string,
-     *     document: string,
-     *     documentHash: string,
-     *     codeNumber: string,
-     *     payload: array<string, mixed>,
-     *     buyer: array<string, mixed>
-     * }
+     * @param  array<string, mixed>  $buyer
      */
-    public function build(): array
+    private function checkBuyer(Folio $folio, array $buyer): void
     {
-        $this->validateRequiredData();
-
-        $payload = $this->buildPayload();
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-
-        return [
-            'format' => 'JSON',
-            'document' => base64_encode($payloadJson),
-            'documentHash' => hash('sha256', $payloadJson),
-            'codeNumber' => $this->internalId(),
-            'payload' => $payload,
-            'buyer' => $this->resolveBuyer(),
-        ];
-    }
-
-    private function validateRequiredData(): void
-    {
-        MissingEInvoiceDetails::hotel($this->property);
-
-        $buyer = $this->resolveBuyer();
         $isCompany = strtoupper((string) ($buyer['id_type'] ?? '')) === 'BRN';
         $hasId = ! in_array(strtoupper((string) ($buyer['id_value'] ?? '')), ['', 'NA'], true);
         $isDomestic = ($buyer['country_code'] ?? 'MYS') === 'MYS';
@@ -96,7 +103,7 @@ class FolioDocumentBuilder
         if ($isDomestic && empty($buyer['tin'])) {
             throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, match (true) {
                 $isCompany => __("Add the company's tax number (TIN) on the company record, then send again."),
-                StaysNeedingOwnEInvoice::isOverLimit($this->folio->loadMissing('lines.reversal')) => __("This stay is over RM10,000, so LHDN needs its own e-invoice with the guest's own tax number. Enter the IC and press Check with LHDN to find it."),
+                $this->staysNeedingOwnEInvoice->isOverLimit($folio) => __("This stay is over RM10,000, so LHDN needs its own e-invoice with the guest's own tax number. Enter the IC and press Check with LHDN to find it."),
                 default => __("Enter the guest's tax number (TIN). A guest who has none does not need their own e-invoice: the stay goes into the monthly summary."),
             });
         }
@@ -113,17 +120,20 @@ class FolioDocumentBuilder
     }
 
     /**
+     * The buyer as LHDN gets it: what staff entered, else the folio's payer, with a three-letter country and LHDN's
+     * general foreign number for a foreign buyer with none.
+     *
+     * @param  array<string, mixed>|null  $buyerSnapshot
      * @return array<string, mixed>
      */
-    private function resolveBuyer(): array
+    private function buyer(Folio $folio, ?array $buyerSnapshot): array
     {
         $optionalFields = ['tin' => '', 'sst_registration' => null, 'email' => '', 'phone' => '', 'address_line1' => 'NA', 'address_line2' => '', 'postal_code' => '', 'state_code' => ''];
-        $buyer = array_merge($optionalFields, array_filter($this->buyerSnapshot ?? BuyerResolver::forFolio($this->folio), fn ($value): bool => $value !== null));
+        $buyer = array_merge($optionalFields, array_filter($buyerSnapshot ?? BuyerResolver::forFolio($folio), fn ($value): bool => $value !== null));
         $countryCode = BuyerResolver::lhdnCountryCode($buyer['country_code'] ?? null);
-        $isDomestic = $countryCode === 'MYS';
 
         $tin = trim((string) ($buyer['tin'] ?? ''));
-        if (empty($tin) && ! $isDomestic) {
+        if ($tin === '' && $countryCode !== 'MYS') {
             $tin = BuyerResolver::FOREIGN_BUYER_TIN;
         }
 
@@ -136,40 +146,9 @@ class FolioDocumentBuilder
     /**
      * @return array<string, mixed>
      */
-    public function buildPayload(): array
+    private function invoicePeriod(Folio $folio): array
     {
-        // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
-        $issuedAt = now('UTC');
-
-        $body = [
-            'ID' => [['_' => $this->internalId()]],
-            'IssueDate' => [['_' => $issuedAt->toDateString()]],
-            'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
-            'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $this->documentSigner->documentVersion()]],
-            'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
-            'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
-            'InvoicePeriod' => [$this->invoicePeriod()],
-            'AccountingSupplierParty' => [['Party' => [$this->supplierParty()]]],
-            'AccountingCustomerParty' => [['Party' => [$this->buyerParty()]]],
-            'InvoiceLine' => $this->invoiceLines(),
-            'TaxTotal' => [$this->taxTotalBlock()],
-            'LegalMonetaryTotal' => [$this->monetaryTotal()],
-        ];
-
-        return $this->documentSigner->apply(array_merge(self::UBL_NAMESPACES, ['Invoice' => [$body]]));
-    }
-
-    public function internalId(): string
-    {
-        return $this->folio->invoice_number ?: $this->folio->number;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function invoicePeriod(): array
-    {
-        $unit = $this->folio->reservationUnit ?: $this->folio->reservation?->units()->first();
+        $unit = $folio->reservationUnit ?: $folio->reservation?->units()->first();
         $startDate = $unit?->arrival_date?->toDateString() ?: CarbonImmutable::now('Asia/Kuala_Lumpur')->toDateString();
         $endDate = $unit?->departure_date?->toDateString() ?: CarbonImmutable::now('Asia/Kuala_Lumpur')->addDay()->toDateString();
 
@@ -181,20 +160,11 @@ class FolioDocumentBuilder
     }
 
     /**
+     * @param  array<string, mixed>  $buyer
      * @return array<string, mixed>
      */
-    private function supplierParty(): array
+    private function buyerParty(array $buyer): array
     {
-        return app(SupplierDetails::class)->party($this->property);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function buyerParty(): array
-    {
-        $buyer = $this->resolveBuyer();
-
         $partyIdentifications = [
             ['ID' => [['_' => $buyer['tin'], 'schemeID' => 'TIN']]],
             ['ID' => [['_' => $buyer['id_value'], 'schemeID' => $buyer['id_type']]]],
@@ -232,127 +202,95 @@ class FolioDocumentBuilder
     /**
      * @return list<array<string, mixed>>
      */
-    private function invoiceLines(): array
+    private function invoiceLines(Folio $folio, LhdnTaxType $taxTypes): array
     {
-        $lines = $this->activeChargeLines();
-        $formattedLines = [];
+        $charges = $this->reportableLines->charges($folio);
 
-        if ($lines->isEmpty()) {
-            // Fallback accommodation line for 0-balance folios
-            return [
+        if ($charges->isEmpty()) {
+            // A folio with nothing standing still needs one line.
+            return [$this->line('1', 1, BigDecimal::zero(), BigDecimal::zero(), BigDecimal::zero(), [$this->exemptTaxSubtotal(BigDecimal::zero())], 'Hotel Accommodation Services')];
+        }
+
+        $taxes = $this->reportableLines->taxes($folio);
+        $lines = [];
+
+        foreach ($charges->values() as $index => $charge) {
+            $amount = BigDecimal::of($charge->amount);
+            $quantity = $charge->quantity ?: 1;
+            $unitPrice = BigDecimal::of($charge->unit_amount);
+            $childTaxes = $taxes->where('parent_line_id', $charge->id);
+
+            $subtotals = $childTaxes->isEmpty()
+                ? [$this->exemptTaxSubtotal($amount)]
+                : array_values($childTaxes->map(fn (FolioLine $tax): array => $this->taxSubtotal($amount, BigDecimal::of($tax->amount), $taxTypes->for($tax)))->all());
+
+            $lines[] = $this->line((string) ($index + 1), $quantity, $amount, $unitPrice, $this->reportableLines->sum($childTaxes), $subtotals, $charge->description ?: 'Accommodation / Service');
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $taxSubtotals
+     * @return array<string, mixed>
+     */
+    private function line(string $id, int|float|string $quantity, BigDecimal $amount, BigDecimal $unitPrice, BigDecimal $taxAmount, array $taxSubtotals, string $description): array
+    {
+        return [
+            'ID' => [['_' => $id]],
+            'InvoicedQuantity' => [['_' => $quantity, 'unitCode' => self::UNIT_CODE_EACH]],
+            'LineExtensionAmount' => [['_' => LhdnAmount::of($amount), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'AllowanceCharge' => [
                 [
-                    'ID' => [['_' => '1']],
-                    'InvoicedQuantity' => [['_' => 1, 'unitCode' => self::UNIT_CODE_EACH]],
-                    'LineExtensionAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                    'AllowanceCharge' => [
-                        [
-                            'ChargeIndicator' => [['_' => false]],
-                            'Amount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                        ],
-                    ],
-                    'TaxTotal' => [
-                        [
-                            'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                            'TaxSubtotal' => [$this->exemptTaxSubtotal(0.0)],
-                        ],
-                    ],
-                    'Item' => [
-                        [
-                            'CommodityClassification' => [
-                                ['ItemClassificationCode' => [['_' => self::ACCOMMODATION_CLASS_CODE, 'listID' => 'CLASS']]],
-                            ],
-                            'Description' => [['_' => 'Hotel Accommodation Services']],
-                            'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
-                        ],
-                    ],
-                    'Price' => [['PriceAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]]]],
-                    'ItemPriceExtension' => [['Amount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]]]],
+                    'ChargeIndicator' => [['_' => false]],
+                    'Amount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
                 ],
-            ];
-        }
-
-        $reversedIds = $this->folio->lines()
-            ->whereNotNull('reversal_of_id')
-            ->pluck('reversal_of_id')
-            ->filter();
-
-        $idx = 1;
-        foreach ($lines as $line) {
-            $amount = (float) $line->amount;
-            $qty = $line->quantity ?: 1;
-            $unitPrice = (float) ($line->unit_amount ?? ($amount / $qty));
-
-            $childTaxes = $this->folio->lines
-                ->where('parent_line_id', $line->id)
-                ->where('kind', TransactionKind::Tax)
-                ->whereNull('reversal_of_id')
-                ->whereNotIn('id', $reversedIds);
-
-            $lineTaxSubtotals = [];
-            $lineTaxAmount = 0.0;
-
-            if ($childTaxes->isNotEmpty()) {
-                foreach ($childTaxes as $tax) {
-                    $taxAmt = (float) $tax->amount;
-                    $lineTaxAmount += $taxAmt;
-                    $taxCode = $this->resolveTaxCode($tax);
-
-                    $lineTaxSubtotals[] = [
-                        'TaxableAmount' => [['_' => round($amount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
-                        'TaxAmount' => [['_' => round($taxAmt, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
-                        'TaxCategory' => [
-                            [
-                                'ID' => [['_' => $taxCode]],
-                                'TaxExemptionReason' => [['_' => '']],
-                                'TaxScheme' => [['ID' => [['_' => 'OTH', 'schemeID' => 'UN/ECE 5153', 'schemeAgencyID' => '6']]]],
-                            ],
-                        ],
-                    ];
-                }
-            } else {
-                $lineTaxSubtotals[] = $this->exemptTaxSubtotal(round($amount, 2));
-            }
-
-            $formattedLines[] = [
-                'ID' => [['_' => (string) $idx++]],
-                'InvoicedQuantity' => [['_' => $qty, 'unitCode' => self::UNIT_CODE_EACH]],
-                'LineExtensionAmount' => [['_' => round($amount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
-                'AllowanceCharge' => [
-                    [
-                        'ChargeIndicator' => [['_' => false]],
-                        'Amount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                    ],
+            ],
+            'TaxTotal' => [
+                [
+                    'TaxAmount' => [['_' => LhdnAmount::of($taxAmount), 'currencyID' => self::DEFAULT_CURRENCY]],
+                    'TaxSubtotal' => $taxSubtotals,
                 ],
-                'TaxTotal' => [
-                    [
-                        'TaxAmount' => [['_' => round($lineTaxAmount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
-                        'TaxSubtotal' => $lineTaxSubtotals,
+            ],
+            'Item' => [
+                [
+                    'CommodityClassification' => [
+                        ['ItemClassificationCode' => [['_' => self::ACCOMMODATION_CLASS_CODE, 'listID' => 'CLASS']]],
                     ],
+                    'Description' => [['_' => $description]],
+                    'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
                 ],
-                'Item' => [
-                    [
-                        'CommodityClassification' => [
-                            ['ItemClassificationCode' => [['_' => self::ACCOMMODATION_CLASS_CODE, 'listID' => 'CLASS']]],
-                        ],
-                        'Description' => [['_' => $line->description ?: 'Accommodation / Service']],
-                        'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
-                    ],
-                ],
-                'Price' => [['PriceAmount' => [['_' => round($unitPrice, 4), 'currencyID' => self::DEFAULT_CURRENCY]]]],
-                'ItemPriceExtension' => [['Amount' => [['_' => round($amount, 2), 'currencyID' => self::DEFAULT_CURRENCY]]]],
-            ];
-        }
-
-        return $formattedLines;
+            ],
+            'Price' => [['PriceAmount' => [['_' => LhdnAmount::of($unitPrice, 4), 'currencyID' => self::DEFAULT_CURRENCY]]]],
+            'ItemPriceExtension' => [['Amount' => [['_' => LhdnAmount::of($amount), 'currencyID' => self::DEFAULT_CURRENCY]]]],
+        ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function exemptTaxSubtotal(float $taxableAmount): array
+    private function taxSubtotal(BigDecimal $taxable, BigDecimal $tax, string $taxType): array
     {
         return [
-            'TaxableAmount' => [['_' => $taxableAmount, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxableAmount' => [['_' => LhdnAmount::of($taxable), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxAmount' => [['_' => LhdnAmount::of($tax), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxCategory' => [
+                [
+                    'ID' => [['_' => $taxType]],
+                    'TaxExemptionReason' => [['_' => '']],
+                    'TaxScheme' => [['ID' => [['_' => 'OTH', 'schemeID' => 'UN/ECE 5153', 'schemeAgencyID' => '6']]]],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function exemptTaxSubtotal(BigDecimal $taxable): array
+    {
+        return [
+            'TaxableAmount' => [['_' => LhdnAmount::of($taxable), 'currencyID' => self::DEFAULT_CURRENCY]],
             'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
             'TaxCategory' => [
                 [
@@ -365,49 +303,37 @@ class FolioDocumentBuilder
     }
 
     /**
+     * The tax totals by LHDN tax type. Each type's taxable amount is the charges its tax lines sit on; a tax with no
+     * charge under it is taken on all the charges.
+     *
      * @return array<string, mixed>
      */
-    private function taxTotalBlock(): array
+    private function taxTotalBlock(Folio $folio, LhdnTaxType $taxTypes): array
     {
-        $taxLines = $this->activeTaxLines();
-        $subtotal = $this->chargesSubtotal();
+        $taxes = $this->reportableLines->taxes($folio);
+        $charges = $this->reportableLines->charges($folio);
+        $subtotal = $this->reportableLines->sum($charges);
 
-        if ($taxLines->isEmpty()) {
+        if ($taxes->isEmpty()) {
             return [
                 'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
                 'TaxSubtotal' => [$this->exemptTaxSubtotal($subtotal)],
             ];
         }
 
-        $totalTaxAmount = 0.0;
         $subtotals = [];
+        /** @var Collection<string, Collection<int, FolioLine>> $byType */
+        $byType = $taxes->groupBy(fn (FolioLine $line): string => $taxTypes->for($line));
 
-        $grouped = $taxLines->groupBy(fn (FolioLine $line): string => $this->resolveTaxCode($line));
-
-        foreach ($grouped as $taxCode => $lines) {
-            $taxAmount = $lines->sum(fn (FolioLine $l): float => (float) $l->amount);
-            $totalTaxAmount += $taxAmount;
-
+        foreach ($byType as $taxType => $lines) {
             $parentIds = $lines->pluck('parent_line_id')->filter();
-            $taxableBase = $parentIds->isNotEmpty()
-                ? $this->activeChargeLines()->whereIn('id', $parentIds)->sum(fn (FolioLine $c): float => (float) $c->amount)
-                : $subtotal;
+            $taxable = $parentIds->isNotEmpty() ? $this->reportableLines->sum($charges->whereIn('id', $parentIds)) : $subtotal;
 
-            $subtotals[] = [
-                'TaxableAmount' => [['_' => round($taxableBase ?: $subtotal, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
-                'TaxAmount' => [['_' => round($taxAmount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
-                'TaxCategory' => [
-                    [
-                        'ID' => [['_' => $taxCode]],
-                        'TaxExemptionReason' => [['_' => '']],
-                        'TaxScheme' => [['ID' => [['_' => 'OTH', 'schemeID' => 'UN/ECE 5153', 'schemeAgencyID' => '6']]]],
-                    ],
-                ],
-            ];
+            $subtotals[] = $this->taxSubtotal($taxable->isZero() ? $subtotal : $taxable, $this->reportableLines->sum($lines), (string) $taxType);
         }
 
         return [
-            'TaxAmount' => [['_' => round($totalTaxAmount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxAmount' => [['_' => LhdnAmount::of($this->reportableLines->sum($taxes)), 'currencyID' => self::DEFAULT_CURRENCY]],
             'TaxSubtotal' => $subtotals,
         ];
     }
@@ -415,81 +341,19 @@ class FolioDocumentBuilder
     /**
      * @return array<string, mixed>
      */
-    private function monetaryTotal(): array
+    private function monetaryTotal(Folio $folio): array
     {
-        $subtotal = $this->chargesSubtotal();
-        $taxTotal = $this->taxesTotal();
-        $grandTotal = round($subtotal + $taxTotal, 2);
+        $subtotal = $this->reportableLines->sum($this->reportableLines->charges($folio));
+        $total = $subtotal->plus($this->reportableLines->sum($this->reportableLines->taxes($folio)));
 
         return [
-            'LineExtensionAmount' => [['_' => $subtotal, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxExclusiveAmount' => [['_' => $subtotal, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'TaxInclusiveAmount' => [['_' => $grandTotal, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'LineExtensionAmount' => [['_' => LhdnAmount::of($subtotal), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxExclusiveAmount' => [['_' => LhdnAmount::of($subtotal), 'currencyID' => self::DEFAULT_CURRENCY]],
+            'TaxInclusiveAmount' => [['_' => LhdnAmount::of($total), 'currencyID' => self::DEFAULT_CURRENCY]],
             'AllowanceTotalAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
             'ChargeTotalAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
             'PayableRoundingAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-            'PayableAmount' => [['_' => $grandTotal, 'currencyID' => self::DEFAULT_CURRENCY]],
+            'PayableAmount' => [['_' => LhdnAmount::of($total), 'currencyID' => self::DEFAULT_CURRENCY]],
         ];
-    }
-
-    private function resolveTaxCode(FolioLine $taxLine): string
-    {
-        return $this->taxTypes->for($taxLine);
-    }
-
-    /**
-     * @return Collection<int, FolioLine>
-     */
-    private function activeChargeLines(): Collection
-    {
-        $reversedIds = $this->folio->lines()
-            ->whereNotNull('reversal_of_id')
-            ->pluck('reversal_of_id')
-            ->filter();
-
-        return $this->folio->lines()
-            ->whereIn('kind', [TransactionKind::Charge, TransactionKind::Adjustment])
-            ->whereNull('reversal_of_id')
-            ->whereNotIn('id', $reversedIds)
-            ->with('transactionCode')
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, FolioLine>
-     */
-    private function activeTaxLines(): Collection
-    {
-        $reversedIds = $this->folio->lines()
-            ->whereNotNull('reversal_of_id')
-            ->pluck('reversal_of_id')
-            ->filter();
-
-        return $this->folio->lines()
-            ->where('kind', TransactionKind::Tax)
-            ->whereNull('reversal_of_id')
-            ->whereNotIn('id', $reversedIds)
-            ->with('transactionCode')
-            ->get();
-    }
-
-    private function chargesSubtotal(): float
-    {
-        $total = BigDecimal::zero();
-        foreach ($this->activeChargeLines() as $line) {
-            $total = $total->plus($line->amount);
-        }
-
-        return (float) (string) $total->toScale(2);
-    }
-
-    private function taxesTotal(): float
-    {
-        $total = BigDecimal::zero();
-        foreach ($this->activeTaxLines() as $line) {
-            $total = $total->plus($line->amount);
-        }
-
-        return (float) (string) $total->toScale(2);
     }
 }
