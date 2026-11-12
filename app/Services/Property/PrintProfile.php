@@ -25,6 +25,7 @@ class PrintProfile
         return new PrintLayout(
             font: $settings->font,
             fontSize: $settings->font_size,
+            tableStyle: $settings->table_style,
             propertyName: $property->name,
             legalName: $this->legalName($property),
             logoDataUri: $settings->show_logo ? $this->logoDataUri($property) : null,

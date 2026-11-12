@@ -10,6 +10,7 @@ use App\Data\Property\PrintTaxData;
 use App\Data\Property\PropertyProfileData;
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
+use App\Enums\PdfTableStyle;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Property\UpdatePrintDocumentsRequest;
 use App\Http\Requests\Property\UpdatePrintHeaderRequest;
@@ -34,7 +35,7 @@ use Inertia\Response as InertiaResponse;
 class PrintSettingsController extends Controller
 {
     /**
-     * Printing page, General tab: font, font size and footer.
+     * Printing page, General tab: font, font size, table style and footer.
      */
     public function general(Property $property): InertiaResponse|RedirectResponse
     {
@@ -44,6 +45,7 @@ class PrintSettingsController extends Controller
 
         return $this->renderTab($property, 'general', [
             'fontSizes' => PdfFontSize::options(),
+            'tableStyles' => PdfTableStyle::options(),
         ]);
     }
 
