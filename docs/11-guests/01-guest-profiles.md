@@ -116,6 +116,17 @@ A guest with no stays shows 0 and "No stays yet". An archived guest keeps the ti
 - Email and Phone: an empty value shows a warning "No email" or "No phone". Archived guests show "—".
 - Filters, in the URL: `filter[source]` (a booking source id: guests with any stay from it), `filter[returning]` (`first` or `returning`) and `filter[contact]` (`no_email`, `no_phone` or `missing`, which is either).
 - The figures come from one grouped subquery joined to the page query, so the list stays one query whatever the page size.
+- Sorts on Email, Phone and Nationality (`email`, `phone`, `nationality`). Email sorts ignoring case. Nationality sorts by the country name shown (China, Germany, Japan), not by the code: the server passes the codes in name order as one array and sorts by the position in it. Empty values go last in both directions, then by name.
+
+### Guest list layout
+
+The guest list uses the shared report [column layout](../22-reports/01-core-reports.md#column-layouts-per-property): one layout per property, shared by every user.
+
+- `ReportKey::Guests` (slug `guests`) holds the columns. It is not listed in the Reports menu, like Housekeeping tasks. It has **no exports**: no PDF, no spreadsheet and no Preview PDF. `ReportKey::hasExports()` is false for it, and the export and preview routes take only keys that have exports, so `guests` returns 404 there. `report()` has no rows for it.
+- Columns, in default order, all visible: Email, Phone, Nationality, Tags, Last visit, Stays (right), Spend (right), Added. Keys: `email`, `phone`, `nationality`, `tags`, `last_visit`, `stays`, `spend`, `created_at`.
+- **Name is not in the layout.** It is always the first column, because it opens the guest. The checkbox column stays before it.
+- Staff with `settings.manage` (and `reports.view`, as the layout routes sit under Reports) see a **Layout** button next to Add guest. It opens `ReportLayoutSheet` without the Orientation choice and without Preview PDF (`printable={false}`). Hide, show, reorder and align work as on reports, and the table behind the Sheet follows the draft.
+- A sort on a hidden column falls back to Name. The page gets the sort it used.
 
 ### Registration card
 
