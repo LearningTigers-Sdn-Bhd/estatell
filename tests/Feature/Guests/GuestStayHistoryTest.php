@@ -2,6 +2,7 @@
 
 use App\Data\Guests\GuestStayData;
 use App\Data\Guests\GuestStaySummaryData;
+use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
@@ -15,8 +16,10 @@ use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
+use App\Models\User;
 use App\Services\Guests\GuestStayHistory;
 use Carbon\CarbonImmutable;
+use Inertia\Testing\AssertableInertia as Assert;
 
 /**
  * A unit of a new reservation of the property with the guest on it.
@@ -181,4 +184,42 @@ test('lines and stays of another property are not counted', function () {
 
     expect(app(GuestStayHistory::class)->figures($elsewhere, '2025-10-14')->get())->toBeEmpty()
         ->and(app(GuestStayHistory::class)->unitSpend($elsewhere->id)->get())->toBeEmpty();
+});
+
+test('the Stays tab lists the stays and every tab shows the figures', function () {
+    $owner = User::factory()->owner()->create();
+    $guest = Guest::factory()->create(['property_id' => $owner->property_id]);
+    $unit = stayFor($guest, ['arrival_date' => '2026-09-01', 'departure_date' => '2026-09-04']);
+    FolioLine::factory()->create(['folio_id' => unitFolio($unit)->id, 'amount' => '450.00']);
+
+    $this->actingAs($owner)
+        ->get(route('guests.stays.index', [$owner->property->code, $guest]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('guests/show')
+            ->where('tab', 'stays')
+            ->where('staySummary.stays', 1)
+            ->where('staySummary.nights', 3)
+            ->where('staySummary.spend', '450.00')
+            ->where('stays.0.shortCode', $unit->reservation->short_code)
+            ->where('stays.0.nights', 3)
+            ->where('stays.0.spend', '450.00'));
+
+    $this->get(route('guests.notes.index', [$owner->property->code, $guest]))
+        ->assertInertia(fn (Assert $page) => $page->where('staySummary.stays', 1)->missing('stays'));
+});
+
+test('the Stays tab needs guests.view and the guest of the property', function () {
+    $housekeeping = User::factory()->withPermissions([])->create();
+    $guest = Guest::factory()->create(['property_id' => $housekeeping->property_id]);
+
+    $this->actingAs($housekeeping)
+        ->get(route('guests.stays.index', [$housekeeping->property->code, $guest]))
+        ->assertForbidden();
+
+    $viewer = User::factory()->for($housekeeping->property)->withPermissions([PermissionEnum::GuestsView])->create();
+    $foreign = Guest::factory()->create();
+
+    $this->actingAs($viewer)
+        ->get(route('guests.stays.index', [$viewer->property->code, $foreign]))
+        ->assertNotFound();
 });

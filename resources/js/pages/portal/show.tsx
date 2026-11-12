@@ -16,7 +16,7 @@ import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { PortalArrivalRow } from '@/components/pms/portal/portal-arrival-row';
 import { PortalRecentBookings } from '@/components/pms/portal/portal-recent-bookings';
-import { PortalStatTile } from '@/components/pms/portal/portal-stat-tile';
+import { StatTile } from '@/components/pms/stat-tile';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
@@ -112,7 +112,7 @@ export default function PortalShow({
                 )}
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <PortalStatTile
+                    <StatTile
                         title="Open balance"
                         icon={Wallet}
                         figure={
@@ -123,7 +123,7 @@ export default function PortalShow({
                         }
                         note={plural(stats.openInvoices, 'open invoice')}
                     />
-                    <PortalStatTile
+                    <StatTile
                         title="Overdue"
                         icon={CircleAlert}
                         figure={
@@ -134,13 +134,13 @@ export default function PortalShow({
                         }
                         note={plural(stats.overdueInvoices, 'invoice')}
                     />
-                    <PortalStatTile
+                    <StatTile
                         title="Arrivals, 7 days"
                         icon={CalendarDays}
                         figure={stats.arrivals}
                         note={`${stats.inHouse} in-house now`}
                     />
-                    <PortalStatTile
+                    <StatTile
                         title="Credit available"
                         icon={Landmark}
                         figure={

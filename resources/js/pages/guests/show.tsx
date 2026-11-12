@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { FileText, IdCard, StickyNote } from 'lucide-react';
+import { FileText, History, IdCard, StickyNote } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
     GuestIdentityFields,
@@ -8,11 +8,14 @@ import {
 import { DateText } from '@/components/pms/date-text';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import { AnonymizeGuestDialog } from '@/components/pms/guests/anonymize-guest-dialog';
+import { ContactBanner } from '@/components/pms/guests/contact-banner';
 import type { DocumentFormOptions } from '@/components/pms/guests/document-sheet';
 import { DocumentsTab } from '@/components/pms/guests/documents-tab';
 import { GuestForm, guestFormKey } from '@/components/pms/guests/guest-form';
 import { NotesTab } from '@/components/pms/guests/notes-tab';
 import { PossibleDuplicates } from '@/components/pms/guests/possible-duplicates';
+import { StayFigures } from '@/components/pms/guests/stay-figures';
+import { StaysTab } from '@/components/pms/guests/stays-tab';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { GuestFlags } from '@/components/pms/guests/guest-flags';
 import {
@@ -25,16 +28,20 @@ import { Badge } from '@/components/ui/badge';
 import { index, show } from '@/routes/guests';
 import { index as documentsTab } from '@/routes/guests/documents';
 import { index as notesTab } from '@/routes/guests/notes';
+import { index as staysTab } from '@/routes/guests/stays';
 
 type Guest = App.Data.Guests.GuestData;
 type Note = App.Data.Guests.GuestNoteData;
 type Document = App.Data.Guests.GuestIdentityDocumentData;
-type Tab = 'details' | 'notes' | 'documents';
+type Tab = 'details' | 'notes' | 'stays' | 'documents';
 
 type Props = {
     guest: Guest;
     tab: Tab;
     notes?: Note[];
+    stays?: App.Data.Guests.GuestStayData[];
+    staySummary: App.Data.Guests.GuestStaySummaryData;
+    currency: App.Data.Property.CurrencyData | null;
     documents?: Document[];
     duplicates?: App.Data.Guests.GuestMatchData[];
     retentionDays?: number | null;
@@ -140,6 +147,9 @@ export default function GuestShow({
     guest,
     tab,
     notes = [],
+    stays = [],
+    staySummary,
+    currency,
     documents = [],
     duplicates = [],
     retentionDays = null,
@@ -164,6 +174,12 @@ export default function GuestShow({
             label: 'Notes',
             icon: StickyNote,
             href: notesTab.url({ guest: guest.id }),
+        },
+        {
+            value: 'stays',
+            label: 'Stays',
+            icon: History,
+            href: staysTab.url({ guest: guest.id }),
         },
         ...(canViewDocuments && !isAnonymized
             ? [
@@ -223,6 +239,15 @@ export default function GuestShow({
                     </div>
                 </div>
 
+                <StayFigures summary={staySummary} currency={currency} />
+
+                {!isAnonymized && (
+                    <ContactBanner
+                        guest={guest}
+                        showEditLink={canManage && tab !== 'details'}
+                    />
+                )}
+
                 {isAnonymized && (
                     <Alert>
                         <AlertTitle>Archived</AlertTitle>
@@ -246,9 +271,17 @@ export default function GuestShow({
                 <DetailLayout
                     tabs={tabs}
                     activeTab={tab}
-                    panelWidth={tab === 'notes' ? 'full' : 'default'}
+                    panelWidth={
+                        tab === 'notes' || tab === 'stays' ? 'full' : 'default'
+                    }
                 >
-                    {tab === 'notes' ? (
+                    {tab === 'stays' ? (
+                        <StaysTab
+                            stays={stays}
+                            summary={staySummary}
+                            currency={currency}
+                        />
+                    ) : tab === 'notes' ? (
                         <NotesTab
                             guest={guest}
                             notes={notes}

@@ -17,7 +17,7 @@ import { PortalInvoicesTable } from '@/components/pms/portal/portal-invoices-tab
 import { PortalPayDialog } from '@/components/pms/portal/portal-pay-dialog';
 import { PortalPaymentsTable } from '@/components/pms/portal/portal-payments-table';
 import { PortalProofsTable } from '@/components/pms/portal/portal-proofs-table';
-import { PortalStatTile } from '@/components/pms/portal/portal-stat-tile';
+import { StatTile } from '@/components/pms/stat-tile';
 import { PortalStatementSection } from '@/components/pms/portal/portal-statement';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
@@ -132,19 +132,19 @@ export default function PortalStatements({
                 />
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <PortalStatTile
+                    <StatTile
                         title="Balance"
                         icon={Wallet}
                         figure={money(summary.balance)}
                         note={asOf}
                     />
-                    <PortalStatTile
+                    <StatTile
                         title="Overdue"
                         icon={CalendarClock}
                         figure={money(summary.overdue)}
                         note={asOf}
                     />
-                    <PortalStatTile
+                    <StatTile
                         title="Credit"
                         icon={Coins}
                         figure={money(summary.credit)}

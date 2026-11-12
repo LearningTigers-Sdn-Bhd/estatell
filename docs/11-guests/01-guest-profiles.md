@@ -106,7 +106,7 @@ The header shows five tiles above the tabs, on every tab:
 
 A guest with no stays shows 0 and "No stays yet". An archived guest keeps the tiles: financial history is kept.
 
-**Contact banner.** When the email or the phone is empty, a warning Alert under the header says "No email." or "No phone." (or both) and "Ask the guest at the next stay." Staff with `guests.manage` get an **Edit details** link to the Details tab. Archived guests show no banner.
+**Contact banner.** When the email or the phone is empty, a warning Alert under the header says "No email." or "No phone." (or both) and "Ask the guest at the next stay." On the other tabs, staff with `guests.manage` get an **Edit details** link to the Details tab, which is the edit form. Archived guests show no banner.
 
 **Stays tab** (`GET /p/{code}/guests/{guest}/stays`, `guests.stays.index`, `guests.view`): every stay, newest arrival first. Columns: Booking (short code, links to the reservation), Dates, Room, Source, Status, Nights, Spend (MYR). Spend shows "—" when the guest is not the primary guest. A footer row sums Nights and Spend. The list is bounded by one guest's stays, so it is not paginated.
 

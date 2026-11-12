@@ -13,7 +13,10 @@ use App\Data\Guests\GuestMatchData;
 use App\Data\Guests\GuestNoteData;
 use App\Data\Guests\GuestOptionData;
 use App\Data\Guests\GuestRowData;
+use App\Data\Guests\GuestStayData;
+use App\Data\Guests\GuestStaySummaryData;
 use App\Data\Guests\TagData;
+use App\Data\Property\CurrencyData;
 use App\Enums\Gender;
 use App\Enums\GuestBulkAction;
 use App\Enums\IdentityDocumentType;
@@ -27,11 +30,13 @@ use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
 use App\Models\Property;
+use App\Models\ReservationUnit;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Guests\CountryOptions;
 use App\Services\Guests\GuestDirectory;
 use App\Services\Guests\GuestMatcher;
+use App\Services\Guests\GuestStayHistory;
 use App\Services\Property\PropertyToday;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -124,6 +129,14 @@ class GuestController extends Controller
     }
 
     /**
+     * Guest page, Stays tab: every stay, newest arrival first. A guest's stays are few, so the tab is not paginated.
+     */
+    public function stays(Request $request, Property $property, Guest $guest): Response
+    {
+        return $this->renderTab($request->user(), $guest, 'stays', withStays: true);
+    }
+
+    /**
      * Guest page, Documents tab. Documents load only here, with masked numbers. The sheet form gets the full number
      * from the logged `reveal` request, never from page props.
      */
@@ -204,12 +217,16 @@ class GuestController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's data is sent.
      *
-     * @param  'details'|'notes'|'documents'  $tab
+     * The stay figures in the header are on every tab. `$withStays` also sends the stay rows.
+     *
+     * @param  'details'|'notes'|'stays'|'documents'  $tab
      * @param  array<string, mixed>  $tabProps
      */
-    private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = []): Response
+    private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = [], bool $withStays = false): Response
     {
-        $guest->load(['tags', 'property']);
+        $guest->load(['tags', 'property.settings']);
+        $stays = app(GuestStayHistory::class)->stays($guest);
+        $since = app(PropertyToday::class)->date($guest->property)->subYear();
         if ($user->can(PermissionEnum::GuestsViewDocuments->value)) {
             $guest->loadMissing('documents.media');
         }
@@ -222,6 +239,9 @@ class GuestController extends Controller
             'canViewDocuments' => $user->can(PermissionEnum::GuestsViewDocuments->value),
             'canMerge' => $user->can(PermissionEnum::GuestsMerge->value),
             'canAnonymize' => $user->can(PermissionEnum::GuestsAnonymize->value),
+            'staySummary' => GuestStaySummaryData::fromStays($stays, $since),
+            'currency' => CurrencyData::forProperty($guest->property),
+            ...($withStays ? ['stays' => $stays->map(fn (ReservationUnit $unit): GuestStayData => GuestStayData::fromUnit($unit))->values()->all()] : []),
             ...$tabProps,
         ]);
     }

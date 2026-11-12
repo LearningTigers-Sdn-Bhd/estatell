@@ -1803,6 +1803,31 @@ isAnonymized: boolean,
 tags: string[],
 createdAt: string,
 };
+export type GuestStayData = {
+unitId: number,
+reservationId: number,
+shortCode: string,
+arrival: string,
+departure: string,
+isDayUse: boolean,
+status: App.Data.Shared.BadgeData,
+room: string,
+source: string | null,
+nights: number,
+isPrimary: boolean,
+spend: string | null,
+};
+export type GuestStaySummaryData = {
+stays: number,
+staysLastYear: number,
+nights: number,
+dayUses: number,
+spend: string,
+lastVisit: string | null,
+inHouse: boolean,
+source: string | null,
+sourceKind: string | null,
+};
 export type IdentityDocumentInputData = {
 type: App.Enums.IdentityDocumentType,
 number: string,
