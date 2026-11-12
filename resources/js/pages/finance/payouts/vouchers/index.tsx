@@ -1,6 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import { FileDown, ReceiptText } from 'lucide-react';
-import { PayoutTabs } from '@/components/pms/commissions/payout-tabs';
+import {
+    PayoutTabs,
+    payoutTabs,
+} from '@/components/pms/commissions/payout-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -135,5 +139,9 @@ export default function PayoutVouchersIndex({ vouchers }: Props) {
 }
 
 PayoutVouchersIndex.layout = {
-    breadcrumbs: [{ title: 'Payouts', href: payouts() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Payouts', href: payouts() }],
+        payoutTabs(),
+        'payouts',
+    ),
 };

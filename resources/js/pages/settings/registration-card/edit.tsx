@@ -5,11 +5,40 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { RegistrationCardGeneralForm } from '@/components/pms/registration-card/registration-card-general-form';
 import { RegistrationCardLayoutForm } from '@/components/pms/registration-card/registration-card-layout-form';
 import { RegistrationCardTermsForm } from '@/components/pms/registration-card/registration-card-terms-form';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { edit as settingsEdit } from '@/routes/settings';
 import { general, layout, terms } from '@/routes/settings/registration-card';
 
 type Tab = 'general' | 'layout' | 'terms';
+
+/** The Registration card tabs. Terms shows only for staff who can manage the terms. */
+function registrationCardTabs(canManageTerms: boolean): TabLink[] {
+    return [
+        {
+            value: 'general',
+            label: 'General',
+            icon: SlidersHorizontal,
+            href: general(),
+        },
+        {
+            value: 'layout',
+            label: 'Layout',
+            icon: TableProperties,
+            href: layout(),
+        },
+        ...(canManageTerms
+            ? [
+                  {
+                      value: 'terms',
+                      label: 'Terms',
+                      icon: FileText,
+                      href: terms(),
+                  },
+              ]
+            : []),
+    ];
+}
 
 export default function RegistrationCard({
     settings,
@@ -47,30 +76,7 @@ export default function RegistrationCard({
                     activeTab={tab}
                     className="flex flex-col gap-4"
                     panelWidth={tab === 'general' ? 'default' : 'full'}
-                    tabs={[
-                        {
-                            value: 'general',
-                            label: 'General',
-                            icon: SlidersHorizontal,
-                            href: general(),
-                        },
-                        {
-                            value: 'layout',
-                            label: 'Layout',
-                            icon: TableProperties,
-                            href: layout(),
-                        },
-                        ...(canManageTerms
-                            ? [
-                                  {
-                                      value: 'terms',
-                                      label: 'Terms',
-                                      icon: FileText,
-                                      href: terms(),
-                                  },
-                              ]
-                            : []),
-                    ]}
+                    tabs={registrationCardTabs(canManageTerms)}
                 >
                     {tab === 'general' && (
                         <RegistrationCardGeneralForm
@@ -98,9 +104,13 @@ export default function RegistrationCard({
     );
 }
 
-RegistrationCard.layout = {
-    breadcrumbs: [
-        { title: 'Settings', href: settingsEdit() },
-        { title: 'Registration card', href: general() },
-    ],
-};
+RegistrationCard.layout = (props: { tab: Tab; canManageTerms: boolean }) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Settings', href: settingsEdit() },
+            { title: 'Registration card', href: general() },
+        ],
+        registrationCardTabs(props.canManageTerms),
+        props.tab,
+    ),
+});

@@ -510,3 +510,24 @@ test('a room type saves its print label in capitals', function () {
 
     expect($roomType->refresh()->print_label)->toBe('SKING');
 });
+
+test('every room type tab sends the active room types for the breadcrumb switch menu, plus the open archived one', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $suite = RoomType::factory()->for($property)->create(['name' => 'Suite', 'position' => 2]);
+    $twin = RoomType::factory()->for($property)->create(['name' => 'Twin', 'position' => 1]);
+    $gone = RoomType::factory()->for($property)->archived()->create(['name' => 'Gone', 'position' => 3]);
+    RoomType::factory()->for(Property::factory()->create())->create(['name' => 'Theirs']);
+
+    foreach (['edit', 'rooms.edit', 'photos.edit', 'amenities.edit'] as $tab) {
+        $this->actingAs($owner)
+            ->get(route("settings.room-types.{$tab}", [$property->code, $suite]))
+            ->assertInertia(fn (Assert $page) => $page->where('roomTypeSwitch', [
+                ['id' => $twin->id, 'name' => 'Twin'],
+                ['id' => $suite->id, 'name' => 'Suite'],
+            ]));
+    }
+
+    $this->get(route('settings.room-types.edit', [$property->code, $gone]))
+        ->assertInertia(fn (Assert $page) => $page->where('roomTypeSwitch.2.name', 'Gone'));
+});

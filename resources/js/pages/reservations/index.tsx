@@ -24,7 +24,8 @@ import type {
     ReservationView,
 } from '@/components/pms/reservations/reservation-query';
 import { useReservationView } from '@/components/pms/reservations/use-reservation-view';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import { index } from '@/routes/reservations';
 
@@ -54,6 +55,42 @@ const statusIcons: Record<string, LucideIcon> = {
     departures: LogOut,
     in_house: ConciergeBell,
 };
+
+/**
+ * One tab per status with its count, for the tab bar and the breadcrumbs. Each tab keeps the other filters and the
+ * sort. The breadcrumbs pass no view, so their links open the default view.
+ */
+function reservationTabs(
+    statusCounts: Props['statusCounts'],
+    filters: ReservationFilters,
+    sort: string,
+    view: ReservationView = 'cards',
+): TabLink[] {
+    return statusCounts.map((tab) => ({
+        value: tab.value === '' ? 'all' : tab.value,
+        title: tab.label,
+        label: (
+            <>
+                {tab.label}
+                <span className="text-muted-foreground tabular-nums">
+                    {tab.count}
+                </span>
+            </>
+        ),
+        icon: statusIcons[tab.value] ?? CalendarDays,
+        href: index.url(undefined, {
+            query: reservationQuery({
+                filters: {
+                    ...filters,
+                    status: tab.value,
+                    statuses: tab.value === '' ? filters.statuses : [],
+                },
+                sort,
+                view,
+            }),
+        }),
+    }));
+}
 
 export default function ReservationsIndex({
     reservations,
@@ -94,32 +131,7 @@ export default function ReservationsIndex({
         [filters, sort, view],
     );
 
-    const tabHref = (status: string) =>
-        index.url(undefined, {
-            query: reservationQuery({
-                filters: {
-                    ...filters,
-                    status,
-                    statuses: status === '' ? filters.statuses : [],
-                },
-                sort,
-                view,
-            }),
-        });
-
-    const tabs = statusCounts.map((tab) => ({
-        value: tab.value === '' ? 'all' : tab.value,
-        label: (
-            <>
-                {tab.label}
-                <span className="text-muted-foreground tabular-nums">
-                    {tab.count}
-                </span>
-            </>
-        ),
-        icon: statusIcons[tab.value] ?? CalendarDays,
-        href: tabHref(tab.value),
-    }));
+    const tabs = reservationTabs(statusCounts, filters, sort, view);
 
     const pagination = toPaginationData(reservations.meta);
     const clearFilters = () =>
@@ -282,6 +294,12 @@ export default function ReservationsIndex({
     );
 }
 
-ReservationsIndex.layout = {
-    breadcrumbs: [{ title: 'Reservations', href: index() }],
-};
+ReservationsIndex.layout = (
+    props: Pick<Props, 'statusCounts' | 'filters' | 'sort'>,
+) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Reservations', href: index() }],
+        reservationTabs(props.statusCounts, props.filters, props.sort),
+        props.filters.status === '' ? 'all' : props.filters.status,
+    ),
+});

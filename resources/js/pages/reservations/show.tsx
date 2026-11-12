@@ -9,7 +9,8 @@ import { FolioTab } from '@/components/pms/folio/folio-tab';
 import { SettlePastStayDialog } from '@/components/pms/folio/settle-past-stay-dialog';
 import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
 import { PageHeader } from '@/components/pms/page-header';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
 import { ActivityTab } from '@/components/pms/reservations/activity-tab';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
@@ -104,6 +105,44 @@ type Props = {
     >;
 };
 
+/** The tabs of the reservation page, for the tab bar and the breadcrumbs. */
+function reservationTabs(reservationId: number): TabLink[] {
+    const key = { reservation: reservationId };
+
+    return [
+        {
+            value: 'units',
+            label: 'Units',
+            icon: BedDouble,
+            href: show.url(key),
+        },
+        {
+            value: 'guests',
+            label: 'Guests',
+            icon: Users,
+            href: guestsTab.url(key),
+        },
+        {
+            value: 'add-ons',
+            label: 'Add-ons',
+            icon: Receipt,
+            href: addOnsTab.url(key),
+        },
+        {
+            value: 'folio',
+            label: 'Folio',
+            icon: CreditCard,
+            href: folioTab.url(key),
+        },
+        {
+            value: 'activity',
+            label: 'Activity',
+            icon: History,
+            href: activityTab.url(key),
+        },
+    ];
+}
+
 export default function ReservationShow({
     reservation,
     money,
@@ -165,39 +204,7 @@ export default function ReservationShow({
     voucher,
     activity,
 }: Props) {
-    const key = { reservation: reservation.id };
-    const tabs = [
-        {
-            value: 'units',
-            label: 'Units',
-            icon: BedDouble,
-            href: show.url(key),
-        },
-        {
-            value: 'guests',
-            label: 'Guests',
-            icon: Users,
-            href: guestsTab.url(key),
-        },
-        {
-            value: 'add-ons',
-            label: 'Add-ons',
-            icon: Receipt,
-            href: addOnsTab.url(key),
-        },
-        {
-            value: 'folio',
-            label: 'Folio',
-            icon: CreditCard,
-            href: folioTab.url(key),
-        },
-        {
-            value: 'activity',
-            label: 'Activity',
-            icon: History,
-            href: activityTab.url(key),
-        },
-    ];
+    const tabs = reservationTabs(reservation.id);
 
     const [summaryHidden, toggleSummary] = useSummaryHidden();
     const [guestsView, setGuestsView] = useGuestsView();
@@ -527,13 +534,18 @@ export default function ReservationShow({
 
 ReservationShow.layout = (props: {
     reservation: App.Data.Reservations.ReservationData;
+    tab: Tab;
 }) => ({
     variant: 'fixed',
-    breadcrumbs: [
-        { title: 'Reservations', href: index() },
-        {
-            title: props.reservation.reference,
-            href: show({ reservation: props.reservation.id }),
-        },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Reservations', href: index() },
+            {
+                title: props.reservation.reference,
+                href: show({ reservation: props.reservation.id }),
+            },
+        ],
+        reservationTabs(props.reservation.id),
+        props.tab,
+    ),
 });

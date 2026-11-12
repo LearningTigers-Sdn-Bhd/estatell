@@ -4,7 +4,11 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { BoatDepartureSheet } from '@/components/pms/settings/boat-departure-sheet';
 import { BoatDepartureTable } from '@/components/pms/settings/boat-departure-table';
-import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
+import {
+    BoatSettingsTabs,
+    boatSettingsTabs,
+} from '@/components/pms/settings/boat-settings-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { PageHeader } from '@/components/pms/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -336,5 +340,9 @@ export default function BoatDeparturesPage({
 }
 
 BoatDeparturesPage.layout = {
-    breadcrumbs: [{ title: 'Boats', href: boats() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Boats', href: boats() }],
+        boatSettingsTabs(),
+        'departures',
+    ),
 };

@@ -2,8 +2,10 @@
 
 namespace App\Actions\Folio;
 
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
+use App\Enums\WebhookEvent;
 use App\Events\FolioClosed;
 use App\Models\Folio;
 use App\Models\User;
@@ -83,6 +85,8 @@ class CloseFolio
                 ->log('Folio closed');
 
             FolioClosed::dispatch($current->property_id, $current->id, $actor?->id);
+
+            app(TriggerWebhook::class)(WebhookEvent::FolioClosed, $current->property_id, Folio::class, $current->id);
 
             return FolioStatusResult::done($current);
         });

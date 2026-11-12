@@ -30,6 +30,8 @@ export default function RatePlanRoomTypes({
     );
 }
 
-RatePlanRoomTypes.layout = (props: { ratePlan: RatePlan }) => ({
-    breadcrumbs: ratePlanBreadcrumbs(props.ratePlan),
+RatePlanRoomTypes.layout = (
+    props: Parameters<typeof ratePlanBreadcrumbs>[0],
+) => ({
+    breadcrumbs: ratePlanBreadcrumbs(props, 'room-types'),
 });

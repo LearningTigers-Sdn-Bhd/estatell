@@ -3,9 +3,12 @@
 namespace App\Actions\FrontDesk;
 
 use App\Actions\Reservations\SyncReservationStatus;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Events\StayDatesChanged;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\User;
@@ -123,6 +126,8 @@ class ExtendDepartureTime
             ($this->syncReservationStatus)($locked->reservation);
 
             StayDatesChanged::dispatch($locked->property_id, $locked->id);
+
+            app(TriggerWebhook::class)(WebhookEvent::BookingUpdated, $locked->property_id, Reservation::class, $locked->reservation_id);
 
             return UnitStayResult::done($locked);
         });

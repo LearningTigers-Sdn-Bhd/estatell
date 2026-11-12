@@ -7,6 +7,7 @@ use App\Actions\Rooms\ReorderRoomTypePhotos;
 use App\Actions\Rooms\UploadRoomTypePhotos;
 use App\Data\Rooms\RoomTypeData;
 use App\Data\Rooms\RoomTypePhotoData;
+use App\Data\Rooms\RoomTypeSwitchData;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rooms\ReorderRoomTypePhotosRequest;
@@ -28,6 +29,7 @@ class RoomTypePhotoController extends Controller
     {
         return Inertia::render('settings/room-types/photos', [
             'roomType' => RoomTypeData::fromModel($roomType),
+            'roomTypeSwitch' => RoomTypeSwitchData::forProperty($property, $roomType),
             'roomCount' => $roomType->rooms()->active()->count(),
             'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
             'photos' => $roomType->getMedia(RoomType::PHOTOS)

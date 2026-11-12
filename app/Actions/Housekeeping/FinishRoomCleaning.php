@@ -2,7 +2,9 @@
 
 namespace App\Actions\Housekeeping;
 
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\HousekeepingRefusal;
+use App\Enums\WebhookEvent;
 use App\Models\Room;
 use App\Models\RoomCleaning;
 use App\Models\RoomStatus;
@@ -36,6 +38,8 @@ class FinishRoomCleaning
                 ->log('Room cleaning finished');
 
             ($this->markClean)($actor, $room);
+
+            app(TriggerWebhook::class)(WebhookEvent::RoomCleaned, $room->property_id, Room::class, $room->id);
 
             return null;
         });

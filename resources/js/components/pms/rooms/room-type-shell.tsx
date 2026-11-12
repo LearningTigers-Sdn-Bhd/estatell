@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/pms/page-header';
 import { ArchiveRoomTypeButton } from '@/components/pms/rooms/archive-room-type-button';
 import { TabLinks } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { edit, index, restore } from '@/routes/settings/room-types';
@@ -16,11 +17,81 @@ type RoomType = App.Data.Rooms.RoomTypeData;
 
 export type RoomTypeTab = 'details' | 'rooms' | 'photos' | 'amenities';
 
-export function roomTypeBreadcrumbs(roomType: RoomType) {
+type RoomTypeSwitch = App.Data.Rooms.RoomTypeSwitchData;
+
+/**
+ * The tabs of the room type page. The tab bar and the breadcrumbs use the same list.
+ */
+export function roomTypeTabs(
+    roomTypeId: number,
+    roomCount?: number,
+): TabLink[] {
+    const key = { roomType: roomTypeId };
+
     return [
-        { title: 'Room types', href: index() },
-        { title: roomType.name, href: edit({ roomType: roomType.id }) },
+        {
+            value: 'details',
+            label: 'Details',
+            icon: FileText,
+            href: edit.url(key),
+        },
+        {
+            value: 'rooms',
+            label: roomCount === undefined ? 'Rooms' : `Rooms (${roomCount})`,
+            title: 'Rooms',
+            icon: Bed,
+            href: editRooms.url(key),
+        },
+        {
+            value: 'photos',
+            label: 'Photos',
+            icon: Images,
+            href: editPhotos.url(key),
+        },
+        {
+            value: 'amenities',
+            label: 'Amenities',
+            icon: Sparkles,
+            href: editAmenities.url(key),
+        },
     ];
+}
+
+/**
+ * Room types › {room type} › {tab}. The room type crumb switches to another room type on the same tab.
+ */
+export function roomTypeBreadcrumbs(
+    props: {
+        roomType: RoomType;
+        roomCount: number;
+        roomTypeSwitch: RoomTypeSwitch[];
+    },
+    activeTab: RoomTypeTab,
+) {
+    const { roomType } = props;
+
+    return withTabCrumb(
+        [
+            { title: 'Room types', href: index() },
+            {
+                title: roomType.name,
+                href: edit({ roomType: roomType.id }),
+                siblings: {
+                    label: 'Room types',
+                    items: props.roomTypeSwitch.map((other) => ({
+                        title: other.name,
+                        href:
+                            roomTypeTabs(other.id).find(
+                                (tab) => tab.value === activeTab,
+                            )?.href ?? edit.url({ roomType: other.id }),
+                        current: other.id === roomType.id,
+                    })),
+                },
+            },
+        ],
+        roomTypeTabs(roomType.id, props.roomCount),
+        activeTab,
+    );
 }
 
 /**
@@ -47,32 +118,7 @@ export function RoomTypeShell({
     activeTab: RoomTypeTab;
     children: ReactNode;
 }) {
-    const tabs: TabLink[] = [
-        {
-            value: 'details',
-            label: 'Details',
-            icon: FileText,
-            href: edit.url({ roomType: roomType.id }),
-        },
-        {
-            value: 'rooms',
-            label: `Rooms (${roomCount})`,
-            icon: Bed,
-            href: editRooms.url({ roomType: roomType.id }),
-        },
-        {
-            value: 'photos',
-            label: 'Photos',
-            icon: Images,
-            href: editPhotos.url({ roomType: roomType.id }),
-        },
-        {
-            value: 'amenities',
-            label: 'Amenities',
-            icon: Sparkles,
-            href: editAmenities.url({ roomType: roomType.id }),
-        },
-    ];
+    const tabs = roomTypeTabs(roomType.id, roomCount);
 
     return (
         <div className="flex flex-1 flex-col gap-6 p-4">

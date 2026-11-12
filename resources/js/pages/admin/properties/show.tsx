@@ -24,7 +24,8 @@ import { PropertyOverview } from '@/components/pms/properties/property-overview'
 import { PropertyStaff } from '@/components/pms/properties/property-staff';
 import { PropertySummary } from '@/components/pms/properties/property-summary';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import {
     AlertDialog,
@@ -66,6 +67,56 @@ type Tab =
     | 'ota-lists'
     | 'channels'
     | 'commissions';
+
+/** The tabs of the property page. Channels shows only when the channel manager is on. */
+function propertyTabs(
+    property: Property,
+    channelManagerOn: boolean,
+): TabLink[] {
+    return [
+        {
+            value: 'overview',
+            label: 'Overview',
+            icon: Info,
+            href: show(property.code),
+        },
+        {
+            value: 'staff',
+            label: `Staff (${property.staffCount})`,
+            title: 'Staff',
+            icon: Users,
+            href: staffTab(property.code),
+        },
+        {
+            value: 'features',
+            label: 'Features',
+            icon: ToggleRight,
+            href: featuresTab(property.code),
+        },
+        {
+            value: 'ota-lists',
+            label: 'OTA lists',
+            icon: Store,
+            href: otaListsTab(property.code),
+        },
+        ...(channelManagerOn
+            ? [
+                  {
+                      value: 'channels' as const,
+                      label: 'Channels',
+                      icon: Cable,
+                      href: channelsTab(property.code),
+                  },
+              ]
+            : []),
+        {
+            value: 'commissions',
+            label: 'Commissions',
+            icon: Percent,
+            href: commissionsTab(property.code),
+        },
+    ];
+}
 
 export default function PropertyShow({
     property,
@@ -226,48 +277,7 @@ export default function PropertyShow({
                     panelWidth="full"
                     className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
                     panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
-                    tabs={[
-                        {
-                            value: 'overview',
-                            label: 'Overview',
-                            icon: Info,
-                            href: show(property.code),
-                        },
-                        {
-                            value: 'staff',
-                            label: `Staff (${property.staffCount})`,
-                            icon: Users,
-                            href: staffTab(property.code),
-                        },
-                        {
-                            value: 'features',
-                            label: 'Features',
-                            icon: ToggleRight,
-                            href: featuresTab(property.code),
-                        },
-                        {
-                            value: 'ota-lists',
-                            label: 'OTA lists',
-                            icon: Store,
-                            href: otaListsTab(property.code),
-                        },
-                        ...(channelManagerOn
-                            ? [
-                                  {
-                                      value: 'channels' as const,
-                                      label: 'Channels',
-                                      icon: Cable,
-                                      href: channelsTab(property.code),
-                                  },
-                              ]
-                            : []),
-                        {
-                            value: 'commissions',
-                            label: 'Commissions',
-                            icon: Percent,
-                            href: commissionsTab(property.code),
-                        },
-                    ]}
+                    tabs={propertyTabs(property, channelManagerOn)}
                 >
                     <Workspace
                         list={
@@ -329,11 +339,19 @@ export default function PropertyShow({
     );
 }
 
-PropertyShow.layout = (props: { property: Property }) => ({
+PropertyShow.layout = (props: {
+    property: Property;
+    tab: Tab;
+    channelManagerOn: boolean;
+}) => ({
     variant: 'fixed' as const,
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Properties', href: index() },
-        { title: props.property.name, href: show(props.property.code) },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Properties', href: index() },
+            { title: props.property.name, href: show(props.property.code) },
+        ],
+        propertyTabs(props.property, props.channelManagerOn),
+        props.tab,
+    ),
 });

@@ -8,6 +8,7 @@ use App\Actions\Commissions\RecordDueCommissions;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
 use App\Actions\Payments\ResendWaitingOnlineRefunds;
+use App\Actions\Webhooks\PruneWebhookDeliveries;
 use App\Jobs\ExpireDoorCredentials;
 use App\Jobs\MonthlyConsolidationJob;
 use App\Jobs\ReleaseExpiredKioskHolds;
@@ -69,6 +70,8 @@ Schedule::call(fn (): int => app(ExpireBookingHolds::class)())->name('expire-boo
 Schedule::call(fn (): int => app(ResendWaitingOnlineRefunds::class)())->name('resend-waiting-online-refunds')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::call(fn (): int => app(PurgeBookingHoldGuestDetails::class)())->name('purge-booking-hold-guest-details')->dailyAt('03:50')->onOneServer();
+
+Schedule::call(fn (): int => app(PruneWebhookDeliveries::class)())->name('prune-webhook-deliveries')->dailyAt('03:55')->onOneServer();
 
 Schedule::call(fn (): int => app(RecordDueCommissions::class)())->name('record-due-commissions')->hourly()->withoutOverlapping()->onOneServer();
 

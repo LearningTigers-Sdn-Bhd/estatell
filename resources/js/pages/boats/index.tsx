@@ -44,7 +44,7 @@ import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
@@ -124,6 +124,14 @@ function exportFilters(
     }
 
     return { date, direction, boat_group: 'scheduled' };
+}
+
+/** The direction tabs for a day, for the tab bar and the breadcrumbs. */
+function boatTabs(date: string): TabLink[] {
+    return TABS.map((tab) => ({
+        ...tab,
+        href: index.url(undefined, { query: { date, direction: tab.value } }),
+    }));
 }
 
 const MANIFEST_SORT = 'departure';
@@ -246,10 +254,7 @@ export default function BoatsIndex({
             { preserveScroll: true, preserveState: true },
         );
 
-    const tabs: TabLink[] = TABS.map((tab) => ({
-        ...tab,
-        href: urlFor({ direction: tab.value }),
-    }));
+    const tabs = boatTabs(date);
 
     const rowsByKey = useMemo(() => {
         const map = new Map<number, { row: Row; group: Group }>();
@@ -804,9 +809,13 @@ export default function BoatsIndex({
     );
 }
 
-BoatsIndex.layout = {
-    breadcrumbs: [{ title: 'Boat Trips', href: index() }],
-};
+BoatsIndex.layout = (props: Pick<Props, 'date' | 'direction'>) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Boat Trips', href: index() }],
+        boatTabs(props.date),
+        props.direction,
+    ),
+});
 
 /**
  * The trip a row already has, so the Change boat Dialog opens on it. A Boat not set row has none.

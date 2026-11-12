@@ -1,7 +1,10 @@
 import { Head } from '@inertiajs/react';
 import { Images } from 'lucide-react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
-import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import {
+    BookingWebsiteShell,
+    bookingWebsiteBreadcrumbs,
+} from '@/components/pms/booking-website/booking-website-shell';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { SiteImageSlotRow } from '@/components/pms/booking-website/site-image-slot-row';
 import { SiteTemplatePicker } from '@/components/pms/booking-website/site-template-picker';
@@ -89,3 +92,9 @@ export default function BookingWebsiteDesign({
         </>
     );
 }
+
+BookingWebsiteDesign.layout = (
+    props: Parameters<typeof bookingWebsiteBreadcrumbs>[0],
+) => ({
+    breadcrumbs: bookingWebsiteBreadcrumbs(props, 'design'),
+});

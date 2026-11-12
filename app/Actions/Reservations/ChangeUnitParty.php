@@ -5,9 +5,12 @@ namespace App\Actions\Reservations;
 use App\Actions\Boats\ResyncBoatFares;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReverseLine;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Folio\NewChargeData;
 use App\Data\Reservations\NewAddOnData;
 use App\Enums\ChargingUnit;
+use App\Enums\WebhookEvent;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
@@ -137,6 +140,8 @@ class ChangeUnitParty
                         'skipped_add_ons' => count($plan->postedAddOns) - $adjusted,
                     ])
                     ->log('Unit guests changed');
+
+                app(TriggerWebhook::class)(WebhookEvent::BookingUpdated, $locked->property_id, Reservation::class, $locked->reservation_id);
 
                 return UnitPartyResult::done($repriced, $corrected, $adjusted);
             });

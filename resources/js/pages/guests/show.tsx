@@ -22,7 +22,8 @@ import {
 } from '@/components/pms/guests/guest-actions';
 import { PageHeader } from '@/components/pms/page-header';
 import { PanelHeading } from '@/components/pms/panel-heading';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -144,6 +145,40 @@ function Details({ guest }: { guest: Guest }) {
     );
 }
 
+/** The tabs of the guest page. Documents shows only to staff who may see them, and not once the guest is anonymized. */
+function guestTabs(guest: Guest, canViewDocuments: boolean): TabLink[] {
+    return [
+        {
+            value: 'details',
+            label: 'Details',
+            icon: FileText,
+            href: show.url({ guest: guest.id }),
+        },
+        {
+            value: 'notes',
+            label: 'Notes',
+            icon: StickyNote,
+            href: notesTab.url({ guest: guest.id }),
+        },
+        {
+            value: 'stays',
+            label: 'Stays',
+            icon: History,
+            href: staysTab.url({ guest: guest.id }),
+        },
+        ...(canViewDocuments && guest.anonymizedAt === null
+            ? [
+                  {
+                      value: 'documents',
+                      label: 'Documents',
+                      icon: IdCard,
+                      href: documentsTab.url({ guest: guest.id }),
+                  },
+              ]
+            : []),
+    ];
+}
+
 export default function GuestShow({
     guest,
     tab,
@@ -163,36 +198,7 @@ export default function GuestShow({
     canAnonymize,
 }: Props) {
     const isAnonymized = guest.anonymizedAt !== null;
-    const tabs = [
-        {
-            value: 'details',
-            label: 'Details',
-            icon: FileText,
-            href: show.url({ guest: guest.id }),
-        },
-        {
-            value: 'notes',
-            label: 'Notes',
-            icon: StickyNote,
-            href: notesTab.url({ guest: guest.id }),
-        },
-        {
-            value: 'stays',
-            label: 'Stays',
-            icon: History,
-            href: staysTab.url({ guest: guest.id }),
-        },
-        ...(canViewDocuments && !isAnonymized
-            ? [
-                  {
-                      value: 'documents',
-                      label: 'Documents',
-                      icon: IdCard,
-                      href: documentsTab.url({ guest: guest.id }),
-                  },
-              ]
-            : []),
-    ];
+    const tabs = guestTabs(guest, canViewDocuments);
 
     return (
         <>
@@ -362,10 +368,21 @@ export default function GuestShow({
     );
 }
 
-GuestShow.layout = (props: { guest: Guest }) => ({
+GuestShow.layout = (props: {
+    guest: Guest;
+    tab: Tab;
+    canViewDocuments: boolean;
+}) => ({
     variant: 'fixed',
-    breadcrumbs: [
-        { title: 'Guests', href: index() },
-        { title: props.guest.fullName, href: show({ guest: props.guest.id }) },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Guests', href: index() },
+            {
+                title: props.guest.fullName,
+                href: show({ guest: props.guest.id }),
+            },
+        ],
+        guestTabs(props.guest, props.canViewDocuments),
+        props.tab,
+    ),
 });

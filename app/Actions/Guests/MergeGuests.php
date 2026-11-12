@@ -4,6 +4,8 @@ namespace App\Actions\Guests;
 
 use App\Actions\Folio\RepointGuestFolios;
 use App\Actions\Reservations\RepointGuestReservations;
+use App\Actions\Webhooks\TriggerWebhook;
+use App\Enums\WebhookEvent;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
@@ -120,6 +122,8 @@ class MergeGuests
                     'blacklist_carried' => $blacklistCarried,
                 ])
                 ->log('Guests merged');
+
+            app(TriggerWebhook::class)(WebhookEvent::GuestMerged, $survivor->property_id, Guest::class, $survivor->id, ['removed_guest_id' => $merged->id]);
 
             return true;
         });

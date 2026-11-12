@@ -3278,6 +3278,12 @@ value: string,
 perRoom: boolean,
 fromNight: number,
 };
+export type RatePlanSwitchData = {
+id: number,
+name: string,
+pricingBasis: App.Enums.PricingBasis,
+usesChildPrices: boolean,
+};
 export type RatePricingRoomTypeData = {
 id: number,
 name: string,
@@ -4898,6 +4904,10 @@ number: string,
 roomGroupId: number | null,
 roomTypeName: string,
 };
+export type RoomTypeSwitchData = {
+id: number,
+name: string,
+};
 }
 namespace Shared {
 export type BadgeData = {
@@ -5068,6 +5078,55 @@ from: string,
 to: string,
 today: string,
 businessDate: string,
+};
+}
+namespace Webhooks {
+export type WebhookDeliveryData = {
+row: App.Data.Webhooks.WebhookDeliveryRowData,
+eventId: string,
+error: string | null,
+nextAttemptAt: string | null,
+deliveredAt: string | null,
+tries: {
+attempt: number,
+responseStatus: number | null,
+error: string | null,
+durationMs: number,
+attemptedAt: string,
+}[],
+payload: string,
+};
+export type WebhookDeliveryRowData = {
+id: number,
+endpointId: number,
+endpointName: string,
+event: string,
+eventLabel: string,
+status: App.Data.Shared.BadgeData,
+attempts: number,
+responseStatus: number | null,
+isTest: boolean,
+canRetry: boolean,
+createdAt: string,
+};
+export type WebhookEndpointData = {
+id: number,
+name: string,
+url: string,
+propertyId: number | null,
+propertyName: string | null,
+events: string[],
+isActive: boolean,
+failingSince: string | null,
+disabledAt: string | null,
+disabledReason: string | null,
+};
+export type WebhookEndpointInputData = {
+name: string,
+url: string,
+propertyId: number | null,
+events: App.Enums.WebhookEvent[],
+isActive: boolean,
 };
 }
 }
@@ -5256,6 +5315,8 @@ export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'la
 export type UnitMovement = 'arrivals' | 'departures';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type WastaysEventType = 'create' | 'check_in' | 'charge' | 'adjustment' | 'repair' | 'payment' | 'deposit' | 'refund' | 'reversal' | 'folio_movement' | 'stay_change' | 'early_departure' | 'check_out';
+export type WebhookDeliveryStatus = 'pending' | 'retrying' | 'delivered' | 'refused' | 'failed';
+export type WebhookEvent = 'booking.created' | 'booking.updated' | 'booking.cancelled' | 'booking.no_show' | 'stay.checked_in' | 'stay.checked_out' | 'payment.received' | 'payment.refunded' | 'folio.closed' | 'guest.created' | 'guest.updated' | 'guest.merged' | 'guest.anonymized' | 'room.cleaned' | 'room.maintenance_flagged' | 'night_audit.completed' | 'channel.alert';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';
 }

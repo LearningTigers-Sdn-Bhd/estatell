@@ -13,6 +13,18 @@ if [ -n "$php_files" ]; then
     }
 fi
 
+# generated.d.ts must match the PHP Data classes and enums. A fresh process writes it, so the types are never stale.
+if printf '%s\n' "$staged" | grep -Eq '^app/(Data|Enums)/.*\.php$|^resources/js/types/generated\.d\.ts$'; then
+    php artisan typescript:transform >/dev/null || {
+        echo "pre-commit: php artisan typescript:transform failed." >&2
+        exit 1
+    }
+    git diff --quiet -- resources/js/types/generated.d.ts || {
+        echo "pre-commit: Types changed. Run: git add resources/js/types/generated.d.ts" >&2
+        exit 1
+    }
+fi
+
 if printf '%s\n' "$staged" | grep -Eq '\.(ts|tsx|js|jsx|css|json|md)$'; then
     npm run check --silent || {
         echo "pre-commit: vp check failed. Run: npm run check:fix" >&2

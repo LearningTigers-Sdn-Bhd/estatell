@@ -3,12 +3,14 @@
 namespace App\Actions\Payments;
 
 use App\Actions\Folio\CloseSettledUnitFolio;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\FolioStatus;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
+use App\Enums\WebhookEvent;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
@@ -203,6 +205,10 @@ class RefundPayment
                 ->log($void ? 'Payment voided' : 'Payment refunded');
 
             ($this->closeSettledUnitFolio)($actor, $folio);
+
+            if (! $void) {
+                app(TriggerWebhook::class)(WebhookEvent::PaymentRefunded, $refund->property_id, Payment::class, $refund->id);
+            }
 
             return PaymentResult::recorded($refund->refresh(), [$line->refresh()]);
         });

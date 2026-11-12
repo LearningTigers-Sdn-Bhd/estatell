@@ -28,6 +28,8 @@ use App\Http\Controllers\Admin\PropertyOtaListController;
 use App\Http\Controllers\Admin\PropertyPartnerController;
 use App\Http\Controllers\Admin\PropertyStatusController;
 use App\Http\Controllers\Admin\SiteTemplateController;
+use App\Http\Controllers\Admin\WebhookDeliveryController;
+use App\Http\Controllers\Admin\WebhookEndpointController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -100,6 +102,16 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('channels/order', [OtaChannelController::class, 'reorder'])->middleware('support.2fa')->name('channels.reorder');
     Route::put('channels/{channel}', [OtaChannelController::class, 'update'])->whereNumber('channel')->middleware('support.2fa')->name('channels.update');
     Route::put('channels/{channel}/active', [OtaChannelController::class, 'active'])->whereNumber('channel')->middleware('support.2fa')->name('channels.active.update');
+    Route::get('webhooks', [WebhookEndpointController::class, 'index'])->name('webhooks.index');
+    Route::get('webhooks/deliveries', [WebhookEndpointController::class, 'deliveries'])->name('webhooks.deliveries');
+    Route::post('webhooks', [WebhookEndpointController::class, 'store'])->middleware('support.2fa')->name('webhooks.store');
+    Route::post('webhooks/deliveries/{webhookDelivery}/retry', [WebhookDeliveryController::class, 'retry'])->whereNumber('webhookDelivery')->middleware('support.2fa')->name('webhooks.deliveries.retry');
+    Route::get('webhooks/{webhookEndpoint}', [WebhookEndpointController::class, 'show'])->whereNumber('webhookEndpoint')->name('webhooks.show');
+    Route::put('webhooks/{webhookEndpoint}', [WebhookEndpointController::class, 'update'])->whereNumber('webhookEndpoint')->middleware('support.2fa')->name('webhooks.update');
+    Route::delete('webhooks/{webhookEndpoint}', [WebhookEndpointController::class, 'destroy'])->whereNumber('webhookEndpoint')->middleware('support.2fa')->name('webhooks.destroy');
+    Route::put('webhooks/{webhookEndpoint}/active', [WebhookEndpointController::class, 'active'])->whereNumber('webhookEndpoint')->middleware('support.2fa')->name('webhooks.active.update');
+    Route::post('webhooks/{webhookEndpoint}/rotate-secret', [WebhookEndpointController::class, 'rotateSecret'])->whereNumber('webhookEndpoint')->middleware('support.2fa')->name('webhooks.rotate-secret');
+    Route::post('webhooks/{webhookEndpoint}/test', [WebhookEndpointController::class, 'test'])->whereNumber('webhookEndpoint')->middleware('support.2fa')->name('webhooks.test');
     Route::get('amenities', [AmenityController::class, 'index'])->name('amenities.index');
     Route::post('amenities', [AmenityController::class, 'store'])->middleware('support.2fa')->name('amenities.store');
     Route::put('amenities/order', [AmenityController::class, 'reorder'])->middleware('support.2fa')->name('amenities.reorder');

@@ -6,7 +6,8 @@ import { PropertyOverview } from '@/components/pms/properties/property-overview'
 import { PropertyStaff } from '@/components/pms/properties/property-staff';
 import { PropertySummary } from '@/components/pms/properties/property-summary';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import {
     features as featuresTab,
@@ -19,6 +20,31 @@ type Property = App.Data.Platform.AdminPropertyData;
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type StaffMember = App.Data.Platform.AdminPropertyStaffData;
 type Tab = 'overview' | 'staff' | 'features';
+
+/** The tabs of the property page, for the tab bar and the breadcrumbs. */
+function propertyTabs(property: Property): TabLink[] {
+    return [
+        {
+            value: 'overview',
+            label: 'Overview',
+            icon: Info,
+            href: show(property.code),
+        },
+        {
+            value: 'staff',
+            label: `Staff (${property.staffCount})`,
+            title: 'Staff',
+            icon: Users,
+            href: staffTab(property.code),
+        },
+        {
+            value: 'features',
+            label: 'Features',
+            icon: ToggleRight,
+            href: featuresTab(property.code),
+        },
+    ];
+}
 
 /**
  * The partner's view of a property they brought: the admin tabs, read-only, with no suspend or summary actions.
@@ -57,26 +83,7 @@ export default function PartnerPropertyShow({
                     panelWidth="full"
                     className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
                     panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
-                    tabs={[
-                        {
-                            value: 'overview',
-                            label: 'Overview',
-                            icon: Info,
-                            href: show(property.code),
-                        },
-                        {
-                            value: 'staff',
-                            label: `Staff (${property.staffCount})`,
-                            icon: Users,
-                            href: staffTab(property.code),
-                        },
-                        {
-                            value: 'features',
-                            label: 'Features',
-                            icon: ToggleRight,
-                            href: featuresTab(property.code),
-                        },
-                    ]}
+                    tabs={propertyTabs(property)}
                 >
                     <Workspace
                         asideLabel="Property summary"
@@ -110,10 +117,14 @@ export default function PartnerPropertyShow({
     );
 }
 
-PartnerPropertyShow.layout = (props: { property: Property }) => ({
+PartnerPropertyShow.layout = (props: { property: Property; tab: Tab }) => ({
     variant: 'fixed' as const,
-    breadcrumbs: [
-        { title: 'Properties', href: index() },
-        { title: props.property.name, href: show(props.property.code) },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Properties', href: index() },
+            { title: props.property.name, href: show(props.property.code) },
+        ],
+        propertyTabs(props.property),
+        props.tab,
+    ),
 });

@@ -46,6 +46,8 @@ export default function RoomTypeAmenitiesPage({
     );
 }
 
-RoomTypeAmenitiesPage.layout = (props: { roomType: RoomType }) => ({
-    breadcrumbs: roomTypeBreadcrumbs(props.roomType),
+RoomTypeAmenitiesPage.layout = (
+    props: Parameters<typeof roomTypeBreadcrumbs>[0],
+) => ({
+    breadcrumbs: roomTypeBreadcrumbs(props, 'amenities'),
 });

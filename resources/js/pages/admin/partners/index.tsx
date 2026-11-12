@@ -12,7 +12,8 @@ import {
 } from '@/components/pms/partners/partner-row-actions';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwords/export-temporary-passwords-menu';
 import { ResetTemporaryPassword } from '@/components/pms/temporary-passwords/reset-temporary-password';
@@ -287,6 +288,30 @@ function SelectionBar({
     );
 }
 
+/** The Partners tabs, for the tab bar and the breadcrumbs. */
+function partnerTabs(): TabLink[] {
+    return [
+        {
+            value: 'active',
+            label: 'Active',
+            icon: Users,
+            href: index(),
+        },
+        {
+            value: 'invited',
+            label: 'Invited',
+            icon: Mail,
+            href: invited(),
+        },
+        {
+            value: 'suspended',
+            label: 'Suspended',
+            icon: Pause,
+            href: suspended(),
+        },
+    ];
+}
+
 export default function PartnersIndex({
     tab,
     partners,
@@ -319,26 +344,7 @@ export default function PartnersIndex({
                     activeTab={tab}
                     panelWidth="full"
                     className="gap-4"
-                    tabs={[
-                        {
-                            value: 'active',
-                            label: 'Active',
-                            icon: Users,
-                            href: index(),
-                        },
-                        {
-                            value: 'invited',
-                            label: 'Invited',
-                            icon: Mail,
-                            href: invited(),
-                        },
-                        {
-                            value: 'suspended',
-                            label: 'Suspended',
-                            icon: Pause,
-                            href: suspended(),
-                        },
-                    ]}
+                    tabs={partnerTabs()}
                 >
                     {tab === 'active' && selected.length > 0 && (
                         <SelectionBar
@@ -423,9 +429,15 @@ export default function PartnersIndex({
     );
 }
 
-PartnersIndex.layout = {
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Partners', href: index() },
-    ],
-};
+PartnersIndex.layout = (props: {
+    tab: 'active' | 'invited' | 'suspended';
+}) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Partners', href: index() },
+        ],
+        partnerTabs(),
+        props.tab,
+    ),
+});

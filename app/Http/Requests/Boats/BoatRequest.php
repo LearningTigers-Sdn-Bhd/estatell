@@ -8,7 +8,7 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Add or change a boat on the Boats tab. */
+/** Add or change a boat on the Boat list tab. */
 class BoatRequest extends FormRequest
 {
     /**

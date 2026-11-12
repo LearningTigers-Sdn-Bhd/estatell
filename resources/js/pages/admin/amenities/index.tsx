@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { AmenityCategoryDialog } from '@/components/pms/amenities/amenity-category-dialog';
 import { AmenityCategoryTable } from '@/components/pms/amenities/amenity-category-table';
 import { AmenityDialog } from '@/components/pms/amenities/amenity-dialog';
@@ -23,7 +24,8 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { PaginationFooter } from '@/components/pms/pagination-footer';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -159,6 +161,37 @@ function AmenityRow({
     );
 }
 
+/**
+ * One tab per amenity type, then Categories, for the tab bar and the breadcrumbs. The tab bar adds a count badge.
+ */
+function amenityTabs(
+    typeOptions: EnumOption[],
+    view?: string,
+    badge?: (value: string) => ReactNode,
+): TabLink[] {
+    return [...typeOptions, { value: CATEGORIES, label: 'Categories' }].map(
+        (option) => ({
+            value: option.value,
+            title: option.label,
+            label: badge ? (
+                <>
+                    {option.label}
+                    {badge(option.value)}
+                </>
+            ) : (
+                option.label
+            ),
+            icon: tabIcons[option.value] ?? ListChecks,
+            href: index({
+                query: {
+                    tab: option.value,
+                    ...(view === 'list' ? { view } : {}),
+                },
+            }),
+        }),
+    );
+}
+
 export default function AmenitiesIndex({
     amenities,
     categories,
@@ -216,35 +249,15 @@ export default function AmenitiesIndex({
                     className="gap-4"
                     triggerClassName="min-w-0 px-0 mr-6"
                     panelClassName="flex flex-col gap-4"
-                    tabs={[
-                        ...typeOptions,
-                        { value: CATEGORIES, label: 'Categories' },
-                    ].map((option) => ({
-                        value: option.value,
-                        label: (
-                            <>
-                                {option.label}
-                                <Badge
-                                    variant="secondary"
-                                    className="tabular-nums"
-                                >
-                                    {option.value === CATEGORIES
-                                        ? categories.length
-                                        : amenities.filter(
-                                              (amenity) =>
-                                                  amenity.type === option.value,
-                                          ).length}
-                                </Badge>
-                            </>
-                        ),
-                        icon: tabIcons[option.value] ?? ListChecks,
-                        href: index({
-                            query: {
-                                tab: option.value,
-                                ...(view === 'list' ? { view } : {}),
-                            },
-                        }),
-                    }))}
+                    tabs={amenityTabs(typeOptions, view, (value) => (
+                        <Badge variant="secondary" className="tabular-nums">
+                            {value === CATEGORIES
+                                ? categories.length
+                                : amenities.filter(
+                                      (amenity) => amenity.type === value,
+                                  ).length}
+                        </Badge>
+                    ))}
                 >
                     {showingCategories ? (
                         <AmenityCategoryTable
@@ -457,9 +470,16 @@ export default function AmenitiesIndex({
     );
 }
 
-AmenitiesIndex.layout = {
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Amenities', href: index() },
-    ],
-};
+AmenitiesIndex.layout = (props: {
+    typeOptions: EnumOption[];
+    tab: string;
+}) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Amenities', href: index() },
+        ],
+        amenityTabs(props.typeOptions),
+        props.tab,
+    ),
+});
