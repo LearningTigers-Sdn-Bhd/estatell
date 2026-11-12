@@ -157,7 +157,7 @@ A client asked for it: source, last visit, stay frequency, total nights and tota
 - [x] `feat(guests): add the guest stay history service` — `GuestStayHistory` (stays, summary and the grouped list subquery), the spend rule through line sources, `GuestStayData` and `GuestStaySummaryData`; tests for the stay statuses, day use, early check-out, primary guest spend, master folio lines, reversals, taxes left out and property scoping.
 - [x] `feat(guests): show stay figures and the Stays tab` — the five tiles on every tab (`StatTile` promoted from the portal), the contact banner and `guests.stays.index`. Needs: the service.
 - [x] `feat(guests): add stay columns and filters to the guest list` — Last visit, Stays and Spend columns and sorts, the contact warnings, and the Source, Returning and Contact filters. Needs: the service.
-- [ ] `feat(registration): ask the guest for a missing email or phone` — "Please fill in." under an empty Optional Email or Phone, with its Malay text.
+- [x] `feat(registration): ask the guest for a missing email or phone` — "Please fill in." under an empty Optional Email or Phone, with its Malay text.
 
 ## Next
 
