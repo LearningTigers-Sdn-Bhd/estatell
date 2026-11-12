@@ -149,6 +149,16 @@ Branch `feat/portal-booking-tabs`. Planned on 2026-11-11 after Sand Bay asked ho
 - [x] `feat(portal): show how to pay and take proofs without a schedule` — `PortalHowToPay` and `PortalHowToPayData`, How to pay (`BookingHowToPay`, `BankAccountList` with a copy button), the form for every company that pays per booking while Left to pay is above 0, the direct-billing refusal in the controller and its note, `payment_proofs.bank_account_id` with Paid into on proofs and slips, the accounts above the Statements slip form, and Paid into in `PaymentProofReview` and the company Payments tab. Needs: add property bank accounts. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips).
 - [x] `feat(portal): pay a booking or the account from a Pay dialog` — Sand Bay feedback on 11 Nov: one two-column Pay dialog (`PortalPayDialog`) on the booking and on Statements in place of the inline forms; every company can pay a booking, direct billing included; an invoiced booking's proof is a company slip with `payment_proofs.ar_invoice_id`, and accepting it fills that invoice first; the Payments tab without its card border, with Left to pay, Paid and the bill as a table; Statements with Balance, Overdue and Credit tiles and Slips sent; staff review proofs in a table under the folio (View slip, Accept, Reject), with a Review link in the summary card. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips), [Form containers](design-system/05-form-containers.md#sizes).
 
+### Guest CRM stats
+
+A client asked for it: source, last visit, stay frequency, total nights and total spend on each guest, and a nudge to collect email and phone. One branch, `feat/guest-crm-stats`. Docs: [Stay history](11-guests/01-guest-profiles.md#stay-history).
+
+- [x] `docs(guests): plan guest stay history` — the Stay history section, the card hint and these items.
+- [ ] `feat(guests): add the guest stay history service` — `GuestStayHistory` (stays, summary and the grouped list subquery), the spend rule through line sources, `GuestStayData` and `GuestStaySummaryData`; tests for the stay statuses, day use, early check-out, primary guest spend, master folio lines, reversals, taxes left out and property scoping.
+- [ ] `feat(guests): show stay figures and the Stays tab` — the five tiles on every tab (`StatTile` promoted from the portal), the contact banner and `guests.stays.index`. Needs: the service.
+- [ ] `feat(guests): add stay columns and filters to the guest list` — Last visit, Stays and Spend columns and sorts, the contact warnings, and the Source, Returning and Contact filters. Needs: the service.
+- [ ] `feat(registration): ask the guest for a missing email or phone` — "Please fill in." under an empty Optional Email or Phone, with its Malay text.
+
 ## Next
 
 Needed for go-live.

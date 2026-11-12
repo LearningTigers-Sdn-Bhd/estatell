@@ -43,7 +43,7 @@ guest_tag      guest_id, tag_id
 
 - `GuestDirectory`: the server-paginated list (25 per page). Search matches name, email and phone. Filters: `status` (`vip` or `blacklisted`) and `tag`. Sorts: `full_name`, `created_at`. Merged guests are left out.
 - `CountryOptions`: country names from the PHP `intl` extension.
-- `GuestStayHistory` (stays, nights, revenue, last stay and no-shows, calculated from `unit_guests`, `unit_nights` and `folio_lines`, not stored) is **deferred** to module 13, because the folio tables do not exist yet. The reservation tables exist since module 12.
+- `GuestStayHistory`: each guest's stays, nights, spend, last visit and source. See [Stay history](#stay-history).
 
 ## Pages
 
@@ -58,6 +58,7 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 | `guests.vip.store`, `guests.vip.destroy` | `guests.manage`    | Mark or unmark VIP                                                                                                                                                                                                                                                                       |
 | `guests.notes.store`                     | `guests.manage`    | Add a note (dialog on the Notes tab)                                                                                                                                                                                                                                                     |
 | `guests.blacklist.store`, `.destroy`     | `guests.blacklist` | Blacklist with a reason (dialog), or remove from the blacklist (confirm)                                                                                                                                                                                                                 |
+| `guests.stays.index`                     | `guests.view`      | Stays tab. See [Stay history](#stay-history).                                                                                                                                                                                                                                            |
 
 ## Rules
 
@@ -70,6 +71,55 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 - The profile rules live in `GuestProfileRules`, shared by `GuestRequest` and the booking form (the form's fields are `GuestDetailsFields`).
 - `GuestPicker` and `guests.search` come with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab).
 - Left for later: a settings page for tags, `marketing_consent_at` (captured on the registration card).
+
+## Stay history
+
+A simple view of how often a guest stays, how much they spend and where they come from. It is calculated on each request from `unit_guests`, `reservation_units` and `folio_lines`. Nothing is stored, so a merge, a reversal or a cancellation is right at once.
+
+### Definitions
+
+| Figure             | Rule                                                                                                                                                                                                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stay               | A reservation unit where the guest is an occupant (`unit_guests`) and the status is Checked in or Checked out. Cancelled, no-show and confirmed units are not stays. Old, past and migrated stays count.               |
+| Stays in 12 months | Stays whose departure is on or after the property's today minus one year.                                                                                                                                              |
+| Nights             | Departure date minus arrival date of each overnight stay. An early check-out moves the departure, so it counts the nights stayed. A day use counts 0 nights and is counted on its own.                                 |
+| Last visit         | The latest departure of a checked-out stay. A guest with a Checked in stay also shows **In house now**.                                                                                                                |
+| Source             | The latest stay's company (Perfect Holiday, Sandakan Travel) when the reservation has one, else its booking source.                                                                                                    |
+| Spend              | Charge and Adjustment lines (discounts) after reversals. Tax and Payment lines and the Opening balance code are left out. Lines copied from the old system count. Counted whoever pays, so a company-paid stay counts. |
+| Returning          | 2 or more stays. One stay is **First stay**.                                                                                                                                                                           |
+
+**Which stay a line belongs to.** As in `LineSourceUnits`: a tax or discount child takes its parent's source. A unit night, an add-on or a reservation unit source gives the unit. With no unit source, the line takes its folio's unit. A line on a Master or Third party folio with no unit source takes the reservation's first stay (lowest unit id). Lines of units that are not stays are not counted.
+
+**Who gets the spend.** The unit's primary guest only, so two guests in one room do not count it twice. The other occupants see the stay with no spend. Each line counts once across all guests.
+
+### Guest page
+
+The header shows five tiles above the tabs, on every tab:
+
+```
+┌────────────┬────────────┬──────────────┬───────────────┬──────────────────────────┐
+│ Stays      │ Nights     │ Spend        │ Last visit    │ Source                   │
+│ 6          │ 14         │ MYR 4,820.00 │ 2 Nov 2026    │ Sandakan Travel          │
+│ 2 in 12 mo │ 1 day use  │ Without tax  │ In house now  │ Company                  │
+└────────────┴────────────┴──────────────┴───────────────┴──────────────────────────┘
+```
+
+A guest with no stays shows 0 and "No stays yet". An archived guest keeps the tiles: financial history is kept.
+
+**Contact banner.** When the email or the phone is empty, a warning Alert under the header says "No email." or "No phone." (or both) and "Ask the guest at the next stay." Staff with `guests.manage` get an **Edit details** link to the Details tab. Archived guests show no banner.
+
+**Stays tab** (`GET /p/{code}/guests/{guest}/stays`, `guests.stays.index`, `guests.view`): every stay, newest arrival first. Columns: Booking (short code, links to the reservation), Dates, Room, Source, Status, Nights, Spend (MYR). Spend shows "—" when the guest is not the primary guest. A footer row sums Nights and Spend. The list is bounded by one guest's stays, so it is not paginated.
+
+### Guest list
+
+- Columns: Last visit, Stays and Spend (MYR), each sortable (`last_visit`, `stays`, `spend`, descending first). Sorting puts guests with no stays last. Source shows under Last visit in small muted text.
+- Contact: an empty email or phone shows a warning "No email" or "No phone" in the Contact column.
+- Filters, in the URL: `filter[source]` (a booking source id: guests with any stay from it), `filter[returning]` (`first` or `returning`) and `filter[contact]` (`no_email`, `no_phone` or `missing`, which is either).
+- The figures come from one grouped subquery joined to the page query, so the list stays one query whatever the page size.
+
+### Registration card
+
+The Email and Phone fields on the guest screen show "Please fill in." under the field while it is empty and the Layout tab makes it Optional. A Required field already has its star. See [Card fields](../16-registration/01-card-fields.md).
 
 ## Bulk selection and actions
 
