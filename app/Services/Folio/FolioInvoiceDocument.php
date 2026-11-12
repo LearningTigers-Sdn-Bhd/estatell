@@ -36,6 +36,8 @@ final readonly class FolioInvoiceDocument
         public ?DocumentLineGroups $oldSystem = null,
         public ?string $oldTitle = null,
         public string $total = '0.00',
+        /** @var list<string> The waived taxes of the units on the folio, from `TaxWaiverNotes`. */
+        public array $taxNotes = [],
     ) {}
 
     public function hasCharges(): bool

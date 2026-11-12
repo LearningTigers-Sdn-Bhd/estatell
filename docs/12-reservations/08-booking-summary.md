@@ -104,6 +104,8 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 - **Room label** (`DocumentRow::$room`): tonight's room number, else the first night's before arrival, else the room type name (room types have no code). The group heading is "Room 103 · Tan Wei Ming".
 - A posted night and Scheduled nights with the same description and price merge into one row, for example one posted and two to come print "Room, 3 nights × 250.00".
 
+- **Tax waivers**: under the charges, one small note per waived tax of the reservation's units, "Tourism tax paid by Trip.com (ref 1128152109837544)." Only `forPrint` with prices reads them, so the reservation page runs no extra query ([Tax waivers](../06-catalogues/03-taxes.md#tax-waivers)).
+
 ### Payments
 
 - Every payment line of the folios that are not Voided, net of refunds (a refund is its own row): date, receipt number, method and amount in brackets.

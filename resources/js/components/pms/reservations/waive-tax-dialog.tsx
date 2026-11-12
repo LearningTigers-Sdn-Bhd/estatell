@@ -1,5 +1,8 @@
 import { router, useForm } from '@inertiajs/react';
+import { Building2, ReceiptText } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
+import { ChoiceCards } from '@/components/pms/choice-cards';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MultiSelectWithAll } from '@/components/pms/reservations/multi-select-with-all';
 import {
@@ -17,7 +20,6 @@ import {
     FieldSet,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { store as storeGroup } from '@/routes/reservations/tax-waivers';
 import { destroy, store } from '@/routes/reservations/units/tax-waivers';
 
@@ -29,6 +31,11 @@ type Fields = {
     reason: App.Enums.TaxWaiverReason;
     paid_to: string;
     reference: string;
+};
+
+const REASON_ICONS: Record<App.Enums.TaxWaiverReason, LucideIcon> = {
+    paid_elsewhere: Building2,
+    guest_receipt: ReceiptText,
 };
 
 /** The unit statuses that can take a waiver, as `UnitAction::WaiveTax` allows. */
@@ -113,26 +120,23 @@ function TaxWaiverFields({
                 </div>
                 <FieldError>{errors.tax_ids}</FieldError>
             </FieldSet>
-            <FieldSet>
-                <FieldLegend variant="label">Paid by</FieldLegend>
-                <RadioGroup
-                    value={data.reason}
-                    onValueChange={(value) =>
-                        setData('reason', value as App.Enums.TaxWaiverReason)
-                    }
-                    className="flex flex-wrap gap-x-6 gap-y-2"
-                >
-                    {options?.reasons.map((reason) => (
-                        <label
-                            key={reason.value}
-                            className="flex items-center gap-2 text-sm"
-                        >
-                            <RadioGroupItem value={reason.value} />
-                            {reason.label}
-                        </label>
-                    ))}
-                </RadioGroup>
-            </FieldSet>
+            <ChoiceCards
+                id={`${idPrefix}-reason`}
+                legend="Paid by"
+                choices={(options?.reasons ?? []).map((reason) => ({
+                    value: reason.value,
+                    label: reason.label,
+                    description: reason.description,
+                    icon: REASON_ICONS[
+                        reason.value as App.Enums.TaxWaiverReason
+                    ],
+                }))}
+                value={data.reason}
+                onValueChange={(value) =>
+                    setData('reason', value as App.Enums.TaxWaiverReason)
+                }
+                error={errors.reason}
+            />
             {paidElsewhere && (
                 <Field data-invalid={!!errors.paid_to}>
                     <FieldLabel htmlFor={`${idPrefix}-paid-to`}>
@@ -235,7 +239,6 @@ function WaiveTaxForm({ open, onOpenChange, reservationId, unit }: UnitProps) {
     return (
         <FormOverlay
             variant="dialog"
-            size="sm"
             open={open}
             onOpenChange={onOpenChange}
             title="Taxes paid elsewhere"
@@ -326,7 +329,6 @@ function WaiveGroupTaxForm({
     return (
         <FormOverlay
             variant="dialog"
-            size="sm"
             open={open}
             onOpenChange={onOpenChange}
             title="Taxes paid elsewhere"

@@ -170,7 +170,7 @@ Summer Holiday (2026-11-12): Trip.com collects the tourism tax on some bookings 
 
 - [x] `feat(folio): waive a tax per room` — `reservation_unit_tax_waivers`, `TaxWaiverReason`, `ReservationUnitTaxWaiver`, `TaxWaivers` (used by `NightChargeQuote` and `DayUseChargeQuote`), `WaiveUnitTax` (reverses posted nights in a manual batch per folio), `RemoveUnitTaxWaiver`, `folio.waive-tax` (Owner, Manager, Front desk, Finance) with a syncing migration, `UnitAction::WaiveTax`, `ReservationUnitTaxWaiverController`, the Taxes paid elsewhere Dialog and the Tax row on the unit panel.
 - [x] `feat(folio): waive a tax for several rooms at once` — `WaiveGroupTax`, `GroupTaxWaiverResult`, `TaxWaiverRefused`, `WaiveGroupTaxRequest`, `reservations.tax-waivers.store`, `canWaiveTax` and the optional `taxWaiverOptions` prop, **Taxes paid elsewhere…** in More with the Rooms select, the fields shared with the one-room Dialog. Needs: waive a tax per room.
-- [ ] `feat(folio): show tax waivers on documents and reports` — the "Tourism tax paid by Trip.com (ref …)" note on the booking summary and invoice (`FolioDocumentBuilder`), and the **Paid elsewhere** column of the non-national guests report. Needs: waive a tax per room.
+- [x] `feat(folio): show tax waivers on documents and reports` — `TaxWaiverNotes`, `taxNotes` on `BookingSummaryDocument` (print with prices only) and `FolioInvoiceDocument`, the notes in both PDFs, and the **Paid elsewhere** column (`paid_elsewhere`) of the non-national guests report. The e-invoice (`FolioDocumentBuilder`) is unchanged. Needs: waive a tax per room.
 
 ## Next
 

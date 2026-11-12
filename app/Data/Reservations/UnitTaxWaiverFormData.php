@@ -18,7 +18,7 @@ class UnitTaxWaiverFormData extends Data
 {
     /**
      * @param  list<array{value: string, label: string}>  $taxes
-     * @param  list<array{value: string, label: string}>  $reasons
+     * @param  list<array{value: string, label: string, description: string}>  $reasons
      */
     public function __construct(
         public array $taxes,
@@ -41,7 +41,7 @@ class UnitTaxWaiverFormData extends Data
 
         return new self(
             array_values($taxes->map(fn (Tax $tax): array => ['value' => (string) $tax->id, 'label' => $tax->name])->all()),
-            TaxWaiverReason::options(),
+            array_map(fn (TaxWaiverReason $reason): array => ['value' => $reason->value, 'label' => $reason->label(), 'description' => $reason->description()], TaxWaiverReason::cases()),
             $paidTo,
             $reservation->external_reference,
         );

@@ -13,8 +13,16 @@ enum TaxWaiverReason: string
     public function label(): string
     {
         return match ($this) {
-            self::PaidElsewhere => __('Someone else collected it'),
-            self::GuestReceipt => __('Guest has a receipt'),
+            self::PaidElsewhere => __('OTA or agent'),
+            self::GuestReceipt => __('Guest receipt'),
+        };
+    }
+
+    public function description(): string
+    {
+        return match ($this) {
+            self::PaidElsewhere => __('An OTA, agent or company collected the tax and declares it.'),
+            self::GuestReceipt => __('The guest paid the tax elsewhere and shows the receipt.'),
         };
     }
 

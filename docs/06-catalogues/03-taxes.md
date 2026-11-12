@@ -25,7 +25,7 @@ Names and short codes are unique within a property, ignoring case. A custom tax 
 
 `TaxRateType`: Percent, Flat.
 
-`TaxWaiverReason`: PaidElsewhere ("Someone else collected it"), GuestReceipt ("Guest has a receipt").
+`TaxWaiverReason`: PaidElsewhere ("OTA or agent"), GuestReceipt ("Guest receipt"). Each has a `description()` shown on its choice card.
 
 ## Services
 
@@ -58,7 +58,9 @@ Some OTAs collect a tax themselves on some bookings and not others. Trip.com, fo
 - **Nights not posted yet:** `TaxWaivers` is the one rule. `NightChargeQuote` and `DayUseChargeQuote` drop the waived taxes, so the night audit, the Scheduled rows, the Collect now total and Change price all agree.
 - **Remove** (`RemoveUnitTaxWaiver`): deletes the row. Only nights not posted yet get the tax back. The reversed lines stay reversed; staff use Add tax on a posted night. A second Remove is `waiver_not_found`.
 - **Logged** on the reservation: `reservation.unit_tax_waived` (tax ids, reason, payer, reference, reversed line ids) and `reservation.unit_tax_waiver_removed`.
-- **Not yet:** the note on documents and the **Paid elsewhere** column of the non-national guests report (next item), and a reminder in check-in Collect now for OTA bookings (later). Guest and company exemptions can add their own reasons to the same table.
+- **On documents:** `TaxWaiverNotes` gives one note per distinct waiver of the units, "Tourism tax paid by Trip.com (ref 1128152109837544)." or "Tourism tax paid by the guest (receipt TTX-88231).". The [booking summary](../12-reservations/08-booking-summary.md#charges) prints them under the charges (only the print with prices, so the reservation page reads no waivers), and the [folio invoice](../13-folio/06-folio-invoice.md#content) prints those of the units on the folio.
+- **On the report:** the [non-national guests report](../22-reports/01-core-reports.md) has a **Paid elsewhere** column ("Trip.com · 1128…", "Guest receipt · TTX-88231") for waived foreign-guest taxes, so the hotel does not declare tax an OTA declares.
+- **Not yet:** a reminder in check-in Collect now for OTA bookings (later). Guest and company exemptions can add their own reasons to the same table.
 
 ## Lessons from wastays
 

@@ -3753,6 +3753,7 @@ guests: string,
 adults: number,
 children: number,
 tourism_tax: string,
+paid_elsewhere: string,
 };
 export type OccupancyRow = {
 key: string,
@@ -4802,6 +4803,7 @@ label: string,
 reasons: {
 value: string,
 label: string,
+description: string,
 }[],
 paidTo: string | null,
 reference: string | null,
