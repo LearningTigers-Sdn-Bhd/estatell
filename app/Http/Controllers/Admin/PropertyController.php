@@ -28,6 +28,7 @@ use App\Services\Onboarding\OnboardingBoard;
 use App\Services\Platform\PartnerDirectory;
 use App\Services\Platform\PropertyDirectory;
 use App\Services\Platform\PropertyOtaLists;
+use App\Services\Platform\PropertyOverview;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,9 +86,11 @@ class PropertyController extends Controller
     /**
      * Property page, Overview tab.
      */
-    public function show(Property $property): Response
+    public function show(Property $property, PropertyOverview $propertyOverview): Response
     {
-        return $this->renderTab($property, 'overview');
+        return $this->renderTab($property, 'overview', [
+            'overview' => $propertyOverview->forProperty($property),
+        ]);
     }
 
     /**

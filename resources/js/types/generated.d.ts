@@ -2501,6 +2501,11 @@ temporaryPasswordExpiresAt: string | null,
 suspendedAt: string | null,
 createdAt: string,
 };
+export type AdminPropertyBookingWebsiteData = {
+mode: App.Enums.BookingEngineMode,
+published: boolean,
+webAddress: string | null,
+};
 export type AdminPropertyData = {
 code: string,
 name: string,
@@ -2524,6 +2529,16 @@ ownerName: string | null,
 ownerEmail: string | null,
 partnerId: number | null,
 partnerName: string | null,
+};
+export type AdminPropertyOverviewData = {
+rooms: number,
+roomTypes: number,
+ratePlans: number,
+bookingsLast30Days: number,
+staffVerified: number,
+featuresOn: number,
+featuresTotal: number,
+bookingWebsite: App.Data.Platform.AdminPropertyBookingWebsiteData | null,
 };
 export type AdminPropertyRowData = {
 code: string,

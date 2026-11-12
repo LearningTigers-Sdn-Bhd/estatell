@@ -80,6 +80,7 @@ export default function PropertyShow({
     partnerOptions,
     commissionServices = [],
     commissionHistory = [],
+    overview,
 }: {
     property: Property;
     tab: Tab;
@@ -93,6 +94,7 @@ export default function PropertyShow({
     partnerOptions: EnumOption[];
     commissionServices?: App.Data.Commissions.PropertyCommissionServiceData[];
     commissionHistory?: App.Data.Commissions.PropertyCommissionPeriodData[];
+    overview?: App.Data.Platform.AdminPropertyOverviewData;
 }) {
     const [suspendOpen, setSuspendOpen] = useState(false);
     const [channelSection, setChannelSection] = useChannelSection();
@@ -283,7 +285,10 @@ export default function PropertyShow({
                         }
                     >
                         {tab === 'overview' && (
-                            <PropertyOverview property={property} />
+                            <PropertyOverview
+                                property={property}
+                                overview={overview}
+                            />
                         )}
                         {tab === 'staff' && (
                             <PropertyStaff code={property.code} staff={staff} />

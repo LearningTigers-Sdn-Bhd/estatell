@@ -1,14 +1,23 @@
 <?php
 
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PlatformFeature;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Features\Boats;
+use App\Features\BookingEngine;
 use App\Models\Partner;
 use App\Models\Property;
+use App\Models\PropertyBookingSite;
+use App\Models\RatePlan;
+use App\Models\Reservation;
+use App\Models\Room;
+use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
@@ -259,3 +268,53 @@ test('the list shows each property\'s partner and filters by partner or Direct',
 
     expect($otherBrought->partner_id)->toBe($other->id);
 });
+
+test('the Overview shows the property figures, counting only what is not archived', function () {
+    $property = Property::factory()->live()->create();
+    $other = Property::factory()->live()->create();
+    $roomType = RoomType::factory()->for($property)->create();
+    RoomType::factory()->for($property)->archived()->create();
+    Room::factory()->count(3)->for($property)->create(['room_type_id' => $roomType->id]);
+    Room::factory()->for($property)->archived()->create(['room_type_id' => $roomType->id]);
+    RatePlan::factory()->for($property)->count(2)->create();
+    RatePlan::factory()->for($property)->archived()->create();
+    $staff = User::factory()->for($property)->create();
+    User::factory()->for($property)->unverified()->create();
+    Reservation::factory()->for($property)->create(['created_at' => now()->subDays(5), 'created_by' => $staff->id]);
+    Reservation::factory()->for($property)->create(['created_at' => now()->subDays(40), 'created_by' => $staff->id]);
+    Reservation::factory()->for($other)->create(['created_at' => now()->subDay()]);
+    Feature::for($property)->activate(Boats::class);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.properties.show', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('overview.rooms', 3)
+            ->where('overview.roomTypes', 1)
+            ->where('overview.ratePlans', 2)
+            ->where('overview.bookingsLast30Days', 1)
+            ->where('overview.staffVerified', 1)
+            ->where('overview.featuresOn', 1)
+            ->where('overview.featuresTotal', count(PlatformFeature::cases()))
+            ->where('overview.bookingWebsite', null));
+});
+
+test('the Overview shows the booking website while Booking engine is on', function (?string $state, string $mode, bool $published, bool $hasAddress) {
+    config(['estatell.booking_site_url' => 'https://book.example.test/']);
+    $property = Property::factory()->live()->create(['slug' => 'gem-hotel']);
+    Feature::for($property)->activate(BookingEngine::class);
+
+    if ($state !== null) {
+        PropertyBookingSite::factory()->for($property)->{$state}()->create();
+    }
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.properties.show', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('overview.bookingWebsite.mode', $mode)
+            ->where('overview.bookingWebsite.published', $published)
+            ->where('overview.bookingWebsite.webAddress', $hasAddress ? 'https://book.example.test/gem-hotel' : null));
+})->with([
+    'never opened' => [null, 'microsite', false, true],
+    'published microsite' => ['published', 'microsite', true, true],
+    'API only' => ['apiOnly', 'api-only', false, false],
+]);
