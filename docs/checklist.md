@@ -21,7 +21,7 @@ The booking engine is the current build. The channel manager and the wastays rep
 
 ### 28 Booking engine
 
-Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, at `booking.estatell.com`. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
 
 - [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md).
 - [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](29-booking-engine/06-content-registries.md#room-photos).
