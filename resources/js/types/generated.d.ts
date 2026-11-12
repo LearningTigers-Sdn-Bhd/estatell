@@ -5080,6 +5080,55 @@ today: string,
 businessDate: string,
 };
 }
+namespace Webhooks {
+export type WebhookDeliveryData = {
+row: App.Data.Webhooks.WebhookDeliveryRowData,
+eventId: string,
+error: string | null,
+nextAttemptAt: string | null,
+deliveredAt: string | null,
+tries: {
+attempt: number,
+responseStatus: number | null,
+error: string | null,
+durationMs: number,
+attemptedAt: string,
+}[],
+payload: string,
+};
+export type WebhookDeliveryRowData = {
+id: number,
+endpointId: number,
+endpointName: string,
+event: string,
+eventLabel: string,
+status: App.Data.Shared.BadgeData,
+attempts: number,
+responseStatus: number | null,
+isTest: boolean,
+canRetry: boolean,
+createdAt: string,
+};
+export type WebhookEndpointData = {
+id: number,
+name: string,
+url: string,
+propertyId: number | null,
+propertyName: string | null,
+events: string[],
+isActive: boolean,
+failingSince: string | null,
+disabledAt: string | null,
+disabledReason: string | null,
+};
+export type WebhookEndpointInputData = {
+name: string,
+url: string,
+propertyId: number | null,
+events: App.Enums.WebhookEvent[],
+isActive: boolean,
+};
+}
 }
 namespace Enums {
 export type AccountingDocumentKind = 'invoice' | 'credit_note' | 'receipt';

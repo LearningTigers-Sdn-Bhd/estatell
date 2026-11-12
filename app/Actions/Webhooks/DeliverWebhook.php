@@ -16,7 +16,8 @@ use Illuminate\Support\Str;
 /**
  * Send one try of a delivery, record it, and decide what comes next: delivered, refused (4xx, never tried again),
  * another try later, or failed after the last try. A failed try marks the endpoint as failing and may turn it off.
- * A delivery that is not waiting for a try is left alone. See docs/32-webhooks/01-outgoing-webhooks.md#retries.
+ * A delivery that is not waiting for a try is left alone. A test event is sent even while the endpoint is
+ * off, so an admin can check a URL before turning it on. See docs/32-webhooks/01-outgoing-webhooks.md#retries.
  */
 class DeliverWebhook
 {
@@ -37,7 +38,7 @@ class DeliverWebhook
         $delivery->loadMissing('endpoint');
         $endpoint = $delivery->endpoint;
 
-        if (! $endpoint->is_active) {
+        if (! $endpoint->is_active && ! $delivery->is_test) {
             $delivery->update(['status' => WebhookDeliveryStatus::Failed, 'error' => __('The endpoint was off.'), 'next_attempt_at' => null]);
 
             return WebhookDeliveryStatus::Failed;
