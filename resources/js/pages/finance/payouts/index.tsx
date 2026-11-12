@@ -5,7 +5,11 @@ import {
     commissionBookingAlign,
     commissionBookingColumns,
 } from '@/components/pms/commissions/booking-columns';
-import { PayoutTabs } from '@/components/pms/commissions/payout-tabs';
+import {
+    PayoutTabs,
+    payoutTabs,
+} from '@/components/pms/commissions/payout-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { TotalCard } from '@/components/pms/commissions/total-card';
 import { DataTable } from '@/components/pms/data-table';
 import { DatePicker } from '@/components/pms/date-picker';
@@ -249,5 +253,9 @@ export default function PayoutsIndex({
 }
 
 PayoutsIndex.layout = {
-    breadcrumbs: [{ title: 'Payouts', href: index() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Payouts', href: index() }],
+        payoutTabs(),
+        'bookings',
+    ),
 };

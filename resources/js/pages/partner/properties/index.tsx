@@ -11,7 +11,8 @@ import { PageHeader } from '@/components/pms/page-header';
 import { CreatePropertySheet } from '@/components/pms/properties/create-property-sheet';
 import type { SetupMethod } from '@/components/pms/properties/create-property-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { buttonVariants } from '@/components/ui/button';
 import { index, show, store } from '@/routes/partner/properties';
 import { show as viewAs } from '@/routes/view-as';
@@ -111,6 +112,24 @@ const viewAsColumn = (reason?: string) =>
         ),
     });
 
+/** The All and Onboarding tabs, for the tab bar and the breadcrumbs. */
+function partnerPropertyTabs(): TabLink[] {
+    return [
+        {
+            value: 'all',
+            label: 'All',
+            icon: List,
+            href: index(),
+        },
+        {
+            value: 'onboarding',
+            label: 'Onboarding',
+            icon: Rocket,
+            href: index({ query: { status: 'onboarding' } }),
+        },
+    ];
+}
+
 export default function PartnerPropertiesIndex({
     partnerName,
     signupUrl,
@@ -173,20 +192,7 @@ export default function PartnerPropertiesIndex({
                     panelWidth="full"
                     className="gap-4"
                     triggerClassName="md:min-w-0 px-0 mr-6"
-                    tabs={[
-                        {
-                            value: 'all',
-                            label: 'All',
-                            icon: List,
-                            href: index(),
-                        },
-                        {
-                            value: 'onboarding',
-                            label: 'Onboarding',
-                            icon: Rocket,
-                            href: index({ query: { status: 'onboarding' } }),
-                        },
-                    ]}
+                    tabs={partnerPropertyTabs()}
                 >
                     <DataTable
                         columns={columns}
@@ -217,6 +223,10 @@ export default function PartnerPropertiesIndex({
     );
 }
 
-PartnerPropertiesIndex.layout = {
-    breadcrumbs: [{ title: 'Properties', href: index() }],
-};
+PartnerPropertiesIndex.layout = (props: { onboardingTab: boolean }) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Properties', href: index() }],
+        partnerPropertyTabs(),
+        props.onboardingTab ? 'onboarding' : 'all',
+    ),
+});

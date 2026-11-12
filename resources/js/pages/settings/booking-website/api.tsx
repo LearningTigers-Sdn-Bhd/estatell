@@ -3,7 +3,10 @@ import { KeyRound, Link2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import BookingApiController from '@/actions/App/Http/Controllers/BookingEngine/BookingApiController';
 import { ApiQuickStart } from '@/components/pms/booking-website/api-quick-start';
-import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import {
+    BookingWebsiteShell,
+    bookingWebsiteBreadcrumbs,
+} from '@/components/pms/booking-website/booking-website-shell';
 import { CopyField } from '@/components/pms/booking-website/copy-field';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -393,3 +396,9 @@ export default function BookingWebsiteApi({
         </>
     );
 }
+
+BookingWebsiteApi.layout = (
+    props: Parameters<typeof bookingWebsiteBreadcrumbs>[0],
+) => ({
+    breadcrumbs: bookingWebsiteBreadcrumbs(props, 'api'),
+});

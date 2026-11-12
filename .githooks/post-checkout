@@ -1,0 +1,8 @@
+#!/bin/sh
+# Regenerate resources/js/types/generated.d.ts after a branch switch, so it matches the PHP classes now checked out.
+# Never blocks git: a failure only prints a hint.
+# $3 is 1 for a branch switch and 0 for a file checkout.
+[ "$3" = "1" ] || exit 0
+php artisan typescript:transform >/dev/null 2>&1 ||
+    echo "post-checkout: could not regenerate types. Run: php artisan typescript:transform" >&2
+exit 0

@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { CalendarRange, Info } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
-import { RateTabs } from '@/components/pms/rate-calendar/rate-tabs';
+import { RateTabs, rateTabs } from '@/components/pms/rate-calendar/rate-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import {
     BulkEditForm,
     BulkPlanPicker,
@@ -191,8 +192,9 @@ export default function RateBulkEdit({
 
 RateBulkEdit.layout = {
     variant: 'fixed',
-    breadcrumbs: [
-        { title: 'Rate calendar', href: calendar() },
-        { title: 'Bulk edit', href: bulk() },
-    ],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Rate calendar', href: calendar() }],
+        rateTabs(calendar(), bulk()),
+        'bulk',
+    ),
 };

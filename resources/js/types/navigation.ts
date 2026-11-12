@@ -1,9 +1,21 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 
+/** One choice in a crumb's switch menu: another record or tab at the same level. */
+export type BreadcrumbSibling = {
+    title: string;
+    href: NonNullable<InertiaLinkProps['href']>;
+    current: boolean;
+};
+
 export type BreadcrumbItem = {
     title: string;
     href: NonNullable<InertiaLinkProps['href']>;
+    /** Shows a chevron after the crumb that opens a menu of these choices, headed by `label`. */
+    siblings?: {
+        label: string;
+        items: BreadcrumbSibling[];
+    };
 };
 
 export type NavItem = {

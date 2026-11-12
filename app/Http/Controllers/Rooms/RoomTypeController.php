@@ -13,6 +13,7 @@ use App\Data\Rooms\RoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Rooms\RoomTypeData;
 use App\Data\Rooms\RoomTypeRoomChoiceData;
+use App\Data\Rooms\RoomTypeSwitchData;
 use App\Enums\ChannelRemovalKind;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
@@ -65,6 +66,7 @@ class RoomTypeController extends Controller
     {
         return Inertia::render('settings/room-types/edit', [
             'roomType' => RoomTypeData::fromModel($roomType),
+            'roomTypeSwitch' => RoomTypeSwitchData::forProperty($property, $roomType),
             'roomCount' => $this->roomCount($roomType),
             'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
             'sellUnits' => SellUnit::options(),
@@ -79,6 +81,7 @@ class RoomTypeController extends Controller
     {
         return Inertia::render('settings/room-types/rooms', [
             'roomType' => RoomTypeData::fromModel($roomType),
+            'roomTypeSwitch' => RoomTypeSwitchData::forProperty($property, $roomType),
             'roomCount' => $this->roomCount($roomType),
             'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
             'rooms' => $roomType->rooms()->active()->ordered()->get()

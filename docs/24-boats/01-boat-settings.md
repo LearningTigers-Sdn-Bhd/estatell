@@ -63,7 +63,7 @@ All need `settings.manage` and the `Boats` feature.
 | `POST /p/{code}/settings/boats/fares`                    | `settings.boats.fares.store`        | Add a fare                     |
 | `PUT /p/{code}/settings/boats/fares/{chargeItem}`        | `settings.boats.fares.update`       | Edit, and the Available switch |
 | `PUT /p/{code}/settings/boats/charter`                   | `settings.boats.charter`            | Charter charge (Fares tab)     |
-| `GET /p/{code}/settings/boats/boats`                     | `settings.boats.boats.index`        | Boats tab                      |
+| `GET /p/{code}/settings/boats/boats`                     | `settings.boats.boats.index`        | Boat list tab                  |
 | `POST /p/{code}/settings/boats/boats`                    | `settings.boats.boats.store`        | Add a boat                     |
 | `PUT /p/{code}/settings/boats/boats/{boat}`              | `settings.boats.boats.update`       | Edit, and the Available switch |
 | `GET /p/{code}/settings/boats/crew`                      | `settings.boats.crew.index`         | Crew tab                       |
@@ -165,7 +165,7 @@ Assistants     [Daus ×]                    ▾
 - **Default boat** lists available boats and **None**. **In charge** and **Assistants** list available crew members. The current values show even when they are now unavailable, so an edit does not drop them.
 - Each crew option shows the crew member's phone as a muted second line under the name, when one is saved. The Boat Trips board's crew pickers do the same.
 - **Assistants** is a multiselect (`Combobox` with chips) and leaves out the person in charge. Assistants without anyone in charge are refused: "Pick who is in charge first."
-- With no boats or no crew yet, the select says "No boats yet. Add one on the Boats tab." (or "Crew tab").
+- With no boats or no crew yet, the select says "No boats yet. Add one on the Boat list tab." (or "Crew tab").
 
 - **Direction** is preset from the section whose Add button was used.
 - A new departure starts available. The Available switch is only on the table, not in the Sheet.
@@ -216,7 +216,7 @@ Fares                                                               [+ Add fare]
 
 ### Charter
 
-A section below the fares table. It moved here from the Boats tab, because it is a price, not a boat.
+A section below the fares table. It moved here from the Boat list tab, because it is a price, not a boat.
 
 ```
 Charter
@@ -287,7 +287,7 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 - The Charge items list cannot turn off a fare that an available departure uses either. `ChargeItemRequest` refuses `active` off with "This fare is used by an available departure. Change their fare first.", shown as an error toast.
 - Changing a fare's charging unit there is allowed but not useful. The Fares tab shows the charging unit in muted text when it is not Per guest.
 
-## Boats tab
+## Boat list tab
 
 `BoatController` (`settings.manage`): the boats the property runs, picked for each [sailing](04-sailings.md) on the Boat Trips board.
 
@@ -299,7 +299,7 @@ boats    id, property_id, name (≤ 60, unique per property ignoring case), regi
 
 ```
 Settings › Boats
- Departures  Fares  [ Boats ]  Crew
+ Departures  Fares  [ Boat list ]  Crew
 
 Boats                                                         [+ Add boat]
  Available  Name            Registration   Seats
@@ -336,7 +336,7 @@ Crew                                                          [+ Add crew]
  [  ○]      Razak    —              ✎   (muted)
 ```
 
-- The same table, switch and Dialog as the Boats tab: Name and Phone (optional). Toast: "Din is available." or "… is unavailable."
+- The same table, switch and Dialog as the Boat list tab: Name and Phone (optional). Toast: "Din is available." or "… is unavailable."
 - Phone uses the shared phone field with a country picker. A number without a country code is read as a number of the property's country and saved in E.164 form (`+60132221111`).
 - On both tabs, an empty list keeps the table header and shows the empty state in the table.
 - Who is **in charge** is set per departure and per sailing, not on the crew member, because the skipper of one trip can be the assistant on another.

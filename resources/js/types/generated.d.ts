@@ -3278,6 +3278,12 @@ value: string,
 perRoom: boolean,
 fromNight: number,
 };
+export type RatePlanSwitchData = {
+id: number,
+name: string,
+pricingBasis: App.Enums.PricingBasis,
+usesChildPrices: boolean,
+};
 export type RatePricingRoomTypeData = {
 id: number,
 name: string,
@@ -4897,6 +4903,10 @@ id: number,
 number: string,
 roomGroupId: number | null,
 roomTypeName: string,
+};
+export type RoomTypeSwitchData = {
+id: number,
+name: string,
 };
 }
 namespace Shared {

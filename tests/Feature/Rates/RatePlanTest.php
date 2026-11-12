@@ -676,3 +676,21 @@ test('a FIT rate names the group rate larger bookings use, which must start abov
 
     expect($fit->refresh()->group_rate_plan_id)->toBeNull();
 });
+
+test('the plan editor sends the active plans and the fields that decide their tabs for the breadcrumb switch menu', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $property->ratePlans()->delete();
+    $guest = RatePlan::factory()->for($property)->perGuest()->create(['name' => 'Per guest', 'position' => 1]);
+    $dayUse = RatePlan::factory()->for($property)->dayUse()->create(['name' => 'Day use', 'position' => 2]);
+    RatePlan::factory()->for($property)->archived()->create(['name' => 'Gone', 'position' => 3]);
+    RatePlan::factory()->for(Property::factory()->create())->create(['name' => 'Theirs']);
+
+    $this->actingAs($owner)
+        ->get(route('settings.rate-plans.inclusions.edit', [$property->code, $guest]))
+        ->assertInertia(fn (Assert $page) => $page->component('settings/rate-plans/inclusions')
+            ->where('ratePlanSwitch', [
+                ['id' => $guest->id, 'name' => 'Per guest', 'pricingBasis' => PricingBasis::PerGuest->value, 'usesChildPrices' => true],
+                ['id' => $dayUse->id, 'name' => 'Day use', 'pricingBasis' => PricingBasis::DayUse->value, 'usesChildPrices' => false],
+            ]));
+});

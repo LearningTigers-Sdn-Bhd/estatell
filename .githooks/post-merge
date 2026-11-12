@@ -1,0 +1,6 @@
+#!/bin/sh
+# Regenerate resources/js/types/generated.d.ts after a pull or merge, so it matches the PHP classes now checked out.
+# Never blocks git: a failure only prints a hint.
+php artisan typescript:transform >/dev/null 2>&1 ||
+    echo "post-merge: could not regenerate types. Run: php artisan typescript:transform" >&2
+exit 0

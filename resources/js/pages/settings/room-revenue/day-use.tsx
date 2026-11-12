@@ -3,7 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
 import { PostingPreview } from '@/components/pms/room-revenue/posting-preview';
-import { RoomRevenueTabs } from '@/components/pms/room-revenue/room-revenue-tabs';
+import {
+    RoomRevenueTabs,
+    roomRevenueTabs,
+} from '@/components/pms/room-revenue/room-revenue-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { taxOptions } from '@/components/pms/room-revenue/tax-options';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
@@ -175,5 +179,9 @@ export default function RoomRevenueDayUse({
 }
 
 RoomRevenueDayUse.layout = {
-    breadcrumbs: [{ title: 'Room revenue', href: index() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Room revenue', href: index() }],
+        roomRevenueTabs(),
+        'day-use',
+    ),
 };

@@ -24,7 +24,7 @@ import {
 } from '@/components/pms/rooms/beds-sheet';
 import { GenerateRoomsSheet } from '@/components/pms/rooms/generate-rooms-sheet';
 import { RoomMap } from '@/components/pms/rooms/room-map';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
@@ -833,6 +833,19 @@ function RoomBulkActions({
     );
 }
 
+/** The List and Map tabs, for the tab bar and the breadcrumbs. */
+function roomsTabs(): TabLink[] {
+    return [
+        { value: 'list', label: 'List', icon: List, href: index.url() },
+        {
+            value: 'map',
+            label: 'Map',
+            icon: LayoutGrid,
+            href: index.url(undefined, { query: { view: 'map' } }),
+        },
+    ];
+}
+
 export default function RoomsIndex({
     view,
     rooms,
@@ -1023,15 +1036,7 @@ export default function RoomsIndex({
         }
     };
 
-    const tabs: TabLink[] = [
-        { value: 'list', label: 'List', icon: List, href: index.url() },
-        {
-            value: 'map',
-            label: 'Map',
-            icon: LayoutGrid,
-            href: index.url(undefined, { query: { view: 'map' } }),
-        },
-    ];
+    const tabs = roomsTabs();
 
     return (
         <>
@@ -1279,6 +1284,10 @@ export default function RoomsIndex({
     );
 }
 
-RoomsIndex.layout = {
-    breadcrumbs: [{ title: 'Rooms', href: index() }],
-};
+RoomsIndex.layout = (props: { view: 'list' | 'map' }) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Rooms', href: index() }],
+        roomsTabs(),
+        props.view,
+    ),
+});

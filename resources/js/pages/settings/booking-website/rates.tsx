@@ -1,6 +1,9 @@
 import { Head } from '@inertiajs/react';
 import { ExternalLink, Tag } from 'lucide-react';
-import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import {
+    BookingWebsiteShell,
+    bookingWebsiteBreadcrumbs,
+} from '@/components/pms/booking-website/booking-website-shell';
 import { EmptyState } from '@/components/pms/empty-state';
 import { OnlineBookingSwitch } from '@/components/pms/rate-plans/online-booking-switch';
 import { RoomTypePills } from '@/components/pms/rate-plans/room-type-pills';
@@ -133,3 +136,9 @@ export default function BookingWebsiteRates({
         </>
     );
 }
+
+BookingWebsiteRates.layout = (
+    props: Parameters<typeof bookingWebsiteBreadcrumbs>[0],
+) => ({
+    breadcrumbs: bookingWebsiteBreadcrumbs(props, 'rates'),
+});

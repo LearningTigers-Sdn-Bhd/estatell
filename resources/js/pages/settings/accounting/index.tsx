@@ -3,7 +3,11 @@ import { BookOpen, Calculator, Cloud, Plug } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import AccountingSettingsController from '@/actions/App/Http/Controllers/Accounting/AccountingSettingsController';
-import { AccountingShell } from '@/components/pms/accounting/accounting-shell';
+import {
+    AccountingShell,
+    accountingTabs,
+} from '@/components/pms/accounting/accounting-shell';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { ChoiceCards } from '@/components/pms/choice-cards';
 import { DateText } from '@/components/pms/date-text';
 import {
@@ -287,8 +291,12 @@ export default function AccountingConnection({
 }
 
 AccountingConnection.layout = {
-    breadcrumbs: [
-        { title: 'Settings', href: profile() },
-        { title: 'Accounting', href: edit() },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Settings', href: profile() },
+            { title: 'Accounting', href: edit() },
+        ],
+        accountingTabs(),
+        'connection',
+    ),
 };
