@@ -277,7 +277,7 @@ export function PropertyCommissions({
     };
 
     return (
-        <div className="flex max-w-3xl flex-col gap-8">
+        <div className="flex flex-col gap-8">
             <FieldSet>
                 <FieldLegend className="ps-3 pt-2">Commissions</FieldLegend>
                 <FieldDescription className="ps-3">
