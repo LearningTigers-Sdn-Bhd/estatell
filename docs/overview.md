@@ -164,7 +164,7 @@ npm:
 | `cn`, `shadcn`             | 0.4 / 4.21 | `cn` is used by shadcn components. `shadcn` provides `shadcn/tailwind.css`. |
 | `react-day-picker`, `cmdk` | 10.0 / 1.1 | Added by shadcn `calendar` and `command`                                    |
 
-TypeScript types are generated with `php artisan typescript:transform`. `composer run setup` and `composer run dev` run it. The generated file is committed.
+TypeScript types are generated with `php artisan typescript:transform`. The generated file is committed. `composer run dev` has no watcher for it: a long-running watcher keeps the classes it loaded at start and writes stale types after a pull or branch switch. Instead the git hooks in `.githooks/` run a fresh transform: `post-merge` and `post-checkout` after a pull or branch switch, and `pre-commit` when a commit stages `app/Data`, `app/Enums` or the generated file, which stops the commit until the new types are staged. Run it yourself after editing a Data class or enum.
 
 Not needed: `spatie/laravel-model-states` (native enums), `lorisleiva/laravel-actions` and `internachi/modular` (native tools and namespaces).
 
