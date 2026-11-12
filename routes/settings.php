@@ -24,6 +24,8 @@ use App\Http\Controllers\DoorLocks\KeyportSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
+use App\Http\Controllers\Property\EInvoiceSettingsController;
+use App\Http\Controllers\Property\GuestEmailController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\PrintSettingsController;
 use App\Http\Controllers\Property\PropertyLogoController;
@@ -300,6 +302,18 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('test', [AccountingSettingsController::class, 'test'])->name('test');
         Route::post('billing/sync', [AccountingSettingsController::class, 'syncBilling'])->name('billing.sync');
         Route::post('syncs/{accountingSync}/retry', [AccountingSettingsController::class, 'retry'])->name('retry');
+    });
+
+    Route::prefix('emails')->name('emails.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::get('/', [GuestEmailController::class, 'edit'])->name('edit');
+        Route::put('{email}', [GuestEmailController::class, 'update'])->name('update');
+        Route::delete('{email}', [GuestEmailController::class, 'reset'])->name('reset');
+    });
+
+    Route::prefix('e-invoice')->name('e-invoice.')->middleware(['einvoicing', 'can:'.PermissionEnum::SettingsManage->value])->group(function () {
+        Route::get('/', [EInvoiceSettingsController::class, 'edit'])->name('edit');
+        Route::put('/', [EInvoiceSettingsController::class, 'update'])->name('update');
+        Route::post('test', [EInvoiceSettingsController::class, 'test'])->name('test');
     });
 
     Route::prefix('kiosks')->name('kiosks.')->middleware(['kiosks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {

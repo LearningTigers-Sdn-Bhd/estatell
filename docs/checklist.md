@@ -21,7 +21,7 @@ The booking engine is the current build. The channel manager and the wastays rep
 
 ### 28 Booking engine
 
-Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, at `booking.estatell.com`. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
 
 - [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md).
 - [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](29-booking-engine/06-content-registries.md#room-photos).
@@ -51,6 +51,20 @@ Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md).
 - [x] `fix(booking-engine): tidy the API contract` — stay times as `15:00`, and one error shape for field errors under `/api/booking/v1`. Docs: [API](29-booking-engine/02-api.md#rules).
 - [ ] In the `estatell-docs` repo: write the booking API developer guide — the steps, the demo address, the test token, the test payment details and the page security rules. The **Full guide** button on the API tab links to it. Needs: open the booking engine API on the demo. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode), [Page security](29-booking-engine/09-api-only-mode.md#page-security).
 - [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md), [Local development](29-booking-engine/10-local-dev-microsite.md).
+
+### 30 Commission fees
+
+Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md). Must be built before the booking engine collects real money.
+
+- [x] `docs(commissions): add the commission fees spec and checklist items` — `docs/30-commission-fees/`.
+- [x] `feat(commissions): add commission services, rates and the ledger` — `CommissionService`, `CommissionEntryType`, `CommissionRule`, `commission_rates`, `commission_entries`, and the Commission rates section on admin settings. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md), [Platform pages](30-commission-fees/05-platform-pages.md#commission-rates).
+- [x] `feat(commissions): record booking engine money and commission` — `collected`, `refunded` and `refund_fee` entries from Curlec results, and `BookingEngineCommission` when a booking ends. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md#entry-types).
+- [x] `feat(commissions): record channel manager commission` — `ChannelManagerCommission` on the folio's room revenue lines before tax, including cancellation and no-show fees. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md).
+- [x] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the entry lock. The PDF moved to the next item. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
+- [x] `feat(commissions): approve, pay and print payout vouchers` — the Vouchers list, the voucher page, adjustments, approve, mark as paid, the voucher PDF and the Commissions sidebar link. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#voucher-page).
+- [x] `feat(commissions): add the platform commissions dashboard` — the Bookings tab at `/admin/commissions` with Total Cash Liability, Immediate Payable and Owed to Estatell, the period, property and service filters, and the CSV export. Needs: approve, pay and print payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#bookings-tab).
+- [x] `feat(commissions): start and stop commission per property` — `property_commission_periods`, the charge date (check-out date), the Commissions tab on the admin property page, and the platform start date removed. Needs: the platform commissions dashboard. Docs: [Charging periods](30-commission-fees/02-commission-rules.md#charging-periods), [Platform pages](30-commission-fees/05-platform-pages.md#property-commissions-tab).
+- [x] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
 
 ### 18 Front desk
 
@@ -216,11 +230,11 @@ Planned after print customer documents (done). Plan first, with the official MyI
 
 Topics on hold. Each one needs a planning session and its docs before it gets commit items. Do not build from these lines.
 
-- [ ] **Commission fees** — BE, CM and self-check-in commissions per booking, payouts on due dates, a platform dashboard and a hotel owner page. Booking engine commission is 10%. Open: the payout cycle, the other rates, booking value by source, negative balances. It reads what the booking engine records, and the property pays Curlec's fees on a refund.
 - [ ] **new-wastays** — the OTA app. Its API endpoints come with the booking engine. Open: its commission, its rates and guest accounts.
 - [ ] **Concierge page** — like the booking engine, but for the guest's stay experience. After the booking engine.
 - [ ] **AI concierge** — can be turned on only when the concierge page is on. Admins hold the API key for now. After the concierge page.
 - [ ] **AroundThat programme** — recommends places from the AroundThat API. Later.
+- [ ] **Curlec key per property** — each property uses its own Curlec account, so guest money goes straight to the property and Estatell never holds it. Estatell invoices its commission each month, and refunds come from the property's account. This removes the BNM, Route and linked-account questions. It changes the payout vouchers and the "Estatell holds the money" decision, so confirm with the boss first. For now the booking engine goes live on Estatell's account.
 
 ## Done
 
@@ -482,6 +496,13 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 | `15689a3`  | fix(front-desk): hide early check-out for a unit that arrived today      |
 | `b86afbd`  | docs(front-desk): plan undo check-in and undo check-out                  |
 | `f2a9eb4`  | feat(front-desk): undo a check-in made today                             |
+| `acbdaf52` | docs(commissions): add the commission fees spec and checklist items      |
+| `5cebd25f` | feat(commissions): add commission services, rates and the ledger         |
+| `5aaaa9ee` | feat(commissions): record booking engine money and commission            |
+| `ff6a8e5f` | feat(commissions): record channel manager commission                     |
+| `86feac8e` | feat(commissions): generate payout vouchers on the 16th                  |
+| `e5c2c1b4` | feat(commissions): approve, pay and print payout vouchers                |
+| `8d38b2d3` | feat(commissions): add the platform commissions dashboard                |
 
 Smaller fixes and reverts are in `git log`.
 

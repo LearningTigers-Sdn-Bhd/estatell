@@ -15,17 +15,20 @@ use App\Models\Folio;
 use App\Models\ReservationUnit;
 use App\Models\UnitDayUse;
 use App\Models\UnitNight;
+use App\Services\EInvoice\FolioEInvoiceLock;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
  * When a check-out can be undone: the unit is CheckedOut, it checked out during the open business date
  * (`checked_out_at` is at or after `business_dates.opened_at`, so the night audit has not run since) and its room or
- * bed is not held by another unit tonight and none of its folios was settled to the city ledger. The unit menu, the preview and `UndoCheckOut` all ask this one class. It
+ * bed is not held by another unit tonight and none of its folios was settled to the city ledger or is on an e-invoice LHDN holds. The unit menu, the preview and `UndoCheckOut` all ask this one class. It
  * reads only. See docs/18-front-desk/01-check-in-and-check-out.md#cancel-void-and-undo.
  */
 class UndoCheckOutRule
 {
+    public function __construct(private FolioEInvoiceLock $eInvoiceLock) {}
+
     public function refusal(ReservationUnit $unit, BusinessDate $businessDate): ?string
     {
         if (! $unit->status->canUndoCheckOut()) {
@@ -42,6 +45,10 @@ class UndoCheckOutRule
 
         if ($this->isSettledToCityLedger($unit)) {
             return FolioStatusResult::REFUSAL_HAS_AR_INVOICE;
+        }
+
+        if ($this->foliosToReopen($unit)->contains(fn (Folio $folio): bool => $this->eInvoiceLock->for($folio) !== null)) {
+            return FolioStatusResult::REFUSAL_HAS_E_INVOICE;
         }
 
         return null;

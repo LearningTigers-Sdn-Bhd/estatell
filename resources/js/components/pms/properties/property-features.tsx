@@ -1,4 +1,4 @@
-import { Form, router } from '@inertiajs/react';
+import { Form, Link, router } from '@inertiajs/react';
 import { Fragment, useState } from 'react';
 import {
     AlertDialog,
@@ -22,6 +22,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { update as updateMode } from '@/routes/admin/properties/booking-engine-mode';
+import { eInvoiceGuide } from '@/routes/admin';
 import { update as updateFeature } from '@/routes/admin/properties/features';
 
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
@@ -267,6 +268,17 @@ export function PropertyFeatures({
                                 <FieldLabel>{item.label}</FieldLabel>
                                 <FieldDescription>
                                     {item.description}
+                                    {item.feature === 'e-invoicing' && (
+                                        <>
+                                            {' '}
+                                            <Link
+                                                href={eInvoiceGuide()}
+                                                className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                                            >
+                                                Read official guide &rarr;
+                                            </Link>
+                                        </>
+                                    )}
                                 </FieldDescription>
                             </FieldContent>
                             <Badge
@@ -276,7 +288,6 @@ export function PropertyFeatures({
                             </Badge>
                         </Field>
                         {modeField(item)}
-                        {providerField(item)}
                         {providerField(item)}
                     </Fragment>
                 ))}
@@ -298,6 +309,17 @@ export function PropertyFeatures({
                             </FieldLabel>
                             <FieldDescription>
                                 {item.description}
+                                {item.feature === 'e-invoicing' && (
+                                    <>
+                                        {' '}
+                                        <Link
+                                            href={eInvoiceGuide()}
+                                            className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                                        >
+                                            Read official guide &rarr;
+                                        </Link>
+                                    </>
+                                )}
                             </FieldDescription>
                         </FieldContent>
                         <Switch

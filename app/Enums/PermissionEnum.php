@@ -70,6 +70,9 @@ enum PermissionEnum: string
     case BookingWebsiteManage = 'booking-website.manage';
     case BookingWebsitePublish = 'booking-website.publish';
     case BookingWebsiteApi = 'booking-website.api';
+    case EInvoiceView = 'einvoice.view';
+    case EInvoiceManage = 'einvoice.manage';
+    case PayoutsView = 'payouts.view';
 
     public function label(): string
     {
@@ -136,6 +139,9 @@ enum PermissionEnum: string
             self::BookingWebsiteManage => __('Edit the booking website settings'),
             self::BookingWebsitePublish => __('Publish or unpublish the booking website'),
             self::BookingWebsiteApi => __('Manage the booking API token and return addresses'),
+            self::EInvoiceView => __('View e-invoices and submissions'),
+            self::EInvoiceManage => __('Submit, cancel, and configure e-invoices'),
+            self::PayoutsView => __('View payouts and commission from Estatell'),
         };
     }
 
@@ -161,6 +167,8 @@ enum PermissionEnum: string
             self::ReportsView => __('Reports'),
             self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes => __('Housekeeping'),
             self::BookingWebsiteManage, self::BookingWebsitePublish, self::BookingWebsiteApi => __('Booking website'),
+            self::EInvoiceView, self::EInvoiceManage => __('Finance'),
+            self::PayoutsView => __('Payouts'),
         };
     }
 

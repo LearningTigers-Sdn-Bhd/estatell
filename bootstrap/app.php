@@ -10,11 +10,13 @@ use App\Http\Middleware\EnsureBookingClientReach;
 use App\Http\Middleware\EnsureBookingEngineIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
+use App\Http\Middleware\EnsureEInvoicingIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
+use App\Http\Middleware\EnsurePayoutsAreShown;
 use App\Http\Middleware\EnsurePortalAccess;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
@@ -68,7 +70,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'boats' => EnsureBoatsIsActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
+            'einvoicing' => EnsureEInvoicingIsActive::class,
             'kiosks' => EnsureKiosksAreActive::class,
+            'payouts' => EnsurePayoutsAreShown::class,
             'booking-engine' => EnsureBookingEngineIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'keyport.device' => AuthenticateKeyportDevice::class,
@@ -90,6 +94,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureEInvoicingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);

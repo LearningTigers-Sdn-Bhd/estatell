@@ -14,6 +14,7 @@ use App\Enums\ChannelConnectionStatus;
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\ChannelSupport;
 use App\Enums\ChargeStatus;
+use App\Enums\CommissionRateStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
@@ -22,6 +23,7 @@ use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
 use App\Enums\PaymentReportStatus;
+use App\Enums\PayoutVoucherStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
 use App\Enums\RegistrationCardStatus;
@@ -98,6 +100,11 @@ class BadgeData extends Data
         return new self($status->value, $status->label(), $status->tone());
     }
 
+    public static function fromCommissionRateStatus(CommissionRateStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
     public static function fromCompanyStatus(CompanyStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
@@ -149,6 +156,11 @@ class BadgeData extends Data
     }
 
     public static function fromPartnerStatus(PartnerStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromPayoutVoucherStatus(PayoutVoucherStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

@@ -133,7 +133,7 @@ test('several lines make a group: the first guest is the booker and each unit ke
 
     portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup), portalRoomLine($setup)], ['expected_total' => '400.00']))->assertSessionHasNoErrors();
 
-    $reservation = Reservation::query()->with('units.guests.guest')->sole();
+    $reservation = Reservation::query()->with(['units' => fn ($units) => $units->orderBy('id'), 'units.guests.guest'])->sole();
 
     expect($reservation->units)->toHaveCount(2)
         ->and($reservation->booker->full_name)->toBe('Guest 1')
@@ -145,7 +145,7 @@ test('a dorm line books one unit for each bed, each with its own guest', functio
 
     portalBook($setup, portalBookingBody($setup, [portalDormLine($setup, 2)], ['expected_total' => '160.00']))->assertSessionHasNoErrors();
 
-    $reservation = Reservation::query()->with('units.guests.guest')->sole();
+    $reservation = Reservation::query()->with(['units' => fn ($units) => $units->orderBy('id'), 'units.guests.guest'])->sole();
 
     expect($reservation->units)->toHaveCount(2)
         ->and($reservation->units->every(fn ($unit) => $unit->adults === 1))->toBeTrue()
@@ -157,7 +157,7 @@ test('a line with several rooms books one unit for each room with the same plan 
 
     portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup, ['rooms' => 2, 'child_ages' => [6]])], ['expected_total' => '400.00']))->assertSessionHasNoErrors();
 
-    $reservation = Reservation::query()->with('units.guests.guest')->sole();
+    $reservation = Reservation::query()->with(['units' => fn ($units) => $units->orderBy('id'), 'units.guests.guest'])->sole();
 
     expect($reservation->units)->toHaveCount(2)
         ->and($reservation->units->every(fn ($unit) => $unit->rate_plan_id === $setup['plan']->id && $unit->adults === 2 && $unit->children === 1))->toBeTrue()

@@ -47,6 +47,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $latitude
  * @property string|null $longitude
  * @property string|null $google_maps_url
+ * @property string|null $msic_code
+ * @property string|null $business_description
  * @property CarbonImmutable|null $onboarding_started_at
  * @property CarbonImmutable|null $onboarding_last_activity_at
  * @property int $onboarding_reminder_stage
@@ -57,11 +59,12 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property CarbonImmutable|null $updated_at
  * @property-read PropertySetting|null $settings
  * @property-read (Pivot&object{display_name: string|null})|null $pivot Set when loaded through NearbyPlace::properties(); holds this property's name for the place.
+ * @property-read PropertyEInvoiceSetting|null $eInvoiceSetting
  */
 #[Fillable([
     'name', 'type', 'status',
     'address_line1', 'address_line2', 'city', 'state_code', 'postal_code', 'country_code',
-    'contact_email', 'contact_phone', 'legal_name', 'registration_number', 'tin',
+    'contact_email', 'contact_phone', 'legal_name', 'registration_number', 'tin', 'msic_code', 'business_description',
     'onboarding_started_at', 'went_live_at', 'suspended_at', 'suspended_from_status',
 ])]
 class Property extends Model implements FeatureScopeSerializeable, HasMedia
@@ -146,11 +149,27 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     }
 
     /**
+     * @return HasMany<PayoutVoucher, $this>
+     */
+    public function payoutVouchers(): HasMany
+    {
+        return $this->hasMany(PayoutVoucher::class);
+    }
+
+    /**
      * @return HasMany<Role, $this>
      */
     public function roles(): HasMany
     {
         return $this->hasMany(Role::class);
+    }
+
+    /**
+     * @return HasMany<PropertyCommissionPeriod, $this>
+     */
+    public function commissionPeriods(): HasMany
+    {
+        return $this->hasMany(PropertyCommissionPeriod::class);
     }
 
     /**
@@ -493,6 +512,29 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function printSetting(): HasOne
     {
         return $this->hasOne(PrintSetting::class);
+    }
+
+    /** @return HasOne<PropertyEInvoiceSetting, $this> */
+    public function eInvoiceSetting(): HasOne
+    {
+        return $this->hasOne(PropertyEInvoiceSetting::class);
+    }
+
+    /** @return HasMany<EInvoiceSubmission, $this> */
+    public function eInvoiceSubmissions(): HasMany
+    {
+        return $this->hasMany(EInvoiceSubmission::class);
+    }
+
+    /**
+     * The same as `eInvoiceSubmissions()`, named for the `{submission}` route parameter: scoped route bindings
+     * (`/finance/e-invoices/{submission}`) find the child through this name.
+     *
+     * @return HasMany<EInvoiceSubmission, $this>
+     */
+    public function submissions(): HasMany
+    {
+        return $this->eInvoiceSubmissions();
     }
 
     /**

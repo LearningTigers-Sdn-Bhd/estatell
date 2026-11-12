@@ -150,6 +150,6 @@ Curlec's error wording decides between "try again" and "failed". To verify on th
 
 - Curlec does not return its fee on a refund, and charges RM 0.50 per normal refund.
 - **The property pays both**, from its next payout. On a RM 432 card payment, a full refund costs RM 10.87 (RM 10.37 + RM 0.50).
-- On a partial refund, the property pays the RM 0.50, and the original fee stays covered by the commission on what it keeps. This is an assumption for Commission fees to confirm.
+- On a partial refund, the property pays the RM 0.50 only. Estatell pays Curlec's normal fee from its commission. See [Ledger](../30-commission-fees/03-ledger.md#refund-cost).
 
 Sources: [Normal refund fees](https://curlec.com/docs/payments/refunds/normal#refund-fees), [Refunds](https://curlec.com/docs/payments/refunds), [Create a normal refund](https://curlec.com/docs/api/refunds/create-normal), [Refund webhook events](https://curlec.com/docs/webhooks/refunds).

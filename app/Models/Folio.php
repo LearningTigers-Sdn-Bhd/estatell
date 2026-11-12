@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * The bill for a reservation or one of its units. The balance is `SUM(folio_lines.amount)` and is never stored
@@ -31,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $closed_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read EInvoiceSubmission|null $latestEInvoiceSubmission
  */
 #[Fillable([
     'reservation_id', 'reservation_unit_id', 'number', 'type', 'status', 'payer_guest_id', 'payer_company_id',
@@ -115,5 +117,21 @@ class Folio extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * @return HasMany<EInvoiceSubmission, $this>
+     */
+    public function eInvoiceSubmissions(): HasMany
+    {
+        return $this->hasMany(EInvoiceSubmission::class);
+    }
+
+    /**
+     * @return HasOne<EInvoiceSubmission, $this>
+     */
+    public function latestEInvoiceSubmission(): HasOne
+    {
+        return $this->hasOne(EInvoiceSubmission::class)->latestOfMany();
     }
 }

@@ -11,6 +11,10 @@ use App\Http\Controllers\CityLedger\CompanyPaymentSlipController;
 use App\Http\Controllers\CityLedger\CompanyPortalLoginController;
 use App\Http\Controllers\CityLedger\CompanyStatementController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
+use App\Http\Controllers\Finance\EInvoiceSubmissionsController;
+use App\Http\Controllers\Finance\EInvoiceTaxNumberController;
+use App\Http\Controllers\Payouts\PayoutBookingController;
+use App\Http\Controllers\Payouts\PayoutVoucherController;
 use App\Http\Requests\CityLedger\CompanyRequest;
 use Illuminate\Support\Facades\Route;
 
@@ -76,12 +80,38 @@ Route::prefix('finance')->name('finance.')->group(function () {
             Route::get('pdf', [ArInvoiceController::class, 'pdf'])->name('pdf');
             Route::post('credit-notes', [ArInvoiceController::class, 'storeCreditNote'])->middleware('can:'.PermissionEnum::CityLedgerCreditNote->value)->name('credit-notes.store');
             Route::post('void', [ArInvoiceController::class, 'void'])->name('void');
+            Route::post('e-invoice', [ArInvoiceController::class, 'submitEInvoice'])->middleware(['einvoicing', 'can:'.PermissionEnum::EInvoiceManage->value])->name('e-invoice');
+            Route::post('e-invoice/cancel', [ArInvoiceController::class, 'cancelEInvoice'])->middleware(['einvoicing', 'can:'.PermissionEnum::EInvoiceManage->value])->name('e-invoice.cancel');
         });
+    });
+
+    Route::prefix('e-invoices')->name('e-invoices.')->middleware(['einvoicing', 'can:'.PermissionEnum::EInvoiceView->value])->scopeBindings()->group(function () {
+        Route::get('/', [EInvoiceSubmissionsController::class, 'index'])->name('index');
+        Route::get('{submission}', [EInvoiceSubmissionsController::class, 'show'])->name('show');
+        Route::post('{submission}/refresh', [EInvoiceSubmissionsController::class, 'refresh'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('refresh');
+        Route::post('{submission}/email', [EInvoiceSubmissionsController::class, 'email'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('email');
+        Route::post('{submission}/cancel', [EInvoiceSubmissionsController::class, 'cancel'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('cancel');
+        Route::post('{submission}/credit-note', [EInvoiceSubmissionsController::class, 'creditNote'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('credit-note');
+        Route::post('consolidate', [EInvoiceSubmissionsController::class, 'consolidate'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('consolidate');
+        Route::post('tax-number/check', [EInvoiceTaxNumberController::class, 'check'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('tax-number.check');
+        Route::post('{submission}/tax-number', [EInvoiceTaxNumberController::class, 'find'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('tax-number.find');
+        Route::post('{submission}/resubmit', [EInvoiceTaxNumberController::class, 'resubmit'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('resubmit');
     });
 
     Route::prefix('city-ledger/aging')->middleware('can:'.PermissionEnum::CompanyView->value)->group(function () {
         Route::get('/', [AgingController::class, 'index'])->name('city-ledger.aging');
         Route::get('csv', [AgingController::class, 'csv'])->name('city-ledger.aging.csv');
         Route::get('pdf', [AgingController::class, 'pdf'])->name('city-ledger.aging.pdf');
+    });
+
+    Route::prefix('payouts')->name('payouts.')->middleware(['can:'.PermissionEnum::PayoutsView->value, 'payouts'])->group(function () {
+        Route::get('/', [PayoutBookingController::class, 'index'])->name('index');
+        Route::get('export', [PayoutBookingController::class, 'export'])->name('export');
+
+        Route::prefix('vouchers')->name('vouchers.')->scopeBindings()->group(function () {
+            Route::get('/', [PayoutVoucherController::class, 'index'])->name('index');
+            Route::get('{payoutVoucher}', [PayoutVoucherController::class, 'show'])->whereNumber('payoutVoucher')->name('show');
+            Route::get('{payoutVoucher}/pdf', [PayoutVoucherController::class, 'pdf'])->whereNumber('payoutVoucher')->name('pdf');
+        });
     });
 });

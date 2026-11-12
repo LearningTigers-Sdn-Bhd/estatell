@@ -11,6 +11,8 @@ use App\Data\Folio\PostFolioOptionData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Shared\BadgeData;
 use App\Enums\ArInvoiceStatus;
+use App\Enums\EInvoiceDocumentType;
+use App\Enums\EInvoiceStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -21,8 +23,10 @@ use App\Enums\PaymentStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Features\EInvoicing;
 use App\Models\ArInvoice;
 use App\Models\Company;
+use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioManualBatch;
@@ -34,7 +38,14 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
+use App\Services\EInvoice\BuyerResolver;
+use App\Services\EInvoice\FolioEInvoiceLock;
+use App\Services\EInvoice\LhdnRejectionReasons;
+use App\Services\EInvoice\ReportableLines;
+use App\Services\EInvoice\StaysNeedingOwnEInvoice;
+use App\Services\EInvoice\SubmissionStatusBadge;
 use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\OnlineRefundLedger;
 use App\Services\Payments\PaymentPurposeChoices;
@@ -42,6 +53,7 @@ use Brick\Math\BigDecimal;
 use Closure;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Laravel\Pennant\Feature;
 
 /**
  * Reads the folio tab of a reservation: the rail (every folio that is not Voided, then a read-only entry for each
@@ -61,6 +73,11 @@ class FolioStatement
         private CurrentBusinessDate $currentBusinessDate,
         private CheckOutSettlement $checkOutSettlement,
         private OnlineRefundLedger $onlineRefundLedger,
+        private LhdnRejectionReasons $lhdnRejectionReasons,
+        private FolioEInvoiceLock $folioEInvoiceLock,
+        private SubmissionStatusBadge $submissionStatusBadge,
+        private ReportableLines $reportableLines,
+        private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
     ) {}
 
     /**
@@ -77,7 +94,7 @@ class FolioStatement
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = [], ?User $user = null): array
     {
         $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->assigned ?? $unit->roomType])->all();
-        $folios = $this->folios($reservation, array_keys($labels));
+        $folios = $this->folios($property, $reservation, array_keys($labels));
         $balances = $this->balances($folios);
         $blocks = $this->scheduledRows->forReservation($property, $reservation, $labels);
 
@@ -102,7 +119,7 @@ class FolioStatement
 
         return [
             'folios' => array_values($entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all()),
-            'folio' => $open === null ? null : $this->data($reservation, $open, $entries, $units, $blocks, $balances, $can, $labels, $user),
+            'folio' => $open === null ? null : $this->data($property, $reservation, $open, $entries, $units, $blocks, $balances, $can, $labels, $user),
         ];
     }
 
@@ -120,7 +137,7 @@ class FolioStatement
      * @param  list<int>  $unitOrder
      * @return EloquentCollection<int, Folio>
      */
-    private function folios(Reservation $reservation, array $unitOrder): Collection
+    private function folios(Property $property, Reservation $reservation, array $unitOrder): Collection
     {
         return Folio::query()
             ->where('property_id', $reservation->property_id)
@@ -128,6 +145,7 @@ class FolioStatement
             ->where('status', '!=', FolioStatus::Voided)
             ->with('payerGuest', 'payerCompany:id,name')
             ->get()
+            ->each(fn (Folio $folio) => $folio->setRelation('property', $property))
             ->sortBy(fn (Folio $folio): array => [
                 match ($folio->type) {
                     FolioType::Master => 0,
@@ -272,7 +290,7 @@ class FolioStatement
      * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool, manual?: bool, viewManual?: bool}  $can
      * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function data(Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
+    private function data(Property $property, Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
     {
         $folio = $entry['folio'];
         $isOpen = $folio?->status === FolioStatus::Open;
@@ -336,6 +354,31 @@ class FolioStatement
         $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
+        $eInvoiceSetting = $reservation->property->eInvoiceSetting;
+        $eInvoiceEnabled = $eInvoiceSetting !== null && $eInvoiceSetting->enabled && Feature::for($reservation->property)->active(EInvoicing::class);
+        $latestSubmission = $folio !== null ? EInvoiceSubmission::query()
+            ->where('folio_id', $folio->id)
+            ->where('document_type', EInvoiceDocumentType::Invoice)
+            ->where('status', '!=', EInvoiceStatus::Cancelled)
+            ->latest('id')
+            ->first() : null;
+
+        // The e-invoice LHDN holds for this folio, its own or a monthly summary it is in.
+        $eInvoiceHold = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed ? $this->folioEInvoiceLock->for($folio) : null;
+        if ($eInvoiceHold?->is_consolidated) {
+            $latestSubmission = $eInvoiceHold;
+        }
+        // A stay billed to a company gets its e-invoice through the city ledger invoice instead.
+        // A folio whose charges were all reversed has nothing to report.
+        $canSubmitEInvoice = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed && $billedBy === null && $eInvoiceHold === null
+            && $this->reportableLines->gross($folio)->isPositive();
+        $buyer = $folio !== null ? BuyerResolver::forFolio($folio, $property) : null;
+        $rejected = $canSubmitEInvoice && $latestSubmission?->status === EInvoiceStatus::Invalid ? $latestSubmission : null;
+        if ($rejected !== null && $buyer !== null) {
+            // Start the correction from what LHDN rejected, not from the profile again.
+            $buyer = array_merge($buyer, array_filter($rejected->buyer_snapshot ?? [], fn (mixed $value): bool => $value !== null));
+        }
+
         return new FolioData(
             key: $entry['key'],
             kind: $entry['item']->kind,
@@ -354,7 +397,7 @@ class FolioStatement
             onlineRefunds: $this->onlineRefunds($folio, $isOpen && ($can['refund'] ?? false), $posted),
             canRefundOtherMethod: $user?->can(PermissionEnum::PaymentRefundOtherMethod->value) ?? false,
             canClose: $isOpen && ($can['close'] ?? false),
-            canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio),
+            canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio) && ($eInvoiceEnabled ? $eInvoiceHold === null : $this->folioEInvoiceLock->for($folio) === null),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
             canPostCharge: $postUnits !== [],
             postUnits: array_values($postUnits),
@@ -378,6 +421,23 @@ class FolioStatement
             voidInvoiceBlockedBy: $canVoidAndReopen ? $this->arInvoiceVoidCheck->blockedBy($billedBy) : null,
             closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
             canManageManually: $isOpen && ($can['manual'] ?? false),
+            eInvoiceSubmissionId: $latestSubmission?->id,
+            eInvoiceStatus: $latestSubmission?->status->value,
+            eInvoiceStatusLabel: $latestSubmission?->is_consolidated ? __('In monthly summary') : ($latestSubmission === null ? null : $this->submissionStatusBadge->for($latestSubmission)->label),
+            eInvoiceStatusTone: $latestSubmission === null ? null : $this->submissionStatusBadge->for($latestSubmission)->tone->value,
+            eInvoiceUuid: $latestSubmission?->uuid,
+            canSubmitEInvoice: $canSubmitEInvoice,
+            payerGuestTin: $buyer['tin'] ?? null,
+            payerGuestIdType: $buyer['id_type'] ?? null,
+            payerGuestIdValue: $buyer['id_value'] ?? null,
+            payerGuestCity: $buyer['city'] ?? null,
+            // The form picks the country by its alpha-2 code like every other country picker; LHDN gets alpha-3.
+            eInvoiceBuyer: $buyer === null ? null : [...$buyer, 'country_code' => app(CountryOptions::class)->alpha2($buyer['country_code'] ?? null) ?? 'MY'],
+            eInvoiceRequired: $canSubmitEInvoice && $this->staysNeedingOwnEInvoice->isOverLimit($folio),
+            eInvoiceRejection: $rejected === null ? [] : array_map(
+                fn (array $reason): array => ['message' => $reason['message'], 'fix' => $reason['fix']],
+                array_values(array_filter($this->lhdnRejectionReasons->for($rejected), fn (array $reason): bool => $reason['where'] === 'buyer')),
+            ),
         );
     }
 

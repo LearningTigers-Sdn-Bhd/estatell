@@ -4,6 +4,7 @@ use App\Enums\LockProvider;
 use App\Enums\PlatformFeature;
 use App\Features\ChannelManager;
 use App\Features\DoorLocks;
+use App\Features\EInvoicing;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -87,6 +88,28 @@ test('admins turn a feature on and off and each change is logged', function () {
         ->and(Activity::query()->first()->causer->is($admin))->toBeTrue()
         ->and(Activity::query()->first()->subject->is($property))->toBeTrue()
         ->and(Activity::query()->first()->properties->get('feature'))->toBe('channel-manager');
+});
+
+test('admins turn e-invoicing on and off for a property', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+
+    expect(Feature::for($property)->active(EInvoicing::class))->toBeFalse();
+
+    $this->actingAs($admin)
+        ->put(updateFeature($property, true, 'e-invoicing'), ['active' => true])
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'E-invoicing turned on.']);
+
+    expect(Feature::for($property)->active(EInvoicing::class))->toBeTrue();
+
+    $this->actingAs($admin)
+        ->put(updateFeature($property, false, 'e-invoicing'), ['active' => false])
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'E-invoicing turned off.']);
+
+    Feature::flushCache();
+    expect(Feature::for($property)->active(EInvoicing::class))->toBeFalse();
 });
 
 test('setting the same value again writes no log entry', function () {
