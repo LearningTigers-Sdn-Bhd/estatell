@@ -152,6 +152,16 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `PUT /admin/channels/order`                                         | `admin.channels.reorder`                                  | –                                                |
 | `PUT /admin/channels/3`                                             | `admin.channels.update`                                   | –                                                |
 | `PUT /admin/channels/3/active`                                      | `admin.channels.active.update`                            | –                                                |
+| `GET /admin/webhooks`                                               | `admin.webhooks.index`                                    | `pages/admin/webhooks/index.tsx`                 |
+| `GET /admin/webhooks/deliveries`                                    | `admin.webhooks.deliveries`                               | `pages/admin/webhooks/deliveries.tsx`            |
+| `POST /admin/webhooks`                                              | `admin.webhooks.store`                                    | –                                                |
+| `GET /admin/webhooks/3`                                             | `admin.webhooks.show`                                     | `pages/admin/webhooks/show.tsx`                  |
+| `PUT /admin/webhooks/3`                                             | `admin.webhooks.update`                                   | –                                                |
+| `DELETE /admin/webhooks/3`                                          | `admin.webhooks.destroy`                                  | –                                                |
+| `PUT /admin/webhooks/3/active`                                      | `admin.webhooks.active.update`                            | –                                                |
+| `POST /admin/webhooks/3/rotate-secret`                              | `admin.webhooks.rotate-secret`                            | –                                                |
+| `POST /admin/webhooks/3/test`                                       | `admin.webhooks.test`                                     | –                                                |
+| `POST /admin/webhooks/deliveries/9/retry`                           | `admin.webhooks.deliveries.retry`                         | –                                                |
 | `GET /partner-invitations/{token}`                                  | `partner-invitations.show`                                | `pages/partner-invitations/accept.tsx`           |
 | `GET /command-search?q=ah`                                          | `command-search`                                          | – (JSON, grouped palette results)                |
 | `GET /view-as/ES1142`                                               | `view-as.show`                                            | `pages/view-as/show.tsx`                         |

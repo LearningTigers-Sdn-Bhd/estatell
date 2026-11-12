@@ -1054,6 +1054,12 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(company-market): offer rates by company market` — `companies.market` (`CompanyMarket`), `rate_plans.company_market` (`CompanyRateMarket`), the check in `CompanyRateAccess`, `CompanyRatePlans` and `PortalRatePlans`, the Market field on the company and the Market radio on the plan's Companies tab, and the `market` import column. Needs: company access on rate plans. Docs: [Market](08-rates/01-rate-plans.md#market).
 - [x] `feat(onboarding): import the per-room plans of a wastays hotel` — `wastays:import-setup` places the plans that are not Standard, Walk-in or Corporate on a per-room hotel (`ImportWastaysFixedRatePlans`): one plan per name with a fixed price per room type, a Day use plan when wastays sets hours. `--net-prices` keeps prices that are already before SST; a hotel with SST off is never divided. Docs: [Hotel Asia City](migration-plan/hotel-asia-city.md#rate-plans).
 
+### 32 Webhooks
+
+- [x] `feat(webhooks): add endpoints, signed delivery and auto-disable` — `webhook_endpoints`, `webhook_endpoint_events`, `webhook_deliveries`, `webhook_delivery_attempts`, `WebhookEvent`, `WebhookDeliveryStatus`, `BroadcastWebhook`, `DeliverWebhook` and `DeliverWebhookJob` (5 tries, no retry on 4xx), `WebhookSignature`, `DisableFailingWebhookEndpoint` after 3 days with `WebhookEndpointDisabled` to platform admins, `PruneWebhookDeliveries` after 30 days. Docs: [Outgoing webhooks](32-webhooks/01-outgoing-webhooks.md).
+- [x] `feat(webhooks): send all events with versioned payloads` — `TriggerWebhook` and `BroadcastWebhookJob`, a payload builder per group, contact-only guest data, and the triggers for the 17 events, sent after commit, once per subject per request; old and migrated stays and `wastays:*` commands send nothing. Needs: the endpoints item. Docs: [Build order](32-webhooks/01-outgoing-webhooks.md#build-order).
+- [x] `feat(admin): manage webhook endpoints` — **Webhooks** after Channels, the Endpoints and Deliveries tabs, the switch column, the endpoint Sheet, the secret shown once, Rotate secret, the turn-on confirm for a disabled endpoint, Send test event, the delivery Sheet with Retry now. Needs: the endpoints item. Docs: [Admin page](32-webhooks/01-outgoing-webhooks.md#admin-page).
+
 ### Deferred items to pick up along the way
 
 - [x] `feat(platform): store uploads on the chosen media disk` — with the first media collection (guest ID scans). Docs: [Platform settings](01-platform/02-platform-settings.md#media-storage).
