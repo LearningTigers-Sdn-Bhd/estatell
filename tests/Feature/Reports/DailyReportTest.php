@@ -245,3 +245,20 @@ test('the PDF and CSV keep the tax columns and the distinct booking total', func
         ->and($rows[1])->toBe(['2026-10-09', '2', '100', '40', '20', '30', '8', '10', '-10', '198'])
         ->and(end($rows))->toBe(['Total', '2', '250', '40', '20', '30', '20', '10', '-10', '360']);
 });
+
+test('the wide PDF keeps dates on one line and tightens the cells in a lined table', function () {
+    [$user, $property] = reportSetup();
+    dailyData($property);
+    $property->printSetting->update(['table_style' => 'lined']);
+    $captured = new stdClass;
+    View::composer('pdf.report', function ($view) use ($captured): void {
+        $captured->data = $view->getData();
+    });
+
+    $this->actingAs($user)->post("/p/{$property->code}/reports/daily-revenue/pdf", ['from' => '2026-10-09', 'to' => '2026-10-10'])->assertOk();
+    $html = view('pdf.report', $captured->data)->render();
+
+    expect($html)->toContain('<th class="nowrap">Date / month</th>')
+        ->toContain('.data td, .data th, .data td:last-child, .data th:last-child { padding-left: 2pt; padding-right: 2pt; }')
+        ->toContain('Accommodation<br>(MYR)');
+});

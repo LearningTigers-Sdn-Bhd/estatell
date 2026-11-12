@@ -515,7 +515,10 @@ test('the PDF and the CSV keep the filters', function () {
     });
 
     $this->actingAs($setup['user'])->post("/p/{$setup['property']->code}/reports/daily-charges/pdf", $base)->assertOk();
-    expect($captured->data['rows'])->toHaveCount(1);
+    $html = view('pdf.report', $captured->data)->render();
+    expect($captured->data['rows'])->toHaveCount(1)
+        ->and($html)->toContain('<td class="nowrap">'.$setup['reservation']->reference.'</td>')
+        ->and($html)->toContain('<th class="nowrap">Booking</th>');
 
     $response = $this->actingAs($setup['user'])->post("/p/{$setup['property']->code}/reports/daily-charges/spreadsheet", [...$base, 'format' => 'csv']);
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
