@@ -24,7 +24,7 @@ export function boatSettingsTabs(): TabLink[] {
         },
         {
             value: 'boats',
-            label: 'Boats',
+            label: 'Boat list',
             icon: Anchor,
             href: boatsIndex(),
         },
