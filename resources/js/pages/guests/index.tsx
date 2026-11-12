@@ -87,7 +87,6 @@ function guestColumns(currency: Currency) {
         }),
         column.accessor('email', {
             header: 'Email',
-            enableSorting: false,
             cell: (info) =>
                 info.row.original.isAnonymized ? (
                     '—'
@@ -97,7 +96,6 @@ function guestColumns(currency: Currency) {
         }),
         column.accessor('phone', {
             header: 'Phone',
-            enableSorting: false,
             cell: (info) =>
                 info.row.original.isAnonymized ? (
                     '—'
@@ -106,8 +104,8 @@ function guestColumns(currency: Currency) {
                 ),
         }),
         column.accessor('nationalityName', {
+            id: 'nationality',
             header: 'Nationality',
-            enableSorting: false,
             cell: (info) => info.getValue() ?? '—',
         }),
         column.accessor('tags', {

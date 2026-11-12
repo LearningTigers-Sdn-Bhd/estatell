@@ -47,6 +47,7 @@ class GuestDirectory
         private IdentityNumber $identityNumber,
         private GuestStayHistory $stayHistory,
         private PropertyToday $propertyToday,
+        private CountryOptions $countryOptions,
     ) {}
 
     /**
@@ -90,6 +91,9 @@ class GuestDirectory
             ->allowedSorts(
                 'full_name',
                 'created_at',
+                AllowedSort::callback('email', $this->emptyLastSort("NULLIF(lower(guests.email), '')")),
+                AllowedSort::callback('phone', $this->emptyLastSort("NULLIF(guests.phone, '')")),
+                AllowedSort::callback('nationality', $this->nationalitySort(...)),
                 AllowedSort::callback('last_visit', $this->figureSort('guest_stays.latest_departure')),
                 AllowedSort::callback('stays', $this->figureSort('guest_stays.stays')),
                 AllowedSort::callback('spend', $this->figureSort('guest_stays.spend')),
@@ -188,6 +192,34 @@ class GuestDirectory
             self::CONTACT_MISSING => $query->where(fn (Builder $query) => $query->where($noEmail)->orWhere($noPhone)),
             default => null,
         };
+    }
+
+    /**
+     * A sort on a text column that may be empty. Empty values go last in both directions, then by name.
+     *
+     * @param  literal-string  $expression
+     * @return Closure(Builder<Guest>, bool): void
+     */
+    private function emptyLastSort(string $expression): Closure
+    {
+        return function (Builder $query, bool $descending) use ($expression): void {
+            $query->orderByRaw($expression.($descending ? ' DESC' : ' ASC').' NULLS LAST')->orderBy('guests.full_name')->orderBy('guests.id');
+        };
+    }
+
+    /**
+     * Nationality sorts by the country name shown, not the code: the position of the code in the codes listed by name.
+     * An empty or unknown code goes last.
+     *
+     * @param  Builder<Guest>  $query
+     */
+    private function nationalitySort(Builder $query, bool $descending): void
+    {
+        $codes = array_column($this->countryOptions->options(), 'value');
+
+        $query->orderByRaw('array_position(?::text[], guests.nationality_code)'.($descending ? ' DESC' : ' ASC').' NULLS LAST', ['{'.implode(',', $codes).'}'])
+            ->orderBy('guests.full_name')
+            ->orderBy('guests.id');
     }
 
     /**

@@ -159,7 +159,7 @@ A client asked for it: source, last visit, stay frequency, total nights and tota
 - [x] `feat(guests): add stay columns and filters to the guest list` — Last visit, Stays and Spend columns and sorts, the contact warnings, and the Source, Returning and Contact filters. Needs: the service.
 - [x] `feat(registration): ask the guest for a missing email or phone` — "Please fill in." under an empty Optional Email or Phone, with its Malay text.
 - [x] `docs(guests): plan the guest list layout and sorts` — the sorts and the Guest list layout section.
-- [ ] `feat(guests): sort the guest list by email, phone and nationality` — the three sorts, nationality by country name, empty values last.
+- [x] `feat(guests): sort the guest list by email, phone and nationality` — the three sorts, nationality by country name, empty values last.
 - [ ] `feat(guests): add the column layout to the guest list` — `ReportKey::Guests` with `hasExports()`, export and preview routes limited to keys with exports, `printable` on `ReportLayoutSheet`, the Layout button and the table following the layout, the hidden sort fallback.
 
 ## Next

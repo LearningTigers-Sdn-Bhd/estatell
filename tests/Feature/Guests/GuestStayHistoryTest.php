@@ -274,3 +274,20 @@ test('the guest list filters by source, returning and missing contact', function
         ->and($names(['contact' => 'no_email']))->toBe(['Returning Guest'])
         ->and($names(['contact' => 'no_phone']))->toBe(['First Guest']);
 });
+
+test('the guest list sorts by email, phone and nationality name with empty values last', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Swiss', 'email' => 'b@example.com', 'phone' => '+60123000002', 'nationality_code' => 'CH']);
+    Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Chinese', 'email' => 'A@example.com', 'phone' => '+60123000001', 'nationality_code' => 'CN']);
+    Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Unknown', 'email' => null, 'phone' => null, 'nationality_code' => null]);
+
+    $names = fn (string $sort): array => collect($this->actingAs($owner)->get(route('guests.index', [$property->code, 'sort' => $sort]))
+        ->viewData('page')['props']['guests']['data'])->pluck('fullName')->all();
+
+    expect($names('email'))->toBe(['Chinese', 'Swiss', 'Unknown'])
+        ->and($names('-email'))->toBe(['Swiss', 'Chinese', 'Unknown'])
+        ->and($names('phone'))->toBe(['Chinese', 'Swiss', 'Unknown'])
+        ->and($names('nationality'))->toBe(['Chinese', 'Swiss', 'Unknown'])
+        ->and($names('-nationality'))->toBe(['Swiss', 'Chinese', 'Unknown']);
+});
