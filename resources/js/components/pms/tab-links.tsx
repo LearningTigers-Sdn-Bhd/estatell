@@ -5,13 +5,60 @@ import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import type { BreadcrumbItem } from '@/types';
 
 export type TabLink = {
     value: string;
     label: ReactNode;
     icon: LucideIcon;
     href: NonNullable<InertiaLinkProps['href']>;
+    /** The tab's name in the breadcrumbs, when `label` is not plain text (a count or a badge). */
+    title?: string;
 };
+
+/** The plain name of a tab, for the breadcrumbs. */
+export function tabTitle(tab: TabLink): string {
+    return tab.title ?? (typeof tab.label === 'string' ? tab.label : tab.value);
+}
+
+/**
+ * Adds the open tab as the last crumb, with a switch menu of the other tabs. Pages call it in their `layout` so
+ * the crumb is there on the first paint. Leaves the crumbs as they are when there is only one tab, or when the tab
+ * has the same name as the crumb before it.
+ */
+export function withTabCrumb(
+    breadcrumbs: BreadcrumbItem[],
+    tabs: TabLink[],
+    activeTab: string,
+): BreadcrumbItem[] {
+    const active = tabs.find((tab) => tab.value === activeTab);
+
+    if (!active || tabs.length < 2) {
+        return breadcrumbs;
+    }
+
+    const title = tabTitle(active);
+
+    if (breadcrumbs.at(-1)?.title === title) {
+        return breadcrumbs;
+    }
+
+    return [
+        ...breadcrumbs,
+        {
+            title,
+            href: active.href,
+            siblings: {
+                label: 'Tabs',
+                items: tabs.map((tab) => ({
+                    title: tabTitle(tab),
+                    href: tab.href,
+                    current: tab.value === activeTab,
+                })),
+            },
+        },
+    ];
+}
 
 type Props = {
     tabs: TabLink[];

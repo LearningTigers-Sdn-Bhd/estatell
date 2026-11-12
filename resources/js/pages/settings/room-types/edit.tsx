@@ -41,6 +41,6 @@ export default function RoomTypeEdit({
     );
 }
 
-RoomTypeEdit.layout = (props: { roomType: RoomType }) => ({
-    breadcrumbs: roomTypeBreadcrumbs(props.roomType),
+RoomTypeEdit.layout = (props: Parameters<typeof roomTypeBreadcrumbs>[0]) => ({
+    breadcrumbs: roomTypeBreadcrumbs(props, 'details'),
 });

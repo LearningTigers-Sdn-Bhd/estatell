@@ -37,6 +37,6 @@ export default function RatePlanEdit({
     );
 }
 
-RatePlanEdit.layout = (props: { ratePlan: RatePlan }) => ({
-    breadcrumbs: ratePlanBreadcrumbs(props.ratePlan),
+RatePlanEdit.layout = (props: Parameters<typeof ratePlanBreadcrumbs>[0]) => ({
+    breadcrumbs: ratePlanBreadcrumbs(props, 'details'),
 });

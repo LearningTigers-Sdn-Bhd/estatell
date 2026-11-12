@@ -50,6 +50,8 @@ export default function RatePlanInclusions({
     );
 }
 
-RatePlanInclusions.layout = (props: { ratePlan: RatePlan }) => ({
-    breadcrumbs: ratePlanBreadcrumbs(props.ratePlan),
+RatePlanInclusions.layout = (
+    props: Parameters<typeof ratePlanBreadcrumbs>[0],
+) => ({
+    breadcrumbs: ratePlanBreadcrumbs(props, 'inclusions'),
 });

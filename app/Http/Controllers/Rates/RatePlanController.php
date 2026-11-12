@@ -35,6 +35,7 @@ use App\Data\Rates\RatePlanInclusionMealPeriodData;
 use App\Data\Rates\RatePlanParentDiscountsData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
 use App\Data\Rates\RatePlanStayDiscountData;
+use App\Data\Rates\RatePlanSwitchData;
 use App\Data\Rates\RatePricingRoomTypeData;
 use App\Data\Rates\StayDiscountPreviewData;
 use App\Enums\AgeBandPricing;
@@ -174,6 +175,7 @@ class RatePlanController extends Controller
     {
         return Inertia::render('settings/rate-plans/edit', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'currency' => CurrencyData::forProperty($property),
             'nightsLockedReason' => $ratePlan->pricing_basis === PricingBasis::Package ? $derivedRatePlans->nightsLockMessage($ratePlan) : null,
             'groupRateOptions' => $property->ratePlans()->active()->whereKeyNot($ratePlan->id)->whereNotNull('min_rooms')
@@ -192,6 +194,7 @@ class RatePlanController extends Controller
     {
         return Inertia::render('settings/rate-plans/room-types', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'roomTypes' => $property->roomTypes()->active()->ordered()->get()
                 ->map(fn (RoomType $roomType): RatePlanRoomTypeChoiceData => RatePlanRoomTypeChoiceData::forPlan($roomType, $ratePlan)),
             'sellUnits' => SellUnit::options(),
@@ -207,6 +210,7 @@ class RatePlanController extends Controller
 
         return Inertia::render('settings/rate-plans/child-prices', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'childPrices' => $ratePlan->childPrices()->with('ageGroup')->get()
                 ->sortBy('ageGroup.min_age')->values()
                 ->map(fn (RatePlanChildPrice $childPrice): RatePlanChildPriceData => RatePlanChildPriceData::fromModel($childPrice)),
@@ -225,6 +229,7 @@ class RatePlanController extends Controller
 
         return Inertia::render('settings/rate-plans/inclusions', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'inclusions' => $inclusions->map(fn (RatePlanInclusion $inclusion): RatePlanInclusionData => RatePlanInclusionData::fromModel($inclusion)),
             'chargeItems' => $property->chargeItems()
                 ->where(fn ($query) => $query->where('active', true)->orWhereIn('id', $inclusions->pluck('charge_item_id')))
@@ -251,6 +256,7 @@ class RatePlanController extends Controller
 
         return Inertia::render('settings/rate-plans/package-pricing', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'roomTypes' => $ratePlan->roomTypes()->whereNull('room_types.archived_at')->orderBy('room_types.position')->orderBy('room_types.id')->get()
                 ->map(fn (RoomType $roomType): PackagePriceRoomTypeData => PackagePriceRoomTypeData::fromModel($roomType)),
             'prices' => $ratePlan->packagePrices()->get()
@@ -279,6 +285,7 @@ class RatePlanController extends Controller
 
         return Inertia::render('settings/rate-plans/discounts', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'discounts' => $discounts->map(fn (RatePlanStayDiscount $discount): RatePlanStayDiscountData => RatePlanStayDiscountData::fromModel($discount)),
             'discountTypes' => StayDiscountType::options(),
             'parentDiscounts' => $ratePlan->parent_rate_plan_id === null || $parentDiscounts->isEmpty()
@@ -328,6 +335,7 @@ class RatePlanController extends Controller
 
         return Inertia::render('settings/rate-plans/saved-prices', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'saved' => $rateCalendarService->forPlan($property, $ratePlan, $from, $to, $property->settings->currency->getCurrencyCode()),
             'pricedUntil' => $pricedUntil,
             'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
@@ -349,6 +357,7 @@ class RatePlanController extends Controller
 
         return Inertia::render('settings/rate-plans/pricing', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'derivation' => RatePlanDerivationData::forPlan($ratePlan, $derivedRatePlans),
             'derivations' => RateDerivation::options(),
             'roomTypes' => $ratePlan->roomTypes()->whereNull('room_types.archived_at')->orderBy('room_types.position')->orderBy('room_types.id')->get()

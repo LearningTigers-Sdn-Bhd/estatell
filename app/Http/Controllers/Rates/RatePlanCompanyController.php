@@ -9,6 +9,7 @@ use App\Actions\Rates\UpdateRatePlanCompany;
 use App\Data\Rates\RatePlanCompaniesData;
 use App\Data\Rates\RatePlanCompanyCandidateData;
 use App\Data\Rates\RatePlanData;
+use App\Data\Rates\RatePlanSwitchData;
 use App\Enums\CompanyAccess;
 use App\Enums\CompanyRateMarket;
 use App\Enums\CompanyStatus;
@@ -41,6 +42,7 @@ class RatePlanCompanyController extends Controller
 
         return Inertia::render('settings/rate-plans/companies', [
             'ratePlan' => RatePlanData::fromModel($ratePlan),
+            'ratePlanSwitch' => RatePlanSwitchData::forProperty($property, $ratePlan),
             'access' => RatePlanCompaniesData::fromModel($ratePlan),
             'accessOptions' => CompanyAccess::options(),
             'marketOptions' => CompanyRateMarket::options(),
