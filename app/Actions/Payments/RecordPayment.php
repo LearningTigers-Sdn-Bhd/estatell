@@ -5,6 +5,7 @@ namespace App\Actions\Payments;
 use App\Actions\Folio\CloseSettledUnitFolio;
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostFolioCharge;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Payments\NewPaymentData;
 use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
@@ -13,6 +14,7 @@ use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
+use App\Enums\WebhookEvent;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
@@ -209,6 +211,8 @@ class RecordPayment
                 ->log('Payment recorded');
 
             ($this->closeSettledUnitFolio)($actor, $target);
+
+            app(TriggerWebhook::class)(WebhookEvent::PaymentReceived, $payment->property_id, Payment::class, $payment->id);
 
             return PaymentResult::recorded($payment->refresh(), [...$surchargeLines, $line->refresh()]);
         });

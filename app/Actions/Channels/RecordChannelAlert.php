@@ -2,7 +2,9 @@
 
 namespace App\Actions\Channels;
 
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\ChannelAlertEvent;
+use App\Enums\WebhookEvent;
 use App\Models\ChannelAlert;
 use App\Models\ChannelProperty;
 
@@ -34,12 +36,16 @@ class RecordChannelAlert
 
         $bookingId = $payload['booking_id'] ?? null;
 
-        return ChannelAlert::query()->create([
+        $alert = ChannelAlert::query()->create([
             'channel_property_id' => $channelProperty->id,
             'event' => $event,
             'external_booking_id' => is_string($bookingId) ? $bookingId : null,
             'revision_id' => $revisionId,
             'payload' => $payload,
         ]);
+
+        app(TriggerWebhook::class)(WebhookEvent::ChannelAlert, $channelProperty->property_id, ChannelAlert::class, $alert->id);
+
+        return $alert;
     }
 }

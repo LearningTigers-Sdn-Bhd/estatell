@@ -2,10 +2,12 @@
 
 namespace App\Actions\NightAudit;
 
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\AuditStatus;
 use App\Enums\AuditStep;
 use App\Enums\AuditStepStatus;
 use App\Enums\AuditTrigger;
+use App\Enums\WebhookEvent;
 use App\Jobs\NotifyNightAuditResultJob;
 use App\Jobs\PushDailyJournalJob;
 use App\Models\NightAudit;
@@ -111,6 +113,8 @@ class RunNightAudit
         if ($property->accountingConnection()->where('enabled', true)->exists()) {
             PushDailyJournalJob::dispatch($property->id, $audit->business_date_id);
         }
+
+        app(TriggerWebhook::class)(WebhookEvent::NightAuditCompleted, $property->id, NightAudit::class, $audit->id);
 
         return NightAuditResult::completed($audit);
     }

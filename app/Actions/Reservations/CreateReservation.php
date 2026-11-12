@@ -4,6 +4,7 @@ namespace App\Actions\Reservations;
 
 use App\Actions\CityLedger\RecordCreditOverride;
 use App\Actions\Folio\SyncRoutingRules;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Reservations\NewReservationData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\CompanyStatus;
@@ -11,6 +12,7 @@ use App\Enums\DocumentType;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
+use App\Enums\WebhookEvent;
 use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
@@ -130,6 +132,8 @@ class CreateReservation
                         'has_notes' => $reservation->notes !== null,
                     ])
                     ->log('Reservation created');
+
+                app(TriggerWebhook::class)(WebhookEvent::BookingCreated, $property->id, Reservation::class, $reservation->id);
 
                 return ReservationResult::created($reservation);
             });

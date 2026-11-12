@@ -3,11 +3,14 @@
 namespace App\Actions\FrontDesk;
 
 use App\Actions\Reservations\AssignmentResult;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Events\StayRoomChanged;
 use App\Models\Bed;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomType;
@@ -144,6 +147,8 @@ class MoveUnit
 
             StayRoomChanged::dispatch($locked->property_id, $locked->id);
 
+            app(TriggerWebhook::class)(WebhookEvent::BookingUpdated, $locked->property_id, Reservation::class, $locked->reservation_id);
+
             return AssignmentResult::assigned();
         });
     }
@@ -204,6 +209,8 @@ class MoveUnit
                 'reason' => $reason,
             ])
             ->log('Unit moved');
+
+        app(TriggerWebhook::class)(WebhookEvent::BookingUpdated, $locked->property_id, Reservation::class, $locked->reservation_id);
 
         return AssignmentResult::assigned();
     }

@@ -6,8 +6,11 @@ use App\Actions\Folio\CloseSettledUnitFolio;
 use App\Actions\Folio\PostNightLines;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Models\Folio;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\UnitNight;
 use App\Models\User;
@@ -97,6 +100,8 @@ class ChangeNightPrice
             }
 
             $corrected = count(array_filter($plan->nights, fn (PlannedNightPrice $planned): bool => $planned->charged));
+
+            app(TriggerWebhook::class)(WebhookEvent::BookingUpdated, $locked->property_id, Reservation::class, $locked->reservation_id);
 
             return NightPriceResult::done(count($plan->nights), $corrected);
         });

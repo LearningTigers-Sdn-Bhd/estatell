@@ -42,6 +42,7 @@ import {
     User,
     Utensils,
     Waypoints,
+    Webhook,
     Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -53,6 +54,7 @@ const icons: Record<string, LucideIcon> = {
     building: Building2,
     handshake: Handshake,
     waypoints: Waypoints,
+    webhook: Webhook,
     calculator: Calculator,
     lock: Lock,
     globe: Globe,

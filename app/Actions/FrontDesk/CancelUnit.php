@@ -3,8 +3,11 @@
 namespace App\Actions\FrontDesk;
 
 use App\Actions\Reservations\SyncReservationStatus;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Events\ReservationChanged;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\Catalogues\CancellationPolicy;
@@ -114,6 +117,8 @@ class CancelUnit
                 ->log('Unit cancelled');
 
             ($this->syncReservationStatus)($locked->reservation);
+
+            app(TriggerWebhook::class)(WebhookEvent::BookingCancelled, $locked->property_id, Reservation::class, $locked->reservation_id);
 
             return UnitStayResult::done($locked, $postsFee ? $feeAmount : '0.00');
         });

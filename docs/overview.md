@@ -237,3 +237,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 29  | [Booking engine](29-booking-engine/)   | Guests book and pay online, on a microsite or through the API (feature flag, planned)                                  |
 | 30  | [Commission fees](30-commission-fees/) | Commission per service, money held for properties, monthly payout vouchers                                             |
 | 31  | [E-invoicing](31-einvoice/)            | LHDN MyInvois e-invoicing: folios, AR invoices, monthly consolidation, credit notes (feature flag)                     |
+| 32  | [Webhooks](32-webhooks/)               | Outgoing webhooks: admins register URLs that receive signed JSON when bookings, stays, payments or guests change       |

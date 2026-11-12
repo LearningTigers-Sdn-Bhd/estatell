@@ -23,6 +23,7 @@ class AdminNavigation
             new NavItemData(title: __('Commissions'), href: route('admin.commissions.index', absolute: false), icon: 'percent', active: request()->routeIs('admin.commissions.*')),
             new NavItemData(title: __('Settings'), href: route('admin.settings.edit', absolute: false), icon: 'settings', active: request()->routeIs('admin.settings.*')),
             new NavItemData(title: __('Channels'), href: route('admin.channels.index', absolute: false), icon: 'waypoints', active: request()->routeIs('admin.channels.*')),
+            new NavItemData(title: __('Webhooks'), href: route('admin.webhooks.index', absolute: false), icon: 'webhook', active: request()->routeIs('admin.webhooks.*')),
             new NavItemData(title: __('Amenities'), href: route('admin.amenities.index', absolute: false), icon: 'sparkles', active: request()->routeIs('admin.amenities.*')),
             new NavItemData(title: __('Nearby places'), href: route('admin.nearby-places.index', absolute: false), icon: 'map-pin', active: request()->routeIs('admin.nearby-places.*')),
             new NavItemData(title: __('Website templates'), href: route('admin.site-templates.index', absolute: false), icon: 'layout-template', active: request()->routeIs('admin.site-templates.*')),
