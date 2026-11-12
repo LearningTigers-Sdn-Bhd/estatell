@@ -279,13 +279,13 @@ export function PropertyCommissions({
     return (
         <div className="flex max-w-3xl flex-col gap-8">
             <FieldSet>
-                <FieldLegend>Commissions</FieldLegend>
-                <FieldDescription>
+                <FieldLegend className="ps-3 pt-2">Commissions</FieldLegend>
+                <FieldDescription className="ps-3">
                     A booking pays commission when it checks out inside a
                     period. With no period, the service is not charged. Rates
                     are set for every property in Platform settings.
                 </FieldDescription>
-                <div className="overflow-auto rounded-lg border">
+                <div className="overflow-auto rounded-xl border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -328,8 +328,8 @@ export function PropertyCommissions({
 
             {history.length > 0 && (
                 <FieldSet>
-                    <FieldLegend>History</FieldLegend>
-                    <div className="overflow-auto rounded-lg border">
+                    <FieldLegend className="ps-3 pt-2">History</FieldLegend>
+                    <div className="overflow-auto rounded-xl border">
                         <Table>
                             <TableHeader>
                                 <TableRow>

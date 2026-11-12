@@ -36,7 +36,7 @@ export function PropertyOverview({ property }: { property: Property }) {
     ].filter(Boolean);
 
     return (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 ps-3 pt-2">
             <Section title="Address">
                 {address.length ? (
                     address.map((line) => <p key={line}>{line}</p>)
