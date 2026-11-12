@@ -10,6 +10,8 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { GuestFlags } from '@/components/pms/guests/guest-flags';
 import { GuestBulkActions } from '@/components/pms/guests/guest-bulk-actions';
+import { GuestRowActions } from '@/components/pms/guests/guest-row-actions';
+import type { GuestRowPermissions } from '@/components/pms/guests/guest-row-actions';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
@@ -52,6 +54,8 @@ type Props = {
     /** The column layout of the list. Name always shows, wherever it is placed. */
     layout: Layout;
     canEditLayout: boolean;
+    canBlacklist: boolean;
+    canAnonymize: boolean;
     countries: EnumOption[];
     canManage: boolean;
     bulkActions: EnumOption[];
@@ -186,13 +190,29 @@ function guestColumns(currency: Currency) {
     ];
 }
 
-/** The visible layout columns in the layout order. Name always shows: it opens the guest. */
-function layoutColumns(currency: Currency, layout: Layout) {
+/**
+ * The visible layout columns in the layout order, then the ⋯ menu, which is not in the layout. Name always shows: it
+ * opens the guest.
+ */
+function layoutColumns(
+    currency: Currency,
+    layout: Layout,
+    permissions: GuestRowPermissions,
+) {
     const byId = new Map(guestColumns(currency).map((one) => [one.id, one]));
 
-    return layout.columns
-        .filter((one) => one.visible || one.key === 'full_name')
-        .flatMap((one) => byId.get(one.key) ?? []);
+    return [
+        ...layout.columns
+            .filter((one) => one.visible || one.key === 'full_name')
+            .flatMap((one) => byId.get(one.key) ?? []),
+        column.display({
+            id: 'actions',
+            header: () => <span className="sr-only">Actions</span>,
+            cell: (info) => (
+                <GuestRowActions row={info.row.original} {...permissions} />
+            ),
+        }),
+    ];
 }
 
 export default function GuestsIndex({
@@ -207,6 +227,8 @@ export default function GuestsIndex({
     currency,
     layout,
     canEditLayout,
+    canBlacklist,
+    canAnonymize,
     countries,
     canManage,
     bulkActions,
@@ -215,12 +237,20 @@ export default function GuestsIndex({
     const [layoutDraft, setLayoutDraft] = useState<Layout | null>(null);
     const shownLayout = layoutDraft ?? layout;
     const columns = useMemo(
-        () => layoutColumns(currency, shownLayout),
-        [currency, shownLayout],
+        () =>
+            layoutColumns(currency, shownLayout, {
+                canManage,
+                canBlacklist,
+                canAnonymize,
+            }),
+        [currency, shownLayout, canManage, canBlacklist, canAnonymize],
     );
-    const columnAlign = Object.fromEntries(
-        shownLayout.columns.map((one) => [one.key, one.align]),
-    );
+    const columnAlign = {
+        ...Object.fromEntries(
+            shownLayout.columns.map((one) => [one.key, one.align]),
+        ),
+        actions: 'right' as const,
+    };
     const [adding, setAdding] = useState(false);
     const [busy, setBusy] = useState(false);
     const scope = JSON.stringify(filters);

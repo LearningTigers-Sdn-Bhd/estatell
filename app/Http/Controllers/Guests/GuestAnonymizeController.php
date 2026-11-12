@@ -20,6 +20,6 @@ class GuestAnonymizeController extends Controller
             ? ['type' => 'success', 'message' => __(':name archived.', ['name' => $name])]
             : ['type' => 'error', 'message' => __(':name cannot be archived.', ['name' => $name])]);
 
-        return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.show', ['property' => $property, 'guest' => $guest]));
     }
 }

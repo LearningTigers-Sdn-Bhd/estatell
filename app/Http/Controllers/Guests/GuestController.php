@@ -63,6 +63,8 @@ class GuestController extends Controller
             'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request, $request->user()->can(PermissionEnum::GuestsViewDocuments->value), $sort), PaginatedDataCollection::class),
             'layout' => $layout,
             'canEditLayout' => $request->user()->can(PermissionEnum::SettingsManage->value) && $request->user()->can(PermissionEnum::ReportsView->value),
+            'canBlacklist' => $request->user()->can(PermissionEnum::GuestsBlacklist->value),
+            'canAnonymize' => $request->user()->can(PermissionEnum::GuestsAnonymize->value),
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),

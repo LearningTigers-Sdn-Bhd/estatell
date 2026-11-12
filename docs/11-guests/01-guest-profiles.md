@@ -128,6 +128,20 @@ The guest list uses the shared report [column layout](../22-reports/01-core-repo
 - Staff with `settings.manage` (and `reports.view`, as the layout routes sit under Reports) see a **Layout** button next to Add guest. It opens `ReportLayoutSheet` without the Orientation choice and without Preview PDF (`printable={false}`). Hide, show, reorder and align work as on reports, and the table behind the Sheet follows the draft.
 - A sort on a hidden column falls back to Name. The page gets the sort it used.
 
+### Row menu
+
+Each guest list row ends with a ⋯ menu (`GuestRowActions`). It is not in the layout and always shows on the right. Clicks inside it, and inside its dialogs, do not open the guest.
+
+| Item                               | Permission         | Confirm                                                               |
+| ---------------------------------- | ------------------ | --------------------------------------------------------------------- |
+| Open guest                         | `guests.view`      | None                                                                  |
+| Mark as VIP / Remove VIP           | `guests.manage`    | None                                                                  |
+| Blacklist… / Remove from blacklist | `guests.blacklist` | The guest page dialogs (`BlacklistDialog`, `UnblacklistDialog`)       |
+| Archive…                           | `guests.anonymize` | The guest page AlertDialog (`ArchiveGuestDialog`), with Confirm typed |
+
+- An archived guest shows only Open guest.
+- The items use the single-guest routes. They return to the page they came from, so the list keeps its filters, sort and page. Archive returns there too (to the guest page when there is no previous page).
+
 ### Registration card
 
 The Email and Phone fields on the guest screen show "Please fill in." under the field while it is empty and the Layout tab makes it Optional. A Required field already has its star. See [Card fields](../16-registration/01-card-fields.md).

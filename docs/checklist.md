@@ -161,6 +161,7 @@ A client asked for it: source, last visit, stay frequency, total nights and tota
 - [x] `docs(guests): plan the guest list layout and sorts` — the sorts and the Guest list layout section.
 - [x] `feat(guests): sort the guest list by email, phone and nationality` — the three sorts, nationality by country name, empty values last.
 - [x] `feat(guests): add the column layout to the guest list` — `ReportKey::Guests` with `hasExports()`, export and preview routes limited to keys with exports, `printable` on `ReportLayoutSheet`, the Layout button and the table following the layout, the hidden sort fallback.
+- [x] `feat(guests): add a row menu to the guest list` — the ⋯ menu with Open guest, VIP, Blacklist and Archive by permission; the dialogs made controllable; Archive returns to the previous page.
 
 ## Next
 

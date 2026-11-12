@@ -36,6 +36,13 @@ import {
 import { destroy as unmarkVip, store as markVip } from '@/routes/guests/vip';
 
 type Guest = App.Data.Guests.GuestData;
+/** What the dialogs need: the guest page and the guest list row both have it. */
+type GuestRef = { id: number; fullName: string };
+type DialogProps = {
+    guest: GuestRef;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+};
 
 /**
  * Marks the guest as VIP or takes the mark off. Both are one click, so no confirmation.
@@ -66,24 +73,41 @@ export function VipButton({ guest }: { guest: Guest }) {
  * Blacklists the guest (a reason is required) or, if already blacklisted, removes them from the blacklist.
  */
 export function BlacklistButton({ guest }: { guest: Guest }) {
-    return guest.blacklistedAt ? (
-        <UnblacklistDialog guest={guest} />
-    ) : (
-        <BlacklistDialog guest={guest} />
-    );
-}
-
-function BlacklistDialog({ guest }: { guest: Guest }) {
     const [open, setOpen] = useState(false);
 
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
+    return guest.blacklistedAt ? (
+        <>
+            <HeaderActionButton
+                label="Remove from blacklist"
+                icon={ShieldCheck}
+                iconClassName="text-success"
+                onClick={() => setOpen(true)}
+            />
+            <UnblacklistDialog
+                guest={guest}
+                open={open}
+                onOpenChange={setOpen}
+            />
+        </>
+    ) : (
+        <>
             <HeaderActionButton
                 label="Blacklist"
                 icon={Ban}
                 iconClassName="text-destructive"
                 onClick={() => setOpen(true)}
             />
+            <BlacklistDialog guest={guest} open={open} onOpenChange={setOpen} />
+        </>
+    );
+}
+
+/** Asks for the reason and blacklists the guest. */
+export function BlacklistDialog({ guest, open, onOpenChange }: DialogProps) {
+    const setOpen = onOpenChange;
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Blacklist {guest.fullName}</DialogTitle>
@@ -143,17 +167,12 @@ function BlacklistDialog({ guest }: { guest: Guest }) {
     );
 }
 
-function UnblacklistDialog({ guest }: { guest: Guest }) {
-    const [open, setOpen] = useState(false);
+/** Confirms removing the guest from the blacklist. */
+export function UnblacklistDialog({ guest, open, onOpenChange }: DialogProps) {
+    const setOpen = onOpenChange;
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <HeaderActionButton
-                label="Remove from blacklist"
-                icon={ShieldCheck}
-                iconClassName="text-success"
-                onClick={() => setOpen(true)}
-            />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
