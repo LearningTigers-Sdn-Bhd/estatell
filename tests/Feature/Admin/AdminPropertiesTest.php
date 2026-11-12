@@ -270,7 +270,7 @@ test('the list shows each property\'s partner and filters by partner or Direct',
 });
 
 test('the Overview shows the property figures, counting only what is not archived', function () {
-    $property = Property::factory()->live()->create();
+    $property = Property::factory()->live()->create(['country_code' => 'MY']);
     $other = Property::factory()->live()->create();
     $roomType = RoomType::factory()->for($property)->create();
     RoomType::factory()->for($property)->archived()->create();
@@ -288,6 +288,7 @@ test('the Overview shows the property figures, counting only what is not archive
     $this->actingAs($this->admin)
         ->get(route('admin.properties.show', $property->code))
         ->assertInertia(fn (Assert $page) => $page
+            ->where('property.countryName', 'Malaysia')
             ->where('overview.rooms', 3)
             ->where('overview.roomTypes', 1)
             ->where('overview.ratePlans', 2)

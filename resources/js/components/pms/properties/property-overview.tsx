@@ -70,7 +70,7 @@ function Figure({
     );
 }
 
-/** A Property details row: icon and label on the left, the value on the right. */
+/** A Property details row: icon and label in a fixed column, the value left-aligned beside it so a long one wraps under itself. */
 function DetailRow({
     icon: Icon,
     label,
@@ -85,15 +85,15 @@ function DetailRow({
     return (
         <div
             className={cn(
-                'flex items-baseline justify-between gap-3 text-sm',
+                'grid grid-cols-[9rem_minmax(0,1fr)] items-baseline gap-3 text-sm',
                 wide && 'md:col-span-2',
             )}
         >
-            <dt className="flex shrink-0 items-center gap-2 text-muted-foreground">
+            <dt className="flex items-center gap-2 text-muted-foreground">
                 <Icon aria-hidden className="size-4 shrink-0 self-center" />
                 {label}
             </dt>
-            <dd className="min-w-0 text-right wrap-break-word">{children}</dd>
+            <dd className="min-w-0 wrap-break-word">{children}</dd>
         </div>
     );
 }
@@ -115,7 +115,7 @@ function BookingWebsiteValue({ site }: { site: BookingWebsite }) {
     const address = site.webAddress.replace(/^https?:\/\//, '');
 
     return (
-        <span className="inline-flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
             {site.published ? (
                 <a
                     href={site.webAddress}
@@ -174,12 +174,14 @@ export function PropertyOverview({
     const address = [
         property.addressLine1,
         property.addressLine2,
-        [cityLine, property.stateCode, property.countryCode]
+        [
+            cityLine,
+            property.stateCode,
+            property.countryName ?? property.countryCode,
+        ]
             .filter(Boolean)
             .join(', '),
-    ]
-        .filter(Boolean)
-        .join(', ');
+    ].filter(Boolean);
 
     return (
         <div className="flex flex-col gap-6">
@@ -245,7 +247,11 @@ export function PropertyOverview({
                 />
                 <dl className="grid grid-cols-1 gap-x-8 gap-y-3 px-2 md:grid-cols-2">
                     <DetailRow icon={MapPin} label="Address">
-                        {address || <NotSet />}
+                        {address.length > 0 ? (
+                            address.map((line) => <p key={line}>{line}</p>)
+                        ) : (
+                            <NotSet />
+                        )}
                     </DetailRow>
                     <DetailRow icon={Building2} label="Type">
                         {property.type ?? <NotSet />}
