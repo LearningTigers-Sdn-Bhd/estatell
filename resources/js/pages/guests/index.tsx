@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Settings2, Users } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { AddGuestSheet } from '@/components/pms/guests/add-guest-sheet';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
@@ -12,6 +12,7 @@ import { GuestFlags } from '@/components/pms/guests/guest-flags';
 import { GuestBulkActions } from '@/components/pms/guests/guest-bulk-actions';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
@@ -27,6 +28,7 @@ type Filters = {
     contact: string;
 };
 type Currency = App.Data.Property.CurrencyData | null;
+type Layout = App.Data.Reports.ReportLayoutData;
 
 const FILTER_KEYS = [
     'search',
@@ -47,6 +49,9 @@ type Props = {
     returningOptions: EnumOption[];
     contactOptions: EnumOption[];
     currency: Currency;
+    /** The column layout of the list. Name is not in it: it is always first. */
+    layout: Layout;
+    canEditLayout: boolean;
     countries: EnumOption[];
     canManage: boolean;
     bulkActions: EnumOption[];
@@ -67,7 +72,7 @@ function ContactCell({
 }
 
 function guestColumns(currency: Currency) {
-    return [
+    const [name, ...others] = [
         column.accessor('fullName', {
             id: 'full_name',
             header: 'Name',
@@ -174,6 +179,21 @@ function guestColumns(currency: Currency) {
             cell: (info) => <DateText date={info.getValue()} />,
         }),
     ];
+
+    return { name, others };
+}
+
+/** Name first, then the visible layout columns in the layout order. */
+function layoutColumns(currency: Currency, layout: Layout) {
+    const { name, others } = guestColumns(currency);
+    const byId = new Map(others.map((one) => [one.id, one]));
+
+    return [
+        name,
+        ...layout.columns
+            .filter((one) => one.visible)
+            .flatMap((one) => byId.get(one.key) ?? []),
+    ];
 }
 
 export default function GuestsIndex({
@@ -186,12 +206,22 @@ export default function GuestsIndex({
     returningOptions,
     contactOptions,
     currency,
+    layout,
+    canEditLayout,
     countries,
     canManage,
     bulkActions,
     maxBulkGuests,
 }: Props) {
-    const columns = useMemo(() => guestColumns(currency), [currency]);
+    const [layoutDraft, setLayoutDraft] = useState<Layout | null>(null);
+    const shownLayout = layoutDraft ?? layout;
+    const columns = useMemo(
+        () => layoutColumns(currency, shownLayout),
+        [currency, shownLayout],
+    );
+    const columnAlign = Object.fromEntries(
+        shownLayout.columns.map((one) => [one.key, one.align]),
+    );
     const [adding, setAdding] = useState(false);
     const [busy, setBusy] = useState(false);
     const scope = JSON.stringify(filters);
@@ -260,7 +290,24 @@ export default function GuestsIndex({
             <Head title="Guests" />
 
             <div className="flex flex-1 flex-col gap-4 p-4">
-                <PageHeader title="Guests" actions={addGuest} />
+                <PageHeader
+                    title="Guests"
+                    actions={
+                        <>
+                            {canEditLayout && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setLayoutDraft(layout)}
+                                >
+                                    <Settings2 data-icon="inline-start" />
+                                    Layout
+                                </Button>
+                            )}
+                            {addGuest}
+                        </>
+                    }
+                />
 
                 <FilterBar
                     search={filters.search}
@@ -329,7 +376,7 @@ export default function GuestsIndex({
                               }
                             : undefined
                     }
-                    columnAlign={{ stays: 'right', spend: 'right' }}
+                    columnAlign={columnAlign}
                     sort={sort}
                     onSortChange={(next) => visit({ sort: next })}
                     onRowClick={(row) =>
@@ -388,6 +435,27 @@ export default function GuestsIndex({
                     />
                 )}
             </div>
+
+            {canEditLayout && layoutDraft && (
+                <ReportLayoutSheet
+                    open
+                    onOpenChange={(next) => {
+                        if (!next) {
+                            setLayoutDraft(null);
+                        }
+                    }}
+                    report="guests"
+                    reportLabel="Guests"
+                    saved={layout}
+                    draft={layoutDraft}
+                    onDraftChange={setLayoutDraft}
+                    orientations={[]}
+                    dates={{}}
+                    onDone={() => setLayoutDraft(null)}
+                    printable={false}
+                    description="Choose the columns, in the order they show, and how each aligns. Name is always first. The table behind this panel shows your changes."
+                />
+            )}
 
             {canManage && (
                 <AddGuestSheet

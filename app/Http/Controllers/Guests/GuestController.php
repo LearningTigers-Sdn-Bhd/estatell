@@ -22,6 +22,7 @@ use App\Enums\GuestBulkAction;
 use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
+use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guests\BlacklistGuestRequest;
 use App\Http\Requests\Guests\BulkUpdateGuestsRequest;
@@ -39,6 +40,7 @@ use App\Services\Guests\GuestDirectory;
 use App\Services\Guests\GuestMatcher;
 use App\Services\Guests\GuestStayHistory;
 use App\Services\Property\PropertyToday;
+use App\Services\Reports\ReportLayoutResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,12 +53,16 @@ class GuestController extends Controller
     /**
      * List the property's guests with search, filters and sorting in the URL.
      */
-    public function index(Request $request, Property $property, GuestDirectory $guestDirectory): Response
+    public function index(Request $request, Property $property, GuestDirectory $guestDirectory, ReportLayoutResolver $layoutResolver): Response
     {
         $canManage = $request->user()->can(PermissionEnum::GuestsManage->value);
+        $layout = $layoutResolver->resolve($property, ReportKey::Guests);
+        $sort = $guestDirectory->visibleSort($request->string('sort', 'full_name')->toString(), $layout->visibleKeys());
 
         return Inertia::render('guests/index', [
-            'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request, $request->user()->can(PermissionEnum::GuestsViewDocuments->value)), PaginatedDataCollection::class),
+            'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request, $request->user()->can(PermissionEnum::GuestsViewDocuments->value), $sort), PaginatedDataCollection::class),
+            'layout' => $layout,
+            'canEditLayout' => $request->user()->can(PermissionEnum::SettingsManage->value) && $request->user()->can(PermissionEnum::ReportsView->value),
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),
@@ -65,7 +71,7 @@ class GuestController extends Controller
                 'returning' => $request->string('filter.returning')->toString(),
                 'contact' => $request->string('filter.contact')->toString(),
             ],
-            'sort' => $request->string('sort', 'full_name')->toString(),
+            'sort' => $sort,
             'statuses' => [
                 ['value' => GuestDirectory::STATUS_VIP, 'label' => __('VIP')],
                 ['value' => GuestDirectory::STATUS_BLACKLISTED, 'label' => __('Blacklisted')],

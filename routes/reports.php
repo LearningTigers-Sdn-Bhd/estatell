@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Enums\ReportKey;
 use App\Http\Controllers\Reports\ActivityLogController;
 use App\Http\Controllers\Reports\AgentPaymentsReportController;
 use App\Http\Controllers\Reports\ArrivalsReportController;
@@ -54,12 +55,12 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('night-audit-history', NightAuditHistoryReportController::class)->name('night-audit-history');
     Route::get('night-audit-history/{date}/packet', NightAuditPacketController::class)->name('night-audit-packet');
 
-    Route::post('{report}/pdf', [ReportExportController::class, 'pdf'])->name('pdf');
-    Route::post('{report}/spreadsheet', [ReportExportController::class, 'spreadsheet'])->name('spreadsheet');
+    Route::post('{report}/pdf', [ReportExportController::class, 'pdf'])->whereIn('report', ReportKey::exportableValues())->name('pdf');
+    Route::post('{report}/spreadsheet', [ReportExportController::class, 'spreadsheet'])->whereIn('report', ReportKey::exportableValues())->name('spreadsheet');
 
     Route::prefix('{report}/layout')->name('layout.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
         Route::put('/', [ReportLayoutController::class, 'update'])->name('update');
         Route::delete('/', [ReportLayoutController::class, 'destroy'])->name('destroy');
-        Route::post('preview', [ReportLayoutController::class, 'preview'])->name('preview');
+        Route::post('preview', [ReportLayoutController::class, 'preview'])->whereIn('report', ReportKey::exportableValues())->name('preview');
     });
 });

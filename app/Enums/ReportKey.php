@@ -40,6 +40,7 @@ use App\Services\Reports\Report;
 use App\Services\Reports\RevenueReport;
 use App\Services\Reports\TaxReport;
 use Laravel\Pennant\Feature;
+use LogicException;
 
 /**
  * The reports in the registry. The value is the URL slug (`/p/{code}/reports/arrivals`) and the route name suffix.
@@ -73,6 +74,7 @@ enum ReportKey: string
     case CheckedOut = 'checked-out';
     case DailyRevenue = 'daily-revenue';
     case DailyCharges = 'daily-charges';
+    case Guests = 'guests';
 
     public function label(): string
     {
@@ -100,13 +102,14 @@ enum ReportKey: string
             self::CheckedOut => __('Checked out'),
             self::DailyRevenue => __('Daily revenue'),
             self::DailyCharges => __('Daily charges'),
+            self::Guests => __('Guests'),
         };
     }
 
     public function category(): ReportCategory
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::HousekeepingItems, self::HousekeepingLog, self::HouseStatus, self::BoatManifest, self::CheckedOut => ReportCategory::FrontDesk,
+            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::HousekeepingItems, self::HousekeepingLog, self::HouseStatus, self::BoatManifest, self::CheckedOut, self::Guests => ReportCategory::FrontDesk,
             self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests, self::DailyRevenue, self::DailyCharges => ReportCategory::Revenue,
             self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability, self::AgentPayments => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
@@ -117,7 +120,7 @@ enum ReportKey: string
     public function defaultOrientation(): PageOrientation
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::MealCounts, self::HousekeepingItems, self::HousekeepingLog, self::CheckedOut => PageOrientation::Portrait,
+            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::MealCounts, self::HousekeepingItems, self::HousekeepingLog, self::CheckedOut, self::Guests => PageOrientation::Portrait,
             self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::HouseStatus, self::BoatManifest, self::Payments, self::AgentPayments, self::DailyRevenue, self::DailyCharges => PageOrientation::Landscape,
         };
     }
@@ -147,6 +150,7 @@ enum ReportKey: string
             self::AgentPayments => 'due_at',
             self::BoatManifest => 'departure',
             self::CheckedOut => '-balance',
+            self::Guests => 'full_name',
         };
     }
 
@@ -157,7 +161,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport, self::CheckedOut, self::DailyCharges, self::HousekeepingLog => 31,
-            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::HousekeepingItems, self::HouseStatus, self::AgentPayments, self::BoatManifest => null,
+            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::HousekeepingItems, self::HouseStatus, self::AgentPayments, self::BoatManifest, self::Guests => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory, self::DailyRevenue => 366,
         };
     }
@@ -669,6 +673,16 @@ enum ReportKey: string
                 new ReportColumn('do_not_disturb', __('Do not disturb'), ColumnAlign::Left, false),
                 new ReportColumn('needs_maintenance', __('Maintenance'), ColumnAlign::Left, false),
             ],
+            self::Guests => [
+                new ReportColumn('email', __('Email'), ColumnAlign::Left, true),
+                new ReportColumn('phone', __('Phone'), ColumnAlign::Left, true),
+                new ReportColumn('nationality', __('Nationality'), ColumnAlign::Left, true),
+                new ReportColumn('tags', __('Tags'), ColumnAlign::Left, true),
+                new ReportColumn('last_visit', __('Last visit'), ColumnAlign::Left, true),
+                new ReportColumn('stays', __('Stays'), ColumnAlign::Right, true),
+                new ReportColumn('spend', __('Spend'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('created_at', __('Added'), ColumnAlign::Left, true),
+            ],
         };
     }
 
@@ -676,10 +690,33 @@ enum ReportKey: string
      * Whether the report is listed in the Reports sidebar. Housekeeping tasks is the board's print sheet, opened from
      * the Housekeeping page, and has no page of its own. The tabs of a `TabbedReport` are reached through that page,
      * except Payments, which keeps its own entry. House status sits in the Front desk sidebar. Boat manifest is the export key of the Boat Trips board and has no page.
+     * Guests holds the column layout of the guest list and is not a report.
      */
     public function listedInReportsMenu(): bool
     {
-        return ! in_array($this, [self::HousekeepingTasks, self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::DailyRevenue, self::DailyCharges, self::HouseStatus, self::BoatManifest], true);
+        return ! in_array($this, [self::HousekeepingTasks, self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::DailyRevenue, self::DailyCharges, self::HouseStatus, self::BoatManifest, self::Guests], true);
+    }
+
+    /**
+     * Whether the key has the PDF, spreadsheet and Preview PDF routes. Guests holds only the guest list column layout:
+     * a file of every guest's email and phone is not offered. See docs/11-guests/01-guest-profiles.md#guest-list-layout.
+     */
+    public function hasExports(): bool
+    {
+        return $this !== self::Guests;
+    }
+
+    /**
+     * The slugs of the keys that have exports, for the export and preview route constraints.
+     *
+     * @return list<string>
+     */
+    public static function exportableValues(): array
+    {
+        return array_values(array_map(
+            fn (self $key): string => $key->value,
+            array_filter(self::cases(), fn (self $key): bool => $key->hasExports()),
+        ));
     }
 
     /**
@@ -711,6 +748,7 @@ enum ReportKey: string
             self::CheckedOut => 'door-open',
             self::DailyRevenue => 'chart-column',
             self::DailyCharges => 'receipt',
+            self::Guests => 'users',
         };
     }
 
@@ -740,6 +778,7 @@ enum ReportKey: string
             self::CheckedOut => app(CheckedOutReport::class),
             self::DailyRevenue => app(DailyRevenueReport::class),
             self::DailyCharges => app(DailyChargesReport::class),
+            self::Guests => throw new LogicException('Guests has no report rows: it holds only the guest list column layout.'),
         };
     }
 

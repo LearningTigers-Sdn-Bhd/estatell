@@ -63,10 +63,15 @@ class GuestDirectory
 
     /**
      * @param  bool  $searchIdNumbers  Let the search also find an exact ID number. Only for staff who may view ID documents.
+     * @param  string|null  $sort  The sort to use in place of the URL's, from `visibleSort()`.
      * @return LengthAwarePaginator<int, Guest>
      */
-    public function paginate(Property $property, Request $request, bool $searchIdNumbers = false): LengthAwarePaginator
+    public function paginate(Property $property, Request $request, bool $searchIdNumbers = false, ?string $sort = null): LengthAwarePaginator
     {
+        if ($sort !== null) {
+            $request = $request->duplicate([...$request->query(), 'sort' => $sort]);
+        }
+
         $anonymized = $request->input('filter.status') === self::STATUS_ANONYMIZED;
 
         $since = $this->propertyToday->date($property)->subYear()->toDateString();
@@ -111,6 +116,18 @@ class GuestDirectory
         }
 
         return $guests;
+    }
+
+    /**
+     * The sort to use: the one asked for, or Name when it sorts on a column the layout hides.
+     *
+     * @param  list<string>  $visibleKeys
+     */
+    public function visibleSort(string $sort, array $visibleKeys): string
+    {
+        $key = ltrim($sort, '-');
+
+        return $key === 'full_name' || in_array($key, $visibleKeys, true) ? $sort : 'full_name';
     }
 
     /**
