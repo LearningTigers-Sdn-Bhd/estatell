@@ -278,7 +278,7 @@ export default function GuestShow({
                             />
                         }
                     >
-                        <div className="p-2">
+                        <>
                             {tab === 'stays' ? (
                                 <StaysTab
                                     stays={stays}
@@ -344,7 +344,7 @@ export default function GuestShow({
                                     />
                                 </div>
                             )}
-                        </div>
+                        </>
                     </Workspace>
                 </TabLinks>
             </div>

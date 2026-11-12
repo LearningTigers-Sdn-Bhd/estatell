@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { DocumentSheet } from '@/components/pms/guests/document-sheet';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import type { DocumentFormOptions } from '@/components/pms/guests/document-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
@@ -212,9 +213,23 @@ export function DocumentsTab({
         />
     );
 
+    const heading = (
+        <PanelHeading
+            icon={IdCard}
+            title="ID documents"
+            description={
+                retentionDays !== null
+                    ? `Scans are deleted ${retentionDays} ${retentionDays === 1 ? 'day' : 'days'} after they are uploaded. The number stays.`
+                    : 'Passports and ICs of the guest.'
+            }
+            actions={documents.length > 0 ? addButton : undefined}
+        />
+    );
+
     if (documents.length === 0) {
         return (
-            <>
+            <div className="flex flex-col gap-4">
+                {heading}
                 <EmptyState
                     icon={IdCard}
                     title="No ID documents yet"
@@ -222,27 +237,13 @@ export function DocumentsTab({
                     action={addButton}
                 />
                 {sheet}
-            </>
+            </div>
         );
     }
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                    <h2 className="font-heading text-base font-medium">
-                        ID documents
-                    </h2>
-                    {retentionDays !== null && (
-                        <p className="text-sm text-muted-foreground">
-                            Scans are deleted {retentionDays}{' '}
-                            {retentionDays === 1 ? 'day' : 'days'} after they
-                            are uploaded. The number stays.
-                        </p>
-                    )}
-                </div>
-                {addButton}
-            </div>
+            {heading}
             <ul className="flex flex-col gap-4">
                 {documents.map((document) => (
                     <li key={document.id}>

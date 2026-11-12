@@ -2,6 +2,7 @@ import { StickyNote } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { AddNoteDialog } from '@/components/pms/guests/add-note-dialog';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -79,10 +80,12 @@ export function NotesTab({
 }) {
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-heading text-base font-medium">Notes</h2>
-                {canAdd && <AddNoteDialog guest={guest} />}
-            </div>
+            <PanelHeading
+                icon={StickyNote}
+                title="Notes"
+                description="Notes about the guest, newest first. A note cannot be edited or deleted."
+                actions={canAdd ? <AddNoteDialog guest={guest} /> : undefined}
+            />
             {notes.length === 0 ? (
                 <EmptyState
                     icon={StickyNote}

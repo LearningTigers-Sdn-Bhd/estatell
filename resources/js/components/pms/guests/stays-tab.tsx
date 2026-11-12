@@ -1,8 +1,9 @@
 import { Link } from '@inertiajs/react';
-import { BedDouble } from 'lucide-react';
+import { BedDouble, History } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     Table,
@@ -30,20 +31,32 @@ export function StaysTab({
     summary: App.Data.Guests.GuestStaySummaryData;
     currency: App.Data.Property.CurrencyData | null;
 }) {
+    const heading = (
+        <PanelHeading
+            icon={History}
+            title="Stays"
+            description="Checked-in and checked-out stays, newest first. Spend is without tax."
+        />
+    );
+
     if (stays.length === 0) {
         return (
-            <EmptyState
-                icon={BedDouble}
-                title="No stays yet"
-                description="Checked-in and checked-out stays show here."
-            />
+            <div className="flex flex-col gap-4">
+                {heading}
+                <EmptyState
+                    icon={BedDouble}
+                    title="No stays yet"
+                    description="Checked-in and checked-out stays show here."
+                />
+            </div>
         );
     }
 
     const shared = stays.some((stay) => !stay.isPrimary);
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
+            {heading}
             <div className="overflow-auto rounded-xl border">
                 <Table>
                     <TableHeader>
