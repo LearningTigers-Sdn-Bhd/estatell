@@ -1,8 +1,10 @@
 import { router, useForm } from '@inertiajs/react';
+import { History, Percent } from 'lucide-react';
 import { useState } from 'react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { DateText } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { today } from '@/components/pms/commissions/today';
 import {
@@ -20,8 +22,6 @@ import {
     FieldDescription,
     FieldError,
     FieldLabel,
-    FieldLegend,
-    FieldSet,
 } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -277,15 +277,14 @@ export function PropertyCommissions({
     };
 
     return (
-        <div className="flex max-w-3xl flex-col gap-8">
-            <FieldSet>
-                <FieldLegend>Commissions</FieldLegend>
-                <FieldDescription>
-                    A booking pays commission when it checks out inside a
-                    period. With no period, the service is not charged. Rates
-                    are set for every property in Platform settings.
-                </FieldDescription>
-                <div className="overflow-auto rounded-lg border">
+        <div className="flex flex-col gap-8">
+            <section className="flex flex-col gap-4">
+                <PanelHeading
+                    icon={Percent}
+                    title="Commissions"
+                    description="A booking pays commission when it checks out inside a period. With no period, the service is not charged. Rates are set for every property in Platform settings."
+                />
+                <div className="overflow-auto rounded-xl border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -324,12 +323,16 @@ export function PropertyCommissions({
                         </TableBody>
                     </Table>
                 </div>
-            </FieldSet>
+            </section>
 
             {history.length > 0 && (
-                <FieldSet>
-                    <FieldLegend>History</FieldLegend>
-                    <div className="overflow-auto rounded-lg border">
+                <section className="flex flex-col gap-4">
+                    <PanelHeading
+                        icon={History}
+                        title="History"
+                        description="Every commission period this property had, newest first."
+                    />
+                    <div className="overflow-auto rounded-xl border">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -367,7 +370,7 @@ export function PropertyCommissions({
                             </TableBody>
                         </Table>
                     </div>
-                </FieldSet>
+                </section>
             )}
 
             {action !== null && action.kind !== 'cancel' && (

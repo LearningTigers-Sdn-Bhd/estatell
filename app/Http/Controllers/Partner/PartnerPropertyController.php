@@ -20,6 +20,7 @@ use App\Services\Guests\CountryOptions;
 use App\Services\Onboarding\OnboardingBoard;
 use App\Services\Platform\PartnerProperties;
 use App\Services\Platform\PartnerSignupMessage;
+use App\Services\Platform\PropertyOverview;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,9 +77,13 @@ class PartnerPropertyController extends Controller
     /**
      * Property page, Overview tab.
      */
-    public function show(Request $request, PartnerProperties $partnerProperties, string $code): Response
+    public function show(Request $request, PartnerProperties $partnerProperties, PropertyOverview $propertyOverview, string $code): Response
     {
-        return $this->renderTab($partnerProperties->findByCode($request->user()->partner, $code), 'overview');
+        $property = $partnerProperties->findByCode($request->user()->partner, $code);
+
+        return $this->renderTab($property, 'overview', [
+            'overview' => $propertyOverview->forProperty($property),
+        ]);
     }
 
     /**

@@ -158,7 +158,7 @@ test('hidden columns stay hidden in the totals', function () {
     $response = $this->actingAs($user)->post("/p/{$property->code}/reports/revenue/spreadsheet", ['from' => '2026-10-09', 'to' => '2026-10-09', 'format' => 'csv']);
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
-    expect($rows[0])->toBe(['Amount', 'Date / month'])
+    expect($rows[0])->toBe(['Amount (MYR)', 'Date / month'])
         ->and(end($rows))->toBe(['280', 'Total']);
 });
 

@@ -1,8 +1,31 @@
-import { Form, usePoll } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
-import { ChannelOtasCard } from '@/components/pms/channels/channel-otas-card';
+import { Form, router, usePage, usePoll } from '@inertiajs/react';
+import {
+    ArrowRight,
+    Cable,
+    CalendarRange,
+    ChevronRight,
+    History,
+    Layers,
+    RefreshCw,
+    RotateCcw,
+    Store,
+    Trash2,
+    TriangleAlert,
+    X,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { ChannelOtasTable } from '@/components/pms/channels/channel-otas-card';
+import { EmptyState } from '@/components/pms/empty-state';
+import { EnumSelect } from '@/components/pms/enum-select';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    Alert,
+    AlertAction,
+    AlertDescription,
+    AlertTitle,
+} from '@/components/ui/alert';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -11,17 +34,14 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
     Dialog,
     DialogClose,
@@ -43,11 +63,13 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { toast } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
 import { fullRefresh, sync } from '@/routes/admin/properties/channels';
 import { resolve as resolveAlert } from '@/routes/admin/properties/channels/alerts';
 import { destroy as destroyRatePlan } from '@/routes/admin/properties/channels/rate-plans';
 import { retry as retryRevision } from '@/routes/admin/properties/channels/revisions';
 import { destroy as destroyRoomType } from '@/routes/admin/properties/channels/room-types';
+import { destroy as destroyRoomTypeRatePlans } from '@/routes/admin/properties/channels/room-types/rate-plans';
 
 type Channel = App.Data.Channels.ChannelTabData;
 type SyncedRoomType = App.Data.Channels.ChannelSyncedRoomTypeData;
@@ -55,142 +77,330 @@ type Revision = App.Data.Channels.ChannelRevisionData;
 type SyncProgress = App.Data.Channels.ChannelSyncProgressData;
 type ChannelAlert = App.Data.Channels.ChannelAlertData;
 
+export type ChannelSection = 'channex' | 'alerts' | 'on-channex' | 'bookings';
+
+const sections: {
+    value: ChannelSection;
+    label: string;
+    icon: LucideIcon;
+}[] = [
+    { value: 'channex', label: 'Channex and OTAs', icon: Cable },
+    { value: 'alerts', label: 'Alerts', icon: TriangleAlert },
+    { value: 'on-channex', label: 'On Channex', icon: Layers },
+    { value: 'bookings', label: 'Bookings', icon: CalendarRange },
+];
+
 /**
- * The admin Channels tab body: the Channex card with its sync preview, and the room types and rate plans Channex has.
+ * The open section of the Channels tab, kept in `?section=` so a refresh keeps it. Switching makes no request: every
+ * section's data is already on the page. An unknown value opens the first section.
+ */
+export function useChannelSection(): [
+    ChannelSection,
+    (next: ChannelSection) => void,
+] {
+    const { url } = usePage();
+    const current = new URL(url, 'http://localhost');
+    const value = current.searchParams.get('section');
+    const section =
+        sections.find((option) => option.value === value)?.value ?? 'channex';
+
+    const setSection = (next: ChannelSection) => {
+        const target = new URL(url, 'http://localhost');
+
+        if (next === 'channex') {
+            target.searchParams.delete('section');
+        } else {
+            target.searchParams.set('section', next);
+        }
+
+        router.replace({
+            url: `${target.pathname}${target.search}`,
+            preserveScroll: true,
+            preserveState: true,
+        });
+    };
+
+    return [section, setSection];
+}
+
+/** The open alert count: bookings that were not saved plus open Channex alerts. */
+export function channelAlertCount(channel: Channel): number {
+    return channel.failedBookings.length + channel.alerts.length;
+}
+
+/**
+ * The Channels tab's section list, in the Workspace list panel. Below `lg` it is a select, like the reservation unit list.
+ */
+export function ChannelSectionList({
+    channel,
+    section,
+    onSectionChange,
+}: {
+    channel: Channel;
+    section: ChannelSection;
+    onSectionChange: (next: ChannelSection) => void;
+}) {
+    const alertCount = channelAlertCount(channel);
+
+    return (
+        <>
+            <div className="lg:hidden">
+                <EnumSelect
+                    aria-label="Choose section"
+                    options={sections.map((option) => ({
+                        value: option.value,
+                        label:
+                            option.value === 'alerts' && alertCount > 0
+                                ? `${option.label} (${alertCount})`
+                                : option.label,
+                    }))}
+                    value={section}
+                    onValueChange={(value) =>
+                        onSectionChange(value as ChannelSection)
+                    }
+                />
+            </div>
+            <nav
+                aria-label="Choose section"
+                className="hidden flex-col gap-1 lg:flex"
+            >
+                {sections.map((option) => (
+                    <button
+                        key={option.value}
+                        type="button"
+                        aria-current={
+                            option.value === section ? 'true' : undefined
+                        }
+                        onClick={() => onSectionChange(option.value)}
+                        className={cn(
+                            'flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm text-foreground hover:bg-muted',
+                            option.value === section &&
+                                'border-primary bg-muted',
+                        )}
+                    >
+                        <option.icon
+                            aria-hidden
+                            className="size-4 shrink-0 text-muted-foreground"
+                        />
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                            {option.label}
+                        </span>
+                        {option.value === 'alerts' && alertCount > 0 && (
+                            <StatusBadge
+                                dot={false}
+                                status={{
+                                    value: 'alerts',
+                                    label: String(alertCount),
+                                    tone: 'danger',
+                                }}
+                            />
+                        )}
+                    </button>
+                ))}
+            </nav>
+        </>
+    );
+}
+
+/**
+ * The admin Channels tab body. One section shows at a time (see `ChannelSectionList`). The first, Channex and OTAs,
+ * holds the sync status and the OTA table, where most admin work happens. Before the first sync only it has content.
  */
 export function PropertyChannels({
     code,
     channel,
+    section,
+    onSectionChange,
 }: {
     code: string;
     channel: Channel;
+    section: ChannelSection;
+    onSectionChange: (next: ChannelSection) => void;
 }) {
     const notSynced = channel.status.value === 'not_synced';
     const syncing = useSyncProgressToast(channel.sync);
+    const alertCount = channelAlertCount(channel);
+
+    if (section !== 'channex' && notSynced) {
+        return (
+            <EmptyState
+                icon={Cable}
+                title="Sync to Channex first"
+                description="This section fills in after the property's room types and rate plans are on Channex."
+            />
+        );
+    }
+
+    if (section === 'alerts') {
+        return (
+            <Alerts
+                code={code}
+                failed={channel.failedBookings}
+                alerts={channel.alerts}
+            />
+        );
+    }
+
+    if (section === 'on-channex') {
+        return <SyncedItems code={code} items={channel.synced} />;
+    }
+
+    if (section === 'bookings') {
+        return <RecentBookings items={channel.recentBookings} />;
+    }
 
     return (
-        <div className="flex flex-col gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+        <div className="flex flex-col gap-4">
+            <PanelHeading
+                icon={Cable}
+                title={
+                    <>
                         Channex
                         <StatusBadge status={channel.status} />
-                    </CardTitle>
-                    <CardDescription>
-                        {notSynced
-                            ? "Send this property's room types and rate plans to Channex."
-                            : syncedLine(channel)}
-                    </CardDescription>
-                </CardHeader>
-                {syncing && (
-                    <CardContent>
-                        <Progress
-                            value={
-                                channel.sync.total > 0
-                                    ? (channel.sync.done / channel.sync.total) *
-                                      100
-                                    : null
-                            }
-                        >
-                            <span className="text-sm text-muted-foreground">
-                                {channel.sync.total > 0
-                                    ? `Syncing to Channex: ${channel.sync.done} of ${channel.sync.total} steps. You can leave this page.`
-                                    : 'Waiting to start. You can leave this page.'}
-                            </span>
-                        </Progress>
-                    </CardContent>
-                )}
-                {channel.sync.waiting && !syncing && (
-                    <CardContent>
-                        <Alert>
-                            <AlertTitle>Changes are waiting to sync</AlertTitle>
-                            <AlertDescription>
-                                Staff changed rooms or rates. They are sent to
-                                Channex in about 2 minutes, after the last
-                                change.
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                )}
-                {channel.pausedUntil && (
-                    <CardContent>
-                        <Alert>
-                            <AlertTitle>
-                                Paused until{' '}
-                                {new Date(
-                                    channel.pausedUntil,
-                                ).toLocaleTimeString('en-GB')}
-                            </AlertTitle>
-                            <AlertDescription>
-                                Channex asked us to wait.{' '}
-                                {channel.waitingChanges} changes waiting, none
-                                lost.
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                )}
-                {channel.lastError && (
-                    <CardContent>
-                        <Alert variant="destructive">
-                            <AlertTitle>
-                                The last sync did not finish
-                            </AlertTitle>
-                            <AlertDescription>
-                                {channel.lastError}
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                )}
-                <CardFooter className="justify-end gap-2">
-                    {channel.canFullRefresh && <FullRefresh code={code} />}
-                    <SyncPreview
-                        code={code}
-                        preview={channel.preview}
-                        label={notSynced ? 'Preview sync' : 'Sync again'}
-                        disabled={syncing}
-                    />
-                </CardFooter>
-            </Card>
-
-            {notSynced ? (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>OTAs</CardTitle>
-                        <CardDescription>
-                            Sync to Channex first.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            ) : (
-                <>
-                    <ChannelOtasCard code={code} otas={channel.otas} />
-                    <SyncedItems code={code} items={channel.synced} />
-                    <Alerts
-                        code={code}
-                        failed={channel.failedBookings}
-                        alerts={channel.alerts}
-                    />
-                    <RecentBookings items={channel.recentBookings} />
-                </>
+                    </>
+                }
+                description={
+                    notSynced ? (
+                        "Send this property's room types and rate plans to Channex."
+                    ) : (
+                        <SyncedLines channel={channel} />
+                    )
+                }
+                actions={
+                    <>
+                        {channel.canFullRefresh && <FullRefresh code={code} />}
+                        <SyncPreview
+                            code={code}
+                            preview={channel.preview}
+                            label={notSynced ? 'Preview sync' : 'Sync again'}
+                            disabled={syncing}
+                        />
+                    </>
+                }
+            />
+            {syncing && (
+                <Progress
+                    value={
+                        channel.sync.total > 0
+                            ? (channel.sync.done / channel.sync.total) * 100
+                            : null
+                    }
+                >
+                    <span className="text-sm text-muted-foreground">
+                        {channel.sync.total > 0
+                            ? `Syncing to Channex: ${channel.sync.done} of ${channel.sync.total} steps. You can leave this page.`
+                            : 'Waiting to start. You can leave this page.'}
+                    </span>
+                </Progress>
             )}
+            {channel.sync.waiting && !syncing && (
+                <Alert>
+                    <AlertTitle>Changes are waiting to sync</AlertTitle>
+                    <AlertDescription>
+                        Staff changed rooms or rates. They are sent to Channex
+                        in about 2 minutes, after the last change.
+                    </AlertDescription>
+                </Alert>
+            )}
+            {channel.pausedUntil && (
+                <Alert>
+                    <AlertTitle>
+                        Paused until{' '}
+                        {new Date(channel.pausedUntil).toLocaleTimeString(
+                            'en-GB',
+                        )}
+                    </AlertTitle>
+                    <AlertDescription>
+                        Channex asked us to wait. {channel.waitingChanges}{' '}
+                        changes waiting, none lost.
+                    </AlertDescription>
+                </Alert>
+            )}
+            {channel.lastError && (
+                <Alert variant="destructive">
+                    <AlertTitle>The last sync did not finish</AlertTitle>
+                    <AlertDescription>{channel.lastError}</AlertDescription>
+                </Alert>
+            )}
+            {!notSynced && alertCount > 0 && (
+                <Alert variant="destructive" className="pr-32">
+                    <TriangleAlert />
+                    <AlertTitle>
+                        {alertCount === 1
+                            ? '1 alert needs action'
+                            : `${alertCount} alerts need action`}
+                    </AlertTitle>
+                    <AlertDescription>
+                        A booking that is not saved is not acknowledged to
+                        Channex.
+                    </AlertDescription>
+                    <AlertAction className="top-1/2 -translate-y-1/2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onSectionChange('alerts')}
+                        >
+                            <ArrowRight data-icon="inline-start" />
+                            View alerts
+                        </Button>
+                    </AlertAction>
+                </Alert>
+            )}
+
+            <section aria-label="OTAs" className="flex flex-col gap-4 pt-2">
+                <PanelHeading
+                    icon={Store}
+                    title="OTAs"
+                    description="Connect each OTA the property sells on. Channex then sends availability and rates there and brings bookings back."
+                />
+                {notSynced ? (
+                    <p className="ps-13 text-sm text-muted-foreground">
+                        Sync to Channex first.
+                    </p>
+                ) : (
+                    <ChannelOtasTable code={code} otas={channel.otas} />
+                )}
+            </section>
         </div>
     );
 }
 
-function syncedLine(channel: Channel): string {
+const shortDate = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+});
+
+/** The sync status in two short lines: what is on Channex, then when changes and the last full refresh went. */
+function SyncedLines({ channel }: { channel: Channel }) {
     const { roomTypes, ratePlans, skipped } = channel.preview;
-    const when = channel.structureSyncedAt
-        ? `Structure synced ${new Date(channel.structureSyncedAt).toLocaleString('en-GB')}`
-        : 'Structure not synced yet';
+    const first = [
+        channel.structureSyncedAt
+            ? `Synced ${shortDate.format(new Date(channel.structureSyncedAt))}`
+            : 'Structure not synced yet',
+        `${roomTypes} room types`,
+        `${ratePlans} rate plans`,
+        skipped > 0 ? `${skipped} skipped` : null,
+    ].filter(Boolean);
+    const second = [
+        channel.changesSentAt
+            ? `Changes sent ${shortDate.format(new Date(channel.changesSentAt))}`
+            : null,
+        channel.fullSyncedAt
+            ? `Full refresh ${shortDate.format(new Date(channel.fullSyncedAt))}`
+            : null,
+    ].filter(Boolean);
 
-    const sent = channel.changesSentAt
-        ? ` · Changes sent ${new Date(channel.changesSentAt).toLocaleString('en-GB')}`
-        : '';
-    const full = channel.fullSyncedAt
-        ? ` · Full refresh ${new Date(channel.fullSyncedAt).toLocaleString('en-GB')}`
-        : '';
-
-    return `${when} · ${roomTypes} room types · ${ratePlans} rate plans · ${skipped} skipped${sent}${full}`;
+    return (
+        <>
+            <p>{first.join(' · ')}</p>
+            {second.length > 0 && (
+                <p className="text-xs">{second.join(' · ')}</p>
+            )}
+        </>
+    );
 }
 
 function FullRefresh({ code }: { code: string }) {
@@ -203,7 +413,11 @@ function FullRefresh({ code }: { code: string }) {
                     disabled={processing}
                     focusableWhenDisabled
                 >
-                    {processing && <Spinner data-icon="inline-start" />}
+                    {processing ? (
+                        <Spinner data-icon="inline-start" />
+                    ) : (
+                        <History data-icon="inline-start" />
+                    )}
                     Full refresh (500 days)
                 </Button>
             )}
@@ -302,6 +516,7 @@ function SyncPreview({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger render={<Button disabled={disabled} />}>
+                <RefreshCw data-icon="inline-start" />
                 {label}
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl">
@@ -405,132 +620,295 @@ function SyncedItems({
     code: string;
     items: SyncedRoomType[];
 }) {
+    const [openIds, setOpenIds] = useState<Set<number>>(new Set());
+    const toggle = (id: number) =>
+        setOpenIds((current) => {
+            const next = new Set(current);
+
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+
+            return next;
+        });
+
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>On Channex</CardTitle>
-                <CardDescription>
-                    When staff archive a room type or rate plan, it is removed
-                    here first, automatically. Remove an item by hand only if
-                    that did not work. Channex refuses a removal while an OTA
-                    still uses the item.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-                {items.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Nothing is on Channex.
-                    </p>
-                )}
-                {items.map((item) => (
-                    <div key={item.mappingId} className="rounded-lg border">
-                        <div className="flex items-center justify-between gap-2 border-b p-3">
-                            <span className="font-medium">{item.name}</span>
-                            <RemoveButton
-                                label={`Remove ${item.name}`}
-                                title={`Remove ${item.name} from Channex?`}
-                                description="Remove its rate plans first. Channex refuses while an OTA uses it."
-                                action={destroyRoomType.form({
-                                    property: code,
-                                    roomTypeMapping: item.mappingId,
-                                })}
-                                disabled={item.ratePlans.length > 0}
-                            />
-                        </div>
-                        <ul className="flex flex-col">
-                            {item.ratePlans.length === 0 && (
-                                <li className="p-3 text-sm text-muted-foreground">
-                                    No rate plans.
-                                </li>
-                            )}
-                            {item.ratePlans.map((plan) => (
-                                <li
-                                    key={plan.id}
-                                    className="flex items-center justify-between gap-2 p-3 text-sm not-last:border-b"
-                                >
-                                    {plan.name}
-                                    <RemoveButton
-                                        label={`Remove ${plan.name}`}
-                                        title={`Remove ${plan.name} from Channex?`}
-                                        description={`${plan.name} on ${item.name} is deleted at Channex. Channex refuses while an OTA uses it.`}
-                                        action={destroyRatePlan.form({
-                                            property: code,
-                                            ratePlanMapping: plan.id,
-                                        })}
-                                    />
-                                </li>
+        <div className="flex flex-col gap-4">
+            <PanelHeading
+                icon={Layers}
+                title="On Channex"
+                description="When staff archive a room type or rate plan, it is removed here first, automatically. Remove an item by hand only if that did not work. Channex refuses a removal while an OTA still uses the item."
+            />
+            {items.length === 0 ? (
+                <p className="ps-13 text-sm text-muted-foreground">
+                    Nothing is on Channex.
+                </p>
+            ) : (
+                <div className="overflow-x-auto rounded-xl border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Room type and rate plans</TableHead>
+                                <TableHead>
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map((item) => (
+                                <Fragment key={item.mappingId}>
+                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                        <TableCell className="p-0">
+                                            <button
+                                                type="button"
+                                                aria-expanded={openIds.has(
+                                                    item.mappingId,
+                                                )}
+                                                onClick={() =>
+                                                    toggle(item.mappingId)
+                                                }
+                                                className="flex w-full items-center gap-2 p-2 text-left font-medium"
+                                            >
+                                                <ChevronRight
+                                                    aria-hidden
+                                                    className={cn(
+                                                        'size-4 text-muted-foreground transition-transform',
+                                                        openIds.has(
+                                                            item.mappingId,
+                                                        ) && 'rotate-90',
+                                                    )}
+                                                />
+                                                {item.name}
+                                                <span className="font-normal text-muted-foreground tabular-nums">
+                                                    (
+                                                    {item.ratePlans.length === 1
+                                                        ? '1 rate plan'
+                                                        : `${item.ratePlans.length} rate plans`}
+                                                    )
+                                                </span>
+                                            </button>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <RemoveMenu
+                                                label={`Remove options for ${item.name}`}
+                                                items={[
+                                                    ...(item.ratePlans.length >
+                                                    0
+                                                        ? [
+                                                              {
+                                                                  text: 'Remove all rate plans',
+                                                                  title: `Remove ${item.ratePlans.length === 1 ? 'the rate plan' : `all ${item.ratePlans.length} rate plans`} of ${item.name} from Channex?`,
+                                                                  description:
+                                                                      'They are deleted at Channex one at a time. If Channex refuses one because an OTA still uses it, the rest stay and the ones before stay removed.',
+                                                                  action: destroyRoomTypeRatePlans.form(
+                                                                      {
+                                                                          property:
+                                                                              code,
+                                                                          roomTypeMapping:
+                                                                              item.mappingId,
+                                                                      },
+                                                                  ),
+                                                              },
+                                                          ]
+                                                        : []),
+                                                    {
+                                                        text: 'Remove room type',
+                                                        title: `Remove ${item.name} from Channex?`,
+                                                        description:
+                                                            'Remove its rate plans first. Channex refuses while an OTA uses it.',
+                                                        action: destroyRoomType.form(
+                                                            {
+                                                                property: code,
+                                                                roomTypeMapping:
+                                                                    item.mappingId,
+                                                            },
+                                                        ),
+                                                        disabled:
+                                                            item.ratePlans
+                                                                .length > 0,
+                                                    },
+                                                ]}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    {openIds.has(item.mappingId) &&
+                                        item.ratePlans.length === 0 && (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={2}
+                                                    className="text-muted-foreground"
+                                                >
+                                                    No rate plans.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    {openIds.has(item.mappingId) &&
+                                        item.ratePlans.map((plan) => (
+                                            <TableRow key={plan.id}>
+                                                <TableCell className="ps-8">
+                                                    {plan.name}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <RemoveMenu
+                                                        label={`Remove options for ${plan.name}`}
+                                                        items={[
+                                                            {
+                                                                text: 'Remove rate plan',
+                                                                title: `Remove ${plan.name} from Channex?`,
+                                                                description: `${plan.name} on ${item.name} is deleted at Channex. Channex refuses while an OTA uses it.`,
+                                                                action: destroyRatePlan.form(
+                                                                    {
+                                                                        property:
+                                                                            code,
+                                                                        ratePlanMapping:
+                                                                            plan.id,
+                                                                    },
+                                                                ),
+                                                            },
+                                                        ]}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                </Fragment>
                             ))}
-                        </ul>
-                    </div>
-                ))}
-            </CardContent>
-        </Card>
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
+        </div>
     );
 }
 
-function RemoveButton({
-    label,
-    title,
-    description,
-    action,
-    disabled = false,
-}: {
-    label: string;
+type RemoveItem = {
+    /** The menu item text. */
+    text: string;
     title: string;
     description: string;
     action: ReturnType<typeof destroyRatePlan.form>;
     disabled?: boolean;
-}) {
-    const [open, setOpen] = useState(false);
+};
+
+/**
+ * A row's actions on On Channex: a trash icon menu (every item removes) whose items each open an AlertDialog that asks before removing at Channex.
+ */
+function RemoveMenu({ label, items }: { label: string; items: RemoveItem[] }) {
+    const [asking, setAsking] = useState<RemoveItem | null>(null);
 
     return (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger
-                render={
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        aria-label={label}
-                        disabled={disabled}
-                    />
-                }
-            >
-                Remove
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {description}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Form
-                    {...action}
-                    options={{ preserveScroll: true }}
-                    onSuccess={() => setOpen(false)}
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={<Button variant="ghost" size="icon-sm" />}
+                    aria-label={label}
                 >
-                    {({ processing }) => (
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <Button
-                                type="submit"
-                                variant="destructive"
-                                disabled={processing}
-                                focusableWhenDisabled
+                    <Trash2 />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-auto min-w-48">
+                    {items.map((item) => (
+                        <DropdownMenuItem
+                            key={item.text}
+                            variant="destructive"
+                            disabled={item.disabled}
+                            onClick={() => setAsking(item)}
+                        >
+                            <Trash2 />
+                            {item.text}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertDialog
+                open={asking !== null}
+                onOpenChange={(open) => !open && setAsking(null)}
+            >
+                <AlertDialogContent>
+                    {asking && (
+                        <>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    {asking.title}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {asking.description}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <Form
+                                {...asking.action}
+                                options={{ preserveScroll: true }}
+                                onSuccess={() => setAsking(null)}
                             >
-                                {processing && (
-                                    <Spinner data-icon="inline-start" />
+                                {({ processing }) => (
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                            Cancel
+                                        </AlertDialogCancel>
+                                        <Button
+                                            type="submit"
+                                            variant="destructive"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && (
+                                                <Spinner data-icon="inline-start" />
+                                            )}
+                                            Remove from Channex
+                                        </Button>
+                                    </AlertDialogFooter>
                                 )}
-                                Remove from Channex
-                            </Button>
-                        </AlertDialogFooter>
+                            </Form>
+                        </>
                     )}
-                </Form>
-            </AlertDialogContent>
-        </AlertDialog>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 
+const bookingNotSaved: App.Data.Shared.BadgeData = {
+    value: 'booking_not_saved',
+    label: 'Booking not saved',
+    tone: 'danger',
+};
+
+/** Retry for a booking that was not saved, Close for an alert. Both post and stay on the page. */
+function AlertButton({
+    action,
+    kind,
+}: {
+    action: ReturnType<typeof retryRevision.form>;
+    kind: 'retry' | 'close';
+}) {
+    return (
+        <Form {...action} options={{ preserveScroll: true }}>
+            {({ processing }) => (
+                <Button
+                    type="submit"
+                    size="sm"
+                    variant="outline"
+                    disabled={processing}
+                    focusableWhenDisabled
+                >
+                    {processing ? (
+                        <Spinner data-icon="inline-start" />
+                    ) : kind === 'retry' ? (
+                        <RotateCcw data-icon="inline-start" />
+                    ) : (
+                        <X data-icon="inline-start" />
+                    )}
+                    {kind === 'retry' ? 'Retry' : 'Close'}
+                </Button>
+            )}
+        </Form>
+    );
+}
+
+/**
+ * The Alerts section: one table row per booking that was not saved (Retry) and per open Channex alert (Close).
+ */
 function Alerts({
     code,
     failed,
@@ -543,111 +921,107 @@ function Alerts({
     const count = failed.length + alerts.length;
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Alerts</CardTitle>
-                <CardDescription>
-                    {count === 0
+        <div className="flex flex-col gap-4">
+            <PanelHeading
+                icon={TriangleAlert}
+                title="Alerts"
+                description={
+                    count === 0
                         ? 'Nothing needs attention.'
-                        : `${count} open. A booking that is not saved is not acknowledged to Channex.`}
-                </CardDescription>
-            </CardHeader>
+                        : `${count} open. A booking that is not saved is not acknowledged to Channex.`
+                }
+            />
             {count > 0 && (
-                <CardContent className="flex flex-col gap-3">
-                    {failed.map((revision) => (
-                        <div
-                            key={`revision-${revision.id}`}
-                            className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-3"
-                        >
-                            <div className="flex flex-col gap-1 text-sm">
-                                <span className="font-medium">
-                                    {revision.channel} · Booking not saved ·{' '}
-                                    {revision.bookingCode}
-                                </span>
-                                <span className="text-muted-foreground">
-                                    {revision.error}
-                                </span>
-                            </div>
-                            <Form
-                                {...retryRevision.form({
-                                    property: code,
-                                    revision: revision.id,
-                                })}
-                                options={{ preserveScroll: true }}
-                            >
-                                {({ processing }) => (
-                                    <Button
-                                        type="submit"
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={processing}
-                                        focusableWhenDisabled
-                                    >
-                                        {processing && (
-                                            <Spinner data-icon="inline-start" />
+                <div className="overflow-x-auto rounded-xl border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Alert</TableHead>
+                                <TableHead>Channel</TableHead>
+                                <TableHead>Booking</TableHead>
+                                <TableHead>Detail</TableHead>
+                                <TableHead>When</TableHead>
+                                <TableHead>
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {failed.map((revision) => (
+                                <TableRow key={`revision-${revision.id}`}>
+                                    <TableCell>
+                                        <StatusBadge status={bookingNotSaved} />
+                                    </TableCell>
+                                    <TableCell>{revision.channel}</TableCell>
+                                    <TableCell className="font-medium tabular-nums">
+                                        {revision.bookingCode}
+                                    </TableCell>
+                                    <TableCell className="min-w-56 whitespace-normal text-muted-foreground">
+                                        {revision.error ?? '—'}
+                                    </TableCell>
+                                    <TableCell className="tabular-nums">
+                                        {shortDate.format(
+                                            new Date(revision.receivedAt),
                                         )}
-                                        Retry
-                                    </Button>
-                                )}
-                            </Form>
-                        </div>
-                    ))}
-                    {alerts.map((alert) => (
-                        <div
-                            key={`alert-${alert.id}`}
-                            className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-3"
-                        >
-                            <div className="flex flex-col items-start gap-1 text-sm">
-                                <StatusBadge status={alert.event} />
-                                <span className="text-muted-foreground">
-                                    {[alert.detail, alert.bookingId]
-                                        .filter(Boolean)
-                                        .join(' · ')}{' '}
-                                    {new Date(alert.createdAt).toLocaleString(
-                                        'en-GB',
-                                    )}
-                                </span>
-                            </div>
-                            <Form
-                                {...resolveAlert.form({
-                                    property: code,
-                                    alert: alert.id,
-                                })}
-                                options={{ preserveScroll: true }}
-                            >
-                                {({ processing }) => (
-                                    <Button
-                                        type="submit"
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={processing}
-                                        focusableWhenDisabled
-                                    >
-                                        {processing && (
-                                            <Spinner data-icon="inline-start" />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <AlertButton
+                                            kind="retry"
+                                            action={retryRevision.form({
+                                                property: code,
+                                                revision: revision.id,
+                                            })}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {alerts.map((alert) => (
+                                <TableRow key={`alert-${alert.id}`}>
+                                    <TableCell>
+                                        <StatusBadge status={alert.event} />
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        —
+                                    </TableCell>
+                                    <TableCell className="font-medium tabular-nums">
+                                        {alert.bookingId ?? '—'}
+                                    </TableCell>
+                                    <TableCell className="min-w-56 whitespace-normal text-muted-foreground">
+                                        {alert.detail ?? '—'}
+                                    </TableCell>
+                                    <TableCell className="tabular-nums">
+                                        {shortDate.format(
+                                            new Date(alert.createdAt),
                                         )}
-                                        Close
-                                    </Button>
-                                )}
-                            </Form>
-                        </div>
-                    ))}
-                </CardContent>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <AlertButton
+                                            kind="close"
+                                            action={resolveAlert.form({
+                                                property: code,
+                                                alert: alert.id,
+                                            })}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             )}
-        </Card>
+        </div>
     );
 }
 
 function RecentBookings({ items }: { items: Revision[] }) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Recent bookings from channels</CardTitle>
-                <CardDescription>
-                    The last 20 revisions Channex sent.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="flex flex-col gap-4">
+            <PanelHeading
+                icon={CalendarRange}
+                title="Recent bookings from channels"
+                description="The last 20 revisions Channex sent."
+            />
+            <div className="overflow-x-auto rounded-xl border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -693,7 +1067,7 @@ function RecentBookings({ items }: { items: Revision[] }) {
                         ))}
                     </TableBody>
                 </Table>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

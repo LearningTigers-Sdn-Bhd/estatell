@@ -4,6 +4,7 @@ namespace App\Services\Property;
 
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
+use App\Enums\PdfTableStyle;
 
 /**
  * What the shared PDF layout and the letterhead partial draw for one property. Built by PrintProfile.
@@ -18,6 +19,7 @@ final readonly class PrintLayout
     public function __construct(
         public PdfFont $font,
         public PdfFontSize $fontSize,
+        public PdfTableStyle $tableStyle,
         public string $propertyName,
         public ?string $legalName,
         public ?string $logoDataUri,

@@ -143,6 +143,7 @@ export default function EInvoiceSettings({
                             form={EInvoiceSettingsController.update.form()}
                             title="E-invoicing"
                             description="How estatell connects to MyInvois, and the hotel details printed on every e-invoice."
+                            hideHeader
                             submitLabel="Save settings"
                             contentClassName="flex flex-col gap-6"
                         >

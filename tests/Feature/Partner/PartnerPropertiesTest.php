@@ -123,6 +123,8 @@ test('a partner opens the tabs of their own property and the server sends only t
             ->where('tab', 'overview')
             ->where('property.code', $property->code)
             ->where('property.staffCount', 1)
+            ->where('overview.staffVerified', 1)
+            ->has('overview.bookingsLast30Days')
             ->missing('staff')
             ->missing('features')
         );
@@ -134,6 +136,7 @@ test('a partner opens the tabs of their own property and the server sends only t
             ->where('staff.0.name', 'Aisyah Rahim')
             ->where('staff.0.role', 'Owner')
             ->missing('features')
+            ->missing('overview')
         );
 
     $this->get(route('partner.properties.features', $property->code))

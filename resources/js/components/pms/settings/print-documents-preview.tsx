@@ -1,5 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import type { FontStyleOption } from '@/components/pms/settings/print-general-form';
+import type { PrintSampleColumn } from '@/components/pms/settings/print-sample-table';
+import { PrintSampleTable } from '@/components/pms/settings/print-sample-table';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { sample } from '@/routes/settings/printing';
@@ -159,57 +161,43 @@ export function PrintDocumentsPreview({
                         <p>12–15 Oct</p>
                     </div>
                 </div>
-                <div className="flex flex-col gap-1 border-t pt-2 tabular-nums">
-                    {settings.showUnitOnLines
-                        ? units.map((unit) => (
-                              <div key={unit} className="flex flex-col gap-1">
-                                  <p className="font-bold">{unit}</p>
-                                  {rowsFor(
+                <PrintSampleTable
+                    tableStyle={settings.tableStyle}
+                    className="text-sm"
+                    showHead={showRoom}
+                    columns={lineColumns(showRoom)}
+                    groups={
+                        settings.showUnitOnLines
+                            ? units.map((unit) => ({
+                                  heading: unit,
+                                  rows: rowsFor(
                                       sampleNights.filter(
                                           (night) => night.unit === unit,
                                       ),
                                       settings.nightlyBreakdown,
-                                  ).map((row) => (
-                                      <LineRow
-                                          key={row.dates + row.text}
-                                          row={row}
-                                          showRoom={false}
-                                      />
-                                  ))}
-                              </div>
-                          ))
-                        : rowsFor(flat, settings.nightlyBreakdown).map(
-                              (row, index) => (
-                                  <LineRow
-                                      key={index}
-                                      row={row}
-                                      showRoom={showRoom}
-                                  />
-                              ),
-                          )}
-                </div>
-                <div className="flex flex-col gap-1 tabular-nums">
-                    {taxLines.map((tax) => (
-                        <div
-                            key={tax.label}
-                            className="flex justify-between gap-2"
-                        >
-                            <span className="ml-auto">{tax.label}</span>
-                            <span className="w-20 text-right">
-                                {money(tax.amount)}
-                            </span>
-                        </div>
-                    ))}
-                    <div className="flex justify-between gap-2 border-t pt-1 font-bold">
-                        <span className="ml-auto">Total MYR</span>
-                        <span className="w-20 text-right">{money(total)}</span>
-                    </div>
-                    {settings.showAmountInWords && (
-                        <p className="text-xs text-muted-foreground">
-                            Ringgit Malaysia two thousand and four only
-                        </p>
-                    )}
-                </div>
+                                  ).map(lineCells),
+                              }))
+                            : [
+                                  {
+                                      rows: rowsFor(
+                                          flat,
+                                          settings.nightlyBreakdown,
+                                      ).map(lineCells),
+                                  },
+                              ]
+                    }
+                    summaryAlign="right"
+                    summary={taxLines.map((tax) => ({
+                        label: tax.label,
+                        amount: money(tax.amount),
+                    }))}
+                    total={{ label: 'Total MYR', amount: money(total) }}
+                />
+                {settings.showAmountInWords && (
+                    <p className="-mt-2 text-xs text-muted-foreground">
+                        Ringgit Malaysia two thousand and four only
+                    </p>
+                )}
                 {settings.showCancellationPolicy && (
                     <div className="border-t pt-2">
                         <p className="font-bold">Cancellation policy</p>
@@ -261,15 +249,22 @@ export function PrintDocumentsPreview({
     );
 }
 
-function LineRow({ row, showRoom }: { row: Row; showRoom: boolean }) {
-    return (
-        <div className="flex justify-between gap-2">
-            <span className="w-16 shrink-0 text-muted-foreground">
-                {row.dates}
-            </span>
-            {showRoom && <span className="w-8 shrink-0">{row.room}</span>}
-            <span className="min-w-0 flex-1 truncate">{row.text}</span>
-            <span>{money(row.amount)}</span>
-        </div>
-    );
+/** The columns of the PDF lines partial: Room shows only when the lines are one list. */
+function lineColumns(showRoom: boolean): PrintSampleColumn[] {
+    return [
+        {
+            key: 'dates',
+            label: 'Date',
+            className: 'w-16 whitespace-nowrap text-muted-foreground',
+        },
+        ...(showRoom
+            ? [{ key: 'room', label: 'Room', className: 'w-10' }]
+            : []),
+        { key: 'text', label: 'Description' },
+        { key: 'amount', label: 'Amount', align: 'right' as const },
+    ];
+}
+
+function lineCells(row: Row) {
+    return { ...row, amount: money(row.amount) };
 }

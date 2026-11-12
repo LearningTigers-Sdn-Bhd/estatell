@@ -3,6 +3,7 @@ import { Users } from 'lucide-react';
 import OwnerSetupLinkController from '@/actions/App/Http/Controllers/Admin/OwnerSetupLinkController';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -29,93 +30,106 @@ export function PropertyStaff({
     staff: StaffMember[];
     readOnly?: boolean;
 }) {
-    if (staff.length === 0) {
-        return <EmptyState icon={Users} title="No staff yet" />;
-    }
-
     return (
-        <div className="overflow-hidden rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Email verified</TableHead>
-                        <TableHead>Created</TableHead>
-                        {!readOnly && (
-                            <TableHead className="text-right">
-                                Actions
-                            </TableHead>
-                        )}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {staff.map((user) => (
-                        <TableRow key={user.id}>
-                            <TableCell className="font-medium">
-                                <span className="flex items-center gap-2">
-                                    {user.name}
-                                    {user.deactivated && (
-                                        <Badge variant="outline">
-                                            Deactivated
-                                        </Badge>
-                                    )}
-                                </span>
-                            </TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>
-                                {user.role ?? (
-                                    <span className="text-muted-foreground">
-                                        No role
-                                    </span>
+        <div className="flex flex-col gap-4">
+            <PanelHeading
+                icon={Users}
+                title="Staff"
+                description="The people who can sign in to this property, with their role."
+            />
+            {staff.length === 0 ? (
+                <EmptyState icon={Users} title="No staff yet" />
+            ) : (
+                <div className="overflow-hidden rounded-xl border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead>Email verified</TableHead>
+                                <TableHead>Created</TableHead>
+                                {!readOnly && (
+                                    <TableHead className="text-right">
+                                        Actions
+                                    </TableHead>
                                 )}
-                            </TableCell>
-                            <TableCell>
-                                <Badge
-                                    variant={
-                                        user.verified ? 'secondary' : 'outline'
-                                    }
-                                >
-                                    {user.verified
-                                        ? 'Verified'
-                                        : 'Not verified'}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="tabular-nums">
-                                <DateText date={user.createdAt} />
-                            </TableCell>
-                            {!readOnly && (
-                                <TableCell className="text-right">
-                                    {user.canSendSetupLink && (
-                                        <Form
-                                            {...OwnerSetupLinkController.form(
-                                                code,
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {staff.map((user) => (
+                                <TableRow key={user.id}>
+                                    <TableCell className="font-medium">
+                                        <span className="flex items-center gap-2">
+                                            {user.name}
+                                            {user.deactivated && (
+                                                <Badge variant="outline">
+                                                    Deactivated
+                                                </Badge>
                                             )}
-                                            options={{ preserveScroll: true }}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>{user.email}</TableCell>
+                                    <TableCell>
+                                        {user.role ?? (
+                                            <span className="text-muted-foreground">
+                                                No role
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant={
+                                                user.verified
+                                                    ? 'secondary'
+                                                    : 'outline'
+                                            }
                                         >
-                                            {({ processing }) => (
-                                                <Button
-                                                    type="submit"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    disabled={processing}
-                                                    focusableWhenDisabled
-                                                >
-                                                    {processing && (
-                                                        <Spinner data-icon="inline-start" />
+                                            {user.verified
+                                                ? 'Verified'
+                                                : 'Not verified'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="tabular-nums">
+                                        <DateText date={user.createdAt} />
+                                    </TableCell>
+                                    {!readOnly && (
+                                        <TableCell className="text-right">
+                                            {user.canSendSetupLink && (
+                                                <Form
+                                                    {...OwnerSetupLinkController.form(
+                                                        code,
                                                     )}
-                                                    Send setup email
-                                                </Button>
+                                                    options={{
+                                                        preserveScroll: true,
+                                                    }}
+                                                >
+                                                    {({ processing }) => (
+                                                        <Button
+                                                            type="submit"
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                            focusableWhenDisabled
+                                                        >
+                                                            {processing && (
+                                                                <Spinner data-icon="inline-start" />
+                                                            )}
+                                                            Send setup email
+                                                        </Button>
+                                                    )}
+                                                </Form>
                                             )}
-                                        </Form>
+                                        </TableCell>
                                     )}
-                                </TableCell>
-                            )}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
         </div>
     );
 }

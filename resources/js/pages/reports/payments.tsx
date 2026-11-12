@@ -51,13 +51,13 @@ const cells: ReportCells<Row> = {
     payer: (row) => <span className="font-medium">{row.payer}</span>,
     status: (row) => <StatusBadge status={row.status} />,
     amount: (row, currency) => (
-        <MoneyText amount={row.amount} currency={currency} />
+        <MoneyText amount={row.amount} currency={currency} plain />
     ),
 };
 
 const totalCells: ReportTotalCells = {
     amount: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 

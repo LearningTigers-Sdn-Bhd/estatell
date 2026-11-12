@@ -48,7 +48,7 @@ const reservation = (row: { reservation: string }) => (
 const balance = (
     row: { balance: string },
     currency: App.Data.Property.CurrencyData | null,
-) => <MoneyText amount={row.balance} currency={currency} />;
+) => <MoneyText amount={row.balance} currency={currency} plain />;
 
 const arrivalCells: ReportCells<App.Data.Reports.ArrivalRow> = {
     reservation,

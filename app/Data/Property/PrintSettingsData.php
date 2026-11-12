@@ -4,6 +4,7 @@ namespace App\Data\Property;
 
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
+use App\Enums\PdfTableStyle;
 use App\Models\PrintSetting;
 use Spatie\LaravelData\Data;
 
@@ -15,6 +16,7 @@ class PrintSettingsData extends Data
     public function __construct(
         public PdfFont $font,
         public PdfFontSize $fontSize,
+        public PdfTableStyle $tableStyle,
         public ?string $footerText,
         public bool $showLogo,
         public bool $showAddress,
@@ -36,6 +38,7 @@ class PrintSettingsData extends Data
         return new self(
             font: $settings->font,
             fontSize: $settings->font_size,
+            tableStyle: $settings->table_style,
             footerText: $settings->footer_text,
             showLogo: $settings->show_logo,
             showAddress: $settings->show_address,

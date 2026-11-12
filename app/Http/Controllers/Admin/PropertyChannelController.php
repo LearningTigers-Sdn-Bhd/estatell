@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Channels\QueueChannelFullSync;
 use App\Actions\Channels\RemoveChannelRatePlan;
 use App\Actions\Channels\RemoveChannelRoomType;
+use App\Actions\Channels\RemoveChannelRoomTypeRatePlans;
 use App\Actions\Channels\ResolveChannelAlert;
 use App\Actions\Channels\RetryChannelRevision;
 use App\Actions\Channels\StartChannelStructureSync;
@@ -62,6 +63,16 @@ class PropertyChannelController extends Controller
         abort_unless($roomTypeMapping->channelProperty->property_id === $property->id, 404);
 
         return $this->respond($property, $removeChannelRoomType($request->user(), $roomTypeMapping));
+    }
+
+    /**
+     * Remove every rate plan of one room type from Channex.
+     */
+    public function destroyRoomTypeRatePlans(Request $request, Property $property, ChannelRoomTypeMapping $roomTypeMapping, RemoveChannelRoomTypeRatePlans $removeChannelRoomTypeRatePlans): RedirectResponse
+    {
+        abort_unless($roomTypeMapping->channelProperty->property_id === $property->id, 404);
+
+        return $this->respond($property, $removeChannelRoomTypeRatePlans($request->user(), $roomTypeMapping));
     }
 
     /**

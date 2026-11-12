@@ -33,13 +33,13 @@ const cells: ReportCells<Row> = {
     folio: (row) => <span className="font-medium">{row.folio}</span>,
     code: (row) => <span className="font-medium">{row.code}</span>,
     amount: (row, currency) => (
-        <MoneyText amount={row.amount} currency={currency} />
+        <MoneyText amount={row.amount} currency={currency} plain />
     ),
 };
 
 const totalCells: ReportTotalCells = {
     amount: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 

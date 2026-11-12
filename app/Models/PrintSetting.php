@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PdfFont;
 use App\Enums\PdfFontSize;
+use App\Enums\PdfTableStyle;
 use Database\Factories\PrintSettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int $property_id
  * @property PdfFont $font
  * @property PdfFontSize $font_size
+ * @property PdfTableStyle $table_style
  * @property bool $show_logo
  * @property bool $show_address
  * @property bool $show_contact
@@ -34,7 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string|null $bank_details
  */
 #[Fillable([
-    'font', 'font_size', 'show_logo', 'show_address', 'show_contact', 'show_registration_number', 'show_tin', 'footer_text',
+    'font', 'font_size', 'table_style', 'show_logo', 'show_address', 'show_contact', 'show_registration_number', 'show_tin', 'footer_text',
     'show_unit_on_lines', 'nightly_breakdown', 'tax_breakdown', 'show_amount_in_words', 'show_cancellation_policy',
     'show_signature_lines', 'bank_details',
 ])]
@@ -51,6 +53,7 @@ class PrintSetting extends Model
         return [
             'font' => PdfFont::class,
             'font_size' => PdfFontSize::class,
+            'table_style' => PdfTableStyle::class,
             'show_logo' => 'boolean',
             'show_address' => 'boolean',
             'show_contact' => 'boolean',

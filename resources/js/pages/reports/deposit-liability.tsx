@@ -33,37 +33,37 @@ const cells: ReportCells<Row> = {
     departure: (row) => <DateText date={row.departure} />,
     status: (row) => <StatusBadge status={row.status} />,
     received: (row, currency) => (
-        <MoneyText amount={row.received} currency={currency} />
+        <MoneyText amount={row.received} currency={currency} plain />
     ),
     refunded: (row, currency) => (
-        <MoneyText amount={row.refunded} currency={currency} />
+        <MoneyText amount={row.refunded} currency={currency} plain />
     ),
     charged: (row, currency) => (
-        <MoneyText amount={row.charged} currency={currency} />
+        <MoneyText amount={row.charged} currency={currency} plain />
     ),
     deposit: (row, currency) => (
-        <MoneyText amount={row.deposit} currency={currency} />
+        <MoneyText amount={row.deposit} currency={currency} plain />
     ),
     held: (row, currency) => (
-        <MoneyText amount={row.held} currency={currency} />
+        <MoneyText amount={row.held} currency={currency} plain />
     ),
 };
 
 const totalCells: ReportTotalCells = {
     received: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     refunded: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     charged: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     deposit: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
     held: (figure, currency) => (
-        <MoneyText amount={String(figure)} currency={currency} />
+        <MoneyText amount={String(figure)} currency={currency} plain />
     ),
 };
 
