@@ -23,8 +23,8 @@ export function tabTitle(tab: TabLink): string {
 
 /**
  * Adds the open tab as the last crumb, with a switch menu of the other tabs. Pages call it in their `layout` so
- * the crumb is there on the first paint. Leaves the crumbs as they are when there is only one tab, or when the tab
- * has the same name as the crumb before it.
+ * the crumb is there on the first paint. Leaves the crumbs as they are when there is only one tab. When the tab has
+ * the same name as the crumb before it (Boats › Boats), that crumb gets the menu instead of a repeated crumb.
  */
 export function withTabCrumb(
     breadcrumbs: BreadcrumbItem[],
@@ -38,26 +38,21 @@ export function withTabCrumb(
     }
 
     const title = tabTitle(active);
+    const siblings = {
+        label: 'Tabs',
+        items: tabs.map((tab) => ({
+            title: tabTitle(tab),
+            href: tab.href,
+            current: tab.value === activeTab,
+        })),
+    };
+    const last = breadcrumbs.at(-1);
 
-    if (breadcrumbs.at(-1)?.title === title) {
-        return breadcrumbs;
+    if (last?.title === title) {
+        return [...breadcrumbs.slice(0, -1), { ...last, siblings }];
     }
 
-    return [
-        ...breadcrumbs,
-        {
-            title,
-            href: active.href,
-            siblings: {
-                label: 'Tabs',
-                items: tabs.map((tab) => ({
-                    title: tabTitle(tab),
-                    href: tab.href,
-                    current: tab.value === activeTab,
-                })),
-            },
-        },
-    ];
+    return [...breadcrumbs, { title, href: active.href, siblings }];
 }
 
 type Props = {

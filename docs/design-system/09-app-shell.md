@@ -57,7 +57,7 @@ The property icon fits the uploaded logo inside a rounded square without croppin
 Breadcrumbs show where the page sits, then the open tab. Example: `Reservations › SAR-26100046 › Folio`.
 
 - **Tab crumb.** A page with tabs ends with the open tab. Its chevron (`ChevronsUpDown`) opens a menu of the other tabs, headed "Tabs". The crumb before it links to the record's first tab. The tab bar stays as it is.
-- **Skipped.** There is no tab crumb when the page has one tab, or when the tab has the same name as the crumb before it.
+- **One tab or same name.** There is no tab crumb when the page has one tab. When the tab has the same name as the crumb before it (the Boats tab of Boats), that crumb gets the tab menu instead: `Boats ⌃⌄`, not `Boats › Boats`.
 - **Record switch.** A record crumb can open a menu of its siblings. Room types and rate plans have one. Picking another record keeps the open tab. A rate plan without that tab opens on Details. The server sends the list (`roomTypeSwitch`, `ratePlanSwitch`): the active records, plus the open one when it is archived.
 - **Plain names.** A tab shows its plain name in the crumb, not its count or badge ("Rooms", not "Rooms (12)"). Set `title` on the `TabLink` when its `label` is not plain text.
 - **How a page does it.** The tab list is a function, for example `roomTypeTabs()`. The tab bar and the page `layout` both call it, and the layout passes it to `withTabCrumb(breadcrumbs, tabs, activeTab)` from `tab-links.tsx`. The crumb is built in the layout, so it shows on the first paint. Do not set it with `setLayoutProps`, which applies only after the first paint.
