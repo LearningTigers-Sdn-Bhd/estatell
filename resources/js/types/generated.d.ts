@@ -5266,6 +5266,8 @@ export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'la
 export type UnitMovement = 'arrivals' | 'departures';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type WastaysEventType = 'create' | 'check_in' | 'charge' | 'adjustment' | 'repair' | 'payment' | 'deposit' | 'refund' | 'reversal' | 'folio_movement' | 'stay_change' | 'early_departure' | 'check_out';
+export type WebhookDeliveryStatus = 'pending' | 'retrying' | 'delivered' | 'refused' | 'failed';
+export type WebhookEvent = 'booking.created' | 'booking.updated' | 'booking.cancelled' | 'booking.no_show' | 'stay.checked_in' | 'stay.checked_out' | 'payment.received' | 'payment.refunded' | 'folio.closed' | 'guest.created' | 'guest.updated' | 'guest.merged' | 'guest.anonymized' | 'room.cleaned' | 'room.maintenance_flagged' | 'night_audit.completed' | 'channel.alert';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';
 }
