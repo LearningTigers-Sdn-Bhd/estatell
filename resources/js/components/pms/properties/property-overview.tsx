@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
@@ -42,33 +43,6 @@ const notPublished: App.Data.Shared.BadgeData = {
     label: 'Not published',
     tone: 'neutral',
 };
-
-/** A section heading with an icon box, with the same `ps-2 pt-2` inset as the Channels tab headings. */
-function Heading({
-    icon: Icon,
-    title,
-    description,
-}: {
-    icon: LucideIcon;
-    title: string;
-    description?: string;
-}) {
-    return (
-        <div className="flex items-start gap-3 ps-2 pt-2">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <Icon aria-hidden className="size-4" />
-            </span>
-            <div className="flex min-w-0 flex-col gap-0.5">
-                <h2 className="text-base font-medium">{title}</h2>
-                {description && (
-                    <p className="text-sm text-muted-foreground">
-                        {description}
-                    </p>
-                )}
-            </div>
-        </div>
-    );
-}
 
 /** One At a glance figure: a muted label with its icon, the number, and a short note. */
 function Figure({
@@ -211,7 +185,7 @@ export function PropertyOverview({
         <div className="flex flex-col gap-6">
             {overview && (
                 <section className="flex flex-col gap-4">
-                    <Heading
+                    <PanelHeading
                         icon={LayoutDashboard}
                         title="At a glance"
                         description="How far this property is set up, and whether it is in use."
@@ -264,7 +238,7 @@ export function PropertyOverview({
             )}
 
             <section className="flex flex-col gap-4">
-                <Heading
+                <PanelHeading
                     icon={Info}
                     title="Property details"
                     description="The address, contact and registration the owner gave for this property."

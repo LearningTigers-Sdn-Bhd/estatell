@@ -1,8 +1,9 @@
 import { Form, useHttp } from '@inertiajs/react';
-import { Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, Copy, Pencil, Plus, Store, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import PropertyOtaListController from '@/actions/App/Http/Controllers/Admin/PropertyOtaListController';
 import { DateText } from '@/components/pms/date-text';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { OtaCredentialSheet } from '@/components/pms/properties/ota-credential-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
@@ -49,18 +50,23 @@ export function PropertyOtaLists({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex justify-end">
-                <Button
-                    type="button"
-                    onClick={() => {
-                        setEditing(null);
-                        setSheetOpen(true);
-                    }}
-                >
-                    <Plus data-icon="inline-start" />
-                    Add channel
-                </Button>
-            </div>
+            <PanelHeading
+                icon={Store}
+                title="OTA lists"
+                description="The OTA logins the owner gave for this property."
+                actions={
+                    <Button
+                        type="button"
+                        onClick={() => {
+                            setEditing(null);
+                            setSheetOpen(true);
+                        }}
+                    >
+                        <Plus data-icon="inline-start" />
+                        Add channel
+                    </Button>
+                }
+            />
 
             <div className="overflow-x-auto rounded-xl border">
                 <Table>

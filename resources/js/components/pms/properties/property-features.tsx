@@ -12,6 +12,7 @@ import {
     Lock,
     Ship,
     Tablet,
+    ToggleRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Fragment, useState } from 'react';
@@ -25,6 +26,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -376,14 +378,15 @@ export function PropertyFeatures({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1 ps-3 pt-2">
-                <h2 className="font-heading text-base font-medium">Features</h2>
-                <p className="text-sm text-muted-foreground">
-                    {readOnly
+            <PanelHeading
+                icon={ToggleRight}
+                title="Features"
+                description={
+                    readOnly
                         ? 'The modules this property uses. Ask Estatell support to change them.'
-                        : 'Turn on the modules this property uses. A feature’s settings show under it while it is on.'}
-                </p>
-            </div>
+                        : 'Turn on the modules this property uses. A feature’s settings show under it while it is on.'
+                }
+            />
             <div className="overflow-x-auto rounded-xl border">
                 <Table>
                     <TableHeader>

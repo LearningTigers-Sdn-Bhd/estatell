@@ -15,10 +15,10 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
 import { ChannelOtasTable } from '@/components/pms/channels/channel-otas-card';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     Alert,
@@ -203,43 +203,6 @@ export function ChannelSectionList({
 }
 
 /**
- * A section heading in the Workspace panel: an icon box, the title and description, and actions on the right. The icon
- * box sets it apart; `ps-2` lines the box up with the text of the tables below.
- */
-function SectionHeading({
-    icon: Icon,
-    title,
-    description,
-    actions,
-}: {
-    icon: LucideIcon;
-    title: ReactNode;
-    description?: ReactNode;
-    actions?: ReactNode;
-}) {
-    return (
-        <div className="flex flex-wrap items-start justify-between gap-3 ps-2 pt-2">
-            <div className="flex min-w-0 items-start gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <Icon aria-hidden className="size-4" />
-                </span>
-                <div className="flex min-w-0 flex-col gap-0.5">
-                    <h2 className="flex items-center gap-2 text-base font-medium">
-                        {title}
-                    </h2>
-                    {description && (
-                        <div className="text-sm text-muted-foreground">
-                            {description}
-                        </div>
-                    )}
-                </div>
-            </div>
-            {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
-        </div>
-    );
-}
-
-/**
  * The admin Channels tab body. One section shows at a time (see `ChannelSectionList`). The first, Channex and OTAs,
  * holds the sync status and the OTA table, where most admin work happens. Before the first sync only it has content.
  */
@@ -288,7 +251,7 @@ export function PropertyChannels({
 
     return (
         <div className="flex flex-col gap-4">
-            <SectionHeading
+            <PanelHeading
                 icon={Cable}
                 title={
                     <>
@@ -386,7 +349,7 @@ export function PropertyChannels({
             )}
 
             <section aria-label="OTAs" className="flex flex-col gap-4 pt-2">
-                <SectionHeading
+                <PanelHeading
                     icon={Store}
                     title="OTAs"
                     description="Connect each OTA the property sells on. Channex then sends availability and rates there and brings bookings back."
@@ -673,7 +636,7 @@ function SyncedItems({
 
     return (
         <div className="flex flex-col gap-4">
-            <SectionHeading
+            <PanelHeading
                 icon={Layers}
                 title="On Channex"
                 description="When staff archive a room type or rate plan, it is removed here first, automatically. Remove an item by hand only if that did not work. Channex refuses a removal while an OTA still uses the item."
@@ -959,7 +922,7 @@ function Alerts({
 
     return (
         <div className="flex flex-col gap-4">
-            <SectionHeading
+            <PanelHeading
                 icon={TriangleAlert}
                 title="Alerts"
                 description={
@@ -1053,7 +1016,7 @@ function Alerts({
 function RecentBookings({ items }: { items: Revision[] }) {
     return (
         <div className="flex flex-col gap-4">
-            <SectionHeading
+            <PanelHeading
                 icon={CalendarRange}
                 title="Recent bookings from channels"
                 description="The last 20 revisions Channex sent."
