@@ -34,6 +34,7 @@ Route::prefix('guests')->name('guests.')->group(function () {
         Route::middleware('can:'.PermissionEnum::GuestsView->value)->group(function () {
             Route::get('/', [GuestController::class, 'show'])->name('show');
             Route::get('notes', [GuestController::class, 'notes'])->name('notes.index');
+            Route::get('stays', [GuestController::class, 'stays'])->name('stays.index');
         });
 
         Route::middleware('can:'.PermissionEnum::GuestsManage->value)->group(function () {

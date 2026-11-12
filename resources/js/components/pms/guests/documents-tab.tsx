@@ -1,10 +1,11 @@
-import { useHttp } from '@inertiajs/react';
-import { Eye, EyeOff, IdCard, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Form, useHttp } from '@inertiajs/react';
+import { Ellipsis, IdCard, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { DocumentSheet } from '@/components/pms/guests/document-sheet';
 import type { DocumentFormOptions } from '@/components/pms/guests/document-sheet';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import {
@@ -15,12 +16,24 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
-import { Form } from '@inertiajs/react';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { destroy, reveal, scan } from '@/routes/guests/documents';
 
 type Guest = Pick<
@@ -30,9 +43,10 @@ type Guest = Pick<
 type Document = App.Data.Guests.GuestIdentityDocumentData;
 
 /**
- * The number is masked. Reveal asks the server for the full number, and the server logs the request.
+ * The full number, loaded through the logged `reveal` request as on the Details form: page props never carry it.
+ * The masked number shows while it loads, if it fails, and while impersonating.
  */
-function RevealNumber({
+function DocumentNumber({
     guest,
     document,
 }: {
@@ -41,111 +55,38 @@ function RevealNumber({
 }) {
     const [number, setNumber] = useState<string | null>(null);
     const impersonating = useIsImpersonating();
-    const http = useHttp<Record<string, never>, { number: string }>(
-        'post',
-        reveal.url({ guest: guest.id, document: document.id }),
-        {},
-    );
+    const http = useHttp<Record<string, never>, { number: string }>({});
+
+    useEffect(() => {
+        if (impersonating) {
+            return;
+        }
+        let active = true;
+        http.post(reveal.url({ guest: guest.id, document: document.id }))
+            .then((response) => {
+                if (active) {
+                    setNumber(response.number);
+                }
+            })
+            .catch(() => undefined);
+        return () => {
+            active = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [guest.id, document.id, document.maskedNumber, impersonating]);
 
     return (
-        <span className="flex items-center gap-2">
-            <span className="font-medium tabular-nums">
-                {number ?? document.maskedNumber}
-            </span>
-            {number === null ? (
-                impersonating ? null : (
-                    <Button
-                        type="button"
-                        size="xs"
-                        variant="outline"
-                        disabled={http.processing}
-                        focusableWhenDisabled
-                        aria-label={`Reveal ${document.typeLabel} number`}
-                        onClick={() =>
-                            http
-                                .submit()
-                                .then((response) => setNumber(response.number))
-                        }
-                    >
-                        {http.processing ? (
-                            <Spinner data-icon="inline-start" />
-                        ) : (
-                            <Eye data-icon="inline-start" />
-                        )}
-                        Reveal
-                    </Button>
-                )
-            ) : (
-                <Button
-                    type="button"
-                    size="xs"
-                    variant="outline"
-                    onClick={() => setNumber(null)}
-                >
-                    <EyeOff data-icon="inline-start" />
-                    Hide
-                </Button>
+        <span className="inline-flex items-center gap-2 font-medium tabular-nums">
+            {number ?? document.maskedNumber}
+            {number === null && http.processing && (
+                <Spinner className="size-3.5 text-muted-foreground" />
             )}
         </span>
     );
 }
 
-function RemoveDocument({
-    guest,
-    document,
-}: {
-    guest: Guest;
-    document: Document;
-}) {
-    const [open, setOpen] = useState(false);
-
-    return (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button size="sm" variant="outline" />}>
-                <Trash2 data-icon="inline-start" />
-                Remove
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>
-                        Remove {document.typeLabel} {document.maskedNumber}?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                        The number and both scans are deleted. This cannot be
-                        undone.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Form
-                    {...destroy.form({
-                        guest: guest.id,
-                        document: document.id,
-                    })}
-                    options={{ preserveScroll: true }}
-                    onSuccess={() => setOpen(false)}
-                >
-                    {({ processing }) => (
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <Button
-                                type="submit"
-                                variant="destructive"
-                                disabled={processing}
-                                focusableWhenDisabled
-                            >
-                                {processing && (
-                                    <Spinner data-icon="inline-start" />
-                                )}
-                                Remove document
-                            </Button>
-                        </AlertDialogFooter>
-                    )}
-                </Form>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
-}
-
-function ScanLink({
+/** A small scan thumbnail that opens the full image in a new tab. Opening it is logged by the scan route. */
+function ScanThumbnail({
     guest,
     document,
     side,
@@ -154,24 +95,119 @@ function ScanLink({
     document: Document;
     side: 'front' | 'back';
 }) {
+    const url = scan.url({
+        guest: guest.id,
+        document: document.id,
+        scan: side,
+    });
+    const label = side === 'front' ? 'Front' : 'Back';
+
     return (
         <a
-            href={scan.url({
-                guest: guest.id,
-                document: document.id,
-                scan: side,
-            })}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonVariants({ size: 'sm', variant: 'outline' })}
+            className="group relative block overflow-hidden rounded-md border shadow-xs hover:ring-2 hover:ring-primary/40"
+            aria-label={`Open the ${label.toLowerCase()} scan of ${document.typeLabel}`}
         >
-            {side === 'front' ? 'Front scan' : 'Back scan'}
+            <img
+                src={url}
+                alt={`${document.typeLabel} ${label.toLowerCase()} scan`}
+                className="h-12 w-10 object-cover transition group-hover:scale-105"
+                loading="lazy"
+            />
+            <span className="absolute inset-x-0 bottom-0 bg-foreground/60 text-center text-xs text-background">
+                {label}
+            </span>
         </a>
     );
 }
 
+/** The ⋯ menu of a row: Edit opens the sheet, Remove asks first. */
+function DocumentActions({
+    guest,
+    document,
+    onEdit,
+}: {
+    guest: Guest;
+    document: Document;
+    onEdit: (() => void) | null;
+}) {
+    const [removing, setRemoving] = useState(false);
+
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={<Button variant="ghost" size="icon-sm" />}
+                    aria-label={`Actions for ${document.typeLabel}`}
+                >
+                    <Ellipsis />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-auto min-w-48">
+                    {onEdit && (
+                        <>
+                            <DropdownMenuItem onClick={onEdit}>
+                                <Pencil />
+                                Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                        </>
+                    )}
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setRemoving(true)}
+                    >
+                        <Trash2 />
+                        Remove…
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialog open={removing} onOpenChange={setRemoving}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Remove {document.typeLabel} {document.maskedNumber}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The number and both scans are deleted. This cannot
+                            be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Form
+                        {...destroy.form({
+                            guest: guest.id,
+                            document: document.id,
+                        })}
+                        options={{ preserveScroll: true }}
+                        onSuccess={() => setRemoving(false)}
+                    >
+                        {({ processing }) => (
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Remove document
+                                </Button>
+                            </AlertDialogFooter>
+                        )}
+                    </Form>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+}
+
 /**
- * The guest's ID documents, with masked numbers, expiry badges and scan links. Staff with `guests.manage` can edit and remove.
+ * The guest's ID documents in a table: type, full number, country, expiry and scans. Staff with `guests.manage` edit
+ * and remove from the row menu.
  */
 export function DocumentsTab({
     guest,
@@ -212,9 +248,23 @@ export function DocumentsTab({
         />
     );
 
+    const heading = (
+        <PanelHeading
+            icon={IdCard}
+            title="ID documents"
+            description={
+                retentionDays !== null
+                    ? `Scans are deleted ${retentionDays} ${retentionDays === 1 ? 'day' : 'days'} after they are uploaded. The number stays.`
+                    : 'Passports and ICs of the guest.'
+            }
+            actions={documents.length > 0 ? addButton : undefined}
+        />
+    );
+
     if (documents.length === 0) {
         return (
-            <>
+            <div className="flex flex-col gap-4">
+                {heading}
                 <EmptyState
                     icon={IdCard}
                     title="No ID documents yet"
@@ -222,35 +272,35 @@ export function DocumentsTab({
                     action={addButton}
                 />
                 {sheet}
-            </>
+            </div>
         );
     }
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                    <h2 className="font-heading text-base font-medium">
-                        ID documents
-                    </h2>
-                    {retentionDays !== null && (
-                        <p className="text-sm text-muted-foreground">
-                            Scans are deleted {retentionDays}{' '}
-                            {retentionDays === 1 ? 'day' : 'days'} after they
-                            are uploaded. The number stays.
-                        </p>
-                    )}
-                </div>
-                {addButton}
-            </div>
-            <ul className="flex flex-col gap-4">
-                {documents.map((document) => (
-                    <li key={document.id}>
-                        <Card>
-                            <CardContent className="flex flex-col gap-3">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
+            {heading}
+            <div className="overflow-auto rounded-xl border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Number</TableHead>
+                            <TableHead>Country</TableHead>
+                            <TableHead>Expires</TableHead>
+                            <TableHead>Scans</TableHead>
+                            {canManage && (
+                                <TableHead>
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
+                            )}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {documents.map((document) => (
+                            <TableRow key={document.id}>
+                                <TableCell>
                                     <span className="flex items-center gap-2">
-                                        <span className="text-sm font-medium">
+                                        <span className="font-medium">
                                             {document.typeLabel}
                                         </span>
                                         {document.isExpired && (
@@ -263,150 +313,70 @@ export function DocumentsTab({
                                             />
                                         )}
                                     </span>
-                                    <RevealNumber
+                                </TableCell>
+                                <TableCell>
+                                    <DocumentNumber
                                         guest={guest}
                                         document={document}
                                     />
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    {document.issuingCountryName ??
-                                        'Country not set'}
-                                    {' · '}
+                                </TableCell>
+                                <TableCell>
+                                    {document.issuingCountryName ?? '—'}
+                                </TableCell>
+                                <TableCell className="tabular-nums">
                                     {document.expiresOn ? (
-                                        <>
-                                            Expires{' '}
-                                            <DateText
-                                                date={document.expiresOn}
-                                            />
-                                        </>
+                                        <DateText date={document.expiresOn} />
                                     ) : (
-                                        'No expiry date'
+                                        '—'
                                     )}
-                                </p>
-
-                                {(document.hasFrontScan ||
-                                    document.hasBackScan) &&
-                                    !impersonating && (
-                                        <div className="flex flex-wrap items-center gap-4 rounded-md border border-border/80 bg-muted/30 p-2.5">
+                                </TableCell>
+                                <TableCell>
+                                    {!document.hasFrontScan &&
+                                    !document.hasBackScan ? (
+                                        <span className="text-muted-foreground">
+                                            No scans
+                                        </span>
+                                    ) : impersonating ? (
+                                        <span className="text-muted-foreground">
+                                            Hidden
+                                        </span>
+                                    ) : (
+                                        <span className="flex gap-2">
                                             {document.hasFrontScan && (
-                                                <div className="flex items-center gap-3">
-                                                    <a
-                                                        href={scan.url({
-                                                            guest: guest.id,
-                                                            document:
-                                                                document.id,
-                                                            scan: 'front',
-                                                        })}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="group relative block overflow-hidden rounded-md border border-border shadow-xs hover:ring-2 hover:ring-primary/40"
-                                                        title="Click to view full image in new tab"
-                                                    >
-                                                        <img
-                                                            src={scan.url({
-                                                                guest: guest.id,
-                                                                document:
-                                                                    document.id,
-                                                                scan: 'front',
-                                                            })}
-                                                            alt={`${document.typeLabel} front scan`}
-                                                            className="h-24 w-20 object-cover transition group-hover:scale-105"
-                                                            loading="lazy"
-                                                        />
-                                                        <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[10px] font-medium text-white">
-                                                            Front
-                                                        </span>
-                                                    </a>
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-xs font-medium text-foreground">
-                                                            Front Scan /
-                                                            Portrait
-                                                        </span>
-                                                        <ScanLink
-                                                            guest={guest}
-                                                            document={document}
-                                                            side="front"
-                                                        />
-                                                    </div>
-                                                </div>
+                                                <ScanThumbnail
+                                                    guest={guest}
+                                                    document={document}
+                                                    side="front"
+                                                />
                                             )}
                                             {document.hasBackScan && (
-                                                <div className="flex items-center gap-3 border-l border-border/60 pl-4">
-                                                    <a
-                                                        href={scan.url({
-                                                            guest: guest.id,
-                                                            document:
-                                                                document.id,
-                                                            scan: 'back',
-                                                        })}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="group relative block overflow-hidden rounded-md border border-border shadow-xs hover:ring-2 hover:ring-primary/40"
-                                                        title="Click to view full image in new tab"
-                                                    >
-                                                        <img
-                                                            src={scan.url({
-                                                                guest: guest.id,
-                                                                document:
-                                                                    document.id,
-                                                                scan: 'back',
-                                                            })}
-                                                            alt={`${document.typeLabel} back scan`}
-                                                            className="h-24 w-20 object-cover transition group-hover:scale-105"
-                                                            loading="lazy"
-                                                        />
-                                                        <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[10px] font-medium text-white">
-                                                            Back
-                                                        </span>
-                                                    </a>
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-xs font-medium text-foreground">
-                                                            Back Scan
-                                                        </span>
-                                                        <ScanLink
-                                                            guest={guest}
-                                                            document={document}
-                                                            side="back"
-                                                        />
-                                                    </div>
-                                                </div>
+                                                <ScanThumbnail
+                                                    guest={guest}
+                                                    document={document}
+                                                    side="back"
+                                                />
                                             )}
-                                        </div>
-                                    )}
-
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {!document.hasFrontScan &&
-                                        !document.hasBackScan && (
-                                            <span className="text-sm text-muted-foreground">
-                                                No scans attached
-                                            </span>
-                                        )}
-                                    {canManage && (
-                                        <span className="ms-auto flex gap-2">
-                                            {!impersonating && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        openSheet(document)
-                                                    }
-                                                >
-                                                    <Pencil data-icon="inline-start" />
-                                                    Edit
-                                                </Button>
-                                            )}
-                                            <RemoveDocument
-                                                guest={guest}
-                                                document={document}
-                                            />
                                         </span>
                                     )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </li>
-                ))}
-            </ul>
+                                </TableCell>
+                                {canManage && (
+                                    <TableCell className="text-right">
+                                        <DocumentActions
+                                            guest={guest}
+                                            document={document}
+                                            onEdit={
+                                                impersonating
+                                                    ? null
+                                                    : () => openSheet(document)
+                                            }
+                                        />
+                                    </TableCell>
+                                )}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
             {sheet}
         </div>
     );

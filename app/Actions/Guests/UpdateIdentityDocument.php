@@ -32,7 +32,7 @@ class UpdateIdentityDocument
             $document->fill([
                 'type' => $data->type,
                 'number' => $data->number,
-                'issuing_country_code' => $data->issuingCountryCode,
+                'issuing_country_code' => $data->issuingCountryCode ?? $data->type->defaultIssuingCountry(),
                 'expires_on' => $data->expiresOn,
             ]);
             $changed = array_keys($document->getDirty());

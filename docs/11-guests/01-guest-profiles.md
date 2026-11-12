@@ -24,7 +24,7 @@ guest_tag      guest_id, tag_id
 - A blacklisted guest must have a reason (`CHECK`). `merged_into_id` cannot point to the guest itself.
 - A tag name is unique per property, ignoring case (a unique index on `lower(name)`).
 - `merged_into_id` and `anonymized_at` exist from the start. They are used by merging and privacy.
-- Notes are add-only: no edit, no delete, no pinning. wastays had no guest notes, only booking notes that could be edited, with the edit history kept in jsonb.
+- Notes are add-only: no edit, no delete, no pinning. The Notes tab lists them in a table (Date, Note, By), newest first. A note longer than three lines is cut with Show more. wastays had no guest notes, only booking notes that could be edited, with the edit history kept in jsonb.
 
 ## Enums
 
@@ -43,7 +43,7 @@ guest_tag      guest_id, tag_id
 
 - `GuestDirectory`: the server-paginated list (25 per page). Search matches name, email and phone. Filters: `status` (`vip` or `blacklisted`) and `tag`. Sorts: `full_name`, `created_at`. Merged guests are left out.
 - `CountryOptions`: country names from the PHP `intl` extension.
-- `GuestStayHistory` (stays, nights, revenue, last stay and no-shows, calculated from `unit_guests`, `unit_nights` and `folio_lines`, not stored) is **deferred** to module 13, because the folio tables do not exist yet. The reservation tables exist since module 12.
+- `GuestStayHistory`: each guest's stays, nights, spend, last visit and source. See [Stay history](#stay-history).
 
 ## Pages
 
@@ -58,6 +58,7 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 | `guests.vip.store`, `guests.vip.destroy` | `guests.manage`    | Mark or unmark VIP                                                                                                                                                                                                                                                                       |
 | `guests.notes.store`                     | `guests.manage`    | Add a note (dialog on the Notes tab)                                                                                                                                                                                                                                                     |
 | `guests.blacklist.store`, `.destroy`     | `guests.blacklist` | Blacklist with a reason (dialog), or remove from the blacklist (confirm)                                                                                                                                                                                                                 |
+| `guests.stays.index`                     | `guests.view`      | Stays tab. See [Stay history](#stay-history).                                                                                                                                                                                                                                            |
 
 ## Rules
 
@@ -70,6 +71,91 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 - The profile rules live in `GuestProfileRules`, shared by `GuestRequest` and the booking form (the form's fields are `GuestDetailsFields`).
 - `GuestPicker` and `guests.search` come with the [reservation page](../12-reservations/06-reservation-page.md#guests-tab).
 - Left for later: a settings page for tags, `marketing_consent_at` (captured on the registration card).
+
+## Stay history
+
+A simple view of how often a guest stays, how much they spend and where they come from. It is calculated on each request from `unit_guests`, `reservation_units` and `folio_lines`. Nothing is stored, so a merge, a reversal or a cancellation is right at once.
+
+### Definitions
+
+| Figure             | Rule                                                                                                                                                                                                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stay               | A reservation unit where the guest is an occupant (`unit_guests`) and the status is Checked in or Checked out. Cancelled, no-show and confirmed units are not stays. Old, past and migrated stays count.               |
+| Stays in 12 months | Stays whose departure is on or after the property's today minus one year.                                                                                                                                              |
+| Nights             | Departure date minus arrival date of each overnight stay. An early check-out moves the departure, so it counts the nights stayed. A day use counts 0 nights and is counted on its own.                                 |
+| Last visit         | The latest departure of a checked-out stay. A guest with a Checked in stay also shows **In house now**.                                                                                                                |
+| Source             | The latest stay's company (Perfect Holiday, Sandakan Travel) when the reservation has one, else its booking source.                                                                                                    |
+| Spend              | Charge and Adjustment lines (discounts) after reversals. Tax and Payment lines and the Opening balance code are left out. Lines copied from the old system count. Counted whoever pays, so a company-paid stay counts. |
+| Returning          | 2 or more stays. One stay is **First stay**. A returning guest gets a `RefreshCw` flag ("Returning guest" tooltip) next to the name, with VIP and Blacklisted, on the guest list and the guest page.                   |
+
+**Which stay a line belongs to.** As in `LineSourceUnits`: a tax or discount child takes its parent's source. A unit night, an add-on or a reservation unit source gives the unit. With no unit source, the line takes its folio's unit. A line on a Master or Third party folio with no unit source takes the reservation's first stay (lowest unit id). Lines of units that are not stays are not counted.
+
+**Who gets the spend.** The unit's primary guest only, so two guests in one room do not count it twice. The other occupants see the stay with no spend. Each line counts once across all guests.
+
+### Guest page
+
+The guest page uses the workspace layout of the reservation page (`variant: 'fixed'`, `TabLinks` with `Workspace`): the open tab in the centre panel and the **guest summary** (`GuestSummary`) in the aside, on every tab. Below `lg` the panels stack with the summary first.
+
+```
+ Details   Stays   Notes   Documents
+┌──────────────────────────────────┐ ┌───────────────────────────┐
+│ (the open tab)                   │ │ 👤 Contact                 │
+│                                  │ │ 📞 +60 12-999 4350         │
+│                                  │ │ ✉  No email ⚠              │
+│                                  │ │    Ask at the next stay.   │
+│                                  │ │ ───────────────────────── │
+│                                  │ │ 🛏 Stays     6 (2 in 12 mo)│
+│                                  │ │ 🌙 Nights    14            │
+│                                  │ │ 👛 Spend     MYR 4,820.00  │
+│                                  │ │ 📅 Last visit  2 Nov 2026  │
+│                                  │ │ 🏪 Source  Sandakan Travel │
+│                                  │ │            Travel agent    │
+│                                  │ │ ───────────────────────── │
+│                                  │ │ 🏷 Tags  [Repeat]          │
+└──────────────────────────────────┘ └───────────────────────────┘
+```
+
+- Rows follow `ReservationSummary`: an icon label on the left and the value on the right, so a long company name wraps.
+- A guest with no stays shows 0 and "—". An archived guest keeps the figures (financial history is kept); its contact reads "Removed when the guest was archived."
+- **Missing contact.** An empty phone or email shows "No phone" or "No email" in warning colour, then "Ask at the next stay." On the other tabs, staff with `guests.manage` get an **Edit details** link to the Details tab, which is the edit form.
+
+**Stays tab** (`GET /p/{code}/guests/{guest}/stays`, `guests.stays.index`, `guests.view`): every stay, newest arrival first. Columns: Booking (short code, links to the reservation), Dates, Room, Source, Status, Nights, Spend (MYR). Spend shows "—" when the guest is not the primary guest. A footer row sums Nights and Spend. The list is bounded by one guest's stays, so it is not paginated.
+
+### Guest list
+
+- Columns: Last visit, Stays and Spend (MYR), each sortable (`last_visit`, `stays`, `spend`, descending first). Sorting puts guests with no stays last. Source shows under Last visit in small muted text.
+- Email and Phone: an empty value shows a warning "No email" or "No phone". Archived guests show "—".
+- Filters, in the URL: `filter[source]` (a booking source id: guests with any stay from it), `filter[returning]` (`first` or `returning`) and `filter[contact]` (`no_email`, `no_phone` or `missing`, which is either).
+- The figures come from one grouped subquery joined to the page query, so the list stays one query whatever the page size.
+- Sorts on Email, Phone and Nationality (`email`, `phone`, `nationality`). Email sorts ignoring case. Nationality sorts by the country name shown (China, Germany, Japan), not by the code: the server passes the codes in name order as one array and sorts by the position in it. Empty values go last in both directions, then by name.
+
+### Guest list layout
+
+The guest list uses the shared report [column layout](../22-reports/01-core-reports.md#column-layouts-per-property): one layout per property, shared by every user.
+
+- `ReportKey::Guests` (slug `guests`) holds the columns. It is not listed in the Reports menu, like Housekeeping tasks. It has **no exports**: no PDF, no spreadsheet and no Preview PDF. `ReportKey::hasExports()` is false for it, and the export and preview routes take only keys that have exports, so `guests` returns 404 there. `report()` has no rows for it.
+- Columns, in default order, all visible: Name, Email, Phone, Nationality, Tags, Last visit, Stays (right), Spend (right), Added. Keys: `full_name`, `email`, `phone`, `nationality`, `tags`, `last_visit`, `stays`, `spend`, `created_at`.
+- **Name always shows**, because it opens the guest. It is in the Sheet so it can move and align, but its switch is locked on (`lockedKeys` on `ReportLayoutSheet`). The page shows it even if a stored layout says hidden. The checkbox column stays first.
+- Staff with `settings.manage` (and `reports.view`, as the layout routes sit under Reports) see a **Layout** button next to Add guest. It opens `ReportLayoutSheet` without the Orientation choice and without Preview PDF (`printable={false}`). Hide, show, reorder and align work as on reports, and the table behind the Sheet follows the draft.
+- A sort on a hidden column falls back to Name. The page gets the sort it used.
+
+### Row menu
+
+Each guest list row ends with a ⋯ menu (`GuestRowActions`). It is not in the layout and always shows on the right. Clicks inside it, and inside its dialogs, do not open the guest.
+
+| Item                               | Permission         | Confirm                                                               |
+| ---------------------------------- | ------------------ | --------------------------------------------------------------------- |
+| Open guest                         | `guests.view`      | None                                                                  |
+| Mark as VIP / Remove VIP           | `guests.manage`    | None                                                                  |
+| Blacklist… / Remove from blacklist | `guests.blacklist` | The guest page dialogs (`BlacklistDialog`, `UnblacklistDialog`)       |
+| Archive…                           | `guests.anonymize` | The guest page AlertDialog (`ArchiveGuestDialog`), with Confirm typed |
+
+- An archived guest shows only Open guest.
+- The items use the single-guest routes. They return to the page they came from, so the list keeps its filters, sort and page. Archive returns there too (to the guest page when there is no previous page).
+
+### Registration card
+
+The Email and Phone fields on the guest screen show "Please fill in." under the field while it is empty and the Layout tab makes it Optional. A Required field already has its star. See [Card fields](../16-registration/01-card-fields.md).
 
 ## Bulk selection and actions
 

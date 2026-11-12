@@ -240,3 +240,18 @@ test('the placeholder migration renames only anonymized placeholders and keeps t
         'anonymized_at' => '2026-10-01 10:00:00',
     ]);
 });
+
+test('archiving from the guest list row menu returns to the list', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $guest = Guest::factory()->create(['property_id' => $property->id]);
+    $list = route('guests.index', [$property->code, 'sort' => '-spend']);
+
+    $this->actingAs($owner)
+        ->from($list)
+        ->post(route('guests.anonymize.store', [$property->code, $guest]))
+        ->assertRedirect($list);
+
+    $this->get(route('guests.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canBlacklist', true)->where('canAnonymize', true));
+});

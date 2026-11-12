@@ -367,7 +367,8 @@ test('the labels come in the chosen language and fall back to English', function
     $labels = app(RegistrationCardLabels::class);
 
     expect($labels->for(Locale::Malay)['Full name'])->toBe('Nama penuh')
-        ->and($labels->for(Locale::English)['Full name'])->toBe('Full name');
+        ->and($labels->for(Locale::English)['Full name'])->toBe('Full name')
+        ->and($labels->for(Locale::Malay)['Please fill in.'])->toBe('Sila isi.');
 });
 
 test('the Guests tab links to the card only for staff who may sign', function () {
