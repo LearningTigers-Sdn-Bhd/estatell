@@ -168,4 +168,12 @@ class ReservationUnit extends Model
     {
         return $this->hasMany(UnitAddOn::class);
     }
+
+    /**
+     * @return HasMany<ReservationUnitTaxWaiver, $this>
+     */
+    public function taxWaivers(): HasMany
+    {
+        return $this->hasMany(ReservationUnitTaxWaiver::class);
+    }
 }

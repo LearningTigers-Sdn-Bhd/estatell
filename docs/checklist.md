@@ -164,6 +164,15 @@ A client asked for it: source, last visit, stay frequency, total nights and tota
 - [x] `feat(guests): add a row menu to the guest list` — the ⋯ menu with Open guest, VIP, Blacklist and Archive by permission; the dialogs made controllable; Archive returns to the previous page.
 - [x] `feat(guests): use the workspace layout on the guest page` — `GuestSummary` in the `Workspace` aside (contact, stay figures, tags) in place of the tiles and the contact banner.
 
+### Tax waivers
+
+Summer Holiday (2026-11-12): Trip.com collects the tourism tax on some bookings and not others, so staff charged guests who had already paid. Branch `feat/tax-waivers`. Docs: [Tax waivers](06-catalogues/03-taxes.md#tax-waivers).
+
+- [x] `feat(folio): waive a tax per room` — `reservation_unit_tax_waivers`, `TaxWaiverReason`, `ReservationUnitTaxWaiver`, `TaxWaivers` (used by `NightChargeQuote` and `DayUseChargeQuote`), `WaiveUnitTax` (reverses posted nights in a manual batch per folio), `RemoveUnitTaxWaiver`, `folio.waive-tax` (Owner, Manager, Front desk, Finance) with a syncing migration, `UnitAction::WaiveTax`, `ReservationUnitTaxWaiverController`, the Taxes paid elsewhere Dialog and the Tax row on the unit panel.
+- [x] `feat(folio): waive a tax for several rooms at once` — `WaiveGroupTax`, `GroupTaxWaiverResult`, `TaxWaiverRefused`, `WaiveGroupTaxRequest`, `reservations.tax-waivers.store`, `canWaiveTax` and the optional `taxWaiverOptions` prop, **Taxes paid elsewhere…** in More with the Rooms select, the fields shared with the one-room Dialog. Needs: waive a tax per room.
+- [x] `feat(folio): show tax waivers on documents and reports` — `TaxWaiverNotes`, `taxNotes` on `BookingSummaryDocument` (print with prices only) and `FolioInvoiceDocument`, the notes in both PDFs, and the **Paid elsewhere** column (`paid_elsewhere`) of the non-national guests report. The e-invoice (`FolioDocumentBuilder`) is unchanged. Needs: waive a tax per room.
+- [x] `feat(catalogues): choose which taxes can be paid elsewhere` — `taxes.can_be_waived` (on for foreign-guest taxes by the migration), the **Can be paid elsewhere** switch and badge, `Tax::waivable()` for both waiver Dialogs, the `tax_not_waivable` refusal, and the menus hidden when no tax can be waived. Needs: waive a tax per room.
+
 ## Next
 
 Needed for go-live.
@@ -218,7 +227,8 @@ Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.
 
 ### Folio
 
-- [ ] `docs(folio): plan tax exemptions for guests and companies` — a certificate or reason on a guest or company that makes the audit and `PostCharge` skip a chosen tax for a whole stay, in place of Remove tax on each night. Plan first. Docs: [Row menu on posted lines](13-folio/08-manual-folio.md#row-menu-on-posted-lines).
+- [ ] `docs(folio): plan tax exemptions for guests and companies` — a certificate or reason on a guest or company that makes the audit and `PostCharge` skip a chosen tax for a whole stay, in place of Remove tax on each night. Plan first; it can add its reasons to `reservation_unit_tax_waivers` ([Tax waivers](06-catalogues/03-taxes.md#tax-waivers)).
+- [ ] `feat(front-desk): remind staff of taxes paid to the OTA at check-in` — in check-in Collect now on an OTA booking, a link that opens Taxes paid elsewhere. Needs: waive a tax per room. Docs: [Row menu on posted lines](13-folio/08-manual-folio.md#row-menu-on-posted-lines).
 
 ### Front desk corrections
 

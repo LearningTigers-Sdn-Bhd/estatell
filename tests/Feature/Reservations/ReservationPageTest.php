@@ -560,7 +560,7 @@ test('the page needs a constant number of queries however many units it has', fu
         $few = $queries(2, $route);
         $many = $queries(7, $route);
 
-        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(52); // 26 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source, 3 for the All view rows (`ReservationUnitRows`, Units tab only; two more with Boats on)
+        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(55); // 26 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source, 3 for the All view rows (`ReservationUnitRows`, Units tab only; two more with Boats on), 2 for the open unit's tax waivers and the Taxes paid elsewhere form, 1 for a tax that can be paid elsewhere (`canWaiveTax`)
     }
 });
 

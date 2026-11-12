@@ -622,6 +622,7 @@ enum ReportKey: string
                 new ReportColumn('adults', __('Adults'), ColumnAlign::Right, false),
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, false),
                 new ReportColumn('tourism_tax', __('Tourism tax'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('paid_elsewhere', __('Paid elsewhere'), ColumnAlign::Left, true),
             ],
             self::PoliceReport => [
                 new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),

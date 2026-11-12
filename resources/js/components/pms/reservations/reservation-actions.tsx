@@ -19,6 +19,10 @@ import { CancelReservationDialog } from '@/components/pms/reservations/cancel-re
 import { ChangeCompanyDialog } from '@/components/pms/reservations/change-company-dialog';
 import { SetBoatsDialog } from '@/components/pms/reservations/set-boats-dialog';
 import { UnitActionDialogs } from '@/components/pms/reservations/unit-actions-menu';
+import {
+    hasWaivableRoom,
+    WaiveGroupTaxDialog,
+} from '@/components/pms/reservations/waive-tax-dialog';
 import { EditGroupDialog } from '@/components/pms/reservations/edit-group-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,7 +35,7 @@ import { bookingSummary, checkOut } from '@/routes/reservations';
 import { receipts } from '@/routes/reservations/check-out';
 
 /**
- * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all and Check out all (the group check-out page), the booking summary prints (the second one without prices, for a reservation with a company) and Check in and Check out of the one unit of a single-unit reservation (the unit menu's own Dialogs), Cancel reservation (one Dialog for several units, with `reservations.manage` while a unit is Confirmed) and Print receipts (one PDF with every receipt of the reservation; the server sends the payment ids only with payment.record). The prints show on closed reservations too.
+ * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all and Check out all (the group check-out page), the booking summary prints (the second one without prices, for a reservation with a company) and Check in and Check out of the one unit of a single-unit reservation (the unit menu's own Dialogs), Taxes paid elsewhere (`folio.waive-tax`, for the rooms chosen), Cancel reservation (one Dialog for several units, with `reservations.manage` while a unit is Confirmed) and Print receipts (one PDF with every receipt of the reservation; the server sends the payment ids only with payment.record). The prints show on closed reservations too.
  */
 export function ReservationActions({
     canManage,
@@ -54,6 +58,9 @@ export function ReservationActions({
     hasBoats,
     boatSetup,
     boatDepartures,
+    canWaiveTax,
+    units,
+    taxWaiverOptions,
 }: {
     canManage: boolean;
     reservation: App.Data.Reservations.ReservationData;
@@ -75,6 +82,9 @@ export function ReservationActions({
     hasBoats: boolean;
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
+    canWaiveTax: boolean;
+    units: App.Data.Reservations.ReservationUnitOptionData[];
+    taxWaiverOptions?: App.Data.Reservations.UnitTaxWaiverFormData | null;
 }) {
     const [addingUnit, setAddingUnit] = useState(false);
     const [editingGroup, setEditingGroup] = useState(false);
@@ -82,6 +92,7 @@ export function ReservationActions({
     const [checkingInAll, setCheckingInAll] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [settingBoats, setSettingBoats] = useState(false);
+    const [waivingTax, setWaivingTax] = useState(false);
     const [unitAction, setUnitAction] = useState<App.Enums.UnitAction | null>(
         null,
     );
@@ -181,6 +192,12 @@ export function ReservationActions({
                             Change company
                         </DropdownMenuItem>
                     )}
+                    {canWaiveTax && hasWaivableRoom(units) && (
+                        <DropdownMenuItem onClick={() => setWaivingTax(true)}>
+                            <ReceiptText />
+                            Taxes paid elsewhere…
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                         render={
                             <a
@@ -254,6 +271,15 @@ export function ReservationActions({
                     options={addUnitOptions}
                     currency={currency}
                     stayType={reservation.stayType}
+                />
+            )}
+            {canWaiveTax && (
+                <WaiveGroupTaxDialog
+                    open={waivingTax}
+                    onOpenChange={setWaivingTax}
+                    reservationId={reservation.id}
+                    units={units}
+                    options={taxWaiverOptions}
                 />
             )}
             {singleUnit !== null && singleUnitItems.length > 0 && (

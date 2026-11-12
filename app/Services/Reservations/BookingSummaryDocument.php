@@ -38,6 +38,8 @@ final readonly class BookingSummaryDocument
         public ?string $paymentDetails,
         /** @var list<string> The available bank accounts, from `BankAccountLines`; only on the print. */
         public array $bankAccounts = [],
+        /** @var list<string> The waived taxes, from `TaxWaiverNotes`; only with prices on the print. */
+        public array $taxNotes = [],
     ) {}
 
     public function hasCharges(): bool

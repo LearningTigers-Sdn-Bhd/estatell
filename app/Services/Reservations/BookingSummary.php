@@ -17,6 +17,7 @@ use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\UnitAddOn;
 use App\Services\Catalogues\BankAccountLines;
+use App\Services\Catalogues\TaxWaiverNotes;
 use App\Services\Folio\DateRange;
 use App\Services\Folio\DocumentLines;
 use App\Services\Folio\DocumentRow;
@@ -45,6 +46,7 @@ class BookingSummary
         private AmountInWords $amountInWords,
         private StayLabel $stayLabel,
         private BankAccountLines $bankAccountLines,
+        private TaxWaiverNotes $taxWaiverNotes,
     ) {}
 
     /**
@@ -98,6 +100,7 @@ class BookingSummary
             cancellationPolicy: $settings->show_cancellation_policy ? $this->policyTexts($property) : [],
             paymentDetails: $showPrices && filled($settings->bank_details) ? $settings->bank_details : null,
             bankAccounts: $showPrices && $forPrint ? $this->bankAccountLines->for($property) : [],
+            taxNotes: $showPrices && $forPrint ? $this->taxWaiverNotes->for($units) : [],
         );
     }
 

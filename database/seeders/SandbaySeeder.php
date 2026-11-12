@@ -355,6 +355,7 @@ class SandbaySeeder extends Seeder
             isInclusive: false,
             foreignGuestsOnly: false,
             collectAtCheckIn: false,
+            canBeWaived: false,
             registrationNumber: null,
             enabled: true,
         ));
