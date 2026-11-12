@@ -7,12 +7,14 @@ use App\Actions\Channels\ScheduleChannelStructureSync;
 use App\Actions\Concierge\SendConciergeStayLink;
 use App\Actions\DoorLocks\QueueStayKeyCards;
 use App\Actions\DoorLocks\QueueStayPasscodeSync;
+use App\Actions\EInvoice\QueueFolioEInvoiceOnClose;
 use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\NotifySupportMoneyCorrection;
 use App\Actions\Platform\RecordImpersonationEnd;
 use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
 use App\Events\ChannelStructureChanged;
+use App\Events\FolioClosed;
 use App\Events\InventoryChanged;
 use App\Events\RatesChanged;
 use App\Events\ReservationChanged;
@@ -166,6 +168,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayKeyCards::class)($event));
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(SendConciergeStayLink::class)($event));
+        Event::listen(FolioClosed::class, fn (FolioClosed $event) => app(QueueFolioEInvoiceOnClose::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 
         RatePlan::saved(function (RatePlan $ratePlan): void {

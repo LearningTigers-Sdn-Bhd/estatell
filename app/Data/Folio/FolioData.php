@@ -76,5 +76,21 @@ class FolioData extends Data
         public ?string $refundCredit = null,
         public bool $canRefundOtherMethod = false,
         public array $onlineRefunds = [],
+        public ?int $eInvoiceSubmissionId = null,
+        public ?string $eInvoiceStatus = null,
+        public ?string $eInvoiceStatusLabel = null,
+        public ?string $eInvoiceStatusTone = null,
+        public ?string $eInvoiceUuid = null,
+        public bool $canSubmitEInvoice = false,
+        public ?string $payerGuestTin = null,
+        public ?string $payerGuestIdType = null,
+        public ?string $payerGuestIdValue = null,
+        public ?string $payerGuestCity = null,
+        /** @var array<string, mixed>|null */
+        public ?array $eInvoiceBuyer = null,
+        /** @var list<array{message: string, fix: string}> What LHDN said about the rejected buyer details, to fix them in the Issue e-invoice form. */
+        public array $eInvoiceRejection = [],
+        /** Over RM10,000 with no e-invoice yet: LHDN needs its own e-invoice, the monthly summary cannot take it. */
+        public bool $eInvoiceRequired = false,
     ) {}
 }

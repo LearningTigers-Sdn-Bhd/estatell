@@ -11,6 +11,7 @@ use App\Http\Middleware\EnsureBookingEngineIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureConciergeIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
+use App\Http\Middleware\EnsureEInvoicingIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
@@ -70,6 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'boats' => EnsureBoatsIsActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
+            'einvoicing' => EnsureEInvoicingIsActive::class,
             'kiosks' => EnsureKiosksAreActive::class,
             'payouts' => EnsurePayoutsAreShown::class,
             'booking-engine' => EnsureBookingEngineIsActive::class,
@@ -95,6 +97,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureEInvoicingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);

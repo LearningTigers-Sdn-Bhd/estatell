@@ -67,6 +67,7 @@ export function guestFormKey(guest: Guest): string {
         guest.state,
         guest.postalCode,
         guest.countryCode,
+        guest.tin,
         guest.tags.map((tag) => tag.name),
     ]);
 }
@@ -97,6 +98,7 @@ export function GuestForm({
         state: guest.state ?? '',
         postal_code: guest.postalCode ?? '',
         country_code: guest.countryCode ?? '',
+        tin: guest.tin ?? '',
         tags: (guest.tags ?? []).map((tag) => tag.name),
         ...emptyGuestIdentity(guest.nationalityCode, documents[0]),
         identity_photo: null as File | null,
@@ -356,6 +358,34 @@ export function GuestForm({
                             }
                             countries={countries}
                         />
+                    </FieldSet>
+
+                    <FieldSet>
+                        <FieldLegend>E-invoice</FieldLegend>
+                        <Field data-invalid={!!errors.tin}>
+                            <FieldLabel htmlFor="tin">
+                                Tax number (TIN)
+                            </FieldLabel>
+                            <Input
+                                id="tin"
+                                value={data.tin}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'tin',
+                                        event.target.value.toUpperCase(),
+                                    )
+                                }
+                                maxLength={20}
+                                placeholder="IG12345678900"
+                                autoComplete="off"
+                                aria-invalid={!!errors.tin}
+                            />
+                            <FieldDescription>
+                                The guest's LHDN tax number, used on their
+                                e-invoice. It starts with IG.
+                            </FieldDescription>
+                            <FieldError>{errors.tin}</FieldError>
+                        </Field>
                     </FieldSet>
                 </div>
             </div>

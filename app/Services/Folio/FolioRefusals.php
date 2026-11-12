@@ -94,6 +94,7 @@ class FolioRefusals
             FolioStatusResult::REFUSAL_ONLINE_REFUND_PENDING => [self::FORM, __('An online refund is still pending on this folio. It can be closed once Curlec confirms the refund.')],
             FolioStatusResult::REFUSAL_BALANCE_NOT_ZERO => [self::FORM, __('Only a folio with a balance of 0.00 can be closed. Settle it or move the charges first.')],
             FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('This folio has a city ledger invoice. Issue a credit note instead of reopening it.')],
+            FolioStatusResult::REFUSAL_HAS_E_INVOICE => [self::FORM, __('This folio is on an e-invoice sent to LHDN, which cannot change. Post a late charge on a new folio, or issue a credit note to lower the amount.')],
             FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],
             TaxCalculator::REFUSAL_NATIONALITY_REQUIRED => [self::FORM, __('This charge has a tax that depends on nationality. Add the booker\'s nationality to the guest first.')],
             TaxCalculator::REFUSAL_INCLUSIVE_TAX_EXCEEDS_AMOUNT => ['unit_amount', __('The tax in this price is more than the amount.')],

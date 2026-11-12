@@ -8,6 +8,7 @@ use App\Features\BookingEngine;
 use App\Features\ChannelManager;
 use App\Features\Concierge;
 use App\Features\DoorLocks;
+use App\Features\EInvoicing;
 use App\Features\Kiosks;
 
 /**
@@ -19,6 +20,7 @@ enum PlatformFeature: string
     case Boats = 'boats';
     case AccountingIntegration = 'accounting-integration';
     case DoorLocks = 'door-locks';
+    case EInvoicing = 'e-invoicing';
     case Kiosks = 'kiosks';
     case BookingEngine = 'booking-engine';
     case Concierge = 'concierge';
@@ -30,6 +32,7 @@ enum PlatformFeature: string
             self::Boats => __('Boats'),
             self::AccountingIntegration => __('Accounting integration'),
             self::DoorLocks => __('Door locks'),
+            self::EInvoicing => __('E-invoicing'),
             self::Kiosks => __('Kiosks'),
             self::BookingEngine => __('Booking engine'),
             self::Concierge => __('Concierge page'),
@@ -43,6 +46,7 @@ enum PlatformFeature: string
             self::Boats => __('Boat departures, fares and boat trips for island and jetty properties.'),
             self::AccountingIntegration => __('Push each closed business date to the property\'s accounting software.'),
             self::DoorLocks => __('Door locks for each stay: TTLock PINs and cards from the cloud, and eLock key cards written at the front desk. Choose which the property uses.'),
+            self::EInvoicing => __('Submit folios, city ledger invoices and consolidated month-end e-invoices to LHDN MyInvois.'),
             self::Kiosks => __('Self check-in kiosks: pairing, settings and the kiosk API for this property.'),
             self::BookingEngine => __('Let guests book and pay online, on a booking website or through the API.'),
             self::Concierge => __('Guest self check-in on the guest\'s own phone, from a lobby QR code or the pre-check-in link.'),
@@ -59,6 +63,7 @@ enum PlatformFeature: string
             self::Boats => Boats::class,
             self::AccountingIntegration => AccountingIntegration::class,
             self::DoorLocks => DoorLocks::class,
+            self::EInvoicing => EInvoicing::class,
             self::Kiosks => Kiosks::class,
             self::BookingEngine => BookingEngine::class,
             self::Concierge => Concierge::class,

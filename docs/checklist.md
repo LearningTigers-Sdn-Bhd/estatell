@@ -21,7 +21,7 @@ The booking engine is the current build. The channel manager and the wastays rep
 
 ### 28 Booking engine
 
-Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, at `booking.estatell.com`. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
 
 - [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md).
 - [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](29-booking-engine/06-content-registries.md#room-photos).
@@ -257,6 +257,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 - [ ] **new-wastays** — the OTA app. Its API endpoints come with the booking engine. Open: its commission, its rates and guest accounts.
 - [ ] **AI concierge** — can be turned on only when the concierge page is on. Admins hold the API key for now. After the concierge page.
 - [ ] **AroundThat programme** — recommends places from the AroundThat API. Later.
+- [ ] **Curlec key per property** — each property uses its own Curlec account, so guest money goes straight to the property and Estatell never holds it. Estatell invoices its commission each month, and refunds come from the property's account. This removes the BNM, Route and linked-account questions. It changes the payout vouchers and the "Estatell holds the money" decision, so confirm with the boss first. For now the booking engine goes live on Estatell's account.
 
 ## Done
 
