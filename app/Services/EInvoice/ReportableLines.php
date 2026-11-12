@@ -45,22 +45,43 @@ class ReportableLines
     }
 
     /**
-     * The stay's charges before tax, its taxes, and its taxes by LHDN tax type, as a monthly summary reports them.
+     * The stay as a monthly summary reports it: its charges before tax (`net`) and its taxes (`tax`); by LHDN tax
+     * type, the tax, the charges it is on (`taxable`) and its rate when it is a percentage (`percent`); and the
+     * charges with no tax on them (`untaxed`).
      *
-     * @return array{net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}
+     * @return array{net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}
      */
     public function split(Folio $folio, LhdnTaxType $taxTypes): array
     {
+        $charges = $this->charges($folio);
         $taxes = [];
+        $percent = [];
+        $chargeIds = [];
+
         foreach ($this->taxes($folio) as $line) {
             $type = $taxTypes->for($line);
             $taxes[$type] = ($taxes[$type] ?? BigDecimal::zero())->plus($line->amount);
+            $percent[$type] ??= $taxTypes->percent($line);
+            $chargeIds[$type][] = $line->parent_line_id;
+        }
+
+        // A tax not tied to a charge is on all the charges, so none of them is untaxed.
+        $allTaxed = collect($chargeIds)->flatten()->contains(null);
+        $taxed = $allTaxed ? $charges->pluck('id') : collect($chargeIds)->flatten()->filter()->unique();
+        $taxable = [];
+        foreach ($chargeIds as $type => $ids) {
+            $on = $charges->whereIn('id', array_filter($ids));
+            // A tax not tied to a charge is taken on all the charges.
+            $taxable[$type] = $on->isEmpty() ? $this->sum($charges) : $this->sum($on);
         }
 
         return [
-            'net' => $this->sum($this->charges($folio)),
+            'net' => $this->sum($charges),
             'tax' => $this->sum($this->taxes($folio)),
             'taxes' => $taxes,
+            'taxable' => $taxable,
+            'percent' => $percent,
+            'untaxed' => $taxes === [] ? $this->sum($charges) : $this->sum($charges->whereNotIn('id', $taxed)),
         ];
     }
 

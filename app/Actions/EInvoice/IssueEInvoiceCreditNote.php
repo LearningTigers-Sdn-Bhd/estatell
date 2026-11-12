@@ -7,8 +7,8 @@ use App\Enums\EInvoiceStatus;
 use App\Models\EInvoiceSubmission;
 use App\Models\User;
 use App\Services\EInvoice\CreditNoteDocumentBuilder;
+use App\Services\EInvoice\CreditNoteSplit;
 use App\Services\EInvoice\MissingEInvoiceDetails;
-use App\Services\EInvoice\SubmissionRules;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 
@@ -17,7 +17,7 @@ class IssueEInvoiceCreditNote
     public function __construct(
         private SendEInvoiceToLhdn $sendEInvoiceToLhdn,
         private LockEInvoiceRecords $lockEInvoiceRecords,
-        private SubmissionRules $submissionRules,
+        private CreditNoteSplit $creditNoteSplit,
         private CreditNoteDocumentBuilder $creditNoteDocumentBuilder,
     ) {}
 
@@ -55,15 +55,22 @@ class IssueEInvoiceCreditNote
                 return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ORIGINAL_NOT_VALID, __('A credit note needs an e-invoice LHDN accepted.'));
             }
 
-            // Credit and refund notes LHDN has or is checking already take their share of the e-invoice.
-            $remaining = $this->submissionRules->creditRemaining($originalSubmission);
+            // Credit and refund notes LHDN has or is checking already took their share of the e-invoice.
+            $split = $this->creditNoteSplit->split($originalSubmission, $amount);
 
-            if ($remaining !== null && BigDecimal::of($amount)->toScale(2, RoundingMode::HalfUp)->isGreaterThan($remaining)) {
-                return EInvoiceResult::refused(EInvoiceResult::REFUSAL_CREDIT_EXCEEDS_REMAINING, __('A :document can take off at most :amount, what is left on this e-invoice.', ['amount' => number_format(max($remaining->toFloat(), 0), 2), 'document' => $type === EInvoiceDocumentType::RefundNote ? __('refund note') : __('credit note')]));
+            if ($split === null) {
+                $document = $type === EInvoiceDocumentType::RefundNote ? __('refund note') : __('credit note');
+                $total = $this->creditNoteSplit->total($originalSubmission);
+                $creditable = $this->creditNoteSplit->creditable($originalSubmission);
+                $credit = BigDecimal::of($amount)->toScale(2, RoundingMode::HalfUp);
+
+                return EInvoiceResult::refused(EInvoiceResult::REFUSAL_CREDIT_EXCEEDS_REMAINING, $credit->isGreaterThan($total) || $creditable->isEqualTo($total)
+                    ? __('A :document can take off at most :amount, what is left on this e-invoice.', ['document' => $document, 'amount' => number_format($total->toFloat(), 2)])
+                    : __('A :document can take off at most :creditable, or all :total that is left. Tourism tax is charged per room-night, so it only comes off when the whole amount is credited.', ['document' => $document, 'creditable' => number_format($creditable->toFloat(), 2), 'total' => number_format($total->toFloat(), 2)]));
             }
 
             try {
-                $built = $this->creditNoteDocumentBuilder->build($originalSubmission, $creditNoteNumber, $amount, $reason, $type);
+                $built = $this->creditNoteDocumentBuilder->build($originalSubmission, $creditNoteNumber, $split, $reason, $type);
             } catch (MissingEInvoiceDetails $e) {
                 return EInvoiceResult::refused($e->refusal, $e->getMessage());
             }

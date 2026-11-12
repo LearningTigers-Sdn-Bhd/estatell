@@ -41,11 +41,12 @@ class FolioDocumentBuilder
 
     /**
      * @param  array<string, mixed>|null  $buyerSnapshot  What staff entered in the Issue e-invoice form; null reads the folio's payer.
+     * @param  string|null  $internalId  The document's own number; null takes the folio's invoice number.
      * @return array{format: string, document: string, documentHash: string, codeNumber: string, payload: array<string, mixed>, buyer: array<string, mixed>}
      *
      * @throws MissingEInvoiceDetails when the hotel or the buyer lacks a detail LHDN needs.
      */
-    public function build(Folio $folio, ?array $buyerSnapshot = null): array
+    public function build(Folio $folio, ?array $buyerSnapshot = null, ?string $internalId = null): array
     {
         $property = $folio->property;
         $buyer = $this->buyer($folio, $buyerSnapshot);
@@ -54,7 +55,7 @@ class FolioDocumentBuilder
         $this->checkBuyer($folio, $buyer);
 
         $signer = new DocumentSigner($property->eInvoiceSetting);
-        $internalId = $this->internalId($folio);
+        $internalId ??= $this->internalId($folio);
         $taxTypes = new LhdnTaxType;
 
         // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
@@ -222,7 +223,7 @@ class FolioDocumentBuilder
 
             $subtotals = $childTaxes->isEmpty()
                 ? [$this->exemptTaxSubtotal($amount)]
-                : array_values($childTaxes->map(fn (FolioLine $tax): array => $this->taxSubtotal($amount, BigDecimal::of($tax->amount), $taxTypes->for($tax)))->all());
+                : array_values($childTaxes->map(fn (FolioLine $tax): array => $this->taxSubtotal($amount, BigDecimal::of($tax->amount), $taxTypes->for($tax), $taxTypes->percent($tax)))->all());
 
             $lines[] = $this->line((string) ($index + 1), $quantity, $amount, $unitPrice, $this->reportableLines->sum($childTaxes), $subtotals, $charge->description ?: 'Accommodation / Service');
         }
@@ -267,13 +268,18 @@ class FolioDocumentBuilder
     }
 
     /**
+     * A tax subtotal. `$percent` is the rate of a percentage tax, which LHDN takes on a line (`cbc:Percent`) and a
+     * Service Tax invoice must show (Service Tax Regulations 2018); it is left out for a flat tax and on the document
+     * totals.
+     *
      * @return array<string, mixed>
      */
-    private function taxSubtotal(BigDecimal $taxable, BigDecimal $tax, string $taxType): array
+    private function taxSubtotal(BigDecimal $taxable, BigDecimal $tax, string $taxType, ?BigDecimal $percent = null): array
     {
         return [
             'TaxableAmount' => [['_' => LhdnAmount::of($taxable), 'currencyID' => self::DEFAULT_CURRENCY]],
             'TaxAmount' => [['_' => LhdnAmount::of($tax), 'currencyID' => self::DEFAULT_CURRENCY]],
+            ...($percent === null ? [] : ['Percent' => [['_' => LhdnAmount::of($percent)]]]),
             'TaxCategory' => [
                 [
                     'ID' => [['_' => $taxType]],

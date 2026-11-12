@@ -2,8 +2,10 @@
 
 namespace App\Services\EInvoice;
 
+use App\Enums\TaxRateType;
 use App\Models\FolioLine;
 use App\Models\Tax;
+use Brick\Math\BigDecimal;
 
 /**
  * The LHDN tax type of a posted tax line, from the property's tax catalogue (`taxes.code`), not from its wording:
@@ -19,8 +21,8 @@ class LhdnTaxType
 
     public const string NOT_APPLICABLE = '06';
 
-    /** @var array<int, string|null> Tax code by transaction code id. */
-    private array $codes = [];
+    /** @var array<int, array{code: string|null, percent: BigDecimal|null}> The tax behind each transaction code id. */
+    private array $taxes = [];
 
     public function for(FolioLine $taxLine): string
     {
@@ -34,18 +36,38 @@ class LhdnTaxType
         };
     }
 
+    /**
+     * The rate of a percentage tax from the tax catalogue (8 for SST at 8%), or null for a flat tax such as tourism
+     * tax, or a line whose tax is not in the catalogue. An LHDN document carries it as the line's `Percent`.
+     */
+    public function percent(FolioLine $taxLine): ?BigDecimal
+    {
+        return $this->tax($taxLine->transaction_code_id)['percent'];
+    }
+
     private function taxCode(?int $transactionCodeId): ?string
     {
+        return $this->tax($transactionCodeId)['code'];
+    }
+
+    /**
+     * @return array{code: string|null, percent: BigDecimal|null}
+     */
+    private function tax(?int $transactionCodeId): array
+    {
         if ($transactionCodeId === null) {
-            return null;
+            return ['code' => null, 'percent' => null];
         }
 
-        if (! array_key_exists($transactionCodeId, $this->codes)) {
-            $code = Tax::query()->where('transaction_code_id', $transactionCodeId)->value('code');
-            $this->codes[$transactionCodeId] = $code === null ? null : strtoupper((string) $code);
+        if (! array_key_exists($transactionCodeId, $this->taxes)) {
+            $tax = Tax::query()->where('transaction_code_id', $transactionCodeId)->first(['code', 'rate_type', 'rate']);
+            $this->taxes[$transactionCodeId] = [
+                'code' => $tax === null ? null : strtoupper((string) $tax->code),
+                'percent' => $tax !== null && $tax->rate_type === TaxRateType::Percent ? BigDecimal::of($tax->rate)->toScale(2) : null,
+            ];
         }
 
-        return $this->codes[$transactionCodeId];
+        return $this->taxes[$transactionCodeId];
     }
 
     private function fromName(FolioLine $taxLine): string

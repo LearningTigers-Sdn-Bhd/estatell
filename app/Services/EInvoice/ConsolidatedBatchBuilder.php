@@ -36,6 +36,31 @@ class ConsolidatedBatchBuilder
     /** The description of each stay's line; `SubmissionView` reads the folio number back from it. */
     public const string LINE_DESCRIPTION = 'Consolidated stay receipt';
 
+    /**
+     * The buyer of every monthly summary, as LHDN gets it: the general public. A note on a summary names the same
+     * buyer (LHDN refuses a different one, `DR308`).
+     *
+     * @return array{name: string, tin: string, id_type: string, id_value: string, sst_registration: null, email: string, phone: string, address_line1: string, address_line2: string, city: string, postal_code: string, state_code: string, country_code: string}
+     */
+    public static function generalPublicBuyer(): array
+    {
+        return [
+            'name' => self::GENERAL_CONSUMER_NAME,
+            'tin' => self::GENERAL_CONSUMER_TIN,
+            'id_type' => 'BRN',
+            'id_value' => 'NA',
+            'sst_registration' => null,
+            'email' => 'NA',
+            'phone' => 'NA',
+            'address_line1' => 'NA',
+            'address_line2' => '',
+            'city' => 'NA',
+            'postal_code' => '00000',
+            'state_code' => MalaysiaStates::NOT_APPLICABLE,
+            'country_code' => self::ORIGIN_COUNTRY_CODE,
+        ];
+    }
+
     public function __construct(
         private ReportableLines $reportableLines,
         private SupplierDetails $supplierDetails,
@@ -141,7 +166,7 @@ class ConsolidatedBatchBuilder
      * One line per stay: its charges before tax, and the taxes posted on it by LHDN tax type (SST is Service Tax
      * `02`). A stay without tax is exempt (`E`). The stay's own total, tax included, is what the guest paid.
      *
-     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>  $stays
+     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
      * @return list<array<string, mixed>>
      */
     private function invoiceLines(array $stays): array
@@ -165,7 +190,7 @@ class ConsolidatedBatchBuilder
                 'TaxTotal' => [
                     [
                         'TaxAmount' => [['_' => LhdnAmount::of($stay['tax']), 'currencyID' => self::DEFAULT_CURRENCY]],
-                        'TaxSubtotal' => $this->taxSubtotals($stay['taxes'], $stay['net']),
+                        'TaxSubtotal' => $this->taxSubtotals($stay),
                     ],
                 ],
                 'Item' => [
@@ -186,10 +211,10 @@ class ConsolidatedBatchBuilder
     }
 
     /**
-     * The document's tax: each tax type's total over the stays that carry it, with those stays' charges as its
-     * taxable amount, plus an exempt subtotal for the stays without tax.
+     * The document's tax: each tax type's total over the stays, with the charges it is on as its taxable amount, plus
+     * an exempt subtotal for the charges with no tax.
      *
-     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>  $stays
+     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
      * @return array<string, mixed>
      */
     private function taxTotalBlock(array $stays): array
@@ -200,15 +225,11 @@ class ConsolidatedBatchBuilder
 
         foreach ($stays as $stay) {
             $total = $total->plus($stay['tax']);
-            if ($stay['taxes'] === []) {
-                $untaxed = $untaxed->plus($stay['net']);
-
-                continue;
-            }
+            $untaxed = $untaxed->plus($stay['untaxed']);
 
             foreach ($stay['taxes'] as $type => $amount) {
                 $byType[$type] ??= ['taxable' => BigDecimal::zero(), 'tax' => BigDecimal::zero()];
-                $byType[$type]['taxable'] = $byType[$type]['taxable']->plus($stay['net']);
+                $byType[$type]['taxable'] = $byType[$type]['taxable']->plus($stay['taxable'][$type]);
                 $byType[$type]['tax'] = $byType[$type]['tax']->plus($amount);
             }
         }
@@ -228,31 +249,37 @@ class ConsolidatedBatchBuilder
     }
 
     /**
-     * @param  array<string, BigDecimal>  $taxes  Tax amount by LHDN tax type.
+     * A stay line's tax: each tax type on the charges it is on, with its rate when it is a percentage, and the
+     * charges with no tax as exempt.
+     *
+     * @param  array{net: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}  $stay
      * @return list<array<string, mixed>>
      */
-    private function taxSubtotals(array $taxes, BigDecimal $net): array
+    private function taxSubtotals(array $stay): array
     {
-        if ($taxes === []) {
-            return [$this->taxSubtotal('E', $net, BigDecimal::zero())];
+        $subtotals = [];
+        foreach ($stay['taxes'] as $type => $amount) {
+            $subtotals[] = $this->taxSubtotal((string) $type, $stay['taxable'][$type], $amount, $stay['percent'][$type] ?? null);
         }
 
-        $subtotals = [];
-        foreach ($taxes as $type => $amount) {
-            $subtotals[] = $this->taxSubtotal((string) $type, $net, $amount);
+        if ($stay['untaxed']->isPositive() || $subtotals === []) {
+            $subtotals[] = $this->taxSubtotal('E', $stay['untaxed'], BigDecimal::zero());
         }
 
         return $subtotals;
     }
 
     /**
+     * A tax subtotal; `$percent` is the rate of a percentage tax, carried on a line only (`cbc:Percent`).
+     *
      * @return array<string, mixed>
      */
-    private function taxSubtotal(string $type, BigDecimal $taxable, BigDecimal $tax): array
+    private function taxSubtotal(string $type, BigDecimal $taxable, BigDecimal $tax, ?BigDecimal $percent = null): array
     {
         return [
             'TaxableAmount' => [['_' => LhdnAmount::of($taxable), 'currencyID' => self::DEFAULT_CURRENCY]],
             'TaxAmount' => [['_' => LhdnAmount::of($tax), 'currencyID' => self::DEFAULT_CURRENCY]],
+            ...($percent === null ? [] : ['Percent' => [['_' => LhdnAmount::of($percent)]]]),
             'TaxCategory' => [
                 [
                     'ID' => [['_' => $type]],
@@ -264,7 +291,7 @@ class ConsolidatedBatchBuilder
     }
 
     /**
-     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>  $stays
+     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
      * @return array<string, mixed>
      */
     private function monetaryTotal(array $stays): array
@@ -291,7 +318,7 @@ class ConsolidatedBatchBuilder
      * The stays that go in the summary, each split into charges and taxes.
      *
      * @param  Collection<int, Folio>  $folios
-     * @return list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>}>
+     * @return list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>
      */
     private function stays(Collection $folios): array
     {

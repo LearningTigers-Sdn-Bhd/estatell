@@ -12,7 +12,6 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\EInvoice\ConsolidatedBatchBuilder;
 use App\Services\EInvoice\FolioEInvoiceLock;
-use App\Services\EInvoice\MalaysiaStates;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -53,13 +52,7 @@ class ConsolidateMonthlyEInvoices
                     'scenario' => EInvoiceScenario::Consolidation,
                     'status' => EInvoiceStatus::Pending,
                     'internal_id' => $built['codeNumber'],
-                    'buyer_snapshot' => [
-                        'name' => ConsolidatedBatchBuilder::GENERAL_CONSUMER_NAME,
-                        'tin' => ConsolidatedBatchBuilder::GENERAL_CONSUMER_TIN,
-                        'id_type' => 'BRN',
-                        'id_value' => 'NA',
-                        'state_code' => MalaysiaStates::NOT_APPLICABLE,
-                    ],
+                    'buyer_snapshot' => ConsolidatedBatchBuilder::generalPublicBuyer(),
                     'document_payload' => $built['payload'],
                     'is_consolidated' => true,
                     'requested_by_guest' => false,

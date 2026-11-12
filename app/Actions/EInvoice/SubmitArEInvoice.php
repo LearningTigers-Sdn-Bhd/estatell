@@ -2,6 +2,8 @@
 
 namespace App\Actions\EInvoice;
 
+use App\Enums\ArInvoiceStatus;
+use App\Enums\ArInvoiceType;
 use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
@@ -9,7 +11,6 @@ use App\Models\ArInvoice;
 use App\Models\EInvoiceSubmission;
 use App\Models\User;
 use App\Services\EInvoice\ArInvoiceDocumentBuilder;
-use App\Services\EInvoice\BuyerResolver;
 use App\Services\EInvoice\FolioEInvoiceLock;
 use App\Services\EInvoice\MissingEInvoiceDetails;
 use App\Services\EInvoice\MyInvoisClientFactory;
@@ -40,7 +41,13 @@ class SubmitArEInvoice
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_CREDENTIALS_MISSING, __('MyInvois credentials are not configured.'));
         }
 
-        $prepared = ($this->lockEInvoiceRecords)($property, function () use ($invoice, $property): EInvoiceResult|array {
+        // Only a live invoice for a stay: a City ledger credit note, an invoice brought over from the old system, or a
+        // void one has no sale of its own to report.
+        if ($invoice->type !== ArInvoiceType::Invoice || $invoice->migrated || $invoice->status === ArInvoiceStatus::Void || $invoice->folio_id === null) {
+            return EInvoiceResult::refused(EInvoiceResult::REFUSAL_NOTHING_TO_REPORT, __('Only a City ledger invoice for a stay can be sent to LHDN.'));
+        }
+
+        $prepared = ($this->lockEInvoiceRecords)($property, function () use ($invoice): EInvoiceResult|array {
             $existing = EInvoiceSubmission::query()
                 ->where('ar_invoice_id', $invoice->id)
                 ->where('document_type', EInvoiceDocumentType::Invoice)
@@ -74,7 +81,7 @@ class SubmitArEInvoice
                 'scenario' => EInvoiceScenario::ArInvoice,
                 'status' => EInvoiceStatus::Pending,
                 'internal_id' => $built['codeNumber'],
-                'buyer_snapshot' => BuyerResolver::forCompany($invoice->company, $property),
+                'buyer_snapshot' => $built['buyer'],
                 'document_payload' => $built['payload'],
                 'is_consolidated' => false,
                 'requested_by_guest' => false,

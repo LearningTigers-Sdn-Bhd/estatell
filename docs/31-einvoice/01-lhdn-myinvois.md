@@ -93,7 +93,17 @@ Required: registered name; tax number (letters then digits); company registratio
 
 ## Tax
 
-Each tax line's LHDN type comes from the tax catalogue (`LhdnTaxType`): `SST` is Service Tax `02`, `TTX` Tourism Tax `03`, any other levy (for example a council heritage fee) `06` Not applicable. A stay e-invoice reports each line's taxes; the monthly summary reports each stay's charges before tax with its taxes by type, an exempt (`E`) subtotal for stays without tax, and document totals by type (verified on preprod, 11 Nov 2026). Summaries sent before this fix reported SST inside the stay amount as exempt.
+Each tax line's LHDN type comes from the tax catalogue (`LhdnTaxType`): `SST` is Service Tax `02`, `TTX` Tourism Tax `03`, any other levy (for example a council heritage fee) `06` Not applicable. Summaries sent before 11 Nov 2026 reported SST inside the stay amount as exempt; City ledger e-invoices and credit notes sent before 12 Nov 2026 reported the whole amount as exempt.
+
+| Document              | How tax is reported                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stay e-invoice        | One line per charge, with each tax on it                                                                                                                                                                                                                                                                                                                                                                                          |
+| City ledger e-invoice | The stay's own lines, as on the stay e-invoice, billed to the company under the City ledger invoice number (`ArInvoiceDocumentBuilder` builds it with `FolioDocumentBuilder`). It reports the stay's sale, whatever part was paid before it was billed. Only a live City ledger invoice for a stay is sent: a City ledger credit note, an invoice brought over from the old system or a void one is refused (`nothing_to_report`) |
+| Monthly summary       | One line per stay: each tax on the charges it is on, and the stay's untaxed charges as an exempt (`E`) part                                                                                                                                                                                                                                                                                                                       |
+| Credit or refund note | Split as in [Credit and refund notes](#credit-and-refund-notes)                                                                                                                                                                                                                                                                                                                                                                   |
+
+- **The SST rate is on every line.** A percentage tax carries its catalogue rate as the line subtotal's `Percent` (LHDN's Tax Rate, "mandatory where applicable"), which a Service Tax invoice and credit note must show. Tourism tax, a flat rate, carries none. The document totals carry no rate.
+- **Verified on LHDN preprod (12 Nov 2026)**: a stay e-invoice and a monthly summary with the rate and an exempt part, a credit note on the summary and a refund note on the stay were all Valid, then cancelled.
 
 The summary page lists its stays (reservation, guest, folio, closed date, before tax, tax, total) with a totals row, read from the document LHDN received, so managers can check each stay against its folio.
 
@@ -134,7 +144,22 @@ With **Send at check-out** on (`auto_submit_on_checkout`), a stay's e-invoice go
 - **72-Hour Cancellation Window**: LHDN allows cancellation strictly within 72 hours from `validated_at`. A cancellation reason is mandatory.
 - **Credit Note (`02`)**: After 72 hours, or if an adjustment is required without cancelling the entire invoice, a Credit Note must be issued referencing the original invoice UUID and code number in `BillingReference`.
 - **Cancellation Lockout**: If a credit or refund note LHDN has or is checking references an e-invoice, the original e-invoice cannot be cancelled. A rejected or cancelled note does not stop it.
-- **What is left to credit** is the e-invoice's total less its credit and refund notes that LHDN has or is checking, to the sen (`SubmissionRules::creditRemaining`). It is checked under the e-invoice lock.
+- **What is left to credit** is what LHDN received for the e-invoice less its credit and refund notes that LHDN has or is checking (`CreditNoteSplit`). It is checked under the e-invoice lock. An e-invoice can take several notes; only one live e-invoice (`01`) per stay or City ledger invoice is allowed (the `active_folio_type` and `active_ar_type` indexes).
+
+### Credit and refund notes
+
+Service Tax Act 2018 section 23 and its regulations ask a credit note to show the rate and the amount of service tax it adjusts, so the hotel can deduct it in its SST return. LHDN takes a note's tax like an invoice's: each line's tax by type, and the totals by type. `CreditNoteSplit` splits the amount staff enter (tax included) over what is left:
+
+| Part                         | Part credit                                                                 | Credit of all that is left              |
+| ---------------------------- | --------------------------------------------------------------------------- | --------------------------------------- |
+| SST, by rate                 | In proportion, with its SST in proportion; one line per rate with `Percent` | Exactly what is left                    |
+| Untaxed charges              | In proportion; one exempt (`E`) line                                        | Exactly what is left                    |
+| Tourism tax and other levies | Not taken: they are per room-night, not on the price                        | Exactly what is left, on the first line |
+
+- **Example.** Room RM350, SST 8% RM28, tourism tax RM10. A RM108 credit is RM100 with RM8 SST at 8%. Then at most RM270 more can come off as a part credit, or all RM280 with the tourism tax.
+- **Rounding.** Each part's share is rounded to the sen and the last part takes the rest, so the lines add up to the credit. A credit of all that is left takes each part exactly, so the notes on an e-invoice add up to it.
+- **A note on a monthly summary** keeps the summary's general public buyer (`ConsolidatedBatchBuilder::generalPublicBuyer`) and the consolidated classification `004`: LHDN allows the general public tax number with no ID only with `004` (`ERR236`, `CV317`, seen on preprod). Other notes use `022`.
+- **Notes sent before 12 Nov 2026** reported their whole amount as exempt; they are counted as untaxed when working out what is left, and any shortfall comes off the SST part in proportion.
 
 ## Monthly B2C Consolidation Rules
 

@@ -130,13 +130,7 @@ it('refuses cancellation after the 72-hour window has expired', function () {
 it('issues a credit note referencing the original valid e-invoice and blocks original cancellation', function () {
     $setup = submissionSetup();
 
-    $original = EInvoiceSubmission::factory()->for($setup['property'])->create([
-        'folio_id' => $setup['folio']->id,
-        'document_type' => EInvoiceDocumentType::Invoice,
-        'scenario' => EInvoiceScenario::Folio,
-        'status' => EInvoiceStatus::Valid,
-        'validated_at' => CarbonImmutable::now()->subHours(24),
-    ]);
+    $original = submitSetupFolio($setup);
 
     // Issue credit note
     $this->actingAs($setup['owner'])
@@ -180,11 +174,13 @@ it('submits a city ledger AR invoice', function () {
         'billing_country_code' => 'MY',
     ]);
 
+    $setup['folio']->update(['payer_guest_id' => null, 'payer_company_id' => $company->id]);
     $arInvoice = ArInvoice::factory()->for($setup['property'])->create([
         'company_id' => $company->id,
+        'folio_id' => $setup['folio']->id,
         'number' => 'INV-2026-001',
         'type' => ArInvoiceType::Invoice,
-        'amount' => '1250.00',
+        'amount' => '350.00',
     ]);
 
     $this->actingAs($setup['owner'])
@@ -198,7 +194,10 @@ it('submits a city ledger AR invoice', function () {
     expect($submission->document_type)->toBe(EInvoiceDocumentType::Invoice);
     expect($submission->scenario)->toBe(EInvoiceScenario::ArInvoice);
     expect($submission->status)->toBe(EInvoiceStatus::Valid);
-    expect($submission->company_id)->toBe($company->id);
+    expect($submission->company_id)->toBe($company->id)
+        ->and($submission->internal_id)->toBe('INV-2026-001')
+        ->and(data_get($submission->document_payload, 'Invoice.0.InvoiceLine.0.Item.0.Description.0._'))->toBe('Deluxe King Room')
+        ->and(data_get($submission->document_payload, 'Invoice.0.AccountingCustomerParty.0.Party.0.PartyIdentification.0.ID.0._'))->toBe('C9876543210');
 });
 
 it('renders the finance e-invoices dashboard and detail views', function () {
@@ -860,7 +859,7 @@ it('records an LHDN timeout as a send that did not reach LHDN, instead of failin
 
 it('offers Send e-invoice on a City ledger invoice and says what the company record is missing', function () {
     $setup = submissionSetup();
-    $company = Company::factory()->for($setup['property'])->create(['tin' => null]);
+    $company = Company::factory()->for($setup['property'])->create(['tin' => null, 'billing_city' => 'Kota Kinabalu']);
     $invoice = ArInvoice::factory()->for($setup['property'])->create(['company_id' => $company->id, 'folio_id' => $setup['folio']->id]);
 
     $this->actingAs($setup['owner'])

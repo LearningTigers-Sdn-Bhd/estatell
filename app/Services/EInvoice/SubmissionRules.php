@@ -2,7 +2,6 @@
 
 namespace App\Services\EInvoice;
 
-use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceEnvironment;
 use App\Enums\EInvoiceStatus;
 use App\Models\EInvoiceSubmission;
@@ -11,7 +10,7 @@ use Carbon\CarbonImmutable;
 
 /**
  * What staff may do with an e-invoice document and what it is worth, read from the stored document: the 72-hour
- * cancel window, the MyInvois link, the total LHDN holds and what is left to credit. It reads only. See
+ * cancel window, the MyInvois link and the total LHDN holds. It reads only. See
  * docs/31-einvoice/01-lhdn-myinvois.md#document-rules.
  */
 class SubmissionRules
@@ -66,25 +65,5 @@ class SubmissionRules
             ?? data_get($submission->document_payload, 'CreditNote.0.LegalMonetaryTotal.0.PayableAmount.0._');
 
         return $amount === null ? null : BigDecimal::of((string) $amount)->toScale(2);
-    }
-
-    /**
-     * What credit and refund notes may still take off an e-invoice: its total less the notes LHDN has or is checking.
-     * Null when the stored e-invoice has no total.
-     */
-    public function creditRemaining(EInvoiceSubmission $original): ?BigDecimal
-    {
-        $total = $this->total($original);
-        if ($total === null) {
-            return null;
-        }
-
-        $credited = $original->adjustments()
-            ->whereIn('document_type', [EInvoiceDocumentType::CreditNote, EInvoiceDocumentType::RefundNote])
-            ->active()
-            ->get()
-            ->reduce(fn (BigDecimal $sum, EInvoiceSubmission $note): BigDecimal => $sum->plus($this->total($note) ?? BigDecimal::zero()), BigDecimal::zero());
-
-        return $total->minus($credited);
     }
 }
