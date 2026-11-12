@@ -12,6 +12,8 @@ use Spatie\LaravelData\Data;
  * name and `identity` the ID with its number already masked or full for the user who asked (see `GuestIdentities`);
  * `id_type` and `id_number` are the two parts of `identity`, with the same masking.
  * `nights` counts the nights of the stay inside the dates; `tourism_tax` is the tourism tax posted in the dates.
+ * `paid_elsewhere` names who collected a waived foreign-guest tax and the reference ("Trip.com · 1128…" or "Guest
+ * receipt · TTX-88231"), empty when none is waived.
  */
 class NonNationalGuestRow extends Data implements ReportRow
 {
@@ -33,6 +35,7 @@ class NonNationalGuestRow extends Data implements ReportRow
         public int $adults,
         public int $children,
         public string $tourism_tax,
+        public string $paid_elsewhere = '',
     ) {}
 
     /**
@@ -57,6 +60,7 @@ class NonNationalGuestRow extends Data implements ReportRow
             'adults' => (string) $this->adults,
             'children' => (string) $this->children,
             'tourism_tax' => number_format((float) $this->tourism_tax, 2),
+            'paid_elsewhere' => $this->paid_elsewhere,
         ];
     }
 
@@ -82,10 +86,11 @@ class NonNationalGuestRow extends Data implements ReportRow
             'adults' => $this->adults,
             'children' => $this->children,
             'tourism_tax' => round((float) $this->tourism_tax, 2),
+            'paid_elsewhere' => $this->paid_elsewhere,
         ];
     }
 
-    public static function fromUnit(ReservationUnit $unit, string $guest, string $nationality, string $identity, string $idType, string $idNumber, ?string $room, int $nights, string $tourismTax): self
+    public static function fromUnit(ReservationUnit $unit, string $guest, string $nationality, string $identity, string $idType, string $idNumber, ?string $room, int $nights, string $tourismTax, string $paidElsewhere = ''): self
     {
         return new self(
             key: $unit->id,
@@ -105,6 +110,7 @@ class NonNationalGuestRow extends Data implements ReportRow
             adults: $unit->adults,
             children: $unit->children,
             tourism_tax: $tourismTax,
+            paid_elsewhere: $paidElsewhere,
         );
     }
 }

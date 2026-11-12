@@ -28,6 +28,7 @@ use App\Models\PropertyBankAccount;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\ReservationUnitTaxWaiver;
 use App\Models\Room;
 use App\Models\RoomRevenuePolicy;
 use App\Models\Tax;
@@ -535,4 +536,21 @@ test('a mixed reservation has no stamp and the no-show unit shows its status', f
         ->and($summary->rooms)->toHaveCount(2)
         ->and($summary->rooms[0])->not->toContain('No-show')
         ->and($summary->rooms[1])->toEndWith('No-show');
+});
+
+test('the printed summary notes each waived tax once, and the page summary reads no waivers', function () {
+    $setup = bsSetup();
+    $tax = Tax::query()->where('property_id', $setup['property']->id)->sole();
+    $first = bsUnit($setup['reservation']);
+    $second = bsUnit($setup['reservation']);
+    $third = bsUnit($setup['reservation']);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $first->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128152109837544']);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $second->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128152109837544']);
+    ReservationUnitTaxWaiver::factory()->guestReceipt()->create(['reservation_unit_id' => $third->id, 'tax_id' => $tax->id, 'reference' => 'TTX-88231']);
+
+    expect(bsSummary($setup, forPrint: true)->taxNotes)->toBe([
+        'Service tax 8% paid by Trip.com (ref 1128152109837544).',
+        'Service tax 8% paid by the guest (receipt TTX-88231).',
+    ])
+        ->and(bsSummary($setup)->taxNotes)->toBe([]);
 });

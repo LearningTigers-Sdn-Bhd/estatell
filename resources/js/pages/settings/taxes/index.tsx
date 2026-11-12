@@ -52,6 +52,7 @@ type FormData = {
     is_inclusive: boolean;
     foreign_guests_only: boolean;
     collect_at_check_in: boolean;
+    can_be_waived: boolean;
     registration_number: string;
     enabled: boolean;
 };
@@ -65,6 +66,7 @@ function formValues(tax: Tax | null): FormData {
         is_inclusive: tax?.isInclusive ?? false,
         foreign_guests_only: tax?.foreignGuestsOnly ?? false,
         collect_at_check_in: tax?.collectAtCheckIn ?? false,
+        can_be_waived: tax?.canBeWaived ?? false,
         registration_number: tax?.registrationNumber ?? '',
         enabled: tax?.enabled ?? true,
     };
@@ -243,6 +245,24 @@ function TaxForm({
                         <FieldDescription>
                             Staff ask the guest to pay this tax when they check
                             in. It is still posted each night.
+                        </FieldDescription>
+                    </FieldContent>
+                </Field>
+                <Field orientation="horizontal">
+                    <Switch
+                        id="tax-can-be-waived"
+                        checked={form.data.can_be_waived}
+                        onCheckedChange={(checked) =>
+                            form.setData('can_be_waived', checked)
+                        }
+                    />
+                    <FieldContent>
+                        <FieldLabel htmlFor="tax-can-be-waived">
+                            Can be paid elsewhere
+                        </FieldLabel>
+                        <FieldDescription>
+                            Staff can mark this tax as paid by an OTA, agent or
+                            the guest.
                         </FieldDescription>
                     </FieldContent>
                 </Field>
@@ -481,6 +501,11 @@ export default function TaxesIndex({
                                                             <Badge variant="outline">
                                                                 Collect at
                                                                 check-in
+                                                            </Badge>
+                                                        )}
+                                                        {tax.canBeWaived && (
+                                                            <Badge variant="outline">
+                                                                Paid elsewhere
                                                             </Badge>
                                                         )}
                                                         {tax.appliesTo

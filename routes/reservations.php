@@ -28,6 +28,7 @@ use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
 use App\Http\Controllers\Reservations\ReservationUnitPartyController;
 use App\Http\Controllers\Reservations\ReservationUnitStayController;
+use App\Http\Controllers\Reservations\ReservationUnitTaxWaiverController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(function () {
@@ -140,6 +141,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('night-price', [ReservationNightPriceController::class, 'groupStore'])->name('night-price');
             });
 
+            Route::post('tax-waivers', [ReservationUnitTaxWaiverController::class, 'storeGroup'])->middleware('can:'.PermissionEnum::FolioWaiveTax->value)->name('tax-waivers.store');
+
             Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
                 Route::post('check-in-all/preview', [ReservationUnitStayController::class, 'checkInAllPreview'])->name('check-in-all-preview');
                 Route::post('check-in-all', [ReservationUnitStayController::class, 'checkInAll'])->name('check-in-all');
@@ -175,6 +178,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::middleware('can:'.PermissionEnum::ReservationsChangePrice->value)->group(function () {
                     Route::post('night-price/preview', [ReservationNightPriceController::class, 'preview'])->name('night-price.preview');
                     Route::post('night-price', [ReservationNightPriceController::class, 'store'])->name('night-price');
+                });
+
+                Route::middleware('can:'.PermissionEnum::FolioWaiveTax->value)->group(function () {
+                    Route::post('tax-waivers', [ReservationUnitTaxWaiverController::class, 'store'])->name('tax-waivers.store');
+                    Route::delete('tax-waivers/{taxId}', [ReservationUnitTaxWaiverController::class, 'destroy'])->whereNumber('taxId')->name('tax-waivers.destroy');
                 });
             });
 

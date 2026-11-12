@@ -331,6 +331,7 @@ class ImportWastaysSetup
             isInclusive: false,
             foreignGuestsOnly: $tax->foreign_guests_only,
             collectAtCheckIn: $tax->collect_at_check_in,
+            canBeWaived: $tax->can_be_waived,
             registrationNumber: $registration,
             enabled: true,
         ));

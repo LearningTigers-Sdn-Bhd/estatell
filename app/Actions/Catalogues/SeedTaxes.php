@@ -36,6 +36,7 @@ class SeedTaxes
                     'is_inclusive' => false,
                     'foreign_guests_only' => $preset['foreignGuestsOnly'],
                     'collect_at_check_in' => true,
+                    'can_be_waived' => $preset['foreignGuestsOnly'],
                     'registration_number' => null,
                     'enabled' => false,
                 ]);

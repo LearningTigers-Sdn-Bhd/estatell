@@ -45,6 +45,7 @@ class TaxRequest extends FormRequest
             isInclusive: $this->boolean('is_inclusive'),
             foreignGuestsOnly: $this->boolean('foreign_guests_only'),
             collectAtCheckIn: $this->boolean('collect_at_check_in'),
+            canBeWaived: $this->boolean('can_be_waived'),
             registrationNumber: $this->filled('registration_number') ? $this->string('registration_number')->toString() : null,
             enabled: $this->boolean('enabled'),
         );
@@ -95,6 +96,7 @@ class TaxRequest extends FormRequest
             'is_inclusive' => ['required', 'boolean'],
             'foreign_guests_only' => ['required', 'boolean'],
             'collect_at_check_in' => ['required', 'boolean'],
+            'can_be_waived' => ['required', 'boolean'],
             'registration_number' => ['nullable', 'string', 'max:100'],
             'enabled' => ['required', 'boolean'],
         ];

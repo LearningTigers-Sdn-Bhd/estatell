@@ -53,6 +53,10 @@
         <div class="small muted gap-16">{{ __('No charges') }}</div>
     @endif
 
+    @foreach ($invoice->taxNotes as $note)
+        <div class="small muted @if ($loop->first) gap-8 @endif">{{ $note }}</div>
+    @endforeach
+
     @if ($invoice->payments !== [])
         <div class="heading gap-16">{{ __('Payments') }}</div>
         <table>
