@@ -1,11 +1,18 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Lock, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Ellipsis, Lock, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { ChannelNameDialog } from '@/components/pms/channels/channel-name-dialog';
 import { PageHeader } from '@/components/pms/page-header';
-import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
+import { toast } from '@/components/ui/toast';
 import {
     Table,
     TableBody,
@@ -32,17 +39,51 @@ function moveChannel(channels: Channel[], position: number, step: -1 | 1) {
     router.put(reorder.url(), { order: ids }, { preserveScroll: true });
 }
 
-function toggleChannel(channel: Channel) {
-    router.put(
-        updateActive.url(channel.id),
-        { active: !channel.isActive },
-        { preserveScroll: true },
-    );
-}
-
 export default function ChannelsIndex({ channels }: { channels: Channel[] }) {
     const [adding, setAdding] = useState(false);
     const [renaming, setRenaming] = useState<Channel | null>(null);
+    const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
+
+    const toggleActive = (channel: Channel, active: boolean) => {
+        const setToggling = (toggling: boolean) => {
+            setTogglingIds((current) => {
+                const next = new Set(current);
+
+                if (toggling) {
+                    next.add(channel.id);
+                } else {
+                    next.delete(channel.id);
+                }
+
+                return next;
+            });
+        };
+
+        router
+            .optimistic<{ channels: Channel[] }>((props) => ({
+                channels: props.channels.map((item) =>
+                    item.id === channel.id
+                        ? { ...item, isActive: active }
+                        : item,
+                ),
+            }))
+            .put(
+                updateActive.url(channel.id),
+                { active },
+                {
+                    preserveScroll: true,
+                    onStart: () => setToggling(true),
+                    onFinish: () => setToggling(false),
+                    onError: (errors) =>
+                        toast.add({
+                            title:
+                                Object.values(errors)[0] ??
+                                'The change could not be saved.',
+                            type: 'error',
+                        }),
+                },
+            );
+    };
 
     return (
         <>
@@ -64,9 +105,8 @@ export default function ChannelsIndex({ channels }: { channels: Channel[] }) {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Available</TableHead>
                                 <TableHead>Channel</TableHead>
-                                <TableHead>Code</TableHead>
-                                <TableHead>Status</TableHead>
                                 <TableHead>
                                     <span className="sr-only">Actions</span>
                                 </TableHead>
@@ -75,36 +115,37 @@ export default function ChannelsIndex({ channels }: { channels: Channel[] }) {
                         <TableBody>
                             {channels.map((channel, position) => (
                                 <TableRow key={channel.id}>
-                                    <TableCell className="font-medium">
-                                        <span className="flex items-center gap-2">
-                                            {channel.name}
-                                            {channel.isOther && (
-                                                <Badge variant="secondary">
-                                                    <Lock aria-hidden />
-                                                    Locked
-                                                </Badge>
-                                            )}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground tabular-nums">
-                                        {channel.code}
-                                    </TableCell>
                                     <TableCell>
-                                        <StatusBadge
-                                            status={
-                                                channel.isActive
-                                                    ? {
-                                                          value: 'on',
-                                                          label: 'On',
-                                                          tone: 'success',
-                                                      }
-                                                    : {
-                                                          value: 'off',
-                                                          label: 'Off',
-                                                          tone: 'neutral',
-                                                      }
+                                        <Switch
+                                            size="sm"
+                                            checked={channel.isActive}
+                                            disabled={
+                                                channel.isOther ||
+                                                togglingIds.has(channel.id)
+                                            }
+                                            aria-label={`Make ${channel.name} ${channel.isActive ? 'unavailable' : 'available'}`}
+                                            onCheckedChange={(active) =>
+                                                toggleActive(channel, active)
                                             }
                                         />
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex min-w-0 flex-col gap-0.5">
+                                            <span className="flex items-center gap-2 font-medium">
+                                                {channel.name}
+                                                {channel.isOther && (
+                                                    <Badge variant="secondary">
+                                                        <Lock aria-hidden />
+                                                        Locked
+                                                    </Badge>
+                                                )}
+                                            </span>
+                                            {channel.code && (
+                                                <span className="font-mono text-xs text-muted-foreground">
+                                                    {channel.code}
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center justify-end gap-1">
@@ -121,7 +162,7 @@ export default function ChannelsIndex({ channels }: { channels: Channel[] }) {
                                                     )
                                                 }
                                             >
-                                                <ChevronUp />
+                                                <ArrowUp />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -139,30 +180,32 @@ export default function ChannelsIndex({ channels }: { channels: Channel[] }) {
                                                     )
                                                 }
                                             >
-                                                <ChevronDown />
+                                                <ArrowDown />
                                             </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={channel.isOther}
-                                                onClick={() =>
-                                                    setRenaming(channel)
-                                                }
-                                            >
-                                                Rename
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={channel.isOther}
-                                                onClick={() =>
-                                                    toggleChannel(channel)
-                                                }
-                                            >
-                                                {channel.isActive
-                                                    ? 'Turn off'
-                                                    : 'Turn on'}
-                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger
+                                                    disabled={channel.isOther}
+                                                    render={
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                            aria-label={`Actions for ${channel.name}`}
+                                                        />
+                                                    }
+                                                >
+                                                    <Ellipsis />
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            setRenaming(channel)
+                                                        }
+                                                    >
+                                                        <Pencil />
+                                                        Rename
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </TableCell>
                                 </TableRow>
