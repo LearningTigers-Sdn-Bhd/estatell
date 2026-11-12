@@ -6,15 +6,13 @@ import {
     emptyGuestIdentity,
 } from '@/components/pms/guest-identity-fields';
 import { DateText } from '@/components/pms/date-text';
-import { DetailLayout } from '@/components/pms/detail-layout';
 import { AnonymizeGuestDialog } from '@/components/pms/guests/anonymize-guest-dialog';
-import { ContactBanner } from '@/components/pms/guests/contact-banner';
 import type { DocumentFormOptions } from '@/components/pms/guests/document-sheet';
 import { DocumentsTab } from '@/components/pms/guests/documents-tab';
 import { GuestForm, guestFormKey } from '@/components/pms/guests/guest-form';
 import { NotesTab } from '@/components/pms/guests/notes-tab';
 import { PossibleDuplicates } from '@/components/pms/guests/possible-duplicates';
-import { StayFigures } from '@/components/pms/guests/stay-figures';
+import { GuestSummary } from '@/components/pms/guests/guest-summary';
 import { StaysTab } from '@/components/pms/guests/stays-tab';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { GuestFlags } from '@/components/pms/guests/guest-flags';
@@ -23,6 +21,8 @@ import {
     VipButton,
 } from '@/components/pms/guests/guest-actions';
 import { PageHeader } from '@/components/pms/page-header';
+import { TabLinks } from '@/components/pms/tab-links';
+import { Workspace } from '@/components/pms/workspace';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { index, show } from '@/routes/guests';
@@ -197,7 +197,7 @@ export default function GuestShow({
         <>
             <Head title={guest.fullName} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden">
                 <div className="flex items-center gap-4">
                     {guest.photoUrl && (
                         <img
@@ -240,15 +240,6 @@ export default function GuestShow({
                     </div>
                 </div>
 
-                <StayFigures summary={staySummary} currency={currency} />
-
-                {!isAnonymized && (
-                    <ContactBanner
-                        guest={guest}
-                        showEditLink={canManage && tab !== 'details'}
-                    />
-                )}
-
                 {isAnonymized && (
                     <Alert>
                         <AlertTitle>Archived</AlertTitle>
@@ -269,82 +260,100 @@ export default function GuestShow({
                     </Alert>
                 )}
 
-                <DetailLayout
+                <TabLinks
                     tabs={tabs}
                     activeTab={tab}
-                    panelWidth={
-                        tab === 'notes' || tab === 'stays' ? 'full' : 'default'
-                    }
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
-                    {tab === 'stays' ? (
-                        <StaysTab
-                            stays={stays}
-                            summary={staySummary}
-                            currency={currency}
-                        />
-                    ) : tab === 'notes' ? (
-                        <NotesTab
-                            guest={guest}
-                            notes={notes}
-                            canAdd={canManage && !isAnonymized}
-                        />
-                    ) : tab === 'documents' ? (
-                        <DocumentsTab
-                            guest={guest}
-                            documents={documents}
-                            formOptions={documentFormOptions}
-                            retentionDays={retentionDays}
-                        />
-                    ) : (
-                        <div className="flex flex-col gap-6">
-                            {formOptions ? (
-                                <GuestForm
-                                    key={guestFormKey(guest)}
+                    <Workspace
+                        asideLabel="Guest summary"
+                        aside={
+                            <GuestSummary
+                                guest={guest}
+                                summary={staySummary}
+                                currency={currency}
+                                showEditLink={canManage && tab !== 'details'}
+                            />
+                        }
+                    >
+                        <div className="p-2">
+                            {tab === 'stays' ? (
+                                <StaysTab
+                                    stays={stays}
+                                    summary={staySummary}
+                                    currency={currency}
+                                />
+                            ) : tab === 'notes' ? (
+                                <NotesTab
                                     guest={guest}
-                                    canViewDocuments={canViewDocuments}
+                                    notes={notes}
+                                    canAdd={canManage && !isAnonymized}
+                                />
+                            ) : tab === 'documents' ? (
+                                <DocumentsTab
+                                    guest={guest}
                                     documents={documents}
-                                    identityTypes={
-                                        documentFormOptions?.types ?? []
-                                    }
-                                    {...formOptions}
+                                    formOptions={documentFormOptions}
+                                    retentionDays={retentionDays}
                                 />
                             ) : (
-                                <div className="flex flex-col gap-5">
-                                    {canViewDocuments && !isAnonymized && (
-                                        <GuestIdentityFields
-                                            guestId={guest.id}
-                                            document={documents[0]}
-                                            values={emptyGuestIdentity(
-                                                guest.nationalityCode,
-                                                documents[0],
-                                            )}
-                                            types={documents.map(
-                                                (document) => ({
-                                                    value: document.type,
-                                                    label: document.typeLabel,
-                                                }),
-                                            )}
-                                            disabled
-                                            onChange={() => undefined}
+                                <div className="flex flex-col gap-6">
+                                    {formOptions ? (
+                                        <GuestForm
+                                            key={guestFormKey(guest)}
+                                            guest={guest}
+                                            canViewDocuments={canViewDocuments}
+                                            documents={documents}
+                                            identityTypes={
+                                                documentFormOptions?.types ?? []
+                                            }
+                                            {...formOptions}
                                         />
+                                    ) : (
+                                        <div className="flex flex-col gap-5">
+                                            {canViewDocuments &&
+                                                !isAnonymized && (
+                                                    <GuestIdentityFields
+                                                        guestId={guest.id}
+                                                        document={documents[0]}
+                                                        values={emptyGuestIdentity(
+                                                            guest.nationalityCode,
+                                                            documents[0],
+                                                        )}
+                                                        types={documents.map(
+                                                            (document) => ({
+                                                                value: document.type,
+                                                                label: document.typeLabel,
+                                                            }),
+                                                        )}
+                                                        disabled
+                                                        onChange={() =>
+                                                            undefined
+                                                        }
+                                                    />
+                                                )}
+                                            <Details guest={guest} />
+                                        </div>
                                     )}
-                                    <Details guest={guest} />
+                                    <PossibleDuplicates
+                                        guest={guest}
+                                        duplicates={duplicates}
+                                        canMerge={canMerge}
+                                    />
                                 </div>
                             )}
-                            <PossibleDuplicates
-                                guest={guest}
-                                duplicates={duplicates}
-                                canMerge={canMerge}
-                            />
                         </div>
-                    )}
-                </DetailLayout>
+                    </Workspace>
+                </TabLinks>
             </div>
         </>
     );
 }
 
 GuestShow.layout = (props: { guest: Guest }) => ({
+    variant: 'fixed',
     breadcrumbs: [
         { title: 'Guests', href: index() },
         { title: props.guest.fullName, href: show({ guest: props.guest.id }) },

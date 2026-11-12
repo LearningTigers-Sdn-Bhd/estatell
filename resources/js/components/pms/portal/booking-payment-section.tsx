@@ -6,7 +6,7 @@ import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-
 import { PortalBillTable } from '@/components/pms/portal/portal-bill-table';
 import { PortalPayDialog } from '@/components/pms/portal/portal-pay-dialog';
 import { PortalProofsTable } from '@/components/pms/portal/portal-proofs-table';
-import { StatTile } from '@/components/pms/stat-tile';
+import { PortalStatTile } from '@/components/pms/portal/portal-stat-tile';
 import { Button } from '@/components/ui/button';
 import { store } from '@/routes/portal/bookings/payment-proofs';
 
@@ -73,19 +73,19 @@ export function BookingPaymentSection({
                     )}
                 </header>
                 <div className="grid gap-4 sm:grid-cols-3">
-                    <StatTile
+                    <PortalStatTile
                         title="You pay"
                         icon={ReceiptText}
                         figure={money(bill.agentTotal)}
                         note="Your part of the bill"
                     />
-                    <StatTile
+                    <PortalStatTile
                         title="Paid"
                         icon={CircleCheck}
                         figure={money(howToPay.paid)}
                         note="Recorded by the property"
                     />
-                    <StatTile
+                    <PortalStatTile
                         title="Left to pay"
                         icon={Wallet}
                         figure={money(howToPay.leftToPay)}

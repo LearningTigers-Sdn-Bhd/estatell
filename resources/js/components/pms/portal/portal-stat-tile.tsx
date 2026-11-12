@@ -3,9 +3,9 @@ import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 /**
- * One figure in a row of figures (the portal dashboard, the guest page): a small card with a title, the figure and a line under it.
+ * One figure of the property dashboard: a small card with a title, the figure and a line under it.
  */
-export function StatTile({
+export function PortalStatTile({
     title,
     icon: Icon,
     figure,

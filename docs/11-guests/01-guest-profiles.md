@@ -94,19 +94,30 @@ A simple view of how often a guest stays, how much they spend and where they com
 
 ### Guest page
 
-The header shows five tiles above the tabs, on every tab:
+The guest page uses the workspace layout of the reservation page (`variant: 'fixed'`, `TabLinks` with `Workspace`): the open tab in the centre panel and the **guest summary** (`GuestSummary`) in the aside, on every tab. Below `lg` the panels stack with the summary first.
 
 ```
-┌────────────┬────────────┬──────────────┬───────────────┬──────────────────────────┐
-│ Stays      │ Nights     │ Spend        │ Last visit    │ Source                   │
-│ 6          │ 14         │ MYR 4,820.00 │ 2 Nov 2026    │ Sandakan Travel          │
-│ 2 in 12 mo │ 1 day use  │ Without tax  │ In house now  │ Company                  │
-└────────────┴────────────┴──────────────┴───────────────┴──────────────────────────┘
+ Details   Stays   Notes   Documents
+┌──────────────────────────────────┐ ┌───────────────────────────┐
+│ (the open tab)                   │ │ 👤 Contact                 │
+│                                  │ │ 📞 +60 12-999 4350         │
+│                                  │ │ ✉  No email ⚠              │
+│                                  │ │    Ask at the next stay.   │
+│                                  │ │ ───────────────────────── │
+│                                  │ │ 🛏 Stays     6 (2 in 12 mo)│
+│                                  │ │ 🌙 Nights    14            │
+│                                  │ │ 👛 Spend     MYR 4,820.00  │
+│                                  │ │ 📅 Last visit  2 Nov 2026  │
+│                                  │ │ 🏪 Source  Sandakan Travel │
+│                                  │ │            Travel agent    │
+│                                  │ │ ───────────────────────── │
+│                                  │ │ 🏷 Tags  [Repeat]          │
+└──────────────────────────────────┘ └───────────────────────────┘
 ```
 
-A guest with no stays shows 0 and "No stays yet". An archived guest keeps the tiles: financial history is kept.
-
-**Contact banner.** When the email or the phone is empty, a warning Alert under the header says "No email." or "No phone." (or both) and "Ask the guest at the next stay." On the other tabs, staff with `guests.manage` get an **Edit details** link to the Details tab, which is the edit form. Archived guests show no banner.
+- Rows follow `ReservationSummary`: an icon label on the left and the value on the right, so a long company name wraps.
+- A guest with no stays shows 0 and "—". An archived guest keeps the figures (financial history is kept); its contact reads "Removed when the guest was archived."
+- **Missing contact.** An empty phone or email shows "No phone" or "No email" in warning colour, then "Ask at the next stay." On the other tabs, staff with `guests.manage` get an **Edit details** link to the Details tab, which is the edit form.
 
 **Stays tab** (`GET /p/{code}/guests/{guest}/stays`, `guests.stays.index`, `guests.view`): every stay, newest arrival first. Columns: Booking (short code, links to the reservation), Dates, Room, Source, Status, Nights, Spend (MYR). Spend shows "—" when the guest is not the primary guest. A footer row sums Nights and Spend. The list is bounded by one guest's stays, so it is not paginated.
 
