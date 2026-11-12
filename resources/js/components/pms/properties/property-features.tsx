@@ -7,6 +7,7 @@ import {
     CircleMinus,
     CornerDownRight,
     CodeXml,
+    ConciergeBell,
     FileText,
     Globe,
     Lock,
@@ -58,6 +59,7 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     kiosks: Tablet,
     'booking-engine': Globe,
     'e-invoicing': FileText,
+    concierge: ConciergeBell,
 };
 
 /** On and Off for the partner's read-only rows. */
