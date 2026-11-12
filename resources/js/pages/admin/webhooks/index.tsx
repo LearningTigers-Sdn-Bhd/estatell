@@ -133,131 +133,134 @@ export default function WebhooksIndex({
                             />
                         </FilterBar>
 
-                        {shown.length === 0 ? (
-                            <EmptyState
-                                icon={Webhook}
-                                title={
-                                    endpoints.length === 0
-                                        ? 'No endpoints yet'
-                                        : 'No endpoints match these filters'
-                                }
-                                description={
-                                    endpoints.length === 0
-                                        ? 'Add the URL of an n8n Webhook node to start sending events.'
-                                        : undefined
-                                }
-                            />
-                        ) : (
-                            <div className="overflow-hidden rounded-lg border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>On</TableHead>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>URL</TableHead>
-                                            <TableHead>Scope</TableHead>
-                                            <TableHead className="text-right">
-                                                Events
-                                            </TableHead>
-                                            <TableHead>
-                                                <span className="sr-only">
-                                                    Actions
-                                                </span>
-                                            </TableHead>
+                        <div className="overflow-hidden rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>On</TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>URL</TableHead>
+                                        <TableHead>Scope</TableHead>
+                                        <TableHead className="text-right">
+                                            Events
+                                        </TableHead>
+                                        <TableHead>
+                                            <span className="sr-only">
+                                                Actions
+                                            </span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {shown.length === 0 && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell colSpan={6}>
+                                                <EmptyState
+                                                    icon={Webhook}
+                                                    title={
+                                                        endpoints.length === 0
+                                                            ? 'No endpoints yet'
+                                                            : 'No endpoints match these filters'
+                                                    }
+                                                    description={
+                                                        endpoints.length === 0
+                                                            ? 'Add the URL of an n8n Webhook node to start sending events.'
+                                                            : undefined
+                                                    }
+                                                />
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {shown.map((endpoint) => {
-                                            const warning =
-                                                endpointWarning(endpoint);
+                                    )}
+                                    {shown.map((endpoint) => {
+                                        const warning =
+                                            endpointWarning(endpoint);
 
-                                            return (
-                                                <TableRow key={endpoint.id}>
-                                                    <TableCell className="align-top">
-                                                        <WebhookEndpointSwitch
-                                                            endpoint={endpoint}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex min-w-0 flex-col gap-0.5">
-                                                            <Link
-                                                                href={show(
-                                                                    endpoint.id,
-                                                                )}
-                                                                className="font-medium hover:underline"
-                                                            >
-                                                                {endpoint.name}
-                                                            </Link>
-                                                            {warning && (
-                                                                <span className="flex items-center gap-1 text-xs text-warning">
-                                                                    <TriangleAlert
-                                                                        aria-hidden
-                                                                        className="size-3"
-                                                                    />
-                                                                    {warning}
-                                                                </span>
+                                        return (
+                                            <TableRow key={endpoint.id}>
+                                                <TableCell className="align-top">
+                                                    <WebhookEndpointSwitch
+                                                        endpoint={endpoint}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                                        <Link
+                                                            href={show(
+                                                                endpoint.id,
                                                             )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <span className="block max-w-72 truncate font-mono text-xs">
-                                                            {endpoint.url}
-                                                        </span>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {endpoint.propertyName ??
-                                                            'All properties'}
-                                                    </TableCell>
-                                                    <TableCell className="text-right tabular-nums">
-                                                        {endpoint.events.length}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex justify-end">
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger
-                                                                    render={
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon-sm"
-                                                                            aria-label={`Actions for ${endpoint.name}`}
-                                                                        />
+                                                            className="font-medium hover:underline"
+                                                        >
+                                                            {endpoint.name}
+                                                        </Link>
+                                                        {warning && (
+                                                            <span className="flex items-center gap-1 text-xs text-warning">
+                                                                <TriangleAlert
+                                                                    aria-hidden
+                                                                    className="size-3"
+                                                                />
+                                                                {warning}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="block max-w-72 truncate font-mono text-xs">
+                                                        {endpoint.url}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {endpoint.propertyName ??
+                                                        'All properties'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {endpoint.events.length}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex justify-end">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger
+                                                                render={
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon-sm"
+                                                                        aria-label={`Actions for ${endpoint.name}`}
+                                                                    />
+                                                                }
+                                                            >
+                                                                <Ellipsis />
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        setEditing(
+                                                                            endpoint,
+                                                                        )
                                                                     }
                                                                 >
-                                                                    <Ellipsis />
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end">
-                                                                    <DropdownMenuItem
-                                                                        onClick={() =>
-                                                                            setEditing(
-                                                                                endpoint,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Pencil />
-                                                                        Edit
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem
-                                                                        variant="destructive"
-                                                                        onClick={() =>
-                                                                            setDeleting(
-                                                                                endpoint,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <Trash2 />
-                                                                        Delete
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                                                                    <Pencil />
+                                                                    Edit
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    variant="destructive"
+                                                                    onClick={() =>
+                                                                        setDeleting(
+                                                                            endpoint,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash2 />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
                 </TabLinks>
             </div>

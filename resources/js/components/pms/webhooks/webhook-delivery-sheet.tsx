@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
-import { Copy, RotateCcw } from 'lucide-react';
+import { Clock, Copy, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/pms/empty-state';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -132,59 +133,50 @@ export function WebhookDeliverySheet({
 
                             <section className="flex flex-col gap-2">
                                 <h3 className="text-sm font-medium">Tries</h3>
-                                {delivery.tries.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        Not tried yet.
-                                    </p>
-                                ) : (
-                                    <div className="overflow-hidden rounded-lg border">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>#</TableHead>
-                                                    <TableHead>Time</TableHead>
-                                                    <TableHead>
-                                                        Result
-                                                    </TableHead>
-                                                    <TableHead className="text-right">
-                                                        ms
-                                                    </TableHead>
+                                <div className="overflow-hidden rounded-lg border">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>#</TableHead>
+                                                <TableHead>Time</TableHead>
+                                                <TableHead>Result</TableHead>
+                                                <TableHead className="text-right">
+                                                    ms
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {delivery.tries.length === 0 && (
+                                                <TableRow className="hover:bg-transparent">
+                                                    <TableCell colSpan={4}>
+                                                        <EmptyState
+                                                            icon={Clock}
+                                                            title="Not tried yet"
+                                                            description="The first try is queued."
+                                                        />
+                                                    </TableCell>
                                                 </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {delivery.tries.map(
-                                                    (attempt) => (
-                                                        <TableRow
-                                                            key={
-                                                                attempt.attempt
-                                                            }
-                                                        >
-                                                            <TableCell className="tabular-nums">
-                                                                {
-                                                                    attempt.attempt
-                                                                }
-                                                            </TableCell>
-                                                            <TableCell className="tabular-nums">
-                                                                {
-                                                                    attempt.attemptedAt
-                                                                }
-                                                            </TableCell>
-                                                            <TableCell className="max-w-64 truncate">
-                                                                {attempt.error ??
-                                                                    `HTTP ${attempt.responseStatus}`}
-                                                            </TableCell>
-                                                            <TableCell className="text-right tabular-nums">
-                                                                {
-                                                                    attempt.durationMs
-                                                                }
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ),
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                )}
+                                            )}
+                                            {delivery.tries.map((attempt) => (
+                                                <TableRow key={attempt.attempt}>
+                                                    <TableCell className="tabular-nums">
+                                                        {attempt.attempt}
+                                                    </TableCell>
+                                                    <TableCell className="tabular-nums">
+                                                        {attempt.attemptedAt}
+                                                    </TableCell>
+                                                    <TableCell className="max-w-64 truncate">
+                                                        {attempt.error ??
+                                                            `HTTP ${attempt.responseStatus}`}
+                                                    </TableCell>
+                                                    <TableCell className="text-right tabular-nums">
+                                                        {attempt.durationMs}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </section>
 
                             <section className="flex flex-col gap-2">
