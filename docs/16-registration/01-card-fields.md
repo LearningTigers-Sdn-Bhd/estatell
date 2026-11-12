@@ -52,6 +52,7 @@ One preset for every property type, seeded by `SeedRegistrationCardFields`.
 - MarketingConsent is never Required. Consent is a free choice. It is a separate opt-in checkbox. When ticked it sets `guests.marketing_consent_at` (captured by the [signing flow](04-signing-flow.md)).
 - Nationality drives the `foreign_guests_only` tax rule. It cannot be Hidden while an enabled foreign-only tax exists. `SaveRegistrationCardFields` refuses the change and the page shows the reason. Enabling a foreign-only tax later does not change the card.
 - Seeding creates missing rows and never overwrites an edited row. A migration back-fills existing properties.
+- An Optional Email or Phone that is empty shows "Please fill in." under the field on the guest screen, so the property collects contact details for its guest list. See [Stay history](../11-guests/01-guest-profiles.md#registration-card).
 - `VehiclePlate` has no guest column. The signing flow stores it on the card.
 - `Remarks` is free text, up to 500 characters, for requests or notes about the stay. Staff and the guest can both write it. Like `VehiclePlate`, it belongs to the stay, so it lives on the card (`registration_cards.remarks`), not on the guest. It is separate from `reservations.notes`, which stays internal. The signing flow freezes it in the snapshot and the PDF prints it. The Layout tab places it after VehiclePlate. The back-fill migration adds the row to existing properties at that position, so the later positions move by one.
 

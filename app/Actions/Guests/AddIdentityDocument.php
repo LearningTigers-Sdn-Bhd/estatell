@@ -30,7 +30,7 @@ class AddIdentityDocument
             $document = new GuestIdentityDocument([
                 'type' => $data->type,
                 'number' => $data->number,
-                'issuing_country_code' => $data->issuingCountryCode,
+                'issuing_country_code' => $data->issuingCountryCode ?? $data->type->defaultIssuingCountry(),
                 'expires_on' => $data->expiresOn,
             ]);
             $document->guest_id = $guest->id;

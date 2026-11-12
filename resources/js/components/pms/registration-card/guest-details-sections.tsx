@@ -9,6 +9,7 @@ import { IdentityDocumentFields } from '@/components/pms/registration-card/ident
 import type { CardSectionProps } from '@/components/pms/registration-card/use-card-form';
 import {
     Field,
+    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -117,6 +118,7 @@ export function PersonalSection({
 
 /** Phone, email, vehicle plate and the address. Hidden when the Layout tab hides all of them. */
 export function ContactSection({
+    card,
     form,
     word,
     mark,
@@ -124,6 +126,13 @@ export function ContactSection({
     countries,
 }: CardSectionProps & Pick<Options, 'countries'>) {
     const errors = form.errors as Record<string, string>;
+    // An Optional email or phone left empty asks the guest to fill it in. A Required one already has its star.
+    const askFor = (field: 'phone' | 'email') =>
+        card.fields.some(
+            (one) => one.field === field && one.visibility === 'optional',
+        ) && form.data[field].trim() === ''
+            ? word('Please fill in.')
+            : undefined;
 
     if (
         !has('phone') &&
@@ -158,6 +167,11 @@ export function ContactSection({
                                 countryCode: word('Country code: :country'),
                             }}
                         />
+                        {askFor('phone') && (
+                            <FieldDescription>
+                                {askFor('phone')}
+                            </FieldDescription>
+                        )}
                         <FieldError>{errors.phone}</FieldError>
                     </Field>
                 )}
@@ -168,6 +182,7 @@ export function ContactSection({
                         label={mark('email', 'Email')}
                         type="email"
                         placeholder="name@example.com"
+                        description={askFor('email')}
                     />
                 )}
                 {has('vehicle_plate') && (

@@ -174,43 +174,6 @@ export function GuestForm({
         >
             <div className="grid gap-8 lg:grid-cols-2">
                 <div className="flex flex-col gap-8">
-                    <MyKadScanner
-                        onScan={(card) => {
-                            setScannedPhoto(
-                                canViewDocuments ? card.photo_base64 : null,
-                            );
-                            form.setData({
-                                ...form.data,
-                                full_name: card.name,
-                                nationality_code: 'MY',
-                                date_of_birth: card.date_of_birth,
-                                gender: card.gender,
-                                address_line1: card.address_line1,
-                                address_line2: card.address_line2,
-                                city: card.city,
-                                state: card.state,
-                                postal_code: card.postal_code,
-                                country_code: 'MY',
-                                identity_number: canViewDocuments
-                                    ? card.formatted_ic || card.ic_number
-                                    : '',
-                                identity_document_id: String(
-                                    documents.find(
-                                        (document) => document.type === 'mykad',
-                                    )?.id ?? '',
-                                ),
-                                identity_type: 'mykad',
-                                identity_country_code: 'MY',
-                                identity_photo:
-                                    canViewDocuments && card.photo_base64
-                                        ? base64ToFile(
-                                              card.photo_base64,
-                                              'mykad_portrait.jpg',
-                                          )
-                                        : null,
-                            });
-                        }}
-                    />
                     <FieldError>{errors.identity_number}</FieldError>
                     <FieldError>{errors.identity_photo}</FieldError>
                     {(scannedPhoto || guest.photoUrl) && (
@@ -390,23 +353,64 @@ export function GuestForm({
                 </div>
             </div>
 
-            <footer className="flex justify-end gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    disabled={!form.isDirty || form.processing}
-                    onClick={() => form.reset()}
-                >
-                    Discard changes
-                </Button>
-                <Button
-                    type="submit"
-                    disabled={!form.isDirty || form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Save changes
-                </Button>
+            <footer className="flex flex-wrap items-center justify-between gap-2">
+                <MyKadScanner
+                    onScan={(card) => {
+                        setScannedPhoto(
+                            canViewDocuments ? card.photo_base64 : null,
+                        );
+                        form.setData({
+                            ...form.data,
+                            full_name: card.name,
+                            nationality_code: 'MY',
+                            date_of_birth: card.date_of_birth,
+                            gender: card.gender,
+                            address_line1: card.address_line1,
+                            address_line2: card.address_line2,
+                            city: card.city,
+                            state: card.state,
+                            postal_code: card.postal_code,
+                            country_code: 'MY',
+                            identity_number: canViewDocuments
+                                ? card.formatted_ic || card.ic_number
+                                : '',
+                            identity_document_id: String(
+                                documents.find(
+                                    (document) => document.type === 'mykad',
+                                )?.id ?? '',
+                            ),
+                            identity_type: 'mykad',
+                            identity_country_code: 'MY',
+                            identity_photo:
+                                canViewDocuments && card.photo_base64
+                                    ? base64ToFile(
+                                          card.photo_base64,
+                                          'mykad_portrait.jpg',
+                                      )
+                                    : null,
+                        });
+                    }}
+                />
+                <div className="flex gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!form.isDirty || form.processing}
+                        onClick={() => form.reset()}
+                    >
+                        Discard changes
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={!form.isDirty || form.processing}
+                        focusableWhenDisabled
+                    >
+                        {form.processing && (
+                            <Spinner data-icon="inline-start" />
+                        )}
+                        Save changes
+                    </Button>
+                </div>
             </footer>
             <UnsavedChangesDialog
                 guard={guard}
