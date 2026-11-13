@@ -64,8 +64,8 @@ export default function ConciergeBill({
                             className="text-sm text-muted-foreground"
                         >
                             {Number(bill.balance) < 0
-                                ? 'Credit with the property'
-                                : 'Amount due'}
+                                ? 'Credit on posted charges'
+                                : 'Amount due on posted charges'}
                         </h2>
                         <p className="text-3xl font-semibold tracking-tight break-words tabular-nums sm:text-4xl">
                             {money(
@@ -79,9 +79,10 @@ export default function ConciergeBill({
                 </div>
                 {Number(bill.credit) > 0 && (
                     <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                        The property holds {money(bill.credit, bill.currency)}{' '}
-                        for you, for example a deposit. Please visit the front
-                        desk to collect it when you check out.
+                        Your payments exceed the charges posted so far by{' '}
+                        {money(bill.credit, bill.currency)}. This may cover
+                        upcoming charges or a deposit. The front desk will
+                        confirm any refundable amount when you check out.
                     </p>
                 )}
                 {bill.canPay && (
@@ -91,6 +92,12 @@ export default function ConciergeBill({
                     </p>
                 )}
             </section>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+                This bill shows posted charges and payments. Room charges and
+                taxes may be added during your stay. Your booking summary also
+                includes booked charges that have not been posted yet, so its
+                balance may differ.
+            </p>
             <div className="grid items-start gap-8 lg:grid-cols-5 lg:gap-10">
                 <div className="flex min-w-0 flex-col gap-8 lg:col-span-3">
                     <section

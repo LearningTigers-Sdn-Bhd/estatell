@@ -111,9 +111,9 @@ They open from the stay menu once the guest is checked in. Each works only for a
 
 ## Bill and check-out
 
-- The bill is the sum of the stay's unit folios. A line is a charge or tax (positive) or a payment (negative).
+- The bill is the sum of the stay's unit folios. A line is a charge or tax (positive) or a payment (negative). It labels the balance as posted charges and explains that the booking summary also includes booked charges not yet posted.
 - **Owing money:** the guest pays the whole open bill online. It is the same Curlec order and webhook as the check-in payment, and it posts a Settlement (before check-in it posts an Advance).
-- **A credit or held deposit:** the page shows it and tells the guest the front desk gives it back. A stay with a deposit settles to zero only after the desk returns it, so the guest checks out at the desk.
+- **A credit or held deposit:** the page shows credit on posted charges. It may cover upcoming charges or a deposit; the front desk confirms what is refundable at check-out. A stay with a deposit settles to zero only after the desk returns it, so the guest checks out at the desk.
 - **Check-out:** offered when the bill is zero and the check-out window is open, the same window the kiosk uses (the departure day). `CheckOutConciergeStay` calls the front desk's `CheckOutUnit` with no staff actor, logs `concierge.checked_out` with the property id only, and answers the same result again on a retry. An earlier check-out is the desk's.
 - **Asking the desk:** when the guest cannot check out alone (money is owed, a deposit is held, or it is before the departure day), the bill page offers **Ask the front desk to check you out** with an optional note. It becomes a guest request of the type Other whose details start with `Check-out request` (`RequestConciergeCheckOut`), in the staff Requests list. One can be open at a time. While it is open the bill and the stay page show "Check-out asked".
 - After check-out the link shows the thank-you, the documents and, when a refund request was sent, how it is going, and the e-invoice page. The refund request and the e-invoice request are the only writes it accepts; every other write answers 404.

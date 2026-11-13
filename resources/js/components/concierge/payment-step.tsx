@@ -70,7 +70,7 @@ export function PaymentStep({
         property: App.Data.Property.PropertySummaryData | null;
         stay?: App.Data.Concierge.ConciergeStayData;
     }>().props;
-    const propertyCode = property?.code ?? stay?.property.code;
+    const propertyCode = stay?.property.code ?? property?.code;
 
     async function start() {
         setBusy(true);

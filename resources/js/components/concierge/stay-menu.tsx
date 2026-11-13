@@ -25,7 +25,7 @@ export function GuestFrame({
         token?: string;
     }>();
     const { property, stay, token } = props;
-    const guestProperty = property ?? stay?.property;
+    const guestProperty = stay?.property ?? property;
     const stayToken = stay?.token ?? token;
     const contactHref = stayToken
         ? stayContact.url({ token: stayToken })

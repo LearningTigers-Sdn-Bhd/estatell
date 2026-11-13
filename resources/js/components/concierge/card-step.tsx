@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { ArrowRight, FileCheck2, PenLine } from 'lucide-react';
 import { SignatureField } from '@/components/pms/registration-card/signature-field';
+import { TermsPreview } from '@/components/pms/registration-card/terms-preview';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FieldError } from '@/components/ui/field';
@@ -59,9 +60,9 @@ export function CardStep({
                     role="region"
                     aria-label="Registration terms"
                     tabIndex={0}
-                    className="max-h-96 overflow-y-auto rounded-2xl border border-border/40 bg-card p-5 text-sm leading-7 whitespace-pre-wrap outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-6"
+                    className="max-h-96 overflow-y-auto rounded-2xl border border-border/40 bg-card p-5 text-sm leading-7 outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-6"
                 >
-                    {terms.text}
+                    <TermsPreview body={terms.text} values={{}} />
                 </div>
             </section>
             <section

@@ -19,6 +19,14 @@ import type { EnumOption } from '@/components/pms/enum-select';
 
 type Stay = App.Data.Concierge.ConciergeStayData;
 
+/** "2026-11-20" as "20 Nov 2026", so a date in a sentence does not break at its dashes. */
+const friendlyDate = (date: string) =>
+    new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
+
 /** One page for the whole check-in. The server picks the step and the page shows only that step. */
 export default function ConciergeStay({
     stay,
@@ -80,7 +88,7 @@ export default function ConciergeStay({
                     <Sun />
                     <AlertTitle>You're early, and that's lovely</AlertTitle>
                     <AlertDescription>
-                        {`Fill in your details now and you'll be ready to go. Check-in opens on ${stay.arrivalDate}${stay.checkInTime ? ` from ${stay.checkInTime}` : ''}, and your room will be waiting.`}
+                        {`Fill in your details now and you'll be ready to go. Check-in opens on ${friendlyDate(stay.arrivalDate)}${stay.checkInTime ? ` from ${stay.checkInTime}` : ''}, and your room will be waiting.`}
                     </AlertDescription>
                 </Alert>
             )}
@@ -116,7 +124,7 @@ export default function ConciergeStay({
                         label: 'Back to home',
                     }}
                     title="Check-in is not open yet"
-                    body={`Your details are in. Check-in opens on your arrival day, ${stay.arrivalDate}${stay.checkInTime ? ` from ${stay.checkInTime}` : ''}. Come back to this page then.`}
+                    body={`Your details are in. Check-in opens on your arrival day, ${friendlyDate(stay.arrivalDate)}${stay.checkInTime ? ` from ${stay.checkInTime}` : ''}. Come back to this page then.`}
                 />
             )}
             {stay.step === 'hold_expired' && (

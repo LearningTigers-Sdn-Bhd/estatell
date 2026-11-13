@@ -200,7 +200,7 @@ function RequestForm({
                     'tin',
                     isForeign
                         ? 'Malaysian tax number (optional)'
-                        : 'Tax number (TIN) *',
+                        : 'Tax number (TIN)',
                     {
                         required: !isForeign,
                         hint: isForeign

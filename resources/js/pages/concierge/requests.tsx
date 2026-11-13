@@ -64,6 +64,7 @@ export default function ConciergeRequests({
                             </div>
                         </div>
                         <Form
+                            key={`${token}:${selectedType}`}
                             action={store.url({ token })}
                             method="post"
                             resetOnSuccess
