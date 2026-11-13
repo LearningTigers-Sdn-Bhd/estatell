@@ -4458,6 +4458,7 @@ idempotencyKey: string,
 roomCharges: boolean,
 taxIds: number[] | null,
 chargeCodeIds: number[],
+masterTaxIds: number[],
 };
 export type DayUseOfferData = {
 hours: number,

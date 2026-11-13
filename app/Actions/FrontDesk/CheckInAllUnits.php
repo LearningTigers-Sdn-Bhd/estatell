@@ -51,6 +51,7 @@ class CheckInAllUnits
                 roomCharges: $collect->roomCharges,
                 taxIds: $collect->taxIds,
                 chargeCodeIds: $collect->chargeCodeIds,
+                masterTaxIds: $collect->masterTaxIds,
             );
             $results[$unit->id] = $isEndedStay
                 ? ($this->checkInEndedStay)($actor, $unit, $endedStayChoice, $arrivedAt, withoutCard: $withoutCard, collect: $unitCollect)

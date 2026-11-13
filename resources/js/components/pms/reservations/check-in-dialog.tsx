@@ -173,7 +173,13 @@ function CheckInForm({
             reference: method?.requiresReference ? values.reference : '',
             collect_now: collecting && values.collect_now,
             collect_taxes: collecting && values.collect_now,
-            collect_tax_ids: tickedTaxes.map((tax) => tax.taxId),
+            // A tax paid into the Master has its own field, so a tax id alone never takes a Master part the form did not show.
+            collect_tax_ids: tickedTaxes
+                .filter((tax) => !tax.payableOnMaster)
+                .map((tax) => tax.taxId),
+            collect_master_tax_ids: tickedTaxes
+                .filter((tax) => tax.payableOnMaster)
+                .map((tax) => tax.taxId),
             tax_ticks: undefined,
             room_charges: false,
             collect_charge_ids:

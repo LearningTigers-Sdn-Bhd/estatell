@@ -135,17 +135,17 @@ class CheckInCollectionData extends Data
     }
 
     /**
-     * What Collect now takes for the taxes the guest pays into the Master folio: the ticked `payableOnMaster` rows.
-     * Only a tax id the form ticked counts, so a caller that sends none (walk-in, kiosk) takes nothing here.
+     * What Collect now takes for the taxes the guest pays into the Master folio: the ticked `payableOnMaster` rows
+     * (`CollectNowData::$masterTaxIds`). A caller that sends none (walk-in, kiosk) takes nothing here.
      *
-     * @param  list<int>|null  $taxIds
+     * @param  list<int>  $masterTaxIds
      */
-    public function masterTaxesFor(?array $taxIds): string
+    public function masterTaxesFor(array $masterTaxIds): string
     {
         $total = BigDecimal::zero();
 
         foreach ($this->taxes as $tax) {
-            if ($tax['payableOnMaster'] && $taxIds !== null && in_array($tax['taxId'], $taxIds, true)) {
+            if ($tax['payableOnMaster'] && in_array($tax['taxId'], $masterTaxIds, true)) {
                 $total = $total->plus($tax['amount']);
             }
         }
