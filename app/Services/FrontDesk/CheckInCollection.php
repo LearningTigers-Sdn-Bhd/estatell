@@ -12,14 +12,18 @@ use App\Enums\SystemTransactionCode;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
+use App\Models\Property;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\ReservationUnitTaxWaiver;
+use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Services\Catalogues\CheckInTaxRule;
 use App\Services\Folio\CollectedTaxPayer;
 use App\Services\Folio\FolioRouter;
 use App\Services\Folio\ScheduledFolioRows;
 use Brick\Math\BigDecimal;
+use Illuminate\Support\Collection;
 
 /**
  * What Collect now asks the guest to pay at check-in, for one unit: the taxes flagged **Collect at check-in** and the
@@ -42,13 +46,41 @@ class CheckInCollection
     public function for(ReservationUnit $unit): CheckInCollectionData
     {
         $reservation = $unit->reservation()->with('booker')->firstOrFail();
+
+        return $this->forUnits($reservation, [$unit])[$unit->id];
+    }
+
+    /**
+     * The offer of several units of one reservation, keyed by unit id. The Scheduled rows of the reservation are read
+     * once and shared, so the group Check in all preview does not read the whole reservation again for each unit.
+     *
+     * @param  iterable<ReservationUnit>  $units
+     * @return array<int, CheckInCollectionData>
+     */
+    public function forUnits(Reservation $reservation, iterable $units): array
+    {
         $property = $reservation->property()->with('settings')->firstOrFail();
         $flagged = $this->checkInTaxRule->flaggedTaxes($property);
+        $allBlocks = $this->scheduledRows->forReservation($property, $reservation, []);
+        $offers = [];
+
+        foreach ($units as $unit) {
+            $offers[$unit->id] = $this->build($unit, $reservation, $property, $flagged, $allBlocks);
+        }
+
+        return $offers;
+    }
+
+    /**
+     * @param  Collection<int, Tax>  $flagged
+     * @param  list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>, guestTax?: true}>  $allBlocks
+     */
+    private function build(ReservationUnit $unit, Reservation $reservation, Property $property, Collection $flagged, array $allBlocks): CheckInCollectionData
+    {
         $master = $this->folioRouter->roomChargesMasterFolio($unit);
         $hidden = $master !== null && ! $this->collectedTaxPayer->guestPaysOnMaster($unit, $master);
         $taxes = [];
         $total = BigDecimal::zero();
-        $allBlocks = $this->scheduledRows->forReservation($property, $reservation, []);
         $blocks = array_values(array_filter($allBlocks, fn (array $block): bool => $block['unit'] === $unit->id));
 
         if ($flagged->isNotEmpty()) {
@@ -56,7 +88,7 @@ class CheckInCollection
             $waivers = $unit->loadMissing('taxWaivers')->taxWaivers->keyBy('tax_id');
             $chargedTo = $hidden ? $this->chargedTo($master) : null;
             // No company pays this Master, so the guest may pay its collected taxes at the desk, into the Master.
-            $payableOnMaster = $hidden && $master?->loadMissing('payerCompany')->payerCompany === null;
+            $payableOnMaster = $hidden && $master->loadMissing('payerCompany')->payerCompany === null;
 
             foreach ($flagged as $tax) {
                 $amount = $sums[$tax->id] ?? BigDecimal::zero();

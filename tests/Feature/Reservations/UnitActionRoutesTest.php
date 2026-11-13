@@ -47,6 +47,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\User;
+use App\Services\Folio\ScheduledFolioRows;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -1250,6 +1251,23 @@ test('the group preview carries each ready room\'s Collect now and leaves a room
         ->assertJsonPath('rows.1.needsNationality', true)
         ->assertJsonPath('rows.1.note', 'Needs the guest\'s nationality. Check in this room on its own.')
         ->assertJsonPath('rows.1.collection', null);
+});
+
+test('the group preview reads the reservation\'s Scheduled rows once for all its rooms', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    uaSecondUnit($setup);
+    uaSecondUnit($setup);
+    $real = app(ScheduledFolioRows::class);
+    $rows = Mockery::mock($real);
+    $rows->shouldReceive('forReservation')->once()->andReturnUsing(fn (...$arguments) => $real->forReservation(...$arguments));
+    $this->instance(ScheduledFolioRows::class, $rows);
+
+    $this->actingAs($setup['user'])
+        ->postJson(route('reservations.check-in-all-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertJsonCount(3, 'rows')
+        ->assertJsonPath('rows.0.collection.taxesTotal', '16.00')
+        ->assertJsonPath('rows.2.collection.taxesTotal', '16.00');
 });
 
 test('check in all takes each room\'s payments with one method and a refused room takes none', function () {

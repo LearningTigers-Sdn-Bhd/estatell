@@ -231,6 +231,7 @@ class UnitActionPreview
             ->orderBy('id')
             ->get();
         $nationalities = $hasForeignTax ? $this->unitNationality->forUnits($units) : [];
+        $readyUnits = [];
 
         foreach ($units as $unit) {
             $isEndedStay = $this->endedStayCheckIn->isOffered($unit, $businessDate);
@@ -242,7 +243,10 @@ class UnitActionPreview
             $needsNationality = $inStay && $hasForeignTax && ($nationalities[$unit->id] ?? null) === null;
             $ready = $inStay && ! $needsNationality;
             $room = $tonight->room->number ?? $tonight?->bed?->label;
-            $collection = $ready && $canCollect ? $this->checkInCollection->for($unit) : null;
+
+            if ($ready) {
+                $readyUnits[] = $unit;
+            }
 
             $rows[] = [
                 'unitId' => $unit->id,
@@ -254,11 +258,17 @@ class UnitActionPreview
                 'endedStay' => $isEndedStay,
                 'moveTotal' => $endedStay?->newTotal,
                 'needsNationality' => $needsNationality,
-                'note' => $needsNationality
-                    ? __('Needs the guest\'s nationality. Check in this room on its own.')
-                    : $this->checkInAllNote($unit, $businessDate, $inStay, $day, $room, $autoAssign),
-                'collection' => $collection === null || $collection->isEmpty() ? null : $collection,
+                'note' => $this->checkInAllNote($unit, $businessDate, $inStay, $day, $room, $autoAssign, $needsNationality),
+                'collection' => null,
             ];
+        }
+
+        // Read once for every ready row: the offers share the reservation's Scheduled rows.
+        $collections = $canCollect && $readyUnits !== [] ? $this->checkInCollection->forUnits($reservation, $readyUnits) : [];
+
+        foreach ($rows as $index => $row) {
+            $collection = $collections[$row['unitId']] ?? null;
+            $rows[$index]['collection'] = $collection === null || $collection->isEmpty() ? null : $collection;
         }
 
         return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null, $this->checkInAllEndedStay(array_values(array_filter($endedStays))));
@@ -268,9 +278,10 @@ class UnitActionPreview
      * Why a unit that arrives after the business date cannot check in, and what the front desk can do: change the
      * dates first to check the guest in early.
      */
-    private function checkInAllNote(ReservationUnit $unit, CarbonInterface $businessDate, bool $ready, string $day, ?string $room, bool $autoAssign): ?string
+    private function checkInAllNote(ReservationUnit $unit, CarbonInterface $businessDate, bool $ready, string $day, ?string $room, bool $autoAssign, bool $needsNationality): ?string
     {
         return match (true) {
+            $needsNationality => __('Needs the guest\'s nationality. Check in this room on its own.'),
             ! $ready && $day < $unit->arrival_date->toDateString() => $this->notArrivedNote($unit, $businessDate),
             ! $ready => __('Cannot check in: the stay ended on :date.', ['date' => $unit->departure_date->format('d M Y')]),
             $room === null && $autoAssign => __('No room yet. One is given at check-in.'),
