@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Rooms;
 
 use App\Actions\Rooms\CancelRoomBlock;
+use App\Actions\Rooms\CancelRoomBlocks;
 use App\Actions\Rooms\CreateRoomBlocks;
 use App\Actions\Rooms\EndRoomBlock;
+use App\Actions\Rooms\EndRoomBlocks;
 use App\Actions\Rooms\RoomBlockBulkResult;
 use App\Actions\Rooms\RoomBlockRefused;
 use App\Actions\Rooms\UpdateRoomBlock;
@@ -13,6 +15,8 @@ use App\Data\Rooms\RoomBlockRoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Enums\RoomBlockReason;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Rooms\BulkEndRoomBlocksRequest;
+use App\Http\Requests\Rooms\BulkRoomBlocksRequest;
 use App\Http\Requests\Rooms\EndRoomBlockRequest;
 use App\Http\Requests\Rooms\RoomBlockRequest;
 use App\Models\Bed;
@@ -134,6 +138,38 @@ class RoomBlockController extends Controller
         Inertia::flash('toast', $cancelRoomBlock($request->user(), $roomBlock)
             ? ['type' => 'success', 'message' => __('Block for :unit cancelled.', ['unit' => $unit])]
             : ['type' => 'error', 'message' => __('Block for :unit cannot be cancelled because it has started. End it instead.', ['unit' => $unit])]);
+
+        return back();
+    }
+
+    /**
+     * End every ticked block that is running today.
+     */
+    public function bulkEnd(BulkEndRoomBlocksRequest $request, Property $property, EndRoomBlocks $endRoomBlocks): RedirectResponse
+    {
+        $result = $endRoomBlocks($request->user(), $request->blocks(), $request->roomStatus());
+
+        Inertia::flash('toast', $this->bulkToast(
+            $result,
+            trans_choice('{0} No blocks ended.|{1} :count block ended.|[2,*] :count blocks ended.', $result->done),
+            fn (array $skip): string => __('Block for :unit is not running today.', ['unit' => $this->unitName($skip['room'], $skip['bed'])]),
+        ));
+
+        return back();
+    }
+
+    /**
+     * Cancel every ticked block that has not started.
+     */
+    public function bulkCancel(BulkRoomBlocksRequest $request, Property $property, CancelRoomBlocks $cancelRoomBlocks): RedirectResponse
+    {
+        $result = $cancelRoomBlocks($request->user(), $request->blocks());
+
+        Inertia::flash('toast', $this->bulkToast(
+            $result,
+            trans_choice('{0} No blocks cancelled.|{1} :count block cancelled.|[2,*] :count blocks cancelled.', $result->done),
+            fn (array $skip): string => __('Block for :unit has started. End it instead.', ['unit' => $this->unitName($skip['room'], $skip['bed'])]),
+        ));
 
         return back();
     }

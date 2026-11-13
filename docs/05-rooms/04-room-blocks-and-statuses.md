@@ -69,6 +69,7 @@ The status enum is `HousekeepingStatus`, not `RoomStatus`, because the `RoomStat
 - The toast names the clash, so staff know what to do next:
     - `blocked`: "Room 2017 is already blocked from 20 Oct 2026 to 19 Nov 2026. To change those nights, edit that block." Staff who want a longer block edit the existing one instead of adding a second.
     - `has_stay`: "Room 2017 has a stay on 16 Oct 2026 (booking {reference}). Move the stay first." It gives the first clashing night and its booking reference.
+- `EndRoomBlocks` and `CancelRoomBlocks` run `EndRoomBlock` or `CancelRoomBlock` on each ticked block, the same way: a block the single Action refuses is skipped. `EndRoomBlocks` takes one room status and sets it on every whole-room block it ends.
 - `ArchiveRoom` and `ArchiveBed` end open current and upcoming blocks.
 - Housekeeping Actions (`UpdateRoomStatus`, `AssignHousekeeper`, `SetRoomPriority`, `SetDoNotDisturb`, `SetRoomRemark`, `SetNeedsMaintenance`, `BulkUpdateRooms`) come with module 19. See [Room status board](../19-housekeeping/01-room-status-board.md#actions).
 
@@ -100,6 +101,7 @@ Room          Reason        Nights                      Notes
 - **Edit** keeps its one room and bed. The Timeline's **Block room** sends its one fixed room.
 - **End now** opens a confirm dialog. For a whole-room block it asks "Room is Dirty / Clean" (default Dirty).
 - **Cancel** opens a confirm dialog.
+- **Bulk actions.** The Current and upcoming tab has a tick box on each row and a select-all box in the header (it ticks the rows the search and filters show). While blocks are ticked, the `BulkActionBar` floats at the bottom with **End now (n)**, counting the ticked blocks that have started, and **Cancel (n)**, counting the ones that have not. A button with 0 is disabled. Each opens the same confirm dialog as a row, worded for several blocks; End now asks "Rooms are Dirty / Clean" when a whole-room block is among them. They post `block_ids[]` to `front-desk.room-blocks.bulk-end` and `.bulk-cancel` (`BulkEndRoomBlocksRequest`, `BulkRoomBlocksRequest`; the ids must be blocks of this property). The toast says how many ended or were cancelled and lists up to three skipped blocks. The ticks clear after a bulk action. The Past tab has no tick boxes.
 - The form is `RoomBlockForm` (`components/pms/room-block-form.tsx`). The Timeline's **Block room** cell action opens the same form in the same Dialog, with the room fixed. See [Empty cell](../18-front-desk/07-timeline-editing.md#empty-cell).
 - Create, edit, end and cancel redirect back, so a block made from the Timeline returns to the Timeline.
 - The housekeeping board's row menu **Block room…** links to this page for a user with `rooms.block`.

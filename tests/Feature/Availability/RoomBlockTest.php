@@ -132,6 +132,68 @@ test('blocking several rooms that are all refused is an error', function () {
     expect(RoomBlock::query()->count())->toBe(2);
 });
 
+test('ticked blocks end together and a block that has not started is skipped', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $room = Room::factory()->for($property)->create(['number' => '106']);
+    $dorm = blockedDorm($property);
+    $dorm->update(['number' => '12']);
+    $bed = Bed::factory()->for($dorm)->create(['label' => 'A1']);
+    $running = blockOn($room, ['starts_on' => '2026-10-09', 'ends_on' => '2026-10-20']);
+    $bedBlock = blockOn($dorm, ['bed_id' => $bed->id, 'starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
+    $upcoming = blockOn(Room::factory()->for($property)->create(['number' => '107']), ['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']);
+
+    $this->actingAs($owner)
+        ->post(route('front-desk.room-blocks.bulk-end', $property->code), ['block_ids' => [$running->id, $bedBlock->id, $upcoming->id], 'room_status' => 'clean'])
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => '2 blocks ended. 1 skipped: Block for Room 107 is not running today.']);
+
+    expect($running->refresh()->completed_at)->not->toBeNull()
+        ->and($bedBlock->refresh()->completed_at)->not->toBeNull()
+        ->and($upcoming->refresh()->completed_at)->toBeNull()
+        ->and($room->status->refresh()->status)->toBe(HousekeepingStatus::Clean)
+        ->and(Activity::query()->where('event', 'room_block.ended')->count())->toBe(2);
+});
+
+test('bulk end asks the room status only when a whole room is ticked', function () {
+    $owner = User::factory()->owner()->create();
+    $dorm = blockedDorm($owner->property);
+    $bedBlock = blockOn($dorm, ['bed_id' => Bed::factory()->for($dorm)->create()->id, 'starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
+    $roomBlock = blockOn(Room::factory()->for($owner->property)->create(), ['starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
+    $url = route('front-desk.room-blocks.bulk-end', $owner->property->code);
+
+    $this->actingAs($owner)->post($url, ['block_ids' => [$bedBlock->id, $roomBlock->id]])->assertSessionHasErrors('room_status');
+    $this->post($url, ['block_ids' => [$bedBlock->id]])->assertSessionHasNoErrors();
+
+    expect($bedBlock->refresh()->completed_at)->not->toBeNull()
+        ->and($roomBlock->refresh()->completed_at)->toBeNull();
+});
+
+test('ticked blocks are cancelled together and a started block is skipped', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $upcoming = blockOn(Room::factory()->for($property)->create(), ['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']);
+    $later = blockOn(Room::factory()->for($property)->create(), ['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30']);
+    $started = blockOn(Room::factory()->for($property)->create(['number' => '203']), ['starts_on' => '2026-10-09', 'ends_on' => '2026-10-20']);
+
+    $this->actingAs($owner)
+        ->post(route('front-desk.room-blocks.bulk-cancel', $property->code), ['block_ids' => [$upcoming->id, $later->id, $started->id]])
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => '2 blocks cancelled. 1 skipped: Block for Room 203 has started. End it instead.']);
+
+    expect(RoomBlock::query()->pluck('id')->all())->toBe([$started->id])
+        ->and(Activity::query()->where('event', 'room_block.cancelled')->count())->toBe(2);
+});
+
+test('bulk actions only take blocks of this property', function (string $route) {
+    $owner = User::factory()->owner()->create();
+    $other = blockOn(Room::factory()->create(), ['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']);
+
+    $this->actingAs($owner)
+        ->post(route($route, $owner->property->code), ['block_ids' => [$other->id], 'room_status' => 'dirty'])
+        ->assertSessionHasErrors('block_ids.0');
+
+    expect($other->refresh()->exists)->toBeTrue();
+})->with(['front-desk.room-blocks.bulk-end', 'front-desk.room-blocks.bulk-cancel']);
+
 test('block input is validated', function (Closure $payload, string $field) {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
@@ -460,6 +522,8 @@ test('blocking needs rooms.block', function () {
     $this->put(route('front-desk.room-blocks.update', [$code, $block]), [])->assertForbidden();
     $this->post(route('front-desk.room-blocks.end', [$code, $block]))->assertForbidden();
     $this->delete(route('front-desk.room-blocks.destroy', [$code, $block]))->assertForbidden();
+    $this->post(route('front-desk.room-blocks.bulk-end', $code), ['block_ids' => [$block->id]])->assertForbidden();
+    $this->post(route('front-desk.room-blocks.bulk-cancel', $code), ['block_ids' => [$block->id]])->assertForbidden();
 });
 
 test('another property\'s blocks are not reachable', function () {

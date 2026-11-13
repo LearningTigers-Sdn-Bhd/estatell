@@ -1,7 +1,8 @@
 import { Form, Head, useForm } from '@inertiajs/react';
-import { Ban, CalendarClock, History, Plus } from 'lucide-react';
+import { Ban, CalendarClock, CircleStop, History, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -47,7 +49,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { destroy, end, index } from '@/routes/front-desk/room-blocks';
+import {
+    bulkCancel,
+    bulkEnd,
+    destroy,
+    end,
+    index,
+} from '@/routes/front-desk/room-blocks';
 
 type Block = App.Data.Rooms.RoomBlockData;
 type Room = App.Data.Rooms.RoomBlockRoomData;
@@ -108,46 +116,79 @@ function unitName(block: Block): string {
         : `room ${block.roomNumber}`;
 }
 
+/** "the block on room 203", or "3 blocks", for confirm titles. */
+function blocksName(blocks: Block[]): string {
+    return blocks.length === 1
+        ? `the block on ${unitName(blocks[0])}`
+        : `${blocks.length} blocks`;
+}
+
+/** End one block from its row, or the ticked blocks from the bulk bar. Closed while `blocks` is empty. */
 function EndBlockDialog({
-    block,
+    blocks,
+    bulk = false,
     onClose,
+    onDone,
 }: {
-    block: Block | null;
+    blocks: Block[];
+    bulk?: boolean;
     onClose: () => void;
+    onDone?: () => void;
 }) {
-    const form = useForm<{ room_status: string }>({ room_status: 'dirty' });
+    const form = useForm<{ room_status: string; block_ids: number[] }>({
+        room_status: 'dirty',
+        block_ids: [],
+    });
+    const wholeRooms = blocks.filter((block) => !block.bedId).length;
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
 
-        if (block) {
-            form.post(end.url({ roomBlock: block.id }), {
-                preserveScroll: true,
-                onSuccess: onClose,
-            });
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => {
+                onClose();
+                onDone?.();
+            },
+        };
+
+        if (bulk) {
+            form.transform((data) => ({
+                ...data,
+                block_ids: blocks.map((block) => block.id),
+            }));
+            form.post(bulkEnd.url(), options);
+        } else if (blocks.length === 1) {
+            form.post(end.url({ roomBlock: blocks[0].id }), options);
         }
     };
 
     return (
         <AlertDialog
-            open={block !== null}
+            open={blocks.length > 0}
             onOpenChange={(open) => !open && onClose()}
         >
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                        End the block on {block && unitName(block)}?
+                        End {blocksName(blocks)}?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        {block?.bedId
-                            ? 'The bed goes back on sale from tonight.'
-                            : 'The room goes back on sale from tonight. Tell housekeeping how the room was left.'}
+                        {wholeRooms === 0
+                            ? blocks.length === 1
+                                ? 'The bed goes back on sale from tonight.'
+                                : 'The beds go back on sale from tonight.'
+                            : blocks.length === 1
+                              ? 'The room goes back on sale from tonight. Tell housekeeping how the room was left.'
+                              : 'They go back on sale from tonight. Tell housekeeping how the rooms were left.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <form onSubmit={submit} className="flex flex-col gap-4">
-                    {block && !block.bedId && (
+                    {wholeRooms > 0 && (
                         <FieldSet>
-                            <FieldLegend variant="label">Room is</FieldLegend>
+                            <FieldLegend variant="label">
+                                {wholeRooms === 1 ? 'Room is' : 'Rooms are'}
+                            </FieldLegend>
                             <RadioGroup
                                 value={form.data.room_status}
                                 onValueChange={(value) =>
@@ -202,7 +243,9 @@ function EndBlockDialog({
                             {form.processing && (
                                 <Spinner data-icon="inline-start" />
                             )}
-                            End block
+                            {blocks.length === 1
+                                ? 'End block'
+                                : `End ${blocks.length} blocks`}
                         </Button>
                     </AlertDialogFooter>
                 </form>
@@ -211,51 +254,82 @@ function EndBlockDialog({
     );
 }
 
+/** Cancel one upcoming block from its row, or the ticked ones from the bulk bar. Closed while `blocks` is empty. */
 function CancelBlockDialog({
-    block,
+    blocks,
+    bulk = false,
     onClose,
+    onDone,
 }: {
-    block: Block | null;
+    blocks: Block[];
+    bulk?: boolean;
     onClose: () => void;
+    onDone?: () => void;
 }) {
+    const form = bulk
+        ? bulkCancel.form()
+        : blocks.length === 1
+          ? destroy.form({ roomBlock: blocks[0].id })
+          : null;
+
     return (
         <AlertDialog
-            open={block !== null}
+            open={blocks.length > 0}
             onOpenChange={(open) => !open && onClose()}
         >
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
-                        Cancel the block on {block && unitName(block)}?
+                        Cancel {blocksName(blocks)}?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                        The block has not started. Cancelling removes it and
-                        puts the nights back on sale.
+                        {blocks.length === 1
+                            ? 'The block has not started. Cancelling removes it and puts the nights back on sale.'
+                            : 'They have not started. Cancelling removes them and puts the nights back on sale.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                {block && (
+                {form && (
                     <Form
-                        {...destroy.form({ roomBlock: block.id })}
+                        {...form}
                         options={{ preserveScroll: true }}
-                        onSuccess={onClose}
+                        onSuccess={() => {
+                            onClose();
+                            onDone?.();
+                        }}
                     >
                         {({ processing }) => (
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>
-                                    Keep block
-                                </AlertDialogCancel>
-                                <Button
-                                    type="submit"
-                                    variant="destructive"
-                                    disabled={processing}
-                                    focusableWhenDisabled
-                                >
-                                    {processing && (
-                                        <Spinner data-icon="inline-start" />
-                                    )}
-                                    Cancel block
-                                </Button>
-                            </AlertDialogFooter>
+                            <>
+                                {bulk &&
+                                    blocks.map((block) => (
+                                        <input
+                                            key={block.id}
+                                            type="hidden"
+                                            name="block_ids[]"
+                                            value={block.id}
+                                        />
+                                    ))}
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                        Keep{' '}
+                                        {blocks.length === 1
+                                            ? 'block'
+                                            : 'blocks'}
+                                    </AlertDialogCancel>
+                                    <Button
+                                        type="submit"
+                                        variant="destructive"
+                                        disabled={processing}
+                                        focusableWhenDisabled
+                                    >
+                                        {processing && (
+                                            <Spinner data-icon="inline-start" />
+                                        )}
+                                        {blocks.length === 1
+                                            ? 'Cancel block'
+                                            : `Cancel ${blocks.length} blocks`}
+                                    </Button>
+                                </AlertDialogFooter>
+                            </>
                         )}
                     </Form>
                 )}
@@ -273,6 +347,8 @@ function BlockTable({
     onEnd,
     onCancel,
     empty,
+    selected,
+    onSelect,
 }: {
     blocks: Block[];
     tab: Tab;
@@ -283,12 +359,39 @@ function BlockTable({
     onCancel: (block: Block) => void;
     /** Shown in one full-width row when there are no blocks. */
     empty: ReactNode;
+    /** Ticked blocks. Only the Current and upcoming tab has tick boxes. */
+    selected: Set<number>;
+    onSelect: (ids: number[], on: boolean) => void;
 }) {
+    const selectable = tab === 'current';
+    const ticked = blocks.filter((block) => selected.has(block.id)).length;
+
     return (
         <div className="overflow-auto rounded-lg border">
             <Table>
                 <TableHeader>
                     <TableRow>
+                        {selectable && (
+                            <TableHead className="w-10">
+                                <Checkbox
+                                    aria-label="Select all blocks"
+                                    disabled={blocks.length === 0}
+                                    checked={
+                                        blocks.length > 0 &&
+                                        ticked === blocks.length
+                                    }
+                                    indeterminate={
+                                        ticked > 0 && ticked < blocks.length
+                                    }
+                                    onCheckedChange={(on) =>
+                                        onSelect(
+                                            blocks.map((block) => block.id),
+                                            on,
+                                        )
+                                    }
+                                />
+                            </TableHead>
+                        )}
                         <TableHead>Room</TableHead>
                         <TableHead>Reason</TableHead>
                         <TableHead>Nights</TableHead>
@@ -304,7 +407,25 @@ function BlockTable({
                         const count = nights(block);
 
                         return (
-                            <TableRow key={block.id}>
+                            <TableRow
+                                key={block.id}
+                                data-state={
+                                    selected.has(block.id)
+                                        ? 'selected'
+                                        : undefined
+                                }
+                            >
+                                {selectable && (
+                                    <TableCell>
+                                        <Checkbox
+                                            aria-label={`Select the block on ${unitName(block)}`}
+                                            checked={selected.has(block.id)}
+                                            onCheckedChange={(on) =>
+                                                onSelect([block.id], on)
+                                            }
+                                        />
+                                    </TableCell>
+                                )}
                                 <TableCell>
                                     <div className="font-medium">
                                         {block.roomNumber}
@@ -391,7 +512,9 @@ function BlockTable({
                     })}
                     {blocks.length === 0 && (
                         <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={5}>{empty}</TableCell>
+                            <TableCell colSpan={selectable ? 6 : 5}>
+                                {empty}
+                            </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
@@ -420,8 +543,15 @@ export default function RoomBlocksIndex({
     tab: Tab;
 }) {
     const [editing, setEditing] = useState<Block | null | undefined>(undefined);
-    const [ending, setEnding] = useState<Block | null>(null);
-    const [cancelling, setCancelling] = useState<Block | null>(null);
+    const [ending, setEnding] = useState<{ blocks: Block[]; bulk: boolean }>({
+        blocks: [],
+        bulk: false,
+    });
+    const [cancelling, setCancelling] = useState<{
+        blocks: Block[];
+        bulk: boolean;
+    }>({ blocks: [], bulk: false });
+    const [selected, setSelected] = useState<Set<number>>(new Set());
     const [search, setSearch] = useState('');
     const [groupId, setGroupId] = useState('');
     const [reason, setReason] = useState('');
@@ -446,6 +576,17 @@ export default function RoomBlocksIndex({
             (reason === '' || block.reason === reason) &&
             (term === '' || matchesSearch(block, term)),
     );
+    const tickedBlocks = shown.filter((block) => selected.has(block.id));
+    const endable = tickedBlocks.filter((block) => block.startsOn <= today);
+    const cancellable = tickedBlocks.filter((block) => block.startsOn > today);
+    const select = (ids: number[], on: boolean) =>
+        setSelected((previous) => {
+            const next = new Set(previous);
+            ids.forEach((id) => (on ? next.add(id) : next.delete(id)));
+
+            return next;
+        });
+    const clearSelection = () => setSelected(new Set());
     const clearFilters = () => {
         setSearch('');
         setGroupId('');
@@ -510,8 +651,14 @@ export default function RoomBlocksIndex({
                         today={today}
                         reasonLabel={reasonLabel}
                         onEdit={setEditing}
-                        onEnd={setEnding}
-                        onCancel={setCancelling}
+                        onEnd={(block) =>
+                            setEnding({ blocks: [block], bulk: false })
+                        }
+                        onCancel={(block) =>
+                            setCancelling({ blocks: [block], bulk: false })
+                        }
+                        selected={selected}
+                        onSelect={select}
                         empty={
                             filtered && tabBlocks.length > 0 ? (
                                 <EmptyState
@@ -557,6 +704,41 @@ export default function RoomBlocksIndex({
                         </p>
                     )}
                 </TabLinks>
+
+                {tab === 'current' && (
+                    <BulkActionBar
+                        count={tickedBlocks.length}
+                        onClear={clearSelection}
+                    >
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={endable.length === 0}
+                            focusableWhenDisabled
+                            onClick={() =>
+                                setEnding({ blocks: endable, bulk: true })
+                            }
+                        >
+                            <CircleStop data-icon="inline-start" />
+                            End now ({endable.length})
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={cancellable.length === 0}
+                            focusableWhenDisabled
+                            onClick={() =>
+                                setCancelling({
+                                    blocks: cancellable,
+                                    bulk: true,
+                                })
+                            }
+                        >
+                            <X data-icon="inline-start" />
+                            Cancel ({cancellable.length})
+                        </Button>
+                    </BulkActionBar>
+                )}
             </div>
 
             <Dialog
@@ -590,13 +772,17 @@ export default function RoomBlocksIndex({
             </Dialog>
 
             <EndBlockDialog
-                key={ending?.id ?? 'none'}
-                block={ending}
-                onClose={() => setEnding(null)}
+                key={ending.blocks.map((block) => block.id).join('-') || 'none'}
+                blocks={ending.blocks}
+                bulk={ending.bulk}
+                onClose={() => setEnding({ blocks: [], bulk: false })}
+                onDone={ending.bulk ? clearSelection : undefined}
             />
             <CancelBlockDialog
-                block={cancelling}
-                onClose={() => setCancelling(null)}
+                blocks={cancelling.blocks}
+                bulk={cancelling.bulk}
+                onClose={() => setCancelling({ blocks: [], bulk: false })}
+                onDone={cancelling.bulk ? clearSelection : undefined}
             />
         </>
     );
