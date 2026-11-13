@@ -219,6 +219,20 @@ test('a folio payment row has its guest, folio, invoice, reference and notes', f
             && $row($rows->all(), "p:{$other->id}")['invoice'] === 'INV-7376'));
 });
 
+test('a refund row shows its reference, its reason and its notes in Reference / notes', function () {
+    [$user, $property] = reportSetup();
+    $card = PaymentMethod::factory()->create(['property_id' => $property->id]);
+    $payment = reportPayment($property, $card, '724.00', '2026-10-10');
+    $refund = reportPayment($property, $card, '724.00', '2026-10-10', refundOf: $payment, extra: ['reference' => 'RF-1', 'refund_reason' => 'Guest asked for a transfer', 'notes' => 'Wrong key']);
+
+    $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-10&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows->all())->firstWhere('key', "p:{$refund->id}")['refund_reason'] === 'Guest asked for a transfer'));
+
+    $rows = app(PaymentsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'));
+
+    expect(collect($rows)->firstWhere('key', "p:{$refund->id}")->cells()['remarks'])->toBe('RF-1 · Guest asked for a transfer · Wrong key');
+});
+
 test('the spreadsheet of selected rows has the total row and no summary table', function () {
     [$user, $property] = reportSetup();
     $rows = paymentsData($property)['rows'];

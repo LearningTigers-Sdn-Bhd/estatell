@@ -69,7 +69,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 ### `RefundPayment`
 
-`(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false): PaymentResult`. A refund is a payment row with `refund_of_id`. Its folio line is **positive** and uses the system `Refund` code.
+`(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false, bool $confirmedByCurlec = false, ?string $notes = null): PaymentResult`. A refund is a payment row with `refund_of_id`. Its folio line is **positive** and uses the system `Refund` code. `notes` is a free remark for staff, such as "Wrong amount keyed in"; it is trimmed, and blank saves nothing.
 
 | Check, in order                                                                | Refusal                    |
 | ------------------------------------------------------------------------------ | -------------------------- |
@@ -101,10 +101,11 @@ An Online payment refunds only through Curlec: staff refunds go through `RefundH
 
 ### `VoidPayment`
 
-`(User $actor, Payment $payment, string $idempotencyKey): PaymentResult`. A void fixes a payment recorded by mistake on the same business day. It is `RefundPayment` for the whole payment, to the same method, with `voided` set. It uses `payment.refund`.
+`(User $actor, Payment $payment, string $idempotencyKey, ?string $notes = null): PaymentResult`. A void fixes a payment recorded by mistake on the same business day. It is `RefundPayment` for the whole payment, to the same method, with `voided` set. It uses `payment.refund`.
 
 - The payment line must be posted on the current business date, and the payment must have no refund yet. A void is never a partial refund.
 - The refund line reads "Void payment". The row is tagged Refund like any refund. The surcharge stays, as in a refund: reverse it by hand when the fee must go too.
+- Staff can add notes, such as why the payment was wrong. They are saved on the refund row.
 - Later days use a normal refund.
 
 ### `RefundFolioCredit`
@@ -148,7 +149,7 @@ A migration syncs the permissions: it creates `payment.refund-other-method` and 
 
 - **Record payment** button in the folio header, on an Open folio, with `payment.record`. A Dialog (method, purpose, amount, reference when required) shows the surcharge, its tax and the **total to collect** from the quote route before the user confirms.
 - The "not started" rail entry gets Record payment, and only that: it creates the unit's folio on the first payment ([Folio page](../13-folio/05-folio-page.md)).
-- A payment row shows its method and reference. Its row menu has **Refund** (`payment.refund`, a Completed payment with an amount left to refund) and **Void payment** (`payment.refund`, same business day, no refund yet). The Refund Dialog takes the amount (default: what is left), a **Refund to** field and an optional reference. Refund to lists the payment's own method first. A user with `payment.refund-other-method` also sees the other methods, and picking one shows a required Reason. Cash is greyed out with "Only a cash payment is refunded in cash." when the payment is not cash. Void payment is an AlertDialog.
+- A payment row shows its method and reference. Its row menu has **Refund** (`payment.refund`, a Completed payment with an amount left to refund) and **Void payment** (`payment.refund`, same business day, no refund yet). The Refund Dialog takes the amount (default: what is left), a **Refund to** field, an optional reference and optional **Notes** (≤ 500). An Online payment shows neither reference nor notes. Refund to lists the payment's own method first. A user with `payment.refund-other-method` also sees the other methods, and picking one shows a required Reason. Cash is greyed out with "Only a cash payment is refunded in cash." when the payment is not cash. Void payment is an AlertDialog with optional **Notes**. The notes of a refund or void show under its folio row and in the Payments report.
 - **Refund credit** in the folio header (`payment.refund`, an Open folio with a credit). A Dialog takes the amount (default: the most that can go back), and the same Refund to and Reason fields. The Dialog says the money comes from the newest payment first, security deposits last. The refusal messages are in [Refusal messages](#refusal-messages).
 - A refund row is tagged "Refund".
 - Payment and refund rows get no Reverse or Transfer action (see the `payment_line` rule).

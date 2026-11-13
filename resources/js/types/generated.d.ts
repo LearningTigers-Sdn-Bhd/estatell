@@ -4091,6 +4091,7 @@ guest: string,
 notes: string | null,
 folio: string | null,
 invoice: string | null,
+refund_reason: string | null,
 };
 export type PoliceReportRow = {
 key: string,

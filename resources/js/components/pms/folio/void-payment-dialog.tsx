@@ -14,7 +14,9 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
 import { voidMethod } from '@/routes/reservations/folios/payments';
 
 type Row = App.Data.Folio.FolioRowData;
@@ -61,6 +63,23 @@ function VoidForm({
                 >
                     {({ processing, errors }) => (
                         <>
+                            <Field
+                                data-invalid={!!errors.notes}
+                                className="pb-4"
+                            >
+                                <FieldLabel htmlFor="void-notes">
+                                    Notes
+                                </FieldLabel>
+                                <Textarea
+                                    id="void-notes"
+                                    name="notes"
+                                    maxLength={500}
+                                    rows={2}
+                                    placeholder="e.g. Wrong amount keyed in"
+                                    aria-invalid={!!errors.notes}
+                                />
+                                <FieldError>{errors.notes}</FieldError>
+                            </Field>
                             {errors.form && (
                                 <p className="pb-2 text-sm text-destructive">
                                     {errors.form}

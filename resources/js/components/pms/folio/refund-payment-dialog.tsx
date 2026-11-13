@@ -17,6 +17,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { store } from '@/routes/reservations/folios/payments/refunds';
 
 type Row = App.Data.Folio.FolioRowData;
@@ -54,6 +55,7 @@ function RefundForm({
         reference: '',
         payment_method_id: '',
         reason: '',
+        notes: '',
     });
     const { data, errors } = form;
     const isOnline = row.methodType === 'online';
@@ -146,6 +148,23 @@ function RefundForm({
                         aria-invalid={!!errors.reference}
                     />
                     <FieldError>{errors.reference}</FieldError>
+                </Field>
+            )}
+            {!isOnline && (
+                <Field data-invalid={!!errors.notes}>
+                    <FieldLabel htmlFor="refund-notes">Notes</FieldLabel>
+                    <Textarea
+                        id="refund-notes"
+                        maxLength={500}
+                        rows={2}
+                        placeholder="e.g. Wrong amount keyed in"
+                        value={data.notes}
+                        onChange={(event) =>
+                            form.setData('notes', event.target.value)
+                        }
+                        aria-invalid={!!errors.notes}
+                    />
+                    <FieldError>{errors.notes}</FieldError>
                 </Field>
             )}
         </FormOverlay>

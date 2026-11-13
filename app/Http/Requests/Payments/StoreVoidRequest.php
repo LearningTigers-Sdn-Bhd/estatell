@@ -24,6 +24,12 @@ class StoreVoidRequest extends FormRequest
     {
         return [
             'idempotency_key' => ['required', 'uuid'],
+            'notes' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    public function notes(): ?string
+    {
+        return $this->filled('notes') ? $this->string('notes')->trim()->toString() : null;
     }
 }
