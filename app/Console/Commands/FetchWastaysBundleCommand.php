@@ -13,7 +13,7 @@ class FetchWastaysBundleCommand extends Command
 {
     public function handle(FetchWastaysBundle $fetch): int
     {
-        $result = $fetch((string) $this->argument('key'), $this->option('sha256') ?: null, (string) $this->option('disk'));
+        $result = $fetch($this->input()->string('key')->toString(), $this->input()->string('sha256')->toString() ?: null, $this->input()->string('disk')->toString());
 
         if (! $result->succeeded()) {
             $this->error('The bundle was refused and nothing was kept:');

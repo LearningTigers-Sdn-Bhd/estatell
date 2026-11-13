@@ -18,9 +18,9 @@ class ImportWastaysCompaniesCommand extends Command
     {
         try {
             $target = WastaysImportTarget::resolve(
-                (string) $this->argument('bundle'),
-                (string) $this->argument('property'),
-                (string) $this->option('actor'),
+                $this->input()->string('bundle')->toString(),
+                $this->input()->string('property')->toString(),
+                $this->input()->string('actor')->toString(),
             );
 
             $dryRun = (bool) $this->option('dry-run');
