@@ -7,6 +7,8 @@ use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ReportKey;
 use App\Enums\UnitStatus;
+use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -118,6 +120,20 @@ test('the report returns only the requested row keys', function () {
         ->and(ReportKey::Departures->report())->toBeInstanceOf(DeparturesReport::class);
 });
 
+test('the total row sums nights, adults and children and counts each reservation balance once', function () {
+    [$user, $property] = reportSetup();
+    $group = departingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1]);
+    ReservationUnit::factory()->for($group->reservation)->create(['arrival_date' => '2026-10-08', 'departure_date' => '2026-10-10', 'adults' => 2, 'children' => 0]);
+    $folio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $group->reservation_id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '1200.00', 'unit_amount' => '1200.00']);
+
+    $this->actingAs($user)->get(departuresUrl($property))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.figures.nights', 4)
+        ->where('totals.figures.adults', 4)
+        ->where('totals.figures.children', 1)
+        ->where('totals.figures.balance', '1200.00'));
+});
+
 test('the PDF and the CSV export the departures', function () {
     [$user, $property] = reportSetup();
     departingUnit($property);
@@ -136,7 +152,8 @@ test('the PDF and the CSV export the departures', function () {
     $lines = array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF"))));
 
     expect(str_getcsv($lines[0]))->toBe(['Reservation no.', 'Guest', 'Departure', 'Departure time', 'Nights', 'Room type / room', 'Status', 'Balance (MYR)'])
-        ->and($lines)->toHaveCount(2);
+        ->and($lines)->toHaveCount(3)
+        ->and(str_getcsv($lines[2]))->toBe(['Total', '', '', '', '2', '', '', '0']);
 });
 
 test('the split columns hold the room type, the room of the last night, the guest counts and the departure time', function () {
