@@ -78,7 +78,7 @@ class ScheduledFolioRows
         $this->propertyTaxes = null;
         $units = $reservation->units()
             ->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
-            ->with(['discount', 'taxWaivers', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode', 'addOns.ageGroup'])
+            ->with(['discount', 'taxWaivers', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode', 'addOns.ageGroup', 'addOns.boatTripLinks.unitBoatTrip'])
             ->orderBy('id')
             ->get();
         $dayUseUnits = $units->filter(fn (ReservationUnit $unit): bool => $unit->stay_type === StayType::DayUse)->load('dayUse', 'ratePlan.inclusions.chargeItem.transactionCode');

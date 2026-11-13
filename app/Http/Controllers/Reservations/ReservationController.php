@@ -236,7 +236,7 @@ class ReservationController extends Controller
             $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->label]);
             $addOns = UnitAddOn::query()
                 ->whereIn('reservation_unit_id', $labels->keys()->all())
-                ->with(['chargeItem.transactionCode', 'ageGroup', 'folioLine'])
+                ->with(['chargeItem.transactionCode', 'ageGroup', 'folioLine', 'boatTripLinks.unitBoatTrip'])
                 ->orderBy('reservation_unit_id')
                 ->orderBy('service_date')
                 ->orderBy('id')
