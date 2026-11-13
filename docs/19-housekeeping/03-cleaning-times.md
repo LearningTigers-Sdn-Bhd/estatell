@@ -51,7 +51,7 @@ Who Start names (`RoomCleanings::housekeeperFor`, checked in `StartRoomCleaningR
 | ------------------ | ------------------- | -------------------------------------------------------------------------------- |
 | Housekeeping board | `housekeeping.view` | **Housekeeper** column, see below. Housekeeping work here                        |
 | House status       | `reports.view`      | **Housekeeper** column with the same cell. The PDF tile prints "Ana 10:05-10:40" |
-| Housekeeping log   | `reports.view`      | The report below                                                                 |
+| Housekeeping log   | `reports.view`      | The report below, the Log tab of Reports › Housekeeping                          |
 
 The board's **Housekeeper** column joins the assignee (the plan) and the cleaning (what happened):
 
@@ -67,4 +67,4 @@ The Housekeeping role has no `reports.view`, so it records on the board. A clean
 
 ## Housekeeping log
 
-`ReportKey::HousekeepingLog` (`HousekeepingLogReport`), in Reports › Front desk: one row per cleaning, up to 31 days. Columns: Date, Room, Room type, Housekeeper, Started, Finished, Minutes. The total sums the minutes. It has the shared PDF, CSV and Excel export.
+`ReportKey::HousekeepingLog` (`HousekeepingLogReport`), the Log tab of [Reports › Housekeeping](../22-reports/03-house-status-and-items.md#housekeeping-page) (`?tab=log`): one row per cleaning, up to 31 days. Columns: Date, Room, Room type, Housekeeper, Started, Finished, Minutes. The total sums the minutes. It has the shared PDF, CSV and Excel export.

@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { DateText, formatDate } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
-import { MultiSelectWithAll } from '@/components/pms/reservations/multi-select-with-all';
+import { MultiSelectWithAll } from '@/components/pms/multi-select-with-all';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';

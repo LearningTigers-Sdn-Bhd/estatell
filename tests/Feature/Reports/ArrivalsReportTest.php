@@ -262,9 +262,8 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                     'label' => 'Front desk',
                     'items' => [
                         ['title' => 'Guest list', 'href' => "/p/{$property->code}/reports/guest-list", 'icon' => 'users', 'external' => false, 'active' => true, 'action' => null, 'badge' => null],
+                        ['title' => 'Housekeeping', 'href' => "/p/{$property->code}/reports/housekeeping", 'icon' => 'spray-can', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Police report', 'href' => "/p/{$property->code}/reports/police-report", 'icon' => 'id-card', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
-                        ['title' => 'Housekeeping items', 'href' => "/p/{$property->code}/reports/housekeeping-items", 'icon' => 'spray-can', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
-                        ['title' => 'Housekeeping log', 'href' => "/p/{$property->code}/reports/housekeeping-log", 'icon' => 'clock', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
@@ -275,6 +274,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                         ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Tax', 'href' => "/p/{$property->code}/reports/tax", 'icon' => 'landmark', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Non-national guests', 'href' => "/p/{$property->code}/reports/non-national-guests", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Booking performance', 'href' => "/p/{$property->code}/reports/booking-performance", 'icon' => 'activity', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [

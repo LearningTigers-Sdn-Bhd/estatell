@@ -17,7 +17,9 @@ use App\Models\UnitGuest;
 use App\Services\Guests\GuestMatcher;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -97,6 +99,28 @@ class ReservationDirectory
     }
 
     /**
+     * The money figures of one reservation, from the same query as the list: the room total, what was paid, what is
+     * billed to a company and the balance, as decimal strings.
+     *
+     * @return array{total: string, paid: string, billed: string, balance: string}
+     */
+    public function money(Property $property, Reservation $reservation): array
+    {
+        $row = $this->base($property)
+            ->where('reservations.id', $reservation->id)
+            ->toBase()
+            ->select($this->moneyColumns())
+            ->first();
+
+        return [
+            'total' => BigDecimal::of((string) ($row->stay_total ?? '0'))->toScale(2)->__toString(),
+            'paid' => (string) ($row->paid ?? '0.00'),
+            'billed' => (string) ($row->billed ?? '0.00'),
+            'balance' => (string) ($row->balance ?? '0.00'),
+        ];
+    }
+
+    /**
      * @return LengthAwarePaginator<int, Reservation>
      */
     public function paginate(Property $property, Request $request): LengthAwarePaginator
@@ -109,10 +133,7 @@ class ReservationDirectory
             'stay.all_units',
             'stay.adults',
             'stay.children',
-            DB::raw('coalesce(totals.total, 0) as stay_total'),
-            DB::raw('coalesce(ledger.paid, 0)::numeric(14, 2) as paid'),
-            DB::raw('coalesce(ledger.billed, 0)::numeric(14, 2) as billed'),
-            DB::raw('coalesce(ledger.balance, 0)::numeric(14, 2) as balance'),
+            ...$this->moneyColumns(),
         ]);
         $movement = $this->movement($request);
 
@@ -323,6 +344,21 @@ class ReservationDirectory
             ->leftJoinSub($units, 'stay', 'stay.reservation_id', '=', 'reservations.id')
             ->leftJoinSub($totals, 'totals', 'totals.reservation_id', '=', 'reservations.id')
             ->leftJoinSub($ledger, 'ledger', 'ledger.reservation_id', '=', 'reservations.id');
+    }
+
+    /**
+     * The room total, paid, billed and balance columns that read the `totals` and `ledger` joins of base().
+     *
+     * @return list<Expression>
+     */
+    private function moneyColumns(): array
+    {
+        return [
+            DB::raw('coalesce(totals.total, 0) as stay_total'),
+            DB::raw('coalesce(ledger.paid, 0)::numeric(14, 2) as paid'),
+            DB::raw('coalesce(ledger.billed, 0)::numeric(14, 2) as billed'),
+            DB::raw('coalesce(ledger.balance, 0)::numeric(14, 2) as balance'),
+        ];
     }
 
     private function sort(string $name): AllowedSort

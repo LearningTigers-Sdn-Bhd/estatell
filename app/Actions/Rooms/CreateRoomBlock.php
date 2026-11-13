@@ -30,21 +30,23 @@ class CreateRoomBlock
      *
      * @param  RoomBlockInputData  $data  The validated block fields.
      */
-    public function __invoke(User $actor, Room $room, ?Bed $bed, RoomBlockInputData $data): RoomBlock|RoomBlockRefusal
+    public function __invoke(User $actor, Room $room, ?Bed $bed, RoomBlockInputData $data): RoomBlock|RoomBlockRefused
     {
-        return DB::transaction(function () use ($actor, $room, $bed, $data): RoomBlock|RoomBlockRefusal {
+        return DB::transaction(function () use ($actor, $room, $bed, $data): RoomBlock|RoomBlockRefused {
             $room = Room::query()->lockForUpdate()->findOrFail($room->id);
 
             if ($room->archived_at !== null || ($bed !== null && ($bed->room_id !== $room->id || $bed->archived_at !== null))) {
-                return RoomBlockRefusal::Unavailable;
+                return RoomBlockRefused::because(RoomBlockRefusal::Unavailable);
             }
 
-            if ($this->conflicts->exist($room, $bed?->id, $data->startsOn, $data->endsOn)) {
-                return RoomBlockRefusal::Blocked;
+            $clash = $this->conflicts->first($room, $bed?->id, $data->startsOn, $data->endsOn);
+            if ($clash !== null) {
+                return RoomBlockRefused::blockedBy($clash);
             }
 
-            if ($this->assignedNights->existBetween($room, $bed?->id, $data->startsOn, $data->endsOn)) {
-                return RoomBlockRefusal::HasStay;
+            $stayNight = $this->assignedNights->firstBetween($room, $bed?->id, $data->startsOn, $data->endsOn);
+            if ($stayNight !== null) {
+                return RoomBlockRefused::stayOn($stayNight);
             }
 
             $block = new RoomBlock([

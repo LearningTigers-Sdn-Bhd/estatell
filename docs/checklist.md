@@ -17,171 +17,23 @@ Legend: **Needs** lists items that must be done first.
 
 ## Now
 
-The booking engine is the current build. The channel manager and the wastays replay are done; their items are under Done.
+The booking engine is live. What is left here is its developer guide and the stay view refresh. Walk-in, same-day check-out, day use, Sand Bay, agent bank transfer, guest CRM and tax waiver items are done and under Done.
 
 ### 28 Booking engine
 
-Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, at `booking.estatell.com`. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, at `booking.estatell.com`. Docs: [Booking engine](29-booking-engine/01-overview.md). Before real money is collected, answer the "to verify" list in the overview.
 
-- [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md).
-- [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](29-booking-engine/06-content-registries.md#room-photos).
-- [x] `feat(booking-engine): add the amenity registry` — admin pages, link tables, the Content tab and the room type picker. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
-- [x] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](29-booking-engine/06-content-registries.md#nearby-places).
-- [x] `refactor(booking-engine): split Content into Amenities and Nearby places` — one tab, URL and page each; the about text moves to the General tab when it is built. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md#booking-website-settings).
-- [x] `feat(booking-engine): manage amenity categories` — `amenity_categories` replaces the category text; a Categories tab; Property and Room tabs replace All, with a Grouped or List toggle. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
-- [x] `feat(booking-engine): use the amenity table on owner pages` — the Booking website and room type Amenities tabs get the admin table, and each switch saves at once. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
-- [x] `feat(booking-engine): add the site template registry` — admin page, slots, and the Design and SEO tabs. Docs: [Template registry](29-booking-engine/08-microsite.md#template-registry).
-- [x] `feat(booking-engine): choose online rate plans` — `rate_plans.bookable_online` and the Rates tab. Docs: [Rates](29-booking-engine/07-settings-and-permissions.md#rates).
-- [x] `feat(property): add the property photo album` — the `photos` collection on Property and the Photos tab on the Details page. Not in onboarding. Docs: [Photos](02-property/01-properties.md#photos).
-- [x] `feat(booking-engine): choose site images from the album` — Choose from album on the Design tab, which copies the photo into the slot, the Property photos and Room photos checklist rows, and an optional Icon slot on the seeded templates. Needs the album. Docs: [Design](29-booking-engine/07-settings-and-permissions.md#design).
-- [x] `feat(booking-engine): add the content and offers API` — `BookingClient` as a new token owner on the existing Sanctum layer, `booking:*` abilities, the reach check, rate limits per token and property, the shared Collect at check-in rule, and the listing, site, content, calendar, offers and search endpoints. Docs: [API](29-booking-engine/02-api.md), [Access](28-api-access/04-booking-engine-microsite.md).
-- [x] `feat(booking-engine): edit the about text on the General tab` — the field for `about_text`, which the property content endpoint returns. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md#booking-website-settings).
-- [x] `feat(reservations): allow a booking with no staff actor` — a null actor in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and the system Booking Engine source. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation), [Booking sources](12-reservations/11-booking-sources.md#booking-engine-source).
-- [x] `feat(api-access): replay idempotent requests for booking clients` — `booking_client_id` on `api_idempotency_keys`, either owner in `api.idempotent` and its classes, with kiosk behaviour unchanged. Docs: [Idempotency](28-api-access/03-kiosk-check-in-endpoints.md#idempotency-for-every-kiosk-write).
-- [x] `feat(booking-engine): hold rooms during checkout` — `booking_holds`, its lines and children, `HeldUnits` and `AvailabilityService` counting holds, the open hold limits with `X-Guest-IP`, the `booking:checkout` ability, create, read and release endpoints, and the expire and purge jobs. Needs: replay idempotent requests. Docs: [Checkout and hold](29-booking-engine/03-checkout-and-hold.md), [Limits](28-api-access/04-booking-engine-microsite.md#limits).
-- [x] `feat(payments): take online payments through Curlec` — `CurlecGateway`, `gateway_payments`, the Online method, `POST holds/{token}/payment`, the webhook and `ConfirmBookingHold`. Check automatic capture first. The email, automatic refund and saved terms come with later items, so a late payment whose rooms are taken alerts admins for now. Docs: [Payment](29-booking-engine/04-payment.md), [Build order](29-booking-engine/04-payment.md#build-order).
-- [x] `feat(booking-engine): email the guest and notify staff` — the notification types, the Manage booking link and the after-commit step in `ConfirmBookingHold`. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation).
-- [x] `feat(payments): refund online payments through Curlec` — `gateway_refunds`, `gateway_refund_parts`, `RequestOnlineRefund`, `RefundHeldPayment`, the refund webhook, ignoring Curlec's auto-refund events, the folio changes, check-out with Online credit and the automatic refund for a late payment whose rooms are taken. To verify on the demo: Curlec's real error wording. Docs: [Refund status](29-booking-engine/05-cancel-and-refund.md#refund-status).
-- [x] `feat(booking-engine): let guests cancel online` — saved terms and their step in `ConfirmBookingHold`, the manage booking and cancellation endpoints, `CancelBookingOnline`, the guest and staff emails, and the Curlec refund on a staff cancel. Docs: [Cancel and refund](29-booking-engine/05-cancel-and-refund.md).
-- [x] `feat(booking-engine): find a booking by short code` — `reservations.short_code` on every reservation, filled in for existing ones; `ReservationShortCode`; the code in the reservation header (now three description rows), the reservation search, the guest email and `bookings/{token}`; `POST properties/{code}/bookings/find` with `OnlineBookingLookup` and `BookingLookupLockout`. Docs: [Find a booking](29-booking-engine/02-api.md#find-a-booking), [Reservation shape](12-reservations/01-reservation-shape.md).
-- [x] `feat(booking-engine): let admins switch the booking engine mode` — `SetBookingEngineMode` and a Microsite / API only toggle under the Booking engine switch on the admin Features tab, read-only for partners. A switch unpublishes the site, and leaving API only revokes the token. Docs: [Mode switch](29-booking-engine/07-settings-and-permissions.md#mode-switch).
-- [x] `feat(booking-engine): add API only mode` — per-property tokens on an API only `BookingClient`, return addresses, the API tab and its quick start. Docs: [API only mode](29-booking-engine/09-api-only-mode.md).
-- [x] `feat(demo): open the booking engine API on the demo` — the fixed test token and Curlec test keys. The Coolify setup is left with the demo's own setup. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode).
-- [x] `feat(booking-engine): price a basket of rooms` — `POST properties/{code}/pricing`, and `BookingBasket`, shared with `CreateBookingHold`. The microsite's several-room booking uses it. Docs: [API](29-booking-engine/02-api.md#pricing).
-- [x] `fix(booking-engine): tidy the API contract` — stay times as `15:00`, and one error shape for field errors under `/api/booking/v1`. Docs: [API](29-booking-engine/02-api.md#rules).
 - [ ] In the `estatell-docs` repo: write the booking API developer guide — the steps, the demo address, the test token, the test payment details and the page security rules. The **Full guide** button on the API tab links to it. Needs: open the booking engine API on the demo. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode), [Page security](29-booking-engine/09-api-only-mode.md#page-security).
-- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md), [Local development](29-booking-engine/10-local-dev-microsite.md).
-
-### 30 Commission fees
-
-Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md). Must be built before the booking engine collects real money.
-
-- [x] `docs(commissions): add the commission fees spec and checklist items` — `docs/30-commission-fees/`.
-- [x] `feat(commissions): add commission services, rates and the ledger` — `CommissionService`, `CommissionEntryType`, `CommissionRule`, `commission_rates`, `commission_entries`, and the Commission rates section on admin settings. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md), [Platform pages](30-commission-fees/05-platform-pages.md#commission-rates).
-- [x] `feat(commissions): record booking engine money and commission` — `collected`, `refunded` and `refund_fee` entries from Curlec results, and `BookingEngineCommission` when a booking ends. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md#entry-types).
-- [x] `feat(commissions): record channel manager commission` — `ChannelManagerCommission` on the folio's room revenue lines before tax, including cancellation and no-show fees. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md).
-- [x] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the entry lock. The PDF moved to the next item. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
-- [x] `feat(commissions): approve, pay and print payout vouchers` — the Vouchers list, the voucher page, adjustments, approve, mark as paid, the voucher PDF and the Commissions sidebar link. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#voucher-page).
-- [x] `feat(commissions): add the platform commissions dashboard` — the Bookings tab at `/admin/commissions` with Total Cash Liability, Immediate Payable and Owed to Estatell, the period, property and service filters, and the CSV export. Needs: approve, pay and print payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#bookings-tab).
-- [x] `feat(commissions): start and stop commission per property` — `property_commission_periods`, the charge date (check-out date), the Commissions tab on the admin property page, and the platform start date removed. Needs: the platform commissions dashboard. Docs: [Charging periods](30-commission-fees/02-commission-rules.md#charging-periods), [Platform pages](30-commission-fees/05-platform-pages.md#property-commissions-tab).
-- [x] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
 
 ### 18 Front desk
 
-Build in this order. The Stay View is two sidebar items under Overview: **Timeline View** and **Room View**. Docs: [Stay View](18-front-desk/03-stay-view.md).
+Docs: [Stay View](18-front-desk/03-stay-view.md).
 
 - [ ] `feat(front-desk): refresh the stay view when it changes` — `StayViewVersion`, the `stay-view/version` route, 15 second polling and the partial reload. Needs: the timeline view. Docs: [Liveness](18-front-desk/03-stay-view.md#liveness).
-
-### Walk-in
-
-A walk-in books, checks in and collects in one save. Items 2 and 3 do not depend on each other and can ship first. Docs: [Booking form: Walk-in](12-reservations/05-booking-form.md#walk-in), [Walk-in check-in](18-front-desk/01-check-in-and-check-out.md#walk-in-check-in).
-
-- [x] `docs(front-desk): plan walk-in check-in and collect` — the Walk-in section of the booking form, the Room / Bed rules, Walk-in check-in, and these items.
-- [x] `fix(reservations): mark occupied and dirty rooms in the walk-in picker` — `FreeUnits` returns a reason for a room or bed with a CheckedIn unit or a Dirty `room_statuses` row; the walk-in picker shows it disabled as `106 · In house` or `108 · Dirty`. New booking is unchanged. Docs: [Room / Bed column](12-reservations/05-booking-form.md#room--bed-column).
-- [x] `fix(reservations): walk-in follows auto-assign and keeps nights` — `StoreBookingRequest` asks for a pick on a walk-in only when `auto_assign_rooms` is off, the empty option reads Auto-assign, and switching to Walk-in keeps the number of nights. Docs: [Room / Bed column](12-reservations/05-booking-form.md#room--bed-column), [Sections](12-reservations/05-booking-form.md#sections).
-- [x] `feat(front-desk): preview the walk-in payment` — `WalkInPayment::preview()` as a trial `CreateBooking` read through `CheckInCollection` and rolled back (booking refusals answered as errors), `->afterCommit()` on the `FlushChannelAriJob` dispatch in `RecordChannelAriChange` with a test that a rolled-back change queues no flush, the `reservations.walk-in-payment` route, the Payment section in the rail with the room charges and deposit boxes, method and reference; a test that the preview equals the Scheduled rows of the same booking. Needs: walk-in follows auto-assign. Docs: [Payment section](12-reservations/05-booking-form.md#payment-section), [Walk-in check-in](18-front-desk/01-check-in-and-check-out.md#walk-in-check-in).
-- [x] `feat(front-desk): check in and collect on walk-in save` — `CheckInWalkIn` and `WalkInResult`, `roomCharges` on `CollectNowData` and the full bill in `CheckInCollection`, the `reservations.store-walk-in` route and request, `amount_changed`, Check in without card on the form (with the permission), the Room charges and tax box in the check-in Dialog (unticked by default; the Advance goes to the Master folio when room charges route there), the Check in button, the result toast and the per-unit reasons; rollback tests for a refused booking, a changed total, and one refused unit in a group. Needs: preview the walk-in payment. Docs: [Walk-in check-in](18-front-desk/01-check-in-and-check-out.md#walk-in-check-in), [Refusals on save](12-reservations/05-booking-form.md#refusals-on-save).
-
-### Same-day check-out
-
-A client asked for it: an overnight guest who arrives and leaves the same day is checked out as a day use, with or without a Day use plan. Items 2 and 3 do not depend on each other and can ship first. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use), [Day use: price override](12-reservations/10-day-use.md#price-override).
-
-- [x] `docs(front-desk): plan check out as day use` — the Check out as day use section, the day use price override, the Day use tab always shown, and these items.
-- [x] `feat(catalogues): show the Day use taxes tab without a plan` — the Day use tab and its routes for every property (no 404 without a Day use plan), and `SeedDayUseTaxes` at the first Day use plan only when DAY_USE has no taxes yet. Docs: [Day use tab](06-catalogues/06-room-revenue.md#day-use-tab).
-- [x] `feat(reservations): override the day use price` — `unit_day_uses.override_amount` with a check that `amount` equals it, `AddDayUseUnit` takes `override_total` and a reason as `AddUnit` does (no more `override_not_allowed`), ✎ on the day use line of the booking form and the Add unit Sheet, Reinstate keeps an override. Docs: [Price override](12-reservations/10-day-use.md#price-override).
-- [x] `feat(front-desk): check out an overnight unit as day use` — `CheckOutAsDayUse` with its refusals (`not_same_day`, `past_midnight`, the midnight limit), the `check-out-as-day-use` and `.preview` routes and request, `DayUseChargeQuote` skipping inclusions of a plan that is not Day use, the `reservation.unit_checked_out_as_day_use` log; tests with a plan, without a plan, an override, past midnight, the midnight limit, and a refused refund that writes nothing. Needs: override the day use price. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
-- [x] `feat(front-desk): add the check out as day use dialog` — the `UnitActionMenu` item where `EarlyCheckOutRule` returns `arrived_today`, the Dialog on the preview (times, price with ✎ or amount, the taxes note, folio after check-out, refund), the past midnight note, and the row action on the group check-out page. Needs: check out an overnight unit as day use. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
-
-### Day use enhancement
-
-Staff feedback: a 02:00 to 12:00 walk-in entered at 15:00 could not be booked, and day use needed a Day use plan. Item 2 can ship at any time. Items 6 and 7 do not depend on each other. Docs: [Entered price](12-reservations/10-day-use.md#entered-price), [Entered after it started](12-reservations/10-day-use.md#entered-after-it-started).
-
-- [x] `docs(reservations): plan day use without a plan and past day use` — the Entered price and Entered after it started sections, the Set up decision (a Day use plan is optional), the optional reason in Check out as day use, the walk-in, past stay, rate plan and meal notes, and these items.
-- [x] `fix(meals): leave day use units out of meal counts` — `MealCounts` skips day use units; a test with a day use unit on a per-night plan with breakfast. Docs: [Meal entitlements](07-meals/02-meal-entitlements.md).
-- [x] `feat(reservations): book day use with an entered price` — `AddDayUseUnit` takes the room type's first per-night plan (Per room or Per guest, front desk, by `position`) with a required amount (`amount_required`) and skips `DayUseOffers::refusal`, the hour price and the restriction check; `rate_plan_not_linked` for a plan not on the room type; `hasDayUse` from active room types sold per room; the "Entered price" plan label in the unit data; `CheckOutAsDayUse` drops `override_reason_required`. Docs: [Entered price](12-reservations/10-day-use.md#entered-price).
-- [x] `feat(reservations): add the enter price option to the booking form` — the Stay type switch without a Day use plan, **No plan · enter price** in the Plan select (disabled with its reason when the room type has no per-night plan), the Price field with a placeholder, the Add unit Sheet, the switch to entered price with its note when the plan does not sell the start or hours. Needs: book day use with an entered price. Docs: [Entered price](12-reservations/10-day-use.md#entered-price).
-- [x] `feat(front-desk): book a walk-in day use that started today` — Walk-in day use with Start earlier today and Guest status Still in house, `CheckInUnit` with `asOf` at Start, the plan window and hours not checked, `night_audit_pending` when the calendar date is past the business date. Needs: add the enter price option to the booking form. Docs: [Walk-in, today](12-reservations/10-day-use.md#walk-in-today).
-- [x] `feat(front-desk): check out a walk-in day use on save` — Already checked out on Walk-in: End (after Start, not after now), Room charges and tax ticked and locked, the deposit hidden, `CheckOutUnit` with `asOf` at End, `balance_not_settled`, the card rule with `front-desk.check-in-without-card`, the room marked Dirty. Needs: book a walk-in day use that started today. Docs: [Walk-in, today](12-reservations/10-day-use.md#walk-in-today).
-- [x] `feat(reservations): add day use to past stays` — the Stay type switch on Past stay, Date, Start and End, Already checked out only, the day use path in `CreatePastStay` with `asOf` and `skipBalanceCheck`, the block posted with the date as `service_date`, the Settle dialog. Needs: add the enter price option to the booking form. Docs: [Past stay, a past date](12-reservations/10-day-use.md#past-stay-a-past-date).
-- [x] `docs(front-desk): plan the plan select in check out as day use` — the Plan select, No plan, the Start · Hours · End group and the Charged line in Check out as day use, and these items.
-- [x] `feat(front-desk): pick the plan when checking out as day use` — `CheckOutAsDayUseQuote` quotes every active Day use plan on the room type and picks the first that prices the stay, else No plan; `rate_plan_id` (`rate_plan_not_linked`) and `no_plan` on the request; an explicit plan that cannot price refuses with its quote refusal; No plan keeps `rate_plan_id`; `planOptions`, `perNightPlanName` and `planNote` in the preview; tests for the default, the fallback to No plan, an explicit plan, a refused explicit plan and no Day use plan. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
-- [x] `feat(front-desk): add the plan select and time group to the day use check-out dialog` — the Plan select with disabled plans and their reasons, No plan with "Keeps …", the ⓘ note, the staff choice kept across previews, no select without a Day use plan, `amount_required` shown only after save, "Reason (optional)", the Start · Hours · End input group and the Charged line. Needs: pick the plan when checking out as day use. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
-
-### Sand Bay gaps
-
-Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/2026-11-03-sandbay-gaps-plan.md`.
-
-- [x] `feat(catalogues): add auto add-ons to channel bookings` — `charge_items.auto_add_channels` with its CHECK, the "Also add to channel bookings" switch and badge, `AutoAddOns::forChannelUnit()`, `IngestChannelBooking` adds them to new and added rooms and skips a refused one. Docs: [Charge items](06-catalogues/02-charge-items.md#add-to-every-new-booking), [Add-ons](12-reservations/04-add-ons.md#added-automatically).
-- [x] `feat(rates): take a long-stay amount per guest or per room` — `rate_plan_stay_discounts.per_room`, the Taken off column on PerGuest plans, `StayDiscount` takes the Amount once per room, kept by Copy discounts and the preview. Sand Bay's imported rules stay per guest. Docs: [Long-stay discounts](08-rates/01-rate-plans.md#long-stay-discounts).
-- [x] `feat(folio): let the guest pay collected taxes on company bookings` — `companies.pays_collected_taxes` and the Company pays tourism tax switch, `CollectedTaxPayer`, `PostFolioCharge` `taxFolios`, the tax on the unit folio from `PostNightLines`, `guestTax` Scheduled blocks, Collect now and walk-in totals, `TransferLines`, `ReverseLine` and Change price with a child on another folio. Docs: [Collected taxes](13-folio/03-routing.md#collected-taxes).
-- [x] `feat(reservations): change a unit's guests` — Change on the Guests row, `ChangeGuestsDialog`, `UnitPartyChangePreview`, `ChangeUnitParty` (nights not charged re-quoted, charged nights through Change price when asked, per-guest add-ons rewritten, OTA price kept), `ResyncBoatFares` and `BoatFareAddOns`. Posted per-guest add-ons do not change; staff post the difference. Docs: [Change guests](12-reservations/14-change-guests.md).
-- [x] `feat(rates): limit a rate plan by rooms per booking` — `rate_plans.min_rooms` and `max_rooms` with a CHECK, Rooms per booking on the Details tab, `plansFor()` filters by `roomsInBooking()` keeping the picked plan, `AddUnit` refuses `rooms_below_min` and `rooms_above_max` with the booking's room count from `CreateReservation`; channels skip it. Not built: a warning on a reservation whose room count changed later. Docs: [Rooms per booking](08-rates/01-rate-plans.md#rooms-per-booking).
-- [x] `feat(reports): show the agent, both directions and boats not set on the manifest` — the Agent column (`reservation.bookingSource` now loads in `UnitReportRows`), `direction=both` with `ReportFilters::$bothDirections`, the Boat not set: follow up section with negative row keys. Docs: [Boat manifest](24-boats/03-boat-manifest.md).
-- [x] `feat(boats): add boats and crew to the manifest` — `boats`, `boat_departure_runs`, the Boats tab with `SaveBoat`, the charter charge (`property_settings.charter_charge_item_id`, `SetCharterChargeItem`, added once by `SetBoatTrip` on a Charter trip), the Boats and crew panel on the manifest with `SetBoatDepartureRun`, and the boat and crew in each departure's section title. Docs: [Boats tab](24-boats/01-boat-settings.md#boat-list-tab), [Boats and crew](24-boats/03-boat-manifest.md#boats-and-crew).
-- [x] `feat(reports): add the housekeeping items report` — `charge_items.housekeeping_item` and the Show to housekeeping switch, `ReportKey::HousekeepingItems`, `HousekeepingItemsReport` (Set up, In room, Remove from the nights each item covers), the page and route. Docs: [Housekeeping items](22-reports/03-house-status-and-items.md#housekeeping-items).
-- [x] `feat(reports): add the house status report` — `room_types.print_label` and `rooms.print_label` with their form fields, `ReportKey::HouseStatus`, `HouseStatusReport` (boat time groups, Boat not set, Room move, OCC, Management, EXTRA BED and TL flags, remarks), `HasPrintView` in `ReportPdf` and the grid `pdf/house-status.blade.php`. Docs: [House status](22-reports/03-house-status-and-items.md#house-status).
-- [x] `feat(city-ledger): add the agent payment schedule` — property terms (Settings › Agent payments) and company overrides, `AgentPaymentTerms`, `AgentPaymentSchedule`, `SetReservationPaymentSchedule` from `CreateReservation` and `UpdateReservationCompany`, the reservation deadline columns, the Payment schedule card, the Agent payments due report. Docs: [Agent payment schedule](15-city-ledger/06-agent-payment-schedule.md).
-- [x] `feat(portal): upload a payment proof` — `payment_proofs` with its media file, `PaymentProofStatus`, `UploadPaymentProof` and the portal Payment section, `AcceptPaymentProof` (records the payment) and `RejectPaymentProof` in the reservation summary, Proof received on the schedule. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof).
-- [x] `feat(notifications): remind agents of payment deadlines` — `AgentPaymentReminder` (schedule, reminder, overdue) to the company email and active portal logins, `SendAgentPaymentReminders` with `agent_payment_reminders` so each is sent once, `agent-payments:send-reminders` every 15 minutes. Docs: [Reminders](15-city-ledger/06-agent-payment-schedule.md#reminders).
-
-- [x] `feat(reports): filter boats not set and release overdue agent bookings` — Boat not set on Guest list › Arrivals and Departures (`?no_boat=1`, `ReportFilters::$boatNotSet`, `ReportKey::hasBoatNotSetFilter()`), and Release rooms on overdue rows of Agent payments due (`AgentPaymentDueRow::$overdue`, the Cancel reservation Dialog with a reason). Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list), [Follow-up](15-city-ledger/06-agent-payment-schedule.md#follow-up).
-- [x] `feat(rates): switch a booking to the group rate` — `rate_plans.group_rate_plan_id` (Larger bookings use on the Details tab, validated against the group rate's Min rooms), `groupRateSwitch()` and `switchGroupRates()` on the staff booking form and the agent portal, which also hides plans that do not fit the room count. Docs: [Rooms per booking](08-rates/01-rate-plans.md#rooms-per-booking).
-- [x] `feat(reservations): correct charged add-ons when guests change` — `PostedAddOnAdjustments` and the Extras already charged tick boxes in Change guests (charge the difference, or reverse and charge again; `folio.reverse` for reversals; `skip_add_ons` to do it by hand), OTA Modified revisions sync the guests through `ChangeUnitParty` (`channelRevision`), and OTA infants are children of 0. Docs: [Charged add-ons](12-reservations/14-change-guests.md#charged-add-ons), [Booking ingestion](21-channels/05-booking-ingestion.md).
-
-### Sand Bay feedback 2
-
-Branch `feat/group-unit-actions`. Planned on 2026-11-10: staff could change the price and add add-ons only one unit at a time. A mockup of the All view and the group add-on Dialog in the real theme is signed off before the first feature commit.
-
-- [x] `docs(reservations): plan group price, group add-ons and the units view` — the All and Grouped views, the group add-on, the group price and All lines on the booking form, and these items. Commit `42805569`.
-- [x] `feat(reservations): add the All and Grouped views to the Units tab` — the toggle (`reservations.units-view`), `ReservationUnitRowData` as `unitRows` from `ReservationUnitRows`, `canChangePrice`, the All table with its footer and tick boxes, the `BulkActionBar` (removed in the change price item), mobile cards; an empty override reason is sent as null. The toggle is shared with the Guests tab as `ViewChoiceToggle` and `useViewChoice`. The page query cap is 52 (3 for the rows). Docs: [All and Grouped views](12-reservations/06-reservation-page.md#all-and-grouped-views).
-- [x] `feat(reservations): add an add-on to several units` — `AddGroupAddOn`, `GroupAddOnResult`, `GroupAddOnPreview`, `ReservationAddOnController`, `AddGroupAddOnRequest`, `ReservationRefusals::groupAddOnErrors()`, the two `reservations.add-ons` routes, the Units multi-select with All units, the two-column Dialog with the preview panel. One unit picked still posts the unit route. The Units tab bulk action was removed in the change price item (Sand Bay feedback): the group add-on starts from the Add-ons tab only. Needs: the All and Grouped views. Docs: [Group add-on](12-reservations/04-add-ons.md#group-add-on).
-- [x] `feat(reservations): change the price of several units` — `ChangeGroupNightPrice`, `GroupNightPriceResult`, `GroupNightPricePreview`, `ChangeGroupNightPriceRequest`, `ReservationRefusals::groupNightPriceErrors()`, the two `reservations.night-price` routes on `ReservationNightPriceController`, the two-column Dialog with one line per unit, and its Units select. Feedback: the tick boxes and bulk bar are gone; Change price sits in the All view toolbar left of the hide summary button (`SummaryToggle`, now on the Units tab too), and the Units select is shared with the group add-on as `MultiSelectWithAll`, which also replaces the night tick boxes in the one-unit Change price Dialog (with placeholders). The preview panel is shared as `GroupPreviewPanel`. Needs: the All and Grouped views. Docs: [Change the price of a group](12-reservations/09-change-night-price.md#change-the-price-of-a-group).
-- [x] `feat(reservations): add an add-on to all lines on the booking form` — All lines in the Line select; each line holds a copy tagged with a client-only `shared` id, so the request does not change; a new line gets the copies; errors name the line. UI only, with `booking-lines.test.ts` cases. Docs: [Booking form](12-reservations/05-booking-form.md).
-- [x] `feat(reservations): show boat trips inline on the Units tab` — Sand Bay feedback: the Boat row is one line, "In 06:00 boat ✎ · Out 16:00 boat ✎" (`UnitBoatTripData::$short`: a scheduled boat by the time it leaves, so Boat in does not repeat the arrival time of Stay; the full summary as its tooltip; ✎ icon buttons in place of Change), and the All view shows the boat times under Stay (`ReservationUnitRowData` `boatIn` and `boatOut`, two more queries with Boats on). Pax shows adult and child icons (`PaxCount`, moved from `stay-view/` to `components/pms/`). Docs: [Boat trips](24-boats/02-boat-trips.md#reservation-page).
-
-### Agent bank transfer
-
-Branch `feat/portal-booking-tabs`. Planned on 2026-11-11 after Sand Bay asked how agents pay: the portal booking showed the bill but no bank details, and no form without a schedule. Bank transfer only; Curlec for companies is skipped for now.
-
-- [x] `docs(payments): plan bank accounts and agent bank transfer` — the bank accounts spec, How to pay, the proof form without a schedule, Paid into, and these items. Commit `03e3d3f6`.
-- [x] `feat(catalogues): add property bank accounts` — `property_bank_accounts` with its unique number and SWIFT CHECK, `CreateBankAccount`, `UpdateBankAccount`, `ReorderBankAccounts`, `BankAccountRequest`, the `settings.bank-accounts.*` routes, the Settings › Billing setup › Bank accounts page (Available Switch, arrows, Sheet) and the `banknote` nav icon. Docs: [Bank accounts](06-catalogues/07-bank-accounts.md).
-- [x] `feat(printing): print bank accounts on documents` — the available accounts then Payment notes on the booking summary, the AR invoice and the sample PDF; Payment details renamed Payment notes, with the accounts read only and a link to Bank accounts; `BankAccountLines` and the `pdf.partials.payment-details` partial. Needs: add property bank accounts. Docs: [Documents tab](02-property/05-printing-settings.md#documents-tab).
-- [x] `feat(portal): show how to pay and take proofs without a schedule` — `PortalHowToPay` and `PortalHowToPayData`, How to pay (`BookingHowToPay`, `BankAccountList` with a copy button), the form for every company that pays per booking while Left to pay is above 0, the direct-billing refusal in the controller and its note, `payment_proofs.bank_account_id` with Paid into on proofs and slips, the accounts above the Statements slip form, and Paid into in `PaymentProofReview` and the company Payments tab. Needs: add property bank accounts. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips).
-- [x] `feat(portal): pay a booking or the account from a Pay dialog` — Sand Bay feedback on 11 Nov: one two-column Pay dialog (`PortalPayDialog`) on the booking and on Statements in place of the inline forms; every company can pay a booking, direct billing included; an invoiced booking's proof is a company slip with `payment_proofs.ar_invoice_id`, and accepting it fills that invoice first; the Payments tab without its card border, with Left to pay, Paid and the bill as a table; Statements with Balance, Overdue and Credit tiles and Slips sent; staff review proofs in a table under the folio (View slip, Accept, Reject), with a Review link in the summary card. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips), [Form containers](design-system/05-form-containers.md#sizes).
-
-### Guest CRM stats
-
-A client asked for it: source, last visit, stay frequency, total nights and total spend on each guest, and a nudge to collect email and phone. One branch, `feat/guest-crm-stats`. Docs: [Stay history](11-guests/01-guest-profiles.md#stay-history).
-
-- [x] `docs(guests): plan guest stay history` — the Stay history section, the card hint and these items.
-- [x] `feat(guests): add the guest stay history service` — `GuestStayHistory` (stays, summary and the grouped list subquery), the spend rule through line sources, `GuestStayData` and `GuestStaySummaryData`; tests for the stay statuses, day use, early check-out, primary guest spend, master folio lines, reversals, taxes left out and property scoping.
-- [x] `feat(guests): show stay figures and the Stays tab` — the stay figures on every tab, the contact warning and `guests.stays.index`. Needs: the service.
-- [x] `feat(guests): add stay columns and filters to the guest list` — Last visit, Stays and Spend columns and sorts, the contact warnings, and the Source, Returning and Contact filters. Needs: the service.
-- [x] `feat(registration): ask the guest for a missing email or phone` — "Please fill in." under an empty Optional Email or Phone, with its Malay text.
-- [x] `docs(guests): plan the guest list layout and sorts` — the sorts and the Guest list layout section.
-- [x] `feat(guests): sort the guest list by email, phone and nationality` — the three sorts, nationality by country name, empty values last.
-- [x] `feat(guests): add the column layout to the guest list` — `ReportKey::Guests` with `hasExports()`, export and preview routes limited to keys with exports, `printable` on `ReportLayoutSheet`, the Layout button and the table following the layout, the hidden sort fallback.
-- [x] `feat(guests): add a row menu to the guest list` — the ⋯ menu with Open guest, VIP, Blacklist and Archive by permission; the dialogs made controllable; Archive returns to the previous page.
-- [x] `feat(guests): use the workspace layout on the guest page` — `GuestSummary` in the `Workspace` aside (contact, stay figures, tags) in place of the tiles and the contact banner.
-
-### Tax waivers
-
-Summer Holiday (2026-11-12): Trip.com collects the tourism tax on some bookings and not others, so staff charged guests who had already paid. Branch `feat/tax-waivers`. Docs: [Tax waivers](06-catalogues/03-taxes.md#tax-waivers).
-
-- [x] `feat(folio): waive a tax per room` — `reservation_unit_tax_waivers`, `TaxWaiverReason`, `ReservationUnitTaxWaiver`, `TaxWaivers` (used by `NightChargeQuote` and `DayUseChargeQuote`), `WaiveUnitTax` (reverses posted nights in a manual batch per folio), `RemoveUnitTaxWaiver`, `folio.waive-tax` (Owner, Manager, Front desk, Finance) with a syncing migration, `UnitAction::WaiveTax`, `ReservationUnitTaxWaiverController`, the Taxes paid elsewhere Dialog and the Tax row on the unit panel.
-- [x] `feat(folio): waive a tax for several rooms at once` — `WaiveGroupTax`, `GroupTaxWaiverResult`, `TaxWaiverRefused`, `WaiveGroupTaxRequest`, `reservations.tax-waivers.store`, `canWaiveTax` and the optional `taxWaiverOptions` prop, **Taxes paid elsewhere…** in More with the Rooms select, the fields shared with the one-room Dialog. Needs: waive a tax per room.
-- [x] `feat(folio): show tax waivers on documents and reports` — `TaxWaiverNotes`, `taxNotes` on `BookingSummaryDocument` (print with prices only) and `FolioInvoiceDocument`, the notes in both PDFs, and the **Paid elsewhere** column (`paid_elsewhere`) of the non-national guests report. The e-invoice (`FolioDocumentBuilder`) is unchanged. Needs: waive a tax per room.
-- [x] `feat(catalogues): choose which taxes can be paid elsewhere` — `taxes.can_be_waived` (on for foreign-guest taxes by the migration), the **Can be paid elsewhere** switch and badge, `Tax::waivable()` for both waiver Dialogs, the `tax_not_waivable` refusal, and the menus hidden when no tax can be waived. Needs: waive a tax per room.
 
 ## Next
 
 Needed for go-live.
-
-### 22 Reports
-
-From wastays. Steps 1 to 4 run as two lanes in parallel after the shared commit: lane A is 1 then 4, lane B is 2 then 3. Docs: [Guest list, Daily report and Booking performance](22-reports/02-guest-list-and-daily-report.md).
-
-- [ ] `feat(reports): add booking performance` — from wastays: bookings, room nights, revenue, ADR and lead time grouped by booking date, source, room type (per unit), rate plan or status. Needs: ingest channel bookings, replace the reservation source with booking sources. Docs: [Booking performance](22-reports/02-guest-list-and-daily-report.md#5-booking-performance).
 
 ### 08 Rates
 
@@ -189,7 +41,6 @@ From wastays. Steps 1 to 4 run as two lanes in parallel after the shared commit:
 
 ### 12 Reservations
 
-- [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `perf(reservations): build scheduled rows once on the folio tab` — the `money` prop (`BookingSummary`, added in `6730a71`) runs on every reservation tab and adds about 25 queries. On the folio tab it also builds `ScheduledFolioRows` a second time after `FolioStatement`, so the tab runs 63 queries (was under 30). Build the scheduled rows once in `renderTab`, pass them to `BookingSummary` and `FolioStatement`, and lower the `FolioTabTest` cap again. The card and PDF must keep the same numbers. Plan first: whether `money` should stay on every tab, be deferred with a skeleton, or read lighter totals. Docs: [Reservation page](12-reservations/06-reservation-page.md#header), [Booking summary](12-reservations/08-booking-summary.md).
 
 ## OpenCode
@@ -212,7 +63,7 @@ The rest of the channel work. Docs: [Connections and feature gate](21-channels/0
 
 ### 25 Guest requests
 
-Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.md).
+Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.md). A first version is on `feat/concierge-self-check-in` (with the Concierge page, not merged). Check that branch before starting these items.
 
 - [ ] `feat(guest-requests): add guest requests and their actions` — the `guest_requests` table, `GuestRequestType`, `GuestRequestSource`, `GuestRequestStatus`, `GuestRequestRefusal`, the seven Actions, `OpenGuestRequestCounts`, `GuestRequestMetrics`, and the three `guest-requests.*` permissions with a syncing migration. Docs: [Guest requests](25-guest-requests/01-guest-requests.md).
 - [ ] `feat(guest-requests): add the requests list page` — the routes, `GuestRequestListBuilder`, the list table with the status badge moves, the row Sheet, the New request Sheet and the Requests sidebar item. Needs: guest requests and their actions. Docs: [List page](25-guest-requests/01-guest-requests.md#list-page).
@@ -233,12 +84,6 @@ Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.
 ### Front desk corrections
 
 - [ ] `feat(reservations): void a reservation entered by mistake` — only with nothing posted left and no money left; `voided_at` and a reason on the reservation, units Cancelled with no fee, left out of reports and hidden from the default list. Docs: [Cancel, void and undo](18-front-desk/01-check-in-and-check-out.md#cancel-void-and-undo).
-
-### E-invoicing
-
-Planned after print customer documents (done). Plan first, with the official MyInvois specification; nothing below is decided.
-
-- [ ] `docs(einvoice): plan MyInvois e-invoicing` — what is submitted (folio invoice, AR invoice, credit note, consolidated invoice for walk-in guests), a snapshot of each issued document at close or settle, the buyer fields on guests and companies (TIN, ID, address), a credit note path for a folio invoice, the "Reissue invoice" question for a paid AR invoice, a one-step credit for a paid invoice, and a refund of company credit (there is no AR refund). Needs: print customer documents.
 
 ### Registration and platform
 
@@ -265,269 +110,357 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 ### Commits
 
-| Commit     | Subject                                                                  |
-| ---------- | ------------------------------------------------------------------------ |
-| `5fcc1041` | feat(platform): redirect the root URL to sign-in                         |
-| `43be3133` | feat(onboarding): add the admin onboarding board                         |
-| `5d25baf6` | feat(city-ledger): add unpaid invoices and credit from old PMS           |
-| `7ef82113` | feat(reports): keep migrated lines out of revenue and tax                |
-| `ede9ed0a` | feat(folio): edit a charge line in one dialog                            |
-| `e71b192b` | feat(folio): add third party folios and a Move link in the editor        |
-| `861ba389` | feat(folio): show scheduled lines in the Manual Folio Editor             |
-| `9427fae8` | feat(folio): choose the purpose of a manual payment                      |
-| `fe493834` | refactor(folio): rename the manual folio page to Manual Folio Editor     |
-| `92997de6` | feat(reservations): add old stays for guest history                      |
-| `b62d46a0` | feat(reservations): add migrated stays already checked out               |
-| `c2cd04e4` | feat(reservations): edit old folios and show the old system section      |
-| `98814103` | feat(reservations): copy old folios line by line                         |
-| `ac25d23d` | feat(reservations): add migrated stays with one amount                   |
-| `a1a6ce5f` | feat(payments): record payments from the old system                      |
-| `def7f367` | feat(onboarding): add the migration window                               |
-| `d5ac86b9` | feat(reservations): add past stays already checked out                   |
-| `04edef17` | feat(reservations): add past stays still in house                        |
-| `ace794ee` | feat(folio): split lines and change taxes manually                       |
-| `5463d4ad` | feat(folio): add the manual folio page                                   |
-| `6f23329a` | feat(folio): add the service date to folio lines                         |
-| `2684bce2` | feat(portal): show company statements and details                        |
-| `98476000` | feat(portal): add the booking and statement routes                       |
-| `471ba96b` | feat(portal): add the portal property list and invitations               |
-| `0050f6c3` | fix(portal): verify the email of a property-made login                   |
-| `be98d40c` | feat(portal): add the company portal login                               |
-| `c3c81c59` | feat(reservations): show the booking source badge                        |
-| `27061cf9` | feat(onboarding): add OTA lists to booking sources                       |
-| `6498cf6b` | feat(reservations): replace the reservation source with booking sources  |
-| `072dff9b` | docs(reservations): plan property booking sources                        |
-| `a45b361c` | feat(platform): add the demo seeder                                      |
-| `799ba01b` | docs(platform): move the demo to its own environment                     |
-| `a4c65984` | docs(onboarding): drop test drive and plan the demo properties           |
-| `5d09ab6e` | fix(property): lock the channel of saved OTA list rows                   |
-| `e915018e` | feat(property): manage OTA lists in settings                             |
-| `4ff064e5` | feat(platform): add the OTA lists tab to the admin property page         |
-| `7e9b9e2a` | feat(onboarding): add the channel manager section                        |
-| `689b925a` | feat(channels): add the OTA channels list                                |
-| `d1b7c8ec` | docs(onboarding): split the OTA lists admin tab into its own item        |
-| `72038c19` | docs(onboarding): spec OTA lists, managed channels and settings page     |
-| `94a53c25` | feat(onboarding): add the team section                                   |
-| `31fbb72c` | feat(onboarding): add the check-in essentials section                    |
-| `ea863804` | feat(ui): show the property logo in the staff navbar                     |
-| `1e7c7ca5` | style(pdf): tighten the letterhead logo spacing                          |
-| `b27f7106` | feat(ui): add the command palette                                        |
-| `e39b8170` | feat(onboarding): add the discounts section                              |
-| `bb2042af` | style(staff): float the bulk selection bar                               |
-| `df4955c`  | feat(guests): add bulk selection and guest actions                       |
-| `bb4895c`  | fix(guests): label anonymization as archive                              |
-| `74f7d24`  | style(property): tidy the profile settings layout                        |
-| `7d06bdb5` | feat(platform): split settings into tabs with selection cards            |
-| `071e4012` | style(ui): fix the staff shell and add the workspace row                 |
-| `e0cbd31d` | style(ui): add the house icon to support sidebars                        |
-| `0a17a885` | chore(ui): remove the unused Laravel favicon                             |
-| `3442f712` | feat(ui): add a three-state theme shortcut                               |
-| `75374363` | style(ui): adapt the user menu to sidebar placement                      |
-| `8422e75f` | feat(ui): give account pages a separate sidebar                          |
-| `66be4827` | feat(ui): improve pagination controls and page jump                      |
-| `a23cd3b`  | chore(ui): block search indexing                                         |
-| `313e988`  | style(ui): replace the app logo with the estatell wordmark               |
-| `974ef88`  | feat(init): initializes the docs and repo configuration                  |
-| `ec4f3db`  | chore(ai): commit Boost guidelines and agent MCP config                  |
-| `7e9d13e`  | ci(tests): add Postgres and Redis services                               |
-| `56c821b`  | feat(deps): add approved Composer packages and R2 disk                   |
-| `f2766ea`  | feat(types): generate TypeScript types from enums and data classes       |
-| `1be62c7`  | feat(deps): add table, virtual, date, signature and confetti packages    |
-| `661ae06`  | docs(setup): record package versions, media storage and deploy env       |
-| `f6d3751`  | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4                |
-| `91dfcde`  | feat(auth): lower production minimum password length to 8                |
-| `d87fde1`  | feat(platform): add users.is_admin, admin gate and admin seeder          |
-| `eb22aec`  | feat(platform): redirect admins to /admin after login                    |
-| `66a6b8d`  | feat(platform): add admin.2fa middleware and two-factor banner           |
-| `03993d1`  | feat(platform): add admin layout and platform settings                   |
-| `9133cd9`  | feat(property): add properties and link staff users to a property        |
-| `0eb10a4`  | fix(platform): cache platform settings as raw attributes                 |
-| `25d0639`  | feat(property): add property routes and access middleware                |
-| `8167eb1`  | feat(platform): add admin property list and detail pages                 |
-| `52a336f`  | fix(platform): keep the admin sidebar on account pages                   |
-| `252aab9`  | feat(platform): add per-property feature flags with admin switches       |
-| `4f53837`  | feat(platform): give property tabs their own URLs and icons              |
-| `e28f620`  | fix(ui): pad select menus and let the filter search fill the row         |
-| `6383380`  | feat(platform): suspend and reactivate properties from admin             |
-| `ef4ab1e`  | feat(property): add property settings                                    |
-| `750ee76`  | feat(ui): build staff sidebar contexts from PHP navigation               |
-| `7574bec`  | feat(staff): add default roles and permission enum                       |
-| `d6f3393`  | feat(staff): make the registering owner the Owner role                   |
-| `ccc3e9c`  | feat(staff): invite staff and accept invitations                         |
-| `aa552df`  | feat(staff): deactivate and reactivate staff                             |
-| `3c1bee4`  | feat(staff): manage roles and assign them to staff                       |
-| `be237ae`  | feat(staff): show roles as one permission matrix                         |
-| `a168d56`  | feat(platform): show the owner on admin property pages                   |
-| `e010ed4`  | feat(property): seed property defaults from type and country             |
-| `836b8a8`  | feat(onboarding): let admins create a property for an owner              |
-| `e920679`  | feat(notifications): add notification types and channels                 |
-| `25f0145`  | feat(notifications): add property and user notification preferences      |
-| `6d787fe`  | feat(rooms): add room types                                              |
-| `ac1db1c`  | feat(rooms): add rooms, room groups and number generator                 |
-| `3cb75b7`  | feat(rooms): add beds for dorm room types                                |
-| `c10cb2c`  | feat(catalogues): add transaction codes                                  |
-| `0d586aa`  | feat(catalogues): add charge items                                       |
-| `7e015a9`  | feat(catalogues): add quick charge item availability toggle              |
-| `96ac9d4`  | feat(catalogues): add taxes and tax calculator                           |
-| `5f6e17a`  | feat(catalogues): add payment methods                                    |
-| `cc78e80`  | feat(catalogues): own codes per charge item and add room revenue taxes   |
-| `fda168b`  | feat(catalogues): add discounts                                          |
-| `d1e2d90`  | feat(rooms): add room blocks and room statuses                           |
-| `9440d01`  | feat(meals): add meal periods                                            |
-| `7eb53e8`  | feat(meals): add meal entitlements                                       |
-| `3fb3f88`  | feat(property): add age groups                                           |
-| `3cd50e5`  | feat(settings): move age groups into settings tabs                       |
-| `b0a0989`  | feat(rates): add rate plans                                              |
-| `f15004c`  | feat(rates): add daily rates and restrictions                            |
-| `f562fb8`  | feat(rates): add pricing strategies and rate quotes                      |
-| `3851160`  | feat(rates): add long-stay discounts                                     |
-| `037b4c6`  | feat(rates): preview long-stay discounts per room type                   |
-| `c12721b`  | feat(rates): per-guest auto fill and per-person price hint               |
-| `855265d`  | feat(rates): add derived rate plans                                      |
-| `a9499aa`  | feat(rates): copy parent discounts onto a derived plan                   |
-| `15fd738`  | feat(rates): save copied parent discounts at once                        |
-| `4f982f2`  | feat(rates): add the read-only rate calendar                             |
-| `c87f55a`  | fix(ui): fit the date grid to the window and stop bounce                 |
-| `8d5dcec`  | feat(rates): choose the rate calendar date range                         |
-| `ae8dbdf`  | fix(rates): polish the rate calendar toolbar and grid                    |
-| `dc55333`  | feat(rates): collapse room type groups in the rate calendar              |
-| `a5135ef`  | feat(rates): edit rates from the calendar                                |
-| `b99b3cf`  | feat(rates): bulk edit rates and restrictions                            |
-| `9a098bb`  | feat(packages): add inclusions                                           |
-| `1e841be`  | feat(packages): add package prices                                       |
-| `8fd1dce`  | feat(packages): add the package pricing strategy                         |
-| `9dcfa46`  | feat(availability): add the availability service                         |
-| `e932e92`  | feat(rates): show package prices and inclusions in the rate calendar     |
-| `bada335`  | feat(rates): add availability, inclusions and tabs to the rate calendar  |
-| `5947b91`  | feat(rates): redesign the rate plans list with filters and badges        |
-| `7ddb3b7`  | feat(meals): move meal periods into the property details tabs            |
-| `0efcc0b`  | feat(guests): add guest profiles                                         |
-| `b5bda3b`  | fix(guests): use a searchable country picker in the guest form           |
-| `75dcd8e`  | fix(guests): add a placeholder to every guest form field                 |
-| `fad6437`  | feat(guests): pick and create guest tags in a combobox                   |
-| `37a2ca9`  | feat(guests): add identity documents                                     |
-| `77ef278`  | fix(guests): stay on the open tab after a note, VIP or blacklist change  |
-| `bc7d24a`  | feat(guests): match and merge guests                                     |
-| `a8768df`  | feat(guests): anonymize guests and purge expired ID scans                |
-| `962f86b`  | feat(guests): rework guest pages with sheets, inline edit and icon flags |
-| `ccb116c`  | feat(night-audit): add business dates and document numbers               |
-| `f1cef04`  | docs(reservations): plan the booking form layout, rooms and guests       |
-| `907d4be`  | fix(night-audit): show the audit state above the business date           |
-| `f609f48`  | feat(reservations): add reservation, unit and status model               |
-| `a1ab0c8`  | docs(reservations): re-scope group bookings to the creation backend      |
-| `48b3fa6`  | docs(reservations): plan the reservations list and reservation page      |
-| `f840560`  | docs(reservations): add status tabs, card view and room box rules        |
-| `e1af596`  | docs(auth): plan session hardening and staff temp passwords              |
-| `81687e6`  | feat(auth): end sessions when the password changes                       |
-| `a9a1ac7`  | feat(staff): add staff with a temp password and force a new one          |
-| `c62ea70`  | feat(staff): bulk add staff from a grid or CSV/XLSX file                 |
-| `3004870`  | feat(staff): export temp passwords as CSV, XLSX or PDF                   |
-| `0b7b2c7`  | docs(portal): rename agent portal to company portal                      |
-| `ef33875`  | refactor(reservations): rename the Agent source to Portal                |
-| `be882e2`  | docs(city-ledger): settle company rules, permissions and pages           |
-| `c28c685`  | feat(city-ledger): add companies                                         |
-| `35f8d23`  | docs(registration): plan the registration card page and field layout     |
-| `0fc898c`  | feat(registration): add registration card fields                         |
-| `6e90572`  | docs(front-desk): plan tax and deposit collection at check-in            |
-| `d836395`  | feat(ui): add FormOverlay                                                |
-| `51c4a2a`  | fix(reservations): attach a guest from a Dialog                          |
-| `1d07769`  | docs(ui): plan the overlay migration in three commits                    |
-| `83676f1`  | refactor(ui): move form overlay helpers to the components root           |
-| `86a313f`  | refactor(city-ledger): move overlays onto FormOverlay                    |
-| `5814211`  | refactor(folio): move overlays onto FormOverlay                          |
-| `3e33cd8`  | feat(front-desk): cancel, no-show and reinstate units                    |
-| `e82a392`  | fix(front-desk): release rooms on cancel and no-show                     |
-| `065e49f`  | feat(front-desk): add unit actions to the reservation page               |
-| `753e731`  | feat(front-desk): check in and check out from the reservation page       |
-| `fc33bf4`  | feat(night-audit): run the night audit                                   |
-| `03ff0e7`  | feat(night-audit): snapshot daily statistics                             |
-| `656d1ff`  | feat(night-audit): notify the audit result                               |
-| `bb4377e`  | docs(reports): plan printing settings and core reports                   |
-| `0e6cbc2`  | docs(property): plan the profile tab and printing pages                  |
-| `4d68144`  | feat(property): add printing settings and the logo                       |
-| `fb54dd7`  | feat(property): add the profile tab and printing pages                   |
-| `0e870da`  | feat(property): add PDF font styles                                      |
-| `9e308f0`  | docs(reports): settle arrivals columns and report paging                 |
-| `90ad388`  | feat(reports): add the report registry and the arrivals report           |
-| `c913465`  | docs(reports): settle the layout prop, sort fallback and report PDF      |
-| `86a0a72`  | feat(reports): add report layouts                                        |
-| `1057a47`  | docs(reports): settle export sort, typed values and downloads            |
-| `a99280e`  | feat(reports): export selected rows as PDF, CSV or Excel                 |
-| `7b38e32`  | docs(printing): plan the line grouper and amount in words                |
-| `696ebf3`  | feat(printing): add document switches                                    |
-| `2752595`  | fix(printing): merge only nightly rows                                   |
-| `e9e5f21`  | docs(printing): plan the Room column for ungrouped lines                 |
-| `20a520e`  | fix(printing): show a room column on ungrouped lines                     |
-| `9eab5a1`  | docs(reservations): plan how the booking summary builds its rows         |
-| `d874515`  | feat(reservations): print a booking summary                              |
-| `d319aa0`  | docs(reservations): plan no-shows on the booking summary                 |
-| `e77527d`  | fix(reservations): show no-shows on the booking summary                  |
-| `e9bffe7`  | docs(folio): plan the folio invoice rows, tax numbers and rooms          |
-| `cf28d4b`  | feat(folio): print a folio invoice                                       |
-| `53b4cb8`  | docs(city-ledger): plan the AR invoice lines and amount due              |
-| `f05023a`  | feat(city-ledger): apply document switches to the AR invoice             |
-| `a9cc169`  | docs(city-ledger): keep Amount due as the last AR invoice line           |
-| `5280756`  | docs(city-ledger): plan the credit note flow back from a reversal        |
-| `ccf1036`  | fix(city-ledger): explain how to credit a paid invoice                   |
-| `aa2e991`  | docs(folio): plan links from a settled folio to its credit note          |
-| `6feaa1c`  | fix(folio): link a settled folio to its invoice and credit note          |
-| `22ab7ab`  | fix(folio): show the invoice links on a settled folio                    |
-| `aa036bb`  | docs(folio): plan issuing a credit note from the folio page              |
-| `7b2daf1`  | feat(folio): issue a credit note from the folio page                     |
-| `fac3c43`  | docs(folio): plan the invoice dropdown and void and reopen               |
-| `d9cbbd8`  | feat(folio): put the invoice actions in one dropdown                     |
-| `e9d6c4d`  | fix(folio): name the credit note that blocks void and reopen             |
-| `37daf98`  | docs(folio): plan posting a charge on the chosen folio                   |
-| `5b74b7b`  | fix(folio): post a charge on the folio staff choose                      |
-| `f779c99`  | docs(city-ledger): plan settling a folio again after a void              |
-| `8b27888`  | fix(city-ledger): settle a folio again after void and reopen             |
-| `1bebb43`  | docs(folio): plan clearing void blocks from the folio tab                |
-| `9df0a70`  | fix(folio): clear void blocks from the folio tab                         |
-| `2d33e60`  | docs(city-ledger): explain credit note versus void and reopen            |
-| `be0ebcb`  | docs(checklist): move group check-out after the folio fixes              |
-| `35a7b23`  | feat(reservations): add a guest after check-out                          |
-| `1f79ce3`  | docs(folio): plan move charges in two commits                            |
-| `9a710ec`  | feat(folio): move charges between folios on one page                     |
-| `54448ba`  | feat(folio): add the move charges page                                   |
-| `d4d31ee`  | docs(front-desk): count every unposted night before check-out            |
-| `832a1ab`  | docs(front-desk): refund held payments when a group moves charges        |
-| `0bb4d76`  | feat(front-desk): check out a group in one save                          |
-| `afe6704`  | feat(front-desk): check out a group on one page                          |
-| `60fa865`  | docs(front-desk): tidy the group check-out page design                   |
-| `30e2689`  | fix(front-desk): tidy the group check-out page                           |
-| `65f40d2`  | feat(front-desk): print the group check-out receipts                     |
-| `b9a4572`  | docs(reservations): plan printing every receipt of a reservation         |
-| `f03d769`  | feat(reservations): print every receipt of a reservation                 |
-| `9f07db0`  | docs(reservations): settle the change night price build decisions        |
-| `1e374b2`  | feat(reservations): change the price of booked nights                    |
-| `2b32138`  | docs(reservations): settle the day use build decisions                   |
-| `d9c193e`  | feat(rates): add day use rate plans                                      |
-| `3d9b137`  | docs(reservations): split day use booking into backend and form          |
-| `f4fe501`  | feat(reservations): book day use rooms and prices                        |
-| `c3ad864`  | feat(reservations): add day use to the booking form                      |
-| `ce76a2d`  | docs(reservations): settle the day use front desk build decisions        |
-| `15dafac`  | feat(front-desk): check day use in and out                               |
-| `84593f5`  | feat(front-desk): add day use to the unit menu                           |
-| `95542c2`  | docs(reports): settle the day use reports build decisions                |
-| `c800e50`  | feat(reports): show day use apart                                        |
-| `3e07588`  | refactor(catalogues): edit charge items on their own page                |
-| `0b17555`  | fix(catalogues): lay the charge item page out in two columns             |
-| `7747f2a`  | fix(catalogues): give charge item taxes their own row                    |
-| `af7ad10`  | feat(catalogues): price children on per-guest charge items               |
-| `6582cd4`  | fix(front-desk): keep child price rows when a stay is extended           |
-| `d4536cc`  | feat(reservations): add charge items to every new booking                |
-| `ad1b6d2`  | fix(night-audit): fix the price of a stuck package night                 |
-| `f18d2ae`  | feat(front-desk): cancel a whole reservation                             |
-| `15689a3`  | fix(front-desk): hide early check-out for a unit that arrived today      |
-| `b86afbd`  | docs(front-desk): plan undo check-in and undo check-out                  |
-| `f2a9eb4`  | feat(front-desk): undo a check-in made today                             |
-| `acbdaf52` | docs(commissions): add the commission fees spec and checklist items      |
-| `5cebd25f` | feat(commissions): add commission services, rates and the ledger         |
-| `5aaaa9ee` | feat(commissions): record booking engine money and commission            |
-| `ff6a8e5f` | feat(commissions): record channel manager commission                     |
-| `86feac8e` | feat(commissions): generate payout vouchers on the 16th                  |
-| `e5c2c1b4` | feat(commissions): approve, pay and print payout vouchers                |
-| `8d38b2d3` | feat(commissions): add the platform commissions dashboard                |
+| Commit     | Subject                                                                              |
+| ---------- | ------------------------------------------------------------------------------------ |
+| `5fcc1041` | feat(platform): redirect the root URL to sign-in                                     |
+| `43be3133` | feat(onboarding): add the admin onboarding board                                     |
+| `5d25baf6` | feat(city-ledger): add unpaid invoices and credit from old PMS                       |
+| `7ef82113` | feat(reports): keep migrated lines out of revenue and tax                            |
+| `ede9ed0a` | feat(folio): edit a charge line in one dialog                                        |
+| `e71b192b` | feat(folio): add third party folios and a Move link in the editor                    |
+| `861ba389` | feat(folio): show scheduled lines in the Manual Folio Editor                         |
+| `9427fae8` | feat(folio): choose the purpose of a manual payment                                  |
+| `fe493834` | refactor(folio): rename the manual folio page to Manual Folio Editor                 |
+| `92997de6` | feat(reservations): add old stays for guest history                                  |
+| `b62d46a0` | feat(reservations): add migrated stays already checked out                           |
+| `c2cd04e4` | feat(reservations): edit old folios and show the old system section                  |
+| `98814103` | feat(reservations): copy old folios line by line                                     |
+| `ac25d23d` | feat(reservations): add migrated stays with one amount                               |
+| `a1a6ce5f` | feat(payments): record payments from the old system                                  |
+| `def7f367` | feat(onboarding): add the migration window                                           |
+| `d5ac86b9` | feat(reservations): add past stays already checked out                               |
+| `04edef17` | feat(reservations): add past stays still in house                                    |
+| `ace794ee` | feat(folio): split lines and change taxes manually                                   |
+| `5463d4ad` | feat(folio): add the manual folio page                                               |
+| `6f23329a` | feat(folio): add the service date to folio lines                                     |
+| `2684bce2` | feat(portal): show company statements and details                                    |
+| `98476000` | feat(portal): add the booking and statement routes                                   |
+| `471ba96b` | feat(portal): add the portal property list and invitations                           |
+| `0050f6c3` | fix(portal): verify the email of a property-made login                               |
+| `be98d40c` | feat(portal): add the company portal login                                           |
+| `c3c81c59` | feat(reservations): show the booking source badge                                    |
+| `27061cf9` | feat(onboarding): add OTA lists to booking sources                                   |
+| `6498cf6b` | feat(reservations): replace the reservation source with booking sources              |
+| `072dff9b` | docs(reservations): plan property booking sources                                    |
+| `a45b361c` | feat(platform): add the demo seeder                                                  |
+| `799ba01b` | docs(platform): move the demo to its own environment                                 |
+| `a4c65984` | docs(onboarding): drop test drive and plan the demo properties                       |
+| `5d09ab6e` | fix(property): lock the channel of saved OTA list rows                               |
+| `e915018e` | feat(property): manage OTA lists in settings                                         |
+| `4ff064e5` | feat(platform): add the OTA lists tab to the admin property page                     |
+| `7e9b9e2a` | feat(onboarding): add the channel manager section                                    |
+| `689b925a` | feat(channels): add the OTA channels list                                            |
+| `d1b7c8ec` | docs(onboarding): split the OTA lists admin tab into its own item                    |
+| `72038c19` | docs(onboarding): spec OTA lists, managed channels and settings page                 |
+| `94a53c25` | feat(onboarding): add the team section                                               |
+| `31fbb72c` | feat(onboarding): add the check-in essentials section                                |
+| `ea863804` | feat(ui): show the property logo in the staff navbar                                 |
+| `1e7c7ca5` | style(pdf): tighten the letterhead logo spacing                                      |
+| `b27f7106` | feat(ui): add the command palette                                                    |
+| `e39b8170` | feat(onboarding): add the discounts section                                          |
+| `bb2042af` | style(staff): float the bulk selection bar                                           |
+| `df4955c`  | feat(guests): add bulk selection and guest actions                                   |
+| `bb4895c`  | fix(guests): label anonymization as archive                                          |
+| `74f7d24`  | style(property): tidy the profile settings layout                                    |
+| `7d06bdb5` | feat(platform): split settings into tabs with selection cards                        |
+| `071e4012` | style(ui): fix the staff shell and add the workspace row                             |
+| `e0cbd31d` | style(ui): add the house icon to support sidebars                                    |
+| `0a17a885` | chore(ui): remove the unused Laravel favicon                                         |
+| `3442f712` | feat(ui): add a three-state theme shortcut                                           |
+| `75374363` | style(ui): adapt the user menu to sidebar placement                                  |
+| `8422e75f` | feat(ui): give account pages a separate sidebar                                      |
+| `66be4827` | feat(ui): improve pagination controls and page jump                                  |
+| `a23cd3b`  | chore(ui): block search indexing                                                     |
+| `313e988`  | style(ui): replace the app logo with the estatell wordmark                           |
+| `974ef88`  | feat(init): initializes the docs and repo configuration                              |
+| `ec4f3db`  | chore(ai): commit Boost guidelines and agent MCP config                              |
+| `7e9d13e`  | ci(tests): add Postgres and Redis services                                           |
+| `56c821b`  | feat(deps): add approved Composer packages and R2 disk                               |
+| `f2766ea`  | feat(types): generate TypeScript types from enums and data classes                   |
+| `1be62c7`  | feat(deps): add table, virtual, date, signature and confetti packages                |
+| `661ae06`  | docs(setup): record package versions, media storage and deploy env                   |
+| `f6d3751`  | feat(ui): switch shadcn to Base UI with preset b3ZzDdiJy4                            |
+| `91dfcde`  | feat(auth): lower production minimum password length to 8                            |
+| `d87fde1`  | feat(platform): add users.is_admin, admin gate and admin seeder                      |
+| `eb22aec`  | feat(platform): redirect admins to /admin after login                                |
+| `66a6b8d`  | feat(platform): add admin.2fa middleware and two-factor banner                       |
+| `03993d1`  | feat(platform): add admin layout and platform settings                               |
+| `9133cd9`  | feat(property): add properties and link staff users to a property                    |
+| `0eb10a4`  | fix(platform): cache platform settings as raw attributes                             |
+| `25d0639`  | feat(property): add property routes and access middleware                            |
+| `8167eb1`  | feat(platform): add admin property list and detail pages                             |
+| `52a336f`  | fix(platform): keep the admin sidebar on account pages                               |
+| `252aab9`  | feat(platform): add per-property feature flags with admin switches                   |
+| `4f53837`  | feat(platform): give property tabs their own URLs and icons                          |
+| `e28f620`  | fix(ui): pad select menus and let the filter search fill the row                     |
+| `6383380`  | feat(platform): suspend and reactivate properties from admin                         |
+| `ef4ab1e`  | feat(property): add property settings                                                |
+| `750ee76`  | feat(ui): build staff sidebar contexts from PHP navigation                           |
+| `7574bec`  | feat(staff): add default roles and permission enum                                   |
+| `d6f3393`  | feat(staff): make the registering owner the Owner role                               |
+| `ccc3e9c`  | feat(staff): invite staff and accept invitations                                     |
+| `aa552df`  | feat(staff): deactivate and reactivate staff                                         |
+| `3c1bee4`  | feat(staff): manage roles and assign them to staff                                   |
+| `be237ae`  | feat(staff): show roles as one permission matrix                                     |
+| `a168d56`  | feat(platform): show the owner on admin property pages                               |
+| `e010ed4`  | feat(property): seed property defaults from type and country                         |
+| `836b8a8`  | feat(onboarding): let admins create a property for an owner                          |
+| `e920679`  | feat(notifications): add notification types and channels                             |
+| `25f0145`  | feat(notifications): add property and user notification preferences                  |
+| `6d787fe`  | feat(rooms): add room types                                                          |
+| `ac1db1c`  | feat(rooms): add rooms, room groups and number generator                             |
+| `3cb75b7`  | feat(rooms): add beds for dorm room types                                            |
+| `c10cb2c`  | feat(catalogues): add transaction codes                                              |
+| `0d586aa`  | feat(catalogues): add charge items                                                   |
+| `7e015a9`  | feat(catalogues): add quick charge item availability toggle                          |
+| `96ac9d4`  | feat(catalogues): add taxes and tax calculator                                       |
+| `5f6e17a`  | feat(catalogues): add payment methods                                                |
+| `cc78e80`  | feat(catalogues): own codes per charge item and add room revenue taxes               |
+| `fda168b`  | feat(catalogues): add discounts                                                      |
+| `d1e2d90`  | feat(rooms): add room blocks and room statuses                                       |
+| `9440d01`  | feat(meals): add meal periods                                                        |
+| `7eb53e8`  | feat(meals): add meal entitlements                                                   |
+| `3fb3f88`  | feat(property): add age groups                                                       |
+| `3cd50e5`  | feat(settings): move age groups into settings tabs                                   |
+| `b0a0989`  | feat(rates): add rate plans                                                          |
+| `f15004c`  | feat(rates): add daily rates and restrictions                                        |
+| `f562fb8`  | feat(rates): add pricing strategies and rate quotes                                  |
+| `3851160`  | feat(rates): add long-stay discounts                                                 |
+| `037b4c6`  | feat(rates): preview long-stay discounts per room type                               |
+| `c12721b`  | feat(rates): per-guest auto fill and per-person price hint                           |
+| `855265d`  | feat(rates): add derived rate plans                                                  |
+| `a9499aa`  | feat(rates): copy parent discounts onto a derived plan                               |
+| `15fd738`  | feat(rates): save copied parent discounts at once                                    |
+| `4f982f2`  | feat(rates): add the read-only rate calendar                                         |
+| `c87f55a`  | fix(ui): fit the date grid to the window and stop bounce                             |
+| `8d5dcec`  | feat(rates): choose the rate calendar date range                                     |
+| `ae8dbdf`  | fix(rates): polish the rate calendar toolbar and grid                                |
+| `dc55333`  | feat(rates): collapse room type groups in the rate calendar                          |
+| `a5135ef`  | feat(rates): edit rates from the calendar                                            |
+| `b99b3cf`  | feat(rates): bulk edit rates and restrictions                                        |
+| `9a098bb`  | feat(packages): add inclusions                                                       |
+| `1e841be`  | feat(packages): add package prices                                                   |
+| `8fd1dce`  | feat(packages): add the package pricing strategy                                     |
+| `9dcfa46`  | feat(availability): add the availability service                                     |
+| `e932e92`  | feat(rates): show package prices and inclusions in the rate calendar                 |
+| `bada335`  | feat(rates): add availability, inclusions and tabs to the rate calendar              |
+| `5947b91`  | feat(rates): redesign the rate plans list with filters and badges                    |
+| `7ddb3b7`  | feat(meals): move meal periods into the property details tabs                        |
+| `0efcc0b`  | feat(guests): add guest profiles                                                     |
+| `b5bda3b`  | fix(guests): use a searchable country picker in the guest form                       |
+| `75dcd8e`  | fix(guests): add a placeholder to every guest form field                             |
+| `fad6437`  | feat(guests): pick and create guest tags in a combobox                               |
+| `37a2ca9`  | feat(guests): add identity documents                                                 |
+| `77ef278`  | fix(guests): stay on the open tab after a note, VIP or blacklist change              |
+| `bc7d24a`  | feat(guests): match and merge guests                                                 |
+| `a8768df`  | feat(guests): anonymize guests and purge expired ID scans                            |
+| `962f86b`  | feat(guests): rework guest pages with sheets, inline edit and icon flags             |
+| `ccb116c`  | feat(night-audit): add business dates and document numbers                           |
+| `f1cef04`  | docs(reservations): plan the booking form layout, rooms and guests                   |
+| `907d4be`  | fix(night-audit): show the audit state above the business date                       |
+| `f609f48`  | feat(reservations): add reservation, unit and status model                           |
+| `a1ab0c8`  | docs(reservations): re-scope group bookings to the creation backend                  |
+| `48b3fa6`  | docs(reservations): plan the reservations list and reservation page                  |
+| `f840560`  | docs(reservations): add status tabs, card view and room box rules                    |
+| `e1af596`  | docs(auth): plan session hardening and staff temp passwords                          |
+| `81687e6`  | feat(auth): end sessions when the password changes                                   |
+| `a9a1ac7`  | feat(staff): add staff with a temp password and force a new one                      |
+| `c62ea70`  | feat(staff): bulk add staff from a grid or CSV/XLSX file                             |
+| `3004870`  | feat(staff): export temp passwords as CSV, XLSX or PDF                               |
+| `0b7b2c7`  | docs(portal): rename agent portal to company portal                                  |
+| `ef33875`  | refactor(reservations): rename the Agent source to Portal                            |
+| `be882e2`  | docs(city-ledger): settle company rules, permissions and pages                       |
+| `c28c685`  | feat(city-ledger): add companies                                                     |
+| `35f8d23`  | docs(registration): plan the registration card page and field layout                 |
+| `0fc898c`  | feat(registration): add registration card fields                                     |
+| `6e90572`  | docs(front-desk): plan tax and deposit collection at check-in                        |
+| `d836395`  | feat(ui): add FormOverlay                                                            |
+| `51c4a2a`  | fix(reservations): attach a guest from a Dialog                                      |
+| `1d07769`  | docs(ui): plan the overlay migration in three commits                                |
+| `83676f1`  | refactor(ui): move form overlay helpers to the components root                       |
+| `86a313f`  | refactor(city-ledger): move overlays onto FormOverlay                                |
+| `5814211`  | refactor(folio): move overlays onto FormOverlay                                      |
+| `3e33cd8`  | feat(front-desk): cancel, no-show and reinstate units                                |
+| `e82a392`  | fix(front-desk): release rooms on cancel and no-show                                 |
+| `065e49f`  | feat(front-desk): add unit actions to the reservation page                           |
+| `753e731`  | feat(front-desk): check in and check out from the reservation page                   |
+| `fc33bf4`  | feat(night-audit): run the night audit                                               |
+| `03ff0e7`  | feat(night-audit): snapshot daily statistics                                         |
+| `656d1ff`  | feat(night-audit): notify the audit result                                           |
+| `bb4377e`  | docs(reports): plan printing settings and core reports                               |
+| `0e6cbc2`  | docs(property): plan the profile tab and printing pages                              |
+| `4d68144`  | feat(property): add printing settings and the logo                                   |
+| `fb54dd7`  | feat(property): add the profile tab and printing pages                               |
+| `0e870da`  | feat(property): add PDF font styles                                                  |
+| `9e308f0`  | docs(reports): settle arrivals columns and report paging                             |
+| `90ad388`  | feat(reports): add the report registry and the arrivals report                       |
+| `c913465`  | docs(reports): settle the layout prop, sort fallback and report PDF                  |
+| `86a0a72`  | feat(reports): add report layouts                                                    |
+| `1057a47`  | docs(reports): settle export sort, typed values and downloads                        |
+| `a99280e`  | feat(reports): export selected rows as PDF, CSV or Excel                             |
+| `7b38e32`  | docs(printing): plan the line grouper and amount in words                            |
+| `696ebf3`  | feat(printing): add document switches                                                |
+| `2752595`  | fix(printing): merge only nightly rows                                               |
+| `e9e5f21`  | docs(printing): plan the Room column for ungrouped lines                             |
+| `20a520e`  | fix(printing): show a room column on ungrouped lines                                 |
+| `9eab5a1`  | docs(reservations): plan how the booking summary builds its rows                     |
+| `d874515`  | feat(reservations): print a booking summary                                          |
+| `d319aa0`  | docs(reservations): plan no-shows on the booking summary                             |
+| `e77527d`  | fix(reservations): show no-shows on the booking summary                              |
+| `e9bffe7`  | docs(folio): plan the folio invoice rows, tax numbers and rooms                      |
+| `cf28d4b`  | feat(folio): print a folio invoice                                                   |
+| `53b4cb8`  | docs(city-ledger): plan the AR invoice lines and amount due                          |
+| `f05023a`  | feat(city-ledger): apply document switches to the AR invoice                         |
+| `a9cc169`  | docs(city-ledger): keep Amount due as the last AR invoice line                       |
+| `5280756`  | docs(city-ledger): plan the credit note flow back from a reversal                    |
+| `ccf1036`  | fix(city-ledger): explain how to credit a paid invoice                               |
+| `aa2e991`  | docs(folio): plan links from a settled folio to its credit note                      |
+| `6feaa1c`  | fix(folio): link a settled folio to its invoice and credit note                      |
+| `22ab7ab`  | fix(folio): show the invoice links on a settled folio                                |
+| `aa036bb`  | docs(folio): plan issuing a credit note from the folio page                          |
+| `7b2daf1`  | feat(folio): issue a credit note from the folio page                                 |
+| `fac3c43`  | docs(folio): plan the invoice dropdown and void and reopen                           |
+| `d9cbbd8`  | feat(folio): put the invoice actions in one dropdown                                 |
+| `e9d6c4d`  | fix(folio): name the credit note that blocks void and reopen                         |
+| `37daf98`  | docs(folio): plan posting a charge on the chosen folio                               |
+| `5b74b7b`  | fix(folio): post a charge on the folio staff choose                                  |
+| `f779c99`  | docs(city-ledger): plan settling a folio again after a void                          |
+| `8b27888`  | fix(city-ledger): settle a folio again after void and reopen                         |
+| `1bebb43`  | docs(folio): plan clearing void blocks from the folio tab                            |
+| `9df0a70`  | fix(folio): clear void blocks from the folio tab                                     |
+| `2d33e60`  | docs(city-ledger): explain credit note versus void and reopen                        |
+| `be0ebcb`  | docs(checklist): move group check-out after the folio fixes                          |
+| `35a7b23`  | feat(reservations): add a guest after check-out                                      |
+| `1f79ce3`  | docs(folio): plan move charges in two commits                                        |
+| `9a710ec`  | feat(folio): move charges between folios on one page                                 |
+| `54448ba`  | feat(folio): add the move charges page                                               |
+| `d4d31ee`  | docs(front-desk): count every unposted night before check-out                        |
+| `832a1ab`  | docs(front-desk): refund held payments when a group moves charges                    |
+| `0bb4d76`  | feat(front-desk): check out a group in one save                                      |
+| `afe6704`  | feat(front-desk): check out a group on one page                                      |
+| `60fa865`  | docs(front-desk): tidy the group check-out page design                               |
+| `30e2689`  | fix(front-desk): tidy the group check-out page                                       |
+| `65f40d2`  | feat(front-desk): print the group check-out receipts                                 |
+| `b9a4572`  | docs(reservations): plan printing every receipt of a reservation                     |
+| `f03d769`  | feat(reservations): print every receipt of a reservation                             |
+| `9f07db0`  | docs(reservations): settle the change night price build decisions                    |
+| `1e374b2`  | feat(reservations): change the price of booked nights                                |
+| `2b32138`  | docs(reservations): settle the day use build decisions                               |
+| `d9c193e`  | feat(rates): add day use rate plans                                                  |
+| `3d9b137`  | docs(reservations): split day use booking into backend and form                      |
+| `f4fe501`  | feat(reservations): book day use rooms and prices                                    |
+| `c3ad864`  | feat(reservations): add day use to the booking form                                  |
+| `ce76a2d`  | docs(reservations): settle the day use front desk build decisions                    |
+| `15dafac`  | feat(front-desk): check day use in and out                                           |
+| `84593f5`  | feat(front-desk): add day use to the unit menu                                       |
+| `95542c2`  | docs(reports): settle the day use reports build decisions                            |
+| `c800e50`  | feat(reports): show day use apart                                                    |
+| `3e07588`  | refactor(catalogues): edit charge items on their own page                            |
+| `0b17555`  | fix(catalogues): lay the charge item page out in two columns                         |
+| `7747f2a`  | fix(catalogues): give charge item taxes their own row                                |
+| `af7ad10`  | feat(catalogues): price children on per-guest charge items                           |
+| `6582cd4`  | fix(front-desk): keep child price rows when a stay is extended                       |
+| `d4536cc`  | feat(reservations): add charge items to every new booking                            |
+| `ad1b6d2`  | fix(night-audit): fix the price of a stuck package night                             |
+| `f18d2ae`  | feat(front-desk): cancel a whole reservation                                         |
+| `15689a3`  | fix(front-desk): hide early check-out for a unit that arrived today                  |
+| `b86afbd`  | docs(front-desk): plan undo check-in and undo check-out                              |
+| `f2a9eb4`  | feat(front-desk): undo a check-in made today                                         |
+| `acbdaf52` | docs(commissions): add the commission fees spec and checklist items                  |
+| `5cebd25f` | feat(commissions): add commission services, rates and the ledger                     |
+| `5aaaa9ee` | feat(commissions): record booking engine money and commission                        |
+| `ff6a8e5f` | feat(commissions): record channel manager commission                                 |
+| `86feac8e` | feat(commissions): generate payout vouchers on the 16th                              |
+| `e5c2c1b4` | feat(commissions): approve, pay and print payout vouchers                            |
+| `8d38b2d3` | feat(commissions): add the platform commissions dashboard                            |
+| `8f2b12b7` | feat(booking-engine): add the feature flag and booking site settings                 |
+| `1c8ad33d` | feat(rooms): upload room type photos                                                 |
+| `dc6e5582` | feat(booking-engine): add the amenity registry                                       |
+| `58b44d39` | feat(booking-engine): add the nearby place registry                                  |
+| `bf12c732` | refactor(booking-engine): split Content into Amenities and Nearby places             |
+| `d51dd271` | feat(booking-engine): manage amenity categories                                      |
+| `b7a405b3` | feat(booking-engine): use the amenity table on owner pages                           |
+| `ed1ad5e6` | feat(booking-engine): add the site template registry                                 |
+| `0b14cc60` | feat(booking-engine): choose online rate plans                                       |
+| `420be8ff` | feat(property): add the property photo album                                         |
+| `52221038` | feat(booking-engine): choose site images from the album                              |
+| `1a8c08f2` | feat(booking-engine): add the content and offers API                                 |
+| `05b9cd0f` | feat(booking-engine): edit the about text on the General tab                         |
+| `cf4b7709` | feat(reservations): allow a booking with no staff actor                              |
+| `029dfe0a` | feat(api-access): replay idempotent requests for booking clients                     |
+| `2d4778f4` | feat(booking-engine): hold rooms during checkout                                     |
+| `802c471f` | feat(payments): take online payments through Curlec                                  |
+| `1cf54ed7` | feat(booking-engine): email the guest and notify staff                               |
+| `227f98dc` | feat(payments): refund online payments through Curlec                                |
+| `959ee226` | feat(booking-engine): let guests cancel online                                       |
+| `26974735` | feat(booking-engine): find a booking by short code                                   |
+| `de8c3741` | feat(booking-engine): let admins switch the booking engine mode                      |
+| `de8c3741` | feat(booking-engine): add API only mode                                              |
+| `51380686` | feat(demo): open the booking engine API on the demo                                  |
+| `8786d169` | feat(booking-engine): price a basket of rooms                                        |
+| `7da51f39` | fix(booking-engine): tidy the API contract                                           |
+| `58a5a4e5` | feat(commissions): start and stop commission per property                            |
+| `9b62b0b0` | feat(commissions): add the property payouts page                                     |
+| `c44c7203` | docs(front-desk): plan walk-in check-in and collect                                  |
+| `a1818b36` | fix(reservations): mark occupied and dirty rooms in the walk-in picker               |
+| `78d5e684` | fix(reservations): walk-in follows auto-assign and keeps nights                      |
+| `6729ff9c` | feat(front-desk): preview the walk-in payment                                        |
+| `ef1ebdd7` | feat(front-desk): check in and collect on walk-in save                               |
+| `156b52a4` | docs(front-desk): plan check out as day use                                          |
+| `3cb620ac` | feat(catalogues): show the Day use taxes tab without a plan                          |
+| `09e82f18` | feat(reservations): override the day use price                                       |
+| `14ab4d10` | feat(front-desk): check out an overnight unit as day use                             |
+| `236a5a47` | feat(front-desk): add the check out as day use dialog                                |
+| `d3000a48` | docs(reservations): plan day use without a plan and past day use                     |
+| `dedd0d55` | fix(meals): leave day use units out of meal counts                                   |
+| `0b4398c8` | feat(reservations): book day use with an entered price                               |
+| `152e4181` | feat(reservations): add the enter price option to the booking form                   |
+| `daa9a15c` | feat(front-desk): book a walk-in day use that started today                          |
+| `8e9bfc25` | feat(front-desk): check out a walk-in day use on save                                |
+| `bd8b071c` | feat(reservations): add day use to past stays                                        |
+| `eca377e9` | docs(front-desk): plan the plan select in check out as day use                       |
+| `8ac2eff1` | feat(front-desk): pick the plan when checking out as day use                         |
+| `dbd10cf2` | feat(front-desk): add the plan select and time group to the day use check-out dialog |
+| `a6e74261` | feat(catalogues): add auto add-ons to channel bookings                               |
+| `e3afca0a` | feat(rates): take a long-stay amount per guest or per room                           |
+| `c888c927` | feat(folio): let the guest pay collected taxes on company bookings                   |
+| `5d754f37` | feat(reservations): change a unit's guests                                           |
+| `757c0037` | feat(rates): limit a rate plan by rooms per booking                                  |
+| `ceea2571` | feat(reports): show the agent, both directions and boats not set on the manifest     |
+| `19836f09` | feat(boats): add boats and crew to the manifest                                      |
+| `60e56333` | feat(reports): add the housekeeping items report                                     |
+| `3409986f` | feat(reports): add the house status report                                           |
+| `9b0facaa` | feat(city-ledger): add the agent payment schedule                                    |
+| `0753450a` | feat(portal): upload a payment proof                                                 |
+| `3f4720e5` | feat(notifications): remind agents of payment deadlines                              |
+| `f4792b18` | feat(reports): filter boats not set and release overdue agent bookings               |
+| `77f5528b` | feat(rates): switch a booking to the group rate                                      |
+| `2c1a17ce` | feat(reservations): correct charged add-ons when guests change                       |
+| `c5160b17` | docs(reservations): plan group price, group add-ons and the units view               |
+| `798c4288` | feat(reservations): add the All and Grouped views to the Units tab                   |
+| `cd78f38e` | feat(reservations): add an add-on to several units                                   |
+| `259f8dd5` | feat(reservations): change the price of several units                                |
+| `5312ecd7` | feat(reservations): add an add-on to all lines on the booking form                   |
+| `082b532b` | feat(reservations): show boat trips inline on the Units tab                          |
+| `03e3d3f6` | docs(payments): plan bank accounts and agent bank transfer                           |
+| `f8f000f6` | feat(catalogues): add property bank accounts                                         |
+| `58a2f9b8` | feat(printing): print bank accounts on documents                                     |
+| `073c81bd` | feat(portal): show how to pay and take proofs without a schedule                     |
+| `11029c82` | feat(portal): pay a booking or the account from a Pay dialog                         |
+| `885aacb0` | docs(guests): plan guest stay history                                                |
+| `c7032df7` | feat(guests): add the guest stay history service                                     |
+| `5f3a5c0b` | feat(guests): show stay figures and the Stays tab                                    |
+| `d22dcf9c` | feat(guests): add stay columns and filters to the guest list                         |
+| `c7648626` | feat(registration): ask the guest for a missing email or phone                       |
+| `c2266b31` | docs(guests): plan the guest list layout and sorts                                   |
+| `778d7c56` | feat(guests): sort the guest list by email, phone and nationality                    |
+| `27adccac` | feat(guests): add the column layout to the guest list                                |
+| `5d04b212` | feat(guests): add a row menu to the guest list                                       |
+| `938bc241` | feat(guests): use the workspace layout on the guest page                             |
+| `f1382621` | feat(folio): waive a tax per room                                                    |
+| `f1382621` | feat(folio): waive a tax for several rooms at once                                   |
+| `25b75d3a` | feat(folio): show tax waivers on documents and reports                               |
+| `44e03bad` | feat(catalogues): choose which taxes can be paid elsewhere                           |
 
 Smaller fixes and reverts are in `git log`.
 
@@ -752,6 +685,21 @@ Smaller fixes and reverts are in `git log`.
 - [x] `chore(guests): remove the Python MyKad bridge` — delete `tools/mykad-bridge/`, `.github/workflows/mykad-bridge.yml` and the files in `public/downloads/`. Needs: MyKad Reader 2.0.0 released and the chip item shipped. Docs: [MyKad reader](11-guests/05-mykad-reader.md#open).
 - [x] `fix(guests): read each MyKad into one guest row` — one shared reader for the page, a toggle on each guest row to pick the target, and Clear on a filled row. Docs: [Guest rows](11-guests/05-mykad-reader.md#guest-rows).
 
+### Guest CRM stats
+
+A client asked for it: source, last visit, stay frequency, total nights and total spend on each guest, and a nudge to collect email and phone. One branch, `feat/guest-crm-stats`. Docs: [Stay history](11-guests/01-guest-profiles.md#stay-history).
+
+- [x] `docs(guests): plan guest stay history` — the Stay history section, the card hint and these items.
+- [x] `feat(guests): add the guest stay history service` — `GuestStayHistory` (stays, summary and the grouped list subquery), the spend rule through line sources, `GuestStayData` and `GuestStaySummaryData`; tests for the stay statuses, day use, early check-out, primary guest spend, master folio lines, reversals, taxes left out and property scoping.
+- [x] `feat(guests): show stay figures and the Stays tab` — the stay figures on every tab, the contact warning and `guests.stays.index`. Needs: the service.
+- [x] `feat(guests): add stay columns and filters to the guest list` — Last visit, Stays and Spend columns and sorts, the contact warnings, and the Source, Returning and Contact filters. Needs: the service.
+- [x] `feat(registration): ask the guest for a missing email or phone` — "Please fill in." under an empty Optional Email or Phone, with its Malay text.
+- [x] `docs(guests): plan the guest list layout and sorts` — the sorts and the Guest list layout section.
+- [x] `feat(guests): sort the guest list by email, phone and nationality` — the three sorts, nationality by country name, empty values last.
+- [x] `feat(guests): add the column layout to the guest list` — `ReportKey::Guests` with `hasExports()`, export and preview routes limited to keys with exports, `printable` on `ReportLayoutSheet`, the Layout button and the table following the layout, the hidden sort fallback.
+- [x] `feat(guests): add a row menu to the guest list` — the ⋯ menu with Open guest, VIP, Blacklist and Archive by permission; the dialogs made controllable; Archive returns to the previous page.
+- [x] `feat(guests): use the workspace layout on the guest page` — `GuestSummary` in the `Workspace` aside (contact, stay figures, tags) in place of the tiles and the contact banner.
+
 ### 12 Reservations
 
 - [x] `feat(reservations): add reservation, unit and status model` — also re-point unit guests and the booker in `MergeGuests`, and refuse `AnonymizeGuest` for an in-house guest; `AvailabilityService` starts counting booked units. Docs: [Reservation shape](12-reservations/01-reservation-shape.md).
@@ -810,6 +758,38 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(reservations): book day use with an entered price` — `AddDayUseUnit` takes the room type's first per-night plan (Per room or Per guest, front desk, by `position`) with a required amount (`amount_required`) and skips `DayUseOffers::refusal`, the hour price and the restriction check; `rate_plan_not_linked` for a plan not on the room type; `hasDayUse` from active room types sold per room; the "Entered price" plan label in the unit data; `CheckOutAsDayUse` drops `override_reason_required`. Docs: [Entered price](12-reservations/10-day-use.md#entered-price).
 - [x] `feat(reservations): add the enter price option to the booking form` — the Stay type switch without a Day use plan, **No plan · enter price** in the Plan select (disabled with its reason when the room type has no per-night plan), the Price field with a placeholder, the Add unit Sheet, the switch to entered price with its note when the plan does not sell the start or hours. Needs: book day use with an entered price. Docs: [Entered price](12-reservations/10-day-use.md#entered-price).
 - [x] `feat(reservations): add day use to past stays` — the Stay type switch on Past stay, Date, Start and End, Already checked out only, the day use path in `CreatePastStay` with `asOf` and `skipBalanceCheck`, the block posted with the date as `service_date`, the Settle dialog. Needs: add the enter price option to the booking form. Docs: [Past stay, a past date](12-reservations/10-day-use.md#past-stay-a-past-date).
+- [x] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header). Built in `09e82f18` (`feat(reservations): override the day use price`), which added the quote to the Sheet.
+
+### Sand Bay gaps
+
+Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/2026-11-03-sandbay-gaps-plan.md`.
+
+- [x] `feat(catalogues): add auto add-ons to channel bookings` — `charge_items.auto_add_channels` with its CHECK, the "Also add to channel bookings" switch and badge, `AutoAddOns::forChannelUnit()`, `IngestChannelBooking` adds them to new and added rooms and skips a refused one. Docs: [Charge items](06-catalogues/02-charge-items.md#add-to-every-new-booking), [Add-ons](12-reservations/04-add-ons.md#added-automatically).
+- [x] `feat(rates): take a long-stay amount per guest or per room` — `rate_plan_stay_discounts.per_room`, the Taken off column on PerGuest plans, `StayDiscount` takes the Amount once per room, kept by Copy discounts and the preview. Sand Bay's imported rules stay per guest. Docs: [Long-stay discounts](08-rates/01-rate-plans.md#long-stay-discounts).
+- [x] `feat(folio): let the guest pay collected taxes on company bookings` — `companies.pays_collected_taxes` and the Company pays tourism tax switch, `CollectedTaxPayer`, `PostFolioCharge` `taxFolios`, the tax on the unit folio from `PostNightLines`, `guestTax` Scheduled blocks, Collect now and walk-in totals, `TransferLines`, `ReverseLine` and Change price with a child on another folio. Docs: [Collected taxes](13-folio/03-routing.md#collected-taxes).
+- [x] `feat(reservations): change a unit's guests` — Change on the Guests row, `ChangeGuestsDialog`, `UnitPartyChangePreview`, `ChangeUnitParty` (nights not charged re-quoted, charged nights through Change price when asked, per-guest add-ons rewritten, OTA price kept), `ResyncBoatFares` and `BoatFareAddOns`. Posted per-guest add-ons do not change; staff post the difference. Docs: [Change guests](12-reservations/14-change-guests.md).
+- [x] `feat(rates): limit a rate plan by rooms per booking` — `rate_plans.min_rooms` and `max_rooms` with a CHECK, Rooms per booking on the Details tab, `plansFor()` filters by `roomsInBooking()` keeping the picked plan, `AddUnit` refuses `rooms_below_min` and `rooms_above_max` with the booking's room count from `CreateReservation`; channels skip it. Not built: a warning on a reservation whose room count changed later. Docs: [Rooms per booking](08-rates/01-rate-plans.md#rooms-per-booking).
+- [x] `feat(reports): show the agent, both directions and boats not set on the manifest` — the Agent column (`reservation.bookingSource` now loads in `UnitReportRows`), `direction=both` with `ReportFilters::$bothDirections`, the Boat not set: follow up section with negative row keys. Docs: [Boat manifest](24-boats/03-boat-manifest.md).
+- [x] `feat(boats): add boats and crew to the manifest` — `boats`, `boat_departure_runs`, the Boats tab with `SaveBoat`, the charter charge (`property_settings.charter_charge_item_id`, `SetCharterChargeItem`, added once by `SetBoatTrip` on a Charter trip), the Boats and crew panel on the manifest with `SetBoatDepartureRun`, and the boat and crew in each departure's section title. Docs: [Boats tab](24-boats/01-boat-settings.md#boat-list-tab), [Boats and crew](24-boats/03-boat-manifest.md#boats-and-crew).
+- [x] `feat(reports): add the housekeeping items report` — `charge_items.housekeeping_item` and the Show to housekeeping switch, `ReportKey::HousekeepingItems`, `HousekeepingItemsReport` (Set up, In room, Remove from the nights each item covers), the page and route. Docs: [Housekeeping items](22-reports/03-house-status-and-items.md#housekeeping-items).
+- [x] `feat(reports): add the house status report` — `room_types.print_label` and `rooms.print_label` with their form fields, `ReportKey::HouseStatus`, `HouseStatusReport` (boat time groups, Boat not set, Room move, OCC, Management, EXTRA BED and TL flags, remarks), `HasPrintView` in `ReportPdf` and the grid `pdf/house-status.blade.php`. Docs: [House status](22-reports/03-house-status-and-items.md#house-status).
+- [x] `feat(city-ledger): add the agent payment schedule` — property terms (Settings › Agent payments) and company overrides, `AgentPaymentTerms`, `AgentPaymentSchedule`, `SetReservationPaymentSchedule` from `CreateReservation` and `UpdateReservationCompany`, the reservation deadline columns, the Payment schedule card, the Agent payments due report. Docs: [Agent payment schedule](15-city-ledger/06-agent-payment-schedule.md).
+- [x] `feat(portal): upload a payment proof` — `payment_proofs` with its media file, `PaymentProofStatus`, `UploadPaymentProof` and the portal Payment section, `AcceptPaymentProof` (records the payment) and `RejectPaymentProof` in the reservation summary, Proof received on the schedule. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof).
+- [x] `feat(notifications): remind agents of payment deadlines` — `AgentPaymentReminder` (schedule, reminder, overdue) to the company email and active portal logins, `SendAgentPaymentReminders` with `agent_payment_reminders` so each is sent once, `agent-payments:send-reminders` every 15 minutes. Docs: [Reminders](15-city-ledger/06-agent-payment-schedule.md#reminders).
+- [x] `feat(reports): filter boats not set and release overdue agent bookings` — Boat not set on Guest list › Arrivals and Departures (`?no_boat=1`, `ReportFilters::$boatNotSet`, `ReportKey::hasBoatNotSetFilter()`), and Release rooms on overdue rows of Agent payments due (`AgentPaymentDueRow::$overdue`, the Cancel reservation Dialog with a reason). Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list), [Follow-up](15-city-ledger/06-agent-payment-schedule.md#follow-up).
+- [x] `feat(rates): switch a booking to the group rate` — `rate_plans.group_rate_plan_id` (Larger bookings use on the Details tab, validated against the group rate's Min rooms), `groupRateSwitch()` and `switchGroupRates()` on the staff booking form and the agent portal, which also hides plans that do not fit the room count. Docs: [Rooms per booking](08-rates/01-rate-plans.md#rooms-per-booking).
+- [x] `feat(reservations): correct charged add-ons when guests change` — `PostedAddOnAdjustments` and the Extras already charged tick boxes in Change guests (charge the difference, or reverse and charge again; `folio.reverse` for reversals; `skip_add_ons` to do it by hand), OTA Modified revisions sync the guests through `ChangeUnitParty` (`channelRevision`), and OTA infants are children of 0. Docs: [Charged add-ons](12-reservations/14-change-guests.md#charged-add-ons), [Booking ingestion](21-channels/05-booking-ingestion.md).
+
+### Sand Bay feedback 2
+
+Branch `feat/group-unit-actions`. Planned on 2026-11-10: staff could change the price and add add-ons only one unit at a time. A mockup of the All view and the group add-on Dialog in the real theme is signed off before the first feature commit.
+
+- [x] `docs(reservations): plan group price, group add-ons and the units view` — the All and Grouped views, the group add-on, the group price and All lines on the booking form, and these items. Commit `42805569`.
+- [x] `feat(reservations): add the All and Grouped views to the Units tab` — the toggle (`reservations.units-view`), `ReservationUnitRowData` as `unitRows` from `ReservationUnitRows`, `canChangePrice`, the All table with its footer and tick boxes, the `BulkActionBar` (removed in the change price item), mobile cards; an empty override reason is sent as null. The toggle is shared with the Guests tab as `ViewChoiceToggle` and `useViewChoice`. The page query cap is 52 (3 for the rows). Docs: [All and Grouped views](12-reservations/06-reservation-page.md#all-and-grouped-views).
+- [x] `feat(reservations): add an add-on to several units` — `AddGroupAddOn`, `GroupAddOnResult`, `GroupAddOnPreview`, `ReservationAddOnController`, `AddGroupAddOnRequest`, `ReservationRefusals::groupAddOnErrors()`, the two `reservations.add-ons` routes, the Units multi-select with All units, the two-column Dialog with the preview panel. One unit picked still posts the unit route. The Units tab bulk action was removed in the change price item (Sand Bay feedback): the group add-on starts from the Add-ons tab only. Needs: the All and Grouped views. Docs: [Group add-on](12-reservations/04-add-ons.md#group-add-on).
+- [x] `feat(reservations): change the price of several units` — `ChangeGroupNightPrice`, `GroupNightPriceResult`, `GroupNightPricePreview`, `ChangeGroupNightPriceRequest`, `ReservationRefusals::groupNightPriceErrors()`, the two `reservations.night-price` routes on `ReservationNightPriceController`, the two-column Dialog with one line per unit, and its Units select. Feedback: the tick boxes and bulk bar are gone; Change price sits in the All view toolbar left of the hide summary button (`SummaryToggle`, now on the Units tab too), and the Units select is shared with the group add-on as `MultiSelectWithAll`, which also replaces the night tick boxes in the one-unit Change price Dialog (with placeholders). The preview panel is shared as `GroupPreviewPanel`. Needs: the All and Grouped views. Docs: [Change the price of a group](12-reservations/09-change-night-price.md#change-the-price-of-a-group).
+- [x] `feat(reservations): add an add-on to all lines on the booking form` — All lines in the Line select; each line holds a copy tagged with a client-only `shared` id, so the request does not change; a new line gets the copies; errors name the line. UI only, with `booking-lines.test.ts` cases. Docs: [Booking form](12-reservations/05-booking-form.md).
+- [x] `feat(reservations): show boat trips inline on the Units tab` — Sand Bay feedback: the Boat row is one line, "In 06:00 boat ✎ · Out 16:00 boat ✎" (`UnitBoatTripData::$short`: a scheduled boat by the time it leaves, so Boat in does not repeat the arrival time of Stay; the full summary as its tooltip; ✎ icon buttons in place of Change), and the All view shows the boat times under Stay (`ReservationUnitRowData` `boatIn` and `boatOut`, two more queries with Boats on). Pax shows adult and child icons (`PaxCount`, moved from `stay-view/` to `components/pms/`). Docs: [Boat trips](24-boats/02-boat-trips.md#reservation-page).
 
 ### 13 Folio and 14 Payments
 
@@ -855,6 +835,15 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(folio): add third party folios and a Move link in the editor` — **+ Add folio** in the rail (`ThirdPartyFolioDialog`, `reservations.folios.manual.folios.store`, the page keeps its drafts), the **Move charges…** link on Posted lines. Docs: [Add a Third party folio](13-folio/08-manual-folio.md#add-a-third-party-folio), [Move charges link](13-folio/08-manual-folio.md#move-charges-link).
 - [x] `feat(folio): edit a charge line in one dialog` — `EditLine` and `EditLinePreview`, the Edit line Dialog with Before / After, a live night's price through the Change price routes so `unit_nights.amount` follows, `folio.line_edited`. Needs: the rename. Docs: [Edit line](13-folio/08-manual-folio.md#edit-line).
 
+### Tax waivers
+
+Summer Holiday (2026-11-12): Trip.com collects the tourism tax on some bookings and not others, so staff charged guests who had already paid. Branch `feat/tax-waivers`. Docs: [Tax waivers](06-catalogues/03-taxes.md#tax-waivers).
+
+- [x] `feat(folio): waive a tax per room` — `reservation_unit_tax_waivers`, `TaxWaiverReason`, `ReservationUnitTaxWaiver`, `TaxWaivers` (used by `NightChargeQuote` and `DayUseChargeQuote`), `WaiveUnitTax` (reverses posted nights in a manual batch per folio), `RemoveUnitTaxWaiver`, `folio.waive-tax` (Owner, Manager, Front desk, Finance) with a syncing migration, `UnitAction::WaiveTax`, `ReservationUnitTaxWaiverController`, the Taxes paid elsewhere Dialog and the Tax row on the unit panel.
+- [x] `feat(folio): waive a tax for several rooms at once` — `WaiveGroupTax`, `GroupTaxWaiverResult`, `TaxWaiverRefused`, `WaiveGroupTaxRequest`, `reservations.tax-waivers.store`, `canWaiveTax` and the optional `taxWaiverOptions` prop, **Taxes paid elsewhere…** in More with the Rooms select, the fields shared with the one-room Dialog. Needs: waive a tax per room.
+- [x] `feat(folio): show tax waivers on documents and reports` — `TaxWaiverNotes`, `taxNotes` on `BookingSummaryDocument` (print with prices only) and `FolioInvoiceDocument`, the notes in both PDFs, and the **Paid elsewhere** column (`paid_elsewhere`) of the non-national guests report. The e-invoice (`FolioDocumentBuilder`) is unchanged. Needs: waive a tax per room.
+- [x] `feat(catalogues): choose which taxes can be paid elsewhere` — `taxes.can_be_waived` (on for foreign-guest taxes by the migration), the **Can be paid elsewhere** switch and badge, `Tax::waivable()` for both waiver Dialogs, the `tax_not_waivable` refusal, and the menus hidden when no tax can be waived. Needs: waive a tax per room.
+
 ### 15 City ledger
 
 - [x] `feat(city-ledger): add companies` — table, enums, foreign keys on `reservations.company_id` and `folios.payer_company_id`, create, edit, suspend and reactivate, list and company page, `company.view` and `company.manage`, Finance sidebar. Docs: [Companies](15-city-ledger/01-companies.md).
@@ -876,6 +865,16 @@ Smaller fixes and reverts are in `git log`.
 - [x] `fix(city-ledger): explain how to credit a paid invoice` — Issue credit note shows on every invoice that is not Void; `ArInvoiceData.creditBlockedBy` (active allocations); the Dialog's three cases (balance above 0, balance 0 with a Reverse button per payment, amount over the balance); `credit_exceeds_balance` names the balance and the payments (read by the controller after the refusal). Reverse closes the credit Dialog and opens the Reverse allocation Dialog, which returns to the credit Dialog when it closes. Without the reverse permission, the payments show without Reverse and with "Ask a user who can reverse payments." `IssueCreditNote` does not change. Tests for each case, and reverse then credit at the new balance. Independent of item 22, so it can go first. Docs: [AR invoices](15-city-ledger/02-ar-invoices.md#pages).
 - [x] `fix(city-ledger): settle a folio again after void and reopen` — `VoidInvoiceAndReopen` reverses the City ledger line in its transaction, the settle key `city-ledger:{folio_id}:{n}`, City ledger lines found by `DirectBillPayment` (not the key) in `ArInvoiceDetail`, the AR invoice PDF and `FolioPaymentRows`, and "(void)" after the invoice number in the folio header (`FolioData.invoiceVoided`). Tests: void and reopen leaves the balance owed; settle, void and reopen, post a charge, settle again gives one invoice with the same number and the new total; the AR PDF and page list no City ledger line. Docs: [Folios and lines](13-folio/01-folios-and-lines.md#close-and-reopen), [AR invoices](15-city-ledger/02-ar-invoices.md#flow).
 - [x] `feat(city-ledger): add unpaid invoices and credit from old PMS` — `ar_invoices.migrated`, the nullable receipt number for Old system, `AddOldSystemInvoice`, `AddOldSystemCredit`, the dialog, the Migrated badge, the credit limit warning. Needs: the migration window. Docs: [Old system balances](15-city-ledger/05-old-system-balances.md).
+
+### Agent bank transfer
+
+Branch `feat/portal-booking-tabs`. Planned on 2026-11-11 after Sand Bay asked how agents pay: the portal booking showed the bill but no bank details, and no form without a schedule. Bank transfer only; Curlec for companies is skipped for now.
+
+- [x] `docs(payments): plan bank accounts and agent bank transfer` — the bank accounts spec, How to pay, the proof form without a schedule, Paid into, and these items. Commit `03e3d3f6`.
+- [x] `feat(catalogues): add property bank accounts` — `property_bank_accounts` with its unique number and SWIFT CHECK, `CreateBankAccount`, `UpdateBankAccount`, `ReorderBankAccounts`, `BankAccountRequest`, the `settings.bank-accounts.*` routes, the Settings › Billing setup › Bank accounts page (Available Switch, arrows, Sheet) and the `banknote` nav icon. Docs: [Bank accounts](06-catalogues/07-bank-accounts.md).
+- [x] `feat(printing): print bank accounts on documents` — the available accounts then Payment notes on the booking summary, the AR invoice and the sample PDF; Payment details renamed Payment notes, with the accounts read only and a link to Bank accounts; `BankAccountLines` and the `pdf.partials.payment-details` partial. Needs: add property bank accounts. Docs: [Documents tab](02-property/05-printing-settings.md#documents-tab).
+- [x] `feat(portal): show how to pay and take proofs without a schedule` — `PortalHowToPay` and `PortalHowToPayData`, How to pay (`BookingHowToPay`, `BankAccountList` with a copy button), the form for every company that pays per booking while Left to pay is above 0, the direct-billing refusal in the controller and its note, `payment_proofs.bank_account_id` with Paid into on proofs and slips, the accounts above the Statements slip form, and Paid into in `PaymentProofReview` and the company Payments tab. Needs: add property bank accounts. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips).
+- [x] `feat(portal): pay a booking or the account from a Pay dialog` — Sand Bay feedback on 11 Nov: one two-column Pay dialog (`PortalPayDialog`) on the booking and on Statements in place of the inline forms; every company can pay a booking, direct billing included; an invoiced booking's proof is a company slip with `payment_proofs.ar_invoice_id`, and accepting it fills that invoice first; the Payments tab without its card border, with Left to pay, Paid and the bill as a table; Statements with Balance, Overdue and Credit tiles and Slips sent; staff review proofs in a table under the folio (View slip, Accept, Reject), with a Review link in the summary card. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof), [Payment slips](15-city-ledger/03-ar-payments.md#payment-slips), [Form containers](design-system/05-form-containers.md#sizes).
 
 ### 16 Registration
 
@@ -975,6 +974,41 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(front-desk): pick the plan when checking out as day use` — `CheckOutAsDayUseQuote` quotes every active Day use plan on the room type and picks the first that prices the stay, else No plan; `rate_plan_id` (`rate_plan_not_linked`) and `no_plan` on the request; an explicit plan that cannot price refuses with its quote refusal; No plan keeps `rate_plan_id`; `planOptions`, `perNightPlanName` and `planNote` in the preview; tests for the default, the fallback to No plan, an explicit plan, a refused explicit plan and no Day use plan. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
 - [x] `feat(front-desk): add the plan select and time group to the day use check-out dialog` — the Plan select with disabled plans and their reasons, No plan with "Keeps …", the ⓘ note, the staff choice kept across previews, no select without a Day use plan, `amount_required` shown only after save, "Reason (optional)", the Start · Hours · End input group and the Charged line. Needs: pick the plan when checking out as day use. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
 
+### Walk-in
+
+A walk-in books, checks in and collects in one save. Items 2 and 3 do not depend on each other and can ship first. Docs: [Booking form: Walk-in](12-reservations/05-booking-form.md#walk-in), [Walk-in check-in](18-front-desk/01-check-in-and-check-out.md#walk-in-check-in).
+
+- [x] `docs(front-desk): plan walk-in check-in and collect` — the Walk-in section of the booking form, the Room / Bed rules, Walk-in check-in, and these items.
+- [x] `fix(reservations): mark occupied and dirty rooms in the walk-in picker` — `FreeUnits` returns a reason for a room or bed with a CheckedIn unit or a Dirty `room_statuses` row; the walk-in picker shows it disabled as `106 · In house` or `108 · Dirty`. New booking is unchanged. Docs: [Room / Bed column](12-reservations/05-booking-form.md#room--bed-column).
+- [x] `fix(reservations): walk-in follows auto-assign and keeps nights` — `StoreBookingRequest` asks for a pick on a walk-in only when `auto_assign_rooms` is off, the empty option reads Auto-assign, and switching to Walk-in keeps the number of nights. Docs: [Room / Bed column](12-reservations/05-booking-form.md#room--bed-column), [Sections](12-reservations/05-booking-form.md#sections).
+- [x] `feat(front-desk): preview the walk-in payment` — `WalkInPayment::preview()` as a trial `CreateBooking` read through `CheckInCollection` and rolled back (booking refusals answered as errors), `->afterCommit()` on the `FlushChannelAriJob` dispatch in `RecordChannelAriChange` with a test that a rolled-back change queues no flush, the `reservations.walk-in-payment` route, the Payment section in the rail with the room charges and deposit boxes, method and reference; a test that the preview equals the Scheduled rows of the same booking. Needs: walk-in follows auto-assign. Docs: [Payment section](12-reservations/05-booking-form.md#payment-section), [Walk-in check-in](18-front-desk/01-check-in-and-check-out.md#walk-in-check-in).
+- [x] `feat(front-desk): check in and collect on walk-in save` — `CheckInWalkIn` and `WalkInResult`, `roomCharges` on `CollectNowData` and the full bill in `CheckInCollection`, the `reservations.store-walk-in` route and request, `amount_changed`, Check in without card on the form (with the permission), the Room charges and tax box in the check-in Dialog (unticked by default; the Advance goes to the Master folio when room charges route there), the Check in button, the result toast and the per-unit reasons; rollback tests for a refused booking, a changed total, and one refused unit in a group. Needs: preview the walk-in payment. Docs: [Walk-in check-in](18-front-desk/01-check-in-and-check-out.md#walk-in-check-in), [Refusals on save](12-reservations/05-booking-form.md#refusals-on-save).
+
+### Same-day check-out
+
+A client asked for it: an overnight guest who arrives and leaves the same day is checked out as a day use, with or without a Day use plan. Items 2 and 3 do not depend on each other and can ship first. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use), [Day use: price override](12-reservations/10-day-use.md#price-override).
+
+- [x] `docs(front-desk): plan check out as day use` — the Check out as day use section, the day use price override, the Day use tab always shown, and these items.
+- [x] `feat(catalogues): show the Day use taxes tab without a plan` — the Day use tab and its routes for every property (no 404 without a Day use plan), and `SeedDayUseTaxes` at the first Day use plan only when DAY_USE has no taxes yet. Docs: [Day use tab](06-catalogues/06-room-revenue.md#day-use-tab).
+- [x] `feat(reservations): override the day use price` — `unit_day_uses.override_amount` with a check that `amount` equals it, `AddDayUseUnit` takes `override_total` and a reason as `AddUnit` does (no more `override_not_allowed`), ✎ on the day use line of the booking form and the Add unit Sheet, Reinstate keeps an override. Docs: [Price override](12-reservations/10-day-use.md#price-override).
+- [x] `feat(front-desk): check out an overnight unit as day use` — `CheckOutAsDayUse` with its refusals (`not_same_day`, `past_midnight`, the midnight limit), the `check-out-as-day-use` and `.preview` routes and request, `DayUseChargeQuote` skipping inclusions of a plan that is not Day use, the `reservation.unit_checked_out_as_day_use` log; tests with a plan, without a plan, an override, past midnight, the midnight limit, and a refused refund that writes nothing. Needs: override the day use price. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
+- [x] `feat(front-desk): add the check out as day use dialog` — the `UnitActionMenu` item where `EarlyCheckOutRule` returns `arrived_today`, the Dialog on the preview (times, price with ✎ or amount, the taxes note, folio after check-out, refund), the past midnight note, and the row action on the group check-out page. Needs: check out an overnight unit as day use. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
+
+### Day use enhancement
+
+Staff feedback: a 02:00 to 12:00 walk-in entered at 15:00 could not be booked, and day use needed a Day use plan. Item 2 can ship at any time. Items 6 and 7 do not depend on each other. Docs: [Entered price](12-reservations/10-day-use.md#entered-price), [Entered after it started](12-reservations/10-day-use.md#entered-after-it-started).
+
+- [x] `docs(reservations): plan day use without a plan and past day use` — the Entered price and Entered after it started sections, the Set up decision (a Day use plan is optional), the optional reason in Check out as day use, the walk-in, past stay, rate plan and meal notes, and these items.
+- [x] `fix(meals): leave day use units out of meal counts` — `MealCounts` skips day use units; a test with a day use unit on a per-night plan with breakfast. Docs: [Meal entitlements](07-meals/02-meal-entitlements.md).
+- [x] `feat(reservations): book day use with an entered price` — `AddDayUseUnit` takes the room type's first per-night plan (Per room or Per guest, front desk, by `position`) with a required amount (`amount_required`) and skips `DayUseOffers::refusal`, the hour price and the restriction check; `rate_plan_not_linked` for a plan not on the room type; `hasDayUse` from active room types sold per room; the "Entered price" plan label in the unit data; `CheckOutAsDayUse` drops `override_reason_required`. Docs: [Entered price](12-reservations/10-day-use.md#entered-price).
+- [x] `feat(reservations): add the enter price option to the booking form` — the Stay type switch without a Day use plan, **No plan · enter price** in the Plan select (disabled with its reason when the room type has no per-night plan), the Price field with a placeholder, the Add unit Sheet, the switch to entered price with its note when the plan does not sell the start or hours. Needs: book day use with an entered price. Docs: [Entered price](12-reservations/10-day-use.md#entered-price).
+- [x] `feat(front-desk): book a walk-in day use that started today` — Walk-in day use with Start earlier today and Guest status Still in house, `CheckInUnit` with `asOf` at Start, the plan window and hours not checked, `night_audit_pending` when the calendar date is past the business date. Needs: add the enter price option to the booking form. Docs: [Walk-in, today](12-reservations/10-day-use.md#walk-in-today).
+- [x] `feat(front-desk): check out a walk-in day use on save` — Already checked out on Walk-in: End (after Start, not after now), Room charges and tax ticked and locked, the deposit hidden, `CheckOutUnit` with `asOf` at End, `balance_not_settled`, the card rule with `front-desk.check-in-without-card`, the room marked Dirty. Needs: book a walk-in day use that started today. Docs: [Walk-in, today](12-reservations/10-day-use.md#walk-in-today).
+- [x] `feat(reservations): add day use to past stays` — the Stay type switch on Past stay, Date, Start and End, Already checked out only, the day use path in `CreatePastStay` with `asOf` and `skipBalanceCheck`, the block posted with the date as `service_date`, the Settle dialog. Needs: add the enter price option to the booking form. Docs: [Past stay, a past date](12-reservations/10-day-use.md#past-stay-a-past-date).
+- [x] `docs(front-desk): plan the plan select in check out as day use` — the Plan select, No plan, the Start · Hours · End group and the Charged line in Check out as day use, and these items.
+- [x] `feat(front-desk): pick the plan when checking out as day use` — `CheckOutAsDayUseQuote` quotes every active Day use plan on the room type and picks the first that prices the stay, else No plan; `rate_plan_id` (`rate_plan_not_linked`) and `no_plan` on the request; an explicit plan that cannot price refuses with its quote refusal; No plan keeps `rate_plan_id`; `planOptions`, `perNightPlanName` and `planNote` in the preview; tests for the default, the fallback to No plan, an explicit plan, a refused explicit plan and no Day use plan. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
+- [x] `feat(front-desk): add the plan select and time group to the day use check-out dialog` — the Plan select with disabled plans and their reasons, No plan with "Keeps …", the ⓘ note, the staff choice kept across previews, no select without a Day use plan, `amount_required` shown only after save, "Reason (optional)", the Start · Hours · End input group and the Charged line. Needs: pick the plan when checking out as day use. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
+
 ### 19 Housekeeping
 
 - [x] `feat(housekeeping): add the room status board` — `housekeeping.view`, `.update`, `.inspect` with a syncing migration, `HousekeepingReason`, `HousekeepingRefusal`, `HousekeepingBoardBuilder`, `UpdateRoomStatus`, `AssignHousekeeper`, `SetRoomPriority`, `SetDoNotDisturb`, the board page (status badge dropdown with the legal moves, derived reason, Out of service from blocks, All and grouped views, filters, assignee, priority and DND in the row menu) and the Housekeeping sidebar item. `HousekeepingStatus` was already built. The `remark` and `needs_maintenance` columns come with the next item. Docs: [Room status board](19-housekeeping/01-room-status-board.md).
@@ -1033,6 +1067,10 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(reports): merge guest reports into the guest list` — lane B: the Guest list page with four tabs and counts, the Layout Sheet on the open tab, redirects from the old report URLs. Needs: the checked-out report. Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list).
 - [x] `feat(reports): add the daily report` — lane A: Overview cards, `DailyRevenue` with the buckets and one `tax:{code}` column per tax, Cashier activity on the Payments layout. Needs: split tax columns. Docs: [Daily report](22-reports/02-guest-list-and-daily-report.md#4-daily-report).
 - [x] `feat(reports): add the charge register` — Daily report › Charges: `ReportKey::DailyCharges`, one row per charge, later discount or adjustment with its inline discount and taxes as columns, reversed and moved rows with a status, the `bucket` and `search` filters, 31 days, and the drill-down from the Revenue tab cells; totals equal the Revenue tab. Needs: the daily report. Docs: [Charges](22-reports/02-guest-list-and-daily-report.md#charges).
+- [x] `feat(reports): add booking performance` — `ReportKey::BookingPerformance` (Revenue, 366 days, landscape), `BookingPerformanceReport` and `BookingPerformanceRow`, the Room type, Source, Rate plan, Status and Day groups on `ReportGroup`, the page with one tab per group (`TabLinks`, `columnLabels` on `ReportScreen` for the tab name heading) and the sidebar entry. Bookings by `reservations.created_at` in the property time zone, overnight units only, room revenue from `unit_nights.amount`, cancelled and no-show only by status, distinct bookings in the total, no lead time for walk-ins. Docs: [Booking performance](22-reports/02-guest-list-and-daily-report.md#5-booking-performance).
+    - 6 new tests, the Reports tests and the dashboard performance tests pass, with Pint, PHPStan, TypeScript, lint/format checks and the production build. Browser review and the full suite are still open.
+- [x] `feat(reports): put housekeeping items and log on one page` — `TabbedReport::Housekeeping` with the Items (`HousekeepingItems`, the default) and Log (`HousekeepingLog`) tabs, `HousekeepingReportController` (`show`, and `items` and `log` redirecting the old pages to their tab with the query), `reports/housekeeping.tsx` with `TabLinks`, one Housekeeping entry in Reports › Front desk. The two old controllers and pages are removed. Docs: [Housekeeping page](22-reports/03-house-status-and-items.md#housekeeping-page).
+    - The Reports and Housekeeping tests pass, with TypeScript, lint/format checks and the production build. Browser review is still open.
 
 ### 23 Company portal
 
@@ -1063,6 +1101,56 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(boats): add boat jobs` — `BoatJobType` (with Maintenance), `SaveBoatJob`, `DeleteBoatJob`, `SetBoatJobDone`, the Boat jobs group on the board, the spreadsheet and the PDF. Needs: make Boat Trips the only boat page. Docs: [Sailings](24-boats/04-sailings.md#jobs).
 - [x] `feat(company-market): offer rates by company market` — `companies.market` (`CompanyMarket`), `rate_plans.company_market` (`CompanyRateMarket`), the check in `CompanyRateAccess`, `CompanyRatePlans` and `PortalRatePlans`, the Market field on the company and the Market radio on the plan's Companies tab, and the `market` import column. Needs: company access on rate plans. Docs: [Market](08-rates/01-rate-plans.md#market).
 - [x] `feat(onboarding): import the per-room plans of a wastays hotel` — `wastays:import-setup` places the plans that are not Standard, Walk-in or Corporate on a per-room hotel (`ImportWastaysFixedRatePlans`): one plan per name with a fixed price per room type, a Day use plan when wastays sets hours. `--net-prices` keeps prices that are already before SST; a hotel with SST off is never divided. Docs: [Hotel Asia City](migration-plan/hotel-asia-city.md#rate-plans).
+
+### 28 Booking engine
+
+Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, at `booking.estatell.com`. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+
+- [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md).
+- [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](29-booking-engine/06-content-registries.md#room-photos).
+- [x] `feat(booking-engine): add the amenity registry` — admin pages, link tables, the Content tab and the room type picker. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
+- [x] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](29-booking-engine/06-content-registries.md#nearby-places).
+- [x] `refactor(booking-engine): split Content into Amenities and Nearby places` — one tab, URL and page each; the about text moves to the General tab when it is built. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md#booking-website-settings).
+- [x] `feat(booking-engine): manage amenity categories` — `amenity_categories` replaces the category text; a Categories tab; Property and Room tabs replace All, with a Grouped or List toggle. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
+- [x] `feat(booking-engine): use the amenity table on owner pages` — the Booking website and room type Amenities tabs get the admin table, and each switch saves at once. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
+- [x] `feat(booking-engine): add the site template registry` — admin page, slots, and the Design and SEO tabs. Docs: [Template registry](29-booking-engine/08-microsite.md#template-registry).
+- [x] `feat(booking-engine): choose online rate plans` — `rate_plans.bookable_online` and the Rates tab. Docs: [Rates](29-booking-engine/07-settings-and-permissions.md#rates).
+- [x] `feat(property): add the property photo album` — the `photos` collection on Property and the Photos tab on the Details page. Not in onboarding. Docs: [Photos](02-property/01-properties.md#photos).
+- [x] `feat(booking-engine): choose site images from the album` — Choose from album on the Design tab, which copies the photo into the slot, the Property photos and Room photos checklist rows, and an optional Icon slot on the seeded templates. Needs the album. Docs: [Design](29-booking-engine/07-settings-and-permissions.md#design).
+- [x] `feat(booking-engine): add the content and offers API` — `BookingClient` as a new token owner on the existing Sanctum layer, `booking:*` abilities, the reach check, rate limits per token and property, the shared Collect at check-in rule, and the listing, site, content, calendar, offers and search endpoints. Docs: [API](29-booking-engine/02-api.md), [Access](28-api-access/04-booking-engine-microsite.md).
+- [x] `feat(booking-engine): edit the about text on the General tab` — the field for `about_text`, which the property content endpoint returns. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md#booking-website-settings).
+- [x] `feat(reservations): allow a booking with no staff actor` — a null actor in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and the system Booking Engine source. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation), [Booking sources](12-reservations/11-booking-sources.md#booking-engine-source).
+- [x] `feat(api-access): replay idempotent requests for booking clients` — `booking_client_id` on `api_idempotency_keys`, either owner in `api.idempotent` and its classes, with kiosk behaviour unchanged. Docs: [Idempotency](28-api-access/03-kiosk-check-in-endpoints.md#idempotency-for-every-kiosk-write).
+- [x] `feat(booking-engine): hold rooms during checkout` — `booking_holds`, its lines and children, `HeldUnits` and `AvailabilityService` counting holds, the open hold limits with `X-Guest-IP`, the `booking:checkout` ability, create, read and release endpoints, and the expire and purge jobs. Needs: replay idempotent requests. Docs: [Checkout and hold](29-booking-engine/03-checkout-and-hold.md), [Limits](28-api-access/04-booking-engine-microsite.md#limits).
+- [x] `feat(payments): take online payments through Curlec` — `CurlecGateway`, `gateway_payments`, the Online method, `POST holds/{token}/payment`, the webhook and `ConfirmBookingHold`. Check automatic capture first. The email, automatic refund and saved terms come with later items, so a late payment whose rooms are taken alerts admins for now. Docs: [Payment](29-booking-engine/04-payment.md), [Build order](29-booking-engine/04-payment.md#build-order).
+- [x] `feat(booking-engine): email the guest and notify staff` — the notification types, the Manage booking link and the after-commit step in `ConfirmBookingHold`. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation).
+- [x] `feat(payments): refund online payments through Curlec` — `gateway_refunds`, `gateway_refund_parts`, `RequestOnlineRefund`, `RefundHeldPayment`, the refund webhook, ignoring Curlec's auto-refund events, the folio changes, check-out with Online credit and the automatic refund for a late payment whose rooms are taken. To verify on the demo: Curlec's real error wording. Docs: [Refund status](29-booking-engine/05-cancel-and-refund.md#refund-status).
+- [x] `feat(booking-engine): let guests cancel online` — saved terms and their step in `ConfirmBookingHold`, the manage booking and cancellation endpoints, `CancelBookingOnline`, the guest and staff emails, and the Curlec refund on a staff cancel. Docs: [Cancel and refund](29-booking-engine/05-cancel-and-refund.md).
+- [x] `feat(booking-engine): find a booking by short code` — `reservations.short_code` on every reservation, filled in for existing ones; `ReservationShortCode`; the code in the reservation header (now three description rows), the reservation search, the guest email and `bookings/{token}`; `POST properties/{code}/bookings/find` with `OnlineBookingLookup` and `BookingLookupLockout`. Docs: [Find a booking](29-booking-engine/02-api.md#find-a-booking), [Reservation shape](12-reservations/01-reservation-shape.md).
+- [x] `feat(booking-engine): let admins switch the booking engine mode` — `SetBookingEngineMode` and a Microsite / API only toggle under the Booking engine switch on the admin Features tab, read-only for partners. A switch unpublishes the site, and leaving API only revokes the token. Docs: [Mode switch](29-booking-engine/07-settings-and-permissions.md#mode-switch).
+- [x] `feat(booking-engine): add API only mode` — per-property tokens on an API only `BookingClient`, return addresses, the API tab and its quick start. Docs: [API only mode](29-booking-engine/09-api-only-mode.md).
+- [x] `feat(demo): open the booking engine API on the demo` — the fixed test token and Curlec test keys. The Coolify setup is left with the demo's own setup. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode).
+- [x] `feat(booking-engine): price a basket of rooms` — `POST properties/{code}/pricing`, and `BookingBasket`, shared with `CreateBookingHold`. The microsite's several-room booking uses it. Docs: [API](29-booking-engine/02-api.md#pricing).
+- [x] `fix(booking-engine): tidy the API contract` — stay times as `15:00`, and one error shape for field errors under `/api/booking/v1`. Docs: [API](29-booking-engine/02-api.md#rules).
+- [x] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md), [Local development](29-booking-engine/10-local-dev-microsite.md). Built in that repo (PR #1, `4365dbd`); live since 2026-11-12.
+
+### 30 Commission fees
+
+Planned on 2026-11-11. Docs: [Commission fees](30-commission-fees/01-overview.md). Must be built before the booking engine collects real money.
+
+- [x] `docs(commissions): add the commission fees spec and checklist items` — `docs/30-commission-fees/`.
+- [x] `feat(commissions): add commission services, rates and the ledger` — `CommissionService`, `CommissionEntryType`, `CommissionRule`, `commission_rates`, `commission_entries`, and the Commission rates section on admin settings. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md), [Platform pages](30-commission-fees/05-platform-pages.md#commission-rates).
+- [x] `feat(commissions): record booking engine money and commission` — `collected`, `refunded` and `refund_fee` entries from Curlec results, and `BookingEngineCommission` when a booking ends. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md), [Ledger](30-commission-fees/03-ledger.md#entry-types).
+- [x] `feat(commissions): record channel manager commission` — `ChannelManagerCommission` on the folio's room revenue lines before tax, including cancellation and no-show fees. Needs: the ledger. Docs: [Commission rules](30-commission-fees/02-commission-rules.md).
+- [x] `feat(commissions): generate payout vouchers on the 16th` — `payout_vouchers`, the scheduled job, `PayoutVoucherStatus`, carry forward and the entry lock. The PDF moved to the next item. Needs: both record items. Docs: [Payout vouchers](30-commission-fees/04-payout-vouchers.md).
+- [x] `feat(commissions): approve, pay and print payout vouchers` — the Vouchers list, the voucher page, adjustments, approve, mark as paid, the voucher PDF and the Commissions sidebar link. Needs: payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#voucher-page).
+- [x] `feat(commissions): add the platform commissions dashboard` — the Bookings tab at `/admin/commissions` with Total Cash Liability, Immediate Payable and Owed to Estatell, the period, property and service filters, and the CSV export. Needs: approve, pay and print payout vouchers. Docs: [Platform pages](30-commission-fees/05-platform-pages.md#bookings-tab).
+- [x] `feat(commissions): start and stop commission per property` — `property_commission_periods`, the charge date (check-out date), the Commissions tab on the admin property page, and the platform start date removed. Needs: the platform commissions dashboard. Docs: [Charging periods](30-commission-fees/02-commission-rules.md#charging-periods), [Platform pages](30-commission-fees/05-platform-pages.md#property-commissions-tab).
+- [x] `feat(commissions): add the property payouts page` — `payouts.view`, the Finance › Payouts Bookings and Payouts tabs, and the read-only voucher page. Needs: payout vouchers. Docs: [Property payouts](30-commission-fees/06-property-payouts.md).
+
+### 31 E-invoicing
+
+- [x] `docs(einvoice): plan MyInvois e-invoicing` — what is submitted (folio invoice, AR invoice, credit note, consolidated invoice for walk-in guests), a snapshot of each issued document at close or settle, the buyer fields on guests and companies (TIN, ID, address), a credit note path for a folio invoice, the "Reissue invoice" question for a paid AR invoice, a one-step credit for a paid invoice, and a refund of company credit (there is no AR refund). Needs: print customer documents. Built as module 31 instead, in PR #121 (`82a537bc` and after). Docs: [LHDN MyInvois](31-einvoice/01-lhdn-myinvois.md).
 
 ### 32 Webhooks
 

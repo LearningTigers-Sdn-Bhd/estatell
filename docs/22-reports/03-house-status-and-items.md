@@ -4,6 +4,31 @@
 
 Two front desk reports for housekeeping, built from Sand Bay's spreadsheets: **Housekeeping items** (the extra beds and other set-up items of each room on a date) and **House status** (every room of the date by boat time, with pax, room label and flags). Both are in the core report frame, so they have quick dates, Layout, PDF, CSV and Excel.
 
+## Housekeeping page
+
+Housekeeping items and the [Housekeeping log](../19-housekeeping/03-cleaning-times.md#housekeeping-log) are the two tabs of one page, `TabbedReport::Housekeeping`, at `/p/{code}/reports/housekeeping`, as Guest list and Daily report are.
+
+```
+Reports › Housekeeping › Items ▾
+Housekeeping
+[🧴 Items] [🕒 Log]
+[ Today ▾ ]                            [⚙ Layout]  [ Export ▾ ]
+┌──────┬────────────┬─────┬────────────┬─────┬────────┬───────────┐
+│ Room │ Guest      │ Pax │ Item       │ Qty │ Action │ Stay      │
+│ 204  │ Tan Wei    │ X3  │ Extra bed  │  1  │ Set up │ Arriving  │
+└──────┴────────────┴─────┴────────────┴─────┴────────┴───────────┘
+```
+
+| `?tab`            | Report             | `ReportKey`         | Dates         |
+| ----------------- | ------------------ | ------------------- | ------------- |
+| `items` (default) | Housekeeping items | `HousekeepingItems` | One date      |
+| `log`             | Housekeeping log   | `HousekeepingLog`   | Up to 31 days |
+
+- One **Housekeeping** entry in Reports › Front desk, after Guest list, icon `spray-can`. Neither report is listed by itself.
+- `HousekeepingReportController::show` sends only the open tab's rows. There are no tab counts. The Items tab links with `date`, the Log tab with `from` and `to`.
+- Each tab keeps its own layout key, so the Layout Sheet is titled "Housekeeping › Items" or "Housekeeping › Log". Exports are keyed by report and do not change.
+- The old pages `reports/housekeeping-items` and `reports/housekeeping-log` redirect to their tab and keep the query.
+
 ## Housekeeping items
 
 | Report             | `ReportKey`         | Source                                        | Dates    | Orientation | Category   | Icon        |

@@ -89,11 +89,11 @@ class StayViewController extends Controller
     }
 
     /**
-     * The newest folio lines and the balance of a reservation, loaded when the peek sheet opens. The route needs
-     * `reservations.view`, because the lines are folio data.
+     * The room total, paid amount and balance of a reservation, loaded when the peek sheet opens. The route needs
+     * `reservations.view`, because the figures are folio data.
      */
     public function folio(Property $property, Reservation $reservation, StayFolioPeek $peek): StayFolioData
     {
-        return $peek->for($reservation);
+        return $peek->for($property, $reservation);
     }
 }

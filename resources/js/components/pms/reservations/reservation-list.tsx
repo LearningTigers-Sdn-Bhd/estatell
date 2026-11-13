@@ -6,11 +6,11 @@ import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import type { DataTablePagination } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { RoomTotalLabel } from '@/components/pms/room-total-label';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { cn } from '@/lib/utils';
 import {
     ReservationMarkers,
-    RoomTotalLabel,
     ExternalReference,
     reservationSubtitle,
 } from './reservation-parts';

@@ -12,6 +12,10 @@ enum ReportGroup: string
     case Month = 'month';
     case Method = 'method';
     case Staff = 'staff';
+    case RoomType = 'room_type';
+    case Source = 'source';
+    case RatePlan = 'rate_plan';
+    case Status = 'status';
 
     public function label(): string
     {
@@ -20,16 +24,20 @@ enum ReportGroup: string
             self::Month => __('Month'),
             self::Method => __('By method'),
             self::Staff => __('By staff'),
+            self::RoomType => __('Room type'),
+            self::Source => __('Source'),
+            self::RatePlan => __('Rate plan'),
+            self::Status => __('Status'),
         };
     }
 
     /**
-     * The line under the title of a PDF: "By day", "By month", "By method" or "By staff".
+     * The line under the title of a PDF: "By day", "By month", "By method", "By staff", "By room type" and so on.
      */
     public function caption(): string
     {
         return match ($this) {
-            self::Day, self::Month => __('By :group', ['group' => mb_strtolower($this->label())]),
+            self::Day, self::Month, self::RoomType, self::Source, self::RatePlan, self::Status => __('By :group', ['group' => mb_strtolower($this->label())]),
             self::Method, self::Staff => $this->label(),
         };
     }

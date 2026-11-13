@@ -10,7 +10,7 @@ export type StayFolioState =
     | { status: 'failed' };
 
 /**
- * Loads the newest folio lines of a reservation when the peek sheet opens, and again for another reservation. A slow
+ * Loads the money figures of a reservation when the peek sheet opens, and again for another reservation. A slow
  * answer for an earlier reservation never replaces a newer one. `reload` asks again after a failure.
  */
 export function useStayFolio(url: string | null): {

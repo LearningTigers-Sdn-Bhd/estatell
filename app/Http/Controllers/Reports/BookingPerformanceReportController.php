@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Data\Property\CurrencyData;
-use App\Data\Reports\HousekeepingLogRow;
+use App\Data\Reports\BookingPerformanceRow;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
+use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reports\ReportFiltersRequest;
@@ -16,15 +17,14 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
 
-class HousekeepingLogReportController extends Controller
+class BookingPerformanceReportController extends Controller
 {
     /**
-     * The Housekeeping log page: who cleaned which room and when, between `?from` and `?to`, sorted and paged on
-     * the server. See docs/19-housekeeping/03-cleaning-times.md#housekeeping-log.
+     * The Booking performance report page: the bookings made from `?from` to `?to`, one row for each room type, source, rate plan, status or booking date by `?group`, sorted and paged on the server.
      */
     public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver): Response
     {
-        $key = ReportKey::HousekeepingLog;
+        $key = ReportKey::BookingPerformance;
         $filters = $request->filters();
         $layout = $layoutResolver->resolve($property, $key);
         $allRows = $key->report()->rows($property, $filters);
@@ -32,14 +32,14 @@ class HousekeepingLogReportController extends Controller
         [$rows, $sort] = $reportPage->paginate(
             rows: $allRows,
             sort: $request->string('sort')->toString(),
-            defaultSort: $key->defaultSort(),
+            defaultSort: $key->defaultSort($filters->group),
             columnKeys: $layout->visibleKeys(),
             page: max(1, $request->integer('page', 1)),
             path: $request->url(),
         );
 
-        return Inertia::render('reports/housekeeping-log', [
-            'rows' => HousekeepingLogRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
+        return Inertia::render('reports/booking-performance', [
+            'rows' => BookingPerformanceRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
             'totals' => $key->totals($allRows),
             'sort' => $sort,
             'layout' => $layout,
@@ -48,7 +48,8 @@ class HousekeepingLogReportController extends Controller
             'from' => $filters->from,
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
-            'presets' => $key->datePresets(),
+            'group' => $filters->group,
+            'groupOptions' => ReportGroup::options($key->groups()),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }
