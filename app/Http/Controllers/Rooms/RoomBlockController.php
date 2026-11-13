@@ -34,9 +34,10 @@ class RoomBlockController extends Controller
     private const PAST_LIMIT = 50;
 
     /**
-     * Load every current and upcoming block, the latest ended ones, and the rooms that can be blocked.
+     * Load every current and upcoming block, the latest ended ones, and the rooms that can be blocked. `?tab=past`
+     * opens the Past tab; the browser filters the loaded blocks.
      */
-    public function index(Property $property, PropertyToday $propertyToday): Response
+    public function index(Request $request, Property $property, PropertyToday $propertyToday): Response
     {
         $todayDate = $propertyToday->date($property);
         $today = $todayDate->toDateString();
@@ -66,6 +67,7 @@ class RoomBlockController extends Controller
             'today' => $today,
             'maxNights' => RoomBlockRequest::MAX_NIGHTS,
             'pastLimit' => self::PAST_LIMIT,
+            'tab' => $request->string('tab')->toString() === 'past' ? 'past' : 'current',
         ]);
     }
 

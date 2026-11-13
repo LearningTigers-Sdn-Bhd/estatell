@@ -224,6 +224,18 @@ test('editing a block over a night with a stay is refused', function () {
         ->and(Activity::query()->where('event', 'room_block.updated')->count())->toBe(0);
 });
 
+test('the tab link opens the past tab and anything else opens current', function (?string $query, string $tab) {
+    $owner = User::factory()->owner()->create();
+
+    $this->actingAs($owner)
+        ->get(route('front-desk.room-blocks.index', [$owner->property->code, ...($query === null ? [] : ['tab' => $query])]))
+        ->assertInertia(fn (Assert $page) => $page->where('tab', $tab));
+})->with([
+    'no tab' => [null, 'current'],
+    'past' => ['past', 'past'],
+    'unknown' => ['other', 'current'],
+]);
+
 test('editing a block over another block names that block', function () {
     $owner = User::factory()->owner()->create();
     $room = Room::factory()->for($owner->property)->create(['number' => '2017']);

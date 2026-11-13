@@ -1,11 +1,15 @@
 import { Form, Head, useForm } from '@inertiajs/react';
-import { Ban, Plus } from 'lucide-react';
+import { Ban, CalendarClock, History, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { RoomBlockForm } from '@/components/pms/room-block-form';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -43,7 +47,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { destroy, end, index } from '@/routes/front-desk/room-blocks';
 
 type Block = App.Data.Rooms.RoomBlockData;
@@ -69,6 +72,34 @@ function nights(block: Block): number {
 
 function isPast(block: Block, today: string): boolean {
     return block.completedOn !== null || block.endsOn < today;
+}
+
+/** Current and upcoming, then Past, for the tab bar and the breadcrumbs. */
+function roomBlockTabs(currentCount: number): TabLink[] {
+    return [
+        {
+            value: 'current',
+            label: `Current and upcoming (${currentCount})`,
+            title: 'Current and upcoming',
+            icon: CalendarClock,
+            href: index(),
+        },
+        {
+            value: 'past',
+            label: 'Past',
+            icon: History,
+            href: index(undefined, { query: { tab: 'past' } }),
+        },
+    ];
+}
+
+function matchesSearch(block: Block, term: string): boolean {
+    return [
+        block.roomNumber,
+        block.bedLabel ?? '',
+        block.roomTypeName,
+        block.notes ?? '',
+    ].some((value) => value.toLowerCase().includes(term));
 }
 
 function unitName(block: Block): string {
@@ -241,6 +272,7 @@ function BlockTable({
     onEdit,
     onEnd,
     onCancel,
+    empty,
 }: {
     blocks: Block[];
     tab: Tab;
@@ -249,6 +281,8 @@ function BlockTable({
     onEdit: (block: Block) => void;
     onEnd: (block: Block) => void;
     onCancel: (block: Block) => void;
+    /** Shown in one full-width row when there are no blocks. */
+    empty: ReactNode;
 }) {
     return (
         <div className="overflow-auto rounded-lg border">
@@ -355,6 +389,11 @@ function BlockTable({
                             </TableRow>
                         );
                     })}
+                    {blocks.length === 0 && (
+                        <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={5}>{empty}</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
         </div>
@@ -369,6 +408,7 @@ export default function RoomBlocksIndex({
     today,
     maxNights,
     pastLimit,
+    tab,
 }: {
     blocks: Block[];
     rooms: Room[];
@@ -377,11 +417,12 @@ export default function RoomBlocksIndex({
     today: string;
     maxNights: number;
     pastLimit: number;
+    tab: Tab;
 }) {
     const [editing, setEditing] = useState<Block | null | undefined>(undefined);
     const [ending, setEnding] = useState<Block | null>(null);
     const [cancelling, setCancelling] = useState<Block | null>(null);
-    const [tab, setTab] = useState<Tab>('current');
+    const [search, setSearch] = useState('');
     const [groupId, setGroupId] = useState('');
     const [reason, setReason] = useState('');
 
@@ -396,11 +437,20 @@ export default function RoomBlocksIndex({
         () => blocks.filter((block) => isPast(block, today)),
         [blocks, today],
     );
-    const shown = (tab === 'current' ? current : past).filter(
+    const tabBlocks = tab === 'current' ? current : past;
+    const term = search.trim().toLowerCase();
+    const filtered = term !== '' || groupId !== '' || reason !== '';
+    const shown = tabBlocks.filter(
         (block) =>
             (groupId === '' || String(block.roomGroupId) === groupId) &&
-            (reason === '' || block.reason === reason),
+            (reason === '' || block.reason === reason) &&
+            (term === '' || matchesSearch(block, term)),
     );
+    const clearFilters = () => {
+        setSearch('');
+        setGroupId('');
+        setReason('');
+    };
 
     const blockRoomButton = (
         <Button onClick={() => setEditing(null)} disabled={rooms.length === 0}>
@@ -420,80 +470,93 @@ export default function RoomBlocksIndex({
                     actions={blockRoomButton}
                 />
 
-                {blocks.length === 0 ? (
-                    <EmptyState
-                        icon={Ban}
-                        title="No room blocks"
-                        description={
-                            rooms.length === 0
-                                ? 'Add rooms in Settings before you block them.'
-                                : 'Block a room when it cannot be sold, for example during repairs.'
-                        }
-                        action={rooms.length > 0 ? blockRoomButton : undefined}
-                    />
-                ) : (
-                    <>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Tabs
-                                value={tab}
-                                onValueChange={(value) => setTab(value as Tab)}
-                            >
-                                <TabsList>
-                                    <TabsTrigger value="current">
-                                        Current and upcoming ({current.length})
-                                    </TabsTrigger>
-                                    <TabsTrigger value="past">Past</TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                            {roomGroups.length > 0 && (
-                                <EnumSelect
-                                    options={roomGroups.map((group) => ({
-                                        value: String(group.id),
-                                        label: group.name,
-                                    }))}
-                                    allLabel="All room groups"
-                                    value={groupId}
-                                    onValueChange={setGroupId}
-                                    aria-label="Room group"
-                                />
-                            )}
+                <TabLinks
+                    activeTab={tab}
+                    panelWidth="full"
+                    className="gap-4"
+                    triggerClassName="min-w-0 px-0 mr-6"
+                    panelClassName="flex flex-col gap-4"
+                    tabs={roomBlockTabs(current.length)}
+                >
+                    <FilterBar
+                        search={search}
+                        onSearchChange={setSearch}
+                        searchPlaceholder="Search by room, bed, room type or notes"
+                    >
+                        {roomGroups.length > 0 && (
                             <EnumSelect
-                                options={reasons}
-                                allLabel="All reasons"
-                                value={reason}
-                                onValueChange={setReason}
-                                aria-label="Reason"
-                            />
-                        </div>
-
-                        {shown.length > 0 ? (
-                            <BlockTable
-                                blocks={shown}
-                                tab={tab}
-                                today={today}
-                                reasonLabel={reasonLabel}
-                                onEdit={setEditing}
-                                onEnd={setEnding}
-                                onCancel={setCancelling}
-                            />
-                        ) : (
-                            <EmptyState
-                                title={
-                                    tab === 'current'
-                                        ? 'No current or upcoming blocks'
-                                        : 'No past blocks'
-                                }
-                                description="Change the filters or block a room."
+                                options={roomGroups.map((group) => ({
+                                    value: String(group.id),
+                                    label: group.name,
+                                }))}
+                                allLabel="All room groups"
+                                value={groupId}
+                                onValueChange={setGroupId}
+                                aria-label="Room group"
                             />
                         )}
+                        <EnumSelect
+                            options={reasons}
+                            allLabel="All reasons"
+                            value={reason}
+                            onValueChange={setReason}
+                            aria-label="Reason"
+                        />
+                    </FilterBar>
 
-                        {tab === 'past' && past.length >= pastLimit && (
-                            <p className="text-sm text-muted-foreground">
-                                Showing the latest {pastLimit} past blocks.
-                            </p>
-                        )}
-                    </>
-                )}
+                    <BlockTable
+                        blocks={shown}
+                        tab={tab}
+                        today={today}
+                        reasonLabel={reasonLabel}
+                        onEdit={setEditing}
+                        onEnd={setEnding}
+                        onCancel={setCancelling}
+                        empty={
+                            filtered && tabBlocks.length > 0 ? (
+                                <EmptyState
+                                    icon={Ban}
+                                    title="No blocks match your search"
+                                    action={
+                                        <Button
+                                            variant="outline"
+                                            onClick={clearFilters}
+                                        >
+                                            Clear filters
+                                        </Button>
+                                    }
+                                />
+                            ) : tab === 'current' ? (
+                                <EmptyState
+                                    icon={Ban}
+                                    title="No current or upcoming blocks"
+                                    description={
+                                        rooms.length === 0
+                                            ? 'Add rooms in Settings before you block them.'
+                                            : 'Block a room when it cannot be sold, for example during repairs.'
+                                    }
+                                    action={
+                                        rooms.length > 0
+                                            ? blockRoomButton
+                                            : undefined
+                                    }
+                                />
+                            ) : (
+                                <EmptyState
+                                    icon={History}
+                                    title="No past blocks"
+                                    description="Blocks show here after they end or are ended early."
+                                />
+                            )
+                        }
+                    />
+
+                    {tab === 'past' && past.length >= pastLimit && (
+                        <p className="text-sm text-muted-foreground">
+                            Showing the latest {pastLimit} past blocks.
+                        </p>
+                    )}
+                </TabLinks>
             </div>
 
             <Dialog
@@ -539,6 +602,16 @@ export default function RoomBlocksIndex({
     );
 }
 
-RoomBlocksIndex.layout = {
-    breadcrumbs: [{ title: 'Room blocks', href: index() }],
-};
+RoomBlocksIndex.layout = (props: {
+    blocks: Block[];
+    today: string;
+    tab: Tab;
+}) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Room blocks', href: index() }],
+        roomBlockTabs(
+            props.blocks.filter((block) => !isPast(block, props.today)).length,
+        ),
+        props.tab,
+    ),
+});

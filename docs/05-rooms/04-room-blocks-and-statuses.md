@@ -81,14 +81,18 @@ Front desk > Room blocks (`front-desk.room-blocks.index`, `/p/{code}/front-desk/
 
 ```
 Room blocks                                             [+ Block room]
-[Current and upcoming (2) | Past]   All room groups ⌄   All reasons ⌄
+Current and upcoming (2)   Past                (tab links)
+[Search by room, bed, room type or notes]   All room groups ⌄   All reasons ⌄
 ──────────────────────────────────────────────────────────────────────
 Room          Reason        Nights                      Notes
 203 Deluxe    Maintenance   12 Oct – 18 Oct · 7 nights  Aircon   In progress  Edit  End now
 12 · Bed A3   Out of order  20 Oct – 21 Oct · 2 nights  —        Upcoming     Edit  Cancel
 ```
 
-- One load: every current and upcoming block, the latest 50 past blocks, and the active rooms with their active beds. Tabs and filters work in the browser.
+- One load: every current and upcoming block, the latest 50 past blocks, and the active rooms with their active beds. The search and filters work in the browser.
+- The tabs are `TabLinks`: Current and upcoming is the page URL, Past is `?tab=past`. A refresh keeps the open tab, and the open tab is the last breadcrumb.
+- The search matches the room number, bed, room type and notes.
+- The table header always shows. With no blocks, one row holds the empty state: **Block room** on Current and upcoming, or a note on Past. When the search or filters hide every block, the row says so and offers **Clear filters**.
 - **Block room** and **Edit** open a Dialog: room, bed (dorm rooms only, default "Whole room"), reason (full width), nights (`DateRangePicker`, two months side by side, one on a phone) and notes.
 - **End now** opens a confirm dialog. For a whole-room block it asks "Room is Dirty / Clean" (default Dirty).
 - **Cancel** opens a confirm dialog.
