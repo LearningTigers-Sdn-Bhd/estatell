@@ -1,8 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Phone } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { PageHeader } from '@/components/pms/page-header';
+import { contact, stayContact } from '@/routes/concierge';
 
 /** Shared editorial frame for the concierge's forms, guide and stay pages. */
 export function GuestFrame({
@@ -18,11 +19,19 @@ export function GuestFrame({
     children: ReactNode;
     centerContent?: boolean;
 }) {
-    const { property, stay } = usePage<{
+    const { component, props } = usePage<{
         property: App.Data.Property.PropertySummaryData | null;
         stay?: App.Data.Concierge.ConciergeStayData;
-    }>().props;
+        token?: string;
+    }>();
+    const { property, stay, token } = props;
     const guestProperty = property ?? stay?.property;
+    const stayToken = stay?.token ?? token;
+    const contactHref = stayToken
+        ? stayContact.url({ token: stayToken })
+        : guestProperty
+          ? contact.url({ property: guestProperty.code })
+          : null;
 
     const navigation = (
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -73,6 +82,37 @@ export function GuestFrame({
                             {children}
                         </div>
                     </div>
+                    {contactHref && component !== 'concierge/contact' && (
+                        <footer
+                            aria-label="Guest support"
+                            className="mt-auto flex flex-col items-start gap-4 border-t border-border/40 pt-6 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Phone
+                                    className="size-5 shrink-0 text-primary"
+                                    aria-hidden
+                                />
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-sm font-medium">
+                                        Need help?
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        For urgent help, contact the front desk
+                                        directly.
+                                    </p>
+                                </div>
+                            </div>
+                            <Link
+                                href={contactHref}
+                                className={buttonVariants({
+                                    variant: 'outline',
+                                    className: 'min-h-11 w-full sm:w-fit',
+                                })}
+                            >
+                                Contact front desk <ArrowRight aria-hidden />
+                            </Link>
+                        </footer>
+                    )}
                 </div>
             </div>
         </>

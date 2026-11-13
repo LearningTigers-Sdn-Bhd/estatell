@@ -16,6 +16,8 @@ The theme is scoped to concierge pages, including portalled form controls. Staff
 
 Guest service pages group request forms with their history, contact methods with front desk hours, and bill entries with check-out actions. The guide keeps route-based chapters, readable arrival times, facility details and Wi-Fi instructions. Empty sections explain how to get help without inventing property information. Guest booking summaries, receipts and invoices use olive headings and shaded information strips and totals; they retain the property's print fonts and document content. Staff PDFs keep their configured appearance.
 
+Inner concierge pages share a front desk help footer at the end of the page. The contact page omits it. Payment and key-access problems keep their contextual contact actions.
+
 ## Decisions
 
 | Area            | Decision                                                                                                                                                                                                    |

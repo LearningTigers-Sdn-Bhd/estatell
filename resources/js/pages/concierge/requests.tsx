@@ -1,7 +1,5 @@
-import { Form, Link } from '@inertiajs/react';
+import { Form } from '@inertiajs/react';
 import {
-    ArrowRight,
-    CircleHelp,
     ClipboardList,
     MessageSquare,
     Send,
@@ -11,7 +9,7 @@ import { GuestFrame } from '@/components/concierge/stay-menu';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
     Field,
     FieldDescription,
@@ -21,7 +19,6 @@ import {
 } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { stayContact } from '@/routes/concierge';
 import { store } from '@/routes/concierge/requests';
 
 /** Send a request and keep the front desk's replies alongside the form. */
@@ -134,29 +131,6 @@ export default function ConciergeRequests({
                             )}
                         </Form>
                     </section>
-                    <div className="flex items-start gap-3 px-1">
-                        <CircleHelp
-                            className="mt-0.5 size-5 shrink-0 text-primary"
-                            aria-hidden
-                        />
-                        <div className="flex flex-col items-start gap-1">
-                            <p className="text-sm font-medium">
-                                Need urgent help?
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                Contact the front desk directly.
-                            </p>
-                            <Link
-                                href={stayContact.url({ token })}
-                                className={buttonVariants({
-                                    variant: 'link',
-                                    className: 'min-h-11 px-0',
-                                })}
-                            >
-                                Contact front desk <ArrowRight aria-hidden />
-                            </Link>
-                        </div>
-                    </div>
                 </div>
                 <section
                     className="flex flex-col gap-5 lg:col-span-2"
