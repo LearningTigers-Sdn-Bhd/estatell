@@ -104,7 +104,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 - **Payments never move.** Only credit moves, as a new pair. The original payment stays on its folio with its receipt.
 - **Undo:** `UndoCreditMove (User $actor, FolioLine $line)` from either line of a pair posts a reversal for both. A repeat is refused (`already_reversed`), and so is a line that is not a credit move (`not_a_credit_move`).
 - `TransferLines` (Move charges) refuses a credit move line.
-- The note goes on both lines (`folio_lines.notes`) and in the activity log (`folio.credit_moved`). The reversals of an undo copy it. Undo logs `folio.credit_move_undone`. Credit moves made before the column existed took the note of their log entry when exactly one pair matched its folios, date and amount.
+- The note goes on both lines (`folio_lines.notes`) and in the activity log (`folio.credit_moved`). The reversals of an undo copy it. Undo logs `folio.credit_move_undone`.
 - A unit folio that ends in credit only through a moved credit cannot use Refund credit, because no payment can give it back (`CheckOutSettlement::holdsUnrefundable`). The checks stop a move from leaving a folio in credit. If a later reversal does, undo the move.
 
 | Check                                                     | Refusal                      |

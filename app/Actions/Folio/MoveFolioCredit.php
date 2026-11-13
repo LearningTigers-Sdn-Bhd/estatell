@@ -31,7 +31,7 @@ class MoveFolioCredit
      * Move a folio's credit to other folios of the same reservation that owe money. Each target gets one pair of
      * payment lines with the Credit transfer code and its own `transfer_group_id`: `+amount` "Credit moved to {target}"
      * on the source and `-amount` "Credit from {source}" on the target, both with the note in `notes`. No payment row is written: the money came in
-     * once, so the Payments report, revenue and e-invoices do not change. Every folio row is locked in id order, and
+     * once, so the Payments report, revenue and e-invoices do not change. Every folio row is locked in id order before the repeat check, and
      * every check runs before the first write, so a refusal writes and logs nothing. The keys are
      * `credit-move:{key}:{target folio id}:out` and `:in`, so a repeat returns the first lines. Permissions are checked
      * by the caller. See docs/13-folio/02-posting-charges.md#move-credit.
@@ -46,6 +46,8 @@ class MoveFolioCredit
             }
 
             $targetIds = array_map(fn (array $move): int => $move['folio_id'], $moves);
+            // Lock first, so a second copy of the same request waits here and then finds the first one's lines.
+            $folios = Folio::query()->whereIn('id', [$source->id, ...$targetIds])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $existing = FolioLine::query()->where('idempotency_key', 'like', self::KEY_PREFIX.$key.':%')->orderBy('id')->get();
 
             if ($existing->isNotEmpty()) {
@@ -58,7 +60,6 @@ class MoveFolioCredit
                 return PostingResult::refused(PostingResult::REFUSAL_TRANSFER_INVALID);
             }
 
-            $folios = Folio::query()->whereIn('id', [$source->id, ...$targetIds])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $locked = $folios->get($source->id);
 
             if ($locked === null || $folios->count() !== count($targetIds) + 1 || $folios->contains(fn (Folio $folio): bool => $folio->reservation_id !== $locked->reservation_id)) {

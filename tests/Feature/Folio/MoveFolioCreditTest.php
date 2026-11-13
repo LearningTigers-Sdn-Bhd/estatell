@@ -22,8 +22,6 @@ use App\Services\EInvoice\ReportableLines;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\MoveChargesPreview;
 use Brick\Math\BigDecimal;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -240,16 +238,4 @@ test('a move without a note leaves notes empty', function () {
     creditMoveRun($setup, [['folio_id' => $setup['f1']->id, 'amount' => '10.00']]);
 
     expect(FolioLine::query()->whereNotNull('transfer_group_id')->whereNotNull('notes')->count())->toBe(0);
-});
-
-test('the migration gives existing credit moves the note of their log entry when one pair matches', function () {
-    $setup = creditMoveSetup();
-    creditMoveRun($setup, [['folio_id' => $setup['f1']->id, 'amount' => '10.00'], ['folio_id' => $setup['f2']->id, 'amount' => '10.00']]);
-    activity()->event('folio.credit_moved')->withProperties(['folio_id' => $setup['master']->id, 'moves' => [['folio_id' => $setup['f1']->id, 'amount' => '10.00'], ['folio_id' => $setup['f2']->id, 'amount' => '10.00']], 'note' => 'From the agent', 'posting_date' => '2026-10-14'])->log('Folio credit moved');
-    Schema::table('folio_lines', fn (Blueprint $table) => $table->dropColumn('notes'));
-
-    (require database_path('migrations/2026_11_13_212748_add_notes_to_folio_lines_table.php'))->up();
-
-    expect(FolioLine::query()->whereNotNull('transfer_group_id')->pluck('notes')->unique()->all())->toBe(['From the agent'])
-        ->and(FolioLine::query()->whereNotNull('transfer_group_id')->count())->toBe(4);
 });
