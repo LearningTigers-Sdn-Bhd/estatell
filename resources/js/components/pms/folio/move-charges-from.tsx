@@ -11,6 +11,16 @@ type Schedule = App.Data.Folio.MoveScheduleData;
 
 export type ScheduleChoices = Record<number, 'room' | 'all'>;
 
+export type QuickSelect = 'room' | 'all' | 'taxes' | 'clear';
+
+/** True when the charge may go to the target: a collected tax only to its room charge's folio. */
+export function canMoveTo(
+    charge: App.Data.Folio.MoveChargeData,
+    targetId: number,
+): boolean {
+    return charge.onlyToFolioId === null || charge.onlyToFolioId === targetId;
+}
+
 /** The posted balance of a folio, with "before → after" while the figures are for the shown target. */
 export function BalanceFigure({
     folioId,
@@ -128,10 +138,12 @@ function ScheduledBlock({
 
 /**
  * The From column: one group for each Open folio except the target, with its movable charges, then the scheduled
- * choices of each room. Quick select ticks charges; it never changes the target.
+ * choices of each room. Quick select ticks charges; it never changes the target. A collected tax apart from its room
+ * charge says where that charge is, and cannot be ticked unless that folio is the target.
  */
 export function MoveChargesFrom({
     sources,
+    targetId,
     ticked,
     onToggle,
     onQuickSelect,
@@ -142,9 +154,10 @@ export function MoveChargesFrom({
     currency,
 }: {
     sources: Folio[];
+    targetId: number;
     ticked: number[];
     onToggle: (lineId: number, checked: boolean) => void;
-    onQuickSelect: (mode: 'room' | 'all' | 'clear') => void;
+    onQuickSelect: (mode: QuickSelect) => void;
     preview: Preview;
     previewCurrent: boolean;
     choices: ScheduleChoices;
@@ -153,6 +166,9 @@ export function MoveChargesFrom({
 }) {
     const schedules = previewCurrent ? preview.schedules : [];
     const sourceIds = sources.map((source) => source.id);
+    const hasTaxes = sources.some((source) =>
+        source.charges.some((charge) => charge.onlyToFolioId !== null),
+    );
     const loose = schedules.filter(
         (schedule) =>
             schedule.fromFolioId === null ||
@@ -185,6 +201,16 @@ export function MoveChargesFrom({
                     >
                         All charges
                     </Button>
+                    {hasTaxes && (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onQuickSelect('taxes')}
+                        >
+                            Taxes at check-in
+                        </Button>
+                    )}
                     <Button
                         type="button"
                         size="sm"
@@ -220,6 +246,7 @@ export function MoveChargesFrom({
                             <ul className="flex flex-col gap-2">
                                 {source.charges.map((charge) => {
                                     const id = `charge-${charge.lineId}`;
+                                    const movable = canMoveTo(charge, targetId);
 
                                     return (
                                         <li
@@ -228,9 +255,13 @@ export function MoveChargesFrom({
                                         >
                                             <Checkbox
                                                 id={id}
-                                                checked={ticked.includes(
-                                                    charge.lineId,
-                                                )}
+                                                checked={
+                                                    movable &&
+                                                    ticked.includes(
+                                                        charge.lineId,
+                                                    )
+                                                }
+                                                disabled={!movable}
                                                 onCheckedChange={(checked) =>
                                                     onToggle(
                                                         charge.lineId,
@@ -252,6 +283,13 @@ export function MoveChargesFrom({
                                                         <span className="text-muted-foreground">
                                                             {' · '}
                                                             {charge.unit}
+                                                        </span>
+                                                    )}
+                                                    {charge.onlyToLabel && (
+                                                        <span className="block text-muted-foreground">
+                                                            {movable
+                                                                ? `Under Room on ${charge.onlyToLabel}`
+                                                                : `Moves only to ${charge.onlyToLabel}, with its room`}
                                                         </span>
                                                     )}
                                                 </span>

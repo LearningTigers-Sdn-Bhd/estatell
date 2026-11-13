@@ -8,17 +8,20 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
 use App\Models\User;
+use App\Services\Catalogues\TaxWaivers;
 use Illuminate\Support\Facades\DB;
 
 class WaiveGroupTax
 {
     public function __construct(
         private WaiveUnitTax $waiveUnitTax,
+        private TaxWaivers $taxWaivers,
     ) {}
 
     /**
      * Stop charging the chosen taxes for several units of one reservation at once (Taxes paid elsewhere in More). Each
-     * unit goes through `WaiveUnitTax` with the taxes it does not have waived yet; a unit that has them all is skipped.
+     * unit goes through `WaiveUnitTax` with the taxes it does not have waived yet and that apply to its guest (a
+     * foreign-only tax skips a guest of the property's own country); a unit with none left is skipped.
      * Every chosen unit must belong to the reservation and be Confirmed, Checked in or Checked out (`unit_not_waivable`),
      * and every tax must be the property's (`tax_not_found`). Nothing to waive at all is `already_waived`. A refusal of
      * any unit rolls the whole request back, so a refusal writes and logs nothing. Permissions are checked by the route.
@@ -45,7 +48,9 @@ class WaiveGroupTax
                     return GroupTaxWaiverResult::refused(TaxWaiverResult::REFUSAL_UNIT_NOT_WAIVABLE);
                 }
 
-                if ($taxIds === [] || Tax::query()->where('property_id', $reservation->property_id)->whereIn('id', $taxIds)->count() !== count($taxIds)) {
+                $taxes = Tax::query()->where('property_id', $reservation->property_id)->whereIn('id', $taxIds)->get()->keyBy('id');
+
+                if ($taxIds === [] || $taxes->count() !== count($taxIds)) {
                     return GroupTaxWaiverResult::refused(TaxWaiverResult::REFUSAL_TAX_NOT_FOUND);
                 }
 
@@ -53,7 +58,10 @@ class WaiveGroupTax
                 $reversed = 0;
 
                 foreach ($units as $unit) {
-                    $missing = array_values(array_diff($taxIds, $unit->taxWaivers->pluck('tax_id')->all()));
+                    $missing = array_values(array_filter(
+                        array_diff($taxIds, $unit->taxWaivers->pluck('tax_id')->all()),
+                        fn (int $taxId): bool => $this->taxWaivers->appliesTo($taxes->get($taxId), $unit),
+                    ));
 
                     if ($missing === []) {
                         continue;

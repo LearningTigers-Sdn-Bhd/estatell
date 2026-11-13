@@ -6,8 +6,8 @@ import { FieldDescription, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 /**
- * Puts the ended stay question on the left and the rest of the form on the right, from 1024 px. Without a question the
- * form stays as one column.
+ * Puts the ended stay question above the rest of the form, in one column: both Check in forms are Sheets, too narrow
+ * for two columns. Without a question the form shows on its own.
  */
 export function EndedStayColumns({
     question,
@@ -21,7 +21,7 @@ export function EndedStayColumns({
     }
 
     return (
-        <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
+        <div className="flex flex-col gap-5">
             <div className="flex min-w-0 flex-col gap-5">{question}</div>
             <div className="flex min-w-0 flex-col gap-5">{children}</div>
         </div>
@@ -29,7 +29,7 @@ export function EndedStayColumns({
 }
 
 /**
- * The question both Check in Dialogs ask for a stay that was not logged in time. The server decides when it shows and
+ * The question both Check in Sheets ask for a stay that was not logged in time. The server decides when it shows and
  * sends the dates and amounts inside the text.
  */
 export function EndedStayQuestion({
@@ -72,7 +72,7 @@ export function EndedStayQuestion({
             <ChoiceCards
                 id={`${id}-ended-stay`}
                 legend={legend}
-                columns={1}
+                columns={2}
                 choices={[
                     {
                         value: 'arrived_last_night',

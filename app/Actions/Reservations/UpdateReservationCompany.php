@@ -32,7 +32,8 @@ class UpdateReservationCompany
      * is not an Active company of the property (`company_not_available`), or while the Master folio holds
      * money (`master_has_payments`) or has an AR invoice that is not Void (`master_has_ar_invoice`), or while a live unit uses a plan the new company cannot use (`company_plan_conflict`), or when the stay charges with tax (`StayChargeTotal`) would take the company over its credit limit without an override reason (`credit_limit_exceeded`). The same company is not a change: nothing is written or logged, and a Suspended company a
      * reservation already holds can stay. The Master folio's payer follows with its charges, and `SyncRoutingRules` runs so a new
-     * company gets its Master folio. See docs/15-city-ledger/01-companies.md.
+     * company gets its Master folio. The booking's own choice of who pays the taxes collected at check-in
+     * (`collected_taxes_payer`) goes back to null, so the new company's default applies. See docs/15-city-ledger/01-companies.md.
      */
     public function __invoke(User $actor, Reservation $reservation, ?int $companyId, ?string $overrideReason = null): ReservationResult
     {
@@ -84,6 +85,7 @@ class UpdateReservationCompany
 
             $oldCompanyId = $locked->company_id;
             $locked->company_id = $companyId;
+            $locked->collected_taxes_payer = null;
             $locked->save();
 
             $routing = ($this->syncRoutingRules)($locked);

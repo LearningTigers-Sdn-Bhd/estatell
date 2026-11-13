@@ -375,7 +375,11 @@ export default function ManualFolio({ manual: page, companies }: Props) {
                                                     action !== 'void' &&
                                                     action !==
                                                         'correct_price' &&
-                                                    action !== 'remove_discount'
+                                                    action !==
+                                                        'remove_discount' &&
+                                                    action !==
+                                                        'undo_credit_move' &&
+                                                    action !== 'undo_tax_move'
                                                 ) {
                                                     setLineTarget({
                                                         row,

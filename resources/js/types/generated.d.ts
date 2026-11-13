@@ -849,6 +849,7 @@ export type CompanyOptionData = {
 id: number,
 name: string,
 marketLabel: string | null,
+paysCollectedTaxes: boolean,
 };
 export type CompanyPortalData = {
 email: string | null,
@@ -1550,6 +1551,23 @@ canAddCard: boolean,
 };
 }
 namespace Folio {
+export type CollectedTaxNoteData = {
+payer: string,
+taxes: string[],
+companyId: number | null,
+moveLineIds: number[],
+moveToFolioId: number | null,
+moveTo: string | null,
+};
+export type CreditMoveData = {
+credit: string,
+targets: App.Data.Folio.CreditMoveTargetData[],
+};
+export type CreditMoveTargetData = {
+folioId: number,
+label: string,
+owes: string,
+};
 export type DiscountQuoteData = {
 lines: App.Data.Folio.DiscountQuoteLineData[],
 subtotal: string,
@@ -1642,6 +1660,9 @@ message: string,
 fix: string,
 }[],
 eInvoiceRequired: boolean,
+collectedTaxNote: App.Data.Folio.CollectedTaxNoteData | null,
+creditMove: App.Data.Folio.CreditMoveData | null,
+paymentCreditWarning: App.Data.Folio.PaymentCreditWarningData | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -1691,6 +1712,9 @@ postedDate: string | null,
 methodType: string | null,
 receivedOn: string | null,
 notes: string | null,
+onFolio: App.Data.Folio.FolioOptionData | null,
+taxMoveGroup: string | null,
+pairFolio: App.Data.Folio.FolioOptionData | null,
 };
 export type ManualFolioOptionData = {
 id: number,
@@ -1819,6 +1843,8 @@ amount: string,
 total: string,
 isRoom: boolean,
 children: App.Data.Folio.MoveChildData[],
+onlyToFolioId: number | null,
+onlyToLabel: string | null,
 };
 export type MoveChargesPageData = {
 reservationId: number,
@@ -1935,6 +1961,12 @@ amount: string,
 status: App.Data.Shared.BadgeData,
 failureReason: string | null,
 canRetry: boolean,
+};
+export type PaymentCreditWarningData = {
+owes: string,
+othersCount: number,
+othersTotal: string,
+othersLabel: string | null,
 };
 export type PostFolioOptionData = {
 id: number | null,
@@ -2705,6 +2737,7 @@ lineKey: string | null,
 allowOtaCollected: boolean,
 issueReceipt: boolean,
 guestPaysTaxes: boolean,
+paysUnitFolioCharges: boolean,
 allowOnline: boolean,
 receivedOn: string | null,
 notes: string | null,
@@ -4090,6 +4123,7 @@ guest: string,
 notes: string | null,
 folio: string | null,
 invoice: string | null,
+refund_reason: string | null,
 };
 export type PoliceReportRow = {
 key: string,
@@ -4356,6 +4390,8 @@ ready: boolean,
 note: string | null,
 endedStay: boolean,
 moveTotal: string | null,
+needsNationality: boolean,
+collection: App.Data.Reservations.CheckInCollectionData | null,
 }[],
 canCheckInWithoutCard: boolean,
 error: string | null,
@@ -4363,9 +4399,14 @@ endedStay: App.Data.Reservations.CheckInAllEndedStayData | null,
 };
 export type CheckInCollectionData = {
 taxes: {
+taxId: number,
 name: string,
 amount: string,
 exempt: boolean,
+waivedBy: string | null,
+chargedTo: string | null,
+payableOnMaster: boolean,
+waivable: boolean,
 }[],
 taxesTotal: string,
 taxesHidden: boolean,
@@ -4373,6 +4414,22 @@ deposit: string | null,
 billTotal: string,
 billHidden: boolean,
 billPaid: string,
+charges: {
+codeId: number,
+name: string,
+count: number,
+perNight: boolean,
+label: string,
+amount: string,
+isStay: boolean,
+holdsTaxes: boolean,
+folio: string,
+chargedTo: string | null,
+payable: boolean,
+}[],
+chargesPaid: string,
+masterOwed: string | null,
+masterPaid: string,
 };
 export type CheckOutAsDayUseData = {
 refusal: string | null,
@@ -4432,6 +4489,16 @@ paymentMethodId: number,
 reference: string | null,
 idempotencyKey: string,
 roomCharges: boolean,
+taxIds: number[] | null,
+chargeCodeIds: number[],
+masterTaxIds: number[],
+};
+export type CollectedTaxesData = {
+companyPays: boolean,
+companyName: string | null,
+taxes: string[],
+companyDefaultPays: boolean,
+bookingPayer: string | null,
 };
 export type DayUseOfferData = {
 hours: number,
@@ -4601,6 +4668,7 @@ units: App.Data.Reservations.NewUnitData[],
 guests: App.Data.Reservations.NewBookingGuestData[],
 picks: App.Data.Reservations.UnitPickData[],
 billingMode: App.Enums.BillingMode,
+collectedTaxesPayer: App.Enums.CollectedTaxesPayer | null,
 externalReference: string | null,
 groupName: string | null,
 notes: string | null,
@@ -4619,6 +4687,7 @@ bookerGuestId: number,
 bookingSource: { id: number, name: string },
 units: App.Data.Reservations.NewUnitData[],
 billingMode: App.Enums.BillingMode,
+collectedTaxesPayer: App.Enums.CollectedTaxesPayer | null,
 externalReference: string | null,
 companyId: number | null,
 groupName: string | null,
@@ -4753,6 +4822,7 @@ companyName: string | null,
 createdOn: string,
 createdBy: string | null,
 booker: App.Data.Reservations.ReservationBookerData,
+collectedTaxes: App.Data.Reservations.CollectedTaxesData | null,
 };
 export type ReservationGuestData = {
 guestId: number | null,
@@ -5477,6 +5547,7 @@ export type ChargeBucket = 'accommodation' | 'day-use' | 'fees' | 'extras' | 'ad
 export type ChargeStatus = 'posted' | 'reversal' | 'moved';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
+export type CollectedTaxesPayer = 'company' | 'guest';
 export type ColumnAlign = 'left' | 'center' | 'right';
 export type CommissionEntryType = 'collected' | 'refunded' | 'refund_fee' | 'commission' | 'adjustment' | 'carried_forward';
 export type CommissionPeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
@@ -5615,7 +5686,7 @@ export type StayViewGrouping = 'none' | 'room_group' | 'room_type';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment' | 'folio_transfer';
 export type TabbedReport = 'guest-list' | 'daily-report' | 'housekeeping';
 export type TaxRateType = 'percent' | 'flat';
 export type TaxWaiverReason = 'paid_elsewhere' | 'guest_receipt';

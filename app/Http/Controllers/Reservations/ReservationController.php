@@ -19,6 +19,7 @@ use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Reservations\UnitTaxWaiverFormData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
@@ -48,6 +49,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Boats\BoatTripAccess;
 use App\Services\Boats\ReservationBoatSummary;
+use App\Services\Catalogues\TaxWaivers;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\DoorLocks\StayLocks;
@@ -235,7 +237,7 @@ class ReservationController extends Controller
             $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->label]);
             $addOns = UnitAddOn::query()
                 ->whereIn('reservation_unit_id', $labels->keys()->all())
-                ->with(['chargeItem.transactionCode', 'ageGroup', 'folioLine'])
+                ->with(['chargeItem.transactionCode', 'ageGroup', 'folioLine', 'boatTripLinks.unitBoatTrip'])
                 ->orderBy('reservation_unit_id')
                 ->orderBy('service_date')
                 ->orderBy('id')
@@ -371,7 +373,10 @@ class ReservationController extends Controller
         }
 
         $waived = $unit->loadMissing('taxWaivers')->taxWaivers->pluck('tax_id')->all();
-        $taxes = Tax::query()->where('property_id', $unit->property_id)->waivable()->whereNotIn('id', $waived)->orderBy('id')->get();
+        $taxWaivers = app(TaxWaivers::class);
+        $taxes = Tax::query()->where('property_id', $unit->property_id)->waivable()->whereNotIn('id', $waived)->orderBy('id')->get()
+            ->filter(fn (Tax $tax): bool => $taxWaivers->appliesTo($tax, $unit))
+            ->values();
 
         return UnitTaxWaiverFormData::forReservation($reservation->loadMissing('bookingSource', 'company'), $taxes);
     }
@@ -471,6 +476,7 @@ class ReservationController extends Controller
                 : null),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
+            'collectedTaxesPayers' => CollectedTaxesPayer::options(),
             'manualReasons' => ManualFolioReason::options(),
             'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),
             'canOverrideCredit' => $user->can(PermissionEnum::CompanyCreditOverride->value),

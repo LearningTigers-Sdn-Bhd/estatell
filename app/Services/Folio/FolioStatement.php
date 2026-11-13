@@ -2,11 +2,15 @@
 
 namespace App\Services\Folio;
 
+use App\Actions\Folio\MoveFolioCredit;
+use App\Data\Folio\CreditMoveData;
+use App\Data\Folio\CreditMoveTargetData;
 use App\Data\Folio\FolioData;
 use App\Data\Folio\FolioOptionData;
 use App\Data\Folio\FolioRailItemData;
 use App\Data\Folio\FolioRowData;
 use App\Data\Folio\OnlineRefundData;
+use App\Data\Folio\PaymentCreditWarningData;
 use App\Data\Folio\PostFolioOptionData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Shared\BadgeData;
@@ -78,6 +82,8 @@ class FolioStatement
         private SubmissionStatusBadge $submissionStatusBadge,
         private ReportableLines $reportableLines,
         private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
+        private CollectedTaxRows $collectedTaxRows,
+        private MovedCollectedTaxes $movedCollectedTaxes,
     ) {}
 
     /**
@@ -216,9 +222,11 @@ class FolioStatement
     }
 
     /**
-     * @param  array<int, string>  $labels
+     * The folio's short name: "Master", "Unit 203" or "Third party".
+     *
+     * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function name(Folio $folio, array $labels): string
+    public function name(Folio $folio, array $labels): string
     {
         return match ($folio->type) {
             FolioType::Master => __('Master'),
@@ -339,9 +347,10 @@ class FolioStatement
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->map(fn (ReservationUnitOptionData $unit): int => $unit->id)
             ->all()) : [];
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($reservation->property)?->toDateString());
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($reservation->property)?->toDateString(), $isOpen && ($can['recordPayment'] ?? false));
         $old = $posted->where('state', 'old')->values();
         $posted = $posted->where('state', 'posted')->values();
+        $lineCount = $old->merge($posted)->whereNull('onFolio')->count();
         $oldTotal = $old->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::zero());
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
@@ -353,6 +362,7 @@ class FolioStatement
         $invoiceVoided = $folio?->invoice_number !== null && $billedBy === null && ArInvoice::query()->where('folio_id', $folio->id)->where('status', ArInvoiceStatus::Void)->exists();
         $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
+        $rows = [...$old->all(), ...$posted->all(), ...$this->withScheduledParents($blocks, $scheduled, $entries)];
 
         $eInvoiceSetting = $reservation->property->eInvoiceSetting;
         $eInvoiceEnabled = $eInvoiceSetting !== null && $eInvoiceSetting->enabled && Feature::for($reservation->property)->active(EInvoicing::class);
@@ -389,8 +399,8 @@ class FolioStatement
             invoiceVoided: $invoiceVoided,
             balance: $balance,
             projectedTotal: (string) $projected->toScale(2),
-            lineCount: $old->count() + $posted->count(),
-            rows: [...$old->all(), ...$posted->all(), ...$scheduled->all()],
+            lineCount: $lineCount,
+            rows: $rows,
             oldSystemTitle: $old->isEmpty() ? null : (filled($folio?->legacy_number) ? __('OLD SYSTEM · folio :number', ['number' => $folio->legacy_number]) : __('OLD SYSTEM')),
             oldSystemTotal: $old->isEmpty() ? null : (string) $oldTotal->toScale(2),
             refundCredit: $refundCredit,
@@ -434,6 +444,9 @@ class FolioStatement
             // The form picks the country by its alpha-2 code like every other country picker; LHDN gets alpha-3.
             eInvoiceBuyer: $buyer === null ? null : [...$buyer, 'country_code' => app(CountryOptions::class)->alpha2($buyer['country_code'] ?? null) ?? 'MY'],
             eInvoiceRequired: $canSubmitEInvoice && $this->staysNeedingOwnEInvoice->isOverLimit($folio),
+            collectedTaxNote: $this->collectedTaxRows->note($rows, $entries->pluck('folio')->filter()->keyBy('id'), $user),
+            creditMove: $isOpen && ($can['recordPayment'] ?? false) ? $this->creditMove($folio, $balance, $entries, $balances) : null,
+            paymentCreditWarning: $purposes !== [] ? $this->paymentCreditWarning($entry, $projected, $entries, $blocks, $balances) : null,
             eInvoiceRejection: $rejected === null ? [] : array_map(
                 fn (array $reason): array => ['message' => $reason['message'], 'fix' => $reason['fix']],
                 array_values(array_filter($this->lhdnRejectionReasons->for($rejected), fn (array $reason): bool => $reason['where'] === 'buyer')),
@@ -502,7 +515,7 @@ class FolioStatement
      * @param  list<int>  $priceUnitIds
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false, ?Closure $businessDate = null): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false, ?Closure $businessDate = null, bool $canUndoCreditMove = false): array
     {
         $nightMorph = (new UnitNight)->getMorphClass();
         $today = false;
@@ -515,7 +528,7 @@ class FolioStatement
         $rows = collect();
         $sourceUnits = $this->lineSourceUnits->for($lines);
 
-        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches, &$today, $businessDate): void {
+        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches, &$today, $businessDate, $canUndoCreditMove): void {
             $tags = [];
             $unitId = $line->source_id === null ? $parentUnitId : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? $parentUnitId);
 
@@ -555,10 +568,14 @@ class FolioStatement
                 }
             }
 
+            if ($canUndoCreditMove && $level === 0 && $live && $payment === null && $line->kind === TransactionKind::Payment && str_starts_with((string) $line->idempotency_key, MoveFolioCredit::KEY_PREFIX)) {
+                $actions = ['undo_credit_move'];
+            }
+
             $purpose = $payment?->purpose->folioRowLabel();
             $description = $purpose === null ? $line->description : $line->description.' · '.$purpose;
 
-            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value, $payment !== null && ! $payment->received_on->isSameDay($line->posting_date) ? $payment->received_on->toDateString() : null, $payment?->notes));
+            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value, $payment !== null && ! $payment->received_on->isSameDay($line->posting_date) ? $payment->received_on->toDateString() : null, $payment->notes ?? $line->notes));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);
@@ -566,10 +583,89 @@ class FolioStatement
         };
 
         $ids = $lines->pluck('id')->flip();
+        $parentsElsewhere = $this->collectedTaxRows->parentsElsewhere($lines);
+        $parentUnits = $parentsElsewhere->isEmpty() ? [] : $this->lineSourceUnits->for($parentsElsewhere);
+        $shownParents = [];
+        $byId = $lines->keyBy('id');
+        // The room line on another folio a line is shown under: the parent of a collected tax, or for the lone reversal
+        // of such a tax, the parent of the line it reverses. Null for every other line.
+        $apartParentOf = function (FolioLine $line) use ($ids, $parentsElsewhere, $byId): ?int {
+            $child = $line->parent_line_id === null && $line->reversal_of_id !== null ? $byId->get($line->reversal_of_id) : $line;
+            $parentId = $child?->parent_line_id;
+
+            return $parentId !== null && ! $ids->has($parentId) && $parentsElsewhere->has($parentId) ? $parentId : null;
+        };
+        $apart = $lines->groupBy(fn (FolioLine $line): int => $apartParentOf($line) ?? 0);
 
         foreach ($lines as $line) {
-            if ($line->parent_line_id === null || ! $ids->has($line->parent_line_id)) {
-                $walk($line, 0, null);
+            $parentId = $apartParentOf($line);
+
+            if ($parentId === null) {
+                if ($line->parent_line_id === null || ! $ids->has($line->parent_line_id)) {
+                    $walk($line, 0, null);
+                }
+
+                continue;
+            }
+
+            if (isset($shownParents[$parentId])) {
+                continue;
+            }
+
+            // Every tax of this room line on this folio, and their reversals, sit together under one parent row.
+            $shownParents[$parentId] = true;
+            $parent = $parentsElsewhere->get($parentId);
+            $parentUnitId = $parent->source_id === null ? null : ($parentUnits[$parent->source_type.':'.$parent->source_id] ?? null);
+            $rows->push($this->collectedTaxRows->parentRow('parent:'.$parent->id, $line->migrated ? 'old' : 'posted', $parent->service_date->toDateString(), $parent->description, $parentUnitId === null ? null : ($labels[$parentUnitId] ?? null), $parent->kind, $parent->folio));
+
+            foreach ($apart->get($parentId, []) as $member) {
+                $walk($member, 1, $parentUnitId);
+                $row = $rows->last();
+
+                // A collected tax apart from its room line moves on its own, back under that line (Move charges).
+                if (in_array('move', $allowed, true) && $row?->key === 'line:'.$member->id && $member->kind === TransactionKind::Tax && $row->tags === [] && $parent->folio->status === FolioStatus::Open) {
+                    $row->actions = ['move'];
+                }
+            }
+        }
+
+        // A credit move line links to the folio of the other line of its pair (the same transfer group).
+        $creditGroups = $lines
+            ->filter(fn (FolioLine $line): bool => $line->kind === TransactionKind::Payment && $line->transfer_group_id !== null && ! $payments->has($line->id))
+            ->pluck('transfer_group_id')
+            ->unique()
+            ->values();
+
+        if ($creditGroups->isNotEmpty()) {
+            $pairFolios = FolioLine::query()
+                ->whereIn('transfer_group_id', $creditGroups->all())
+                ->where('folio_id', '!=', $folio->id)
+                ->with('folio')
+                ->get()
+                ->mapWithKeys(fn (FolioLine $other): array => [(string) $other->transfer_group_id => new FolioOptionData($other->folio_id, $this->name($other->folio, $labels))]);
+            $groupOf = $lines->pluck('transfer_group_id', 'id');
+
+            foreach ($rows as $row) {
+                $group = $row->lineId === null || $row->paymentId !== null ? null : $groupOf->get($row->lineId);
+
+                if ($group !== null && $row->kind === TransactionKind::Payment) {
+                    $row->pairFolio = $pairFolios->get($group);
+                }
+            }
+        }
+
+        // A collected tax that Move charges put back under its room line can go back to the guest folio it came from.
+        if (in_array('move', $allowed, true)) {
+            $originals = $this->movedCollectedTaxes->originals($lines->reject(fn (FolioLine $line): bool => $reversed->has($line->id)));
+            $byId = $lines->keyBy('id');
+
+            foreach ($rows as $row) {
+                $original = $row->lineId === null ? null : ($originals[$row->lineId] ?? null);
+
+                if ($original !== null && $row->tags === [] && $original->folio->status === FolioStatus::Open) {
+                    $row->actions = [...$row->actions, 'undo_tax_move'];
+                    $row->taxMoveGroup = $byId->get($row->lineId)?->transfer_group_id;
+                }
             }
         }
 
@@ -584,5 +680,95 @@ class FolioStatement
             && ! $discounted->has($line->id));
 
         return [$rows, $discountable];
+    }
+
+    /**
+     * The open entry's Scheduled rows, with the muted row of its room charge above each group of taxes the guest pays
+     * while that charge goes to another folio (`guestTax` blocks of `ScheduledFolioRows`).
+     *
+     * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>, guestTax?: true, parentRow?: FolioRowData, parentTarget?: int}>  $blocks
+     * @param  Collection<int, FolioRowData>  $scheduled
+     * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
+     * @return list<FolioRowData>
+     */
+    private function withScheduledParents(array $blocks, Collection $scheduled, Collection $entries): array
+    {
+        $parents = [];
+
+        foreach ($blocks as $block) {
+            $first = $block['rows'][0] ?? null;
+            $folio = isset($block['parentTarget']) ? $entries->first(fn (array $entry): bool => $entry['folio']?->id === $block['parentTarget'])['folio'] ?? null : null;
+
+            if ($first !== null && $folio !== null && isset($block['parentRow'])) {
+                $parent = $block['parentRow'];
+                $parents[$first->key] = $this->collectedTaxRows->parentRow('parent:'.$parent->key, 'scheduled', $parent->date, $parent->description, $parent->unit, $parent->kind, $folio);
+            }
+        }
+
+        if ($parents === []) {
+            return array_values($scheduled->all());
+        }
+
+        return array_values($scheduled->flatMap(fn (FolioRowData $row): array => isset($parents[$row->key]) ? [$parents[$row->key], $row] : [$row])->all());
+    }
+
+    /**
+     * What **Move credit…** offers: the folio's credit and the other Open folios that owe money. Null when the folio
+     * is not in credit or no other folio owes.
+     *
+     * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
+     * @param  array<int, string>  $balances
+     */
+    private function creditMove(Folio $folio, ?string $balance, Collection $entries, array $balances): ?CreditMoveData
+    {
+        if ($balance === null || ! BigDecimal::of($balance)->isNegative()) {
+            return null;
+        }
+
+        $targets = array_values($entries
+            ->filter(fn (array $other): bool => $other['folio'] !== null
+                && $other['folio']->id !== $folio->id
+                && $other['folio']->status === FolioStatus::Open
+                && BigDecimal::of($balances[$other['folio']->id] ?? '0')->isPositive())
+            ->map(fn (array $other): CreditMoveTargetData => new CreditMoveTargetData(
+                $other['folio']->id,
+                trim($other['item']->name.' · '.$other['item']->subtitle, ' ·'),
+                (string) BigDecimal::of($balances[$other['folio']->id])->toScale(2),
+            ))
+            ->all());
+
+        return $targets === [] ? null : new CreditMoveData((string) BigDecimal::of($balance)->negated()->toScale(2), $targets);
+    }
+
+    /**
+     * The warning data for Record payment: what this entry owes (its projected total, never below 0) and what the
+     * other Open folios and "not started" entries of the booking owe, Scheduled rows included (0 when none owes).
+     *
+     * @param  array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}  $entry
+     * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
+     * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
+     * @param  array<int, string>  $balances
+     */
+    private function paymentCreditWarning(array $entry, BigDecimal $projected, Collection $entries, array $blocks, array $balances): PaymentCreditWarningData
+    {
+        $scheduled = fn (array $other): BigDecimal => collect($blocks)
+            ->filter(fn (array $block): bool => $other['folio'] === null ? ($block['target'] === null && $block['unit'] === $other['unit']) : $block['target'] === $other['folio']->id)
+            ->flatMap(fn (array $block): array => $block['rows'])
+            ->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::zero());
+        $owing = $entries
+            ->filter(fn (array $other): bool => $other['key'] !== $entry['key'] && ($other['folio'] === null || $other['folio']->status === FolioStatus::Open))
+            ->map(fn (array $other): array => [
+                'label' => trim($other['item']->name.' · '.($other['folio'] === null ? '' : $other['item']->subtitle), ' ·'),
+                'owes' => BigDecimal::of($other['folio'] === null ? '0' : ($balances[$other['folio']->id] ?? '0'))->plus($scheduled($other)),
+            ])
+            ->filter(fn (array $other): bool => $other['owes']->isPositive())
+            ->values();
+
+        return new PaymentCreditWarningData(
+            (string) ($projected->isNegative() ? BigDecimal::zero() : $projected)->toScale(2),
+            $owing->count(),
+            (string) $owing->reduce(fn (BigDecimal $sum, array $other): BigDecimal => $sum->plus($other['owes']), BigDecimal::zero())->toScale(2),
+            $owing->count() === 1 ? $owing->first()['label'] : null,
+        );
     }
 }

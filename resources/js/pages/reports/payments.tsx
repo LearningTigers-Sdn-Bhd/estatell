@@ -38,13 +38,19 @@ const cells: ReportCells<Row> = {
     date: (row) => <DateText date={row.date} />,
     received_on: (row) => <DateText date={row.received_on} />,
     remarks: (row) =>
-        row.reference || row.notes ? (
+        row.reference || row.refund_reason || row.notes ? (
             <>
                 {row.reference}
-                {row.notes && (
-                    <span className="block text-xs text-muted-foreground">
-                        {row.notes}
-                    </span>
+                {[row.refund_reason, row.notes].map(
+                    (text, index) =>
+                        text && (
+                            <span
+                                key={index}
+                                className="block text-xs text-muted-foreground"
+                            >
+                                {text}
+                            </span>
+                        ),
                 )}
             </>
         ) : null,

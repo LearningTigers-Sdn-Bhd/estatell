@@ -61,6 +61,7 @@ class CreateBooking
                     bookingSource: $data->bookingSource,
                     units: $data->units,
                     billingMode: $data->billingMode,
+                    collectedTaxesPayer: $data->collectedTaxesPayer,
                     externalReference: $data->externalReference,
                     companyId: $data->companyId,
                     creditOverrideReason: $data->creditOverrideReason,

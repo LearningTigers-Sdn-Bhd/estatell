@@ -26,9 +26,9 @@ class GoLiveWastaysCommand extends Command
     {
         try {
             $target = WastaysImportTarget::resolve(
-                (string) $this->argument('bundle'),
-                (string) $this->argument('property'),
-                (string) $this->option('actor'),
+                $this->input()->string('bundle')->toString(),
+                $this->input()->string('property')->toString(),
+                $this->input()->string('actor')->toString(),
             );
         } catch (InvalidArgumentException $e) {
             $this->error($e->getMessage());
@@ -37,7 +37,7 @@ class GoLiveWastaysCommand extends Command
         }
 
         $property = $target->property;
-        $given = $this->option('opening-date');
+        $given = is_string($opening = $this->option('opening-date')) ? $opening : null;
 
         if ($given !== null && (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $given) || ! checkdate((int) substr($given, 5, 2), (int) substr($given, 8, 2), (int) substr($given, 0, 4)))) {
             $this->error('--opening-date must be a date as Y-m-d, for example 2026-10-23.');

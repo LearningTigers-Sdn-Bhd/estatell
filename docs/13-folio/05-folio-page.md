@@ -155,26 +155,75 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 - A row with a null target shows on the unit's "not started" entry.
 - The page loads the reservation's routing rules once and routes in memory. If the query-count test needs it, add a batch method to `FolioRouter` and keep `targetFor()` as it is.
 
+## Collected taxes
+
+A unit folio can hold taxes whose room charge sits on another folio: the taxes with **Collect at check-in** on, when a company pays the room and not these taxes ([Collected taxes](03-routing.md#collected-taxes)). Without context they look like stray lines, so the page shows where the charge is and why.
+
+```
+ ⓘ Perfect Vacation pays the room, not Tourism tax. The guest pays it on this folio.
+   To have Perfect Vacation pay it, turn on Company pays taxes collected at check-in.
+
+11 Nov 2026   Room charge · on Master ⇄                 F1         —
+                ↳ Tourism tax                           F1    RM 10.00  ⋯
+```
+
+- **Parent row:** above each group of such taxes, a muted row with the charge's date, description and unit, then "· on {folio}" with a link that opens that folio. "{folio}" is Master, or the payer of a third-party folio. The amount shows "—". The taxes sit under it at level 1, for Posted and Scheduled rows alike. The parent row shows once: every tax of that room line on this folio, and the lone reversal of such a tax (after a move or an undo), sits under it in posting order.
+- **Data:** the row is a `FolioRowData` with `onFolio` (the folio id and name) and amount 0.00. It has no actions, is never printable, and counts in no figure: Balance, Projected total and Posted lines are unchanged. `CollectedTaxRows` (`app/Services/Folio/`) builds it: for Posted rows from each line whose parent is on another folio, for Scheduled rows from the `parentRow` and `parentTarget` of a `guestTax` block.
+- **Note:** an info Alert above the table, from `FolioData::collectedTaxNote` (`payer`, `taxes`, `companyId`): "{payer} pays the room, not {taxes}. The guest pays them on this folio." The taxes are the live tax rows under parent rows, by name. The second line links to the company's credit page and shows only when `companyId` is set: for a user with `company.manage`. A third line, "If {payer} pays the ones already charged, move all {n} to {folio}.", links to [Move charges](07-move-charges.md#collected-taxes) with them ticked (`moveLineIds`, `moveToFolioId`, `moveTo`: the taxes under the first folio a company pays that carry the row action `move`).
+- **Move…:** each such Posted tax row has **Move…** in its row menu, with `folio.transfer` while the room charge's folio is Open.
+- **Undo move:** once moved, the tax row on the room charge's folio has **Undo move**, which sends the taxes of that move back here ([Undo a tax move](07-move-charges.md#undo-a-tax-move)).
+- **Abstract:** nothing names the tourism tax. Any tax with **Collect at check-in** on, any company and any target folio shows the same way.
+- Printed vouchers and invoices are unchanged.
+
+## Move credit
+
+```
+┌ Move credit from Master ──────────────────────────────────────┐
+│ Master holds RM 50.00 more than its charges.                  │
+│      Folio                        Owes        Move            │
+│  ☑   Unit F1 · HUANG SHUIDI       RM 10.00   [ 10.00 ]        │
+│  ☑   Unit F2 · HUANG SHUIDI       RM 10.00   [ 10.00 ]        │
+│  Moving RM 20.00 · Left on Master RM 30.00                    │
+│  Note (optional) [                                     ]      │
+│                              [Cancel]  [Move MYR 20.00]       │
+└───────────────────────────────────────────────────────────────┘
+```
+
+- The Dialog lists `creditMove.targets`: every other Open folio with a balance above 0, ticked and filled with what it owes. The totals are display only. The button stays off when nothing is ticked, an amount is 0, an amount is above what its folio owes, or the total is above the credit.
+- A refusal shows in the Dialog. Success is a toast, "Credit of 20.00 moved."
+- The lines show as payment rows: "Credit moved to Unit F1" on the source and "Credit from Master" on the target, each with **Undo move** in its row menu.
+- Each line (and its reversal after an undo) shows ⇄ after the description, a link to the folio of the other line (`FolioRowData::pairFolio`, from the same `transfer_group_id`), and the move's note under it (`notes`, the same place as a payment's notes).
+
+```
+Master · Borneo Trails
+13 Nov  Credit moved to Unit 101 ⇄                   10.00  [⋯]
+        Agent paid TTx in the transfer
+```
+
+- To stop the credit before it happens, Record payment warns when part of a payment would stay as credit ([Credit warning](../14-payments/01-payments-and-refunds.md#credit-warning)).
+
 ## Actions
 
 Row and folio actions call the existing Actions. A refusal writes and logs nothing. A form (post charge, apply discount) shows the refusal in its Dialog, on the matching field or as one message for the form, like the add-on dialog. An AlertDialog (reverse, remove discount) has no field, so it shows an error toast.
 
-| Action              | Permission                                                                               | Shown on                                                                                                                                                                                           |
-| ------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Post charge         | `folio.post-charge`                                                                      | An Open folio with at least one unit that can receive a posting                                                                                                                                    |
-| Reverse             | `folio.reverse`                                                                          | A Posted charge (not a child, a reversal or an already reversed one)                                                                                                                               |
-| Correct price…      | `reservations.change-price`                                                              | A posted room line of a night, on an Open folio. Opens [Change price](../12-reservations/09-change-night-price.md) for that night                                                                  |
-| Move…, Move charges | `folio.transfer`                                                                         | **Move…** on a Posted charge on an Open folio, **Move charges** in the folio header's More actions dropdown, when another Open folio exists. Both open the [Move charges](07-move-charges.md) page |
-| Apply discount      | `folio.discount`, `folio.discount-open`                                                  | An Open folio with eligible charges                                                                                                                                                                |
-| Remove discount     | `folio.discount`                                                                         | A discount child row that is not reversed                                                                                                                                                          |
-| Close, Reopen       | `folio.close`, `folio.reopen` (or same-day for a Unit folio with `front-desk.check-out`) | The folio header                                                                                                                                                                                   |
-| Record payment      | `payment.record`                                                                         | The folio header of an Open folio, and a "not started" entry, when the folio has at least one purpose                                                                                              |
-| Refund              | `payment.refund`                                                                         | A Completed payment row with an amount left to refund. Another method needs `payment.refund-other-method`                                                                                          |
-| Void payment        | `payment.refund`                                                                         | A Completed payment row posted on the current business date with no refund yet                                                                                                                     |
-| Refund credit       | `payment.refund`                                                                         | The folio header of an Open folio with a credit that its payments can give back                                                                                                                    |
-| Print voucher       | `folio.print-voucher`                                                                    | The Print dropdown in the folio header, and the row menu of a printable posted line                                                                                                                |
-| Third-party         | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                                                |
-| Routing rules       | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                                                |
+| Action              | Permission                                                                               | Shown on                                                                                                                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Post charge         | `folio.post-charge`                                                                      | An Open folio with at least one unit that can receive a posting                                                                                                                                      |
+| Reverse             | `folio.reverse`                                                                          | A Posted charge (not a child, a reversal or an already reversed one)                                                                                                                                 |
+| Correct price…      | `reservations.change-price`                                                              | A posted room line of a night, on an Open folio. Opens [Change price](../12-reservations/09-change-night-price.md) for that night                                                                    |
+| Move…, Move charges | `folio.transfer`                                                                         | **Move…** on a Posted charge on an Open folio, **Move charges** in the folio header's More actions dropdown, when another Open folio exists. Both open the [Move charges](07-move-charges.md) page   |
+| Apply discount      | `folio.discount`, `folio.discount-open`                                                  | An Open folio with eligible charges                                                                                                                                                                  |
+| Remove discount     | `folio.discount`                                                                         | A discount child row that is not reversed                                                                                                                                                            |
+| Close, Reopen       | `folio.close`, `folio.reopen` (or same-day for a Unit folio with `front-desk.check-out`) | The folio header                                                                                                                                                                                     |
+| Record payment      | `payment.record`                                                                         | The folio header of an Open folio, and a "not started" entry, when the folio has at least one purpose                                                                                                |
+| Refund              | `payment.refund`                                                                         | A Completed payment row with an amount left to refund. Another method needs `payment.refund-other-method`                                                                                            |
+| Void payment        | `payment.refund`                                                                         | A Completed payment row posted on the current business date with no refund yet                                                                                                                       |
+| Refund credit       | `payment.refund`                                                                         | The folio header of an Open folio with a credit that its payments can give back                                                                                                                      |
+| Move credit…        | `payment.record`                                                                         | **Payments** group of More actions, on an Open folio in credit when another Open folio of the reservation owes money (`FolioData::creditMove`). See [Move credit](02-posting-charges.md#move-credit) |
+| Undo move           | `payment.record`                                                                         | The row menu of a live credit move line on an Open folio. An AlertDialog confirms, then both lines of the pair are reversed                                                                          |
+| Print voucher       | `folio.print-voucher`                                                                    | The Print dropdown in the folio header, and the row menu of a printable posted line                                                                                                                  |
+| Third-party         | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                                                  |
+| Routing rules       | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                                                  |
 
 A Scheduled row has no actions except Print voucher. A "not started" entry has only Record payment and Print voucher.
 
@@ -241,7 +290,7 @@ A voucher is a printed slip of any posted lines and Scheduled rows, for example 
 - **Entry points:** **Print voucher** in the **Print** dropdown of the folio header opens the Dialog (the dropdown also holds Print invoice, see [Folio invoice](06-folio-invoice.md)). **Print voucher** in the row menu of a posted line opens it with that line and its children already ticked.
 - **Which rows are listed:** posted lines that are not a payment (a payment has its receipt), not a reversal and not reversed, then the Scheduled rows of the open entry under a "Scheduled, not posted yet" heading. A tax or discount row can be ticked on its own, because a voucher only reads. The server sends `FolioRowData.printable` (true for a user who holds `folio.print-voucher`) and `kind` (a Scheduled row's kind comes from its key: `:tax:` is Tax, `:discount` and `:stay-discount` are Adjustment, anything else is Charge).
 - **Scheduled rows on the PDF:** they print like any other row, with no "Scheduled" heading, note or subtotal, because a hotel hands the voucher over as it is. Only the Dialog marks them. Posted rows come first in ledger order, then Scheduled rows by date, and the Total is one sum.
-- **Indent:** a discount or tax row is indented only when its parent charge is on the voucher too. Printed alone, it stands at the top with its date.
+- **Indent:** a discount or tax row is indented only when its parent charge is on the voucher too. Printed alone, it stands at the top with its date. The Dialog lists rows the same way: a child whose parent is not listed (a [collected tax](#collected-taxes) whose room charge is on another folio) shows its date and no `↳`.
 - **A unit with no folio yet:** its "not started" entry can print a voucher of its Scheduled rows, so a hotel can hand over a tourism tax voucher before anything posts. It uses `GET …/units/{unit}/voucher?scheduled[]=…` (`reservations.units.voucher`, same permission). The PDF has no folio number and uses the reservation reference. A row that is not that unit's "not started" row is a 404, and `lines[]` is a 422.
 - **Quick select:** one button per `TransactionKind` except Payment (`voucher.kinds`). It ticks every listed line of that kind, and a second click unticks them.
 - **Limit:** up to `FolioVoucher::MAX_LINES` (100) rows, posted and Scheduled together. The Dialog disables Print above it and the request refuses it.

@@ -74,7 +74,7 @@ class ReservationPaymentController extends Controller
      */
     public function refund(StoreRefundRequest $request, Property $property, Reservation $reservation, Folio $folio, Payment $payment, RefundHeldPayment $refundHeldPayment, PaymentRefusals $refusals): RedirectResponse
     {
-        $result = $refundHeldPayment($request->user(), $payment, $request->string('amount')->toString(), $request->reference(), $request->string('idempotency_key')->toString(), methodId: $request->methodId(), reason: $request->reason());
+        $result = $refundHeldPayment($request->user(), $payment, $request->string('amount')->toString(), $request->reference(), $request->string('idempotency_key')->toString(), methodId: $request->methodId(), reason: $request->reason(), notes: $request->notes());
         $page = $this->page($property, $reservation, $folio->id);
 
         if ($result->isRefused()) {
@@ -93,7 +93,7 @@ class ReservationPaymentController extends Controller
      */
     public function void(StoreVoidRequest $request, Property $property, Reservation $reservation, Folio $folio, Payment $payment, VoidPayment $voidPayment, PaymentRefusals $refusals): RedirectResponse
     {
-        $result = $voidPayment($request->user(), $payment, $request->string('idempotency_key')->toString());
+        $result = $voidPayment($request->user(), $payment, $request->string('idempotency_key')->toString(), $request->notes());
         $page = $this->page($property, $reservation, $folio->id);
 
         if ($result->isRefused()) {

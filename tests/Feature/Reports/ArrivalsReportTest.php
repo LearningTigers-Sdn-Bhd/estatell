@@ -127,6 +127,28 @@ test('each row shows the guest, room, company and balance of the unit', function
         ->where('rows.data.0.balance', '300.00'));
 });
 
+test('the total row sums nights, adults and children and counts each reservation balance once', function () {
+    [$user, $property] = reportSetup();
+    $group = arrivingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1]);
+    $second = ReservationUnit::factory()->for($group->reservation)->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'adults' => 2, 'children' => 0]);
+    $single = arrivingUnit($property, '2026-10-10', ['adults' => 1, 'children' => 0]);
+    $groupFolio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $group->reservation_id]);
+    FolioLine::factory()->create(['folio_id' => $groupFolio->id, 'amount' => '1200.00', 'unit_amount' => '1200.00']);
+    $singleFolio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $single->reservation_id]);
+    FolioLine::factory()->create(['folio_id' => $singleFolio->id, 'amount' => '150.00', 'unit_amount' => '150.00']);
+
+    $this->actingAs($user)->get(arrivalsUrl($property))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.figures.nights', 6)
+        ->where('totals.figures.adults', 5)
+        ->where('totals.figures.children', 1)
+        ->where('totals.figures.balance', '1350.00')
+        ->where('totals.figures.guest', null));
+
+    $selected = app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'), [$second->id, $single->id]);
+
+    expect(ReportKey::Arrivals->totals($selected)->figures)->toMatchArray(['nights' => 4, 'adults' => 3, 'children' => 0, 'balance' => '1350.00']);
+});
+
 test('only the units of this property appear', function () {
     [$user, $property] = reportSetup();
     [, $other] = reportSetup();

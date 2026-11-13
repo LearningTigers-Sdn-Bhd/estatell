@@ -9,6 +9,7 @@ use App\Actions\CityLedger\CreateCompany;
 use App\Actions\Folio\PostCharge;
 use App\Actions\FrontDesk\CancelUnit;
 use App\Actions\FrontDesk\CheckInAllUnits;
+use App\Actions\FrontDesk\CheckInAndCollectResult;
 use App\Actions\FrontDesk\CheckOutUnit;
 use App\Actions\FrontDesk\EarlyCheckOut;
 use App\Actions\FrontDesk\ExtendStay;
@@ -795,7 +796,8 @@ class BookingScenariosSeeder extends Seeder
      */
     private function checkIn(string $code, ?array $indexes = null): void
     {
-        $refusals = array_filter(app(CheckInAllUnits::class)($this->owner, $this->reservations[$code], array_values(array_map(intval(...), $this->pick($code, $indexes)->modelKeys()))));
+        $results = app(CheckInAllUnits::class)($this->owner, $this->reservations[$code], array_values(array_map(intval(...), $this->pick($code, $indexes)->modelKeys())));
+        $refusals = array_filter(array_map(fn (CheckInAndCollectResult $result): ?string => $result->stay->refusal ?? $result->paymentRefusal, $results));
 
         if ($refusals !== []) {
             throw new RuntimeException("{$code} check-in was refused: ".implode(', ', $refusals).'.');

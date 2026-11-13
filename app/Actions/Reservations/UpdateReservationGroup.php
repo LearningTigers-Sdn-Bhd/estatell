@@ -4,6 +4,7 @@ namespace App\Actions\Reservations;
 
 use App\Actions\Folio\SyncRoutingRules;
 use App\Enums\BillingMode;
+use App\Enums\CollectedTaxesPayer;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\Folio\MasterPaymentsHeld;
@@ -15,13 +16,15 @@ class UpdateReservationGroup
     public function __construct(private SyncRoutingRules $syncRoutingRules, private MasterPaymentsHeld $masterPaymentsHeld) {}
 
     /**
-     * Change the group name and billing mode. A blank name clears it. A billing mode change is refused while the Master folio holds money (`master_has_payments`); the refusal writes and logs nothing. Nothing is written or logged when nothing changed. A changed billing mode runs `SyncRoutingRules`: later postings follow the new rules, and the result names units whose posted room lines stay on their own folio.
+     * Change the group name, the billing mode and who pays the taxes collected at check-in (`$collectedTaxesPayer`,
+     * null follows the company; it is kept null on a booking with no company). A blank name clears it. A billing mode change is refused while the Master folio holds money (`master_has_payments`); the refusal writes and logs nothing. Nothing is written or logged when nothing changed. A changed billing mode runs `SyncRoutingRules`: later postings follow the new rules, and the result names units whose posted room lines stay on their own folio.
      */
-    public function __invoke(User $actor, Reservation $reservation, ?string $groupName, BillingMode $billingMode): GroupUpdateResult
+    public function __invoke(User $actor, Reservation $reservation, ?string $groupName, BillingMode $billingMode, ?CollectedTaxesPayer $collectedTaxesPayer = null): GroupUpdateResult
     {
-        return DB::transaction(function () use ($actor, $reservation, $groupName, $billingMode): GroupUpdateResult {
+        return DB::transaction(function () use ($actor, $reservation, $groupName, $billingMode, $collectedTaxesPayer): GroupUpdateResult {
             $locked = Reservation::query()->lockForUpdate()->findOrFail($reservation->id);
             $groupName = $groupName === null || trim($groupName) === '' ? null : trim($groupName);
+            $collectedTaxesPayer = $locked->company_id === null ? null : $collectedTaxesPayer;
 
             $unitsWithPostedRoomLines = [];
             $unitAdvances = [];
@@ -34,12 +37,13 @@ class UpdateReservationGroup
                 }
             }
 
-            if ($locked->group_name !== $groupName || $locked->billing_mode !== $billingMode) {
+            if ($locked->group_name !== $groupName || $locked->billing_mode !== $billingMode || $locked->collected_taxes_payer !== $collectedTaxesPayer) {
                 $modeChanged = $locked->billing_mode !== $billingMode;
-                $old = ['group_name' => $locked->group_name, 'billing_mode' => $locked->billing_mode->value];
+                $old = ['group_name' => $locked->group_name, 'billing_mode' => $locked->billing_mode->value, 'collected_taxes_payer' => $locked->collected_taxes_payer?->value];
 
                 $locked->group_name = $groupName;
                 $locked->billing_mode = $billingMode;
+                $locked->collected_taxes_payer = $collectedTaxesPayer;
                 $locked->save();
 
                 if ($modeChanged) {
@@ -55,7 +59,7 @@ class UpdateReservationGroup
                     ->withProperties([
                         'property_id' => $locked->property_id,
                         'old' => $old,
-                        'new' => ['group_name' => $groupName, 'billing_mode' => $billingMode->value],
+                        'new' => ['group_name' => $groupName, 'billing_mode' => $billingMode->value, 'collected_taxes_payer' => $collectedTaxesPayer?->value],
                     ])
                     ->log('Reservation group updated');
             }

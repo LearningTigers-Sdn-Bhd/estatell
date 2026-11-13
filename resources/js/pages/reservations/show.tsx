@@ -64,6 +64,7 @@ type Props = {
     taxWaiverOptions?: App.Data.Reservations.UnitTaxWaiverFormData | null;
     canOverrideRestrictions: boolean;
     billingModes: EnumOption[];
+    collectedTaxesPayers: EnumOption[];
     manualReasons: EnumOption[];
     canViewCompany: boolean;
     canOverrideCredit: boolean;
@@ -169,6 +170,7 @@ export default function ReservationShow({
     taxWaiverOptions,
     canOverrideRestrictions,
     billingModes,
+    collectedTaxesPayers,
     manualReasons,
     canViewCompany,
     canOverrideCredit,
@@ -354,6 +356,7 @@ export default function ReservationShow({
                             canManage={canManage}
                             reservation={reservation}
                             billingModes={billingModes}
+                            collectedTaxesPayers={collectedTaxesPayers}
                             addUnitOptions={addUnitOptions}
                             canViewCompany={canViewCompany}
                             canCheckIn={canCheckIn}

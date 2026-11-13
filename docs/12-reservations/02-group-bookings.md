@@ -20,6 +20,22 @@ A group is a reservation with 2 or more units. This is worked out from the units
 
 MasterPays and MasterPaysAll create routing rules automatically (see [Routing](../13-folio/03-routing.md)).
 
+### Taxes at check-in
+
+On a booking with a company, the reservation summary shows who pays the taxes with **Collect at check-in** on, under Billing. The company's **Company pays taxes collected at check-in** switch is the default; one booking can override it ([Collected taxes](../13-folio/03-routing.md#collected-taxes)).
+
+- **Per booking:** `reservations.collected_taxes_payer` (`CollectedTaxesPayer`: `company` or `guest`, with a CHECK). Null follows the company. It is set on the [booking form](05-booking-form.md) and in Edit group (**Who pays the taxes at check-in**, with a hint that names the taxes and says whether it is the company's default or for this booking only). It shows only with a company, such a tax and a billing mode other than Each unit pays; `collected-taxes-hint.ts` holds the rules. It covers all such taxes together; there is no choice per tax.
+- **Saving:** `CreateReservation` and `UpdateReservationGroup` keep it null on a booking with no company. `UpdateReservationGroup` logs it in `reservation.group_updated`. `UpdateReservationCompany` resets it to null, so the new company's default applies. A change affects nights not posted yet; posted lines stay where they are.
+
+```
+Billing                 Master folio pays
+Taxes at check-in       Guest pays · Tourism tax
+Company                 PERFECT VACATION SDN.BHD
+```
+
+- **Data:** `ReservationData::collectedTaxes` (`CollectedTaxesData`): `companyPays` (the answer), `companyDefaultPays`, `bookingPayer` (the booking's own choice or null), `companyName` and `taxes` (the names of the property's enabled taxes with Collect at check-in on, from `CollectedTaxPayer::taxNames()`). Null without a company or without such a tax. `ReservationOverview` reads the names in one query, only when the booking has a company.
+- **Value:** "Guest pays" or "{company} pays", with "(this booking)" when the booking overrides the default, then the names: up to two, joined; three or more show the first and "+N", with the full list in a tooltip. Nothing names the tourism tax.
+
 ## Creating reservations and units
 
 This item also builds the backend that creates every reservation: single rooms, groups and dorm beds. The [booking form](05-booking-form.md) and [channel ingestion](../21-channels/05-booking-ingestion.md) call it. It has no UI.

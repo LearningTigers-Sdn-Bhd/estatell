@@ -79,6 +79,8 @@ export function UnitActionDialogs({
     onChoose: (action: App.Enums.UnitAction) => void;
     onClose: () => void;
 }) {
+    // Set when Taxes paid elsewhere opens from the check-in Dialog, so saving goes back to check-in.
+    const [fromCheckIn, setFromCheckIn] = useState(false);
     const common = {
         reservationId,
         unit,
@@ -102,6 +104,14 @@ export function UnitActionDialogs({
                               // Check in fades out first (100 ms), so the wide and the narrow Dialog never overlap.
                               onClose();
                               window.setTimeout(() => onChoose('no-show'), 120);
+                          }
+                        : undefined
+                }
+                onWaiveTax={
+                    unit.actions.some((item) => item.key === 'waive-tax')
+                        ? () => {
+                              setFromCheckIn(true);
+                              onChoose('waive-tax');
                           }
                         : undefined
                 }
@@ -145,9 +155,22 @@ export function UnitActionDialogs({
             />
             <WaiveTaxDialog
                 open={action === 'waive-tax'}
-                onOpenChange={common.onOpenChange}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setFromCheckIn(false);
+                        onClose();
+                    }
+                }}
                 reservationId={reservationId}
                 unit={unit}
+                onSaved={
+                    fromCheckIn
+                        ? () => {
+                              setFromCheckIn(false);
+                              onChoose('check-in');
+                          }
+                        : undefined
+                }
             />
         </>
     );

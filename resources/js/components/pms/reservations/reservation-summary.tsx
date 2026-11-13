@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     ArrowRight,
+    BadgePercent,
     CalendarClock,
     BedDouble,
     Building2,
@@ -24,6 +25,11 @@ import { MoneyText } from '@/components/pms/money-text';
 import { AgentBillBreakdown } from '@/components/pms/payments/agent-bill-breakdown';
 import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-list';
 import { Separator } from '@/components/ui/separator';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import { show as showGuest } from '@/routes/guests';
@@ -49,6 +55,54 @@ function Row({
             </dt>
             <dd className="min-w-0 text-right wrap-break-word">{children}</dd>
         </div>
+    );
+}
+
+/**
+ * Who pays the taxes collected at check-in, "(this booking)" when Edit group overrides the company's default, then their
+ * names: two at most, then "+N" with the full list in a tooltip.
+ */
+function CollectedTaxes({
+    value,
+}: {
+    value: App.Data.Reservations.CollectedTaxesData;
+}) {
+    const payer = value.companyPays
+        ? `${value.companyName ?? 'Company'} pays`
+        : 'Guest pays';
+    const names =
+        value.taxes.length <= 2 ? (
+            value.taxes.join(', ')
+        ) : (
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <span
+                            tabIndex={0}
+                            className="underline decoration-dotted underline-offset-2"
+                        />
+                    }
+                >
+                    {value.taxes[0]} +{value.taxes.length - 1}
+                </TooltipTrigger>
+                <TooltipContent>
+                    <ul>
+                        {value.taxes.map((tax) => (
+                            <li key={tax}>{tax}</li>
+                        ))}
+                    </ul>
+                </TooltipContent>
+            </Tooltip>
+        );
+
+    return (
+        <>
+            {payer}
+            {value.bookingPayer !== null && (
+                <span className="text-muted-foreground"> (this booking)</span>
+            )}
+            <span className="text-muted-foreground"> · {names}</span>
+        </>
     );
 }
 
@@ -227,6 +281,11 @@ export function ReservationSummary({
                 {reservation.unitCount > 1 && (
                     <Row icon={Receipt} label="Billing">
                         {reservation.billingModeLabel}
+                    </Row>
+                )}
+                {reservation.collectedTaxes && (
+                    <Row icon={BadgePercent} label="Taxes at check-in">
+                        <CollectedTaxes value={reservation.collectedTaxes} />
                     </Row>
                 )}
                 <Row icon={Building2} label="Company">

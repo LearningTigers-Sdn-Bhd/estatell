@@ -44,7 +44,7 @@ class ReplayWastaysCommand extends Command
     public function handle(ReplayWastaysDay $replay, WastaysDayCompare $compare, CurrentBusinessDate $currentBusinessDate): int
     {
         try {
-            $target = WastaysImportTarget::resolveForReplay((string) $this->argument('bundle'), (string) $this->argument('property'), (string) $this->option('actor'));
+            $target = WastaysImportTarget::resolveForReplay($this->input()->string('bundle')->toString(), $this->input()->string('property')->toString(), $this->input()->string('actor')->toString());
         } catch (InvalidArgumentException $e) {
             $this->error($e->getMessage());
 
@@ -53,7 +53,7 @@ class ReplayWastaysCommand extends Command
 
         $day = new WastaysDay($target->bundle);
         $dryRun = (bool) $this->option('dry-run');
-        $until = (string) ($this->option('until') ?: $target->bundle->manifest->lastAuditDate);
+        $until = $this->input()->string('until')->toString() ?: $target->bundle->manifest->lastAuditDate;
         $start = $currentBusinessDate->date($target->property)?->toDateString();
         $dates = array_values(array_filter($day->dates(), fn (string $date): bool => $date >= (string) $start && $date <= $until && $day->nightAudit($date) !== null));
         $rows = [];

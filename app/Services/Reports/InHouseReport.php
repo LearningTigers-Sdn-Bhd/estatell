@@ -18,7 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
  * date, so it is in-house on that date. Only Checked in and Checked out units count, so an expected or missed
  * arrival is not in-house. An early check-out moves the departure date to the day it happens and removes the unused
  * nights, so the dates alone give the right answer for any date, past or open. `unit_nights` is read only for the
- * room or bed of that night. The total row sums adults and children.
+ * room or bed of that night. The total row sums adults and children and
+ * counts the balance of each reservation once.
  */
 class InHouseReport implements HasTotals, Report
 {
@@ -62,7 +63,7 @@ class InHouseReport implements HasTotals, Report
     }
 
     /**
-     * The sums of adults and children.
+     * The sums of adults and children, and the balance of each reservation once.
      *
      * @param  list<InHouseRow>  $rows
      */
@@ -80,7 +81,7 @@ class InHouseReport implements HasTotals, Report
             'adults' => array_sum(array_map(fn (InHouseRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (InHouseRow $row): int => $row->children, $rows)),
             'company' => null,
-            'balance' => null,
+            'balance' => $this->unitRows->balanceTotal($rows),
         ]);
     }
 }

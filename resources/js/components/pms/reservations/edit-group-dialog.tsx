@@ -2,6 +2,11 @@ import { useForm } from '@inertiajs/react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import {
+    collectedTaxesHint,
+    companyDefaultLabel,
+    showsCollectedTaxes,
+} from '@/components/pms/reservations/collected-taxes-hint';
 import { eachPaysHint } from '@/components/pms/reservations/each-pays-hint';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
@@ -21,6 +26,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     reservation: Reservation;
     billingModes: EnumOption[];
+    collectedTaxesPayers: EnumOption[];
 };
 
 function EditGroupForm({
@@ -28,12 +34,22 @@ function EditGroupForm({
     onOpenChange,
     reservation,
     billingModes,
+    collectedTaxesPayers,
 }: Props) {
     const form = useForm({
         group_name: reservation.groupName ?? '',
         billing_mode: reservation.billingMode,
+        collected_taxes_payer: reservation.collectedTaxes?.bookingPayer ?? '',
     });
     const { data, errors } = form;
+    const taxes = reservation.collectedTaxes;
+    const showsTaxes =
+        !!taxes &&
+        showsCollectedTaxes(
+            reservation.companyName,
+            taxes.taxes,
+            data.billing_mode,
+        );
 
     const submit = () => {
         form.put(update.url({ reservation: reservation.id }), {
@@ -102,12 +118,42 @@ function EditGroupForm({
                     <FieldError>{errors.billing_mode}</FieldError>
                 </Field>
             )}
+            {showsTaxes && taxes && (
+                <Field data-invalid={!!errors.collected_taxes_payer}>
+                    <FieldLabel htmlFor="group-collected_taxes_payer">
+                        Who pays the taxes at check-in
+                    </FieldLabel>
+                    <EnumSelect
+                        id="group-collected_taxes_payer"
+                        options={collectedTaxesPayers}
+                        allLabel={companyDefaultLabel(
+                            collectedTaxesPayers,
+                            taxes.companyDefaultPays,
+                        )}
+                        value={data.collected_taxes_payer}
+                        onValueChange={(value) =>
+                            form.setData('collected_taxes_payer', value)
+                        }
+                        aria-invalid={!!errors.collected_taxes_payer}
+                    />
+                    <FieldDescription>
+                        {collectedTaxesHint(
+                            taxes.taxes,
+                            taxes.companyName ?? 'the company',
+                            data.collected_taxes_payer,
+                            taxes.companyDefaultPays,
+                        )}
+                    </FieldDescription>
+                    <FieldError>{errors.collected_taxes_payer}</FieldError>
+                </Field>
+            )}
         </FormOverlay>
     );
 }
 
 /**
- * Changes the group name, and who pays the room charges when the reservation has 2 or more units.
+ * Changes the group name, who pays the room charges when the reservation has 2 or more units, and who pays the taxes
+ * collected at check-in when the reservation has a company and the property has such taxes.
  */
 export function EditGroupDialog(props: Props) {
     return <EditGroupForm key={useFreshOnOpen(props.open)} {...props} />;

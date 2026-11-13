@@ -12,6 +12,7 @@ use App\Data\Property\CurrencyData;
 use App\Data\Reservations\WalkInPaymentData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
@@ -35,6 +36,7 @@ use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\Boats\BoatSeats;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\Folio\CollectedTaxPayer;
 use App\Services\FrontDesk\WalkInPayment;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -406,6 +408,8 @@ class ReservationBookingController extends Controller
             'chargeItems' => $options->chargeItems($property),
             'discounts' => $options->roomDiscounts($property),
             'billingModes' => BillingMode::options(),
+            'collectedTaxesPayers' => CollectedTaxesPayer::options(),
+            'collectedTaxNames' => $companies === [] ? [] : app(CollectedTaxPayer::class)->taxNames($property->id),
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $companies,
             'hasDayUse' => $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->exists(),

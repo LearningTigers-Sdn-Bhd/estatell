@@ -37,6 +37,7 @@ use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\ReservationUnitTaxWaiver;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomRevenuePolicy;
@@ -46,6 +47,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\User;
+use App\Services\Folio\ScheduledFolioRows;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -508,6 +510,139 @@ test('check in with Room charges and tax records the full bill as one advance in
         ->and($payments->pluck('amount')->all())->toBe([$bill, '100.00'])
         ->and($payments->pluck('purpose')->all())->toBe([PaymentPurpose::Advance, PaymentPurpose::SecurityDeposit])
         ->and($payments->pluck('folio.type')->unique()->all())->toBe([FolioType::Unit]);
+});
+
+test('a ticked tax on a Master no company pays is paid into the Master', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $tax = Tax::query()->where('property_id', $setup['property']->id)->sole();
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.taxesHidden', true)
+        ->assertJsonPath('collection.taxes.0.chargedTo', 'On the master folio')
+        ->assertJsonPath('collection.taxes.0.payableOnMaster', true)
+        ->assertJsonPath('collection.taxes.0.amount', '16.00');
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_master_tax_ids' => [$tax->id], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    $payment = Payment::query()->with('folio')->sole();
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and($payment->amount)->toBe('16.00')
+        ->and($payment->purpose)->toBe(PaymentPurpose::Advance)
+        ->and($payment->folio->id)->toBe($master->id);
+});
+
+test('a tax on a Master no company pays is not taken when the form ticks no tax', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->count())->toBe(0);
+});
+
+test('a tax id ticked for the room folio does not take the tax of a Master no company pays', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $tax = Tax::query()->where('property_id', $setup['property']->id)->sole();
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_tax_ids' => [$tax->id], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->count())->toBe(0);
+});
+
+test('on a Master group the Full bill shows the room on the master folio, and a ticked add-on is paid on the room folio', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+    $fare = UnitAddOn::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'quantity' => 2, 'unit_amount' => '35.00']);
+    $codeId = $fare->chargeItem->transaction_code_id;
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonCount(2, 'collection.charges')
+        ->assertJsonPath('collection.charges.0.isStay', true)
+        ->assertJsonPath('collection.charges.0.folio', 'master')
+        ->assertJsonPath('collection.charges.0.chargedTo', 'On the master folio')
+        ->assertJsonPath('collection.charges.0.payable', true)
+        ->assertJsonPath('collection.charges.1.codeId', $codeId)
+        ->assertJsonPath('collection.charges.1.amount', '70.00')
+        ->assertJsonPath('collection.charges.1.folio', 'unit');
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_charge_ids' => [$codeId], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    $payment = Payment::query()->with('folio')->sole();
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and($payment->amount)->toBe('70.00')
+        ->and($payment->folio->type)->toBe(FolioType::Unit);
+});
+
+test('a ticked room on a Master no company pays is paid into the Master, up to what the Master still owes', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+    $room = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))->json('collection.charges.0');
+    $this->post(route('reservations.folios.payments.store', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $master->id]), ['payment_method_id' => $cash->id, 'purpose' => 'advance', 'amount' => '50.00', 'idempotency_key' => fake()->uuid()]);
+
+    $this->postJson(uaUrl($setup, 'check-in-preview'))->assertJsonPath('collection.masterPaid', '50.00');
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_charge_ids' => [$room['codeId']], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    $payment = Payment::query()->latest('id')->first();
+    expect($payment->folio_id)->toBe($master->id)
+        ->and($payment->amount)->toBe((string) BigDecimal::of($room['amount'])->minus('50.00')->toScale(2));
+});
+
+test('ticked room nights take the nights with their taxes and no separate tax payment', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $nights = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.charges.0.isStay', true)
+        ->json('collection.charges.0');
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_charge_ids' => [$nights['codeId']], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect(Payment::query()->sole()->amount)->toBe($nights['amount']);
+});
+
+test('the full bill with ticked room nights is taken once', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))->json('collection');
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'room_charges' => true, 'collect_taxes' => true, 'collect_charge_ids' => [$preview['charges'][0]['codeId']], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect(Payment::query()->sole()->amount)->toBe($preview['billTotal']);
+});
+
+test('the ticked charges never take more than the room folio still owes', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $nights = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))->json('collection.charges.0');
+    uaPaidOnFolio($setup, '50.00');
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))->assertJsonPath('collection.chargesPaid', '50.00');
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_charge_ids' => [$nights['codeId']], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect(Payment::query()->latest('id')->first()->amount)->toBe((string) BigDecimal::of($nights['amount'])->minus('50.00')->toScale(2));
 });
 
 test('a repeat of the same check-in form takes no payment twice', function () {
@@ -1098,6 +1233,68 @@ test('check in all checks in what it can and shows each refusal on its own row',
         ->and(Payment::query()->count())->toBe(0);
 });
 
+test('the group preview carries each ready room\'s Collect now and leaves a room that needs a nationality to its own check-in', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    Tax::query()->where('property_id', $setup['property']->id)->update(['foreign_guests_only' => true]);
+    UnitGuest::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'is_primary' => true])->guest->update(['nationality_code' => 'SG']);
+    $noNationality = uaSecondUnit($setup);
+    UnitGuest::factory()->create(['reservation_unit_id' => $noNationality->id, 'is_primary' => true])->guest->update(['nationality_code' => null]);
+
+    $this->actingAs($setup['user'])
+        ->postJson(route('reservations.check-in-all-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertJsonPath('rows.0.ready', true)
+        ->assertJsonPath('rows.0.collection.taxesTotal', '16.00')
+        ->assertJsonPath('rows.0.collection.deposit', '100.00')
+        ->assertJsonPath('rows.1.unitId', $noNationality->id)
+        ->assertJsonPath('rows.1.ready', false)
+        ->assertJsonPath('rows.1.needsNationality', true)
+        ->assertJsonPath('rows.1.note', 'Needs the guest\'s nationality. Check in this room on its own.')
+        ->assertJsonPath('rows.1.collection', null);
+});
+
+test('the group preview reads the reservation\'s Scheduled rows once for all its rooms', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    uaSecondUnit($setup);
+    uaSecondUnit($setup);
+    $real = app(ScheduledFolioRows::class);
+    $rows = Mockery::mock($real);
+    $rows->shouldReceive('forReservation')->once()->andReturnUsing(fn (...$arguments) => $real->forReservation(...$arguments));
+    $this->instance(ScheduledFolioRows::class, $rows);
+
+    $this->actingAs($setup['user'])
+        ->postJson(route('reservations.check-in-all-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertJsonCount(3, 'rows')
+        ->assertJsonPath('rows.0.collection.taxesTotal', '16.00')
+        ->assertJsonPath('rows.2.collection.taxesTotal', '16.00');
+});
+
+test('check in all takes each room\'s payments with one method and a refused room takes none', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup);
+    $second = uaSecondUnit($setup);
+    $noRoom = uaSecondUnit($setup, room: false);
+    $key = fake()->uuid();
+
+    $this->actingAs($setup['user'])
+        ->post(route('reservations.check-in-all', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]), [
+            'unit_ids' => [$setup['unit']->id, $second->id, $noRoom->id],
+            'collect_now' => true,
+            'collect_taxes' => true,
+            'collect_deposit' => true,
+            'payment_method_id' => $cash->id,
+            'idempotency_key' => $key,
+        ])
+        ->assertSessionHasErrors(['units.'.$noRoom->id]);
+
+    expect($noRoom->fresh()->status)->toBe(UnitStatus::Confirmed)
+        ->and(Payment::query()->where('purpose', PaymentPurpose::SecurityDeposit)->count())->toBe(2)
+        ->and(Payment::query()->where('purpose', PaymentPurpose::Advance)->count())->toBe(2)
+        ->and(FolioLine::query()->where('idempotency_key', "payment:{$key}:{$second->id}:deposit")->exists())->toBeTrue()
+        ->and(FolioLine::query()->where('idempotency_key', 'like', "payment:{$key}:{$noRoom->id}:%")->exists())->toBeFalse();
+});
+
 test('check in all closes cleanly when every unit is checked in', function () {
     $setup = uaSetup();
     uaCheckInSetup($setup);
@@ -1311,6 +1508,42 @@ test('early check-out needs both front-desk.check-out and reservations.manage', 
     'check-out only' => [['reservations.view', 'front-desk.check-out']],
     'manage only' => [['reservations.view', 'reservations.manage']],
 ]);
+
+test('the check-in preview marks a tax that can be paid elsewhere and keeps a waived tax with who paid it', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    $tax = Tax::query()->where('property_id', $setup['property']->id)->sole();
+    $tax->update(['can_be_waived' => true]);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.taxes.0.waivable', true)
+        ->assertJsonPath('collection.taxes.0.waivedBy', null);
+
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com']);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.taxesTotal', '0.00')
+        ->assertJsonPath('collection.taxes', [['taxId' => $tax->id, 'name' => $tax->name, 'amount' => '0.00', 'exempt' => false, 'waivedBy' => 'Paid by Trip.com', 'chargedTo' => null, 'payableOnMaster' => false, 'waivable' => false]]);
+});
+
+test('Collect now takes only the ticked taxes and leaves the others on the folio', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    $room = TransactionCode::query()->where('property_id', $setup['property']->id)->where('system_key', SystemTransactionCode::RoomRevenue)->sole();
+    $flat = Tax::factory()->for($setup['property'])->create(['rate' => '10.00', 'rate_type' => TaxRateType::Flat, 'is_inclusive' => false, 'collect_at_check_in' => true, 'foreign_guests_only' => false]);
+    $flat->applicableTransactionCodes()->attach($room);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.taxesTotal', '36.00')
+        ->assertJsonPath('collection.taxes.1.taxId', $flat->id)
+        ->assertJsonPath('collection.taxes.1.amount', '20.00');
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_tax_ids' => [$flat->id], 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->sole()->amount)->toBe('20.00');
+});
 
 test('check-in with only an exempt tax and no deposit takes no payment', function () {
     $setup = uaSetup();

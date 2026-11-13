@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Folio\MoveCharges;
+use App\Actions\Folio\UndoCollectedTaxMove;
 use App\Data\Folio\MovePreviewData;
 use App\Enums\FolioStatus;
 use App\Http\Controllers\Controller;
@@ -18,6 +19,7 @@ use App\Services\Folio\MoveChargesPreview;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -148,5 +150,21 @@ class ReservationFolioMoveController extends Controller
     private function folioTab(Property $property, Reservation $reservation, Folio $target): string
     {
         return route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $target->id]);
+    }
+
+    /**
+     * Send back the collected taxes of one Move charges move to the guest folio they came from. A refusal is an error
+     * toast.
+     */
+    public function undoTaxMove(Request $request, Property $property, Reservation $reservation, Folio $folio, FolioLine $line, UndoCollectedTaxMove $undoCollectedTaxMove, FolioRefusals $refusals): RedirectResponse
+    {
+        $result = $undoCollectedTaxMove($request->user(), $line);
+        $count = count(array_filter($result->lines, fn (FolioLine $moved): bool => $moved->reversal_of_id === null));
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
+            : ['type' => 'success', 'message' => trans_choice('{1} 1 tax moved back to the guest folio.|[2,*] :count taxes moved back to the guest folio.', $count, ['count' => $count])]);
+
+        return back(fallback: route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]));
     }
 }

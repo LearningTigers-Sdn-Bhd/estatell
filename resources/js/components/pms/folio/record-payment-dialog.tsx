@@ -1,4 +1,5 @@
 import { useForm, useHttp } from '@inertiajs/react';
+import { TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -18,6 +19,7 @@ import {
     FieldError,
     FieldLabel,
 } from '@/components/ui/field';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { store as storeOnFolio } from '@/routes/reservations/folios/payments';
@@ -33,7 +35,8 @@ type Folio = Pick<
     | 'paymentUnitId'
     | 'paymentPurposes'
     | 'defaultPaymentPurpose'
->;
+> &
+    Partial<Pick<App.Data.Folio.FolioData, 'paymentCreditWarning'>>;
 type Options = App.Data.Payments.PaymentFormOptionsData;
 type Quote = App.Data.Payments.PaymentQuoteData;
 
@@ -57,6 +60,66 @@ function QuoteLine({
                 <MoneyText amount={amount} currency={currency} />
             </dd>
         </div>
+    );
+}
+
+/** Cents of a typed amount, for the display comparison only. The server checks the amount. */
+function cents(amount: string): number {
+    const value = Number(amount.replace(/[,\s]/g, ''));
+
+    return Number.isFinite(value) ? Math.round(value * 100) : 0;
+}
+
+/**
+ * Warns that the part of the amount above what this folio owes stays here as credit, and, when other folios of the
+ * booking still owe, how much. It never blocks the payment: an agent may pay ahead on purpose.
+ */
+function CreditWarning({
+    warning,
+    folioName,
+    amount,
+    currency,
+}: {
+    warning: App.Data.Folio.PaymentCreditWarningData;
+    folioName: string;
+    amount: string;
+    currency: App.Data.Property.CurrencyData | null;
+}) {
+    const extra = cents(amount) - cents(warning.owes);
+
+    if (extra <= 0) {
+        return null;
+    }
+
+    return (
+        <Alert>
+            <TriangleAlert className="text-warning" />
+            <AlertDescription>
+                <p>
+                    {folioName} owes{' '}
+                    <MoneyText amount={warning.owes} currency={currency} />. The
+                    other{' '}
+                    <MoneyText
+                        amount={(extra / 100).toFixed(2)}
+                        currency={currency}
+                    />{' '}
+                    stays here as credit.
+                </p>
+                {warning.othersCount > 0 && (
+                    <p>
+                        {warning.othersLabel ??
+                            `${warning.othersCount} other folios`}{' '}
+                        still {warning.othersCount === 1 ? 'owes' : 'owe'}{' '}
+                        <MoneyText
+                            amount={warning.othersTotal}
+                            currency={currency}
+                        />
+                        . Record their part on those folios, or move the credit
+                        later with Move credit.
+                    </p>
+                )}
+            </AlertDescription>
+        </Alert>
     );
 }
 
@@ -246,6 +309,15 @@ function RecordPaymentForm({
                 />
                 <FieldError>{errors.amount}</FieldError>
             </Field>
+            {folio.paymentCreditWarning &&
+                data.purpose !== 'security_deposit' && (
+                    <CreditWarning
+                        warning={folio.paymentCreditWarning}
+                        folioName={folio.name}
+                        amount={data.amount}
+                        currency={currency}
+                    />
+                )}
             {!oldSystem && (
                 <Field data-invalid={!!errors.received_on}>
                     <FieldLabel htmlFor="payment-received-on">

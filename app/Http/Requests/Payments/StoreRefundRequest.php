@@ -27,6 +27,7 @@ class StoreRefundRequest extends FormRequest
             'reference' => ['nullable', 'string', 'max:100'],
             'payment_method_id' => ['nullable', 'integer'],
             'reason' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:500'],
             'idempotency_key' => ['required', 'uuid'],
         ];
     }
@@ -49,6 +50,11 @@ class StoreRefundRequest extends FormRequest
     public function reason(): ?string
     {
         return $this->filled('reason') ? $this->string('reason')->toString() : null;
+    }
+
+    public function notes(): ?string
+    {
+        return $this->filled('notes') ? $this->string('notes')->trim()->toString() : null;
     }
 
     public function reference(): ?string

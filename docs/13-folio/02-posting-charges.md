@@ -87,12 +87,36 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 | Both folios are Open                               | `folio_not_open`        |
 | No line is a child, a reversal or already reversed | `line_not_transferable` |
 | No payment owns a line                             | `payment_line`          |
+| No line is a credit move line                      | `line_not_transferable` |
 
 - The lines may come from **several source folios** of the reservation (for [Move charges](07-move-charges.md)). Every folio is locked in id order before the checks.
 - A transfer moves whole charges. Their children move with them.
 - With `$closeSettled` (the default) the last step closes an Open Unit folio of a CheckedOut unit that is left at 0 (`CloseSettledUnitFolio`), on each source and on the target. `MoveCharges` passes false and closes the sources itself.
 - The copy keeps `description`, `kind`, `quantity` and `unit_amount`. Its key is `transfer:{group}:{line_id}`.
 - Source and target balances change by the same amount in opposite directions.
+
+### Move credit
+
+`MoveFolioCredit (User $actor, Folio $source, list<{folio_id, amount}> $moves, ?string $note, string $key): PostingResult` (`app/Actions/Folio/`). It moves a folio's credit to other folios of the same reservation that owe money. Example: a travel agent's transfer paid the tourism tax on the Master folio, but the tax sits on each unit folio.
+
+- **Lines:** each target gets one pair with the system code **Credit transfer** (`folio_transfer`, `CREDIT_TRANSFER`, kind Payment, category Other) and its own `transfer_group_id`: `+amount` "Credit moved to {target}" on the source and `-amount` "Credit from {source}" on the target. Keys: `credit-move:{key}:{target folio id}:out` and `:in`.
+- **Why payment lines:** no money comes in, so no `payments` row is written. The Payments report and cash-up read `payments`, revenue (`DailyRevenueQuery`) and e-invoices (`ReportableLines`) leave payment lines out, so none of them change. Adjustment lines were rejected: e-invoices count them as sales.
+- **Payments never move.** Only credit moves, as a new pair. The original payment stays on its folio with its receipt.
+- **Undo:** `UndoCreditMove (User $actor, FolioLine $line)` from either line of a pair posts a reversal for both. A repeat is refused (`already_reversed`), and so is a line that is not a credit move (`not_a_credit_move`).
+- `TransferLines` (Move charges) refuses a credit move line.
+- The note goes on both lines (`folio_lines.notes`) and in the activity log (`folio.credit_moved`). The reversals of an undo copy it. Undo logs `folio.credit_move_undone`.
+- A unit folio that ends in credit only through a moved credit cannot use Refund credit, because no payment can give it back (`CheckOutSettlement::holdsUnrefundable`). The checks stop a move from leaving a folio in credit. If a later reversal does, undo the move.
+
+| Check                                                     | Refusal                      |
+| --------------------------------------------------------- | ---------------------------- |
+| At least one target                                       | `credit_move_empty`          |
+| No target is the source, and no target repeats            | `transfer_invalid`           |
+| Every folio belongs to the source's reservation           | `different_reservation`      |
+| Every folio is Open                                       | `folio_not_open`             |
+| A business date exists                                    | `no_business_date`           |
+| Each amount is above 0 with at most 2 decimals            | `credit_move_amount_invalid` |
+| The total is at most the source's credit                  | `credit_move_above_credit`   |
+| Each amount is at most what its target owes (its balance) | `credit_move_above_owed`     |
 
 ### `FolioRouter`
 

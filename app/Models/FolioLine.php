@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property int $transaction_code_id
  * @property TransactionKind $kind
  * @property string $description
+ * @property string|null $notes A staff note written with the line, never changed: the note of a credit move.
  * @property int $quantity
  * @property string $unit_amount
  * @property string $amount
@@ -43,7 +44,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property CarbonImmutable|null $created_at
  */
 #[Fillable([
-    'folio_id', 'transaction_code_id', 'kind', 'description', 'quantity', 'unit_amount', 'amount', 'posting_date', 'service_date',
+    'folio_id', 'transaction_code_id', 'kind', 'description', 'notes', 'quantity', 'unit_amount', 'amount', 'posting_date', 'service_date',
     'source_type', 'source_id', 'parent_line_id', 'reversal_of_id', 'transfer_group_id', 'idempotency_key', 'user_id',
 ])]
 class FolioLine extends Model

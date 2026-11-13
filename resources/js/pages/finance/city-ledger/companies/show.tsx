@@ -326,7 +326,7 @@ function CreditFields({
             </div>
             <SettingsSwitch
                 name="pays_collected_taxes"
-                label="Company pays tourism tax"
+                label="Company pays taxes collected at check-in"
                 checked={company.paysCollectedTaxes}
                 disabled={readOnly}
                 error={errors.pays_collected_taxes}

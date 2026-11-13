@@ -17,9 +17,9 @@ class ImportWastaysGuestsCommand extends Command
     {
         try {
             $target = WastaysImportTarget::resolve(
-                (string) $this->argument('bundle'),
-                (string) $this->argument('property'),
-                (string) $this->option('actor'),
+                $this->input()->string('bundle')->toString(),
+                $this->input()->string('property')->toString(),
+                $this->input()->string('actor')->toString(),
             );
         } catch (InvalidArgumentException $e) {
             $this->error($e->getMessage());

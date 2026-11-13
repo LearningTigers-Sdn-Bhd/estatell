@@ -180,18 +180,19 @@ test('the quote shows the surcharge, its tax and the total, or a message', funct
     $this->actingAs($setup['user'])->postJson($url, ['payment_method_id' => PaymentMethod::factory()->create()->id, 'amount' => '10.00'])->assertNotFound();
 });
 
-test('refunding a payment posts the refund and a refund over what is left is an error on the amount', function () {
+test('refunding a payment posts the refund with its notes and a refund over what is left is an error on the amount', function () {
     $setup = fpSetup();
     $payment = fpPay($setup);
     $url = fpUrl($setup, 'reservations.folios.payments.refunds.store', ['folio' => $setup['folio']->id, 'payment' => $payment->id]);
 
-    $this->actingAs($setup['user'])->post($url, ['amount' => '30.00', 'reference' => 'RF-1', 'idempotency_key' => fake()->uuid()])
+    $this->actingAs($setup['user'])->post($url, ['amount' => '30.00', 'reference' => 'RF-1', 'notes' => ' Wrong amount keyed in ', 'idempotency_key' => fake()->uuid()])
         ->assertSessionHasNoErrors()
         ->assertInertiaFlash('toast.type', 'success');
     $this->actingAs($setup['user'])->post($url, ['amount' => '50.01', 'idempotency_key' => fake()->uuid()])
         ->assertSessionHasErrors('amount');
 
-    expect($payment->refunds()->sole()->amount)->toBe('30.00');
+    expect($payment->refunds()->sole()->amount)->toBe('30.00')
+        ->and($payment->refunds()->sole()->notes)->toBe('Wrong amount keyed in');
 });
 
 test('payment rows carry the reference, the amount left and the refund action only when allowed', function () {
@@ -494,13 +495,13 @@ test('a unit before arrival has no purpose when its Room charges go to the Maste
     expect($choices->for($setup['reservation'], null, $unit->id))->toBe([]);
 });
 
-test('voiding a payment through the route refunds it and refuses an older one with an error', function () {
+test('voiding a payment through the route refunds it with its notes and refuses an older one with an error', function () {
     $setup = fpSetup();
     $today = fpPay($setup, '40.00');
     $old = fpPay($setup, '20.00');
     $url = fn (Payment $payment): string => fpUrl($setup, 'reservations.folios.payments.void', ['folio' => $setup['folio']->id, 'payment' => $payment->id]);
 
-    $this->actingAs($setup['user'])->post($url($today), ['idempotency_key' => fake()->uuid()])
+    $this->actingAs($setup['user'])->post($url($today), ['notes' => 'Wrong key', 'idempotency_key' => fake()->uuid()])
         ->assertSessionHasNoErrors()
         ->assertInertiaFlash('toast.type', 'success');
     BusinessDate::query()->update(['date' => today()->addDay()]);
@@ -508,6 +509,7 @@ test('voiding a payment through the route refunds it and refuses an older one wi
         ->assertSessionHasErrors('form');
 
     expect($today->refunds()->sole()->voided)->toBeTrue()
+        ->and($today->refunds()->sole()->notes)->toBe('Wrong key')
         ->and($old->refunds()->count())->toBe(0);
 });
 

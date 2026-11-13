@@ -13,6 +13,7 @@ use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\ReservationUnit;
 use App\Models\ReservationUnitTaxWaiver;
+use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -67,6 +68,16 @@ test('waiving for several rooms waives each one, reverses their posted nights an
         ->and(ReservationUnitTaxWaiver::query()->where('reservation_unit_id', $third->id)->sole()->reference)->toBe('TTX-1')
         ->and(wtLiveTaxes())->toBe(['Service Tax' => '16.00'])
         ->and(Activity::query()->where('event', 'reservation.unit_tax_waived')->count())->toBe(3);
+});
+
+test('a room whose guest is from the property\'s own country is skipped for a foreign-only tax', function () {
+    $setup = wgSetup();
+    $setup['tourism']->update(['foreign_guests_only' => true]);
+    $setup['reservation']->booker->update(['nationality_code' => 'SG']);
+    UnitGuest::factory()->create(['reservation_unit_id' => $setup['second']->id, 'is_primary' => true])->guest->update(['nationality_code' => strtoupper((string) $setup['property']->country_code)]);
+
+    expect(wgWaive($setup, [$setup['unit']->id, $setup['second']->id])->isRefused())->toBeFalse()
+        ->and(ReservationUnitTaxWaiver::query()->pluck('reservation_unit_id')->all())->toBe([$setup['unit']->id]);
 });
 
 test('a refusal on one room rolls back every room', function () {

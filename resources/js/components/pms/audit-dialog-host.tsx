@@ -96,6 +96,7 @@ function ReservationAuditDialogHost({
                     open={open}
                     onOpenChange={change}
                     reservation={data.reservation}
+                    paymentOptions={data.paymentOptions ?? undefined}
                     currency={data.currency}
                 />
             )}

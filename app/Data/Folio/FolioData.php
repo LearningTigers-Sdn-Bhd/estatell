@@ -92,5 +92,11 @@ class FolioData extends Data
         public array $eInvoiceRejection = [],
         /** Over RM10,000 with no e-invoice yet: LHDN needs its own e-invoice, the monthly summary cannot take it. */
         public bool $eInvoiceRequired = false,
+        /** Why taxes on this unit folio sit apart from their room charge: the company pays the room, not these taxes. */
+        public ?CollectedTaxNoteData $collectedTaxNote = null,
+        /** Set on an Open folio in credit when another Open folio of the reservation owes money and the user holds `payment.record`. */
+        public ?CreditMoveData $creditMove = null,
+        /** Set when the folio or "not started" entry can take a payment: what it owes and what the other folios owe. */
+        public ?PaymentCreditWarningData $paymentCreditWarning = null,
     ) {}
 }

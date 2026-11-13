@@ -98,7 +98,8 @@ class WalkInPayment
                 $deposit = $deposit->plus($collected->deposit);
             }
 
-            foreach ($collected->taxes as $tax) {
+            // Taxes on a Master folio the guest does not pay are information only.
+            foreach ($collected->taxesHidden ? [] : $collected->taxes as $tax) {
                 $row = $taxes[$tax['name']] ?? ['name' => $tax['name'], 'amount' => BigDecimal::zero(), 'exempt' => true];
                 $taxes[$tax['name']] = [
                     'name' => $tax['name'],

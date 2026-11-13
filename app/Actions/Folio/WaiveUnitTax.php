@@ -13,6 +13,7 @@ use App\Models\ReservationUnitTaxWaiver;
 use App\Models\Tax;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Catalogues\TaxWaivers;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -25,6 +26,7 @@ class WaiveUnitTax
         private CreateManualBatch $createManualBatch,
         private ReverseLine $reverseLine,
         private CloseSettledUnitFolio $closeSettledUnitFolio,
+        private TaxWaivers $taxWaivers,
     ) {}
 
     /**
@@ -33,7 +35,8 @@ class WaiveUnitTax
      * posted on the unit's nights (and its day-use block) are reversed on the business date, in one manual batch per
      * folio whose reason names the payer and the reference. Nights not posted yet are quoted without the tax
      * (`TaxWaivers`). The unit row is locked first and every check runs before the first write, so a refusal writes
-     * and logs nothing. A tax already waived for the unit refuses the whole request (`already_waived`), which also
+     * and logs nothing. A foreign-only tax for a guest of the property's own country refuses (`tax_not_applicable`). A tax already
+     * waived for the unit refuses the whole request (`already_waived`), which also
      * stops a repeated click. Permissions are checked by the route. See docs/06-catalogues/03-taxes.md#tax-waivers.
      *
      * @param  list<int>  $taxIds
@@ -56,6 +59,10 @@ class WaiveUnitTax
 
             if ($taxes->contains(fn (Tax $tax): bool => ! $tax->can_be_waived)) {
                 return TaxWaiverResult::refused(TaxWaiverResult::REFUSAL_TAX_NOT_WAIVABLE);
+            }
+
+            if ($taxes->contains(fn (Tax $tax): bool => ! $this->taxWaivers->appliesTo($tax, $locked))) {
+                return TaxWaiverResult::refused(TaxWaiverResult::REFUSAL_TAX_NOT_APPLICABLE);
             }
 
             if ($locked->taxWaivers()->whereIn('tax_id', $taxIds)->exists()) {

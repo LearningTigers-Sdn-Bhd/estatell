@@ -3,6 +3,7 @@
 namespace App\Data\Reservations;
 
 use App\Enums\BillingMode;
+use App\Enums\CollectedTaxesPayer;
 use App\Models\BookingSource;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
@@ -22,6 +23,7 @@ class NewReservationData extends Data
         public BookingSource $bookingSource,
         public array $units,
         public BillingMode $billingMode = BillingMode::MasterPays,
+        public ?CollectedTaxesPayer $collectedTaxesPayer = null,
         public ?string $externalReference = null,
         public ?int $companyId = null,
         public ?string $groupName = null,

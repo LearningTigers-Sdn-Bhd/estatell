@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Data\Reports\ArrivalRow;
 use App\Data\Reports\ReportFilters;
+use App\Data\Reports\ReportTotals;
 use App\Enums\BoatDirection;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
@@ -19,7 +20,7 @@ use Laravel\Pennant\Feature;
  * The reservation units that arrive in the date range, by arrival date. Units that hold inventory count: Confirmed
  * (still to arrive), Checked in and Checked out. Cancelled and no-show units are left out because nobody arrives.
  */
-class ArrivalsReport implements Report
+class ArrivalsReport implements HasTotals, Report
 {
     public function __construct(
         private UnitReportRows $unitRows,
@@ -61,5 +62,29 @@ class ArrivalsReport implements Report
             fn (array $unitIds): array => $this->roomBox->assignmentsForUnits($unitIds),
             fn (ReservationUnit $unit, ?string $room, string $balance): ArrivalRow => ArrivalRow::fromModel($unit, $room, $balance, $boats ? $this->boatTimes->forUnit($unit, BoatDirection::In) : null),
         );
+    }
+
+    /**
+     * The sums of nights, adults and children, and the balance of each reservation once.
+     *
+     * @param  list<ArrivalRow>  $rows
+     */
+    public function totals(array $rows): ReportTotals
+    {
+        return new ReportTotals([
+            'reservation' => null,
+            'guest' => null,
+            'phone' => null,
+            'arrival' => null,
+            'arrival_time' => null,
+            'boat' => null,
+            'unit' => null,
+            'room_type' => null,
+            'room' => null,
+            'guests' => null,
+            'company' => null,
+            'status' => null,
+            ...$this->unitRows->totalFigures($rows),
+        ]);
     }
 }

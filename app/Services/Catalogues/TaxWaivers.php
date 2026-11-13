@@ -4,6 +4,7 @@ namespace App\Services\Catalogues;
 
 use App\Models\ReservationUnit;
 use App\Models\Tax;
+use App\Services\Reservations\UnitNationality;
 use Illuminate\Support\Collection;
 
 /**
@@ -15,6 +16,23 @@ use Illuminate\Support\Collection;
  */
 class TaxWaivers
 {
+    public function __construct(private UnitNationality $unitNationality) {}
+
+    /**
+     * True when the tax can be charged to the unit, so a waiver means something: a foreign-only tax does not apply to
+     * a guest of the property's own country. A unit with no nationality yet may still be foreign, so it applies.
+     */
+    public function appliesTo(Tax $tax, ReservationUnit $unit): bool
+    {
+        if (! $tax->foreign_guests_only) {
+            return true;
+        }
+
+        $nationality = $this->unitNationality->for($unit);
+
+        return blank($nationality) || UnitNationality::isForeign($nationality, $unit->loadMissing('property')->property->country_code);
+    }
+
     /**
      * @return list<int>
      */

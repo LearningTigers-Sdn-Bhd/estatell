@@ -12,6 +12,7 @@ use App\Data\Reservations\UnitPickData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\IdentityDocumentType;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
@@ -91,6 +92,7 @@ class StoreBookingRequest extends FormRequest
             'company_id' => ['nullable', 'integer'],
             'credit_override_reason' => ['nullable', 'string', 'max:500'],
             'billing_mode' => ['nullable', Rule::enum(BillingMode::class)],
+            'collected_taxes_payer' => ['nullable', Rule::enum(CollectedTaxesPayer::class)],
             'notes' => ['nullable', 'string', 'max:2000'],
             'guests' => ['required', 'array', 'min:1', 'max:20'],
             'guests.*.guest_id' => ['nullable', 'integer'],
@@ -257,6 +259,7 @@ class StoreBookingRequest extends FormRequest
             guests: $this->guestTabs(),
             picks: $picks,
             billingMode: BillingMode::tryFrom((string) $this->validated('billing_mode')) ?? BillingMode::MasterPays,
+            collectedTaxesPayer: CollectedTaxesPayer::tryFrom((string) $this->validated('collected_taxes_payer')),
             externalReference: $this->validated('external_reference'),
             groupName: $this->validated('group_name'),
             companyId: $this->user()->can(PermissionEnum::CompanyView->value) && $this->filled('company_id') ? $this->integer('company_id') : null,

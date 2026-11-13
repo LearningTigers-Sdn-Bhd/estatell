@@ -2,6 +2,7 @@
 
 namespace App\Services\Folio;
 
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\FolioType;
 use App\Models\Folio;
 use App\Models\Reservation;
@@ -12,8 +13,9 @@ use Closure;
 /**
  * Who pays the taxes flagged **Collect at check-in** (the tourism tax) on a room night. They follow the room charge,
  * except when the room charge goes to a folio a company pays that is not the unit's own folio, and the company does not
- * pay collected taxes (`companies.pays_collected_taxes`, off by default): then the guest pays them at check-in, and they
- * post on the unit's own folio as children of the room line. See docs/13-folio/03-routing.md#collected-taxes.
+ * pay collected taxes: then the guest pays them at check-in, and they post on the unit's own folio as children of the
+ * room line. The booking's `collected_taxes_payer` decides that when set; null follows the company's
+ * `pays_collected_taxes` (off by default). See docs/13-folio/03-routing.md#collected-taxes.
  */
 class CollectedTaxPayer
 {
@@ -58,7 +60,7 @@ class CollectedTaxPayer
                 ->keyBy('id');
             $folio = $folios->get($chargeFolioId);
 
-            if ($folio === null || ! $this->guestPays($unit, $folio)) {
+            if ($folio === null || ! $this->guestPays($unit, $folio, $reservation)) {
                 return [];
             }
 
@@ -75,7 +77,10 @@ class CollectedTaxPayer
         return $master !== null && $this->guestPays($unit, $master) && $this->collectedTaxIds($unit->property_id) !== [];
     }
 
-    private function guestPays(ReservationUnit $unit, Folio $folio): bool
+    /**
+     * `$reservation` is the unit's reservation when the caller has it, so it is not read again.
+     */
+    private function guestPays(ReservationUnit $unit, Folio $folio, ?Reservation $reservation = null): bool
     {
         if ($folio->type === FolioType::Unit && $folio->reservation_unit_id === $unit->id) {
             return false;
@@ -83,7 +88,29 @@ class CollectedTaxPayer
 
         $company = $folio->loadMissing('payerCompany')->payerCompany;
 
-        return $company !== null && ! $company->pays_collected_taxes;
+        if ($company === null) {
+            return false;
+        }
+
+        $bookingPayer = ($reservation ?? $unit->loadMissing('reservation')->reservation)->collected_taxes_payer;
+
+        return $bookingPayer === null ? ! $company->pays_collected_taxes : $bookingPayer === CollectedTaxesPayer::Guest;
+    }
+
+    /**
+     * The names of the property's enabled taxes with **Collect at check-in** on, in id order.
+     *
+     * @return list<string>
+     */
+    public function taxNames(int $propertyId): array
+    {
+        return array_values(array_map(strval(...), Tax::query()
+            ->where('property_id', $propertyId)
+            ->where('enabled', true)
+            ->where('collect_at_check_in', true)
+            ->orderBy('id')
+            ->pluck('name')
+            ->all()));
     }
 
     /**
