@@ -139,7 +139,8 @@ test('the PDF and the CSV export the checked out units', function () {
     $lines = array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF"))));
 
     expect(str_getcsv($lines[0]))->toBe(['Booking', 'Guest', 'Room', 'Checked out', 'Balance (MYR)'])
-        ->and($lines)->toHaveCount(2);
+        ->and($lines)->toHaveCount(3)
+        ->and(str_getcsv($lines[2]))->toBe(['Total', '', '', '', '0']);
 });
 
 test('the default sort puts the highest balance first', function () {
@@ -167,4 +168,18 @@ test('sorting by the check-out time orders the dates, not the text', function ()
 
     $this->actingAs($user)->get(checkedOutUrl($property, '?from=2026-10-09&to=2026-10-14&sort=-checked_out_at'))->assertInertia(fn (Assert $page) => $page
         ->where('rows.data.0.key', $fourteenth->id));
+});
+
+test('the total row sums nights, adults and children and counts each reservation balance once', function () {
+    [$user, $property] = reportSetup();
+    $group = checkedOutUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1]);
+    ReservationUnit::factory()->for($group->reservation)->create(['arrival_date' => '2026-10-08', 'departure_date' => '2026-10-10', 'status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDays(2), 'checked_out_at' => now(), 'adults' => 2, 'children' => 0]);
+    $folio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $group->reservation_id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '1200.00', 'unit_amount' => '1200.00']);
+
+    $this->actingAs($user)->get(checkedOutUrl($property))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.figures.nights', 4)
+        ->where('totals.figures.adults', 4)
+        ->where('totals.figures.children', 1)
+        ->where('totals.figures.balance', '1200.00'));
 });

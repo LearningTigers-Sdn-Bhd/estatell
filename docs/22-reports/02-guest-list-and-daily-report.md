@@ -57,6 +57,7 @@ A new report, `ReportKey::CheckedOut`, category Front desk, range, Portrait, 31 
 - Rows: the units with status Checked out whose departure date is in the range. An early check-out moves the departure date to the day the guest left, so the departure date is the check-out day.
 - Columns: Booking, Guest, Room, Checked out (`checked_out_at`, date and time), Balance. The rest follow the Departures columns and are hidden by default.
 - Default sort: Balance, highest first, so unpaid stays come to the top.
+- Total row: the sums of `nights`, `adults` and `children`, and the balance of each reservation once, as on [Arrivals](01-core-reports.md).
 - It shares `UnitReportRows` with Arrivals, Departures and In-house.
 - **No By column.** `CheckOutUnit` stores `checked_out_at` only. The staff member is only in the activity log, and an undone and repeated check-out makes that join unreliable.
 - A check-out done late (after the audit) keeps its departure date, so it shows on that date. Filtering on `checked_out_at` instead is a possible follow-up if a hotel asks.

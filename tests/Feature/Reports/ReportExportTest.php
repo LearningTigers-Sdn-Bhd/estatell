@@ -187,8 +187,8 @@ test('the spreadsheet sorts like the table and honours the selection', function 
     $all = $this->actingAs($user)->post(exportUrl($property, 'spreadsheet'), ['format' => 'csv', 'sort' => '-guest']);
     $picked = $this->actingAs($user)->post(exportUrl($property, 'spreadsheet'), ['format' => 'csv', 'sort' => 'guest', 'rowKeys' => [$b->id, $a->id]]);
 
-    expect(array_column(csvRows($all->streamedContent()), 1))->toBe(['Guest', 'Zed', 'Mia', 'Anna'])
-        ->and(array_column(csvRows($picked->streamedContent()), 1))->toBe(['Guest', 'Anna', 'Zed']);
+    expect(array_column(csvRows($all->streamedContent()), 1))->toBe(['Guest', 'Zed', 'Mia', 'Anna', ''])
+        ->and(array_column(csvRows($picked->streamedContent()), 1))->toBe(['Guest', 'Anna', 'Zed', '']);
 });
 
 test('the Excel file downloads', function () {

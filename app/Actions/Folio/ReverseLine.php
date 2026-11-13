@@ -121,6 +121,7 @@ class ReverseLine
             'transaction_code_id' => $line->transaction_code_id,
             'kind' => $line->kind,
             'description' => $line->description,
+            'notes' => $line->notes,
             'quantity' => $line->quantity,
             'unit_amount' => (string) BigDecimal::of($line->unit_amount)->negated()->toScale(2),
             'amount' => (string) BigDecimal::of($line->amount)->negated()->toScale(2),

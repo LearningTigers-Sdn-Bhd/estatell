@@ -39,6 +39,12 @@ class CheckInUnitRequest extends FormRequest
             'credit_override_reason' => ['nullable', 'string', 'max:500'],
             'collect_now' => ['boolean'],
             'collect_taxes' => ['boolean'],
+            'collect_tax_ids' => ['nullable', 'array'],
+            'collect_tax_ids.*' => ['integer'],
+            'collect_charge_ids' => ['nullable', 'array'],
+            'collect_charge_ids.*' => ['integer'],
+            'collect_master_tax_ids' => ['nullable', 'array'],
+            'collect_master_tax_ids.*' => ['integer'],
             'room_charges' => ['boolean'],
             'collect_deposit' => ['boolean'],
             'payment_method_id' => ['nullable', 'required_if:collect_now,true', 'integer'],
@@ -87,6 +93,9 @@ class CheckInUnitRequest extends FormRequest
             reference: filled($this->input('reference')) ? $this->string('reference')->toString() : null,
             idempotencyKey: $this->string('idempotency_key')->toString(),
             roomCharges: $this->boolean('room_charges'),
+            taxIds: $this->has('collect_tax_ids') ? array_values(array_map(intval(...), (array) $this->input('collect_tax_ids', []))) : null,
+            chargeCodeIds: array_values(array_map(intval(...), (array) $this->input('collect_charge_ids', []))),
+            masterTaxIds: array_values(array_map(intval(...), (array) $this->input('collect_master_tax_ids', []))),
         );
     }
 }

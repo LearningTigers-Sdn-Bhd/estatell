@@ -15,7 +15,7 @@ folios         id, property_id, reservation_id, reservation_unit_id (nullable),
                check: not both payer_guest_id and payer_company_id;
                (type = 'unit') = (reservation_unit_id is set); type has ThirdParty
 folio_lines    id, folio_id, transaction_code_id, kind (TransactionKind), description,
-               quantity, unit_amount, amount (signed), posting_date, service_date,
+               notes (nullable, 255), quantity, unit_amount, amount (signed), posting_date, service_date,
                manual_batch_id (nullable), migrated (bool),
                source_type, source_id, parent_line_id (nullable),
                reversal_of_id (nullable), transfer_group_id (nullable),
@@ -45,6 +45,7 @@ erDiagram
 - Tax and discount lines are children of the charge (`parent_line_id`).
 - Transfers are a reversal on the source plus a new line on the target, linked by `transfer_group_id`.
 - `description` and `kind` are copied at posting time.
+- `notes` is a staff note written with the line and never changed. Today only a [credit move](02-posting-charges.md#move-credit) sets it; a reversal copies it. Vouchers and invoices do not print it.
 - **Source names the unit.** Every charge line sets `source_type` and `source_id` so the folio page can show its unit, also on a Master or Third party folio. A night and its inclusions name the unit night, an add-on names the add-on, and a manual charge or a policy fee names the reservation unit. A reversal and a transfer copy keep the source of their original line. A child line (tax, discount) has no source and takes its parent's. A payment has none. See [Posting charges](02-posting-charges.md#line-sources).
 - Postings use the current business date, never the calendar date. Closed dates reject postings.
 - **Two dates.** `posting_date` is the business date the line counts in. `service_date` is the day it really happened: equal to `posting_date` unless a night, a manual line or a migrated line sets it earlier (CHECK `service_date <= posting_date`). Pages and documents sort by `service_date`; reports count by `posting_date`. See [Manual Folio Editor](08-manual-folio.md#two-dates-on-a-line).

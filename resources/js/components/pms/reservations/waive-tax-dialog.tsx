@@ -229,9 +229,17 @@ type UnitProps = {
     onOpenChange: (open: boolean) => void;
     reservationId: number;
     unit: Unit;
+    /** Runs instead of closing after a waiver is saved, so check-in can open again with the new total. */
+    onSaved?: () => void;
 };
 
-function WaiveTaxForm({ open, onOpenChange, reservationId, unit }: UnitProps) {
+function WaiveTaxForm({
+    open,
+    onOpenChange,
+    reservationId,
+    unit,
+    onSaved,
+}: UnitProps) {
     const options = unit.taxWaiverForm;
     const form = useForm<Fields>(initialFields(options));
     const { data, errors } = form;
@@ -250,7 +258,10 @@ function WaiveTaxForm({ open, onOpenChange, reservationId, unit }: UnitProps) {
                     store.url({ reservation: reservationId, unit: unit.id }),
                     {
                         preserveScroll: true,
-                        onSuccess: () => onOpenChange(false),
+                        onSuccess: () =>
+                            onSaved !== undefined
+                                ? onSaved()
+                                : onOpenChange(false),
                     },
                 )
             }
@@ -305,6 +316,10 @@ type GroupProps = {
     reservationId: number;
     units: App.Data.Reservations.ReservationUnitOptionData[];
     options?: Options | null;
+    /** The rooms picked when it opens. Without it, every room that can take a waiver. */
+    unitIds?: number[];
+    /** Runs instead of closing after the waivers are saved, so Check in all can open again. */
+    onSaved?: () => void;
 };
 
 function WaiveGroupTaxForm({
@@ -313,6 +328,8 @@ function WaiveGroupTaxForm({
     reservationId,
     units,
     options,
+    unitIds,
+    onSaved,
 }: GroupProps) {
     useFormOptions(open, options !== undefined, 'taxWaiverOptions');
 
@@ -320,7 +337,9 @@ function WaiveGroupTaxForm({
         .filter((unit) => WAIVABLE.includes(unit.status.value))
         .map((unit) => ({ id: unit.id, label: unit.label }));
     const form = useForm<Fields & { unit_ids: number[] }>({
-        unit_ids: choices.map((choice) => choice.id),
+        unit_ids: choices
+            .map((choice) => choice.id)
+            .filter((id) => unitIds === undefined || unitIds.includes(id)),
         ...initialFields(options),
     });
     const { data, errors } = form;
@@ -344,7 +363,8 @@ function WaiveGroupTaxForm({
                 form.post(storeGroup.url({ reservation: reservationId }), {
                     preserveScroll: true,
                     except: KEEP_OPTIONS,
-                    onSuccess: () => onOpenChange(false),
+                    onSuccess: () =>
+                        onSaved !== undefined ? onSaved() : onOpenChange(false),
                 })
             }
             submitLabel="Mark as paid"

@@ -208,7 +208,7 @@ test('the split columns and the totals count adults and children, and the time c
 
     expect($rows[0]->cells())->toMatchArray(['guests' => '2 / 1', 'adults' => '2', 'children' => '1', 'arrival_time' => '13:00', 'departure_time' => '11:30'])
         ->and($rows[0]->values())->toMatchArray(['adults' => 2, 'children' => 1])
-        ->and(ReportKey::InHouse->totals($rows)->figures)->toMatchArray(['adults' => 5, 'children' => 1, 'guests' => null, 'balance' => null]);
+        ->and(ReportKey::InHouse->totals($rows)->figures)->toMatchArray(['adults' => 5, 'children' => 1, 'guests' => null, 'balance' => '0.00']);
 
     $defaults = collect(ReportKey::InHouse->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
 
@@ -218,4 +218,16 @@ test('the split columns and the totals count adults and children, and the time c
     $this->actingAs($user)->get(inHouseUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('totals.figures.adults', 5)
         ->where('totals.figures.children', 1));
+});
+
+test('the total balance counts each reservation once', function () {
+    [$user, $property] = reportSetup();
+    $group = stayingUnit($property, '2026-10-09', '2026-10-12');
+    ReservationUnit::factory()->for($group->reservation)->create(['arrival_date' => '2026-10-09', 'departure_date' => '2026-10-12', 'status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
+    $folio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $group->reservation_id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '1200.00', 'unit_amount' => '1200.00']);
+
+    $this->actingAs($user)->get(inHouseUrl($property, 'date=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->has('rows.data', 2)
+        ->where('totals.figures.balance', '1200.00'));
 });

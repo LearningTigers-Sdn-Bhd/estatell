@@ -154,7 +154,7 @@ class PostCharge
             }
 
             $folio ??= ($this->createFolio)($locked->reservation, $locked);
-            $addOn = $data->unitAddOnId === null ? null : $locked->addOns()->lockForUpdate()->with(['chargeItem', 'ageGroup'])->findOrFail($data->unitAddOnId);
+            $addOn = $data->unitAddOnId === null ? null : $locked->addOns()->lockForUpdate()->with(['chargeItem', 'ageGroup', 'boatTripLinks.unitBoatTrip'])->findOrFail($data->unitAddOnId);
 
             $lines = ($this->postFolioCharge)(
                 $actor,

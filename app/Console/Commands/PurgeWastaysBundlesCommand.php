@@ -13,7 +13,7 @@ class PurgeWastaysBundlesCommand extends Command
 {
     public function handle(PurgeWastaysBundles $purge): int
     {
-        $bundle = $this->argument('bundle');
+        $bundle = $this->input()->string('bundle')->toString() ?: null;
 
         if (! $this->option('all') && $bundle === null) {
             $this->error('Give a bundle folder or use --all.');

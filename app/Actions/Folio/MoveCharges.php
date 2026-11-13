@@ -14,12 +14,14 @@ use App\Services\Folio\MoveChargesPreview;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 class MoveCharges
 {
     public function __construct(
         private TransferLines $transferLines,
+        private MoveCollectedTaxes $moveCollectedTaxes,
         private CreateRoutingRule $createRoutingRule,
         private CloseSettledUnitFolio $closeSettledUnitFolio,
         private CurrentBusinessDate $currentBusinessDate,
@@ -33,8 +35,9 @@ class MoveCharges
      * rule is never touched. Every check runs before the first write, so a refusal writes and logs nothing, and the posted
      * move (`TransferLines`) and the rules roll back together. The one activity entry is `folio.charges_moved`; the inner
      * calls write none. The last step closes each source that is an Open Unit folio of a CheckedOut unit at 0. A repeat
-     * of the same request finds the lines reversed and is refused (`line_not_transferable`).
-     * See docs/13-folio/07-move-charges.md.
+     * of the same request finds the lines reversed and is refused (`line_not_transferable`). A child line among `$lines`
+     * must be a collected tax that sits apart from its room line on the target: `MoveCollectedTaxes` puts it back under
+     * that line in the same transfer group, and it counts as one charge. See docs/13-folio/07-move-charges.md.
      *
      * @param  list<FolioLine>  $lines
      * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
@@ -109,9 +112,11 @@ class MoveCharges
         }
 
         $copies = [];
+        $charges = array_values($found->whereNull('parent_line_id')->all());
+        $taxes = array_values($found->whereNotNull('parent_line_id')->all());
 
-        if ($ids !== []) {
-            $transfer = ($this->transferLines)($actor, $lines, $targetFolio, false);
+        if ($charges !== []) {
+            $transfer = ($this->transferLines)($actor, $charges, $targetFolio, false);
 
             if ($transfer->isRefused()) {
                 return MoveChargesResult::refused((string) $transfer->refusal);
@@ -120,7 +125,21 @@ class MoveCharges
             $copies = $transfer->lines;
         }
 
-        $parents = array_values(array_filter($copies, fn (FolioLine $copy): bool => $copy->parent_line_id === null));
+        $taxCount = 0;
+
+        if ($taxes !== []) {
+            $group = $copies[0]->transfer_group_id ?? (string) Str::uuid();
+            $moved = ($this->moveCollectedTaxes)($actor, $taxes, $targetFolio, $businessDate->toDateString(), $group);
+
+            if ($moved->isRefused()) {
+                return MoveChargesResult::refused((string) $moved->refusal);
+            }
+
+            $copies = [...$copies, ...$moved->lines];
+            $taxCount = count($moved->lines);
+        }
+
+        $chargeCount = count(array_filter($copies, fn (FolioLine $copy): bool => $copy->parent_line_id === null)) + $taxCount;
         $amount = array_reduce($copies, fn (BigDecimal $sum, FolioLine $copy): BigDecimal => $sum->plus($copy->amount), BigDecimal::zero());
         $changes = $this->saveRules($reservation, $targetFolio, $schedules);
 
@@ -128,13 +147,13 @@ class MoveCharges
             return MoveChargesResult::refused($changes['refusal']);
         }
 
-        $this->log($actor, $targetFolio, array_values($sources->all()), count($parents), (string) $amount->toScale(2), $schedules, $changes, $copies[0]->transfer_group_id ?? null, $ids);
+        $this->log($actor, $targetFolio, array_values($sources->all()), $chargeCount, (string) $amount->toScale(2), $schedules, $changes, $copies[0]->transfer_group_id ?? null, $ids);
 
         foreach ($sources as $source) {
             ($this->closeSettledUnitFolio)($actor, $source);
         }
 
-        return MoveChargesResult::moved(count($parents), (string) $amount->toScale(2), count($schedules), array_values($sources->all()));
+        return MoveChargesResult::moved($chargeCount, (string) $amount->toScale(2), count($schedules), array_values($sources->all()));
     }
 
     /**

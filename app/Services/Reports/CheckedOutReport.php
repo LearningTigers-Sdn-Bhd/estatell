@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Data\Reports\CheckedOutRow;
 use App\Data\Reports\ReportFilters;
+use App\Data\Reports\ReportTotals;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
  * departure date to the day the guest left, so the departure date is the check-out day. A check-out done after the
  * audit keeps its departure date. See docs/22-reports/02-guest-list-and-daily-report.md#2-checked-out.
  */
-class CheckedOutReport implements Report
+class CheckedOutReport implements HasTotals, Report
 {
     public function __construct(
         private UnitReportRows $unitRows,
@@ -51,5 +52,27 @@ class CheckedOutReport implements Report
             fn (array $unitIds): array => $this->roomBox->lastNightAssignmentsForUnits($unitIds),
             fn (ReservationUnit $unit, ?string $room, string $balance): CheckedOutRow => CheckedOutRow::fromModel($unit, $room, $balance, $timeZone),
         );
+    }
+
+    /**
+     * The sums of nights, adults and children, and the balance of each reservation once.
+     *
+     * @param  list<CheckedOutRow>  $rows
+     */
+    public function totals(array $rows): ReportTotals
+    {
+        return new ReportTotals([
+            'reservation' => null,
+            'guest' => null,
+            'room' => null,
+            'checked_out_at' => null,
+            'phone' => null,
+            'departure' => null,
+            'unit' => null,
+            'room_type' => null,
+            'guests' => null,
+            'company' => null,
+            ...$this->unitRows->totalFigures($rows),
+        ]);
     }
 }

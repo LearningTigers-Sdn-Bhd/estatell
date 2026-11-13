@@ -171,57 +171,61 @@ function VoucherForm({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {rows.map((row, index) => (
-                            <Fragment key={row.key}>
-                                {row.state !== rows[index - 1]?.state &&
-                                    (index > 0 ||
-                                        row.state === 'scheduled' ||
-                                        row.state === 'old') && (
-                                        <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                            <TableCell
-                                                colSpan={4}
-                                                className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                                            >
-                                                {row.state === 'scheduled'
-                                                    ? 'Scheduled, not posted yet'
-                                                    : row.state === 'old'
-                                                      ? 'Old system'
-                                                      : 'Posted'}
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                <TableRow>
-                                    <TableCell>
-                                        <Checkbox
-                                            aria-label={`Select ${row.description}`}
-                                            checked={selected.has(row.key)}
-                                            onCheckedChange={(on) =>
-                                                change([row.key], on)
-                                            }
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        {row.level === 0 && (
-                                            <DateText date={row.date} />
+                        {rows.map((row, index) => {
+                            const child = hasParentAbove(rows, index);
+
+                            return (
+                                <Fragment key={row.key}>
+                                    {row.state !== rows[index - 1]?.state &&
+                                        (index > 0 ||
+                                            row.state === 'scheduled' ||
+                                            row.state === 'old') && (
+                                            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                                <TableCell
+                                                    colSpan={4}
+                                                    className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                                >
+                                                    {row.state === 'scheduled'
+                                                        ? 'Scheduled, not posted yet'
+                                                        : row.state === 'old'
+                                                          ? 'Old system'
+                                                          : 'Posted'}
+                                                </TableCell>
+                                            </TableRow>
                                         )}
-                                    </TableCell>
-                                    <TableCell
-                                        className={row.level > 0 ? 'pl-6' : ''}
-                                    >
-                                        {row.level > 0 && (
-                                            <span aria-hidden>↳ </span>
-                                        )}
-                                        {row.description}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <MoneyText
-                                            amount={row.amount}
-                                            currency={currency}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            </Fragment>
-                        ))}
+                                    <TableRow>
+                                        <TableCell>
+                                            <Checkbox
+                                                aria-label={`Select ${row.description}`}
+                                                checked={selected.has(row.key)}
+                                                onCheckedChange={(on) =>
+                                                    change([row.key], on)
+                                                }
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            {!child && (
+                                                <DateText date={row.date} />
+                                            )}
+                                        </TableCell>
+                                        <TableCell
+                                            className={child ? 'pl-6' : ''}
+                                        >
+                                            {child && (
+                                                <span aria-hidden>↳ </span>
+                                            )}
+                                            {row.description}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <MoneyText
+                                                amount={row.amount}
+                                                currency={currency}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                </Fragment>
+                            );
+                        })}
                     </TableBody>
                 </Table>
             </div>
@@ -263,6 +267,30 @@ function VoucherForm({
             </DialogFooter>
         </div>
     );
+}
+
+/**
+ * True when a row sits under a parent listed above it in the same section. A child whose parent is not listed (a
+ * collected tax whose room charge is on another folio) shows like a top-level row, with its own date.
+ */
+function hasParentAbove(rows: Row[], index: number): boolean {
+    const row = rows[index];
+
+    if (row.level === 0) {
+        return false;
+    }
+
+    for (let above = index - 1; above >= 0; above--) {
+        if (rows[above].state !== row.state) {
+            return false;
+        }
+
+        if (rows[above].level < row.level) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**

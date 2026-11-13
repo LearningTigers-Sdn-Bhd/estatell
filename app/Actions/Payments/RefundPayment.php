@@ -42,11 +42,11 @@ class RefundPayment
      * and a `$reason`, and only a cash payment goes back in cash. `$void` refunds a whole payment taken on the current
      * business date that has no refund yet. An Online payment refunds only through Curlec, so it is refused
      * (`online_refund_only`) unless `$confirmedByCurlec` says Curlec already gave the money back: the webhook, or a hand
-     * recording on the manual folio with the Curlec refund ID as its reference. A null actor is the webhook's automatic refund. See docs/14-payments/01-payments-and-refunds.md.
+     * recording on the manual folio with the Curlec refund ID as its reference. `$notes` is a free remark for staff, such as why the money went back. A null actor is the webhook's automatic refund. See docs/14-payments/01-payments-and-refunds.md.
      */
-    public function __invoke(?User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false, bool $confirmedByCurlec = false): PaymentResult
+    public function __invoke(?User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false, bool $confirmedByCurlec = false, ?string $notes = null): PaymentResult
     {
-        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey, $serviceDate, $manualBatchId, $methodId, $reason, $void, $confirmedByCurlec): PaymentResult {
+        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey, $serviceDate, $manualBatchId, $methodId, $reason, $void, $confirmedByCurlec, $notes): PaymentResult {
             $current = Payment::query()->findOrFail($payment->id);
             $folio = Folio::query()->lockForUpdate()->findOrFail($current->folio_id);
             $key = 'refund:'.$idempotencyKey;
@@ -176,6 +176,7 @@ class RefundPayment
                 'status' => PaymentStatus::Completed,
                 'reference' => filled($reference) ? trim((string) $reference) : null,
                 'received_on' => $serviceDate,
+                'notes' => filled($notes) ? trim((string) $notes) : null,
                 'refund_of_id' => $current->id,
                 'refund_reason' => $methodId === null ? null : $reason,
                 'voided' => $void,

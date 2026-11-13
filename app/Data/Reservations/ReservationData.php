@@ -42,6 +42,7 @@ class ReservationData extends Data
         public string $createdOn,
         public ?string $createdBy,
         public ReservationBookerData $booker,
+        public ?CollectedTaxesData $collectedTaxes = null,
     ) {}
 
     public static function fromModel(
@@ -55,6 +56,7 @@ class ReservationData extends Data
         string $stayTotal,
         ?string $balance,
         bool $canViewGuest,
+        ?CollectedTaxesData $collectedTaxes = null,
     ): self {
         return new self(
             id: $reservation->id,
@@ -84,6 +86,7 @@ class ReservationData extends Data
             createdOn: $reservation->created_at->toDateString(),
             createdBy: $reservation->creator?->name,
             booker: ReservationBookerData::fromModel($reservation->booker, $canViewGuest),
+            collectedTaxes: $collectedTaxes,
         );
     }
 }

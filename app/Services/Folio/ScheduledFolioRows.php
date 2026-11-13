@@ -54,10 +54,11 @@ class ScheduledFolioRows
     /**
      * Each block also carries its transaction `code`, so the Move charges preview can route it again with proposed rules.
      * The collected taxes the guest pays (`CollectedTaxPayer`) are a block of their own on the unit folio, marked
-     * `guestTax`: they stay with the guest, so Move charges never routes them.
+     * `guestTax`: they stay with the guest, so Move charges never routes them. Such a block also carries its room
+     * charge row (`parentRow`) and that charge's folio (`parentTarget`), so the folio tab can show the charge above them.
      *
      * @param  array<int, string>  $unitLabels  Short unit label (room, or room type) by unit id.
-     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>, guestTax?: true}>
+     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>, guestTax?: true, parentRow?: FolioRowData, parentTarget?: int}>
      */
     public function forReservation(Property $property, Reservation $reservation, array $unitLabels): array
     {
@@ -77,7 +78,7 @@ class ScheduledFolioRows
         $this->propertyTaxes = null;
         $units = $reservation->units()
             ->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
-            ->with(['discount', 'taxWaivers', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode', 'addOns.ageGroup'])
+            ->with(['discount', 'taxWaivers', 'nights' => fn ($nights) => $nights->orderBy('date'), 'nights.ratePlan.inclusions.chargeItem.transactionCode', 'addOns' => fn ($addOns) => $addOns->whereNull('folio_line_id'), 'addOns.chargeItem.transactionCode', 'addOns.ageGroup', 'addOns.boatTripLinks.unitBoatTrip'])
             ->orderBy('id')
             ->get();
         $dayUseUnits = $units->filter(fn (ReservationUnit $unit): bool => $unit->stay_type === StayType::DayUse)->load('dayUse', 'ratePlan.inclusions.chargeItem.transactionCode');
@@ -151,6 +152,8 @@ class ScheduledFolioRows
                             'code' => $charge->code,
                             'rows' => $guestRows,
                             'guestTax' => true,
+                            'parentRow' => $rows[0],
+                            'parentTarget' => $target,
                         ];
                     }
                 }

@@ -78,7 +78,7 @@ class PostScheduledAddOns
         return DB::transaction(function () use ($actor, $property, $addOnId, $businessDate): PostingResult {
             $unitId = UnitAddOn::query()->whereKey($addOnId)->value('reservation_unit_id');
             $unit = $unitId === null ? null : ReservationUnit::query()->lockForUpdate()->find((int) $unitId);
-            $addOn = $unit === null ? null : UnitAddOn::query()->with(['chargeItem.transactionCode', 'ageGroup'])->find($addOnId);
+            $addOn = $unit === null ? null : UnitAddOn::query()->with(['chargeItem.transactionCode', 'ageGroup', 'boatTripLinks.unitBoatTrip'])->find($addOnId);
 
             if ($addOn === null || $addOn->folio_line_id !== null || $unit->status !== UnitStatus::CheckedIn || $unit->property_id !== $property->id) {
                 return PostingResult::refused(PostingResult::REFUSAL_UNIT_NOT_POSTABLE);

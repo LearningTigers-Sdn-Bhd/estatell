@@ -69,7 +69,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 ### `RefundPayment`
 
-`(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false): PaymentResult`. A refund is a payment row with `refund_of_id`. Its folio line is **positive** and uses the system `Refund` code.
+`(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false, bool $confirmedByCurlec = false, ?string $notes = null): PaymentResult`. A refund is a payment row with `refund_of_id`. Its folio line is **positive** and uses the system `Refund` code. `notes` is a free remark for staff, such as "Wrong amount keyed in"; it is trimmed, and blank saves nothing.
 
 | Check, in order                                                                | Refusal                    |
 | ------------------------------------------------------------------------------ | -------------------------- |
@@ -101,10 +101,11 @@ An Online payment refunds only through Curlec: staff refunds go through `RefundH
 
 ### `VoidPayment`
 
-`(User $actor, Payment $payment, string $idempotencyKey): PaymentResult`. A void fixes a payment recorded by mistake on the same business day. It is `RefundPayment` for the whole payment, to the same method, with `voided` set. It uses `payment.refund`.
+`(User $actor, Payment $payment, string $idempotencyKey, ?string $notes = null): PaymentResult`. A void fixes a payment recorded by mistake on the same business day. It is `RefundPayment` for the whole payment, to the same method, with `voided` set. It uses `payment.refund`.
 
 - The payment line must be posted on the current business date, and the payment must have no refund yet. A void is never a partial refund.
 - The refund line reads "Void payment". The row is tagged Refund like any refund. The surcharge stays, as in a refund: reverse it by hand when the fee must go too.
+- Staff can add notes, such as why the payment was wrong. They are saved on the refund row.
 - Later days use a normal refund.
 
 ### `RefundFolioCredit`
@@ -122,7 +123,7 @@ An Online payment refunds only through Curlec: staff refunds go through `RefundH
 - **Service date.** `RecordPayment` and `RefundPayment` take an optional `service_date` and `manual_batch_id` from the [Manual Folio Editor](../13-folio/08-manual-folio.md#preview-and-post). The payment line's `service_date` is the day the money was taken; `posting_date` stays the business date.
 - **Old system.** A payment taken by the old PMS uses the system **Old system** method: inside the migration window, `folio.manual`, a date that may be before go-live, a required reference, no surcharge and no receipt number. Reports and the cash-up leave it out. See [Migration](../17-onboarding/07-migration.md#old-system-payment-method).
 - **A security deposit stays on a unit folio** (`deposit_on_unit_only`): check-out refunds it from the unit's own folio, so on a Master or ThirdParty folio it would never be found. "A security deposit stays on the unit's own folio. Record it on the unit folio."
-- **An advance goes where the room charges go** (`advance_on_master`): when `FolioRouter::roomChargesGoToMaster($unit)` is true (the real rules, BillingMode and Manual, for the property's Room revenue code), an Advance on that unit's folio or "not started" entry is refused. A payment line never moves, so it would sit next to no charges while the company is billed in full. "An advance for this room goes on the Master folio, because the Master folio pays the room charges. Record it there." `CheckInCollection` uses the same method, and Collect now never records the taxes when Room routes to the Master (the tax rows are hidden), so check-in never meets this refusal.
+- **An advance goes where the room charges go** (`advance_on_master`): when `FolioRouter::roomChargesGoToMaster($unit)` is true (the real rules, BillingMode and Manual, for the property's Room revenue code), an Advance on that unit's folio or "not started" entry is refused. A payment line never moves, so it would sit next to no charges while the company is billed in full. "An advance for this room goes on the Master folio, because the Master folio pays the room charges. Record it there." Collect now at check-in has two exceptions, flagged on `NewPaymentData`: `guestPaysTaxes` (the collected taxes a guest pays while a company pays the room) and `paysUnitFolioCharges` (charges that go to the unit's own folio, such as a speedboat fare). Both pay charges that stay on the unit folio, so the payment sits next to its charges.
 - The two purpose checks run after `folio_not_open` and before `method_not_available`. Both map to the form error, because the Purpose field can be hidden. The server does not check the other stage rules below: only these two affect where money sits. It cannot check them: Collect now records the check-in taxes as an Advance on a unit that is already CheckedIn (`CheckInAndCollect`), which the table would forbid.
 - **A payment line is corrected only by a refund.** `ReverseLine` and `TransferLines` refuse a line that a `payments` row owns through `folio_line_id` (`payment_line`). Otherwise a reversed payment could still be refunded, and a transferred one would leave `payments.folio_id` on the old folio. The surcharge line is an ordinary charge and can be reversed or transferred. A deposit always stays on the unit's own folio, even with a Master folio, because a payment line is never transferred.
 - A payment with the SecurityDeposit purpose uses the method's own code. The system `SECURITY_DEPOSIT` code stays unused.
@@ -148,7 +149,7 @@ A migration syncs the permissions: it creates `payment.refund-other-method` and 
 
 - **Record payment** button in the folio header, on an Open folio, with `payment.record`. A Dialog (method, purpose, amount, reference when required) shows the surcharge, its tax and the **total to collect** from the quote route before the user confirms.
 - The "not started" rail entry gets Record payment, and only that: it creates the unit's folio on the first payment ([Folio page](../13-folio/05-folio-page.md)).
-- A payment row shows its method and reference. Its row menu has **Refund** (`payment.refund`, a Completed payment with an amount left to refund) and **Void payment** (`payment.refund`, same business day, no refund yet). The Refund Dialog takes the amount (default: what is left), a **Refund to** field and an optional reference. Refund to lists the payment's own method first. A user with `payment.refund-other-method` also sees the other methods, and picking one shows a required Reason. Cash is greyed out with "Only a cash payment is refunded in cash." when the payment is not cash. Void payment is an AlertDialog.
+- A payment row shows its method and reference. Its row menu has **Refund** (`payment.refund`, a Completed payment with an amount left to refund) and **Void payment** (`payment.refund`, same business day, no refund yet). The Refund Dialog takes the amount (default: what is left), a **Refund to** field, an optional reference and optional **Notes** (≤ 500). An Online payment shows neither reference nor notes. Refund to lists the payment's own method first. A user with `payment.refund-other-method` also sees the other methods, and picking one shows a required Reason. Cash is greyed out with "Only a cash payment is refunded in cash." when the payment is not cash. Void payment is an AlertDialog with optional **Notes**. The notes of a refund or void show under its folio row and in the Payments report.
 - **Refund credit** in the folio header (`payment.refund`, an Open folio with a credit). A Dialog takes the amount (default: the most that can go back), and the same Refund to and Reason fields. The Dialog says the money comes from the newest payment first, security deposits last. The refusal messages are in [Refusal messages](#refusal-messages).
 - A refund row is tagged "Refund".
 - Payment and refund rows get no Reverse or Transfer action (see the `payment_line` rule).
@@ -194,6 +195,27 @@ A separate `ReservationPaymentController` (the folio controller is already long)
 
 - The quote runs again when the method or the amount changes. The Dialog shows Surcharge, Tax on surcharge and **Total to collect**, and the submit button names the total ("Record RM 105.40").
 - The form sends a new UUID as the idempotency key each time the Dialog opens, so a double click records once.
+
+### Credit warning
+
+Record payment warns when part of the amount would stay on the folio as credit. When other folios of the booking still owe, a second line says how much. Example: an agent's transfer also covers the tourism tax, but the tax sits on each unit folio ([Collected taxes](../13-folio/03-routing.md#collected-taxes)).
+
+```
+Nobody else owes:
+⚠ Master owes MYR 0.00. The other MYR 100.00 stays here as credit.
+
+Others owe:
+⚠ Master owes MYR 2,371.20. The other MYR 50.00 stays here as credit.
+  5 other folios still owe MYR 50.00. Record their part on those folios,
+  or move the credit later with Move credit.
+```
+
+- **Data:** `FolioData::paymentCreditWarning` (`PaymentCreditWarningData`): `owes` (this folio's projected total, never below 0), `othersCount` (0 when no other folio owes), `othersTotal`, and `othersLabel` (the other folio's name when only one owes). Set for every folio or "not started" entry that offers a payment purpose. The other folios are the Open folios and "not started" entries of the booking. Built in `FolioStatement` from rows it already reads, so no extra query.
+- **Scheduled rows count**, unlike [Move credit](../13-folio/02-posting-charges.md#move-credit). Agents often pay before the nights post. Counting posted lines only would warn on every advance. Move credit moves real money, so it covers posted charges only.
+- **When it shows:** the typed amount is above `owes` and the purpose is not Security deposit (a deposit is meant to stay as credit). The comparison is display only.
+- **It never blocks.** An agent may pay ahead on purpose.
+- The second line shows only when `othersCount` is above 0.
+- Unit folios warn too: overpaying a unit also leaves credit.
 
 ### Purposes by stage
 

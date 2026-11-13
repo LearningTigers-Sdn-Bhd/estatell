@@ -41,6 +41,7 @@ export function ReservationActions({
     canManage,
     reservation,
     billingModes,
+    collectedTaxesPayers,
     addUnitOptions,
     canViewCompany,
     canCheckIn,
@@ -65,6 +66,7 @@ export function ReservationActions({
     canManage: boolean;
     reservation: App.Data.Reservations.ReservationData;
     billingModes: EnumOption[];
+    collectedTaxesPayers: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     canViewCompany: boolean;
     canCheckIn: boolean;
@@ -93,6 +95,10 @@ export function ReservationActions({
     const [cancelling, setCancelling] = useState(false);
     const [settingBoats, setSettingBoats] = useState(false);
     const [waivingTax, setWaivingTax] = useState(false);
+    // The rooms ticked in Check in all when its Paid elsewhere… opened the waiver, so saving goes back to it.
+    const [waiveFromCheckIn, setWaiveFromCheckIn] = useState<number[] | null>(
+        null,
+    );
     const [unitAction, setUnitAction] = useState<App.Enums.UnitAction | null>(
         null,
     );
@@ -276,10 +282,26 @@ export function ReservationActions({
             {canWaiveTax && (
                 <WaiveGroupTaxDialog
                     open={waivingTax}
-                    onOpenChange={setWaivingTax}
+                    onOpenChange={(open) => {
+                        setWaivingTax(open);
+
+                        if (!open) {
+                            setWaiveFromCheckIn(null);
+                        }
+                    }}
                     reservationId={reservation.id}
                     units={units}
                     options={taxWaiverOptions}
+                    unitIds={waiveFromCheckIn ?? undefined}
+                    onSaved={
+                        waiveFromCheckIn !== null
+                            ? () => {
+                                  setWaivingTax(false);
+                                  setWaiveFromCheckIn(null);
+                                  setCheckingInAll(true);
+                              }
+                            : undefined
+                    }
                 />
             )}
             {singleUnit !== null && singleUnitItems.length > 0 && (
@@ -301,7 +323,17 @@ export function ReservationActions({
                     open={checkingInAll}
                     onOpenChange={setCheckingInAll}
                     reservation={reservation}
+                    paymentOptions={paymentOptions}
                     currency={currency}
+                    onWaiveTax={
+                        canWaiveTax
+                            ? (unitIds) => {
+                                  setCheckingInAll(false);
+                                  setWaiveFromCheckIn(unitIds);
+                                  setWaivingTax(true);
+                              }
+                            : undefined
+                    }
                 />
             )}
             {canCancelReservation && (
@@ -319,6 +351,7 @@ export function ReservationActions({
                     onOpenChange={setEditingGroup}
                     reservation={reservation}
                     billingModes={billingModes}
+                    collectedTaxesPayers={collectedTaxesPayers}
                 />
             )}
             {canManage && hasBoats && (

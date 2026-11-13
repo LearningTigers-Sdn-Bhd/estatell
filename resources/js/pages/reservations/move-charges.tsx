@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { FormActions } from '@/components/pms/form-actions';
 import { FormError } from '@/components/pms/form-error';
 import {
+    canMoveTo,
     MoveChargesFrom,
+    type QuickSelect,
     type ScheduleChoices,
 } from '@/components/pms/folio/move-charges-from';
 import { moveButtonLabel } from '@/components/pms/folio/move-charges-format';
@@ -37,12 +39,16 @@ export default function MoveCharges({ move: page }: Props) {
 
     const target = page.folios.find((folio) => folio.id === targetId);
     const sources = page.folios.filter((folio) => folio.id !== targetId);
-    // After a refusal the page reloads its folios, so a charge that moved or was reversed meanwhile drops out here.
+    // After a refusal the page reloads its folios, so a charge that moved or was reversed meanwhile drops out here. A
+    // collected tax counts only while the target is its room charge's folio.
     const ticked = useMemo(
         () =>
             tickedIds.filter((id) =>
                 sources.some((folio) =>
-                    folio.charges.some((charge) => charge.lineId === id),
+                    folio.charges.some(
+                        (charge) =>
+                            charge.lineId === id && canMoveTo(charge, targetId),
+                    ),
                 ),
             ),
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,11 +90,20 @@ export default function MoveCharges({ move: page }: Props) {
         const nextFolio = page.folios.find((folio) => folio.id === next);
 
         setTargetId(next);
-        // The old target's charges are back on the From side; the new target's own charges cannot be ticked.
+        // The old target's charges are back on the From side; the new target's own charges cannot be ticked, nor a
+        // collected tax whose room charge is elsewhere.
         setTicked((current) =>
             current.filter(
                 (id) =>
-                    !nextFolio?.charges.some((charge) => charge.lineId === id),
+                    !nextFolio?.charges.some(
+                        (charge) => charge.lineId === id,
+                    ) &&
+                    page.folios.some((folio) =>
+                        folio.charges.some(
+                            (charge) =>
+                                charge.lineId === id && canMoveTo(charge, next),
+                        ),
+                    ),
             ),
         );
         setChoices({});
@@ -103,7 +118,7 @@ export default function MoveCharges({ move: page }: Props) {
                 : current.filter((id) => id !== lineId),
         );
 
-    const quickSelect = (mode: 'room' | 'all' | 'clear') => {
+    const quickSelect = (mode: QuickSelect) => {
         if (mode === 'clear') {
             setTicked([]);
 
@@ -112,7 +127,14 @@ export default function MoveCharges({ move: page }: Props) {
 
         const ids = sources.flatMap((folio) =>
             folio.charges
-                .filter((charge) => mode === 'all' || charge.isRoom)
+                .filter(
+                    (charge) =>
+                        canMoveTo(charge, targetId) &&
+                        (mode === 'all' ||
+                            (mode === 'room' && charge.isRoom) ||
+                            (mode === 'taxes' &&
+                                charge.onlyToFolioId !== null)),
+                )
                 .map((charge) => charge.lineId),
         );
 
@@ -204,6 +226,7 @@ export default function MoveCharges({ move: page }: Props) {
                     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                         <MoveChargesFrom
                             sources={sources}
+                            targetId={targetId}
                             ticked={ticked}
                             onToggle={toggle}
                             onQuickSelect={quickSelect}

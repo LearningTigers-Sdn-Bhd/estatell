@@ -74,6 +74,15 @@ test('a guest receipt waiver keeps no payer', function () {
         ->toBe(['reason' => TaxWaiverReason::GuestReceipt, 'paid_to' => null, 'reference' => 'TTX-88231']);
 });
 
+test('a foreign-only tax cannot be waived for a guest of the property\'s own country', function () {
+    $setup = wtSetup();
+    $setup['tourism']->update(['foreign_guests_only' => true]);
+    $setup['reservation']->booker->update(['nationality_code' => strtoupper((string) $setup['property']->country_code)]);
+
+    expect(wtWaive($setup)->refusal)->toBe('tax_not_applicable')
+        ->and(ReservationUnitTaxWaiver::query()->count())->toBe(0);
+});
+
 test('a tax already waived refuses the request and writes nothing', function () {
     $setup = wtSetup();
     wtWaive($setup);

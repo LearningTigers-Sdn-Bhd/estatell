@@ -60,7 +60,7 @@ class GuestListController extends Controller
             'tab' => $tab,
             'tabs' => $this->tabs($property, $filters->from, $filters->to, $counts->forDates($property, $filters->from, $filters->to, $filters->from)),
             'rows' => $rowClass::collect($rows->withQueryString(), PaginatedDataCollection::class),
-            'totals' => $key === ReportKey::InHouse ? $key->totals($allRows) : null,
+            'totals' => $key->totals($allRows),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

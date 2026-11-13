@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Reservations\UpdateReservationGroup;
 use App\Enums\BillingMode;
+use App\Enums\CollectedTaxesPayer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\UpdateReservationGroupRequest;
 use App\Models\Property;
@@ -17,11 +18,11 @@ use Inertia\Inertia;
 class ReservationGroupController extends Controller
 {
     /**
-     * Change the group name and billing mode. It works on closed reservations too. A billing mode change that the Master folio's payments forbid goes back to the Dialog as an error on `billing_mode`. A change that leaves room lines or an advance on a unit's own folio saves with a warning toast.
+     * Change the group name, the billing mode and who pays the taxes collected at check-in. It works on closed reservations too. A billing mode change that the Master folio's payments forbid goes back to the Dialog as an error on `billing_mode`. A change that leaves room lines or an advance on a unit's own folio saves with a warning toast.
      */
     public function update(UpdateReservationGroupRequest $request, Property $property, Reservation $reservation, UpdateReservationGroup $updateReservationGroup, ReservationRefusals $refusals, MasterPaymentsHeld $masterPaymentsHeld, RoutingChangeNotice $notice): RedirectResponse
     {
-        $result = $updateReservationGroup($request->user(), $reservation, $request->validated('group_name'), $request->enum('billing_mode', BillingMode::class));
+        $result = $updateReservationGroup($request->user(), $reservation, $request->validated('group_name'), $request->enum('billing_mode', BillingMode::class), $request->enum('collected_taxes_payer', CollectedTaxesPayer::class));
 
         if ($result->isRefused()) {
             return back(fallback: route('reservations.show', ['property' => $property, 'reservation' => $reservation]))

@@ -36,6 +36,7 @@ use App\Models\RoomType;
 use App\Models\UnitAddOn;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
+use App\Services\Reservations\AddOnLabel;
 use Database\Factories\BookingSourceFactory;
 use Illuminate\Support\Collection;
 use Illuminate\Testing\TestResponse;
@@ -425,4 +426,28 @@ test('a room that already has the fare item as its own add-on is not charged aga
 
     expect(UnitAddOn::query()->where('reservation_unit_id', $setup['unit']->id)->count())->toBe(1)
         ->and(BoatTripAddOn::query()->count())->toBe(0);
+});
+
+test('a boat fare names its direction on the folio, after the age group, and a plain add-on keeps its name', function () {
+    $setup = fareTripSetup();
+    fareSetTrip($setup, $setup['unit'], BoatDirection::In, BoatMode::Scheduled, $setup['in']->id);
+    fareSetTrip($setup, $setup['unit'], BoatDirection::Out, BoatMode::Scheduled, $setup['out']->id);
+    $towel = fareMakeItem($setup['property'], 'Extra towel', '5.00');
+    UnitAddOn::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'charge_item_id' => $towel->id, 'quantity' => 1, 'unit_amount' => '5.00', 'service_date' => null]);
+    $names = UnitAddOn::query()
+        ->where('reservation_unit_id', $setup['unit']->id)
+        ->with(['chargeItem', 'ageGroup', 'boatTripLinks.unitBoatTrip'])
+        ->get()
+        ->map(fn (UnitAddOn $addOn): string => AddOnLabel::for($addOn).($addOn->quantity > 1 ? ' ×'.$addOn->quantity : ''))
+        ->sort()
+        ->values()
+        ->all();
+
+    expect($names)->toBe([
+        'Extra towel',
+        'Speedboat · Boat in ×2',
+        'Speedboat · Boat out ×2',
+        'Speedboat · Child 4–11 · Boat in',
+        'Speedboat · Child 4–11 · Boat out',
+    ]);
 });

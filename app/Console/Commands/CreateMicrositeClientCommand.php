@@ -23,7 +23,7 @@ class CreateMicrositeClientCommand extends Command
                 return self::FAILURE;
             }
         } else {
-            $token = $createClient((string) $this->option('name'));
+            $token = $createClient($this->input()->string('name')->toString());
 
             if ($token === null) {
                 $this->error('An active microsite client already exists. Use --replace to give it a new token.');

@@ -49,7 +49,7 @@ class RecordPayment
      * (a deposit before check-in), and a unit that has one posts to it. The unit row (when given) and the folio row are
      * locked first, and every check runs before the first write, so a refusal writes and logs nothing. A SecurityDeposit
      * on a Master or ThirdParty folio is refused (`deposit_on_unit_only`), and so is an Advance on a unit whose Room
-     * charges go to the Master folio (`advance_on_master`). The last step closes the folio when it is an Open Unit folio of a
+     * charges go to the Master folio (`advance_on_master`), unless it pays the guest's taxes or the unit folio's own charges. The last step closes the folio when it is an Open Unit folio of a
      * CheckedOut unit at 0 (`CloseSettledUnitFolio`). An Old system payment (`folio.manual` and an open migration window) takes no receipt number and no surcharge, needs a
      * reference and a service date of any real day up to the business date, and prints as "Paid in old system · {reference}". A payment with
      * `issueReceipt` off (an OTA collected payment a channel booking posts) takes no receipt number either. A surcharge
@@ -99,7 +99,7 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_PURPOSE_NOT_OFFERED);
             }
 
-            if ($data->purpose === PaymentPurpose::Advance && ! $data->guestPaysTaxes && $this->roomsGoToMaster($reservation, $lockedUnit, $target)) {
+            if ($data->purpose === PaymentPurpose::Advance && ! $data->guestPaysTaxes && ! $data->paysUnitFolioCharges && $this->roomsGoToMaster($reservation, $lockedUnit, $target)) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }
 

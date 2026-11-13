@@ -4,6 +4,7 @@ namespace Database\Seeders\Concerns;
 
 use App\Actions\Folio\PostCharge;
 use App\Actions\FrontDesk\CheckInAllUnits;
+use App\Actions\FrontDesk\CheckInAndCollectResult;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Reservations\SyncReservationStatus;
@@ -38,7 +39,8 @@ trait SeedsThroughActions
     private function checkIn(User $owner, Reservation $reservation): Collection
     {
         $units = $reservation->units()->orderBy('id')->get();
-        $refusals = array_filter(app(CheckInAllUnits::class)($owner, $reservation, array_values(array_map(intval(...), $units->modelKeys()))));
+        $results = app(CheckInAllUnits::class)($owner, $reservation, array_values(array_map(intval(...), $units->modelKeys())));
+        $refusals = array_filter(array_map(fn (CheckInAndCollectResult $result): ?string => $result->stay->refusal ?? $result->paymentRefusal, $results));
 
         if ($refusals !== []) {
             throw new RuntimeException('Check-in was refused: '.implode(', ', $refusals).'.');

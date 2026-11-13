@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BillingMode;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\FolioStatus;
 use App\Enums\ReservationStatus;
 use Carbon\CarbonImmutable;
@@ -27,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $company_id The billed company.
  * @property string|null $group_name
  * @property BillingMode $billing_mode
+ * @property CollectedTaxesPayer|null $collected_taxes_payer Who pays the taxes collected at check-in on this booking. Null follows the company.
  * @property int $booking_source_id
  * @property string|null $external_reference
  * @property string|null $notes
@@ -40,7 +42,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
-    'booker_guest_id', 'company_id', 'group_name', 'billing_mode', 'external_reference', 'notes',
+    'booker_guest_id', 'company_id', 'group_name', 'billing_mode', 'collected_taxes_payer', 'external_reference', 'notes',
 ])]
 class Reservation extends Model
 {
@@ -55,6 +57,7 @@ class Reservation extends Model
         return [
             'status' => ReservationStatus::class,
             'billing_mode' => BillingMode::class,
+            'collected_taxes_payer' => CollectedTaxesPayer::class,
             'cancellation_requested_at' => 'datetime',
             'deposit_percent' => 'integer',
             'deposit_due_at' => 'datetime',

@@ -16,13 +16,13 @@ class RefundHeldPayment
 
     /**
      * Give money back from a payment the way its method allows. Every staff refund comes through here. An Online payment is
-     * asked of Curlec and posts when Curlec confirms, and any other goes through `RefundPayment` at once.
+     * asked of Curlec and posts when Curlec confirms, and any other goes through `RefundPayment` at once with its `$notes`.
      * See docs/29-booking-engine/05-cancel-and-refund.md#rules-for-online-payments.
      */
-    public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?int $methodId = null, ?string $reason = null): PaymentResult
+    public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?int $methodId = null, ?string $reason = null, ?string $notes = null): PaymentResult
     {
         if ($payment->paymentMethod->type !== PaymentMethodType::Online) {
-            return ($this->refundPayment)($actor, $payment, $amount, $reference, $idempotencyKey, methodId: $methodId, reason: $reason);
+            return ($this->refundPayment)($actor, $payment, $amount, $reference, $idempotencyKey, methodId: $methodId, reason: $reason, notes: $notes);
         }
 
         if ($methodId !== null && $methodId !== $payment->payment_method_id) {

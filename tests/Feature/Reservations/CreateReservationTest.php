@@ -7,6 +7,7 @@ use App\Data\Reservations\NewReservationData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\SystemTransactionCode;
 use App\Models\Bed;
 use App\Models\BookingSource;
@@ -174,6 +175,17 @@ test('a booking under the limit or with no company is never credit checked', fun
     expect(createReservation($setup, [roomLine($setup)], ['companyId' => $roomy->id, 'creditOverrideReason' => 'x'])->isRefused())->toBeFalse()
         ->and(createReservation($setup, [roomLine($setup, 2, ['adults' => 1])])->isRefused())->toBeFalse()
         ->and(Activity::query()->where('event', 'credit.overridden')->count())->toBe(0);
+});
+
+test('it keeps who pays the taxes at check-in only for a booking with a company', function () {
+    $setup = createSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+
+    $withCompany = createReservation($setup, [roomLine($setup)], ['companyId' => $company->id, 'collectedTaxesPayer' => 'guest'])->reservation;
+    $without = createReservation($setup, [roomLine($setup, 2, ['adults' => 1])], ['collectedTaxesPayer' => 'guest'])->reservation;
+
+    expect($withCompany->fresh()->collected_taxes_payer)->toBe(CollectedTaxesPayer::Guest)
+        ->and($without->fresh()->collected_taxes_payer)->toBeNull();
 });
 
 test('it creates a single room reservation', function () {

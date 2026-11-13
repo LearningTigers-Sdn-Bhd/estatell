@@ -14,10 +14,11 @@ class CompanyOptionData extends Data
         public int $id,
         public string $name,
         public ?string $marketLabel = null,
+        public bool $paysCollectedTaxes = false,
     ) {}
 
     public static function fromModel(Company $company): self
     {
-        return new self($company->id, $company->name, $company->market?->label());
+        return new self($company->id, $company->name, $company->market?->label(), $company->pays_collected_taxes);
     }
 }

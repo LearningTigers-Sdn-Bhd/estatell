@@ -166,6 +166,7 @@ describe('the booking payload', () => {
         company_id: '',
         credit_override_reason: '',
         billing_mode: 'master_pays',
+        collected_taxes_payer: '',
         notes: '',
         guests: [],
         lines: [emptyLine()],

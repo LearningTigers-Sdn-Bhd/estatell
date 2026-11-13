@@ -40,6 +40,7 @@ class PaymentRow extends Data implements ReportRow
         public ?string $notes = null,
         public ?string $folio = null,
         public ?string $invoice = null,
+        public ?string $refund_reason = null,
     ) {}
 
     /**
@@ -101,11 +102,12 @@ class PaymentRow extends Data implements ReportRow
     }
 
     /**
-     * The Reference / notes (`remarks`) column: the reference, then the notes, joined by a middle dot.
+     * The Reference / notes (`remarks`) column: the reference, the reason of a refund to another method, then the
+     * notes, joined by a middle dot.
      */
     public function referenceAndNotes(): string
     {
-        return implode(' · ', array_filter([$this->reference, $this->notes], fn (?string $part): bool => filled($part)));
+        return implode(' · ', array_filter([$this->reference, $this->refund_reason, $this->notes], fn (?string $part): bool => filled($part)));
     }
 
     /**
@@ -134,6 +136,7 @@ class PaymentRow extends Data implements ReportRow
             notes: $payment->notes,
             folio: $folio->number,
             invoice: $folio->invoice_number,
+            refund_reason: $payment->refund_reason,
         );
     }
 
