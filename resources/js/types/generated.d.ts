@@ -1155,6 +1155,14 @@ parkingEvCharging: boolean,
 parkingBookingRequired: boolean,
 transportNotes: string | null,
 };
+export type ConciergeIdentityPrefillData = {
+fullName: string | null,
+nationalityCode: string | null,
+hasDateOfBirth: boolean,
+gender: string | null,
+documentKind: string | null,
+documentNumberHint: string | null,
+};
 export type ConciergeOfferData = {
 roomTypeId: number,
 name: string,
@@ -1229,6 +1237,7 @@ canRequestRefund: boolean,
 checkOutAsked: boolean,
 refundRequest: App.Data.Concierge.ConciergeRequestData | null,
 locationRequired: boolean,
+identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
 };
 export type ConciergeTermsData = {
 version: number,

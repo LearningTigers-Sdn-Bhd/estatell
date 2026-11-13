@@ -3,6 +3,7 @@
 namespace App\Services\Concierge;
 
 use App\Actions\Concierge\RequestConciergeCheckOut;
+use App\Data\Concierge\ConciergeIdentityPrefillData;
 use App\Data\Concierge\ConciergePinData;
 use App\Data\Concierge\ConciergeRequestData;
 use App\Data\Concierge\ConciergeStayData;
@@ -12,6 +13,7 @@ use App\Enums\ConciergeStep;
 use App\Enums\GuestRequestStatus;
 use App\Enums\GuestRequestType;
 use App\Enums\Locale;
+use App\Models\Guest;
 use App\Models\GuestRequest;
 use App\Models\ReservationUnit;
 use App\Services\FrontDesk\SelfCheckInPayment;
@@ -72,6 +74,24 @@ class ConciergePageBuilder
             checkOutAsked: in_array($step, [ConciergeStep::Key, ConciergeStep::Home], true) && $this->checkOut->open($stay) !== null,
             refundRequest: $step === ConciergeStep::CheckedOut ? $this->refundRequest($stay) : null,
             locationRequired: $stay->property->settings->concierge_location_check_enabled && filled($stay->property->latitude) && filled($stay->property->longitude),
+            identity: $step === ConciergeStep::Identity && $guest !== null ? $this->identity($guest) : null,
+        );
+    }
+
+    /**
+     * The guest's saved details and their latest identity document, so the ID step starts filled.
+     */
+    private function identity(Guest $guest): ConciergeIdentityPrefillData
+    {
+        $document = $guest->documents()->latest('id')->first();
+
+        return new ConciergeIdentityPrefillData(
+            fullName: $guest->full_name,
+            nationalityCode: $guest->nationality_code,
+            hasDateOfBirth: $guest->date_of_birth !== null,
+            gender: $guest->gender?->value,
+            documentKind: $document?->type->value,
+            documentNumberHint: $document === null ? null : '•••••'.substr($document->number, -3),
         );
     }
 

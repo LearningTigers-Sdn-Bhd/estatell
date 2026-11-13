@@ -92,14 +92,18 @@ export default function ConciergeContact({
     ].filter(Boolean) as typeof rows;
 
     return (
-        <GuestFrame back={back} title="Contact us">
+        <GuestFrame
+            back={back}
+            title="Contact us"
+            description="Call, send a message, or find your way to the property."
+        >
             {contacts.deskOpen !== null && (
-                <div className="flex items-start gap-3 rounded-lg border p-4">
+                <div className="flex h-full items-start gap-3 rounded-xl border border-foreground/10 bg-card p-4 text-card-foreground">
                     <Clock
                         className="mt-0.5 size-5 shrink-0 text-muted-foreground"
                         aria-hidden
                     />
-                    <span className="flex flex-col gap-0.5">
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="font-medium">
                             {contacts.deskOpen
                                 ? 'The front desk is open'
@@ -123,7 +127,7 @@ export default function ConciergeContact({
                     The property has not listed its contact details yet.
                 </p>
             )}
-            <ul className="flex flex-col gap-3">
+            <ul className="grid gap-3 sm:grid-cols-2">
                 {rows.map(({ icon: Icon, label, value, href }) => {
                     const body = (
                         <>
@@ -131,7 +135,7 @@ export default function ConciergeContact({
                                 className="mt-0.5 size-5 shrink-0 text-muted-foreground"
                                 aria-hidden
                             />
-                            <span className="flex flex-col gap-0.5">
+                            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                                 <span className="text-sm text-muted-foreground">
                                     {label}
                                 </span>
@@ -153,12 +157,12 @@ export default function ConciergeContact({
                                             : undefined
                                     }
                                     rel="noopener noreferrer"
-                                    className="flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted"
+                                    className="flex h-full items-start gap-3 rounded-xl border border-foreground/10 bg-card p-4 text-card-foreground transition-colors hover:bg-muted"
                                 >
                                     {body}
                                 </a>
                             ) : (
-                                <div className="flex items-start gap-3 rounded-lg border p-4">
+                                <div className="flex h-full items-start gap-3 rounded-xl border border-foreground/10 bg-card p-4 text-card-foreground">
                                     {body}
                                 </div>
                             )}
@@ -174,18 +178,18 @@ export default function ConciergeContact({
                             {contacts.emergencyInstructions}
                         </p>
                     )}
-                    <ul className="flex flex-col gap-3">
+                    <ul className="grid gap-3 sm:grid-cols-2">
                         {emergency.map(({ icon: Icon, label, value, href }) => (
                             <li key={label}>
                                 <a
                                     href={href ?? undefined}
-                                    className="flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted"
+                                    className="flex h-full items-start gap-3 rounded-xl border border-foreground/10 bg-card p-4 text-card-foreground transition-colors hover:bg-muted"
                                 >
                                     <Icon
                                         className="mt-0.5 size-5 shrink-0 text-muted-foreground"
                                         aria-hidden
                                     />
-                                    <span className="flex flex-col gap-0.5">
+                                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                                         <span className="text-sm text-muted-foreground">
                                             {label}
                                         </span>

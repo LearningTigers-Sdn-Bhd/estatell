@@ -51,7 +51,7 @@ export function CheckedOutStep({
     stay: App.Data.Concierge.ConciergeStayData;
 }) {
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex max-w-2xl flex-col gap-6">
             <div className="flex flex-col gap-2 rounded-lg border p-4">
                 <h2 className="text-lg font-semibold">You have checked out</h2>
                 <p className="text-sm text-pretty text-muted-foreground">
@@ -112,7 +112,7 @@ export function CheckedOutStep({
                                 <Button
                                     type="submit"
                                     size="lg"
-                                    className="h-12 w-full rounded-full"
+                                    className="h-12 w-full rounded-lg"
                                     disabled={processing}
                                     focusableWhenDisabled
                                 >

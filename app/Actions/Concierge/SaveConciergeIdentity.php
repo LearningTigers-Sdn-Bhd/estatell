@@ -71,6 +71,17 @@ class SaveConciergeIdentity
 
     private function saveDocument(Guest $guest, IdentityDocumentInputData $input, ?UploadedFile $front, ?UploadedFile $back): bool
     {
+        // A blank number means "keep the saved one": the page never receives the real number, so it cannot send it back.
+        if ($input->number === '') {
+            $saved = GuestIdentityDocument::query()->where('guest_id', $guest->id)->where('type', $input->type)->latest('id')->first();
+
+            if ($saved === null) {
+                return false;
+            }
+
+            $input = new IdentityDocumentInputData($input->type, $saved->number, $input->issuingCountryCode, $input->expiresOn);
+        }
+
         $existing = GuestIdentityDocument::query()
             ->where('guest_id', $guest->id)
             ->where('type', $input->type)

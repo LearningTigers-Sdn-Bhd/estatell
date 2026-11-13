@@ -72,7 +72,7 @@ export function CardStep({
             <Button
                 type="submit"
                 size="lg"
-                className="h-12 w-full rounded-full"
+                className="h-12 w-full rounded-lg"
                 disabled={
                     form.processing || !agreed || form.data.signature_png === ''
                 }

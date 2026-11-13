@@ -73,7 +73,7 @@ class StartStayPayment
         } catch (CurlecRequestFailed $failed) {
             report($failed);
 
-            return StayPaymentResult::refused(StayPaymentResult::REFUSAL_UNAVAILABLE, __('Online payment is not available at the moment. Try again in a few minutes, or pay at the front desk.'));
+            return StayPaymentResult::refused(StayPaymentResult::REFUSAL_UNAVAILABLE, __('Please try again later, or visit the front desk to pay.'));
         }
 
         return StayPaymentResult::started(GatewayPayment::query()->create([

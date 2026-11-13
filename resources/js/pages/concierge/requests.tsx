@@ -68,7 +68,7 @@ export default function ConciergeRequests({
                         <Button
                             type="submit"
                             size="lg"
-                            className="h-12 w-full rounded-full"
+                            className="h-12 w-full rounded-lg"
                             disabled={processing}
                             focusableWhenDisabled
                         >

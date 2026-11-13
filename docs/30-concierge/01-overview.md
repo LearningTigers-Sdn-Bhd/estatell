@@ -8,6 +8,12 @@ The kiosk is a separate product that needs hardware. The page shares the check-i
 
 **Status: built.** The lobby hub, the property guide, contact, nearby places, self check-in, the in-stay pages, the bill with check-out, documents and refund requests are built. The e-invoice request comes later. See [Not built](#not-built) and [Compared with wastays](#compared-with-wastays).
 
+## Guest design
+
+Guest concierge pages retain the locked editorial identity: warm paper, olive primary actions and fine borders. The landing page keeps its editorial typography. Inner pages use standard Estatell controls, rounded buttons, cards, badges and content typography. The landing page keeps its full-screen composition, angled coastal artwork, desktop separators and mobile check-in action below the image. Other pages share `GuestFrame`, with property identity, a back link, the standard Estatell `PageHeader` and responsive content. The property guide uses `TabLinks` for its route-based chapters. Arrival times and location appear first; travel and parking facts, policies, facility details, FAQs and Wi-Fi are grouped into readable sections. The plain guest navbar stays hidden on concierge routes.
+
+The theme is scoped to concierge pages, including portalled form controls. Staff screens and the separate registration-card pages keep their existing design. Forms, validation, payments, signatures and room-key visibility rules do not change.
+
 ## Decisions
 
 | Area            | Decision                                                                                                                                                                                                    |
@@ -113,7 +119,7 @@ When a stay checks in, by the page, the front desk or the kiosk, `SendConciergeS
 
 ## Returning guest
 
-When a guest opens their stay page, the phone remembers the stay link (`localStorage`, one entry per property, never sent to the server). The lobby then shows **Continue your stay** at the top for 8 days. If the browser blocks storage, the guest types the booking code again.
+When a guest opens their stay page, the phone remembers the stay link (`localStorage`, one entry per property, never sent to the server). The lobby then shows **Continue your stay** at the top for 8 days. A stay that ends at the front desk (the desk step, or an expired hold) clears the entry, so the tile does not lead to a dead end. If the browser blocks storage, the guest types the booking code again.
 
 ## Property guide and contact
 

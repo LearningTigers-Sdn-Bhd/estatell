@@ -74,7 +74,7 @@
     --secondary: oklch(0.967 0.001 286.375);
     --secondary-foreground: oklch(0.21 0.006 285.885);
     --muted: oklch(0.966 0.005 106.5);
-    --muted-foreground: oklch(0.58 0.031 107.3);
+    --muted-foreground: oklch(0.56 0.031 107.3);
     --accent: oklch(0.508 0.118 165.612);
     --accent-foreground: oklch(0.979 0.021 166.113);
     --auth-accent: oklch(0.696 0.17 162.48 / 3%);
@@ -423,4 +423,192 @@
         calc(100% - 0.75rem) 100%,
         0 100%
     );
+}
+
+/* The guest's editorial identity stays independent of the staff app theme. */
+.concierge-editorial,
+:root:has(.concierge-editorial-shell) {
+    --background: oklch(0.966 0.023 82);
+    --foreground: oklch(0.26 0.035 105);
+    --muted: oklch(0.9 0.014 82);
+    --muted-foreground: oklch(0.44 0.025 105);
+    --concierge-placeholder: oklch(0.55 0.015 105);
+    --border: oklch(0.66 0.035 92);
+    --primary: oklch(0.36 0.065 108);
+    --primary-foreground: oklch(0.98 0.015 82);
+    --card: oklch(0.988 0.01 82);
+    --card-foreground: var(--foreground);
+    --popover: var(--background);
+    --popover-foreground: var(--foreground);
+    --secondary: var(--muted);
+    --secondary-foreground: var(--foreground);
+    --accent: var(--muted);
+    --accent-foreground: var(--foreground);
+    --input: var(--border);
+    --ring: var(--primary);
+    --destructive: oklch(0.53 0.19 25);
+    --success: oklch(0.48 0.12 132);
+    --warning: oklch(0.48 0.12 58);
+    --info: oklch(0.48 0.17 255);
+}
+
+.concierge-editorial-serif,
+.concierge-editorial-title {
+    font-family: Georgia, 'Times New Roman', serif;
+}
+
+.concierge-editorial-title {
+    font-size: clamp(2.75rem, min(7vw, 12svh), 9rem);
+    font-weight: 400;
+    line-height: 0.96;
+    letter-spacing: -0.055em;
+    overflow-wrap: anywhere;
+}
+
+.concierge-editorial-layout {
+    display: flex;
+    min-height: 100%;
+    width: 100%;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(1.25rem, 4vw, 5rem);
+}
+
+.concierge-editorial-image {
+    min-height: clamp(9rem, 24svh, 18rem);
+}
+
+@media (min-width: 64rem) {
+    .concierge-editorial-image {
+        min-height: 20rem;
+        clip-path: polygon(12% 0, 100% 0, 100% 100%, 0 100%);
+    }
+}
+
+.concierge-page {
+    display: flex;
+    width: 100%;
+    max-width: 76rem;
+    min-height: 100%;
+    margin-inline: auto;
+    flex-direction: column;
+    gap: clamp(1.5rem, 3vw, 3rem);
+    padding: clamp(1.25rem, 4vw, 4rem);
+}
+
+.concierge-page-content {
+    width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.concierge-page-content > form {
+    width: 100%;
+    max-width: 42rem;
+}
+
+/* The guest guide needs an unmistakable selected chapter, including on phones. */
+.concierge-guide-tabs [data-slot='tabs-list'] {
+    display: grid;
+    width: 100%;
+    height: auto;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(4rem, 1fr);
+    gap: 0.25rem;
+    padding: 0.375rem;
+    border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+    border-radius: 0.875rem;
+    background: var(--card);
+}
+
+.concierge-guide-tabs [data-slot='tabs-trigger'] {
+    min-width: 0;
+    min-height: 4rem;
+    flex-direction: column;
+    gap: 0.375rem;
+    border: 0;
+    border-radius: 0.625rem;
+    padding: 0.5rem 0.25rem;
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.concierge-guide-tabs [data-slot='tabs-trigger']::after {
+    display: none;
+}
+
+.concierge-guide-tabs [data-slot='tabs-trigger']:hover {
+    background: var(--muted);
+}
+
+.concierge-guide-tabs [data-slot='tabs-trigger'][data-active] {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: none;
+}
+
+.concierge-facility-tag {
+    min-height: 2.5rem;
+    height: auto;
+    gap: 0.5rem;
+    border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+    border-radius: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--card);
+    color: var(--foreground);
+    line-height: 1.5;
+    white-space: normal;
+}
+
+.concierge-facility-tag > svg {
+    color: var(--primary);
+}
+
+@media (min-width: 40rem) {
+    .concierge-guide-tabs [data-slot='tabs-list'] {
+        display: flex;
+        width: fit-content;
+    }
+
+    .concierge-guide-tabs [data-slot='tabs-trigger'] {
+        min-width: 7rem;
+        min-height: 2.75rem;
+        flex-direction: row;
+        gap: 0.5rem;
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+    }
+}
+
+.concierge-centered-content {
+    justify-content: center;
+}
+
+@media (max-height: 40rem) {
+    .concierge-centered-content {
+        justify-content: flex-start;
+    }
+}
+
+.concierge-page-content > .concierge-identity-form {
+    max-width: none;
+}
+
+.concierge-identity-form {
+    color-scheme: light;
+}
+
+.concierge-identity-form
+    :is([data-slot='input'], [data-slot='select-trigger']) {
+    background-color: var(--card);
+}
+
+:root:has(.concierge-editorial-shell) :is(input, textarea)::placeholder {
+    color: var(--concierge-placeholder);
+    opacity: 1;
+}
+
+:root:has(.concierge-editorial-shell)
+    [data-slot='select-trigger'][data-placeholder] {
+    color: var(--concierge-placeholder);
 }

@@ -83,7 +83,7 @@ export default function ConciergeBill({
             {bill.canCheckOut && (
                 <Button
                     size="lg"
-                    className="h-12 w-full rounded-full"
+                    className="h-12 w-full rounded-lg"
                     disabled={busy}
                     focusableWhenDisabled
                     onClick={() =>
@@ -140,7 +140,7 @@ export default function ConciergeBill({
                                     type="submit"
                                     size="lg"
                                     variant="outline"
-                                    className="h-12 w-full rounded-full"
+                                    className="h-12 w-full rounded-lg"
                                     disabled={processing}
                                     focusableWhenDisabled
                                 >

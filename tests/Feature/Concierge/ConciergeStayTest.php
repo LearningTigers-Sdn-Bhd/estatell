@@ -46,6 +46,21 @@ it('starts at the ID and sends only the first name', function () {
         ->where('stay.property.name', 'Palm Resort'));
 });
 
+it('fills the ID step with what is already saved for the guest, and only on that step', function () {
+    ['token' => $token, 'guest' => $guest] = conciergeSetup();
+    $guest->forceFill(['nationality_code' => 'MY'])->save();
+
+    conciergeStep($token, 'identity')->assertInertia(fn (Assert $page) => $page
+        ->where('stay.identity.fullName', $guest->full_name)
+        ->where('stay.identity.nationalityCode', 'MY')
+        ->where('stay.identity.documentNumberHint', null)
+        ->where('stay.identity.hasDateOfBirth', false));
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['number' => 'A1234567']));
+
+    $this->get("/c/{$token}")->assertInertia(fn (Assert $page) => $page->where('stay.identity', null));
+});
+
 it('saves the typed ID, fills the guest and moves to check-in', function () {
     ['token' => $token, 'guest' => $guest] = conciergeSetup();
 
@@ -247,4 +262,22 @@ it('works only on the stay of its own link', function () {
     expect($other['guest']->documents()->count())->toBe(0)
         ->and(BookingPreCheckInToken::query()->where('reservation_unit_id', $other['unit']->id)->count())->toBe(1);
     conciergeStep($otherToken, 'identity')->assertInertia(fn (Assert $page) => $page->where('stay.guestFirstName', 'Ben'));
+});
+
+it('never sends the saved ID number or birth date to the page, and keeps them when the form leaves the number blank', function () {
+    ['token' => $token, 'guest' => $guest] = conciergeSetup();
+    $guest->forceFill(['date_of_birth' => '1990-05-01', 'nationality_code' => null])->save();
+    $this->mock(RegistrationCardFieldRules::class, fn ($mock) => $mock->shouldReceive('nationalityIsNeededForTax')->andReturn(true));
+    GuestIdentityDocument::factory()->passport()->create(['guest_id' => $guest->id, 'number' => 'A1234567']);
+
+    conciergeStep($token, 'identity')->assertInertia(fn (Assert $page) => $page
+        ->where('stay.identity.documentNumberHint', '•••••567')
+        ->where('stay.identity.hasDateOfBirth', true)
+        ->missing('stay.identity.documentNumber')
+        ->missing('stay.identity.dateOfBirth'));
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['kind' => 'passport', 'number' => '', 'keep_saved_document' => '1']))->assertRedirect("/c/{$token}");
+
+    expect($guest->documents()->count())->toBe(1)
+        ->and($guest->fresh()->date_of_birth->toDateString())->toBe('1990-05-01');
 });

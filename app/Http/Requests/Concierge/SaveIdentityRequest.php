@@ -5,6 +5,7 @@ namespace App\Http\Requests\Concierge;
 use App\Http\Requests\Kiosk\StoreStayIdentityRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -20,6 +21,9 @@ class SaveIdentityRequest extends StoreStayIdentityRequest
     {
         return [
             ...parent::rules(),
+            // Blank is allowed with `keep_saved_document`: the action then keeps the guest's saved document of that kind.
+            'number' => ['required_without:keep_saved_document', 'nullable', 'string', 'min:4', 'max:40', Rule::when($this->input('kind') === 'my_kad', ['digits:12'])],
+            'keep_saved_document' => ['nullable', 'boolean'],
             'scan' => ['nullable', 'image', 'max:8192'],
             'scan_back' => ['nullable', 'image', 'max:8192'],
         ];

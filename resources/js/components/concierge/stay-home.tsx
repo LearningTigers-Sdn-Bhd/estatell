@@ -3,6 +3,7 @@ import {
     BookOpen,
     SprayCan,
     ChevronDown,
+    ChevronRight,
     CircleAlert,
     CircleCheck,
     ConciergeBell,
@@ -27,7 +28,7 @@ import {
 type Stay = App.Data.Concierge.ConciergeStayData;
 
 const tileClass =
-    'flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted';
+    'group flex min-w-0 items-center gap-3 border-b border-border/30 px-2 py-5 transition-colors hover:bg-muted/50 focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 function Tile({
     title,
@@ -45,15 +46,21 @@ function Tile({
 }) {
     const content = (
         <>
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-primary">
                 <Icon className="size-5" aria-hidden />
             </span>
-            <span className="flex flex-col gap-0.5">
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="font-medium">{title}</span>
                 <span className="text-sm text-pretty text-muted-foreground">
                     {body}
                 </span>
             </span>
+            {href && !done && (
+                <ChevronRight
+                    className="size-4 shrink-0 text-muted-foreground"
+                    aria-hidden
+                />
+            )}
         </>
     );
 
@@ -74,9 +81,11 @@ function Section({
     children: React.ReactNode;
 }) {
     return (
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold">{title}</h2>
-            <div className="flex flex-col gap-3">{children}</div>
+            <div className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+                {children}
+            </div>
         </section>
     );
 }
@@ -86,16 +95,22 @@ export function StayHome({ stay }: { stay: Stay }) {
     const token = stay.token;
 
     return (
-        <div className="flex flex-col gap-6">
-            <dl className="grid grid-cols-3 gap-3 rounded-lg border p-4 text-sm">
+        <div className="flex flex-col gap-8 sm:gap-10">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-4">
                 <div className="flex flex-col gap-0.5">
                     <dt className="text-muted-foreground">Booking</dt>
                     <dd className="font-medium break-all">{stay.reference}</dd>
                 </div>
                 <div className="flex flex-col gap-0.5">
-                    <dt className="text-muted-foreground">Stay</dt>
-                    <dd className="font-medium">
-                        {stay.arrivalDate} to {stay.departureDate}
+                    <dt className="text-muted-foreground">Arrival</dt>
+                    <dd className="font-medium tabular-nums">
+                        {stay.arrivalDate}
+                    </dd>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                    <dt className="text-muted-foreground">Departure</dt>
+                    <dd className="font-medium tabular-nums">
+                        {stay.departureDate}
                     </dd>
                 </div>
                 <div className="flex flex-col gap-0.5">
@@ -173,14 +188,14 @@ export function StayHome({ stay }: { stay: Stay }) {
                 />
             </Section>
 
-            <details className="group rounded-lg border">
+            <details className="group rounded-xl border border-border/40">
                 <summary className="flex cursor-pointer items-center justify-between gap-3 p-4 font-medium">
                     <span className="flex items-center gap-3">
                         <ListChecks
                             className="size-5 text-muted-foreground"
                             aria-hidden
                         />
-                        More actions
+                        Requests, bill &amp; documents
                     </span>
                     <ChevronDown
                         className="size-4 transition-transform group-open:rotate-180"

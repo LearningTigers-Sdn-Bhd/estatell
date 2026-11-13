@@ -68,7 +68,7 @@ it('refuses to start a payment when nothing is due, when Curlec is down and when
     ['token' => $token, 'unit' => $unit, 'property' => $property, 'gateway' => $gateway, 'online' => $online] = conciergePaymentSetup();
 
     $gateway->failing = true;
-    $this->postJson("/c/{$token}/payment")->assertStatus(409)->assertJsonPath('message', fn ($message) => str_contains($message, 'not available'));
+    $this->postJson("/c/{$token}/payment")->assertStatus(409)->assertJsonPath('message', 'Please try again later, or visit the front desk to pay.');
     expect(GatewayPayment::query()->count())->toBe(0);
     $gateway->failing = false;
 
