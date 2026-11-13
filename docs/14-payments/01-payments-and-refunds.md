@@ -196,6 +196,22 @@ A separate `ReservationPaymentController` (the folio controller is already long)
 - The quote runs again when the method or the amount changes. The Dialog shows Surcharge, Tax on surcharge and **Total to collect**, and the submit button names the total ("Record RM 105.40").
 - The form sends a new UUID as the idempotency key each time the Dialog opens, so a double click records once.
 
+### Credit warning
+
+Record payment on a Master or third-party folio warns when part of the amount would stay as credit while other folios of the booking still owe. Example: an agent's transfer also covers the tourism tax, but the tax sits on each unit folio ([Collected taxes](../13-folio/03-routing.md#collected-taxes)).
+
+```
+⚠ Master owes MYR 2,371.20. The other MYR 50.00 stays here as credit.
+  5 other folios still owe MYR 50.00. Record their part on those folios,
+  or move the credit later with Move credit.
+```
+
+- **Data:** `FolioData::paymentCreditWarning` (`PaymentCreditWarningData`): `owes` (this folio's projected total, never below 0), `othersCount`, `othersTotal`, and `othersLabel` (the other folio's name when only one owes). Set for an Open Master or third-party folio that offers a payment purpose, when at least one other Open folio or "not started" entry owes. Built in `FolioStatement` from rows it already reads, so no extra query.
+- **Scheduled rows count**, unlike [Move credit](../13-folio/02-posting-charges.md#move-credit). Agents often pay before the nights post. Counting posted lines only would warn on every advance. Move credit moves real money, so it covers posted charges only.
+- **When it shows:** the typed amount is above `owes` and the purpose is not Security deposit (a deposit is meant to stay as credit). The comparison is display only.
+- **It never blocks.** An agent may pay ahead on purpose.
+- A unit folio never warns.
+
 ### Purposes by stage
 
 `PaymentPurposeChoices` (`app/Services/Payments/`) gives each folio its purposes, through `PaymentPurpose::forStage(FolioType, PaymentStage)`. The first one is the default. When there is one, the Dialog hides the Purpose field and sends it. When there is none, the folio has no Record payment button.

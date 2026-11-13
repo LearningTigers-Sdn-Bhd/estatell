@@ -190,6 +190,7 @@ A unit folio can hold taxes whose room charge sits on another folio: the taxes w
 - The Dialog lists `creditMove.targets`: every other Open folio with a balance above 0, ticked and filled with what it owes. The totals are display only. The button stays off when nothing is ticked, an amount is 0, an amount is above what its folio owes, or the total is above the credit.
 - A refusal shows in the Dialog. Success is a toast, "Credit of 20.00 moved."
 - The lines show as payment rows: "Credit moved to Unit F1" on the source and "Credit from Master" on the target, each with **Undo move** in its row menu.
+- To stop the credit before it happens, Record payment warns on a Master or third-party folio ([Credit warning](../14-payments/01-payments-and-refunds.md#credit-warning)).
 
 ## Actions
 

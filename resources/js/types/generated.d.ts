@@ -1658,6 +1658,7 @@ fix: string,
 eInvoiceRequired: boolean,
 collectedTaxNote: App.Data.Folio.CollectedTaxNoteData | null,
 creditMove: App.Data.Folio.CreditMoveData | null,
+paymentCreditWarning: App.Data.Folio.PaymentCreditWarningData | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -1952,6 +1953,12 @@ amount: string,
 status: App.Data.Shared.BadgeData,
 failureReason: string | null,
 canRetry: boolean,
+};
+export type PaymentCreditWarningData = {
+owes: string,
+othersCount: number,
+othersTotal: string,
+othersLabel: string | null,
 };
 export type PostFolioOptionData = {
 id: number | null,

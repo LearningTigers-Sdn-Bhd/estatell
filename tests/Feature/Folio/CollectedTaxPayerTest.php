@@ -310,3 +310,31 @@ test('a company that pays tourism tax leaves no note and no room charge rows on 
         ->where('folio.collectedTaxNote', null)
         ->where('folio.rows', fn ($rows): bool => collect($rows)->every(fn (array $row): bool => $row['onFolio'] === null));
 });
+
+test('Record payment on the master folio warns about the tax the guest still owes, scheduled rows included', function () {
+    $setup = collectedTaxSetup();
+
+    collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
+        ->where('folio.paymentCreditWarning.owes', '600.00')
+        ->where('folio.paymentCreditWarning.othersCount', 1)
+        ->where('folio.paymentCreditWarning.othersTotal', '20.00')
+        ->where('folio.paymentCreditWarning.othersLabel', fn (string $label): bool => str_starts_with($label, 'Unit '));
+});
+
+test('the credit warning follows the posted nights and never shows on a unit folio', function () {
+    $setup = collectedTaxSetup();
+    collectedTaxPostNight($setup);
+
+    collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
+        ->where('folio.paymentCreditWarning.owes', '600.00')
+        ->where('folio.paymentCreditWarning.othersTotal', '20.00');
+    collectedTaxFolioPage($setup, $setup['user'], collectedTaxUnitFolio($setup))
+        ->where('folio.paymentCreditWarning', null);
+});
+
+test('no credit warning when the company pays the tax and nothing else owes', function () {
+    $setup = collectedTaxSetup(companyPaysTax: true);
+
+    collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
+        ->where('folio.paymentCreditWarning', null);
+});
