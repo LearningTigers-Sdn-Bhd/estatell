@@ -113,6 +113,8 @@ type Props<TRow extends { key: number | string }> = {
     layoutLabel?: string;
     /** Content between the header and the filters, such as the Boats and crew panel of the Boat manifest. */
     aside?: ReactNode;
+    /** Screen headings that replace the layout label of a column, such as the open tab's name on a grouped column. */
+    columnLabels?: Record<string, string>;
 };
 
 const MAX_SELECTED = 500;
@@ -167,6 +169,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     embedded = false,
     layoutLabel,
     aside = null,
+    columnLabels,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -280,8 +283,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         // A money column shows plain amounts, so its header carries the currency.
                         header:
                             item.money && currency
-                                ? `${item.label} (${currency.code})`
-                                : item.label,
+                                ? `${columnLabels?.[item.key] ?? item.label} (${currency.code})`
+                                : (columnLabels?.[item.key] ?? item.label),
                         // A report with sections keeps its row order, so its headers do not sort.
                         enableSorting: !sections,
                         cell: (info) => {
@@ -304,7 +307,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     },
                 ),
             ),
-        [column, visible, cells, currency, sections],
+        [column, visible, cells, currency, sections, columnLabels],
     );
 
     const columnAlign = useMemo(

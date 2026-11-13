@@ -11,19 +11,21 @@ enum TabbedReport: string
 {
     case GuestList = 'guest-list';
     case DailyReport = 'daily-report';
+    case Housekeeping = 'housekeeping';
 
     public function label(): string
     {
         return match ($this) {
             self::GuestList => __('Guest list'),
             self::DailyReport => __('Daily report'),
+            self::Housekeeping => __('Housekeeping'),
         };
     }
 
     public function category(): ReportCategory
     {
         return match ($this) {
-            self::GuestList => ReportCategory::FrontDesk,
+            self::GuestList, self::Housekeeping => ReportCategory::FrontDesk,
             self::DailyReport => ReportCategory::Revenue,
         };
     }
@@ -36,6 +38,7 @@ enum TabbedReport: string
         return match ($this) {
             self::GuestList => 'users',
             self::DailyReport => 'calculator',
+            self::Housekeeping => 'spray-can',
         };
     }
 
@@ -59,6 +62,10 @@ enum TabbedReport: string
                 'revenue' => ReportKey::DailyRevenue,
                 'charges' => ReportKey::DailyCharges,
                 'cashier' => ReportKey::Payments,
+            ],
+            self::Housekeeping => [
+                'items' => ReportKey::HousekeepingItems,
+                'log' => ReportKey::HousekeepingLog,
             ],
         };
     }

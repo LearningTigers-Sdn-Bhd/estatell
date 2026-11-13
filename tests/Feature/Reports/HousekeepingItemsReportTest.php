@@ -3,6 +3,7 @@
 use App\Data\Reports\HousekeepingItemRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\ChargingUnit;
+use App\Enums\DefaultRoleEnum;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\Property;
@@ -75,16 +76,33 @@ test('items not shown to housekeeping and cancelled rooms are left out', functio
     expect(housekeepingItemsOn($property, '2026-10-20'))->toBe([]);
 });
 
-test('the page lists the items of the date and is in the reports menu', function () {
+test('the Housekeeping page opens on the Items tab with the items of the date', function () {
     [$manager, $property] = reportSetup();
     $bed = ChargeItem::factory()->for($property)->create(['name' => 'Extra bed', 'charging_unit' => ChargingUnit::PerStay, 'housekeeping_item' => true]);
     housekeepingItemUnit($property, $bed);
 
     $this->actingAs($manager)
-        ->get("/p/{$property->code}/reports/housekeeping-items?date=2026-10-20")
+        ->get("/p/{$property->code}/reports/housekeeping?date=2026-10-20")
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('reports/housekeeping-items')
+        ->assertInertia(fn (Assert $page) => $page->component('reports/housekeeping')
+            ->where('tab', 'items')
+            ->where('maxRangeDays', null)
+            ->where('tabs', [
+                ['value' => 'items', 'label' => 'Items', 'href' => "/p/{$property->code}/reports/housekeeping?tab=items&date=2026-10-20"],
+                ['value' => 'log', 'label' => 'Log', 'href' => "/p/{$property->code}/reports/housekeeping?tab=log&from=2026-10-20&to=2026-10-20"],
+            ])
             ->where('rows.data.0.item', 'Extra bed')
             ->where('rows.data.0.action', 'Set up')
             ->where('totals.figures.quantity', 1));
+});
+
+test('the old Housekeeping items and log pages open their tab and keep the query', function () {
+    [$manager, $property] = reportSetup();
+    [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
+
+    $this->actingAs($manager)->get("/p/{$property->code}/reports/housekeeping-items?date=2026-10-20")
+        ->assertRedirect("/p/{$property->code}/reports/housekeeping?date=2026-10-20&tab=items");
+    $this->actingAs($manager)->get("/p/{$property->code}/reports/housekeeping-log?from=2026-10-01&to=2026-10-05")
+        ->assertRedirect("/p/{$property->code}/reports/housekeeping?from=2026-10-01&to=2026-10-05&tab=log");
+    $this->actingAs($front)->get("/p/{$frontProperty->code}/reports/housekeeping")->assertForbidden();
 });

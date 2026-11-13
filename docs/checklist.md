@@ -35,12 +35,6 @@ Docs: [Stay View](18-front-desk/03-stay-view.md).
 
 Needed for go-live.
 
-### 22 Reports
-
-From wastays. Docs: [Guest list, Daily report and Booking performance](22-reports/02-guest-list-and-daily-report.md).
-
-- [ ] `feat(reports): add booking performance` — from wastays: bookings, room nights, revenue, ADR and lead time grouped by booking date, source, room type (per unit), rate plan or status. Needs: ingest channel bookings, replace the reservation source with booking sources. Docs: [Booking performance](22-reports/02-guest-list-and-daily-report.md#5-booking-performance).
-
 ### 08 Rates
 
 - [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
@@ -1073,6 +1067,10 @@ Staff feedback: a 02:00 to 12:00 walk-in entered at 15:00 could not be booked, a
 - [x] `feat(reports): merge guest reports into the guest list` — lane B: the Guest list page with four tabs and counts, the Layout Sheet on the open tab, redirects from the old report URLs. Needs: the checked-out report. Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list).
 - [x] `feat(reports): add the daily report` — lane A: Overview cards, `DailyRevenue` with the buckets and one `tax:{code}` column per tax, Cashier activity on the Payments layout. Needs: split tax columns. Docs: [Daily report](22-reports/02-guest-list-and-daily-report.md#4-daily-report).
 - [x] `feat(reports): add the charge register` — Daily report › Charges: `ReportKey::DailyCharges`, one row per charge, later discount or adjustment with its inline discount and taxes as columns, reversed and moved rows with a status, the `bucket` and `search` filters, 31 days, and the drill-down from the Revenue tab cells; totals equal the Revenue tab. Needs: the daily report. Docs: [Charges](22-reports/02-guest-list-and-daily-report.md#charges).
+- [x] `feat(reports): add booking performance` — `ReportKey::BookingPerformance` (Revenue, 366 days, landscape), `BookingPerformanceReport` and `BookingPerformanceRow`, the Room type, Source, Rate plan, Status and Day groups on `ReportGroup`, the page with one tab per group (`TabLinks`, `columnLabels` on `ReportScreen` for the tab name heading) and the sidebar entry. Bookings by `reservations.created_at` in the property time zone, overnight units only, room revenue from `unit_nights.amount`, cancelled and no-show only by status, distinct bookings in the total, no lead time for walk-ins. Docs: [Booking performance](22-reports/02-guest-list-and-daily-report.md#5-booking-performance).
+    - 6 new tests, the Reports tests and the dashboard performance tests pass, with Pint, PHPStan, TypeScript, lint/format checks and the production build. Browser review and the full suite are still open.
+- [x] `feat(reports): put housekeeping items and log on one page` — `TabbedReport::Housekeeping` with the Items (`HousekeepingItems`, the default) and Log (`HousekeepingLog`) tabs, `HousekeepingReportController` (`show`, and `items` and `log` redirecting the old pages to their tab with the query), `reports/housekeeping.tsx` with `TabLinks`, one Housekeeping entry in Reports › Front desk. The two old controllers and pages are removed. Docs: [Housekeeping page](22-reports/03-house-status-and-items.md#housekeeping-page).
+    - The Reports and Housekeeping tests pass, with TypeScript, lint/format checks and the production build. Browser review is still open.
 
 ### 23 Company portal
 
