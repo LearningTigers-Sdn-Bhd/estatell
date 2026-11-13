@@ -1714,6 +1714,7 @@ receivedOn: string | null,
 notes: string | null,
 onFolio: App.Data.Folio.FolioOptionData | null,
 taxMoveGroup: string | null,
+pairFolio: App.Data.Folio.FolioOptionData | null,
 };
 export type ManualFolioOptionData = {
 id: number,

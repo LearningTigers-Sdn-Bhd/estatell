@@ -167,7 +167,7 @@ A unit folio can hold taxes whose room charge sits on another folio: the taxes w
                 ↳ Tourism tax                           F1    RM 10.00  ⋯
 ```
 
-- **Parent row:** above each group of such taxes, a muted row with the charge's date, description and unit, then "· on {folio}" with a link that opens that folio. "{folio}" is Master, or the payer of a third-party folio. The amount shows "—". The taxes sit under it at level 1, for Posted and Scheduled rows alike.
+- **Parent row:** above each group of such taxes, a muted row with the charge's date, description and unit, then "· on {folio}" with a link that opens that folio. "{folio}" is Master, or the payer of a third-party folio. The amount shows "—". The taxes sit under it at level 1, for Posted and Scheduled rows alike. The parent row shows once: every tax of that room line on this folio, and the lone reversal of such a tax (after a move or an undo), sits under it in posting order.
 - **Data:** the row is a `FolioRowData` with `onFolio` (the folio id and name) and amount 0.00. It has no actions, is never printable, and counts in no figure: Balance, Projected total and Posted lines are unchanged. `CollectedTaxRows` (`app/Services/Folio/`) builds it: for Posted rows from each line whose parent is on another folio, for Scheduled rows from the `parentRow` and `parentTarget` of a `guestTax` block.
 - **Note:** an info Alert above the table, from `FolioData::collectedTaxNote` (`payer`, `taxes`, `companyId`): "{payer} pays the room, not {taxes}. The guest pays them on this folio." The taxes are the live tax rows under parent rows, by name. The second line links to the company's credit page and shows only when `companyId` is set: for a user with `company.manage`. A third line, "If {payer} pays the ones already charged, move all {n} to {folio}.", links to [Move charges](07-move-charges.md#collected-taxes) with them ticked (`moveLineIds`, `moveToFolioId`, `moveTo`: the taxes under the first folio a company pays that carry the row action `move`).
 - **Move…:** each such Posted tax row has **Move…** in its row menu, with `folio.transfer` while the room charge's folio is Open.
@@ -192,6 +192,14 @@ A unit folio can hold taxes whose room charge sits on another folio: the taxes w
 - The Dialog lists `creditMove.targets`: every other Open folio with a balance above 0, ticked and filled with what it owes. The totals are display only. The button stays off when nothing is ticked, an amount is 0, an amount is above what its folio owes, or the total is above the credit.
 - A refusal shows in the Dialog. Success is a toast, "Credit of 20.00 moved."
 - The lines show as payment rows: "Credit moved to Unit F1" on the source and "Credit from Master" on the target, each with **Undo move** in its row menu.
+- Each line (and its reversal after an undo) shows ⇄ after the description, a link to the folio of the other line (`FolioRowData::pairFolio`, from the same `transfer_group_id`), and the move's note under it (`notes`, the same place as a payment's notes).
+
+```
+Master · Borneo Trails
+13 Nov  Credit moved to Unit 101 ⇄                   10.00  [⋯]
+        Agent paid TTx in the transfer
+```
+
 - To stop the credit before it happens, Record payment warns when part of a payment would stay as credit ([Credit warning](../14-payments/01-payments-and-refunds.md#credit-warning)).
 
 ## Actions

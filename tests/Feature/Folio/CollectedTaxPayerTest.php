@@ -588,3 +588,17 @@ test('Undo move keeps to the folio and reservation in the URL', function () {
 
     expect(FolioLine::query()->count())->toBe($count);
 });
+
+test('after a move and its undo, each room line shows once with all its taxes and their reversals under it', function () {
+    $setup = collectedTaxSetup();
+    $copies = collectedTaxMovedToMaster($setup);
+    $this->post(collectedTaxUndoUrl($setup, $copies[0]))->assertSessionHasNoErrors();
+
+    collectedTaxFolioPage($setup, $setup['user'], collectedTaxUnitFolio($setup))
+        ->where('folio.rows', function ($rows): bool {
+            $posted = collect($rows)->where('state', 'posted')->values();
+            $shape = $posted->map(fn (array $row): string => $row['onFolio'] !== null ? 'parent' : $row['level'].':'.$row['amount'])->all();
+
+            return $shape === ['parent', '1:10.00', '1:-10.00', '1:10.00', 'parent', '1:10.00', '1:-10.00', '1:10.00'];
+        });
+});

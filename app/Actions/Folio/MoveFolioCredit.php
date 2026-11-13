@@ -30,7 +30,7 @@ class MoveFolioCredit
     /**
      * Move a folio's credit to other folios of the same reservation that owe money. Each target gets one pair of
      * payment lines with the Credit transfer code and its own `transfer_group_id`: `+amount` "Credit moved to {target}"
-     * on the source and `-amount` "Credit from {source}" on the target. No payment row is written: the money came in
+     * on the source and `-amount` "Credit from {source}" on the target, both with the note in `notes`. No payment row is written: the money came in
      * once, so the Payments report, revenue and e-invoices do not change. Every folio row is locked in id order, and
      * every check runs before the first write, so a refusal writes and logs nothing. The keys are
      * `credit-move:{key}:{target folio id}:out` and `:in`, so a repeat returns the first lines. Permissions are checked
@@ -116,8 +116,8 @@ class MoveFolioCredit
                 $target = $folios->get($folioId);
                 $group = (string) Str::uuid();
                 $prefix = self::KEY_PREFIX.$key.':'.$folioId;
-                $lines[] = $this->line($actor, $locked, $code, __('Credit moved to :folio', ['folio' => $this->folioStatement->name($target, $labels)]), (string) $amount, $date, $group, $prefix.':out');
-                $lines[] = $this->line($actor, $target, $code, __('Credit from :folio', ['folio' => $sourceName]), (string) $amount->negated(), $date, $group, $prefix.':in');
+                $lines[] = $this->line($actor, $locked, $code, __('Credit moved to :folio', ['folio' => $this->folioStatement->name($target, $labels)]), (string) $amount, $date, $group, $prefix.':out', $note);
+                $lines[] = $this->line($actor, $target, $code, __('Credit from :folio', ['folio' => $sourceName]), (string) $amount->negated(), $date, $group, $prefix.':in', $note);
             }
 
             activity()
@@ -138,12 +138,13 @@ class MoveFolioCredit
         });
     }
 
-    private function line(User $actor, Folio $folio, TransactionCode $code, string $description, string $amount, string $date, string $group, string $key): FolioLine
+    private function line(User $actor, Folio $folio, TransactionCode $code, string $description, string $amount, string $date, string $group, string $key, ?string $note): FolioLine
     {
         $line = new FolioLine([
             'transaction_code_id' => $code->id,
             'kind' => TransactionKind::Payment,
             'description' => $description,
+            'notes' => filled($note) ? $note : null,
             'quantity' => 1,
             'unit_amount' => $amount,
             'amount' => $amount,

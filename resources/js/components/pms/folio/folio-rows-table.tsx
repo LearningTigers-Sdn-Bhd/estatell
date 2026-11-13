@@ -126,6 +126,7 @@ const SECTIONS: Record<Row['state'], string> = {
  * button like Scheduled, with the section total and the Edit old folio link; it starts collapsed. Scheduled, Reversed and Reversal rows are muted,
  * the Scheduled header collapses its rows (open by default), a Reversed row is struck through, a row takes the tone of its marker as a light tint, and children (a discount, then its tax) are indented. Row markers are icons. A payment shows its reference under the method. The Unit column shows only
  * when a row names a unit. A row with `onFolio` is the parent charge of the taxes under it, kept on another folio: it is muted, shows "—" for the amount and links to that folio.
+ * A credit move row with `pairFolio` shows ⇄ after its description, a link to the folio of the other line of its pair.
  */
 export function FolioRowsTable({
     reservationId,
@@ -336,7 +337,17 @@ export function FolioRowsTable({
                                             {row.level > 0 && (
                                                 <span aria-hidden>↳</span>
                                             )}
-                                            {row.description}
+                                            {row.pairFolio !== null ? (
+                                                <PairFolioText
+                                                    row={row}
+                                                    pairFolio={row.pairFolio}
+                                                    reservationId={
+                                                        reservationId
+                                                    }
+                                                />
+                                            ) : (
+                                                row.description
+                                            )}
                                             {row.onFolio !== null && (
                                                 <Link
                                                     href={folioTab.url(
@@ -699,5 +710,44 @@ export function FolioRowsTable({
                 </TableBody>
             </Table>
         </div>
+    );
+}
+
+/**
+ * The description of a credit move row with the other folio as a link: the folio name at the end of the description
+ * ("Credit from Master") underlines on hover, then ⇄. When the description does not end with that name (the room was
+ * renamed since), the description stays plain and only ⇄ links.
+ */
+function PairFolioText({
+    row,
+    pairFolio,
+    reservationId,
+}: {
+    row: Row;
+    pairFolio: App.Data.Folio.FolioOptionData;
+    reservationId: number;
+}) {
+    const named = row.description.endsWith(pairFolio.label);
+    const href = folioTab.url(
+        { reservation: reservationId },
+        { query: { folio: String(pairFolio.id) } },
+    );
+
+    return (
+        <>
+            {named
+                ? row.description.slice(0, -pairFolio.label.length)
+                : `${row.description} `}
+            <Link
+                href={href}
+                preserveScroll
+                preserveState
+                aria-label={named ? undefined : `Open ${pairFolio.label}`}
+                className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
+            >
+                {named && pairFolio.label}
+                <ArrowRightLeft aria-hidden className="size-3.5" />
+            </Link>
+        </>
     );
 }

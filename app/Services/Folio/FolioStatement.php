@@ -575,7 +575,7 @@ class FolioStatement
             $purpose = $payment?->purpose->folioRowLabel();
             $description = $purpose === null ? $line->description : $line->description.' · '.$purpose;
 
-            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value, $payment !== null && ! $payment->received_on->isSameDay($line->posting_date) ? $payment->received_on->toDateString() : null, $payment?->notes));
+            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value, $payment !== null && ! $payment->received_on->isSameDay($line->posting_date) ? $payment->received_on->toDateString() : null, $payment->notes ?? $line->notes));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);
@@ -586,39 +586,71 @@ class FolioStatement
         $parentsElsewhere = $this->collectedTaxRows->parentsElsewhere($lines);
         $parentUnits = $parentsElsewhere->isEmpty() ? [] : $this->lineSourceUnits->for($parentsElsewhere);
         $shownParents = [];
+        $byId = $lines->keyBy('id');
+        // The room line on another folio a line is shown under: the parent of a collected tax, or for the lone reversal
+        // of such a tax, the parent of the line it reverses. Null for every other line.
+        $apartParentOf = function (FolioLine $line) use ($ids, $parentsElsewhere, $byId): ?int {
+            $child = $line->parent_line_id === null && $line->reversal_of_id !== null ? $byId->get($line->reversal_of_id) : $line;
+            $parentId = $child?->parent_line_id;
+
+            return $parentId !== null && ! $ids->has($parentId) && $parentsElsewhere->has($parentId) ? $parentId : null;
+        };
+        $apart = $lines->groupBy(fn (FolioLine $line): int => $apartParentOf($line) ?? 0);
 
         foreach ($lines as $line) {
-            if ($line->parent_line_id === null) {
-                $walk($line, 0, null);
+            $parentId = $apartParentOf($line);
+
+            if ($parentId === null) {
+                if ($line->parent_line_id === null || ! $ids->has($line->parent_line_id)) {
+                    $walk($line, 0, null);
+                }
 
                 continue;
             }
 
-            if ($ids->has($line->parent_line_id)) {
+            if (isset($shownParents[$parentId])) {
                 continue;
             }
 
-            $parent = $parentsElsewhere->get($line->parent_line_id);
-
-            if ($parent === null) {
-                $walk($line, 0, null);
-
-                continue;
-            }
-
+            // Every tax of this room line on this folio, and their reversals, sit together under one parent row.
+            $shownParents[$parentId] = true;
+            $parent = $parentsElsewhere->get($parentId);
             $parentUnitId = $parent->source_id === null ? null : ($parentUnits[$parent->source_type.':'.$parent->source_id] ?? null);
+            $rows->push($this->collectedTaxRows->parentRow('parent:'.$parent->id, $line->migrated ? 'old' : 'posted', $parent->service_date->toDateString(), $parent->description, $parentUnitId === null ? null : ($labels[$parentUnitId] ?? null), $parent->kind, $parent->folio));
 
-            if (! isset($shownParents[$parent->id])) {
-                $shownParents[$parent->id] = true;
-                $rows->push($this->collectedTaxRows->parentRow('parent:'.$parent->id, $line->migrated ? 'old' : 'posted', $parent->service_date->toDateString(), $parent->description, $parentUnitId === null ? null : ($labels[$parentUnitId] ?? null), $parent->kind, $parent->folio));
+            foreach ($apart->get($parentId, []) as $member) {
+                $walk($member, 1, $parentUnitId);
+                $row = $rows->last();
+
+                // A collected tax apart from its room line moves on its own, back under that line (Move charges).
+                if (in_array('move', $allowed, true) && $row?->key === 'line:'.$member->id && $member->kind === TransactionKind::Tax && $row->tags === [] && $parent->folio->status === FolioStatus::Open) {
+                    $row->actions = ['move'];
+                }
             }
+        }
 
-            $walk($line, 1, $parentUnitId);
-            $row = $rows->last();
+        // A credit move line links to the folio of the other line of its pair (the same transfer group).
+        $creditGroups = $lines
+            ->filter(fn (FolioLine $line): bool => $line->kind === TransactionKind::Payment && $line->transfer_group_id !== null && ! $payments->has($line->id))
+            ->pluck('transfer_group_id')
+            ->unique()
+            ->values();
 
-            // A collected tax apart from its room line moves on its own, back under that line (Move charges).
-            if (in_array('move', $allowed, true) && $row?->key === 'line:'.$line->id && $line->kind === TransactionKind::Tax && $row->tags === [] && $parent->folio->status === FolioStatus::Open) {
-                $row->actions = ['move'];
+        if ($creditGroups->isNotEmpty()) {
+            $pairFolios = FolioLine::query()
+                ->whereIn('transfer_group_id', $creditGroups->all())
+                ->where('folio_id', '!=', $folio->id)
+                ->with('folio')
+                ->get()
+                ->mapWithKeys(fn (FolioLine $other): array => [(string) $other->transfer_group_id => new FolioOptionData($other->folio_id, $this->name($other->folio, $labels))]);
+            $groupOf = $lines->pluck('transfer_group_id', 'id');
+
+            foreach ($rows as $row) {
+                $group = $row->lineId === null || $row->paymentId !== null ? null : $groupOf->get($row->lineId);
+
+                if ($group !== null && $row->kind === TransactionKind::Payment) {
+                    $row->pairFolio = $pairFolios->get($group);
+                }
             }
         }
 

@@ -23,7 +23,8 @@ use Spatie\LaravelData\Data;
  * folio `onFolio` names (a collected tax the guest pays while a company pays the room, see `CollectedTaxRows`). Its
  * amount is 0.00, it has no actions and it is never printable; the page shows it muted with a link to that folio.
  * A collected tax that Move charges put back under its room line carries `undo_tax_move` and `taxMoveGroup`, the move it
- * came with, so the Undo move Dialog can count the taxes that go back together.
+ * came with, so the Undo move Dialog can count the taxes that go back together. A credit move line (and its reversal)
+ * has `pairFolio`, the folio of the other line of its pair, and the move's note in `notes`.
  */
 class FolioRowData extends Data
 {
@@ -56,5 +57,6 @@ class FolioRowData extends Data
         public ?string $notes = null,
         public ?FolioOptionData $onFolio = null,
         public ?string $taxMoveGroup = null,
+        public ?FolioOptionData $pairFolio = null,
     ) {}
 }

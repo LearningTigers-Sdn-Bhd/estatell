@@ -3,6 +3,7 @@
 use App\Actions\Folio\MoveFolioCredit;
 use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\TransferLines;
+use App\Actions\Folio\UndoCreditMove;
 use App\Enums\FolioStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
@@ -18,7 +19,11 @@ use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\EInvoice\ReportableLines;
+use App\Services\Folio\FolioStatement;
+use App\Services\Folio\MoveChargesPreview;
 use Brick\Math\BigDecimal;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -206,4 +211,45 @@ test('the folio page offers Move credit on a folio in credit, and Undo move on i
 
     $page($setup['f1'])->assertInertia(fn (Assert $inertia) => $inertia
         ->where('folio.rows', fn ($rows): bool => collect($rows)->contains(fn (array $row): bool => $row['description'] === 'Credit from Master' && $row['actions'] === ['undo_credit_move'])));
+});
+
+test('a move keeps its note on both lines and their reversals, and each row links to the other folio', function () {
+    $setup = creditMoveSetup();
+    app(MoveFolioCredit::class)($setup['user'], $setup['master'], [['folio_id' => $setup['f1']->id, 'amount' => '10.00']], 'Agent paid TTx in the transfer', (string) Str::uuid());
+    $row = fn (Folio $folio, string $description): array => collect($this->actingAs($setup['user'])
+        ->get(route('reservations.folio', ['property' => $setup['user']->property->code, 'reservation' => $setup['reservation']->id, 'folio' => $folio->id]))
+        ->assertOk()
+        ->inertiaProps('folio.rows'))->firstWhere('description', $description);
+
+    expect(FolioLine::query()->whereNotNull('transfer_group_id')->pluck('notes')->unique()->all())->toBe(['Agent paid TTx in the transfer'])
+        ->and($row($setup['master'], 'Credit moved to '.app(FolioStatement::class)->name($setup['f1'], app(MoveChargesPreview::class)->unitLabels($setup['reservation']))))
+        ->toMatchArray(['notes' => 'Agent paid TTx in the transfer', 'pairFolio' => ['id' => $setup['f1']->id, 'label' => app(FolioStatement::class)->name($setup['f1'], app(MoveChargesPreview::class)->unitLabels($setup['reservation']))]])
+        ->and($row($setup['f1'], 'Credit from Master'))->toMatchArray(['notes' => 'Agent paid TTx in the transfer', 'pairFolio' => ['id' => $setup['master']->id, 'label' => 'Master']]);
+
+    app(UndoCreditMove::class)($setup['user'], FolioLine::query()->where('folio_id', $setup['f1']->id)->whereNotNull('transfer_group_id')->sole());
+
+    $reversal = FolioLine::query()->where('folio_id', $setup['f1']->id)->whereNotNull('reversal_of_id')->sole();
+
+    expect($reversal->notes)->toBe('Agent paid TTx in the transfer')
+        ->and(collect($this->get(route('reservations.folio', ['property' => $setup['user']->property->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['f1']->id]))->inertiaProps('folio.rows'))->where('pairFolio.id', $setup['master']->id))->toHaveCount(2);
+});
+
+test('a move without a note leaves notes empty', function () {
+    $setup = creditMoveSetup();
+
+    creditMoveRun($setup, [['folio_id' => $setup['f1']->id, 'amount' => '10.00']]);
+
+    expect(FolioLine::query()->whereNotNull('transfer_group_id')->whereNotNull('notes')->count())->toBe(0);
+});
+
+test('the migration gives existing credit moves the note of their log entry when one pair matches', function () {
+    $setup = creditMoveSetup();
+    creditMoveRun($setup, [['folio_id' => $setup['f1']->id, 'amount' => '10.00'], ['folio_id' => $setup['f2']->id, 'amount' => '10.00']]);
+    activity()->event('folio.credit_moved')->withProperties(['folio_id' => $setup['master']->id, 'moves' => [['folio_id' => $setup['f1']->id, 'amount' => '10.00'], ['folio_id' => $setup['f2']->id, 'amount' => '10.00']], 'note' => 'From the agent', 'posting_date' => '2026-10-14'])->log('Folio credit moved');
+    Schema::table('folio_lines', fn (Blueprint $table) => $table->dropColumn('notes'));
+
+    (require database_path('migrations/2026_11_13_212748_add_notes_to_folio_lines_table.php'))->up();
+
+    expect(FolioLine::query()->whereNotNull('transfer_group_id')->pluck('notes')->unique()->all())->toBe(['From the agent'])
+        ->and(FolioLine::query()->whereNotNull('transfer_group_id')->count())->toBe(4);
 });
