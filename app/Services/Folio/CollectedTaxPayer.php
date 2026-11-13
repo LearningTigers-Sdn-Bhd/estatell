@@ -87,6 +87,22 @@ class CollectedTaxPayer
     }
 
     /**
+     * The names of the property's enabled taxes with **Collect at check-in** on, in id order.
+     *
+     * @return list<string>
+     */
+    public function taxNames(int $propertyId): array
+    {
+        return array_values(array_map(strval(...), Tax::query()
+            ->where('property_id', $propertyId)
+            ->where('enabled', true)
+            ->where('collect_at_check_in', true)
+            ->orderBy('id')
+            ->pluck('name')
+            ->all()));
+    }
+
+    /**
      * @return list<int>
      */
     private function collectedTaxIds(int $propertyId): array

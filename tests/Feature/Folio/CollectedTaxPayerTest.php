@@ -340,3 +340,18 @@ test('the credit warning has no other folios when the company pays the tax', fun
     collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
         ->where('folio.paymentCreditWarning', ['owes' => '620.00', 'othersCount' => 0, 'othersTotal' => '0.00', 'othersLabel' => null]);
 });
+
+test('the summary says who pays the taxes collected at check-in', function (bool $companyPaysTax) {
+    $setup = collectedTaxSetup($companyPaysTax);
+
+    collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
+        ->where('reservation.collectedTaxes', ['companyPays' => $companyPaysTax, 'companyName' => $setup['company']->name, 'taxes' => ['Tourism tax']]);
+})->with(['the guest pays' => false, 'the company pays' => true]);
+
+test('the summary has no taxes at check-in row without a company', function () {
+    $setup = collectedTaxSetup();
+    $setup['reservation']->update(['company_id' => null]);
+
+    collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
+        ->where('reservation.collectedTaxes', null);
+});

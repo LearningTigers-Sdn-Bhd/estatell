@@ -4485,6 +4485,11 @@ taxIds: number[] | null,
 chargeCodeIds: number[],
 masterTaxIds: number[],
 };
+export type CollectedTaxesData = {
+companyPays: boolean,
+companyName: string | null,
+taxes: string[],
+};
 export type DayUseOfferData = {
 hours: number,
 amount: string,
@@ -4805,6 +4810,7 @@ companyName: string | null,
 createdOn: string,
 createdBy: string | null,
 booker: App.Data.Reservations.ReservationBookerData,
+collectedTaxes: App.Data.Reservations.CollectedTaxesData | null,
 };
 export type ReservationGuestData = {
 guestId: number | null,

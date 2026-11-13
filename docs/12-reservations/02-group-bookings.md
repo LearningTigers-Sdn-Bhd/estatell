@@ -20,6 +20,19 @@ A group is a reservation with 2 or more units. This is worked out from the units
 
 MasterPays and MasterPaysAll create routing rules automatically (see [Routing](../13-folio/03-routing.md)).
 
+### Taxes at check-in
+
+On a booking with a company, the reservation summary shows who pays the taxes with **Collect at check-in** on, under Billing. The rule is the company's **Company pays taxes collected at check-in** switch ([Collected taxes](../13-folio/03-routing.md#collected-taxes)).
+
+```
+Billing                 Master folio pays
+Taxes at check-in       Guest pays · Tourism tax
+Company                 PERFECT VACATION SDN.BHD
+```
+
+- **Data:** `ReservationData::collectedTaxes` (`CollectedTaxesData`): `companyPays`, `companyName` and `taxes` (the names of the property's enabled taxes with Collect at check-in on, from `CollectedTaxPayer::taxNames()`). Null without a company or without such a tax. `ReservationOverview` reads the names in one query, only when the booking has a company.
+- **Value:** "Guest pays" or "{company} pays", then the names: up to two, joined; three or more show the first and "+N", with the full list in a tooltip. Nothing names the tourism tax.
+
 ## Creating reservations and units
 
 This item also builds the backend that creates every reservation: single rooms, groups and dorm beds. The [booking form](05-booking-form.md) and [channel ingestion](../21-channels/05-booking-ingestion.md) call it. It has no UI.

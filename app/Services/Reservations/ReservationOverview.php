@@ -2,25 +2,27 @@
 
 namespace App\Services\Reservations;
 
+use App\Data\Reservations\CollectedTaxesData;
 use App\Data\Reservations\ReservationData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Enums\FolioStatus;
 use App\Enums\StayType;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\Folio\CollectedTaxPayer;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The header, summary figures and unit list of one reservation, in five queries (units with room types, the
+ * The header, summary figures and unit list of one reservation, in five queries (six with a company: the taxes collected at check-in) (units with room types, the
  * night and day use totals, the first-night rooms, the primary guests and the folio balance). Figures come from the units that hold inventory. Dates fall back to all
  * units when none does.
  */
 class ReservationOverview
 {
-    public function __construct(private ReservationRoomBox $roomBox, private StayLabel $stayLabel) {}
+    public function __construct(private ReservationRoomBox $roomBox, private StayLabel $stayLabel, private CollectedTaxPayer $collectedTaxPayer) {}
 
     /**
      * Expects `booker`, `creator`, `company` and `bookingSource` to be loaded.
@@ -50,10 +52,28 @@ class ReservationOverview
                 stayTotal: $total->toScale(2)->__toString(),
                 balance: $this->balance($reservation),
                 canViewGuest: $canViewGuest,
+                collectedTaxes: $this->collectedTaxes($reservation),
             ),
             'units' => array_values($units->map(fn (ReservationUnit $unit): ReservationUnitOptionData => ReservationUnitOptionData::fromModel($unit, $assigned[$unit->id] ?? null, $primaryGuests[$unit->id] ?? null))->all()),
             'models' => $units,
         ];
+    }
+
+    /**
+     * Who pays the taxes collected at check-in, for a booking with a company on a property that has such taxes. One
+     * query, only when the booking has a company.
+     */
+    private function collectedTaxes(Reservation $reservation): ?CollectedTaxesData
+    {
+        $company = $reservation->company;
+
+        if ($company === null) {
+            return null;
+        }
+
+        $taxes = $this->collectedTaxPayer->taxNames($reservation->property_id);
+
+        return $taxes === [] ? null : new CollectedTaxesData($company->pays_collected_taxes, $company->name, $taxes);
     }
 
     /**
