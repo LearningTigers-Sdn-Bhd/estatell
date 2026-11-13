@@ -72,7 +72,7 @@ export function EndedStayQuestion({
             <ChoiceCards
                 id={`${id}-ended-stay`}
                 legend={legend}
-                columns={1}
+                columns={2}
                 choices={[
                     {
                         value: 'arrived_last_night',
