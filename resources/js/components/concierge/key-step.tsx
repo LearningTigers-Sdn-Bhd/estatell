@@ -1,9 +1,10 @@
 import { Link, router } from '@inertiajs/react';
-import { ArrowRight, CircleCheck, KeyRound } from 'lucide-react';
-import { useEffect } from 'react';
-import { buttonVariants } from '@/components/ui/button';
+import { ArrowRight, CircleCheck, KeyRound, RotateCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { stayContact } from '@/routes/concierge';
+import { retry } from '@/routes/concierge/pin';
 
 const POLL_MS = 3000;
 
@@ -15,6 +16,7 @@ export function KeyStep({
 }) {
     const pin = stay.pin;
     const pending = pin?.status === 'pending';
+    const [retrying, setRetrying] = useState(false);
 
     useEffect(() => {
         if (!pending) {
@@ -54,15 +56,13 @@ export function KeyStep({
                         </div>
                     )}
                 </div>
-                {pin?.status === 'failed' && (
-                    <img
-                        src="/images/concierge-host.png"
-                        alt=""
-                        width={1024}
-                        height={1024}
-                        className="size-40 shrink-0 object-contain sm:size-48"
-                    />
-                )}
+                <img
+                    src="/images/concierge-host.png"
+                    alt=""
+                    width={1024}
+                    height={1024}
+                    className="size-28 shrink-0 object-contain sm:size-40 lg:size-48"
+                />
             </div>
 
             {pending && (
@@ -132,16 +132,46 @@ export function KeyStep({
                             to collect your key.
                         </p>
                     </div>
-                    <Link
-                        href={stayContact.url({ token: stay.token })}
-                        className={buttonVariants({
-                            variant: 'outline',
-                            size: 'lg',
-                            className: 'min-h-11',
-                        })}
-                    >
-                        Contact front desk <ArrowRight aria-hidden />
-                    </Link>
+                    <div className="flex flex-wrap gap-3">
+                        {pin.canRetry && (
+                            <Button
+                                size="lg"
+                                className="min-h-11"
+                                disabled={retrying}
+                                onClick={() =>
+                                    router.post(
+                                        retry.url({ token: stay.token }),
+                                        {},
+                                        {
+                                            preserveScroll: true,
+                                            onStart: () => setRetrying(true),
+                                            onFinish: () => setRetrying(false),
+                                        },
+                                    )
+                                }
+                            >
+                                {retrying ? (
+                                    <Spinner data-icon="inline-start" />
+                                ) : (
+                                    <RotateCcw
+                                        data-icon="inline-start"
+                                        aria-hidden
+                                    />
+                                )}
+                                Try again
+                            </Button>
+                        )}
+                        <Link
+                            href={stayContact.url({ token: stay.token })}
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'lg',
+                                className: 'min-h-11',
+                            })}
+                        >
+                            Contact front desk <ArrowRight aria-hidden />
+                        </Link>
+                    </div>
                 </div>
             )}
         </section>

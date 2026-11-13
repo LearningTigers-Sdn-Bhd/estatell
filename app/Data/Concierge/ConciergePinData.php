@@ -16,10 +16,14 @@ class ConciergePinData extends Data
         public ?string $code,
         public ?string $validFrom,
         public ?string $validUntil,
+        public bool $canRetry = false,
     ) {}
 
-    public static function fromStatus(KioskPinStatus $status): self
+    /**
+     * `$canRetry` is set only for a failed PIN that asking again could fix (the stay has a lock and the connection is on).
+     */
+    public static function fromStatus(KioskPinStatus $status, bool $canRetry = false): self
     {
-        return new self($status->status, $status->code, $status->validFrom?->toIso8601String(), $status->validUntil?->toIso8601String());
+        return new self($status->status, $status->code, $status->validFrom?->toIso8601String(), $status->validUntil?->toIso8601String(), $status->status === KioskPinStatus::FAILED && $canRetry);
     }
 }

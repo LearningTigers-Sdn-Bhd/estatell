@@ -55,6 +55,37 @@ class CurlecGateway
     }
 
     /**
+     * The ID of the captured payment on an order, or null while none is. Lets us catch up when the guest paid but neither
+     * the page nor the webhook told us, such as a bank redirect that never came back.
+     *
+     * @throws CurlecRequestFailed
+     */
+    public function capturedPaymentId(string $orderId): ?string
+    {
+        try {
+            $response = Http::withBasicAuth($this->keyId(), (string) config('services.curlec.key_secret'))
+                ->acceptJson()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->get(rtrim((string) config('services.curlec.base_url'), '/').'/orders/'.rawurlencode($orderId).'/payments');
+        } catch (ConnectionException) {
+            throw new CurlecRequestFailed('Curlec could not be reached.');
+        }
+
+        if (! $response->successful()) {
+            throw new CurlecRequestFailed('Curlec answered the order lookup with status '.$response->status().'.');
+        }
+
+        foreach ((array) $response->json('items') as $payment) {
+            if (($payment['status'] ?? null) === 'captured' && is_string($payment['id'] ?? null)) {
+                return $payment['id'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Ask Curlec to refund part or all of a payment, and return the refund's ID. `$receipt` is Curlec's idempotency key, so
      * a repeat returns null: the first request reached Curlec, and the webhook will report it. `$refundId` goes in the notes,
      * so a webhook that arrives before this answer still finds its row.

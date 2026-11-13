@@ -2,6 +2,7 @@
 
 namespace App\Services\DoorLocks;
 
+use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Data\DoorLocks\DoorCardData;
 use App\Data\DoorLocks\DoorPasscodeData;
 use App\Data\DoorLocks\LockWithoutPinData;
@@ -78,7 +79,7 @@ class UnitDoorPins
             making: $making,
             leavingIds: $leavingIds,
             canAddCard: $current?->isNotEmpty() ?? false,
-            syncing: $making || $updating || $leavingIds !== [] || $live->contains('status', PasscodeStatus::Pending),
+            syncing: $making || $updating || $leavingIds !== [] || $live->contains('status', PasscodeStatus::Pending) || RetryStayPasscodes::underway($unit->id),
         );
     }
 

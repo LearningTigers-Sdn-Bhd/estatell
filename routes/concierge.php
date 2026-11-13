@@ -41,6 +41,7 @@ Route::middleware(['concierge', 'throttle:concierge'])->group(function () {
         Route::post('check-out/ask', [ConciergeStayController::class, 'askCheckOut'])->middleware('throttle:concierge-write')->name('check-out.ask');
         Route::post('payment', [ConciergeController::class, 'pay'])->middleware('throttle:concierge-write')->name('payment');
         Route::post('payment/confirm', [ConciergeController::class, 'confirmPayment'])->middleware('throttle:concierge-write')->name('payment.confirm');
+        Route::post('pin/retry', [ConciergeController::class, 'retryPin'])->middleware('throttle:concierge-write')->name('pin.retry');
     });
 });
 

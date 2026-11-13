@@ -18,7 +18,31 @@ use Illuminate\Support\Str;
 
 class StartStayPayment
 {
-    public function __construct(private CurlecGateway $gateway, private SelfCheckInPayment $payment, private KioskStays $stays, private ConciergeBill $bill) {}
+    public function __construct(private CurlecGateway $gateway, private SelfCheckInPayment $payment, private KioskStays $stays, private ConciergeBill $bill, private RecordStayPayment $record) {}
+
+    /**
+     * An open order the guest already paid, such as after a bank redirect that never returned, would make Curlec refuse
+     * the checkout. Ask Curlec, post what it captured, and let the caller see that nothing is due. Curlec being down
+     * leaves the order as it was.
+     */
+    private function catchUpPaidOrders(ReservationUnit $stay): void
+    {
+        $open = GatewayPayment::query()->where('reservation_unit_id', $stay->id)->where('status', '<>', GatewayPaymentStatus::Paid)->get();
+
+        foreach ($open as $payment) {
+            try {
+                $paymentId = $this->gateway->capturedPaymentId($payment->order_id);
+            } catch (CurlecRequestFailed $failed) {
+                report($failed);
+
+                continue;
+            }
+
+            if ($paymentId !== null) {
+                ($this->record)($payment, $paymentId);
+            }
+        }
+    }
 
     /**
      * Create the Curlec order for what the stay owes: before check-in the amount the kiosk waits for
@@ -37,6 +61,8 @@ class StartStayPayment
         if (! $inHouse && ($stay->status !== UnitStatus::Confirmed || $this->stays->window($stay) !== KioskStays::OPEN)) {
             return StayPaymentResult::refused(StayPaymentResult::REFUSAL_NOT_OPEN, __('Check-in is not open for this booking.'));
         }
+
+        $this->catchUpPaidOrders($stay);
 
         $due = $inHouse ? $this->bill->due($stay) : $this->payment->shortfall($stay);
 

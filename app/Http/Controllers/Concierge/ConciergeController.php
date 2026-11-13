@@ -8,6 +8,7 @@ use App\Actions\Concierge\ConfirmStayPayment;
 use App\Actions\Concierge\OpenConciergeStay;
 use App\Actions\Concierge\SaveConciergeIdentity;
 use App\Actions\Concierge\StartStayPayment;
+use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Actions\Kiosk\IssueBookingPreCheckInToken;
 use App\Actions\Kiosk\KioskWalkInResult;
 use App\Actions\Kiosk\SignStayRegistrationCard;
@@ -27,6 +28,7 @@ use App\Models\ReservationUnit;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergePageBuilder;
 use App\Services\Guests\CountryOptions;
+use App\Services\Kiosk\KioskPin;
 use App\Services\Kiosk\KioskWalkIn;
 use App\Services\Kiosk\KioskWalkInOffer;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -35,6 +37,7 @@ use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -173,7 +176,7 @@ class ConciergeController extends Controller
         $result = $startPayment($stay);
 
         if ($result->payment === null) {
-            return response()->json(['message' => $result->message], 409);
+            return response()->json(['message' => $result->message, 'code' => $result->refusal], 409);
         }
 
         $currency = $stay->property->settings->currency->getCurrencyCode();
@@ -184,7 +187,47 @@ class ConciergeController extends Controller
             'amount' => Money::of($result->payment->amount, $currency)->getMinorAmount()->toInt(),
             'currency' => $currency,
             'name' => $stay->property->name,
+            'callback_url' => route('webhooks.curlec.stay-return', ['token' => $token]),
         ])->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Where Curlec sends the guest back from a bank (FPX) redirect, as a POST from another site, so it has no session or
+     * CSRF token. The signature is the proof, and a failed or cancelled payment simply lands the guest on the page again.
+     */
+    public function paymentReturn(Request $request, string $token, ConfirmStayPayment $confirmPayment): RedirectResponse
+    {
+        $stay = $this->stay($request);
+
+        $confirmPayment(
+            $stay,
+            $request->string('razorpay_order_id')->toString(),
+            $request->string('razorpay_payment_id')->toString(),
+            $request->string('razorpay_signature')->toString(),
+        );
+
+        return redirect()->route($stay->refresh()->status === UnitStatus::CheckedIn ? 'concierge.bill' : 'concierge.show', ['token' => $token], 303);
+    }
+
+    /**
+     * "Try again" on the key step when the door code could not be made. Three tries per stay in ten minutes, so a lock that
+     * is down is not hammered; a stay with no lock or TTLock off cannot be fixed by asking, so nothing is queued.
+     */
+    public function retryPin(Request $request, string $token, KioskPin $pin, RetryStayPasscodes $retry): RedirectResponse
+    {
+        $stay = $this->stay($request);
+        $limit = 'pin-retry-limit:'.$stay->id;
+
+        if ($pin->canRetry($stay)) {
+            if (RateLimiter::tooManyAttempts($limit, 3)) {
+                Inertia::flash('toast', ['type' => 'error', 'message' => __('Please wait a few minutes before trying again, or ask the front desk.')]);
+            } else {
+                RateLimiter::hit($limit, 600);
+                $retry($stay);
+            }
+        }
+
+        return to_route('concierge.show', ['token' => $token]);
     }
 
     public function confirmPayment(ConfirmPaymentRequest $request, string $token, ConfirmStayPayment $confirmPayment): RedirectResponse

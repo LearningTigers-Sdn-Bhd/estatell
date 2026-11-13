@@ -13,7 +13,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { contact, payment } from '@/routes/concierge';
-import { confirm } from '@/routes/concierge/payment';
 
 const CHECKOUT_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
 
@@ -23,12 +22,7 @@ type Order = {
     amount: number;
     currency: string;
     name: string;
-};
-
-type CheckoutResult = {
-    razorpay_order_id: string;
-    razorpay_payment_id: string;
-    razorpay_signature: string;
+    callback_url: string;
 };
 
 type Checkout = { open: () => void };
@@ -92,6 +86,13 @@ export function PaymentStep({
             });
             const body = await response.json();
 
+            if (response.status === 409 && body.code === 'nothing_due') {
+                // The payment already went through (for example after a bank redirect), so show the next step.
+                router.reload();
+
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error(body.message ?? 'payment');
             }
@@ -105,8 +106,9 @@ export function PaymentStep({
                 amount: order.amount,
                 currency: order.currency,
                 name: order.name,
-                handler: (result: CheckoutResult) =>
-                    router.post(confirm.url({ token }), result),
+                // Bank (FPX) payments leave the page, so the result comes back by redirect, not a JS handler.
+                redirect: true,
+                callback_url: order.callback_url,
                 modal: { ondismiss: () => setBusy(false) },
             });
             checkout.open();

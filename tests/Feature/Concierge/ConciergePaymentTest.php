@@ -43,7 +43,7 @@ it('creates the order for what is due and gives the page what its checkout needs
     $this->postJson("/c/{$token}/payment")
         ->assertOk()
         ->assertHeader('Cache-Control', 'no-store, private')
-        ->assertExactJson(['key' => 'rzp_test_key', 'order_id' => 'order_1', 'amount' => 10000, 'currency' => 'MYR', 'name' => 'Palm Resort']);
+        ->assertExactJson(['key' => 'rzp_test_key', 'order_id' => 'order_1', 'amount' => 10000, 'currency' => 'MYR', 'name' => 'Palm Resort', 'callback_url' => url("/webhooks/curlec/stay/{$token}")]);
 
     $order = GatewayPayment::query()->sole();
     expect($order->reservation_unit_id)->toBe($unit->id)
@@ -94,6 +94,29 @@ it('posts the payment on the unit folio once the guest confirms it with a good s
         ->and(GatewayPayment::query()->sole()->status)->toBe(GatewayPaymentStatus::Paid)
         ->and(GatewayPayment::query()->sole()->gateway_payment_id)->toBe('pay_123');
     conciergeStep($token, 'check_in');
+});
+
+it('posts the payment when the bank sends the guest back by redirect, with no session or CSRF token', function () {
+    ['token' => $token] = conciergePaymentSetup();
+    $order = $this->postJson("/c/{$token}/payment")->json('order_id');
+    $body = ['razorpay_order_id' => $order, 'razorpay_payment_id' => 'pay_fpx', 'razorpay_signature' => conciergeSignature($order, 'pay_fpx')];
+
+    $this->post("/webhooks/curlec/stay/{$token}", $body)->assertRedirect("/c/{$token}")->assertStatus(303);
+    expect(Payment::query()->where('reference', 'pay_fpx')->count())->toBe(1);
+
+    $this->post("/webhooks/curlec/stay/{$token}", ['razorpay_order_id' => $order, 'error' => ['code' => 'BAD_REQUEST_ERROR']])->assertRedirect("/c/{$token}");
+    expect(Payment::query()->count())->toBe(1);
+});
+
+it('catches up an order Curlec captured but never reported, instead of reopening it', function () {
+    ['token' => $token, 'gateway' => $gateway] = conciergePaymentSetup();
+    $order = $this->postJson("/c/{$token}/payment")->json('order_id');
+    $gateway->captured[$order] = 'pay_lost';
+
+    $this->postJson("/c/{$token}/payment")->assertStatus(409)->assertJsonPath('code', 'nothing_due');
+
+    expect(Payment::query()->where('reference', 'pay_lost')->count())->toBe(1)
+        ->and(GatewayPayment::query()->sole()->status)->toBe(GatewayPaymentStatus::Paid);
 });
 
 it('ignores a bad signature and an order of another stay', function () {

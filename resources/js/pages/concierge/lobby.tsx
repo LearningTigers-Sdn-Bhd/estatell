@@ -13,6 +13,15 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { SAVED_STAY_DAYS, readStays } from '@/lib/concierge-stays';
+import type { SavedStay } from '@/lib/concierge-stays';
+import {
     contact,
     enterCode,
     info,
@@ -21,15 +30,13 @@ import {
     walkIn,
 } from '@/routes/concierge';
 
-/** A stay saved on this phone is offered for as long as its link can last: until 8 days after the day it was saved. */
-const SAVED_STAY_DAYS = 8;
-
 type Tile = {
     title: string;
     body: string;
     icon: LucideIcon;
     href: string;
     external?: boolean;
+    onSelect?: () => void;
 };
 
 /** What a guest sees after scanning the lobby QR: the services of the property, with check-in first. */
@@ -45,35 +52,27 @@ export default function ConciergeLobby({
     heroUrl: string | null;
 }) {
     const code = { property: property.code };
-    const [savedToken, setSavedToken] = useState<string | null>(null);
+    const [savedStays, setSavedStays] = useState<SavedStay[]>([]);
 
     useEffect(() => {
-        try {
-            const saved = JSON.parse(
-                localStorage.getItem(`concierge-stay:${property.code}`) ??
-                    'null',
-            ) as { token?: string; at?: number } | null;
-
-            if (
-                saved?.token &&
-                saved.at &&
-                Date.now() - saved.at < SAVED_STAY_DAYS * 86_400_000
-            ) {
-                setSavedToken(saved.token);
-            }
-        } catch {
-            // Storage can be blocked or hold something else; the hub works without it.
-        }
+        setSavedStays(readStays(property.code, SAVED_STAY_DAYS));
     }, [property.code]);
 
+    const [picking, setPicking] = useState(false);
+
+    // One stay goes straight to it. Several (a family on one phone) open a list to choose the room.
     const tiles: Tile[] = [
-        ...(savedToken
+        ...(savedStays.length > 0
             ? [
                   {
                       title: 'Continue your stay',
                       body: 'Requests, your bill, documents and check-out.',
                       icon: Undo2,
-                      href: show.url({ token: savedToken }),
+                      href: show.url({ token: savedStays[0].token }),
+                      onSelect:
+                          savedStays.length > 1
+                              ? () => setPicking(true)
+                              : undefined,
                   },
               ]
             : []),
@@ -186,16 +185,30 @@ export default function ConciergeLobby({
                                 />
                             </div>
                             <div className="flex flex-col gap-2 lg:hidden">
-                                <Link
-                                    href={primaryTile.href}
-                                    className={`concierge-editorial-serif flex min-h-14 w-full items-center justify-between gap-4 bg-primary px-5 py-3 text-2xl text-primary-foreground hover:opacity-90 motion-safe:transition-opacity ${focusStyles}`}
-                                >
-                                    {primaryTile.title}
-                                    <ArrowRight
-                                        className="size-5 shrink-0"
-                                        aria-hidden
-                                    />
-                                </Link>
+                                {primaryTile.onSelect ? (
+                                    <button
+                                        type="button"
+                                        onClick={primaryTile.onSelect}
+                                        className={`concierge-editorial-serif flex min-h-14 w-full items-center justify-between gap-4 bg-primary px-5 py-3 text-2xl text-primary-foreground hover:opacity-90 motion-safe:transition-opacity ${focusStyles}`}
+                                    >
+                                        {primaryTile.title}
+                                        <ArrowRight
+                                            className="size-5 shrink-0"
+                                            aria-hidden
+                                        />
+                                    </button>
+                                ) : (
+                                    <Link
+                                        href={primaryTile.href}
+                                        className={`concierge-editorial-serif flex min-h-14 w-full items-center justify-between gap-4 bg-primary px-5 py-3 text-2xl text-primary-foreground hover:opacity-90 motion-safe:transition-opacity ${focusStyles}`}
+                                    >
+                                        {primaryTile.title}
+                                        <ArrowRight
+                                            className="size-5 shrink-0"
+                                            aria-hidden
+                                        />
+                                    </Link>
+                                )}
                                 <p className="text-xs leading-5 text-muted-foreground">
                                     {primaryTile.body}
                                 </p>
@@ -221,6 +234,7 @@ export default function ConciergeLobby({
                                             icon: Icon,
                                             href,
                                             external,
+                                            onSelect,
                                         },
                                         index,
                                     ) => {
@@ -263,7 +277,16 @@ export default function ConciergeLobby({
                                                 ? `concierge-editorial-serif hidden min-h-13 items-center justify-center gap-2 bg-primary px-5 py-3 text-xl text-primary-foreground hover:opacity-90 motion-safe:transition-opacity lg:flex lg:min-w-40 lg:flex-1 ${focusStyles}`
                                                 : `concierge-editorial-serif group flex min-h-13 items-center justify-between gap-3 border border-border/60 px-4 py-3 text-lg hover:bg-muted/50 motion-safe:transition-colors lg:relative lg:min-w-40 lg:flex-1 lg:before:absolute lg:before:-left-3 lg:before:top-2 lg:before:bottom-2 lg:before:w-px lg:before:bg-border ${focusStyles}`;
 
-                                        return external ? (
+                                        return onSelect ? (
+                                            <button
+                                                key={title}
+                                                type="button"
+                                                onClick={onSelect}
+                                                className={className}
+                                            >
+                                                {content}
+                                            </button>
+                                        ) : external ? (
                                             <a
                                                 key={title}
                                                 href={href}
@@ -289,6 +312,32 @@ export default function ConciergeLobby({
                     </div>
                 </div>
             </div>
+            <Dialog open={picking} onOpenChange={setPicking}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Which stay?</DialogTitle>
+                        <DialogDescription>
+                            These stays were opened on this phone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ul className="flex flex-col gap-2">
+                        {savedStays.map((saved) => (
+                            <li key={saved.token}>
+                                <Link
+                                    href={show.url({ token: saved.token })}
+                                    className={`flex min-h-12 items-center justify-between gap-3 border border-border/60 px-4 py-3 hover:bg-muted/50 ${focusStyles}`}
+                                >
+                                    {saved.label}
+                                    <ArrowRight
+                                        className="size-4 shrink-0"
+                                        aria-hidden
+                                    />
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

@@ -2,8 +2,10 @@
 
 namespace App\Services\Kiosk;
 
+use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Enums\LockProvider;
 use App\Enums\PasscodeStatus;
+use App\Enums\UnitStatus;
 use App\Features\DoorLocks;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
@@ -35,7 +37,8 @@ class KioskPin
         $states = $locks->map(fn (DoorLock $lock): array => $this->state($stay, $lock));
 
         if ($states->contains(fn (array $state): bool => $state['status'] === KioskPinStatus::FAILED)) {
-            return KioskPinStatus::failed();
+            // A retry the guest or staff just asked for is still on its way, so show waiting, not failed.
+            return RetryStayPasscodes::underway($stay->id) ? KioskPinStatus::pending() : KioskPinStatus::failed();
         }
 
         if ($states->contains(fn (array $state): bool => $state['status'] === KioskPinStatus::PENDING)) {
@@ -46,6 +49,18 @@ class KioskPin
         $first = $states->first()['passcode'];
 
         return KioskPinStatus::ready((string) $first->code, $first->starts_at, $first->ends_at);
+    }
+
+    /**
+     * Whether asking for the PIN again could help: the stay is checked in, TTLock is on for the property and its room has a lock.
+     * Without those the PIN can never be made, so no retry is offered.
+     */
+    public function canRetry(ReservationUnit $stay): bool
+    {
+        return $stay->status === UnitStatus::CheckedIn
+            && DoorLocks::allows($stay->property, LockProvider::TTLock)
+            && $stay->property->doorLockConnection?->enabled === true
+            && $this->stayLocks->current($stay)->isNotEmpty();
     }
 
     /**

@@ -7,6 +7,7 @@ import { KeyStep } from '@/components/concierge/key-step';
 import { PaymentStep } from '@/components/concierge/payment-step';
 import { StayHome } from '@/components/concierge/stay-home';
 import { GuestFrame } from '@/components/concierge/stay-menu';
+import { SAVED_STAY_DAYS, removeStay, saveStay } from '@/lib/concierge-stays';
 import { lobby } from '@/routes/concierge';
 import {
     CheckInStep,
@@ -29,26 +30,25 @@ export default function ConciergeStay({
     genders: EnumOption[];
     countries: EnumOption[];
 }) {
-    // Remember the stay on this phone, so the lobby can offer "Continue your stay". It stays on the phone and is never sent.
+    // Remember the stay on this phone, so the lobby can offer "Continue your stay". A family can open several rooms on one
+    // phone, so each stay is kept in a list. It stays on the phone and is never sent.
     // A stay that ends at the front desk has nothing to continue, so its entry is dropped instead.
     const dead = stay.step === 'desk' || stay.step === 'hold_expired';
 
     useEffect(() => {
-        try {
-            const key = `concierge-stay:${stay.property.code}`;
-
-            if (dead) {
-                localStorage.removeItem(key);
-            } else {
-                localStorage.setItem(
-                    key,
-                    JSON.stringify({ token: stay.token, at: Date.now() }),
-                );
-            }
-        } catch {
-            // Storage can be blocked; the stay still works without it.
+        if (dead) {
+            removeStay(stay.property.code, stay.token);
+        } else {
+            saveStay(stay.property.code, stay, SAVED_STAY_DAYS);
         }
-    }, [stay.property.code, stay.token, dead]);
+    }, [
+        stay.property.code,
+        stay.token,
+        stay.roomNumber,
+        stay.guestFirstName,
+        stay.reference,
+        dead,
+    ]);
 
     return (
         <GuestFrame

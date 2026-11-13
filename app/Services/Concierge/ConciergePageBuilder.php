@@ -69,7 +69,7 @@ class ConciergePageBuilder
             roomNumber: $step === ConciergeStep::Key ? $this->stays->roomNumber($stay) : null,
             shortfall: $step === ConciergeStep::Payment ? $this->payment->shortfall($stay) : null,
             terms: $terms,
-            pin: $step === ConciergeStep::Key ? ConciergePinData::fromStatus($this->pin->for($stay)) : null,
+            pin: $step === ConciergeStep::Key ? ConciergePinData::fromStatus($this->pin->for($stay), $this->pin->canRetry($stay)) : null,
             documents: in_array($step, [ConciergeStep::Key, ConciergeStep::Home, ConciergeStep::CheckedOut], true) ? $this->documents->links($stay, $token) : [],
             canRequestRefund: $step === ConciergeStep::CheckedOut && $this->canRequestRefund($stay),
             checkOutAsked: in_array($step, [ConciergeStep::Key, ConciergeStep::Home], true) && $this->checkOut->open($stay) !== null,

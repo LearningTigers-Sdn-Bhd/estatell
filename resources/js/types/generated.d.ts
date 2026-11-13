@@ -1197,6 +1197,7 @@ status: string,
 code: string | null,
 validFrom: string | null,
 validUntil: string | null,
+canRetry: boolean,
 };
 export type ConciergePlaceData = {
 name: string,
