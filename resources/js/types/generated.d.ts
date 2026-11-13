@@ -849,6 +849,7 @@ export type CompanyOptionData = {
 id: number,
 name: string,
 marketLabel: string | null,
+paysCollectedTaxes: boolean,
 };
 export type CompanyPortalData = {
 email: string | null,
@@ -4489,6 +4490,8 @@ export type CollectedTaxesData = {
 companyPays: boolean,
 companyName: string | null,
 taxes: string[],
+companyDefaultPays: boolean,
+bookingPayer: string | null,
 };
 export type DayUseOfferData = {
 hours: number,
@@ -4658,6 +4661,7 @@ units: App.Data.Reservations.NewUnitData[],
 guests: App.Data.Reservations.NewBookingGuestData[],
 picks: App.Data.Reservations.UnitPickData[],
 billingMode: App.Enums.BillingMode,
+collectedTaxesPayer: App.Enums.CollectedTaxesPayer | null,
 externalReference: string | null,
 groupName: string | null,
 notes: string | null,
@@ -4676,6 +4680,7 @@ bookerGuestId: number,
 bookingSource: { id: number, name: string },
 units: App.Data.Reservations.NewUnitData[],
 billingMode: App.Enums.BillingMode,
+collectedTaxesPayer: App.Enums.CollectedTaxesPayer | null,
 externalReference: string | null,
 companyId: number | null,
 groupName: string | null,
@@ -5535,6 +5540,7 @@ export type ChargeBucket = 'accommodation' | 'day-use' | 'fees' | 'extras' | 'ad
 export type ChargeStatus = 'posted' | 'reversal' | 'moved';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
+export type CollectedTaxesPayer = 'company' | 'guest';
 export type ColumnAlign = 'left' | 'center' | 'right';
 export type CommissionEntryType = 'collected' | 'refunded' | 'refund_fee' | 'commission' | 'adjustment' | 'carried_forward';
 export type CommissionPeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';

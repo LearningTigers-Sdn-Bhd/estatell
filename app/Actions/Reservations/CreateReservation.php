@@ -87,6 +87,7 @@ class CreateReservation
                     'company_id' => $data->companyId,
                     'group_name' => $data->groupName,
                     'billing_mode' => $data->billingMode,
+                    'collected_taxes_payer' => $data->companyId === null ? null : $data->collectedTaxesPayer,
                     'external_reference' => $data->externalReference,
                     'notes' => $data->notes === null || trim($data->notes) === '' ? null : trim($data->notes),
                 ]);

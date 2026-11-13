@@ -5,6 +5,7 @@ use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Actions\NightAudit\PostRoomCharges;
 use App\Actions\Reservations\ChangeNightPrice;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
@@ -345,8 +346,31 @@ test('the summary says who pays the taxes collected at check-in', function (bool
     $setup = collectedTaxSetup($companyPaysTax);
 
     collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
-        ->where('reservation.collectedTaxes', ['companyPays' => $companyPaysTax, 'companyName' => $setup['company']->name, 'taxes' => ['Tourism tax']]);
+        ->where('reservation.collectedTaxes', ['companyPays' => $companyPaysTax, 'companyName' => $setup['company']->name, 'taxes' => ['Tourism tax'], 'companyDefaultPays' => $companyPaysTax, 'bookingPayer' => null]);
 })->with(['the guest pays' => false, 'the company pays' => true]);
+
+test('the booking\'s own choice overrides the company default for posted and scheduled taxes', function (bool $companyPaysTax, CollectedTaxesPayer $choice) {
+    $setup = collectedTaxSetup($companyPaysTax);
+    $setup['reservation']->update(['collected_taxes_payer' => $choice]);
+    $guestPays = $choice === CollectedTaxesPayer::Guest;
+    $unitFolio = Folio::factory()->forUnit($setup['unit'])->create(['property_id' => $setup['unit']->property_id, 'reservation_id' => $setup['reservation']->id]);
+    $reservation = $setup['reservation']->fresh(['booker']);
+
+    $blocks = app(ScheduledFolioRows::class)->forReservation($reservation->property()->with('settings')->first(), $reservation, []);
+    collectedTaxPostNight(['unit' => $setup['unit']->fresh()]);
+
+    expect(FolioLine::query()->where('kind', TransactionKind::Tax)->sole()->folio_id)->toBe($guestPays ? $unitFolio->id : $setup['master']->id)
+        ->and(collect($blocks)->contains(fn (array $block): bool => $block['target'] === $unitFolio->id))->toBe($guestPays)
+        ->and(app(CheckInCollection::class)->for($setup['unit']->fresh())->taxesHidden)->toBe(! $guestPays);
+
+    collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
+        ->where('reservation.collectedTaxes.companyPays', ! $guestPays)
+        ->where('reservation.collectedTaxes.companyDefaultPays', $companyPaysTax)
+        ->where('reservation.collectedTaxes.bookingPayer', $choice->value);
+})->with([
+    'the guest pays though the company default pays' => [true, CollectedTaxesPayer::Guest],
+    'the company pays though its default is the guest' => [false, CollectedTaxesPayer::Company],
+]);
 
 test('the summary has no taxes at check-in row without a company', function () {
     $setup = collectedTaxSetup();

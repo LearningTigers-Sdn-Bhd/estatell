@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Reservations;
 
 use App\Enums\BillingMode;
+use App\Enums\CollectedTaxesPayer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,7 @@ class UpdateReservationGroupRequest extends FormRequest
         return [
             'group_name' => ['nullable', 'string', 'max:150'],
             'billing_mode' => ['required', Rule::enum(BillingMode::class)],
+            'collected_taxes_payer' => ['nullable', Rule::enum(CollectedTaxesPayer::class)],
         ];
     }
 }

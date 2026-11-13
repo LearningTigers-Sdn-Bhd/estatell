@@ -19,6 +19,7 @@ use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Reservations\UnitTaxWaiverFormData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
@@ -475,6 +476,7 @@ class ReservationController extends Controller
                 : null),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
+            'collectedTaxesPayers' => CollectedTaxesPayer::options(),
             'manualReasons' => ManualFolioReason::options(),
             'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),
             'canOverrideCredit' => $user->can(PermissionEnum::CompanyCreditOverride->value),

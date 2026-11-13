@@ -5,6 +5,7 @@ namespace App\Services\Reservations;
 use App\Data\Reservations\CollectedTaxesData;
 use App\Data\Reservations\ReservationData;
 use App\Data\Reservations\ReservationUnitOptionData;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\FolioStatus;
 use App\Enums\StayType;
 use App\Models\Reservation;
@@ -73,7 +74,19 @@ class ReservationOverview
 
         $taxes = $this->collectedTaxPayer->taxNames($reservation->property_id);
 
-        return $taxes === [] ? null : new CollectedTaxesData($company->pays_collected_taxes, $company->name, $taxes);
+        if ($taxes === []) {
+            return null;
+        }
+
+        $bookingPayer = $reservation->collected_taxes_payer;
+
+        return new CollectedTaxesData(
+            companyPays: $bookingPayer === null ? $company->pays_collected_taxes : $bookingPayer === CollectedTaxesPayer::Company,
+            companyName: $company->name,
+            taxes: $taxes,
+            companyDefaultPays: $company->pays_collected_taxes,
+            bookingPayer: $bookingPayer?->value,
+        );
     }
 
     /**

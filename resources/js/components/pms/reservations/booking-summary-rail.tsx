@@ -2,6 +2,11 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { sumMoney } from '@/components/pms/reservations/booking-lines';
+import {
+    companyDefaultLabel,
+    companyPaysCollectedTaxes,
+    showsCollectedTaxes,
+} from '@/components/pms/reservations/collected-taxes-hint';
 import { eachPaysHint } from '@/components/pms/reservations/each-pays-hint';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -24,8 +29,20 @@ function Row({
 }
 
 /**
- * The booking summary: units, the server's room and add-on totals added up for display, the billing mode and the guest
- * list. Tax shows "from folio" until the folio exists. Catalogue discounts are not in the total, because the folio applies
+ * Who pays the taxes collected at check-in, picked under Billing when a company is set. `choice` is a
+ * `CollectedTaxesPayer` value, or "" for the company's default.
+ */
+type CollectedTaxesPick = {
+    taxes: string[];
+    payers: EnumOption[];
+    choice: string;
+    companyDefaultPays: boolean;
+    onChange: (value: string) => void;
+};
+
+/**
+ * The booking summary: units, the server's room and add-on totals added up for display, the billing mode, who pays the
+ * taxes collected at check-in and the guest list. Tax shows "from folio" until the folio exists. Catalogue discounts are not in the total, because the folio applies
  * them; a note says so while any line has one.
  */
 export function BookingSummaryRail({
@@ -36,6 +53,7 @@ export function BookingSummaryRail({
     billingMode,
     onBillingModeChange,
     companyName,
+    collectedTaxes,
     guests,
     unitsWithoutGuest,
     discountCount,
@@ -50,6 +68,7 @@ export function BookingSummaryRail({
     billingMode: string;
     onBillingModeChange: (value: string) => void;
     companyName?: string | null;
+    collectedTaxes?: CollectedTaxesPick | null;
     guests: { name: string; unit: string | null }[];
     unitsWithoutGuest: number;
     /** How many lines have a catalogue discount picked. */
@@ -64,6 +83,12 @@ export function BookingSummaryRail({
     const rooms = sumMoney(quotes.map((quote) => quote.lineTotal));
     const addOns = sumMoney(quotes.map((quote) => quote.addOnsTotal));
     const total = sumMoney([rooms, addOns]);
+    const taxPick =
+        collectedTaxes &&
+        companyName &&
+        showsCollectedTaxes(companyName, collectedTaxes.taxes, billingMode)
+            ? collectedTaxes
+            : null;
 
     return (
         <Card>
@@ -86,6 +111,24 @@ export function BookingSummaryRail({
                             from folio
                         </span>
                     </Row>
+                    {taxPick && (
+                        <Row
+                            label={
+                                taxPick.taxes.length === 1
+                                    ? taxPick.taxes[0]
+                                    : 'Taxes at check-in'
+                            }
+                        >
+                            <span className="text-muted-foreground">
+                                {companyPaysCollectedTaxes(
+                                    taxPick.choice,
+                                    taxPick.companyDefaultPays,
+                                )
+                                    ? companyName
+                                    : 'guest, at check-in'}
+                            </span>
+                        </Row>
+                    )}
                     <Separator />
                     <Row label="Total">
                         <span className="font-medium">
@@ -114,21 +157,45 @@ export function BookingSummaryRail({
                         {payment}
                     </>
                 )}
-                {units > 1 && (
+                {(units > 1 || taxPick) && (
                     <>
                         <Separator />
                         <div className="flex flex-col gap-2">
                             <span className="text-sm font-medium">Billing</span>
-                            <EnumSelect
-                                aria-label="Billing"
-                                options={billingModes}
-                                value={billingMode}
-                                onValueChange={onBillingModeChange}
-                            />
-                            {eachPaysHint(companyName, billingMode) && (
-                                <p className="text-sm text-muted-foreground">
-                                    {eachPaysHint(companyName, billingMode)}
-                                </p>
+                            {units > 1 && (
+                                <>
+                                    <EnumSelect
+                                        aria-label="Billing"
+                                        options={billingModes}
+                                        value={billingMode}
+                                        onValueChange={onBillingModeChange}
+                                    />
+                                    {eachPaysHint(companyName, billingMode) && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {eachPaysHint(
+                                                companyName,
+                                                billingMode,
+                                            )}
+                                        </p>
+                                    )}
+                                </>
+                            )}
+                            {taxPick && (
+                                <>
+                                    <span className="text-sm text-muted-foreground">
+                                        Taxes at check-in
+                                    </span>
+                                    <EnumSelect
+                                        aria-label="Who pays the taxes at check-in"
+                                        options={taxPick.payers}
+                                        allLabel={companyDefaultLabel(
+                                            taxPick.payers,
+                                            taxPick.companyDefaultPays,
+                                        )}
+                                        value={taxPick.choice}
+                                        onValueChange={taxPick.onChange}
+                                    />
+                                </>
                             )}
                         </div>
                     </>

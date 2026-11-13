@@ -41,6 +41,7 @@ export function ReservationActions({
     canManage,
     reservation,
     billingModes,
+    collectedTaxesPayers,
     addUnitOptions,
     canViewCompany,
     canCheckIn,
@@ -65,6 +66,7 @@ export function ReservationActions({
     canManage: boolean;
     reservation: App.Data.Reservations.ReservationData;
     billingModes: EnumOption[];
+    collectedTaxesPayers: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     canViewCompany: boolean;
     canCheckIn: boolean;
@@ -349,6 +351,7 @@ export function ReservationActions({
                     onOpenChange={setEditingGroup}
                     reservation={reservation}
                     billingModes={billingModes}
+                    collectedTaxesPayers={collectedTaxesPayers}
                 />
             )}
             {canManage && hasBoats && (

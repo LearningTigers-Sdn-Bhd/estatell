@@ -192,6 +192,9 @@ type Props = {
     chargeItems: App.Data.Reservations.ChargeItemOptionData[];
     discounts: App.Data.Reservations.DiscountOptionData[];
     billingModes: EnumOption[];
+    collectedTaxesPayers: EnumOption[];
+    /** The names of the property's taxes with Collect at check-in on. */
+    collectedTaxNames: string[];
     companies: App.Data.CityLedger.CompanyOptionData[];
     canOverrideCredit: boolean;
     autoAssignRooms: boolean;
@@ -269,6 +272,8 @@ export default function ReservationCreate({
     chargeItems,
     discounts,
     billingModes,
+    collectedTaxesPayers,
+    collectedTaxNames,
     companies,
     canOverrideCredit,
     autoAssignRooms,
@@ -336,6 +341,7 @@ export default function ReservationCreate({
         company_id: '',
         credit_override_reason: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
+        collected_taxes_payer: '',
         notes: '',
         guests: [emptyGuest('', defaultNationalityCode)],
         lines: [prefilledLine()],
@@ -548,6 +554,9 @@ export default function ReservationCreate({
     const units = totalUnits(data.lines, roomTypes);
     const roomCount = roomsInBooking(data.lines, roomTypes);
     const unitChoices = unitOptions(data.lines, roomTypes);
+    const selectedCompany = companies.find(
+        (company) => String(company.id) === data.company_id,
+    );
 
     const [groupRateNote, setGroupRateNote] = useState<string | null>(null);
 
@@ -1635,6 +1644,8 @@ export default function ReservationCreate({
                                                         form.setData({
                                                             ...data,
                                                             company_id: value,
+                                                            collected_taxes_payer:
+                                                                '',
                                                             lines: data.lines.map(
                                                                 (line) =>
                                                                     plansFor(
@@ -2219,13 +2230,20 @@ export default function ReservationCreate({
                                 currency={currency}
                                 billingModes={billingModes}
                                 billingMode={data.billing_mode}
-                                companyName={
-                                    companies.find(
-                                        (company) =>
-                                            String(company.id) ===
-                                            data.company_id,
-                                    )?.name ?? null
-                                }
+                                companyName={selectedCompany?.name ?? null}
+                                collectedTaxes={{
+                                    taxes: collectedTaxNames,
+                                    payers: collectedTaxesPayers,
+                                    choice: data.collected_taxes_payer,
+                                    companyDefaultPays:
+                                        selectedCompany?.paysCollectedTaxes ??
+                                        false,
+                                    onChange: (value) =>
+                                        form.setData(
+                                            'collected_taxes_payer',
+                                            value,
+                                        ),
+                                }}
                                 onBillingModeChange={(value) =>
                                     form.setData('billing_mode', value)
                                 }

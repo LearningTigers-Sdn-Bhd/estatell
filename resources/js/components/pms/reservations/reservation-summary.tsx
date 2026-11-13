@@ -59,7 +59,8 @@ function Row({
 }
 
 /**
- * Who pays the taxes collected at check-in, then their names: two at most, then "+N" with the full list in a tooltip.
+ * Who pays the taxes collected at check-in, "(this booking)" when Edit group overrides the company's default, then their
+ * names: two at most, then "+N" with the full list in a tooltip.
  */
 function CollectedTaxes({
     value,
@@ -97,6 +98,9 @@ function CollectedTaxes({
     return (
         <>
             {payer}
+            {value.bookingPayer !== null && (
+                <span className="text-muted-foreground"> (this booking)</span>
+            )}
             <span className="text-muted-foreground"> · {names}</span>
         </>
     );

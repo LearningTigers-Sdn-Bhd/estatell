@@ -193,6 +193,8 @@ The toast names the result with the currency code: "Reservation R-1042: 3 of 3 c
 
 With a company picked and the billing mode Each unit pays (2+ units), the rail shows the same `eachPaysHint` under Billing: "Guests pay everything. Nothing is billed to Acme Sdn Bhd. Choose Master folio pays to bill the company."
 
+With a company picked, a tax with **Collect at check-in** on and a billing mode other than Each unit pays, Billing also shows a **Taxes at check-in** select (also on a 1-unit booking, where Billing then shows only this select). The choices are "Company default ({Company pays or Guest pays})", Company pays and Guest pays; it is sent as `collected_taxes_payer` ("" for the default) and resets to the default when the company changes. A summary row under Tax names the tax (or "Taxes at check-in" for 2 or more) and who pays: the company's name, or "guest, at check-in". The page gets `collectedTaxesPayers`, `collectedTaxNames` (empty when there are no companies) and `CompanyOptionData::paysCollectedTaxes`. See [Taxes at check-in](02-group-bookings.md#taxes-at-check-in).
+
 The rail shows units, room and add-on totals (the add-on total comes from the quote, see [Implementation](#implementation)), the billing mode and the guest list. All amounts come from the server. A catalogue discount is not in the total, because the folio applies it (once per stay for a Fixed discount, when the folio applies it); while any line has one, a note under the total says so. Tax shows "from folio" until [Folios and lines](../13-folio/01-folios-and-lines.md) exists. On a walk-in the [Payment section](#payment-section) shows the tax.
 
 ## Room / Bed column

@@ -58,6 +58,8 @@ export type BookingForm = {
     company_id: string;
     credit_override_reason: string;
     billing_mode: string;
+    /** A `CollectedTaxesPayer` value, or "" for the company's default. */
+    collected_taxes_payer: string;
     notes: string;
     /** Past stay only: why the stay is entered late. */
     reason?: string;

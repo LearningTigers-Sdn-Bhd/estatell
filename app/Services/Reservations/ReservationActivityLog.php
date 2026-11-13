@@ -6,6 +6,7 @@ use App\Data\Reservations\ReservationActivityData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Enums\CollectedTaxesPayer;
 use App\Models\ChargeItem;
 use App\Models\Guest;
 use App\Models\Reservation;
@@ -199,6 +200,13 @@ class ReservationActivityLog
             $changes[] = __('billing :old → :new', [
                 'old' => BillingMode::tryFrom((string) ($old['billing_mode'] ?? ''))?->label() ?? __('none'),
                 'new' => BillingMode::tryFrom((string) ($new['billing_mode'] ?? ''))?->label() ?? __('none'),
+            ]);
+        }
+
+        if (($old['collected_taxes_payer'] ?? null) !== ($new['collected_taxes_payer'] ?? null)) {
+            $changes[] = __('taxes at check-in :old → :new', [
+                'old' => CollectedTaxesPayer::tryFrom((string) ($old['collected_taxes_payer'] ?? ''))?->label() ?? __('company default'),
+                'new' => CollectedTaxesPayer::tryFrom((string) ($new['collected_taxes_payer'] ?? ''))?->label() ?? __('company default'),
             ]);
         }
 

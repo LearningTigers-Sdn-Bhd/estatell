@@ -3,8 +3,10 @@
 use App\Actions\Reservations\GroupUpdateResult;
 use App\Actions\Reservations\UpdateReservationGroup;
 use App\Enums\BillingMode;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioType;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
@@ -60,6 +62,34 @@ test('another reservation is left alone', function () {
 
     expect($other->fresh()->group_name)->toBe('Keep')
         ->and($other->fresh()->billing_mode)->toBe(BillingMode::MasterPays);
+});
+
+test('it sets who pays the taxes at check-in for a booking with a company and logs it', function () {
+    $reservation = Reservation::factory()->create();
+    $reservation->update(['company_id' => Company::factory()->for($reservation->property)->create()->id]);
+    $actor = User::factory()->for($reservation->property)->create();
+
+    app(UpdateReservationGroup::class)($actor, $reservation, null, BillingMode::MasterPays, CollectedTaxesPayer::Guest);
+
+    $activity = Activity::query()->sole();
+
+    expect($reservation->fresh()->collected_taxes_payer)->toBe(CollectedTaxesPayer::Guest)
+        ->and($activity->properties['old']['collected_taxes_payer'])->toBeNull()
+        ->and($activity->properties['new']['collected_taxes_payer'])->toBe('guest');
+
+    app(UpdateReservationGroup::class)($actor, $reservation, null, BillingMode::MasterPays);
+
+    expect($reservation->fresh()->collected_taxes_payer)->toBeNull();
+});
+
+test('a booking with no company keeps no choice of who pays the taxes at check-in', function () {
+    $reservation = Reservation::factory()->create();
+    $actor = User::factory()->for($reservation->property)->create();
+
+    app(UpdateReservationGroup::class)($actor, $reservation, null, BillingMode::MasterPays, CollectedTaxesPayer::Company);
+
+    expect($reservation->fresh()->collected_taxes_payer)->toBeNull()
+        ->and(Activity::query()->count())->toBe(0);
 });
 
 /**

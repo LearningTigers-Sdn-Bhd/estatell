@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\CollectedTaxesPayer;
+use App\Models\Tax;
+
 require_once __DIR__.'/../Support/BookingSetup.php';
 
 use App\Enums\DefaultRoleEnum;
@@ -583,6 +586,23 @@ test('a booking can name a company and a refused company saves nothing', functio
     $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['company_id' => $company->id]));
 
     expect(Reservation::query()->sole()->company_id)->toBe($company->id);
+});
+
+test('a booking with a company saves who pays the taxes at check-in, and the page sends the tax names', function () {
+    $setup = bookingSetup();
+    $company = Company::factory()->for($setup['property'])->create(['pays_collected_taxes' => true]);
+    Tax::factory()->for($setup['property'])->create(['name' => 'Heritage Fee', 'collect_at_check_in' => true, 'enabled' => true]);
+
+    $this->actingAs($setup['user'])
+        ->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('collectedTaxNames', ['Heritage Fee'])
+            ->where('companies.0.paysCollectedTaxes', true));
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['company_id' => $company->id, 'collected_taxes_payer' => 'guest']))
+        ->assertSessionHasNoErrors();
+
+    expect(Reservation::query()->sole()->collected_taxes_payer)->toBe(CollectedTaxesPayer::Guest);
 });
 
 test('staff without company.view cannot name a company', function () {

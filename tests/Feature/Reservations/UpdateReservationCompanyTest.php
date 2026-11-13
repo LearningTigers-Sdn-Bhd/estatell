@@ -3,6 +3,7 @@
 use App\Actions\Reservations\ReservationResult;
 use App\Actions\Reservations\UpdateReservationCompany;
 use App\Enums\ArInvoiceStatus;
+use App\Enums\CollectedTaxesPayer;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioType;
 use App\Enums\ReservationStatus;
@@ -45,6 +46,16 @@ test('it sets the company, creates the master folio and logs the change', functi
         ->and($activity->causer_id)->toBe($setup['user']->id)
         ->and($activity->properties['old']['company_id'])->toBeNull()
         ->and($activity->properties['new']['company_id'])->toBe($company->id);
+});
+
+test('a new company drops the booking\'s own choice of who pays the taxes at check-in', function () {
+    $setup = companySetup();
+    [$first, $second] = Company::factory()->count(2)->for($setup['property'])->create();
+    $setup['reservation']->update(['company_id' => $first->id, 'collected_taxes_payer' => CollectedTaxesPayer::Guest]);
+
+    app(UpdateReservationCompany::class)($setup['user'], $setup['reservation'], $second->id);
+
+    expect($setup['reservation']->fresh()->collected_taxes_payer)->toBeNull();
 });
 
 test('an empty master folio payer follows the new company and clearing removes it', function () {
