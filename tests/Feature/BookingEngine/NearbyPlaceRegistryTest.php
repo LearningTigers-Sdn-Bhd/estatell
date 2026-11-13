@@ -87,7 +87,7 @@ describe('owner Nearby places tab', function () {
         ['owner' => $owner, 'property' => $property] = nearbyOwner();
         ['owner' => $otherOwner, 'property' => $otherProperty] = nearbyOwner();
 
-        $this->actingAs($owner)->post(route('settings.booking-website.nearby-places.store', $property), ['google_maps_url' => PANGKOR_JETTY])
+        $this->actingAs($owner)->from(route('settings.booking-website.nearby-places', $property))->post(route('settings.booking-website.nearby-places.store', $property), ['google_maps_url' => PANGKOR_JETTY])
             ->assertRedirect(route('settings.booking-website.nearby-places', $property));
         $this->actingAs($otherOwner)->post(route('settings.booking-website.nearby-places.store', $otherProperty), ['google_maps_url' => PANGKOR_JETTY]);
 

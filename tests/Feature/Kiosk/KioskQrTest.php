@@ -22,7 +22,7 @@ it('issues a per-stay link with only the hash persisted and departure-day expiry
         ->and($stored->token_hash)->toBe(hash('sha256', $token))
         ->and($stored->property_id)->toBe($property->id)
         ->and($stored->reservation_unit_id)->toBe($unit->id)
-        ->and($stored->expires_at->utc()->format('Y-m-d H:i:s'))->toBe('2026-10-16 16:00:00')
+        ->and($stored->expires_at->utc()->format('Y-m-d H:i:s'))->toBe('2026-10-23 16:00:00')
         ->and(json_encode($stored->getRawOriginal()))->not->toContain($token)
         ->and(Activity::query()->get()->toJson())->not->toContain($token);
 

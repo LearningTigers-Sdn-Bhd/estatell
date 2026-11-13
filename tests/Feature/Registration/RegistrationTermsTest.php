@@ -78,7 +78,7 @@ test('the renderer strips raw html', function () {
     expect($result['html'])->not->toContain('<script>')->and($result['html'])->toContain('Safe text');
 });
 
-test('placeholder values come from the property, with empty tourism tax text when none is set', function () {
+test('placeholder values come from the property, with readable tourism tax text when none is set', function () {
     [, $property] = termsProperty();
     $property->settings->update(['check_in_time' => '14:30', 'check_out_time' => '12:00', 'security_deposit_amount' => '50.00']);
     $renderer = app(TermsRenderer::class);
@@ -90,7 +90,10 @@ test('placeholder values come from the property, with empty tourism tax text whe
         ->and($without['check_in_time'])->toBe('2:30 PM')
         ->and($without['check_out_time'])->toBe('12:00 PM')
         ->and($without['security_deposit'])->toBe('MYR 50.00')
-        ->and($without['tourism_tax_rate'])->toBe('');
+        ->and($without['tourism_tax_rate'])->toBe('the applicable amount');
+
+    expect($renderer->render('Tourism tax of {{tourism_tax_rate}} applies where required by law.', $without)['text'])
+        ->toBe('Tourism tax of the applicable amount applies where required by law.');
 
 });
 
@@ -100,7 +103,7 @@ test('the tourism tax placeholder reads the enabled tourism tax', function () {
 
     $tourismTax = fn () => $property->taxes()->whereHas('transactionCode', fn ($query) => $query->where('system_key', 'tourism_tax'));
 
-    expect(app(TermsRenderer::class)->valuesFor($property->refresh())['tourism_tax_rate'])->toBe('');
+    expect(app(TermsRenderer::class)->valuesFor($property->refresh())['tourism_tax_rate'])->toBe('the applicable amount');
 
     $tourismTax()->update(['enabled' => true]);
 
@@ -112,7 +115,7 @@ test('the tourism tax placeholder reads the enabled tourism tax', function () {
 
     $tourismTax()->update(['enabled' => false]);
 
-    expect(app(TermsRenderer::class)->valuesFor($property->refresh())['tourism_tax_rate'])->toBe('');
+    expect(app(TermsRenderer::class)->valuesFor($property->refresh())['tourism_tax_rate'])->toBe('the applicable amount');
 });
 
 test('property defaults seed one default terms document with version 1 in both languages', function () {

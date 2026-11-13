@@ -1050,6 +1050,262 @@ lastReference: string | null,
 currency: App.Data.Property.CurrencyData,
 };
 }
+namespace Concierge {
+export type ConciergeAmenityData = {
+name: string,
+category: string,
+location: string | null,
+openingHours: string | null,
+feeInformation: string | null,
+reservationRequired: boolean,
+reservationInstructions: string | null,
+guestNotes: string | null,
+};
+export type ConciergeAmenitySettingsData = {
+id: number,
+name: string,
+category: string,
+location: string | null,
+openingHours: string | null,
+feeInformation: string | null,
+reservationRequired: boolean,
+reservationInstructions: string | null,
+guestNotes: string | null,
+};
+export type ConciergeBillData = {
+lines: App.Data.Concierge.ConciergeBillLineData[],
+balance: string,
+due: string,
+credit: string,
+currency: string,
+canPay: boolean,
+canCheckOut: boolean,
+checkOutOpensOn: string | null,
+checkOutAsked: boolean,
+};
+export type ConciergeBillLineData = {
+description: string,
+amount: string,
+kind: string,
+date: string,
+};
+export type ConciergeContactData = {
+deskOpen: boolean | null,
+deskHours: string | null,
+whatsappUrl: string | null,
+whatsappNumber: string | null,
+afterHoursMessage: string | null,
+dutyManagerPhone: string | null,
+emergencyPhone: string | null,
+emergencyServicesNumber: string | null,
+emergencyInstructions: string | null,
+deskPhone: string | null,
+deskEmail: string | null,
+deskExtension: string | null,
+};
+export type ConciergeContactSettingsData = {
+frontDeskOpen24h: boolean,
+frontDeskOpensAt: string | null,
+frontDeskClosesAt: string | null,
+frontDeskWhatsapp: string | null,
+afterHoursMessage: string | null,
+dutyManagerPhone: string | null,
+emergencyPhone: string | null,
+emergencyServicesNumber: string | null,
+emergencyInstructions: string | null,
+frontDeskPhone: string | null,
+frontDeskEmail: string | null,
+frontDeskExtension: string | null,
+};
+export type ConciergeDocumentData = {
+label: string,
+url: string,
+};
+export type ConciergeEInvoiceBuyerData = {
+name: string,
+idType: string,
+idValue: string,
+tin: string,
+email: string,
+phone: string,
+addressLine1: string,
+addressLine2: string,
+city: string,
+postalCode: string,
+stateCode: string,
+countryCode: string,
+};
+export type ConciergeEInvoiceData = {
+state: App.Enums.ConciergeEInvoiceState,
+title: string,
+message: string,
+invoiceNumber: string | null,
+viewUrl: string | null,
+buyer: App.Data.Concierge.ConciergeEInvoiceBuyerData | null,
+rejection: string | null,
+};
+export type ConciergeFaqData = {
+id: number,
+question: string,
+answer: string,
+topic: string | null,
+};
+export type ConciergeHotelInfoSettingsData = {
+about: string | null,
+arrivalInstructions: string | null,
+departureInstructions: string | null,
+directions: string | null,
+airportDistanceKm: number | null,
+airportTravelMinutes: number | null,
+stationDistanceKm: number | null,
+stationTravelMinutes: number | null,
+cityCentreDistanceKm: number | null,
+cityCentreTravelMinutes: number | null,
+nearestTransitStop: string | null,
+airportTransferOffered: boolean,
+airportTransferPrice: string | null,
+airportTransferLeadHours: number | null,
+pickupPoint: string | null,
+shuttleSchedule: string | null,
+parkingNotes: string | null,
+parkingAvailability: string | null,
+parkingType: string | null,
+parkingPrice: string | null,
+parkingPriceUnit: string | null,
+parkingSpaces: number | null,
+parkingHeightLimitM: string | null,
+parkingEvCharging: boolean,
+parkingBookingRequired: boolean,
+transportNotes: string | null,
+};
+export type ConciergeIdentityPrefillData = {
+fullName: string | null,
+nationalityCode: string | null,
+hasDateOfBirth: boolean,
+gender: string | null,
+documentKind: string | null,
+documentNumberHint: string | null,
+};
+export type ConciergeOfferData = {
+roomTypeId: number,
+name: string,
+total: string,
+currency: string,
+};
+export type ConciergePinData = {
+status: string,
+code: string | null,
+validFrom: string | null,
+validUntil: string | null,
+canRetry: boolean,
+};
+export type ConciergePlaceData = {
+name: string,
+description: string | null,
+mapsUrl: string,
+distance: string | null,
+};
+export type ConciergePoliciesData = {
+checkInTime: string,
+checkOutTime: string,
+houseRules: string | null,
+roomPolicy: string | null,
+paymentPolicy: string | null,
+otherPolicies: string | null,
+smoking: string | null,
+pets: string | null,
+terms: App.Data.Concierge.ConciergePolicyTermData[],
+};
+export type ConciergePolicyTermData = {
+label: string,
+text: string,
+};
+export type ConciergePropertyData = {
+name: string,
+addressLines: string[],
+phone: string | null,
+email: string | null,
+mapsUrl: string | null,
+checkInTime: string,
+checkOutTime: string,
+about: string | null,
+arrivalInstructions: string | null,
+departureInstructions: string | null,
+transport: App.Data.Concierge.ConciergeTransportData | null,
+topics: App.Data.Concierge.ConciergeTopicData[],
+};
+export type ConciergeRequestData = {
+id: number,
+type: string,
+details: string,
+status: App.Data.Shared.BadgeData,
+openedAt: string,
+note: string | null,
+};
+export type ConciergeStayData = {
+token: string,
+step: App.Enums.ConciergeStep,
+property: App.Data.Property.PropertySummaryData,
+guestFirstName: string,
+arrivalDate: string,
+departureDate: string,
+reference: string,
+nights: number,
+nationalityRequired: boolean,
+roomNumber: string | null,
+shortfall: string | null,
+terms: App.Data.Concierge.ConciergeTermsData | null,
+pin: App.Data.Concierge.ConciergePinData | null,
+documents: App.Data.Concierge.ConciergeDocumentData[],
+canRequestRefund: boolean,
+checkOutAsked: boolean,
+refundRequest: App.Data.Concierge.ConciergeRequestData | null,
+locationRequired: boolean,
+identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
+eInvoiceUrl: string | null,
+checkInTime: string | null,
+checkInOpensLater: boolean,
+};
+export type ConciergeTermsData = {
+version: number,
+text: string,
+locale: string,
+};
+export type ConciergeTopicData = {
+id: number,
+title: string,
+body: string,
+};
+export type ConciergeTransportData = {
+directions: string | null,
+airport: string | null,
+station: string | null,
+cityCentre: string | null,
+nearestTransitStop: string | null,
+airportTransferOffered: boolean,
+airportTransferPrice: string | null,
+airportTransferLead: string | null,
+pickupPoint: string | null,
+shuttleSchedule: string | null,
+parkingNotes: string | null,
+parkingAvailability: string | null,
+parkingType: string | null,
+parkingPrice: string | null,
+parkingSpaces: number | null,
+parkingHeightLimit: string | null,
+parkingEvCharging: boolean,
+parkingBookingRequired: boolean,
+notes: string | null,
+};
+export type ConciergeWifiData = {
+id: number,
+name: string,
+password: string | null,
+note: string | null,
+active: boolean,
+primary: boolean,
+};
+}
 namespace Dashboard {
 export type ChannelMixCompanyData = {
 name: string,
@@ -1705,6 +1961,23 @@ targets: App.Data.Folio.FolioOptionData[],
 export type SplitPartData = {
 folioId: number,
 amount: string,
+};
+}
+namespace GuestRequests {
+export type GuestRequestRowData = {
+id: number,
+type: App.Data.Shared.BadgeData,
+source: string,
+status: App.Data.Shared.BadgeData,
+details: string,
+roomNumber: string | null,
+guestName: string | null,
+assignedTo: number | null,
+assigneeName: string | null,
+openedAt: string,
+resolvedAt: string | null,
+resolutionNote: string | null,
+moves: string[],
 };
 }
 namespace Guests {
@@ -5217,6 +5490,8 @@ export type CompanyRateMarket = 'all' | 'local' | 'international';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
 export type CompanyUserStatus = 'pending' | 'active' | 'revoked';
+export type ConciergeEInvoiceState = 'after_check_out' | 'unavailable' | 'window_closed' | 'in_summary' | 'open' | 'processing' | 'valid';
+export type ConciergeStep = 'identity' | 'card' | 'payment' | 'check_in' | 'key' | 'home' | 'checked_out' | 'not_open' | 'hold_expired' | 'desk';
 export type DashboardTab = 'performance' | 'today';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
@@ -5241,6 +5516,10 @@ export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
 export type GuestEmail = 'e_invoice';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
+export type GuestRequestRefusal = 'invalid_transition' | 'stay_not_in_house' | 'room_mismatch' | 'resolved_on_closed_date' | 'note_required' | 'no_target' | 'too_many_open' | 'assignee_not_allowed';
+export type GuestRequestSource = 'in_person' | 'phone' | 'message' | 'concierge';
+export type GuestRequestStatus = 'open' | 'in_progress' | 'resolved' | 'cancelled';
+export type GuestRequestType = 'housekeeping' | 'maintenance' | 'complaint' | 'other' | 'refund';
 export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' | 'set_priority' | 'clear_priority' | 'add_remark' | 'needs_maintenance';
 export type HousekeepingReason = 'departed' | 'stay_over';
 export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition' | 'cleaning_in_progress' | 'cleaning_not_started';
@@ -5277,6 +5556,9 @@ export type OverdueDeparturePolicy = 'extend_one_night' | 'block';
 export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PageOrientation = 'portrait' | 'landscape';
+export type ParkingAvailability = 'none' | 'on_site' | 'nearby';
+export type ParkingPriceUnit = 'free' | 'hour' | 'night' | 'entry';
+export type ParkingType = 'self' | 'valet' | 'both';
 export type PartnerStatus = 'invited' | 'active' | 'suspended';
 export type PasscodeKind = 'generated' | 'custom';
 export type PasscodeMode = 'generated' | 'custom';
@@ -5293,8 +5575,8 @@ export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';

@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\DoorLocks\IssueDoorPasscode;
+use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
@@ -277,6 +278,21 @@ function replaceUrl($unit, $passcode): string
         'doorPasscode' => $passcode->id,
     ]);
 }
+
+it('lets staff ask for the stay PIN again, and the page waits for it', function () {
+    Queue::fake();
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+
+    $this->actingAs($owner)->post(route('reservations.units.door-pins.reissue', [
+        'property' => $property,
+        'reservation' => $unit->reservation_id,
+        'unit' => $unit->id,
+    ]))->assertRedirect();
+
+    Queue::assertPushed(SyncStayPasscodesJob::class, fn (SyncStayPasscodesJob $job) => $job->reservationUnitId === $unit->id);
+    expect(RetryStayPasscodes::underway($unit->id))->toBeTrue();
+});
 
 it('lets staff replace the stay PIN with one they typed', function () {
     ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true);

@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { ListChecks } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import {
     AmenityGroupRow,
     AmenityViewToggle,
@@ -31,12 +31,14 @@ function PickerRow({
     showCategory,
     saveUrl,
     readOnly,
+    action,
 }: {
     amenity: Amenity;
     on: boolean;
     showCategory: boolean;
     saveUrl: string;
     readOnly: boolean;
+    action?: ReactNode;
 }) {
     const [saving, setSaving] = useState(false);
 
@@ -90,6 +92,9 @@ function PickerRow({
                     {amenity.category}
                 </TableCell>
             )}
+            {action !== undefined && (
+                <TableCell className="text-end">{action}</TableCell>
+            )}
         </TableRow>
     );
 }
@@ -106,6 +111,7 @@ export function AmenityPicker({
     page,
     listUrl,
     headerClassName,
+    rowAction,
 }: {
     picker: Picker;
     saveUrl: string;
@@ -115,10 +121,12 @@ export function AmenityPicker({
     readOnly: boolean;
     page: number;
     listUrl: string;
+    /** An extra cell at the end of each row, for example a button that opens the amenity's details. */
+    rowAction?: (amenity: Amenity, on: boolean) => ReactNode;
 }) {
     const table = useAmenityTable(picker.amenities, page, listUrl);
     const isOn = (amenity: Amenity) => picker.selectedIds.includes(amenity.id);
-    const columnCount = table.view === 'list' ? 3 : 2;
+    const columnCount = (table.view === 'list' ? 3 : 2) + (rowAction ? 1 : 0);
 
     if (picker.amenities.length === 0) {
         return (
@@ -156,6 +164,11 @@ export function AmenityPicker({
                             {table.view === 'list' && (
                                 <TableHead>Category</TableHead>
                             )}
+                            {rowAction && (
+                                <TableHead className="text-end">
+                                    Details
+                                </TableHead>
+                            )}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -168,6 +181,11 @@ export function AmenityPicker({
                                       showCategory
                                       saveUrl={saveUrl}
                                       readOnly={readOnly}
+                                      action={
+                                          rowAction &&
+                                          (rowAction(amenity, isOn(amenity)) ??
+                                              null)
+                                      }
                                   />
                               ))
                             : table.groups.map((group) => (
@@ -191,6 +209,14 @@ export function AmenityPicker({
                                                   showCategory={false}
                                                   saveUrl={saveUrl}
                                                   readOnly={readOnly}
+                                                  action={
+                                                      rowAction &&
+                                                      (rowAction(
+                                                          amenity,
+                                                          isOn(amenity),
+                                                      ) ??
+                                                          null)
+                                                  }
                                               />
                                           ))}
                                   </Fragment>

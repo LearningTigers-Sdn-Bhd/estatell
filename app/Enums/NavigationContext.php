@@ -51,6 +51,7 @@ enum NavigationContext: string
                 'reservations.*',
                 'guests.*',
                 'housekeeping.*',
+                'guest-requests.*',
                 'boats.*',
                 'rates.*',
                 'night-audit.*',

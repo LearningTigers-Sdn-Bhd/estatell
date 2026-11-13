@@ -44,7 +44,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $charter_charge_item_id The charge item a Charter boat trip adds once (Sand Bay: Charter Boat RM280). Null: nothing is added.
  * @property KioskKeyMode $kiosk_key_mode
  * @property bool $kiosk_walk_in_enabled
+ * @property bool $concierge_walk_in_enabled
+ * @property string|null $house_rules
+ * @property bool $concierge_refund_requests_enabled
  * @property int $kiosk_idle_timeout_seconds
+ * @property string|null $about
+ * @property string|null $arrival_instructions
+ * @property string|null $departure_instructions
+ * @property bool $front_desk_open_24h
+ * @property string|null $front_desk_opens_at
+ * @property string|null $front_desk_closes_at
+ * @property string|null $front_desk_whatsapp
+ * @property string|null $after_hours_message
+ * @property string|null $duty_manager_phone
+ * @property string|null $emergency_phone
+ * @property string|null $emergency_services_number
+ * @property string|null $emergency_instructions
+ * @property string|null $room_policy
+ * @property string|null $payment_policy
+ * @property string|null $other_policies
+ * @property string|null $front_desk_phone
+ * @property string|null $front_desk_email
+ * @property string|null $front_desk_extension
+ * @property bool $concierge_location_check_enabled Guests must be at the property to check in on the Concierge page.
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -53,7 +75,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
     'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
     'migration_window_days', 'charter_charge_item_id', 'agent_deposit_percent', 'agent_deposit_hours', 'agent_full_payment_days',
-    'kiosk_key_mode', 'kiosk_walk_in_enabled', 'kiosk_idle_timeout_seconds',
+    'kiosk_key_mode', 'kiosk_walk_in_enabled', 'kiosk_idle_timeout_seconds', 'concierge_walk_in_enabled', 'house_rules', 'concierge_refund_requests_enabled',
+    'about', 'arrival_instructions', 'departure_instructions', 'front_desk_open_24h', 'front_desk_opens_at', 'front_desk_closes_at',
+    'front_desk_whatsapp', 'after_hours_message', 'duty_manager_phone', 'emergency_phone', 'emergency_services_number', 'emergency_instructions',
+    'room_policy', 'payment_policy', 'other_policies', 'front_desk_phone', 'front_desk_email', 'front_desk_extension',
+    'concierge_location_check_enabled',
 ])]
 class PropertySetting extends Model
 {
@@ -84,6 +110,10 @@ class PropertySetting extends Model
             'agent_full_payment_days' => 'integer',
             'kiosk_key_mode' => KioskKeyMode::class,
             'kiosk_walk_in_enabled' => 'boolean',
+            'concierge_walk_in_enabled' => 'boolean',
+            'concierge_refund_requests_enabled' => 'boolean',
+            'concierge_location_check_enabled' => 'boolean',
+            'front_desk_open_24h' => 'boolean',
             'kiosk_idle_timeout_seconds' => 'integer',
         ];
     }

@@ -72,6 +72,18 @@
             .rule th, .total td { background-color: #ececec; }
             tr.rule:nth-child(even) td { background-color: #f6f6f6; }
         @endif
+        @if ($guestDocument ?? false)
+            body { color: #2d3020; line-height: 1.5; }
+            .title { color: #414723; font-size: {{ $body + 12 }}pt; }
+            .heading { color: #414723; }
+            .letterhead { border-bottom-color: #414723; }
+            .letterhead .property-details .heading { font-size: {{ $body + 5 }}pt; }
+            .letterhead td { padding-bottom: 16pt; }
+            .info-strip { background-color: #f5f2e8; }
+            .info-strip td, .info-strip td:last-child { padding: 12pt; }
+            .rule td, .rule th { padding-top: 8pt; padding-bottom: 8pt; border-bottom-color: #deded2; }
+            .total td, .total td:last-child { background-color: #f5f2e8; border-top-color: #414723; padding: 8pt; }
+        @endif
     </style>
     @stack('head')
 </head>

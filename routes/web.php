@@ -65,6 +65,7 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}']
         require __DIR__.'/settings.php';
         require __DIR__.'/finance.php';
         require __DIR__.'/front-desk.php';
+        require __DIR__.'/guest-requests.php';
         require __DIR__.'/guests.php';
         require __DIR__.'/housekeeping.php';
         require __DIR__.'/registration.php';
@@ -79,3 +80,4 @@ require __DIR__.'/admin.php';
 require __DIR__.'/partner.php';
 require __DIR__.'/portal.php';
 require __DIR__.'/guest.php';
+require __DIR__.'/concierge.php';

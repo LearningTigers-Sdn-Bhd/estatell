@@ -56,6 +56,12 @@ class FrontDeskNavigation
                     icon: 'spray-can',
                     active: request()->routeIs('housekeeping.*'),
                 ) : null,
+                $user->can(PermissionEnum::GuestRequestsView->value) ? new NavItemData(
+                    title: __('Requests'),
+                    href: route('guest-requests.index', ['property' => $property->code], absolute: false),
+                    icon: 'concierge-bell',
+                    active: request()->routeIs('guest-requests.*'),
+                ) : null,
                 $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
                     title: __('Boat Trips'),
                     href: route('boats.index', ['property' => $property->code], absolute: false),

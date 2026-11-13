@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
+use App\Actions\Concierge\SendConciergeStayLink;
 use App\Actions\DoorLocks\QueueStayKeyCards;
 use App\Actions\DoorLocks\QueueStayPasscodeSync;
 use App\Actions\EInvoice\QueueFolioEInvoiceOnClose;
@@ -122,6 +123,18 @@ class AppServiceProvider extends ServiceProvider
     protected function configureApiRateLimiting(): void
     {
         RateLimiter::for('api-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+
+        // The Concierge page has no login. Browsing is limited per address and generous, because a lobby shares one Wi-Fi
+        // address. A write is limited per stay link and route, so one guest cannot use up another's budget. Looking a stay
+        // up by booking code and booking a walk-in are limited per address, because they take no link.
+        RateLimiter::for('concierge', fn (Request $request): Limit => Limit::perMinute(240)->by('concierge:'.$request->ip()));
+        RateLimiter::for('concierge-write', function (Request $request): Limit {
+            $token = $request->route('token');
+
+            return Limit::perMinute(20)->by('concierge-write:'.(is_string($token) ? $token : $request->ip()).'|'.$request->route()?->getName());
+        });
+        RateLimiter::for('concierge-lookup', fn (Request $request): Limit => Limit::perMinute(30)->by('concierge-lookup:'.$request->ip()));
+        RateLimiter::for('concierge-walk-in', fn (Request $request): Limit => Limit::perMinutes(10, 6)->by('concierge-walk-in:'.$request->ip()));
         RateLimiter::for('api-walk-in', function (Request $request): array {
             $kiosk = $request->attributes->get('kiosk');
 
@@ -156,6 +169,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen([RatesChanged::class, InventoryChanged::class, ReservationChanged::class], fn (RatesChanged|InventoryChanged|ReservationChanged $event) => app(RecordChannelAriChange::class)($event));
         Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayKeyCards::class)($event));
+        Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(SendConciergeStayLink::class)($event));
         Event::listen(FolioClosed::class, fn (FolioClosed $event) => app(QueueFolioEInvoiceOnClose::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 

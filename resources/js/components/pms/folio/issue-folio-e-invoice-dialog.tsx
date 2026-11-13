@@ -24,7 +24,7 @@ import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { check as checkTaxNumber } from '@/routes/finance/e-invoices/tax-number';
 import { eInvoice } from '@/routes/reservations/folios';
 
-const MALAYSIA_STATES = [
+export const MALAYSIA_STATES = [
     { value: '01', label: 'Johor' },
     { value: '02', label: 'Kedah' },
     { value: '03', label: 'Kelantan' },
@@ -44,7 +44,7 @@ const MALAYSIA_STATES = [
     { value: '17', label: 'Not applicable (outside Malaysia)' },
 ];
 
-const ID_TYPES = [
+export const ID_TYPES = [
     { value: 'NRIC', label: 'Malaysian IC (MyKad)' },
     { value: 'PASSPORT', label: 'Passport' },
     { value: 'BRN', label: 'Company registration number' },

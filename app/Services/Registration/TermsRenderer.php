@@ -142,7 +142,7 @@ class TermsRenderer
             ->first();
 
         if ($tax === null) {
-            return '';
+            return __('the applicable amount');
         }
 
         $rate = rtrim(rtrim($tax->rate, '0'), '.');
