@@ -445,7 +445,7 @@ class FolioStatement
             eInvoiceRequired: $canSubmitEInvoice && $this->staysNeedingOwnEInvoice->isOverLimit($folio),
             collectedTaxNote: $this->collectedTaxRows->note($rows, $entries->pluck('folio')->filter()->keyBy('id'), $user),
             creditMove: $isOpen && ($can['recordPayment'] ?? false) ? $this->creditMove($folio, $balance, $entries, $balances) : null,
-            paymentCreditWarning: $purposes !== [] && $isOpen && $folio->type !== FolioType::Unit ? $this->paymentCreditWarning($entry, $projected, $entries, $blocks, $balances) : null,
+            paymentCreditWarning: $purposes !== [] ? $this->paymentCreditWarning($entry, $projected, $entries, $blocks, $balances) : null,
             eInvoiceRejection: $rejected === null ? [] : array_map(
                 fn (array $reason): array => ['message' => $reason['message'], 'fix' => $reason['fix']],
                 array_values(array_filter($this->lhdnRejectionReasons->for($rejected), fn (array $reason): bool => $reason['where'] === 'buyer')),
@@ -687,16 +687,15 @@ class FolioStatement
     }
 
     /**
-     * The warning data for Record payment on a Master or third-party folio: what it owes (its projected total, never
-     * below 0) and what the other Open folios and "not started" entries of the booking owe, Scheduled rows included.
-     * Null when no other folio owes.
+     * The warning data for Record payment: what this entry owes (its projected total, never below 0) and what the
+     * other Open folios and "not started" entries of the booking owe, Scheduled rows included (0 when none owes).
      *
      * @param  array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}  $entry
      * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
      * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
      * @param  array<int, string>  $balances
      */
-    private function paymentCreditWarning(array $entry, BigDecimal $projected, Collection $entries, array $blocks, array $balances): ?PaymentCreditWarningData
+    private function paymentCreditWarning(array $entry, BigDecimal $projected, Collection $entries, array $blocks, array $balances): PaymentCreditWarningData
     {
         $scheduled = fn (array $other): BigDecimal => collect($blocks)
             ->filter(fn (array $block): bool => $other['folio'] === null ? ($block['target'] === null && $block['unit'] === $other['unit']) : $block['target'] === $other['folio']->id)
@@ -710,10 +709,6 @@ class FolioStatement
             ])
             ->filter(fn (array $other): bool => $other['owes']->isPositive())
             ->values();
-
-        if ($owing->isEmpty()) {
-            return null;
-        }
 
         return new PaymentCreditWarningData(
             (string) ($projected->isNegative() ? BigDecimal::zero() : $projected)->toScale(2),

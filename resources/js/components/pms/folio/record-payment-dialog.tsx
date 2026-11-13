@@ -71,8 +71,8 @@ function cents(amount: string): number {
 }
 
 /**
- * Warns that the part of the amount above what this folio owes stays here as credit while other folios of the booking
- * still owe. It never blocks the payment: an agent may pay ahead on purpose.
+ * Warns that the part of the amount above what this folio owes stays here as credit, and, when other folios of the
+ * booking still owe, how much. It never blocks the payment: an agent may pay ahead on purpose.
  */
 function CreditWarning({
     warning,
@@ -105,17 +105,19 @@ function CreditWarning({
                     />{' '}
                     stays here as credit.
                 </p>
-                <p>
-                    {warning.othersLabel ??
-                        `${warning.othersCount} other folios`}{' '}
-                    still {warning.othersCount === 1 ? 'owes' : 'owe'}{' '}
-                    <MoneyText
-                        amount={warning.othersTotal}
-                        currency={currency}
-                    />
-                    . Record their part on those folios, or move the credit
-                    later with Move credit.
-                </p>
+                {warning.othersCount > 0 && (
+                    <p>
+                        {warning.othersLabel ??
+                            `${warning.othersCount} other folios`}{' '}
+                        still {warning.othersCount === 1 ? 'owes' : 'owe'}{' '}
+                        <MoneyText
+                            amount={warning.othersTotal}
+                            currency={currency}
+                        />
+                        . Record their part on those folios, or move the credit
+                        later with Move credit.
+                    </p>
+                )}
             </AlertDescription>
         </Alert>
     );

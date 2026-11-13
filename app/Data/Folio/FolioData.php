@@ -96,7 +96,7 @@ class FolioData extends Data
         public ?CollectedTaxNoteData $collectedTaxNote = null,
         /** Set on an Open folio in credit when another Open folio of the reservation owes money and the user holds `payment.record`. */
         public ?CreditMoveData $creditMove = null,
-        /** Set on an Open Master or third-party folio that can take a payment when other folios of the booking still owe. */
+        /** Set when the folio or "not started" entry can take a payment: what it owes and what the other folios owe. */
         public ?PaymentCreditWarningData $paymentCreditWarning = null,
     ) {}
 }

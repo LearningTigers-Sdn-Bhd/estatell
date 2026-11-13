@@ -321,7 +321,7 @@ test('Record payment on the master folio warns about the tax the guest still owe
         ->where('folio.paymentCreditWarning.othersLabel', fn (string $label): bool => str_starts_with($label, 'Unit '));
 });
 
-test('the credit warning follows the posted nights and never shows on a unit folio', function () {
+test('the credit warning follows the posted nights, and a unit folio gets it too', function () {
     $setup = collectedTaxSetup();
     collectedTaxPostNight($setup);
 
@@ -329,12 +329,14 @@ test('the credit warning follows the posted nights and never shows on a unit fol
         ->where('folio.paymentCreditWarning.owes', '600.00')
         ->where('folio.paymentCreditWarning.othersTotal', '20.00');
     collectedTaxFolioPage($setup, $setup['user'], collectedTaxUnitFolio($setup))
-        ->where('folio.paymentCreditWarning', null);
+        ->where('folio.paymentCreditWarning.owes', '20.00')
+        ->where('folio.paymentCreditWarning.othersCount', 1)
+        ->where('folio.paymentCreditWarning.othersTotal', '600.00');
 });
 
-test('no credit warning when the company pays the tax and nothing else owes', function () {
+test('the credit warning has no other folios when the company pays the tax', function () {
     $setup = collectedTaxSetup(companyPaysTax: true);
 
     collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
-        ->where('folio.paymentCreditWarning', null);
+        ->where('folio.paymentCreditWarning', ['owes' => '620.00', 'othersCount' => 0, 'othersTotal' => '0.00', 'othersLabel' => null]);
 });
