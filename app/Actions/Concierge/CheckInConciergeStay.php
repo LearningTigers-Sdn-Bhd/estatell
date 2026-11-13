@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Kiosk\KioskCheckInResult;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
+use App\Services\Concierge\ConciergeStays;
 use App\Services\Kiosk\KioskEligibility;
 use App\Services\Kiosk\KioskStays;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,7 @@ class CheckInConciergeStay
     /** Wastays used 50 m; a phone indoors can be off by more, so a property that finds this strict turns the check off. */
     public const int MAX_DISTANCE_METRES = 50;
 
-    public function __construct(private KioskEligibility $eligibility, private CheckInUnit $checkInUnit, private KioskStays $stays) {}
+    public function __construct(private KioskEligibility $eligibility, private CheckInUnit $checkInUnit, private KioskStays $stays, private ConciergeStays $concierge) {}
 
     /**
      * Check the guest in with the front desk's own `CheckInUnit`, with no staff actor. The rules are the front desk's
@@ -24,7 +25,7 @@ class CheckInConciergeStay
      * guest who still owes the deposit. A stay already checked in answers the same room again, so a retry is safe.
      * The page never skips the registration card and never overrides a credit limit.
      *
-     * Refusals are `card_required_for_check_in`, `deposit_not_paid`, `nationality_required`, `arrival_not_reached`, `location_required`, `too_far_away`,
+     * Refusals are `card_required_for_check_in`, `deposit_not_paid`, `nationality_required`, `arrival_not_reached`, `check_in_time_not_reached`, `location_required`, `too_far_away`,
      * and `server_error` for everything the guest cannot fix (no room ready, credit limit, no business date).
      * `concierge.checked_in` holds the property id only, never guest data.
      */
@@ -32,6 +33,10 @@ class CheckInConciergeStay
     {
         if ($stay->status === UnitStatus::CheckedIn) {
             return KioskCheckInResult::done($this->stays->roomNumber($stay));
+        }
+
+        if (! $this->concierge->checkInTimeReached($stay)) {
+            return KioskCheckInResult::refused('check_in_time_not_reached');
         }
 
         $refusal = $this->locationRefusal($stay, $latitude, $longitude);

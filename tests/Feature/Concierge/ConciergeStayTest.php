@@ -242,10 +242,30 @@ it('stops showing the key after the window that follows a concierge check-in', f
     conciergeStep($token, 'home');
 });
 
-it('says check-in is not open before the arrival day', function () {
-    ['token' => $token] = conciergeSetup(['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']);
+it('lets a guest register before the arrival day, then waits on not open', function () {
+    ['token' => $token, 'guest' => $guest] = conciergeSetup(['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']);
+
+    conciergeStep($token, 'identity')->assertInertia(fn (Assert $page) => $page->where('stay.checkInOpensLater', true));
+    conciergeIdentityDone($guest);
+
+    conciergeStep($token, 'not_open')->assertInertia(fn (Assert $page) => $page->where('stay.checkInTime', fn ($time) => $time === null || strlen($time) === 5));
+    $this->post("/c/{$token}/check-in");
+    conciergeStep($token, 'not_open');
+});
+
+it('holds check-in until the check-in time on the arrival day', function () {
+    ['token' => $token, 'guest' => $guest, 'property' => $property] = conciergeSetup();
+    conciergeIdentityDone($guest);
+    $property->settings->forceFill(['check_in_time' => '23:59:00'])->save();
+    $this->travelTo(now()->startOfDay()->addHour());
 
     conciergeStep($token, 'not_open');
+    $this->post("/c/{$token}/check-in");
+    conciergeStep($token, 'not_open');
+
+    $property->settings->forceFill(['check_in_time' => '00:00:00'])->save();
+
+    conciergeStep($token, 'check_in');
 });
 
 it('sends a stay that is no longer open to the desk', function () {

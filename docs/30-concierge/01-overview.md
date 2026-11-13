@@ -48,13 +48,13 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 
 | Step           | Shown when                                                                                         |
 | -------------- | -------------------------------------------------------------------------------------------------- |
-| `identity`     | The guest has no ID document, or an enabled foreign-only tax needs a nationality                   |
+| `identity`     | (open from the link, even before the arrival day) The guest has no ID document, or an enabled foreign-only tax needs a nationality                   |
 | `card`         | The property requires the card for check-in and the primary guest has not signed                   |
 | `payment`      | `SelfCheckInPayment::shortfall` is more than zero                                                  |
 | `check_in`     | Everything above is done                                                                           |
 | `key`          | The page checked the stay in during the last 30 minutes. It shows the room and the PIN             |
 | `done`         | The stay is checked in by another channel, or the 30 minutes ended. No room and no PIN             |
-| `not_open`     | Before the arrival day                                                                             |
+| `not_open`     | Details, card and payment are done, but it is before the arrival day or the check-in time          |
 | `hold_expired` | A walk-in's unpaid hold was released                                                               |
 | `desk`         | Anything the guest cannot fix: a closed stay, no guest, a card missing for another guest, no terms |
 

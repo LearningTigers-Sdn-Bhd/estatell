@@ -58,7 +58,7 @@ class StartStayPayment
 
         $inHouse = $stay->status === UnitStatus::CheckedIn;
 
-        if (! $inHouse && ($stay->status !== UnitStatus::Confirmed || $this->stays->window($stay) !== KioskStays::OPEN)) {
+        if (! $inHouse && ($stay->status !== UnitStatus::Confirmed || ! in_array($this->stays->window($stay), [KioskStays::OPEN, KioskStays::EARLY], true))) {
             return StayPaymentResult::refused(StayPaymentResult::REFUSAL_NOT_OPEN, __('Check-in is not open for this booking.'));
         }
 

@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 /**
  * Everything the Concierge page shows for one stay. `roomNumber` and `pin` are set only while the key is shown;
  * `shortfall` only on the payment step; `terms` only on the card step; `documents` once the guest is checked in or out; `canRequestRefund` and `refundRequest` only once
- * the guest has checked out. `checkOutAsked` is true while the guest's request for the front desk to check them out is open. Only the guest's first name is sent, and never the room outside the key step. `reference` is the booking code the guest already has. `identity` holds the details already saved for the guest, on the ID step only. `eInvoiceUrl` is the e-invoice page, set only after check-out while the property offers one.
+ * the guest has checked out. `checkOutAsked` is true while the guest's request for the front desk to check them out is open. Only the guest's first name is sent, and never the room outside the key step. `reference` is the booking code the guest already has. `identity` holds the details already saved for the guest, on the ID step only. `eInvoiceUrl` is the e-invoice page, set only after check-out while the property offers one. `checkInOpensLater` is true while the guest is still before check-in (details, card, payment or waiting) and check-in has not opened; `checkInTime` (HH:MM) comes with it.
  */
 class ConciergeStayData extends Data
 {
@@ -37,5 +37,7 @@ class ConciergeStayData extends Data
         public bool $locationRequired = false,
         public ?ConciergeIdentityPrefillData $identity = null,
         public ?string $eInvoiceUrl = null,
+        public ?string $checkInTime = null,
+        public bool $checkInOpensLater = false,
     ) {}
 }

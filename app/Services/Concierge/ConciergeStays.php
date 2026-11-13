@@ -7,6 +7,7 @@ use App\Models\BookingPreCheckInToken;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskStays;
+use Carbon\CarbonImmutable;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -45,6 +46,27 @@ class ConciergeStays
             ->orderBy('arrival_date')->orderBy('id')->limit(2)->get();
 
         return $matches->count() === 1 ? $matches->first() : null;
+    }
+
+    /**
+     * When check-in opens: the arrival day at the property's check-in time, in its time zone. Null when the property sets
+     * no check-in time. A guest may register and pay before this; only the check-in itself waits for it.
+     */
+    public function checkInOpensAt(ReservationUnit $stay): ?CarbonImmutable
+    {
+        $stay->loadMissing('property.settings');
+        $settings = $stay->property->settings;
+
+        return blank($settings->check_in_time)
+            ? null
+            : CarbonImmutable::parse($stay->arrival_date->toDateString().' '.$settings->check_in_time, $settings->time_zone);
+    }
+
+    public function checkInTimeReached(ReservationUnit $stay): bool
+    {
+        $opensAt = $this->checkInOpensAt($stay);
+
+        return $opensAt === null || now()->greaterThanOrEqualTo($opensAt);
     }
 
     /**

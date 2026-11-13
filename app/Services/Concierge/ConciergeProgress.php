@@ -13,7 +13,9 @@ use App\Services\Registration\RegistrationCardRequirement;
 
 /**
  * The step the guest is on, from the state of the stay. The order is: details and ID, the registration card (when the
- * property requires it), payment (the same paid-enough rule as the kiosk), check-in, then the key. The card step covers
+ * property requires it), payment (the same paid-enough rule as the kiosk), check-in, then the key. Everything before check-in
+ * is open as soon as the guest has the link (like wastays' pre-check-in); only check-in waits for the arrival day and the
+ * property's check-in time, and a guest who is done early waits on `NotOpen`. The card step covers
  * the primary guest only; a card still missing for another guest, a stay that is no longer open and a stay with no guest
  * all answer `Desk`. Reads only.
  */
@@ -50,13 +52,9 @@ class ConciergeProgress
 
         $window = $this->stays->window($stay);
 
-        if ($window === KioskStays::EARLY) {
-            return ConciergeStep::NotOpen;
-        }
-
         $guest = $this->stays->guest($stay);
 
-        if ($window !== KioskStays::OPEN || $guest === null) {
+        if (! in_array($window, [KioskStays::OPEN, KioskStays::EARLY], true) || $guest === null) {
             return ConciergeStep::Desk;
         }
 
@@ -74,6 +72,10 @@ class ConciergeProgress
             }
         }
 
-        return $this->payment->isPaidEnough($stay) ? ConciergeStep::CheckIn : ConciergeStep::Payment;
+        if (! $this->payment->isPaidEnough($stay)) {
+            return ConciergeStep::Payment;
+        }
+
+        return $window === KioskStays::OPEN && $this->concierge->checkInTimeReached($stay) ? ConciergeStep::CheckIn : ConciergeStep::NotOpen;
     }
 }

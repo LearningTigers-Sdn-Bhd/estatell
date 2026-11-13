@@ -1263,6 +1263,8 @@ refundRequest: App.Data.Concierge.ConciergeRequestData | null,
 locationRequired: boolean,
 identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
 eInvoiceUrl: string | null,
+checkInTime: string | null,
+checkInOpensLater: boolean,
 };
 export type ConciergeTermsData = {
 version: number,

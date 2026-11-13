@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { CalendarClock, TimerOff } from 'lucide-react';
+import { CalendarClock, Sun, TimerOff } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CardStep } from '@/components/concierge/card-step';
 import { CheckedOutStep } from '@/components/concierge/checked-out-step';
 import { IdentityStep } from '@/components/concierge/identity-step';
@@ -74,6 +75,15 @@ export default function ConciergeStay({
                     : `${stay.arrivalDate} to ${stay.departureDate}`
             }
         >
+            {stay.checkInOpensLater && stay.step !== 'not_open' && (
+                <Alert className="mb-6 gap-y-1 p-4">
+                    <Sun />
+                    <AlertTitle>You're early, and that's lovely</AlertTitle>
+                    <AlertDescription>
+                        {`Fill in your details now and you'll be ready to go. Check-in opens on ${stay.arrivalDate}${stay.checkInTime ? ` from ${stay.checkInTime}` : ''}, and your room will be waiting.`}
+                    </AlertDescription>
+                </Alert>
+            )}
             {stay.step === 'identity' && (
                 <IdentityStep
                     stay={stay}
@@ -106,7 +116,7 @@ export default function ConciergeStay({
                         label: 'Back to home',
                     }}
                     title="Check-in is not open yet"
-                    body={`Check-in opens on your arrival day, ${stay.arrivalDate}. Come back to this page then.`}
+                    body={`Your details are in. Check-in opens on your arrival day, ${stay.arrivalDate}${stay.checkInTime ? ` from ${stay.checkInTime}` : ''}. Come back to this page then.`}
                 />
             )}
             {stay.step === 'hold_expired' && (

@@ -156,6 +156,7 @@ class ConciergeController extends Controller
                 'deposit_not_paid' => __('A payment is still due. Pay it on this page to continue.'),
                 'nationality_required' => __('Choose your nationality in your details first.'),
                 'arrival_not_reached' => __('Check-in opens on your arrival day.'),
+                'check_in_time_not_reached' => __('Check-in has not opened yet. Come back at check-in time.'),
                 'location_required' => __('Allow location access so we can see you are at the property, then try again.'),
                 'too_far_away' => __('Check-in opens when you are at the property. Try again when you arrive.'),
                 'hold_expired' => __('Your room hold has expired. Ask the front desk to book the room again.'),

@@ -39,6 +39,7 @@ class ConciergePageBuilder
         private ConciergeDocuments $documents,
         private RequestConciergeCheckOut $checkOut,
         private ConciergeEInvoice $eInvoice,
+        private ConciergeStays $concierge,
     ) {}
 
     public function build(string $token, ReservationUnit $stay, ?Locale $locale): ConciergeStayData
@@ -55,6 +56,8 @@ class ConciergePageBuilder
         }
 
         $guest = $this->stays->guest($stay);
+        $opensLater = in_array($step, [ConciergeStep::Identity, ConciergeStep::Card, ConciergeStep::Payment, ConciergeStep::NotOpen], true)
+            && ($this->stays->window($stay) !== KioskStays::OPEN || ! $this->concierge->checkInTimeReached($stay));
 
         return new ConciergeStayData(
             token: $token,
@@ -77,6 +80,8 @@ class ConciergePageBuilder
             locationRequired: $stay->property->settings->concierge_location_check_enabled && filled($stay->property->latitude) && filled($stay->property->longitude),
             identity: $step === ConciergeStep::Identity && $guest !== null ? $this->identity($guest) : null,
             eInvoiceUrl: $step === ConciergeStep::CheckedOut && $this->eInvoice->isOffered($stay) ? route('concierge.e-invoice', ['token' => $token], absolute: false) : null,
+            checkInTime: $opensLater ? $this->concierge->checkInOpensAt($stay)?->format('H:i') : null,
+            checkInOpensLater: $opensLater,
         );
     }
 
