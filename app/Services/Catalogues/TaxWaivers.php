@@ -30,7 +30,7 @@ class TaxWaivers
 
         $nationality = $this->unitNationality->for($unit);
 
-        return blank($nationality) || UnitNationality::isForeign($nationality, $unit->property()->value('country_code'));
+        return blank($nationality) || UnitNationality::isForeign($nationality, $unit->loadMissing('property')->property->country_code);
     }
 
     /**

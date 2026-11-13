@@ -372,8 +372,9 @@ class ReservationController extends Controller
         }
 
         $waived = $unit->loadMissing('taxWaivers')->taxWaivers->pluck('tax_id')->all();
+        $taxWaivers = app(TaxWaivers::class);
         $taxes = Tax::query()->where('property_id', $unit->property_id)->waivable()->whereNotIn('id', $waived)->orderBy('id')->get()
-            ->filter(fn (Tax $tax): bool => app(TaxWaivers::class)->appliesTo($tax, $unit))
+            ->filter(fn (Tax $tax): bool => $taxWaivers->appliesTo($tax, $unit))
             ->values();
 
         return UnitTaxWaiverFormData::forReservation($reservation->loadMissing('bookingSource', 'company'), $taxes);
