@@ -155,6 +155,24 @@ A left rail lists the folios of the reservation, the same way the Units tab list
 - A row with a null target shows on the unit's "not started" entry.
 - The page loads the reservation's routing rules once and routes in memory. If the query-count test needs it, add a batch method to `FolioRouter` and keep `targetFor()` as it is.
 
+## Collected taxes
+
+A unit folio can hold taxes whose room charge sits on another folio: the taxes with **Collect at check-in** on, when a company pays the room and not these taxes ([Collected taxes](03-routing.md#collected-taxes)). Without context they look like stray lines, so the page shows where the charge is and why.
+
+```
+ ⓘ Perfect Vacation pays the room, not Tourism tax. The guest pays it on this folio.
+   To have Perfect Vacation pay it, turn on Company pays taxes collected at check-in.
+
+11 Nov 2026   Room charge · on Master ⇄                 F1         —
+                ↳ Tourism tax                           F1    RM 10.00  ⋯
+```
+
+- **Parent row:** above each group of such taxes, a muted row with the charge's date, description and unit, then "· on {folio}" with a link that opens that folio. "{folio}" is Master, or the payer of a third-party folio. The amount shows "—". The taxes sit under it at level 1, for Posted and Scheduled rows alike.
+- **Data:** the row is a `FolioRowData` with `onFolio` (the folio id and name) and amount 0.00. It has no actions, is never printable, and counts in no figure: Balance, Projected total and Posted lines are unchanged. `CollectedTaxRows` (`app/Services/Folio/`) builds it: for Posted rows from each line whose parent is on another folio, for Scheduled rows from the `parentRow` and `parentTarget` of a `guestTax` block.
+- **Note:** an info Alert above the table, from `FolioData::collectedTaxNote` (`payer`, `taxes`, `companyId`): "{payer} pays the room, not {taxes}. The guest pays them on this folio." The taxes are the live tax rows under parent rows, by name. The second line links to the company's credit page and shows only when `companyId` is set: for a user with `company.manage`.
+- **Abstract:** nothing names the tourism tax. Any tax with **Collect at check-in** on, any company and any target folio shows the same way.
+- Printed vouchers and invoices are unchanged.
+
 ## Actions
 
 Row and folio actions call the existing Actions. A refusal writes and logs nothing. A form (post charge, apply discount) shows the refusal in its Dialog, on the matching field or as one message for the form, like the add-on dialog. An AlertDialog (reverse, remove discount) has no field, so it shows an error toast.

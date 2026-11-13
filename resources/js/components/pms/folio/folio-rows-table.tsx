@@ -45,6 +45,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { folio as folioTab } from '@/routes/reservations';
 import { receipt } from '@/routes/reservations/folios/payments';
 
 type Row = App.Data.Folio.FolioRowData;
@@ -124,7 +125,7 @@ const SECTIONS: Record<Row['state'], string> = {
  * The Old system rows, the Posted rows, then the Scheduled rows, as the server sent them. The Old system header is a
  * button like Scheduled, with the section total and the Edit old folio link; it starts collapsed. Scheduled, Reversed and Reversal rows are muted,
  * the Scheduled header collapses its rows (open by default), a Reversed row is struck through, a row takes the tone of its marker as a light tint, and children (a discount, then its tax) are indented. Row markers are icons. A payment shows its reference under the method. The Unit column shows only
- * when a row names a unit.
+ * when a row names a unit. A row with `onFolio` is the parent charge of the taxes under it, kept on another folio: it is muted, shows "—" for the amount and links to that folio.
  */
 export function FolioRowsTable({
     reservationId,
@@ -167,7 +168,7 @@ export function FolioRowsTable({
     const [scheduledOpen, setScheduledOpen] = useState(true);
     const [oldOpen, setOldOpen] = useState(false);
     const scheduledCount = rows.filter(
-        (row) => row.state === 'scheduled',
+        (row) => row.state === 'scheduled' && row.onFolio === null,
     ).length;
     const oldCount = rows.filter((row) => row.state === 'old').length;
     const showUnit = rows.some((row) => row.unit !== null);
@@ -295,6 +296,7 @@ export function FolioRowsTable({
                                 <TableRow
                                     className={cn(
                                         (row.state === 'scheduled' ||
+                                            row.onFolio !== null ||
                                             row.tags.some(
                                                 (tag) =>
                                                     tag.value === 'reversed' ||
@@ -333,6 +335,33 @@ export function FolioRowsTable({
                                                 <span aria-hidden>↳</span>
                                             )}
                                             {row.description}
+                                            {row.onFolio !== null && (
+                                                <Link
+                                                    href={folioTab.url(
+                                                        {
+                                                            reservation:
+                                                                reservationId,
+                                                        },
+                                                        {
+                                                            query: {
+                                                                folio: String(
+                                                                    row.onFolio
+                                                                        .id,
+                                                                ),
+                                                            },
+                                                        },
+                                                    )}
+                                                    preserveScroll
+                                                    preserveState
+                                                    className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
+                                                >
+                                                    · on {row.onFolio.label}
+                                                    <ArrowRightLeft
+                                                        aria-hidden
+                                                        className="size-3.5"
+                                                    />
+                                                </Link>
+                                            )}
                                             {row.tags.map((tag) => (
                                                 <RowTag
                                                     key={tag.value}
@@ -371,10 +400,16 @@ export function FolioRowsTable({
                                         <TableCell>{row.unit}</TableCell>
                                     )}
                                     <TableCell className="text-right">
-                                        <MoneyText
-                                            amount={row.amount}
-                                            currency={currency}
-                                        />
+                                        {row.onFolio !== null ? (
+                                            <span aria-label="Not on this folio">
+                                                —
+                                            </span>
+                                        ) : (
+                                            <MoneyText
+                                                amount={row.amount}
+                                                currency={currency}
+                                            />
+                                        )}
                                     </TableCell>
                                     {showActions && (
                                         <TableCell>

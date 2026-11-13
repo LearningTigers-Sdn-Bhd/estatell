@@ -1550,6 +1550,11 @@ canAddCard: boolean,
 };
 }
 namespace Folio {
+export type CollectedTaxNoteData = {
+payer: string,
+taxes: string[],
+companyId: number | null,
+};
 export type DiscountQuoteData = {
 lines: App.Data.Folio.DiscountQuoteLineData[],
 subtotal: string,
@@ -1642,6 +1647,7 @@ message: string,
 fix: string,
 }[],
 eInvoiceRequired: boolean,
+collectedTaxNote: App.Data.Folio.CollectedTaxNoteData | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -1691,6 +1697,7 @@ postedDate: string | null,
 methodType: string | null,
 receivedOn: string | null,
 notes: string | null,
+onFolio: App.Data.Folio.FolioOptionData | null,
 };
 export type ManualFolioOptionData = {
 id: number,

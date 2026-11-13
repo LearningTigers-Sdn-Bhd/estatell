@@ -78,6 +78,7 @@ import {
     useFormOptions,
 } from '@/components/pms/use-form-options';
 import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
+import { credit as companyCredit } from '@/routes/finance/city-ledger/companies';
 import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
 import { show as showEInvoice } from '@/routes/finance/e-invoices';
 import { move as moveCharges } from '@/routes/reservations/folio';
@@ -599,6 +600,9 @@ export function FolioTab({
                             </AlertDescription>
                         </Alert>
                     )}
+                    {folio.collectedTaxNote && (
+                        <CollectedTaxNote note={folio.collectedTaxNote} />
+                    )}
                     {folio.closedNotice && (
                         <Alert className="flex flex-wrap items-center gap-x-2 gap-y-2 has-data-[slot=alert-action]:pr-2.5 *:[svg]:translate-y-0">
                             <Info />
@@ -1009,5 +1013,50 @@ export function FolioTab({
                 />
             </div>
         </div>
+    );
+}
+
+/** "A", "A and B", "A, B and C". */
+function joinNames(names: string[]): string {
+    return names.length <= 1
+        ? (names[0] ?? '')
+        : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/**
+ * Why taxes on a unit folio sit apart from their room charge: the company pays the room, not these taxes. A user who
+ * may change the company gets a link to the switch that makes it pay them too.
+ */
+function CollectedTaxNote({
+    note,
+}: {
+    note: App.Data.Folio.CollectedTaxNoteData;
+}) {
+    const them = note.taxes.length === 1 ? 'it' : 'them';
+
+    return (
+        <Alert>
+            <Info />
+            <AlertDescription>
+                <p>
+                    {note.payer} pays the room, not {joinNames(note.taxes)}. The
+                    guest pays {them} on this folio.
+                </p>
+                {note.companyId !== null && (
+                    <p>
+                        To have {note.payer} pay {them}, turn on{' '}
+                        <Link
+                            href={companyCredit.url({
+                                company: note.companyId,
+                            })}
+                            className="font-medium text-foreground underline underline-offset-4"
+                        >
+                            Company pays taxes collected at check-in
+                        </Link>
+                        .
+                    </p>
+                )}
+            </AlertDescription>
+        </Alert>
     );
 }

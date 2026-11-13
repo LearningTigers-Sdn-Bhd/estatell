@@ -78,6 +78,7 @@ class FolioStatement
         private SubmissionStatusBadge $submissionStatusBadge,
         private ReportableLines $reportableLines,
         private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
+        private CollectedTaxRows $collectedTaxRows,
     ) {}
 
     /**
@@ -342,6 +343,7 @@ class FolioStatement
         [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($reservation->property)?->toDateString());
         $old = $posted->where('state', 'old')->values();
         $posted = $posted->where('state', 'posted')->values();
+        $lineCount = $old->merge($posted)->whereNull('onFolio')->count();
         $oldTotal = $old->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::zero());
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
@@ -353,6 +355,7 @@ class FolioStatement
         $invoiceVoided = $folio?->invoice_number !== null && $billedBy === null && ArInvoice::query()->where('folio_id', $folio->id)->where('status', ArInvoiceStatus::Void)->exists();
         $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
+        $rows = [...$old->all(), ...$posted->all(), ...$this->withScheduledParents($blocks, $scheduled, $entries)];
 
         $eInvoiceSetting = $reservation->property->eInvoiceSetting;
         $eInvoiceEnabled = $eInvoiceSetting !== null && $eInvoiceSetting->enabled && Feature::for($reservation->property)->active(EInvoicing::class);
@@ -389,8 +392,8 @@ class FolioStatement
             invoiceVoided: $invoiceVoided,
             balance: $balance,
             projectedTotal: (string) $projected->toScale(2),
-            lineCount: $old->count() + $posted->count(),
-            rows: [...$old->all(), ...$posted->all(), ...$scheduled->all()],
+            lineCount: $lineCount,
+            rows: $rows,
             oldSystemTitle: $old->isEmpty() ? null : (filled($folio?->legacy_number) ? __('OLD SYSTEM · folio :number', ['number' => $folio->legacy_number]) : __('OLD SYSTEM')),
             oldSystemTotal: $old->isEmpty() ? null : (string) $oldTotal->toScale(2),
             refundCredit: $refundCredit,
@@ -434,6 +437,7 @@ class FolioStatement
             // The form picks the country by its alpha-2 code like every other country picker; LHDN gets alpha-3.
             eInvoiceBuyer: $buyer === null ? null : [...$buyer, 'country_code' => app(CountryOptions::class)->alpha2($buyer['country_code'] ?? null) ?? 'MY'],
             eInvoiceRequired: $canSubmitEInvoice && $this->staysNeedingOwnEInvoice->isOverLimit($folio),
+            collectedTaxNote: $this->collectedTaxRows->note($rows, $entries->pluck('folio')->filter()->keyBy('id'), $user),
             eInvoiceRejection: $rejected === null ? [] : array_map(
                 fn (array $reason): array => ['message' => $reason['message'], 'fix' => $reason['fix']],
                 array_values(array_filter($this->lhdnRejectionReasons->for($rejected), fn (array $reason): bool => $reason['where'] === 'buyer')),
@@ -566,11 +570,37 @@ class FolioStatement
         };
 
         $ids = $lines->pluck('id')->flip();
+        $parentsElsewhere = $this->collectedTaxRows->parentsElsewhere($lines);
+        $parentUnits = $parentsElsewhere->isEmpty() ? [] : $this->lineSourceUnits->for($parentsElsewhere);
+        $shownParents = [];
 
         foreach ($lines as $line) {
-            if ($line->parent_line_id === null || ! $ids->has($line->parent_line_id)) {
+            if ($line->parent_line_id === null) {
                 $walk($line, 0, null);
+
+                continue;
             }
+
+            if ($ids->has($line->parent_line_id)) {
+                continue;
+            }
+
+            $parent = $parentsElsewhere->get($line->parent_line_id);
+
+            if ($parent === null) {
+                $walk($line, 0, null);
+
+                continue;
+            }
+
+            $parentUnitId = $parent->source_id === null ? null : ($parentUnits[$parent->source_type.':'.$parent->source_id] ?? null);
+
+            if (! isset($shownParents[$parent->id])) {
+                $shownParents[$parent->id] = true;
+                $rows->push($this->collectedTaxRows->parentRow('parent:'.$parent->id, $line->migrated ? 'old' : 'posted', $parent->service_date->toDateString(), $parent->description, $parentUnitId === null ? null : ($labels[$parentUnitId] ?? null), $parent->kind, $parent->folio));
+            }
+
+            $walk($line, 1, $parentUnitId);
         }
 
         $discounted = $lines
@@ -584,5 +614,35 @@ class FolioStatement
             && ! $discounted->has($line->id));
 
         return [$rows, $discountable];
+    }
+
+    /**
+     * The open entry's Scheduled rows, with the muted row of its room charge above each group of taxes the guest pays
+     * while that charge goes to another folio (`guestTax` blocks of `ScheduledFolioRows`).
+     *
+     * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>, guestTax?: true, parentRow?: FolioRowData, parentTarget?: int}>  $blocks
+     * @param  Collection<int, FolioRowData>  $scheduled
+     * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
+     * @return list<FolioRowData>
+     */
+    private function withScheduledParents(array $blocks, Collection $scheduled, Collection $entries): array
+    {
+        $parents = [];
+
+        foreach ($blocks as $block) {
+            $first = $block['rows'][0] ?? null;
+            $folio = isset($block['parentTarget']) ? $entries->first(fn (array $entry): bool => $entry['folio']?->id === $block['parentTarget'])['folio'] ?? null : null;
+
+            if ($first !== null && $folio !== null && isset($block['parentRow'])) {
+                $parent = $block['parentRow'];
+                $parents[$first->key] = $this->collectedTaxRows->parentRow('parent:'.$parent->key, 'scheduled', $parent->date, $parent->description, $parent->unit, $parent->kind, $folio);
+            }
+        }
+
+        if ($parents === []) {
+            return array_values($scheduled->all());
+        }
+
+        return array_values($scheduled->flatMap(fn (FolioRowData $row): array => isset($parents[$row->key]) ? [$parents[$row->key], $row] : [$row])->all());
     }
 }

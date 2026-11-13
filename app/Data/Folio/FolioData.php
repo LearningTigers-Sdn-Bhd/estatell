@@ -92,5 +92,7 @@ class FolioData extends Data
         public array $eInvoiceRejection = [],
         /** Over RM10,000 with no e-invoice yet: LHDN needs its own e-invoice, the monthly summary cannot take it. */
         public bool $eInvoiceRequired = false,
+        /** Why taxes on this unit folio sit apart from their room charge: the company pays the room, not these taxes. */
+        public ?CollectedTaxNoteData $collectedTaxNote = null,
     ) {}
 }

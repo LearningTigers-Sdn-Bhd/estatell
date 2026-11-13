@@ -51,18 +51,19 @@ The router follows one rule and stops. A rule target is final, so there are no c
 
 A tax with **Collect at check-in** (the tourism tax) follows the room line, except when the guest pays it and a company pays the room. Sand Bay's agents pay the room; the foreign guest pays RM10 a night at the desk, as in wastays (`BillRoomChargesToCompany` with `bill_tourism_tax_to_company` off).
 
-| Room night goes to                                                     | Collected tax goes to                                        |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------ |
-| The unit's own folio                                                   | The unit's own folio (no change)                             |
-| A folio a company pays, the company's **Company pays tourism tax** off | **The unit's own folio**, offered in Collect now at check-in |
-| A folio a company pays, the switch on                                  | That folio, with the room                                    |
-| A folio no company pays (a Master the booker pays)                     | That folio, with the room                                    |
+| Room night goes to                                                                     | Collected tax goes to                                        |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| The unit's own folio                                                                   | The unit's own folio (no change)                             |
+| A folio a company pays, the company's **Company pays taxes collected at check-in** off | **The unit's own folio**, offered in Collect now at check-in |
+| A folio a company pays, the switch on                                                  | That folio, with the room                                    |
+| A folio no company pays (a Master the booker pays)                                     | That folio, with the room                                    |
 
-- **Setting:** `companies.pays_collected_taxes` (default false), the switch **Company pays tourism tax** in the company's credit form ("How does this company pay?").
+- **Setting:** `companies.pays_collected_taxes` (default false), the switch **Company pays taxes collected at check-in** in the company's credit form ("How does this company pay?"). It covers every tax with **Collect at check-in** on, not only the tourism tax.
 - **Which lines:** only the taxes of the room line of a night. SST and other taxes follow their charge, inclusions follow their room line (see [Rules](#rules)) and add-ons follow their code.
 - **Posting:** `CollectedTaxPayer` (`app/Services/Folio/`) names the tax ids. `PostNightLines` passes them to `PostFolioCharge` as `taxFolios`, so the Tax line goes on the unit folio (created when missing) and keeps `parent_line_id` and the key `{night key}:tax:{tax_id}`. The audit, Change price and every night posting go through it.
 - **Reversal:** `ReverseLine` already posts each reversal on the folio of its line, so the tax is reversed on the unit folio. It refuses with `folio_not_open` when that folio is not Open. Change price checks the folios of the children too.
 - **Move:** `TransferLines` reverses such a child and copies it on its own folio, under the copy of its charge, so the tax stays with the guest. That folio must be Open.
+- **Folio page:** the unit folio shows the room charge above these taxes as a muted row with a link to its folio, and a note on who pays what. See [Collected taxes on the folio page](05-folio-page.md#collected-taxes).
 - **Scheduled rows:** `ScheduledFolioRows` puts these tax rows in a block of their own on the unit folio, marked `guestTax`. Move charges leaves those blocks out. The lookup runs only for a reservation with a company, so on a reservation with no company a third-party folio that a company pays shows its tax until the night posts.
 - **Check-in:** `CheckInCollection` shows the tax rows when the guest pays them, even when the room charges go to the Master. Collect now records the Advance on the unit folio (`NewPaymentData::$guestPaysTaxes` lets it past `advance_on_master`, because it pays charges that stay on that folio). Walk-in totals include them.
 

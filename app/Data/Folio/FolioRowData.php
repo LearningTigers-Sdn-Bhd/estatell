@@ -19,6 +19,9 @@ use Spatie\LaravelData\Data;
  * `reservations.change-price`. A posted row's `date` is its service date; `postedDate` is its posting date, set only
  * when the line was posted after the day it happened. A payment row has `receivedOn` when the money came in on another day
  * than its posting date, and its staff `notes`.
+ * A row with `onFolio` is not a line of this folio: it is the parent charge of the taxes under it, which sits on the
+ * folio `onFolio` names (a collected tax the guest pays while a company pays the room, see `CollectedTaxRows`). Its
+ * amount is 0.00, it has no actions and it is never printable; the page shows it muted with a link to that folio.
  */
 class FolioRowData extends Data
 {
@@ -49,5 +52,6 @@ class FolioRowData extends Data
         public ?string $methodType = null,
         public ?string $receivedOn = null,
         public ?string $notes = null,
+        public ?FolioOptionData $onFolio = null,
     ) {}
 }

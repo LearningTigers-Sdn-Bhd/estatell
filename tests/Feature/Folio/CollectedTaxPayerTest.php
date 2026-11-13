@@ -8,6 +8,7 @@ use App\Actions\Reservations\ChangeNightPrice;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
+use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
 use App\Enums\TransactionCategory;
@@ -31,6 +32,7 @@ use App\Services\Folio\ScheduledFolioRows;
 use App\Services\FrontDesk\CheckInCollection;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Inertia\Testing\AssertableInertia as Assert;
 
 /**
  * A checked-in unit of 2 nights at 300.00 for a foreign guest, on a reservation whose company pays the room charges
@@ -232,4 +234,79 @@ test('the company form saves who pays tourism tax', function () {
     ])->assertSessionHasNoErrors();
 
     expect($setup['company']->refresh()->pays_collected_taxes)->toBeFalse();
+});
+
+function collectedTaxFolioPage(array $setup, User $user, ?Folio $folio): Assert
+{
+    $page = null;
+
+    test()->actingAs($user)
+        ->get(route('reservations.folio', ['property' => $setup['user']->property->code, 'reservation' => $setup['reservation']->id, 'folio' => $folio?->id ?? 'u'.$setup['unit']->id]))
+        ->assertOk()
+        ->assertInertia(function (Assert $inertia) use (&$page) {
+            $page = $inertia;
+        });
+
+    return $page;
+}
+
+test('the guest folio shows the room charge above the tourism tax and a note on who pays what', function () {
+    $setup = collectedTaxSetup();
+    collectedTaxPostNight($setup);
+    $unitFolio = collectedTaxUnitFolio($setup);
+
+    collectedTaxFolioPage($setup, $setup['user'], $unitFolio)
+        ->where('folio.balance', '10.00')
+        ->where('folio.projectedTotal', '20.00')
+        ->where('folio.lineCount', 1)
+        ->has('folio.rows', 4)
+        ->where('folio.rows.0.state', 'posted')
+        ->where('folio.rows.0.level', 0)
+        ->where('folio.rows.0.amount', '0.00')
+        ->where('folio.rows.0.printable', false)
+        ->where('folio.rows.0.actions', [])
+        ->where('folio.rows.0.onFolio', ['id' => $setup['master']->id, 'label' => 'Master'])
+        ->where('folio.rows.1.description', 'Tourism tax')
+        ->where('folio.rows.1.level', 1)
+        ->where('folio.rows.1.amount', '10.00')
+        ->where('folio.rows.1.onFolio', null)
+        ->where('folio.rows.2.state', 'scheduled')
+        ->where('folio.rows.2.onFolio.id', $setup['master']->id)
+        ->where('folio.rows.3.description', 'Tourism tax')
+        ->where('folio.rows.3.level', 1)
+        ->where('folio.collectedTaxNote', ['payer' => $setup['company']->name, 'taxes' => ['Tourism tax'], 'companyId' => $setup['company']->id]);
+});
+
+test('a guest folio not started yet shows the room charge above its scheduled tourism tax', function () {
+    $setup = collectedTaxSetup();
+
+    collectedTaxFolioPage($setup, $setup['user'], null)
+        ->where('folio.projectedTotal', '20.00')
+        ->has('folio.rows', 4)
+        ->where('folio.rows.0.onFolio.label', 'Master')
+        ->where('folio.rows.1.description', 'Tourism tax')
+        ->where('folio.collectedTaxNote.taxes', ['Tourism tax']);
+});
+
+test('the note lists every tax the guest pays, and links to the company only for staff who may change it', function () {
+    $setup = collectedTaxSetup();
+    $property = $setup['user']->property;
+    $room = $setup['tax']->applicableTransactionCodes()->sole();
+    Tax::factory()->for($property)->create([
+        'name' => 'Heritage fee', 'rate_type' => TaxRateType::Flat, 'rate' => '5.00', 'collect_at_check_in' => true, 'enabled' => true,
+    ])->applicableTransactionCodes()->attach($room);
+    collectedTaxPostNight($setup);
+    $clerk = User::factory()->for($property)->withPermissions([PermissionEnum::ReservationsView])->create();
+
+    collectedTaxFolioPage($setup, $clerk, collectedTaxUnitFolio($setup))
+        ->where('folio.collectedTaxNote', ['payer' => $setup['company']->name, 'taxes' => ['Tourism tax', 'Heritage fee'], 'companyId' => null]);
+});
+
+test('a company that pays tourism tax leaves no note and no room charge rows on the master folio', function () {
+    $setup = collectedTaxSetup(companyPaysTax: true);
+    collectedTaxPostNight($setup);
+
+    collectedTaxFolioPage($setup, $setup['user'], $setup['master'])
+        ->where('folio.collectedTaxNote', null)
+        ->where('folio.rows', fn ($rows): bool => collect($rows)->every(fn (array $row): bool => $row['onFolio'] === null));
 });
