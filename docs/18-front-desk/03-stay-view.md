@@ -147,25 +147,34 @@ A card is **Vacant** when the room or bed has no stay and no block on the date. 
 
 ```
 ┌ Tan Mei ──────────────────── ✕ ┐
-│ ◆ ABC Corp · group of 3 rooms    │
 │ Res. R-10517                     │
-│ [Checked in]                     │
-│ 14 Jun → 18 Jun · 202 Deluxe     │
-│ Balance due: RM 0.00             │
-│ ─ This group ────────────────    │
-│  202  Tan Mei    Checked in      │
-│  203  Raj K      Checked in      │
-│  204  Siti A     Confirmed       │
-│ ─ Folio ─────────────────────    │
-│  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (skeleton)       │
+│ [Checked in] Balance due         │
+│ ─ Stay ──────────────────────    │
+│  Arrives, Departs, Nights,       │
+│  Guests, Room                    │
+│ ◆ ABC Corp             3 units   │
+│ ╭ ◉ 202 Deluxe   Checked in ╮    │
+│ │   Tan Mei                 │    │
+│ ╭ ○ 203 Deluxe   Checked in ╮    │
+│ │   Raj K                   │    │
+│ ╭ ○ 204 Deluxe   Confirmed  ╮    │
+│ │   Siti A                  │    │
+│ ──────────────── footer, fixed ─ │
+│ ╭──────────────────────────────╮ │
+│ │ Room total ⓘ        1,629.00 │ │
+│ │ Paid                1,946.22 │ │
+│ │ ──────────────────────────── │ │
+│ │ Balance [Deposit held]       │ │
+│ │                    -1,233.22 │ │
+│ ╰──────────────────────────────╯ │
 │ [Open group booking]             │
 └──────────────────────────────────┘
 ```
 
-- The summary and the "This group" list come from `stays`. Folio lines load on open with `useHttp` and a `Skeleton`.
-- One link at the bottom: **Open reservation**, or **Open group booking** for a group (a group is one reservation, so both go to the reservation page). Check in, Check out, Move and Record payment are done there for now, because the project allows one overlay level and their dialogs would sit on top of the Sheet. The link and the Folio section need `reservations.view`; without it the Sheet shows the summary only.
-- The Folio section lists the 15 newest posted lines of the reservation's folios (voided folios left out) and its balance. They come from `GET front-desk/stays/{reservation}/folio` (`front-desk.stays.folio`), which needs `front-desk.view` and `reservations.view`.
-- The "This group" list holds only units loaded for the dates on screen. Click one to show it in the Sheet.
+- The summary and the group list come from `stays`. Stay comes first, then the group list. The money box loads on open with `useHttp` and a `Skeleton`.
+- The footer holds the money box and one link: **Open reservation**, or **Open group booking** for a group (a group is one reservation, so both go to the reservation page). Check in, Check out, Move and Record payment are done there for now, because the project allows one overlay level and their dialogs would sit on top of the Sheet. The footer needs `reservations.view`; without it the Sheet shows the summary only.
+- The money box shows the same figures as the reservation card: Room total (room nights only, see the tooltip), Paid, "+ X billed to company" when a company is billed, and Balance. The balance is red when above 0, and "Deposit held" shows when it is below 0. Folio lines are not shown; they are on the reservation page. The figures come from `GET front-desk/stays/{reservation}/folio` (`front-desk.stays.folio`, `StayFolioPeek`), which needs `front-desk.view` and `reservations.view`. `StayFolioPeek` reads them through `ReservationDirectory::money()`, the query of the reservations list, so the two always agree.
+- The group list (`GroupUnitCards`) shows the group name with ◆ and the unit count, then one radio card per unit: room, guest and status. The checked card is the unit on show; pick another to show it in the Sheet. It holds only units loaded for the dates on screen. The list has a max height and scrolls inside with the open unit kept in view. While the list shows, the group name is not repeated in the badge row.
 - New booking from an empty cell goes to the booking form page with the room and date filled in. Block room opens a Dialog with the shared `RoomBlockForm`. See [Empty cell](07-timeline-editing.md#empty-cell).
 
 ## Data loading
@@ -182,7 +191,7 @@ The server sends compact, normalized data. The browser derives everything it sho
 | `blocks`              | id, room or bed, first and last night, reason                                                                                                                                                                                                                                                 | Immediate                |
 | `rates`               | Price per room type, rate plan and date for the active rate plans, and the plan list in order. Timeline View only                                                                                                                                                                             | Immediate                |
 | `version`             | Hash of the latest change for this property and window                                                                                                                                                                                                                                        | Immediate                |
-| `canViewReservations` | Whether the user has `reservations.view`: it shows the Folio section and the link in the peek sheet                                                                                                                                                                                           | Immediate                |
+| `canViewReservations` | Whether the user has `reservations.view`: it shows the money box and the link in the peek sheet                                                                                                                                                                                               | Immediate                |
 | `filters`, `options`  | Current filters, Group by and date (from the URL) and `EnumSelect` items                                                                                                                                                                                                                      | Immediate                |
 
 - Segments come from `unit_nights`. Consecutive nights in the same room or bed form one segment. A room move creates a new segment.
@@ -198,7 +207,7 @@ The server sends compact, normalized data. The browser derives everything it sho
 | Filter by room group, room type, status, search text       | `filterStays()` (pure function, unit tested)        |
 | Group rows or cards by room group or room type             | `StayViewTimeline`, `RoomsBoard`                    |
 | Footer availability and occupancy per date                 | `summarizeInventory()` (pure function, unit tested) |
-| Group highlight, "This group" list, peek summary           | From `stays`                                        |
+| Group highlight, group list, peek summary                  | From `stays`                                        |
 
 ### Done on the server
 
@@ -206,7 +215,7 @@ The server sends compact, normalized data. The browser derives everything it sho
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Load another date or window    | Inertia visit with the new date in the URL. Previous and next windows (or days) are **prefetched**. Visited windows are cached for the session.                              |
 | Change view                    | Sidebar visit to the other route, with the current filters in the URL                                                                                                        |
-| Folio lines in the peek sheet  | Loaded on open with `useHttp`, shown with a `Skeleton`                                                                                                                       |
+| Money box in the peek sheet    | Loaded on open with `useHttp`, shown with a `Skeleton`                                                                                                                       |
 | Every write                    | Existing Actions (`AssignRoom`, `AssignBed`, `MoveUnit`, `ChangeUnitDates`, `CreateRoomBlock`, `UpdateRoomStatus`) and `MoveUnitStay`; the rest through the reservation page |
 | Availability for a new booking | `AvailabilityService` in the booking flow. Footer counts are display only.                                                                                                   |
 

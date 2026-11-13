@@ -4,6 +4,7 @@ import { Baby, Ellipsis, Ship, User } from 'lucide-react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { RoomTotalLabel } from '@/components/pms/room-total-label';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -23,7 +24,6 @@ import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
 import {
     ReservationMarkers,
-    RoomTotalLabel,
     ExternalReference,
     reservationSubtitle,
 } from './reservation-parts';

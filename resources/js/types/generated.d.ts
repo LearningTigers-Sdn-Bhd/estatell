@@ -5085,15 +5085,11 @@ departureTime: string,
 segments: App.Data.StayView.StaySegmentData[],
 };
 export type StayFolioData = {
+total: string,
+paid: string,
+billedToCompany: string,
 balance: string,
-lines: App.Data.StayView.StayFolioLineData[],
-hasMore: boolean,
-};
-export type StayFolioLineData = {
-id: number,
-date: string,
-description: string,
-amount: string,
+depositHeld: App.Data.Shared.BadgeData | null,
 };
 export type StaySegmentData = {
 rowKey: string,
