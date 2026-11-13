@@ -121,6 +121,22 @@ test('Collect now offers the tourism tax the guest pays, and hides it when the c
     expect(app(CheckInCollection::class)->for($setup['unit']->fresh())->taxesHidden)->toBeTrue();
 });
 
+test('Collect now keeps a tax the guest does not pay as information: billed to the company or on the master folio', function () {
+    $setup = collectedTaxSetup(companyPaysTax: true);
+
+    $offer = app(CheckInCollection::class)->for($setup['unit']);
+
+    expect($offer->taxesHidden)->toBeTrue()
+        ->and($offer->taxesTotal)->toBe('0.00')
+        ->and($offer->taxes)->toBe([['taxId' => $setup['tax']->id, 'name' => 'Tourism tax', 'amount' => '20.00', 'exempt' => false, 'waivedBy' => null, 'chargedTo' => 'Billed to '.$setup['company']->name, 'payableOnMaster' => false, 'waivable' => false]]);
+
+    $setup['master']->update(['payer_company_id' => null]);
+    $row = app(CheckInCollection::class)->for($setup['unit']->fresh())->taxes[0];
+
+    expect($row['chargedTo'])->toBe('On the master folio')
+        ->and($row['payableOnMaster'])->toBeTrue();
+});
+
 test('the scheduled tourism tax shows on the guest folio and the room night on the master folio', function () {
     $setup = collectedTaxSetup();
     $unitFolio = Folio::factory()->forUnit($setup['unit'])->create(['property_id' => $setup['unit']->property_id, 'reservation_id' => $setup['reservation']->id]);

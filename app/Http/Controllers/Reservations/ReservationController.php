@@ -48,6 +48,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Boats\BoatTripAccess;
 use App\Services\Boats\ReservationBoatSummary;
+use App\Services\Catalogues\TaxWaivers;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\DoorLocks\StayLocks;
@@ -371,7 +372,9 @@ class ReservationController extends Controller
         }
 
         $waived = $unit->loadMissing('taxWaivers')->taxWaivers->pluck('tax_id')->all();
-        $taxes = Tax::query()->where('property_id', $unit->property_id)->waivable()->whereNotIn('id', $waived)->orderBy('id')->get();
+        $taxes = Tax::query()->where('property_id', $unit->property_id)->waivable()->whereNotIn('id', $waived)->orderBy('id')->get()
+            ->filter(fn (Tax $tax): bool => app(TaxWaivers::class)->appliesTo($tax, $unit))
+            ->values();
 
         return UnitTaxWaiverFormData::forReservation($reservation->loadMissing('bookingSource', 'company'), $taxes);
     }

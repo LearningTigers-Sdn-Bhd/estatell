@@ -4,8 +4,16 @@ import { CountrySelect } from '@/components/pms/country-select';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { formatMoney, MoneyText } from '@/components/pms/money-text';
+import { formatMoney } from '@/components/pms/money-text';
 import { MyKadScanner } from '@/components/pms/mykad-scanner';
+import {
+    ChargeGroup,
+    CollectRow,
+    fullBillAmount,
+    isCollectable,
+    isTickedByDefault,
+    TaxRow,
+} from '@/components/pms/reservations/collect-rows';
 import {
     AuditPendingNote,
     AuditPendingStrip,
@@ -30,6 +38,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -48,33 +57,10 @@ type Props = {
     canAssignRoom: boolean;
     onAssignRoom: () => void;
     onNoShow?: () => void;
+    /** Opens Taxes paid elsewhere for the unit. Without it, the tax rows offer no link. */
+    onWaiveTax?: () => void;
     currency: App.Data.Property.CurrencyData | null;
 };
-
-function AmountRow({
-    label,
-    amount,
-    currency,
-    exempt = false,
-}: {
-    label: string;
-    amount: string;
-    currency: App.Data.Property.CurrencyData | null;
-    exempt?: boolean;
-}) {
-    return (
-        <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">{label}</span>
-            <span>
-                {exempt ? (
-                    'Exempt'
-                ) : (
-                    <MoneyText amount={amount} currency={currency} />
-                )}
-            </span>
-        </div>
-    );
-}
 
 function CheckInForm({
     open,
@@ -85,6 +71,7 @@ function CheckInForm({
     canAssignRoom,
     onAssignRoom,
     onNoShow,
+    onWaiveTax,
     currency,
 }: Props) {
     useFormOptions(open, paymentOptions !== undefined, 'paymentOptions');
@@ -102,8 +89,9 @@ function CheckInForm({
         without_card: false,
         credit_override_reason: '',
         collect_now: true,
-        room_charges: false,
+        charge_ids: [] as number[],
         collect_deposit: true,
+        tax_ticks: {} as Record<number, boolean>,
         payment_method_id: '',
         reference: '',
     });
@@ -114,21 +102,51 @@ function CheckInForm({
     const endedStay = preview?.endedStay ?? null;
     const arrivingToday =
         endedStay !== null && data.ended_stay_choice === 'arriving_today';
-    // The full bill is offered unless the company is billed. Ticked, it holds the tax rows, so they drop out.
-    // A move to today changes the bill, so the old total is not offered.
-    const billOffered =
-        !arrivingToday &&
-        collection !== null &&
-        !collection.billHidden &&
-        Number(collection.billTotal) > 0;
-    const billTicked = billOffered && data.room_charges;
-    const taxesDue =
-        collection !== null && !collection.taxesHidden
-            ? Number(collection.taxesTotal)
-            : 0;
-    const taxesTotal = billTicked ? 0 : taxesDue;
-    const billAmount =
-        billTicked && collection !== null ? Number(collection.billTotal) : 0;
+    // Display only: the Full bill summary (Room and other charges). The server works the amounts out again.
+    // A move to today changes the bill, so the old charges are not offered.
+    const charges = arrivingToday ? [] : (collection?.charges ?? []);
+    const owedParts =
+        collection === null
+            ? { unit: 0, master: 0 }
+            : fullBillAmount({ ...collection, charges }, null);
+    const chargesOwed = owedParts.unit + owedParts.master;
+    const chargesShown = charges.length > 0;
+    const chargesOffered = chargesOwed > 0;
+    const tickedCharges = charges.filter(
+        (charge) => charge.payable && data.charge_ids.includes(charge.codeId),
+    );
+    const tickedParts =
+        collection === null
+            ? { unit: 0, master: 0 }
+            : fullBillAmount(
+                  { ...collection, charges },
+                  tickedCharges.map((charge) => charge.codeId),
+              );
+    const chargesAmount = tickedParts.unit + tickedParts.master;
+    const chargesPaidShown =
+        Number(collection?.chargesPaid ?? 0) +
+        (charges.some((charge) => charge.payable && charge.folio === 'master')
+            ? Number(collection?.masterPaid ?? 0)
+            : 0);
+    // A ticked Room that holds the collected taxes already includes the tax rows, so they drop out.
+    const billTicked = tickedCharges.some((charge) => charge.holdsTaxes);
+    // Display only: the taxes the guest pays here, each with its own tick. The server adds up the ticked ones again.
+    const collectableTaxes =
+        collection === null ? [] : collection.taxes.filter(isCollectable);
+    const tickedTaxes = collectableTaxes.filter(
+        (tax) => data.tax_ticks[tax.taxId] ?? isTickedByDefault(tax),
+    );
+    const taxesDue = collectableTaxes.reduce(
+        (sum, tax) => sum + Number(tax.amount),
+        0,
+    );
+    const taxesTotal = billTicked
+        ? 0
+        : tickedTaxes.reduce((sum, tax) => sum + Number(tax.amount), 0);
+    // Taxes on a Master folio the guest does not pay still show, as information, so staff can waive them.
+    const taxRowsShown =
+        collection !== null && collection.taxes.length > 0 && !billTicked;
+    const billAmount = chargesAmount;
     const depositAmount =
         collection?.deposit != null && data.collect_deposit
             ? Number(collection.deposit)
@@ -139,7 +157,7 @@ function CheckInForm({
         collection !== null &&
         taxesDue === 0 &&
         collection.deposit === null &&
-        !billOffered;
+        !chargesOffered;
     const collecting = collection !== null && !nothingToCollect;
     const needsOverride =
         preview !== null && preview.cardsMissing > 0 && !data.without_card;
@@ -155,7 +173,14 @@ function CheckInForm({
             reference: method?.requiresReference ? values.reference : '',
             collect_now: collecting && values.collect_now,
             collect_taxes: collecting && values.collect_now,
-            room_charges: billTicked && collecting && values.collect_now,
+            collect_tax_ids: tickedTaxes.map((tax) => tax.taxId),
+            tax_ticks: undefined,
+            room_charges: false,
+            collect_charge_ids:
+                collecting && values.collect_now
+                    ? tickedCharges.map((charge) => charge.codeId)
+                    : [],
+            charge_ids: undefined,
             collect_deposit:
                 collection?.deposit != null &&
                 values.collect_now &&
@@ -242,16 +267,6 @@ function CheckInForm({
                             ) : null
                         }
                     >
-                        <MyKadScanner
-                            onScan={(card) => {
-                                if (preview.needsNationality) {
-                                    form.setData(
-                                        'nationality_code',
-                                        card.nationality_code || 'MY',
-                                    );
-                                }
-                            }}
-                        />
                         {preview.error !== null && (
                             <p className="text-sm text-destructive">
                                 {preview.error}
@@ -318,29 +333,27 @@ function CheckInForm({
                         </div>
                         {preview.cardsMissing > 0 &&
                             preview.canCheckInWithoutCard && (
-                                <FieldLabel htmlFor="check-in-without_card">
-                                    <Field orientation="horizontal">
-                                        <Checkbox
-                                            id="check-in-without_card"
-                                            checked={data.without_card}
-                                            onCheckedChange={(checked) =>
-                                                form.setData(
-                                                    'without_card',
-                                                    checked,
-                                                )
-                                            }
-                                        />
-                                        <FieldContent>
-                                            <span className="text-sm font-medium">
-                                                Check in without a card
-                                            </span>
-                                            <FieldDescription>
-                                                The card stays unsigned. This is
-                                                logged with your name.
-                                            </FieldDescription>
-                                        </FieldContent>
-                                    </Field>
-                                </FieldLabel>
+                                <Field orientation="horizontal">
+                                    <Checkbox
+                                        id="check-in-without_card"
+                                        checked={data.without_card}
+                                        onCheckedChange={(checked) =>
+                                            form.setData(
+                                                'without_card',
+                                                checked,
+                                            )
+                                        }
+                                    />
+                                    <FieldContent>
+                                        <FieldLabel htmlFor="check-in-without_card">
+                                            Check in without a card
+                                        </FieldLabel>
+                                        <FieldDescription>
+                                            The card stays unsigned. This is
+                                            logged with your name.
+                                        </FieldDescription>
+                                    </FieldContent>
+                                </Field>
                             )}
                         {needsOverride && !preview.canCheckInWithoutCard && (
                             <p className="text-sm text-muted-foreground">
@@ -350,9 +363,19 @@ function CheckInForm({
                         )}
                         {preview.needsNationality && (
                             <Field data-invalid={!!errors.nationality_code}>
-                                <FieldLabel htmlFor="check-in-nationality_code">
-                                    Nationality
-                                </FieldLabel>
+                                <div className="flex items-center justify-between gap-2">
+                                    <FieldLabel htmlFor="check-in-nationality_code">
+                                        Nationality
+                                    </FieldLabel>
+                                    <MyKadScanner
+                                        onScan={(card) =>
+                                            form.setData(
+                                                'nationality_code',
+                                                card.nationality_code || 'MY',
+                                            )
+                                        }
+                                    />
+                                </div>
                                 <CountrySelect
                                     id="check-in-nationality_code"
                                     name="nationality_code"
@@ -412,224 +435,151 @@ function CheckInForm({
                                 </p>
                             ))}
                         {collection !== null && (
-                            <>
-                                {billOffered && (
-                                    <FieldLabel htmlFor="check-in-room_charges">
-                                        <Field orientation="horizontal">
-                                            <Checkbox
-                                                id="check-in-room_charges"
-                                                checked={data.room_charges}
-                                                onCheckedChange={(checked) =>
-                                                    form.setData(
-                                                        'room_charges',
-                                                        checked,
-                                                    )
-                                                }
-                                            />
-                                            <FieldContent>
-                                                <span className="flex justify-between gap-4 text-sm font-medium">
-                                                    Room charges and tax
-                                                    <MoneyText
-                                                        amount={
-                                                            collection.billTotal
-                                                        }
-                                                        currency={currency}
-                                                    />
-                                                </span>
-                                                <FieldDescription>
-                                                    {Number(
-                                                        collection.billPaid,
-                                                    ) > 0
-                                                        ? `Still owed after ${formatMoney(collection.billPaid, currency)} already paid.`
-                                                        : 'The whole bill: nights, add-ons and every tax.'}
-                                                </FieldDescription>
-                                            </FieldContent>
-                                        </Field>
-                                    </FieldLabel>
-                                )}
-                                {!billTicked &&
-                                    !collection.taxesHidden &&
-                                    collection.taxes.length > 0 && (
-                                        <div className="flex flex-col gap-1 text-sm">
-                                            <span className="font-medium">
-                                                Collected at check-in
-                                            </span>
-                                            {collection.taxes.map((tax) => (
-                                                <AmountRow
-                                                    key={tax.name}
-                                                    label={tax.name}
-                                                    amount={tax.amount}
-                                                    exempt={tax.exempt}
-                                                    currency={currency}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
+                            <div className="flex flex-col gap-2 rounded-lg border p-3 text-sm">
+                                <span className="font-medium">To collect</span>
+                                {taxRowsShown &&
+                                    collection.taxes.map((tax) => (
+                                        <TaxRow
+                                            key={tax.taxId}
+                                            tax={tax}
+                                            currency={currency}
+                                            checked={
+                                                data.tax_ticks[tax.taxId] ??
+                                                isTickedByDefault(tax)
+                                            }
+                                            onCheckedChange={(checked) =>
+                                                form.setData('tax_ticks', {
+                                                    ...data.tax_ticks,
+                                                    [tax.taxId]: checked,
+                                                })
+                                            }
+                                            onWaiveTax={onWaiveTax}
+                                        />
+                                    ))}
                                 {collection.deposit !== null && (
-                                    <FieldLabel htmlFor="check-in-collect_deposit">
-                                        <Field orientation="horizontal">
-                                            <Checkbox
-                                                id="check-in-collect_deposit"
-                                                checked={data.collect_deposit}
-                                                onCheckedChange={(checked) =>
-                                                    form.setData(
-                                                        'collect_deposit',
-                                                        checked,
-                                                    )
-                                                }
-                                            />
-                                            <FieldContent>
-                                                <span className="flex justify-between gap-4 text-sm font-medium">
-                                                    Security deposit
-                                                    <MoneyText
-                                                        amount={
-                                                            collection.deposit
-                                                        }
-                                                        currency={currency}
-                                                    />
-                                                </span>
-                                            </FieldContent>
-                                        </Field>
-                                    </FieldLabel>
+                                    <CollectRow
+                                        id="check-in-collect_deposit"
+                                        label="Security deposit"
+                                        amount={collection.deposit}
+                                        currency={currency}
+                                        checked={data.collect_deposit}
+                                        onCheckedChange={(checked) =>
+                                            form.setData(
+                                                'collect_deposit',
+                                                checked,
+                                            )
+                                        }
+                                    />
                                 )}
-                                {nothingToCollect && (
+                                {chargesShown && (
+                                    <ChargeGroup
+                                        idPrefix="check-in"
+                                        charges={charges}
+                                        owed={chargesOwed}
+                                        paid={chargesPaidShown}
+                                        ticked={data.charge_ids}
+                                        onTickedChange={(ticked) =>
+                                            form.setData('charge_ids', ticked)
+                                        }
+                                        currency={currency}
+                                    />
+                                )}
+                                {nothingToCollect ? (
                                     <p
-                                        className="text-sm text-muted-foreground"
+                                        className="text-muted-foreground"
                                         data-slot="no-collection"
                                     >
-                                        No collection is needed. You can check
-                                        in the guest.
+                                        No collection is needed.
                                     </p>
-                                )}
-                                {collecting && (
+                                ) : (
                                     <>
-                                        <FieldLabel htmlFor="check-in-collect_now">
-                                            <Field orientation="horizontal">
-                                                <Checkbox
-                                                    id="check-in-collect_now"
-                                                    checked={data.collect_now}
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        form.setData(
-                                                            'collect_now',
-                                                            checked,
-                                                        )
-                                                    }
-                                                />
-                                                <FieldContent>
-                                                    <span className="flex justify-between gap-4 text-sm font-medium">
-                                                        Collect now
-                                                        <span>
-                                                            Total{' '}
-                                                            <MoneyText
-                                                                amount={String(
-                                                                    data.collect_now
-                                                                        ? collectTotal
-                                                                        : 0,
-                                                                )}
-                                                                currency={
-                                                                    currency
-                                                                }
-                                                            />
-                                                        </span>
-                                                    </span>
-                                                    <FieldDescription>
-                                                        Untick it to take a part
-                                                        payment with Record
-                                                        payment on the folio.
-                                                    </FieldDescription>
-                                                </FieldContent>
-                                            </Field>
-                                        </FieldLabel>
-                                        {data.collect_now && (
-                                            <div
-                                                className={cn(
-                                                    'grid gap-4',
-                                                    method?.requiresReference &&
-                                                        'sm:grid-cols-2',
-                                                )}
-                                            >
-                                                <Field
-                                                    data-invalid={
-                                                        !!errors.payment_method_id
-                                                    }
-                                                >
-                                                    <FieldLabel htmlFor="check-in-payment_method_id">
-                                                        Method
-                                                    </FieldLabel>
-                                                    {paymentOptions ===
-                                                    undefined ? (
-                                                        <Skeleton className="h-9 w-full" />
-                                                    ) : (
-                                                        <EnumSelect
-                                                            id="check-in-payment_method_id"
-                                                            options={methods.map(
-                                                                (one) => ({
-                                                                    value: String(
-                                                                        one.id,
-                                                                    ),
-                                                                    label: one.name,
-                                                                }),
-                                                            )}
-                                                            value={methodId}
-                                                            onValueChange={(
-                                                                value,
-                                                            ) =>
-                                                                form.setData(
-                                                                    'payment_method_id',
-                                                                    value,
-                                                                )
-                                                            }
-                                                            aria-invalid={
-                                                                !!errors.payment_method_id
-                                                            }
-                                                        />
-                                                    )}
-                                                    <FieldError>
-                                                        {
-                                                            errors.payment_method_id
-                                                        }
-                                                    </FieldError>
-                                                </Field>
-                                                {method?.requiresReference && (
-                                                    <Field
-                                                        data-invalid={
-                                                            !!errors.reference
-                                                        }
-                                                    >
-                                                        <FieldLabel htmlFor="check-in-reference">
-                                                            Reference
-                                                        </FieldLabel>
-                                                        <Input
-                                                            id="check-in-reference"
-                                                            placeholder="e.g. 4821 0933"
-                                                            value={
-                                                                data.reference
-                                                            }
-                                                            onChange={(event) =>
-                                                                form.setData(
-                                                                    'reference',
-                                                                    event.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            maxLength={100}
-                                                            autoComplete="off"
-                                                            aria-invalid={
-                                                                !!errors.reference
-                                                            }
-                                                        />
-                                                        <FieldError>
-                                                            {errors.reference}
-                                                        </FieldError>
-                                                    </Field>
-                                                )}
-                                            </div>
-                                        )}
+                                        <Separator className="-mx-3 data-horizontal:w-auto" />
+                                        <CollectRow
+                                            id="check-in-collect_now"
+                                            label="Collect now"
+                                            prefix="Total "
+                                            amount={String(
+                                                data.collect_now
+                                                    ? collectTotal
+                                                    : 0,
+                                            )}
+                                            currency={currency}
+                                            checked={data.collect_now}
+                                            onCheckedChange={(checked) =>
+                                                form.setData(
+                                                    'collect_now',
+                                                    checked,
+                                                )
+                                            }
+                                        />
                                     </>
                                 )}
-                            </>
+                            </div>
+                        )}
+                        {collecting && data.collect_now && (
+                            <div
+                                className={cn(
+                                    'grid gap-4',
+                                    method?.requiresReference &&
+                                        'sm:grid-cols-2',
+                                )}
+                            >
+                                <Field
+                                    data-invalid={!!errors.payment_method_id}
+                                >
+                                    <FieldLabel htmlFor="check-in-payment_method_id">
+                                        Method
+                                    </FieldLabel>
+                                    {paymentOptions === undefined ? (
+                                        <Skeleton className="h-9 w-full" />
+                                    ) : (
+                                        <EnumSelect
+                                            id="check-in-payment_method_id"
+                                            options={methods.map((one) => ({
+                                                value: String(one.id),
+                                                label: one.name,
+                                            }))}
+                                            value={methodId}
+                                            onValueChange={(value) =>
+                                                form.setData(
+                                                    'payment_method_id',
+                                                    value,
+                                                )
+                                            }
+                                            aria-invalid={
+                                                !!errors.payment_method_id
+                                            }
+                                        />
+                                    )}
+                                    <FieldError>
+                                        {errors.payment_method_id}
+                                    </FieldError>
+                                </Field>
+                                {method?.requiresReference && (
+                                    <Field data-invalid={!!errors.reference}>
+                                        <FieldLabel htmlFor="check-in-reference">
+                                            Reference
+                                        </FieldLabel>
+                                        <Input
+                                            id="check-in-reference"
+                                            placeholder="e.g. 4821 0933"
+                                            value={data.reference}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'reference',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            maxLength={100}
+                                            autoComplete="off"
+                                            aria-invalid={!!errors.reference}
+                                        />
+                                        <FieldError>
+                                            {errors.reference}
+                                        </FieldError>
+                                    </Field>
+                                )}
+                            </div>
                         )}
                     </EndedStayColumns>
                 </>
@@ -639,9 +589,10 @@ function CheckInForm({
 }
 
 /**
- * Check in one unit. Shows the room and the registration card status, a Nationality field when a tax needs it, the
- * overrides the user may use, and Collect now (the taxes flagged for check-in or, ticked, the full bill, and the security deposit) for a user
- * who may record payments. The form sends choices only. The server works out every amount.
+ * Check in one unit. Shows the room and the registration card status, a Nationality field (with the MyKad reader) when
+ * a tax needs it, the overrides the user may use, and for a user who may record payments one To collect list: the
+ * taxes flagged for check-in, each with a tick (Exempt, who paid a waived one, or where a Master tax is charged), the
+ * security deposit, the room folio's charges as a group with a tick each, and Collect now with the total. The form sends choices only. The server works out every amount.
  */
 export function CheckInDialog(props: Props) {
     return <CheckInForm key={useFreshOnOpen(props.open)} {...props} />;

@@ -84,6 +84,7 @@ class FolioRefusals
             TaxWaiverResult::REFUSAL_UNIT_NOT_WAIVABLE => [self::FORM, __('Taxes can be waived only for rooms that are confirmed, checked in or checked out.')],
             TaxWaiverResult::REFUSAL_TAX_NOT_FOUND => ['tax_ids', __('A tax you chose is not available.')],
             TaxWaiverResult::REFUSAL_TAX_NOT_WAIVABLE => ['tax_ids', __('A tax you chose cannot be marked as paid elsewhere.')],
+            TaxWaiverResult::REFUSAL_TAX_NOT_APPLICABLE => ['tax_ids', __('A tax you chose does not apply to this guest.')],
             TaxWaiverResult::REFUSAL_ALREADY_WAIVED => ['tax_ids', __('A tax you chose is already waived for this room.')],
             TaxWaiverResult::REFUSAL_WAIVER_NOT_FOUND => [self::FORM, __('This tax is not waived for this room.')],
             PostingResult::REFUSAL_TAX_INCLUSIVE => ['tax_ids', __('A tax that is part of the price cannot be added to a posted charge.')],

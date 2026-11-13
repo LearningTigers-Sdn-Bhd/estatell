@@ -8,6 +8,7 @@ use App\Actions\FrontDesk\CancelUnitsResult;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
+use App\Actions\FrontDesk\CheckInAndCollectResult;
 use App\Actions\FrontDesk\CheckInEndedStay;
 use App\Actions\FrontDesk\CheckOutAndRefund;
 use App\Actions\FrontDesk\CheckOutAsDayUse;
@@ -160,13 +161,13 @@ class ReservationUnitStayController extends Controller
     }
 
     /**
-     * Check in the chosen units of a group. A refused unit does not stop the others: it shows on its own row, as an
-     * error keyed `units.{id}`.
+     * Check in the chosen units of a group, each taking its own Collect now payments. A refused unit does not stop the
+     * others: it shows on its own row, as an error keyed `units.{id}`. A refused payment leaves its unit Confirmed.
      */
-    public function checkInAll(CheckInAllRequest $request, Property $property, Reservation $reservation, CheckInAllUnits $checkInAllUnits, ReservationRefusals $refusals): RedirectResponse
+    public function checkInAll(CheckInAllRequest $request, Property $property, Reservation $reservation, CheckInAllUnits $checkInAllUnits, ReservationRefusals $refusals, PaymentRefusals $paymentRefusals): RedirectResponse
     {
-        $results = $checkInAllUnits($request->user(), $reservation, $request->unitIds(), $request->withoutCard(), $request->endedStayChoice(), $request->arrivedAt());
-        $refused = array_filter($results, fn (?string $refusal): bool => $refusal !== null);
+        $results = $checkInAllUnits($request->user(), $reservation, $request->unitIds(), $request->withoutCard(), $request->endedStayChoice(), $request->arrivedAt(), $request->collectNow());
+        $refused = array_filter($results, fn (CheckInAndCollectResult $result): bool => $result->stay->isRefused() || $result->paymentRefusal !== null);
         $done = count($results) - count($refused);
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
 
@@ -179,8 +180,10 @@ class ReservationUnitStayController extends Controller
         $canOverrideCard = $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value);
         $errors = [];
 
-        foreach ($refused as $unitId => $refusal) {
-            $errors['units.'.$unitId] = array_values($refusals->unitErrors($refusal, canOverrideCard: $canOverrideCard))[0];
+        foreach ($refused as $unitId => $result) {
+            $errors['units.'.$unitId] = $result->stay->isRefused()
+                ? array_values($refusals->unitErrors((string) $result->stay->refusal, canOverrideCard: $canOverrideCard))[0]
+                : __('The payment was refused: :reason', ['reason' => $paymentRefusals->message((string) $result->paymentRefusal)]);
         }
 
         Inertia::flash('toast', ['type' => 'error', 'message' => __(':done checked in, :refused refused.', ['done' => $done, 'refused' => count($refused)])]);

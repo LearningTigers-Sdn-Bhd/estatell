@@ -14,6 +14,9 @@ final readonly class TaxWaiverResult
 
     public const string REFUSAL_TAX_NOT_WAIVABLE = 'tax_not_waivable';
 
+    /** A foreign-only tax for a guest of the property's own country: there is nothing to waive. */
+    public const string REFUSAL_TAX_NOT_APPLICABLE = 'tax_not_applicable';
+
     public const string REFUSAL_ALREADY_WAIVED = 'already_waived';
 
     public const string REFUSAL_WAIVER_NOT_FOUND = 'waiver_not_found';
