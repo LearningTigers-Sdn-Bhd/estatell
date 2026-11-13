@@ -126,7 +126,10 @@ class CheckInCollection
         $unitFolio = $this->folioRouter->unitFolio($unit);
         $charges = $this->charges($blocks, $unitFolio?->id);
         $unitTotal = array_reduce(array_filter($charges, fn (array $charge): bool => $charge['folio'] === 'unit'), fn (BigDecimal $sum, array $charge): BigDecimal => $sum->plus($charge['amount']), BigDecimal::zero());
-        $chargesPaid = BigDecimal::min($unitTotal, BigDecimal::max(BigDecimal::zero(), $unitFolio === null ? BigDecimal::zero() : $this->paidOn($unitFolio)));
+        // The unit folio also holds the collected taxes the guest pays apart from the room (`guestTax`), which are not
+        // in `charges`. A payment covers those first, so a tax paid earlier does not lower what the charges still ask.
+        $paidOnUnit = $unitFolio === null ? BigDecimal::zero() : $this->paidOn($unitFolio);
+        $chargesPaid = BigDecimal::min($unitTotal, BigDecimal::max(BigDecimal::zero(), $paidOnUnit->minus($this->guestTaxTotal($blocks))));
         $masterPaid = $master === null ? BigDecimal::zero() : BigDecimal::max(BigDecimal::zero(), $this->paidOn($master));
         $masterOwed = $master === null ? null : $this->stillOwed($master, $allBlocks);
 
@@ -310,6 +313,26 @@ class CheckInCollection
         }
 
         return BigDecimal::max(BigDecimal::zero(), $owed);
+    }
+
+    /**
+     * The collected taxes the guest pays on the unit folio while the room goes elsewhere: the `guestTax` blocks.
+     *
+     * @param  list<array{rows: list<FolioRowData>, guestTax?: true}>  $blocks
+     */
+    private function guestTaxTotal(array $blocks): BigDecimal
+    {
+        $total = BigDecimal::zero();
+
+        foreach ($blocks as $block) {
+            if ($block['guestTax'] ?? false) {
+                foreach ($block['rows'] as $row) {
+                    $total = $total->plus($row->amount);
+                }
+            }
+        }
+
+        return $total;
     }
 
     /**

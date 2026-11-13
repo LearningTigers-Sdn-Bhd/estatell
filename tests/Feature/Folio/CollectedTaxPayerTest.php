@@ -7,6 +7,7 @@ use App\Actions\NightAudit\PostRoomCharges;
 use App\Actions\Reservations\ChangeNightPrice;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\PaymentPurpose;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
 use App\Enums\TransactionCategory;
@@ -17,11 +18,13 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
+use App\Models\Payment;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
 use App\Models\TransactionCode;
+use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Folio\ScheduledFolioRows;
@@ -119,6 +122,18 @@ test('Collect now offers the tourism tax the guest pays, and hides it when the c
     $setup['company']->update(['pays_collected_taxes' => true]);
 
     expect(app(CheckInCollection::class)->for($setup['unit']->fresh())->taxesHidden)->toBeTrue();
+});
+
+test('a tourism tax paid before check-in does not lower what Collect now asks for the guest\'s own charges', function () {
+    $setup = collectedTaxSetup();
+    $fare = UnitAddOn::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'quantity' => 2, 'unit_amount' => '35.00']);
+    $unitFolio = Folio::factory()->forUnit($setup['unit'])->create(['property_id' => $setup['unit']->property_id, 'reservation_id' => $setup['reservation']->id]);
+    Payment::factory()->create(['folio_id' => $unitFolio->id, 'amount' => '20.00', 'purpose' => PaymentPurpose::Advance]);
+
+    $offer = app(CheckInCollection::class)->for($setup['unit']);
+
+    expect($offer->chargesPaid)->toBe('0.00')
+        ->and($offer->chargesFor([$fare->chargeItem->transaction_code_id]))->toBe('70.00');
 });
 
 test('Collect now keeps a tax the guest does not pay as information: billed to the company or on the master folio', function () {
