@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Rooms;
 use App\Actions\Rooms\CancelRoomBlock;
 use App\Actions\Rooms\CreateRoomBlock;
 use App\Actions\Rooms\EndRoomBlock;
+use App\Actions\Rooms\RoomBlockRefused;
 use App\Actions\Rooms\UpdateRoomBlock;
 use App\Data\Rooms\RoomBlockData;
 use App\Data\Rooms\RoomBlockRoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Enums\RoomBlockReason;
-use App\Enums\RoomBlockRefusal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rooms\EndRoomBlockRequest;
 use App\Http\Requests\Rooms\RoomBlockRequest;
@@ -77,7 +77,7 @@ class RoomBlockController extends Controller
         $unit = $this->unitName($room, $bed);
         $result = $createRoomBlock($request->user(), $room, $bed, $request->toRoomBlockData());
 
-        Inertia::flash('toast', $result instanceof RoomBlockRefusal
+        Inertia::flash('toast', $result instanceof RoomBlockRefused
             ? ['type' => 'error', 'message' => $result->message($unit)]
             : ['type' => 'success', 'message' => __(':unit blocked.', ['unit' => $unit])]);
 

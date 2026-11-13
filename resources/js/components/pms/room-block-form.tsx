@@ -210,6 +210,7 @@ export function RoomBlockForm({
                         min={today}
                         fromLocked={started}
                         maxDays={maxNights}
+                        months={2}
                         unit="night"
                         placeholder="Pick the first and last night"
                         aria-invalid={

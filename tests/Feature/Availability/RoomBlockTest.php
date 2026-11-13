@@ -161,7 +161,8 @@ test('overlapping blocks are refused', function (?string $existingBed, ?string $
     expect(RoomBlock::query()->count())->toBe($refused ? 2 : 3);
 
     if ($refused) {
-        $response->assertInertiaFlash('toast.type', 'error');
+        $unit = $newBed ? "Room {$dorm->number}, bed {$beds[$newBed]->label}" : "Room {$dorm->number}";
+        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$unit} is already blocked from 14 Oct 2026 to 20 Oct 2026. To change those nights, edit that block."]);
     }
 })->with([
     'room over room' => [null, null, true],
@@ -176,8 +177,9 @@ test('a block over a night with a stay is refused', function (string $stayOn, ?s
     $dorm = blockedDorm($owner->property);
     $dorm->update(['number' => '12']);
     $beds = ['A1' => Bed::factory()->for($dorm)->create(['label' => 'A1']), 'A2' => Bed::factory()->for($dorm)->create(['label' => 'A2'])];
+    $stayUnit = ($cancelled ? ReservationUnit::factory()->cancelled() : ReservationUnit::factory())->create();
     UnitNight::factory()->create([
-        'reservation_unit_id' => ($cancelled ? ReservationUnit::factory()->cancelled() : ReservationUnit::factory())->create()->id,
+        'reservation_unit_id' => $stayUnit->id,
         'date' => $date,
         ...($stayOn === 'room' ? ['room_id' => $dorm->id] : ['bed_id' => $beds[$stayOn]->id]),
     ]);
@@ -193,7 +195,8 @@ test('a block over a night with a stay is refused', function (string $stayOn, ?s
 
     if ($refused) {
         $unit = $blockBed ? "Room 12, bed {$blockBed}" : 'Room 12';
-        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$unit} has a stay on some of these nights. Move the stay first."]);
+        $reference = $stayUnit->reservation->reference;
+        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$unit} has a stay on 13 Oct 2026 (booking {$reference}). Move the stay first."]);
         expect(Activity::query()->where('event', 'room_block.created')->count())->toBe(0);
     }
 })->with([
@@ -210,14 +213,28 @@ test('editing a block over a night with a stay is refused', function () {
     $owner = User::factory()->owner()->create();
     $room = Room::factory()->for($owner->property)->create(['number' => '203']);
     $block = blockOn($room, ['starts_on' => '2026-10-12', 'ends_on' => '2026-10-14']);
-    UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-16']);
+    $night = UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-16']);
+    $reference = $night->reservationUnit->reservation->reference;
 
     $this->actingAs($owner)
-        ->put(route('front-desk.room-blocks.update', [$owner->property->code, $block]), blockPayload(['ends_on' => '2026-10-16']))
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Room 203 has a stay on some of these nights. Move the stay first.']);
+        ->put(route('front-desk.room-blocks.update', [$owner->property->code, $block]), blockPayload(['ends_on' => '2026-10-17']))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => "Room 203 has a stay on 16 Oct 2026 (booking {$reference}). Move the stay first."]);
 
     expect($block->refresh()->ends_on->toDateString())->toBe('2026-10-14')
         ->and(Activity::query()->where('event', 'room_block.updated')->count())->toBe(0);
+});
+
+test('editing a block over another block names that block', function () {
+    $owner = User::factory()->owner()->create();
+    $room = Room::factory()->for($owner->property)->create(['number' => '2017']);
+    $block = blockOn($room, ['starts_on' => '2026-10-12', 'ends_on' => '2026-10-14']);
+    blockOn($room, ['starts_on' => '2026-10-20', 'ends_on' => '2026-11-19']);
+
+    $this->actingAs($owner)
+        ->put(route('front-desk.room-blocks.update', [$owner->property->code, $block]), blockPayload(['ends_on' => '2026-12-31']))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Room 2017 is already blocked from 20 Oct 2026 to 19 Nov 2026. To change those nights, edit that block.']);
+
+    expect($block->refresh()->ends_on->toDateString())->toBe('2026-10-14');
 });
 
 test('a block made from the Timeline returns to the Timeline', function () {

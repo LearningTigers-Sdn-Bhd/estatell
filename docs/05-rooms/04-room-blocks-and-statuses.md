@@ -36,8 +36,8 @@ The status enum is `HousekeepingStatus`, not `RoomStatus`, because the `RoomStat
 - The first night cannot be in the past. "Today" is the property's local date (`PropertyToday`, from the property time zone). It switches to `CurrentBusinessDate` when business dates exist.
 - A block covers at most 365 nights.
 - A block needs an active room. A bed block needs an active bed of that room. Only rooms of a Bed room type have beds to pick. Without a bed, the whole room is blocked, including all its beds.
-- Overlaps are refused: a whole-room block clashes with any open block in the room. A bed block clashes with a whole-room block and with a block on the same bed. Blocks on two different beds never clash. Back-to-back blocks (one ends on the 14th, the next starts on the 15th) are fine. `RoomBlockConflicts` (a Service) checks this under a lock on the room row.
-- A block cannot cover a night that holds a stay. A whole-room block clashes with a night assigned to the room or to any of its beds. A bed block clashes with a night assigned to that bed or to the whole room. Only units that hold inventory count (not Cancelled or No-show). A day use holds no night, so it does not clash. `RoomAssignedNights::existBetween()` checks this inside the same lock, on create and on edit. Move the stay first, then block the room.
+- Overlaps are refused: a whole-room block clashes with any open block in the room. A bed block clashes with a whole-room block and with a block on the same bed. Blocks on two different beds never clash. Back-to-back blocks (one ends on the 14th, the next starts on the 15th) are fine. `RoomBlockConflicts::first()` (a Service) finds the earliest clashing block under a lock on the room row.
+- A block cannot cover a night that holds a stay. A whole-room block clashes with a night assigned to the room or to any of its beds. A bed block clashes with a night assigned to that bed or to the whole room. Only units that hold inventory count (not Cancelled or No-show). A day use holds no night, so it does not clash. `RoomAssignedNights::firstBetween()` finds the earliest such night inside the same lock, on create and on edit. Move the stay first, then block the room.
 - Notes are required when the reason is Other.
 - No `room_number` copies. Only `room_id` and `bed_id`.
 
@@ -64,7 +64,10 @@ The status enum is `HousekeepingStatus`, not `RoomStatus`, because the `RoomStat
 ## Actions
 
 - `CreateRoomBlock`, `UpdateRoomBlock`, `EndRoomBlock`, `CancelRoomBlock`. Each logs activity (`room_block.created`, `.updated`, `.ended`, `.cancelled`).
-- `CreateRoomBlock` returns the block or a `RoomBlockRefusal`, and `UpdateRoomBlock` returns null or a `RoomBlockRefusal`: `unavailable` (archived room or bed), `ended`, `blocked` (another open block) or `has_stay`. The controller turns it into an error toast and writes nothing.
+- `CreateRoomBlock` returns the block or a `RoomBlockRefused`, and `UpdateRoomBlock` returns null or a `RoomBlockRefused`. It holds a `RoomBlockRefusal`: `unavailable` (archived room or bed), `ended`, `blocked` (another open block) or `has_stay`. The Actions write nothing, and the controller turns the refusal into an error toast.
+- The toast names the clash, so staff know what to do next:
+    - `blocked`: "Room 2017 is already blocked from 20 Oct 2026 to 19 Nov 2026. To change those nights, edit that block." Staff who want a longer block edit the existing one instead of adding a second.
+    - `has_stay`: "Room 2017 has a stay on 16 Oct 2026 (booking {reference}). Move the stay first." It gives the first clashing night and its booking reference.
 - `ArchiveRoom` and `ArchiveBed` end open current and upcoming blocks.
 - Housekeeping Actions (`UpdateRoomStatus`, `AssignHousekeeper`, `SetRoomPriority`, `SetDoNotDisturb`, `SetRoomRemark`, `SetNeedsMaintenance`, `BulkUpdateRooms`) come with module 19. See [Room status board](../19-housekeeping/01-room-status-board.md#actions).
 
@@ -86,7 +89,7 @@ Room          Reason        Nights                      Notes
 ```
 
 - One load: every current and upcoming block, the latest 50 past blocks, and the active rooms with their active beds. Tabs and filters work in the browser.
-- **Block room** and **Edit** open a Dialog: room, bed (dorm rooms only, default "Whole room"), reason (full width), nights (`DateRangePicker`) and notes.
+- **Block room** and **Edit** open a Dialog: room, bed (dorm rooms only, default "Whole room"), reason (full width), nights (`DateRangePicker`, two months side by side, one on a phone) and notes.
 - **End now** opens a confirm dialog. For a whole-room block it asks "Room is Dirty / Clean" (default Dirty).
 - **Cancel** opens a confirm dialog.
 - The form is `RoomBlockForm` (`components/pms/room-block-form.tsx`). The Timeline's **Block room** cell action opens the same form in the same Dialog, with the room fixed. See [Empty cell](../18-front-desk/07-timeline-editing.md#empty-cell).

@@ -3,6 +3,7 @@
 namespace App\Services\Rooms;
 
 use App\Models\Room;
+use App\Models\RoomBlock;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -13,7 +14,10 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class RoomBlockConflicts
 {
-    public function exist(Room $room, ?int $bedId, string $startsOn, string $endsOn, ?int $ignoreBlockId = null): bool
+    /**
+     * The earliest open block that clashes with the planned nights, or null.
+     */
+    public function first(Room $room, ?int $bedId, string $startsOn, string $endsOn, ?int $ignoreBlockId = null): ?RoomBlock
     {
         return $room->blocks()
             ->open()
@@ -22,6 +26,8 @@ class RoomBlockConflicts
             ->when($bedId !== null, fn (Builder $query) => $query->where(
                 fn (Builder $query) => $query->whereNull('bed_id')->orWhere('bed_id', $bedId),
             ))
-            ->exists();
+            ->orderBy('starts_on')
+            ->orderBy('id')
+            ->first();
     }
 }
