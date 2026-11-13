@@ -3,6 +3,8 @@
 use App\Features\Concierge;
 use App\Models\Property;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -101,4 +103,37 @@ it('does not open the page of another property', function () {
     Feature::for($other)->activate(Concierge::class);
 
     $this->actingAs($owner)->get(route('settings.concierge.index', $other))->assertNotFound();
+});
+
+it('uploads a lobby hero photo that the public lobby and booking-code page show, and removes it again', function () {
+    Storage::fake('public');
+    ['owner' => $owner, 'property' => $property] = conciergeSettingsSetup();
+
+    $this->get(route('concierge.lobby', $property))->assertInertia(fn (Assert $page) => $page->where('heroUrl', null));
+
+    $this->actingAs($owner)->post(route('settings.concierge.hero.store', $property), ['hero' => UploadedFile::fake()->image('lobby.jpg', 1600, 900)])
+        ->assertSessionHasNoErrors();
+
+    $media = $property->refresh()->getFirstMedia(Property::HERO);
+    expect($media->disk)->toBe('public')
+        ->and($media->file_name)->toMatch('/^[0-9a-f-]{36}\.jpg$/')
+        ->and(Activity::query()->where('event', 'concierge.settings-updated')->sole()->properties['changed'])->toBe(['hero_photo']);
+
+    // No login: guests read the photo straight from the public disk.
+    auth()->logout();
+    $this->get(route('concierge.lobby', $property))->assertInertia(fn (Assert $page) => $page->where('heroUrl', $property->heroUrl()));
+    $this->get(route('concierge.enter-code', $property))->assertInertia(fn (Assert $page) => $page->where('heroUrl', $property->heroUrl()));
+
+    $this->actingAs($owner)->delete(route('settings.concierge.hero.destroy', $property))->assertRedirect();
+    expect($property->refresh()->hasMedia(Property::HERO))->toBeFalse();
+    $this->get(route('concierge.lobby', $property))->assertInertia(fn (Assert $page) => $page->where('heroUrl', null));
+});
+
+it('refuses a hero photo that is not a JPEG, PNG or WebP image', function () {
+    Storage::fake('public');
+    ['owner' => $owner, 'property' => $property] = conciergeSettingsSetup();
+
+    $this->actingAs($owner)->post(route('settings.concierge.hero.store', $property), ['hero' => UploadedFile::fake()->create('lobby.pdf', 100, 'application/pdf')])
+        ->assertSessionHasErrors('hero');
+    expect($property->refresh()->hasMedia(Property::HERO))->toBeFalse();
 });

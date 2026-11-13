@@ -1,12 +1,13 @@
-import { Form } from '@inertiajs/react';
+import { Form, Link } from '@inertiajs/react';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     ArrowUpRight,
     CircleCheck,
     FileText,
     MessageSquare,
+    ReceiptText,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
@@ -87,6 +88,31 @@ export function CheckedOutStep({
             </div>
 
             <DocumentList documents={stay.documents} />
+
+            {stay.eInvoiceUrl && (
+                <section className="flex max-w-2xl flex-col gap-3 rounded-2xl border border-border/40 bg-card p-6">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold">
+                        <ReceiptText
+                            className="size-5 text-primary"
+                            aria-hidden
+                        />
+                        E-invoice
+                    </h2>
+                    <p className="text-sm text-pretty text-muted-foreground">
+                        Need a tax invoice for your company or your own tax
+                        records? Request an e-invoice validated by LHDN.
+                    </p>
+                    <Link
+                        href={stay.eInvoiceUrl}
+                        className={buttonVariants({
+                            size: 'lg',
+                            className: 'h-12 self-start rounded-lg',
+                        })}
+                    >
+                        Open e-invoice
+                    </Link>
+                </section>
+            )}
 
             {stay.refundRequest && (
                 <section className="flex max-w-2xl flex-col gap-5 rounded-2xl border border-border/40 bg-card p-6">

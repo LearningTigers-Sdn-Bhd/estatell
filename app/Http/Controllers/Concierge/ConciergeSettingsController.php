@@ -6,6 +6,7 @@ use App\Actions\BookingEngine\SetPropertyAmenity;
 use App\Actions\Concierge\AddFaq;
 use App\Actions\Concierge\AddInfoTopic;
 use App\Actions\Concierge\AddWifiNetwork;
+use App\Actions\Concierge\RemoveConciergeHero;
 use App\Actions\Concierge\RemoveFaq;
 use App\Actions\Concierge\RemoveInfoTopic;
 use App\Actions\Concierge\RemoveWifiNetwork;
@@ -14,6 +15,7 @@ use App\Actions\Concierge\SaveGuestContacts;
 use App\Actions\Concierge\SaveHotelInfo;
 use App\Actions\Concierge\UpdateConciergeSettings;
 use App\Actions\Concierge\UpdateWifiNetwork;
+use App\Actions\Concierge\UploadConciergeHero;
 use App\Data\BookingEngine\AmenityPickerData;
 use App\Data\BookingEngine\NearbyPlaceSuggestionData;
 use App\Data\BookingEngine\PropertyNearbyPlaceData;
@@ -37,6 +39,7 @@ use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
 use App\Http\Requests\Concierge\UpdateSettingsRequest;
 use App\Http\Requests\Concierge\UpdateWifiRequest;
+use App\Http\Requests\Concierge\UploadHeroRequest;
 use App\Models\Amenity;
 use App\Models\NearbyPlace;
 use App\Models\Property;
@@ -71,6 +74,7 @@ class ConciergeSettingsController extends Controller
             'lobbyQr' => $qr->dataUri($url),
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
+            'heroUrl' => $property->heroUrl(),
             'houseRules' => $property->settings?->house_rules,
             'locationCheckEnabled' => (bool) $property->settings?->concierge_location_check_enabled,
             'hasLocation' => filled($property->latitude) && filled($property->longitude),
@@ -110,6 +114,24 @@ class ConciergeSettingsController extends Controller
         $updateSettings($request->user(), $property, $request->boolean('walk_in_enabled'), $request->boolean('refund_requests_enabled'), $request->input('house_rules'), $request->safe()->only(UpdateConciergeSettings::POLICY_FIELDS), $request->has('location_check_enabled') ? $request->boolean('location_check_enabled') : null);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Concierge settings saved.')]);
+
+        return back();
+    }
+
+    public function storeHero(UploadHeroRequest $request, Property $property, UploadConciergeHero $uploadHero): RedirectResponse
+    {
+        $uploadHero($request->user(), $property, $request->file('hero'));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Hero photo uploaded.')]);
+
+        return back();
+    }
+
+    public function destroyHero(Request $request, Property $property, RemoveConciergeHero $removeHero): RedirectResponse
+    {
+        if ($removeHero($request->user(), $property)) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Hero photo removed.')]);
+        }
 
         return back();
     }

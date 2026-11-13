@@ -82,6 +82,9 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
 
     public const string PHOTOS = 'photos';
 
+    /** The photo beside the property name on the Concierge lobby page. One file; the lobby shows a stock photo without it. */
+    public const string HERO = 'hero';
+
     public const int PHOTO_LIMIT = 20;
 
     public const int PHOTO_MAX_KB = 5120;
@@ -103,12 +106,25 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         $this->addMediaCollection(self::PHOTOS)
             ->acceptsMimeTypes(self::PHOTO_MIME_TYPES)
             ->useDisk(config('filesystems.public_media'));
+
+        $this->addMediaCollection(self::HERO)
+            ->singleFile()
+            ->acceptsMimeTypes(self::PHOTO_MIME_TYPES)
+            ->useDisk(config('filesystems.public_media'));
+    }
+
+    /**
+     * The lobby hero photo's public URL, or null when none is uploaded (the lobby then shows its stock photo).
+     */
+    public function heroUrl(): ?string
+    {
+        return $this->getFirstMedia(self::HERO)?->getUrl('web');
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')->performOnCollections(self::PHOTOS)->nonQueued()->width(400);
-        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS)->nonQueued()->width(1600);
+        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS, self::HERO)->nonQueued()->width(1600);
     }
 
     /**

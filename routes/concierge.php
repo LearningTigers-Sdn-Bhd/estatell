@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Concierge\ConciergeController;
 use App\Http\Controllers\Concierge\ConciergeDocumentController;
+use App\Http\Controllers\Concierge\ConciergeEInvoiceController;
 use App\Http\Controllers\Concierge\ConciergeGuideController;
 use App\Http\Controllers\Concierge\ConciergeStayController;
 use Illuminate\Support\Facades\Route;
@@ -44,9 +45,11 @@ Route::middleware(['concierge', 'throttle:concierge'])->group(function () {
 });
 
 /*
- * A guest who has checked out may still ask for a refund for a while. This is the one write that accepts a checked-out stay,
- * so it has its own group with `concierge:checked-out`.
+ * A guest who has checked out may still ask for a refund or an e-invoice for a while. These are the writes that accept a
+ * checked-out stay, so they have their own group with `concierge:checked-out`.
  */
 Route::middleware(['concierge:checked-out', 'throttle:concierge'])->prefix('c/{token}')->name('concierge.')->group(function () {
     Route::post('refund', [ConciergeStayController::class, 'requestRefund'])->middleware('throttle:concierge-write')->name('refund');
+    Route::get('e-invoice', [ConciergeEInvoiceController::class, 'show'])->name('e-invoice');
+    Route::post('e-invoice', [ConciergeEInvoiceController::class, 'store'])->middleware('throttle:concierge-write')->name('e-invoice.store');
 });

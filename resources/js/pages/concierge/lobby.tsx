@@ -35,12 +35,14 @@ type Tile = {
 /** What a guest sees after scanning the lobby QR: the services of the property, with check-in first. */
 export default function ConciergeLobby({
     property,
+    heroUrl,
     walkInEnabled,
     bookingUrl,
 }: {
     property: App.Data.Property.PropertySummaryData;
     walkInEnabled: boolean;
     bookingUrl: string | null;
+    heroUrl: string | null;
 }) {
     const code = { property: property.code };
     const [savedToken, setSavedToken] = useState<string | null>(null);
@@ -172,7 +174,10 @@ export default function ConciergeLobby({
                             </div>
                             <div className="concierge-editorial-image relative overflow-hidden bg-muted">
                                 <img
-                                    src="/images/concierge-editorial-coast.jpg"
+                                    src={
+                                        heroUrl ??
+                                        '/images/concierge-editorial-coast.jpg'
+                                    }
                                     alt=""
                                     width={1672}
                                     height={941}

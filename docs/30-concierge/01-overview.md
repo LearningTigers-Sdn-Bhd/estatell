@@ -6,7 +6,7 @@ A page on the guest's own phone that checks the guest in with no front desk and 
 
 The kiosk is a separate product that needs hardware. The page shares the check-in rules with the kiosk and nothing else: not its token, not its actor, not its routes.
 
-**Status: built.** The lobby hub, the property guide, contact, nearby places, self check-in, the in-stay pages, the bill with check-out, documents and refund requests are built. The e-invoice request comes later. See [Not built](#not-built) and [Compared with wastays](#compared-with-wastays).
+**Status: built.** The lobby hub, the property guide, contact, nearby places, self check-in, the in-stay pages, the bill with check-out, documents, refund requests and the e-invoice request are built. See [Not built](#not-built) and [Compared with wastays](#compared-with-wastays).
 
 ## Guest design
 
@@ -25,7 +25,7 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 | Where it lives  | Inside estatell, in `routes/concierge.php`, outside `kiosk/v1`. No separate site and no new API                                                                                                             |
 | Feature flag    | `Concierge`, per property, off by default, set by admins. Every Concierge route answers 404 while it is off or the property is suspended                                                                    |
 | Lobby QR        | One per property. It opens `/stay/{code}`, a hub of services (check in, book a room, property guide, nearby places, contact) that is public and carries no booking. Staff print it from Settings, Concierge |
-| Stay link life  | The stay's link (`/c/{token}`) works until 7 days after the departure date, so a guest can still open their documents and ask for a refund                                                                  |
+| Stay link life  | The stay's link (`/c/{token}`) works until 7 days after the departure date, so a guest can still open their documents, ask for a refund and request an e-invoice                                            |
 | Who can use it  | Guests with a booking, and walk-ins when the property turns the walk-in switch on                                                                                                                           |
 | Proof of a stay | The booking code alone, or the stay's own link `/c/{token}`. The link is the stay's pre-check-in token. Codes run in order, so a code can be guessed: the lockout slows guessing and does not stop it       |
 | Payment         | Online through Razorpay Curlec. It pays what the kiosk's paid-enough rule wants: the Collect now taxes and the security deposit                                                                             |
@@ -60,17 +60,18 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 
 ## Routes
 
-| Route                                  | Name                         | Purpose                                       |
-| -------------------------------------- | ---------------------------- | --------------------------------------------- |
-| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`   | Lobby, and open a stay by booking code        |
-| `GET/POST /stay/{code}/walk-in`        | `concierge.walk-in`, `.book` | Offers for tonight, and book one              |
-| `GET /c/{token}`                       | `concierge.show`             | The stay page                                 |
-| `POST /c/{token}/identity`             | `concierge.identity`         | Save the typed ID and optional photos         |
-| `POST /c/{token}/sign`                 | `concierge.sign`             | Sign the primary guest's registration card    |
-| `POST /c/{token}/payment`              | `concierge.payment`          | Start the Curlec order. JSON for the checkout |
-| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`  | Confirm a finished checkout by its signature  |
-| `POST /c/{token}/check-in`             | `concierge.check-in`         | Check in with the front desk's rules          |
-| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`       | Staff: lobby QR and the walk-in switch        |
+| Route                                  | Name                            | Purpose                                       |
+| -------------------------------------- | ------------------------------- | --------------------------------------------- |
+| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`      | Lobby, and open a stay by booking code        |
+| `GET/POST /stay/{code}/walk-in`        | `concierge.walk-in`, `.book`    | Offers for tonight, and book one              |
+| `GET /c/{token}`                       | `concierge.show`                | The stay page                                 |
+| `POST /c/{token}/identity`             | `concierge.identity`            | Save the typed ID and optional photos         |
+| `POST /c/{token}/sign`                 | `concierge.sign`                | Sign the primary guest's registration card    |
+| `POST /c/{token}/payment`              | `concierge.payment`             | Start the Curlec order. JSON for the checkout |
+| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`     | Confirm a finished checkout by its signature  |
+| `POST /c/{token}/check-in`             | `concierge.check-in`            | Check in with the front desk's rules          |
+| `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice          |
+| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch        |
 
 All guest routes sit behind the `concierge` middleware (`EnsureConciergeIsActive`) and are throttled. A write through a link works only on a Confirmed or CheckedIn stay; a link to a cancelled stay can only be read, to show `hold_expired`.
 
@@ -115,7 +116,7 @@ They open from the stay menu once the guest is checked in. Each works only for a
 - **A credit or held deposit:** the page shows it and tells the guest the front desk gives it back. A stay with a deposit settles to zero only after the desk returns it, so the guest checks out at the desk.
 - **Check-out:** offered when the bill is zero and the check-out window is open, the same window the kiosk uses (the departure day). `CheckOutConciergeStay` calls the front desk's `CheckOutUnit` with no staff actor, logs `concierge.checked_out` with the property id only, and answers the same result again on a retry. An earlier check-out is the desk's.
 - **Asking the desk:** when the guest cannot check out alone (money is owed, a deposit is held, or it is before the departure day), the bill page offers **Ask the front desk to check you out** with an optional note. It becomes a guest request of the type Other whose details start with `Check-out request` (`RequestConciergeCheckOut`), in the staff Requests list. One can be open at a time. While it is open the bill and the stay page show "Check-out asked".
-- After check-out the link shows the thank-you, the documents and, when a refund request was sent, how it is going. Every write through it answers 404.
+- After check-out the link shows the thank-you, the documents and, when a refund request was sent, how it is going, and the e-invoice page. The refund request and the e-invoice request are the only writes it accepts; every other write answers 404.
 
 ## Stay link email
 
@@ -144,6 +145,16 @@ Public from the hub and, with more in it, from the stay link. The owner keeps th
 - **Documents** are PDFs made on demand by the builders staff use (`BookingSummary`, `PaymentReceipt`, `FolioInvoice`), and nothing is stored. A guest gets the booking summary, a receipt for each payment on the stay's own folios, and the final invoice once the folio is closed. A guest never reaches another stay's receipt. They open while the stay is checked in or checked out.
 - **A refund request** is a [guest request](../25-guest-requests/01-guest-requests.md) of the type Refund with the source Concierge. The owner turns the switch on in Settings, Concierge. A guest can send it only after check-out, and only one at a time; staff answer it in the Requests list. Nothing is refunded automatically.
 
+## E-invoice request
+
+A guest asks for their own LHDN e-invoice for the stay at `/c/{token}/e-invoice` (`ConciergeEInvoiceController`). The stay page links to it after check-out while the property offers one. It uses the same buyer fields as staff's **Issue e-invoice** form ([LHDN MyInvois](../31-einvoice/01-lhdn-myinvois.md#buyer-resolution-rules)), for a person: name, NRIC or passport, tax number (TIN), country, address, and a Malaysian state for a Malaysian address. A foreign guest may leave the TIN empty (LHDN's general foreign number is used).
+
+- **Open only while** the stay's folio is Closed with an invoice number, nothing holds the folio yet (`FolioEInvoiceLock`), the property has e-invoicing on with MyInvois credentials, a person (not a company) pays, and the current month is the month the folio closed (Malaysia time). After that month the stay may be in the monthly summary, so the page says to ask the front desk.
+- **The request** is `RequestConciergeEInvoice`, which calls `SubmitFolioEInvoice` with no staff actor, `requested_by_guest` on and the typed buyer, so the e-invoice follows every rule of a staff send (one per stay, the hotel's details, LHDN's checks). Guest-fixable refusals show their reason; anything about the hotel's own details shows one plain line.
+- **States** (`ConciergeEInvoiceState`): after check-out, unavailable, window closed, in summary, open, processing and valid. A Valid e-invoice shows an **Open the e-invoice** link to the public MyInvois page. A Rejected request opens the form again with what the guest typed and a short note.
+- **Privacy.** The form never shows a stored ID number: the ID number, tax number, email, phone and street address start blank, unless the guest typed them on a request LHDN rejected. Only the name, country, city, state and postcode are prefilled. The page never shows LHDN's raw replies or the document.
+- **Not built:** emailing the e-invoice to the guest from this page (staff can email it from the submission page), and the **Check with LHDN** tax number check, which needs a staff login.
+
 ## Compared with wastays
 
 The wastays Guest Concierge was the reference for what a guest needs. This table says where each part stands in estatell. Estatell does not copy its screens or its security model.
@@ -160,12 +171,16 @@ The wastays Guest Concierge was the reference for what a guest needs. This table
 | Stay page: housekeeping and report an issue                         | Built as requests                                                                             |
 | Check out                                                           | Built                                                                                         |
 | Booking receipt, invoice and summary PDFs                           | Built                                                                                         |
-| E-invoice request                                                   | Later                                                                                         |
+| E-invoice request                                                   | Built: the guest types the buyer details and `SubmitFolioEInvoice` sends the stay's e-invoice |
 | Ask for a refund, and its status                                    | Built: a refund request, and the guest sees its status after check-out                        |
 | Stay link emailed after check-in                                    | Built: `SendConciergeStayLink` emails the guest the stay link when any channel checks them in |
 | Device check with the confirmation code, lockout and email recovery | Different: the stay link is the secret, and the lobby code lookup has its own lockout         |
 | 7 days of access after check-out                                    | Built: the link works until 7 days after the departure date                                   |
-| Hotel photo hero and menu style                                     | Partly: the hub shows the property logo and name. No hero photo field exists                  |
+| Hotel photo hero and menu style                                     | Built as a hero photo. The menu style is a design choice, so it is not built                  |
+
+## Lobby hero photo
+
+The large photo beside the property name on the lobby hub and on the booking-code page. Staff upload it in Settings, Concierge, Hotel info, on the **Lobby photo** card (JPEG, PNG or WebP, up to 5 MB, one per property; it saves at once). It is stored in the `hero` media collection of the property on the public media disk, so guests read it with no login. With none uploaded, or after **Use stock photo**, both pages show the stock coast photo (`public/images/concierge-editorial-coast.jpg`). Upload and removal are logged as `concierge.settings-updated`.
 
 ## Guest recovery and remaining screens
 
@@ -204,11 +219,10 @@ The page can issue a door PIN to someone who holds a QR code, so it is stricter 
 | Payment           | `CurlecGateway`, `RecordPayment`, `ProcessCurlecEvent`, the refund Actions |
 | Walk-in           | `BookWalkIn::book`, `KioskWalkIn::available`, `KioskWalkInHold`            |
 
-New: the `Concierge` feature, `ConciergeStays`, `ConciergeLookupLockout`, `ConciergeProgress`, `ConciergePageBuilder`, `ConciergeLobbyQr`, and the Actions `OpenConciergeStay`, `SaveConciergeIdentity`, `CheckInConciergeStay`, `StartStayPayment`, `ConfirmStayPayment`, `RecordStayPayment`, `BookConciergeWalkIn`, `UpdateConciergeSettings`.
+New: the `Concierge` feature, `ConciergeStays`, `ConciergeLookupLockout`, `ConciergeProgress`, `ConciergePageBuilder`, `ConciergeLobbyQr`, and the Actions `OpenConciergeStay`, `SaveConciergeIdentity`, `CheckInConciergeStay`, `StartStayPayment`, `ConfirmStayPayment`, `RecordStayPayment`, `BookConciergeWalkIn`, `UpdateConciergeSettings`, `UploadConciergeHero`, `RemoveConciergeHero`.
 
 ## Not built
 
-- **The e-invoice request.** It comes later.
 - **Facility opening hours and fees.** The registry holds names only.
 - **Cancellation terms in the policies page.** They are rate-specific and live on the booking.
 - **Cards for other guests** of a booking, and choosing one room of a multi-room booking from a booking code.
@@ -216,4 +230,3 @@ New: the `Concierge` feature, `ConciergeStays`, `ConciergeLookupLockout`, `Conci
 - **ID photo reading.** The guest types the ID fields. A photo is stored for staff to see and fills nothing.
 - **Sending the stay link by WhatsApp.** The email is built.
 - **Telling staff** when a request arrives. The request shows in the staff list, with no notification yet.
-- **A hero photo and a menu style** per property.

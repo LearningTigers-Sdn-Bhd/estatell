@@ -1121,6 +1121,29 @@ export type ConciergeDocumentData = {
 label: string,
 url: string,
 };
+export type ConciergeEInvoiceBuyerData = {
+name: string,
+idType: string,
+idValue: string,
+tin: string,
+email: string,
+phone: string,
+addressLine1: string,
+addressLine2: string,
+city: string,
+postalCode: string,
+stateCode: string,
+countryCode: string,
+};
+export type ConciergeEInvoiceData = {
+state: App.Enums.ConciergeEInvoiceState,
+title: string,
+message: string,
+invoiceNumber: string | null,
+viewUrl: string | null,
+buyer: App.Data.Concierge.ConciergeEInvoiceBuyerData | null,
+rejection: string | null,
+};
 export type ConciergeFaqData = {
 id: number,
 question: string,
@@ -1238,6 +1261,7 @@ checkOutAsked: boolean,
 refundRequest: App.Data.Concierge.ConciergeRequestData | null,
 locationRequired: boolean,
 identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
+eInvoiceUrl: string | null,
 };
 export type ConciergeTermsData = {
 version: number,
@@ -5455,6 +5479,7 @@ export type CompanyRateMarket = 'all' | 'local' | 'international';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
 export type CompanyUserStatus = 'pending' | 'active' | 'revoked';
+export type ConciergeEInvoiceState = 'after_check_out' | 'unavailable' | 'window_closed' | 'in_summary' | 'open' | 'processing' | 'valid';
 export type ConciergeStep = 'identity' | 'card' | 'payment' | 'check_in' | 'key' | 'home' | 'checked_out' | 'not_open' | 'hold_expired' | 'desk';
 export type DashboardTab = 'performance' | 'today';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';

@@ -51,6 +51,7 @@ class ConciergeController extends Controller
 
         return Inertia::render('concierge/lobby', [
             'property' => PropertySummaryData::fromModel($property),
+            'heroUrl' => $property->heroUrl(),
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'bookingUrl' => $guide->bookingUrl($property),
         ]);

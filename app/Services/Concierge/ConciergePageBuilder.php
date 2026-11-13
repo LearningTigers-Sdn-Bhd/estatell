@@ -38,6 +38,7 @@ class ConciergePageBuilder
         private RegistrationCardFieldRules $fieldRules,
         private ConciergeDocuments $documents,
         private RequestConciergeCheckOut $checkOut,
+        private ConciergeEInvoice $eInvoice,
     ) {}
 
     public function build(string $token, ReservationUnit $stay, ?Locale $locale): ConciergeStayData
@@ -75,6 +76,7 @@ class ConciergePageBuilder
             refundRequest: $step === ConciergeStep::CheckedOut ? $this->refundRequest($stay) : null,
             locationRequired: $stay->property->settings->concierge_location_check_enabled && filled($stay->property->latitude) && filled($stay->property->longitude),
             identity: $step === ConciergeStep::Identity && $guest !== null ? $this->identity($guest) : null,
+            eInvoiceUrl: $step === ConciergeStep::CheckedOut && $this->eInvoice->isOffered($stay) ? route('concierge.e-invoice', ['token' => $token], absolute: false) : null,
         );
     }
 

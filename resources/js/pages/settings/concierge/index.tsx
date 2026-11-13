@@ -17,6 +17,7 @@ import {
     type ParkingOptions,
 } from '@/components/pms/concierge/hotel-info-form';
 import { InfoTopics } from '@/components/pms/concierge/info-topics';
+import { LobbyHeroCard } from '@/components/pms/concierge/lobby-hero-card';
 import { NearbyTab } from '@/components/pms/concierge/nearby-tab';
 import { LobbyPrintCard } from '@/components/pms/concierge/lobby-qr';
 import { OverviewTab } from '@/components/pms/concierge/overview-tab';
@@ -36,6 +37,7 @@ const TAB_KEYS = CONCIERGE_TABS.map((tab) => tab.key);
 export default function ConciergeSettings({
     lobbyUrl,
     lobbyQr,
+    heroUrl,
     walkInEnabled,
     refundRequestsEnabled,
     houseRules,
@@ -59,6 +61,7 @@ export default function ConciergeSettings({
 }: {
     lobbyUrl: string;
     lobbyQr: string;
+    heroUrl: string | null;
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
     houseRules: string | null;
@@ -154,6 +157,7 @@ export default function ConciergeSettings({
                         <ContentGrid
                             aside={
                                 <>
+                                    <LobbyHeroCard heroUrl={heroUrl} />
                                     <LinkedSection
                                         title="Property profile"
                                         body="The property name, address, and arrival times come from the property profile."

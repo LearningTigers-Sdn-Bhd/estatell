@@ -25,7 +25,7 @@ class ConciergeGuideController extends Controller
 
     public function findForm(Property $property): Response
     {
-        return Inertia::render('concierge/find', ['property' => PropertySummaryData::fromModel($property)]);
+        return Inertia::render('concierge/find', ['property' => PropertySummaryData::fromModel($property), 'heroUrl' => $property->heroUrl()]);
     }
 
     public function contact(Property $property, ConciergeGuide $guide): Response

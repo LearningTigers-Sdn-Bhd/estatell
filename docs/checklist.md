@@ -116,6 +116,8 @@ Guest self check-in on the guest's own phone. Docs: [Concierge page](30-concierg
 - [ ] `feat(concierge): tell staff when a guest sends a request` — a notification to the assigned or on-duty staff.
 - [x] `feat(concierge): ask the front desk to check out` — `RequestConciergeCheckOut` and the Check-out asked state. Docs: [Bill and check-out](30-concierge/01-overview.md#bill-and-check-out).
 - [x] `feat(concierge): show the refund request status and remember the stay on the phone` — the status after check-out, and Continue your stay on the hub. Docs: [Returning guest](30-concierge/01-overview.md#returning-guest).
+- [x] `feat(concierge): let a guest request an e-invoice` — `ConciergeEInvoice`, `RequestConciergeEInvoice` and the e-invoice page at `/c/{token}/e-invoice`, using the staff buyer fields and `SubmitFolioEInvoice`. Docs: [E-invoice request](30-concierge/01-overview.md#e-invoice-request).
+- [x] `feat(concierge): add a hero photo to the lobby` — a per-property photo uploaded in Settings, Concierge, shown on the lobby hub and the booking-code page, with the stock photo as the default. Docs: [Lobby hero photo](30-concierge/01-overview.md#lobby-hero-photo).
 - [x] `feat(concierge): rework the stay screen` — stay details, Stay actions, Property services and More actions. Docs: [The stay screen](30-concierge/01-overview.md#the-stay-screen).
 - [ ] `feat(concierge): sign the registration card of the other guests` — today a card missing for another guest sends the guest to the desk.
 - [ ] `feat(concierge): choose one room of a multi-room booking` — today a booking code that matches more than one room opens nothing.

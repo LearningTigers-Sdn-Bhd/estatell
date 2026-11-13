@@ -14,8 +14,10 @@ import { find, lobby } from '@/routes/concierge';
 /** The booking code box: a guest with a booking opens their stay here, to check in or to use the stay pages. */
 export default function ConciergeFind({
     property,
+    heroUrl,
 }: {
     property: App.Data.Property.PropertySummaryData;
+    heroUrl: string | null;
 }) {
     return (
         <GuestFrame
@@ -72,7 +74,7 @@ export default function ConciergeFind({
                 </Form>
                 <div className="concierge-editorial-image relative h-48 overflow-hidden rounded-xl bg-muted sm:h-64 lg:h-auto lg:min-h-80 lg:rounded-none">
                     <img
-                        src="/images/concierge-editorial-coast.jpg"
+                        src={heroUrl ?? '/images/concierge-editorial-coast.jpg'}
                         alt=""
                         width={1672}
                         height={941}
