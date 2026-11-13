@@ -1,7 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { Diamond } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
-import { formatMoney } from '@/components/pms/money-text';
+import { MoneyText } from '@/components/pms/money-text';
+import { RoomTotalLabel } from '@/components/pms/room-total-label';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
@@ -13,9 +14,12 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { show } from '@/routes/reservations';
 import { folio as folioRoute } from '@/routes/front-desk/stays';
+import { GroupUnitCards } from './group-unit-cards';
 import { groupMates, nightCount, placesOf } from './stay-places';
 import { useStayFolio } from './use-stay-folio';
 
@@ -36,7 +40,35 @@ function Section({
     );
 }
 
-function FolioLines({
+/**
+ * One label and amount row of the money box.
+ */
+function MoneyRow({
+    label,
+    amount,
+    currency,
+    className,
+}: {
+    label: React.ReactNode;
+    amount: string;
+    currency: App.Data.Property.CurrencyData | null;
+    className?: string;
+}) {
+    return (
+        <div className="flex items-center justify-between gap-3">
+            <dt className="flex items-center gap-2">{label}</dt>
+            <dd className={className}>
+                <MoneyText amount={amount} currency={currency} plain />
+            </dd>
+        </div>
+    );
+}
+
+/**
+ * The money box at the bottom of the sheet: room total, paid and balance, the same figures as the reservation card.
+ * They load when the sheet opens.
+ */
+function FolioMoney({
     url,
     currency,
 }: {
@@ -47,9 +79,9 @@ function FolioLines({
 
     if (state.status === 'failed') {
         return (
-            <div className="flex flex-col items-start gap-2 text-sm">
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
-                    The folio could not be loaded.
+                    The balance could not be loaded.
                 </p>
                 <Button
                     type="button"
@@ -64,61 +96,59 @@ function FolioLines({
     }
 
     if (state.status !== 'ready') {
-        return (
-            <div className="flex flex-col gap-2" aria-busy="true">
-                <Skeleton className="h-5 w-full" />
-                <Skeleton className="h-5 w-full" />
-                <Skeleton className="h-5 w-2/3" />
-            </div>
-        );
+        return <Skeleton aria-busy="true" className="h-24 w-full rounded-lg" />;
     }
 
     const { folio } = state;
+    const billed = Number(folio.billedToCompany) > 0;
 
     return (
-        <div className="flex flex-col gap-2 text-sm">
-            <p className="flex justify-between font-medium">
-                <span>Balance</span>
-                <span className="tabular-nums">
-                    {formatMoney(folio.balance, currency)}
-                </span>
-            </p>
-            {folio.lines.length === 0 ? (
-                <p className="text-muted-foreground">Nothing is posted yet.</p>
-            ) : (
-                <ul className="flex flex-col divide-y">
-                    {folio.lines.map((line) => (
-                        <li
-                            key={line.id}
-                            className="flex items-baseline justify-between gap-3 py-1.5"
-                        >
-                            <span className="min-w-0 flex-1 truncate">
-                                {line.description}
-                                <span className="text-xs text-muted-foreground">
-                                    {' '}
-                                    · <DateText date={line.date} />
-                                </span>
-                            </span>
-                            <span className="tabular-nums">
-                                {formatMoney(line.amount, currency)}
-                            </span>
-                        </li>
-                    ))}
-                </ul>
-            )}
-            {folio.hasMore && (
+        <dl className="flex flex-col gap-1.5 rounded-lg bg-muted p-3 text-sm">
+            <MoneyRow
+                label={<RoomTotalLabel />}
+                amount={folio.total}
+                currency={currency}
+            />
+            <MoneyRow label="Paid" amount={folio.paid} currency={currency} />
+            {billed && (
                 <p className="text-xs text-muted-foreground">
-                    Showing the latest lines. The reservation page has the whole
-                    folio.
+                    +{' '}
+                    <MoneyText
+                        amount={folio.billedToCompany}
+                        currency={currency}
+                        plain
+                    />{' '}
+                    billed to company
                 </p>
             )}
-        </div>
+            <Separator className="my-1" />
+            <MoneyRow
+                label={
+                    <>
+                        <span className="font-medium">Balance</span>
+                        {folio.depositHeld && (
+                            <StatusBadge
+                                status={folio.depositHeld}
+                                dot={false}
+                            />
+                        )}
+                    </>
+                }
+                amount={folio.balance}
+                currency={currency}
+                className={cn(
+                    'font-medium',
+                    Number(folio.balance) > 0 && 'text-destructive',
+                )}
+            />
+        </dl>
     );
 }
 
 /**
  * A Sheet on the right with a stay at a glance: who, when, where, the balance flag, the other units of its group
- * booking and the newest folio lines. The summary comes from the loaded stays; only the folio lines are asked for.
+ * booking, and a money box with the room total, paid and balance. The summary comes from the loaded stays; only the
+ * money figures are asked for.
  * Check in, check out, move and payments are done on the reservation page.
  */
 export function StayPeekSheet({
@@ -163,7 +193,7 @@ export function StayPeekSheet({
                                         Balance due
                                     </span>
                                 )}
-                                {stay.groupName && (
+                                {stay.groupName && mates.length <= 1 && (
                                     <span className="flex items-center gap-1 text-sm text-muted-foreground">
                                         <Diamond
                                             aria-hidden
@@ -236,63 +266,24 @@ export function StayPeekSheet({
                                     </dd>
                                 </dl>
                             </Section>
-                            {mates.length > 1 && (
-                                <Section title="This group">
-                                    <ul className="flex flex-col divide-y text-sm">
-                                        {mates.map((mate) => (
-                                            <li key={mate.unitId}>
-                                                <button
-                                                    type="button"
-                                                    aria-current={
-                                                        mate.unitId ===
-                                                        stay.unitId
-                                                            ? 'true'
-                                                            : undefined
-                                                    }
-                                                    className="flex w-full items-center justify-between gap-3 rounded-sm py-1.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=true]:font-medium"
-                                                    onClick={() =>
-                                                        onSelect(mate.unitId)
-                                                    }
-                                                >
-                                                    <span className="min-w-0 flex-1 truncate">
-                                                        {placesOf(
-                                                            mate,
-                                                            rooms,
-                                                        )[0]?.label ??
-                                                            'Not assigned yet'}
-                                                        <span className="text-muted-foreground">
-                                                            {' '}
-                                                            ·{' '}
-                                                            {mate.guestLabel ??
-                                                                'No guest named'}
-                                                        </span>
-                                                    </span>
-                                                    <StatusBadge
-                                                        status={mate.status}
-                                                    />
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    <p className="text-xs text-muted-foreground">
-                                        Only units in the dates on screen are
-                                        listed.
-                                    </p>
-                                </Section>
-                            )}
-                            {canViewReservations && (
-                                <Section title="Folio">
-                                    <FolioLines
-                                        url={folioRoute.url({
-                                            reservation: stay.reservationId,
-                                        })}
-                                        currency={currency}
-                                    />
-                                </Section>
+                            {mates.length > 1 && stay.groupName && (
+                                <GroupUnitCards
+                                    groupName={stay.groupName}
+                                    mates={mates}
+                                    currentUnitId={stay.unitId}
+                                    rooms={rooms}
+                                    onSelect={onSelect}
+                                />
                             )}
                         </div>
                         {canViewReservations && (
                             <SheetFooter>
+                                <FolioMoney
+                                    url={folioRoute.url({
+                                        reservation: stay.reservationId,
+                                    })}
+                                    currency={currency}
+                                />
                                 <Link
                                     href={show.url({
                                         reservation: stay.reservationId,
