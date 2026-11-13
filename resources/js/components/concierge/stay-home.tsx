@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { DocumentList } from '@/components/concierge/checked-out-step';
 import {
     BookOpen,
     SprayCan,
@@ -202,48 +203,56 @@ export function StayHome({ stay }: { stay: Stay }) {
                         aria-hidden
                     />
                 </summary>
-                <ul className="flex flex-col gap-2 border-t p-3">
-                    <li>
+                <div className="flex flex-col gap-6 border-t border-border/40 p-5 sm:p-6">
+                    <nav
+                        aria-label="Requests and bill"
+                        className="grid gap-4 sm:grid-cols-2"
+                    >
                         <Link
                             href={requests.url({ token })}
-                            className="flex items-center gap-3 rounded-lg p-2 text-sm hover:bg-muted"
+                            className="flex min-h-20 items-center gap-3 rounded-xl bg-muted/40 p-4 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                             <ConciergeBell
-                                className="size-5 shrink-0 text-muted-foreground"
+                                className="size-5 shrink-0 text-primary"
                                 aria-hidden
                             />
-                            My requests
+                            <span className="flex min-w-0 flex-1 flex-col gap-1">
+                                <span className="text-sm font-medium">
+                                    My requests
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                    See status and front desk updates
+                                </span>
+                            </span>
+                            <ChevronRight
+                                className="size-4 shrink-0 text-muted-foreground"
+                                aria-hidden
+                            />
                         </Link>
-                    </li>
-                    <li>
                         <Link
                             href={bill.url({ token })}
-                            className="flex items-center gap-3 rounded-lg p-2 text-sm hover:bg-muted"
+                            className="flex min-h-20 items-center gap-3 rounded-xl bg-muted/40 p-4 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                             <FileText
-                                className="size-5 shrink-0 text-muted-foreground"
+                                className="size-5 shrink-0 text-primary"
                                 aria-hidden
                             />
-                            My bill
+                            <span className="flex min-w-0 flex-1 flex-col gap-1">
+                                <span className="text-sm font-medium">
+                                    My bill
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                    Charges, payments and check-out
+                                </span>
+                            </span>
+                            <ChevronRight
+                                className="size-4 shrink-0 text-muted-foreground"
+                                aria-hidden
+                            />
                         </Link>
-                    </li>
-                    {stay.documents.map((document) => (
-                        <li key={document.url}>
-                            <a
-                                href={document.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-3 rounded-lg p-2 text-sm hover:bg-muted"
-                            >
-                                <FileText
-                                    className="size-5 shrink-0 text-muted-foreground"
-                                    aria-hidden
-                                />
-                                {document.label}
-                            </a>
-                        </li>
-                    ))}
-                </ul>
+                    </nav>
+                    <DocumentList documents={stay.documents} />
+                </div>
             </details>
         </div>
     );

@@ -64,9 +64,11 @@ function csrfToken(): string {
 export function PaymentStep({
     token,
     amount,
+    description = 'Pay the amount due to continue with check-in.',
 }: {
     token: string;
     amount: string;
+    description?: string;
 }) {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -135,7 +137,7 @@ export function PaymentStep({
                     Complete your payment
                 </h2>
                 <p className="text-sm leading-relaxed text-pretty text-muted-foreground">
-                    Pay the amount due to continue with check-in.
+                    {description}
                 </p>
             </div>
 

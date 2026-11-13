@@ -14,6 +14,8 @@ Guest concierge pages retain the locked editorial identity: warm paper, olive pr
 
 The theme is scoped to concierge pages, including portalled form controls. Staff screens and the separate registration-card pages keep their existing design. Forms, validation, payments, signatures and room-key visibility rules do not change.
 
+Guest service pages group request forms with their history, contact methods with front desk hours, and bill entries with check-out actions. The guide keeps route-based chapters, readable arrival times, facility details and Wi-Fi instructions. Empty sections explain how to get help without inventing property information. Guest booking summaries, receipts and invoices use olive headings and shaded information strips and totals; they retain the property's print fonts and document content. Staff PDFs keep their configured appearance.
+
 ## Decisions
 
 | Area            | Decision                                                                                                                                                                                                    |

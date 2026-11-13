@@ -27,6 +27,7 @@ class ConciergeDocumentController extends Controller
         $reservation = $stay->reservation()->firstOrFail();
 
         return $printedPdf->make($property, 'pdf.booking-summary', [
+            'guestDocument' => true,
             'summary' => $bookingSummary->for($property, $reservation, true),
             'settings' => $property->printSetting,
         ])->stream('booking-summary-'.$reservation->reference.'.pdf');
@@ -41,7 +42,7 @@ class ConciergeDocumentController extends Controller
 
         $receipt = $paymentReceipt->forPayment($found);
 
-        return $printedPdf->make($stay->property()->firstOrFail(), 'pdf.receipt', ['receipt' => $receipt])
+        return $printedPdf->make($stay->property()->firstOrFail(), 'pdf.receipt', ['receipt' => $receipt, 'guestDocument' => true])
             ->stream('receipt-'.$receipt->receiptNumber.'.pdf');
     }
 
@@ -55,6 +56,7 @@ class ConciergeDocumentController extends Controller
         $property = $stay->property()->with('printSetting')->firstOrFail();
 
         return $printedPdf->make($property, 'pdf.folio-invoice', [
+            'guestDocument' => true,
             'invoice' => $folioInvoice->for($folio),
             'settings' => $property->printSetting,
         ])->stream('invoice-'.$folio->invoice_number.'.pdf');
