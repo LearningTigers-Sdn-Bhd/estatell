@@ -42,10 +42,10 @@ const cells: ReportCells<Row> = {
             <>
                 {row.reference}
                 {[row.refund_reason, row.notes].map(
-                    (text) =>
+                    (text, index) =>
                         text && (
                             <span
-                                key={text}
+                                key={index}
                                 className="block text-xs text-muted-foreground"
                             >
                                 {text}
