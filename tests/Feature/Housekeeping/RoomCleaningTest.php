@@ -288,9 +288,10 @@ test('the housekeeping log lists who cleaned which room between two dates, and i
     RoomCleaning::factory()->create([...$attributes, 'date' => '2026-10-14', 'started_at' => '2026-10-14 02:05:00', 'finished_at' => '2026-10-14 02:40:00']);
     RoomCleaning::factory()->create([...$attributes, 'date' => '2026-10-01', 'started_at' => '2026-10-01 02:00:00', 'finished_at' => '2026-10-01 02:10:00']);
 
-    $this->actingAs($reader)->get("/p/{$setup['property']->code}/reports/housekeeping-log?from=2026-10-14&to=2026-10-14")
+    $this->actingAs($reader)->get("/p/{$setup['property']->code}/reports/housekeeping?tab=log&from=2026-10-14&to=2026-10-14")
         ->assertInertia(fn (Assert $page) => $page
-            ->component('reports/housekeeping-log')
+            ->component('reports/housekeeping')
+            ->where('tab', 'log')
             ->has('rows.data', 1)
             ->where('rows.data.0.room', $setup['room']->number)
             ->where('rows.data.0.housekeeper', 'Ana')
