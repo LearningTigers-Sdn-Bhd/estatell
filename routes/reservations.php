@@ -10,6 +10,7 @@ use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
+use App\Http\Controllers\Reservations\ReservationCreditMoveController;
 use App\Http\Controllers\Reservations\ReservationDoorCardController;
 use App\Http\Controllers\Reservations\ReservationDoorPinController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
@@ -100,6 +101,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('payments', [ReservationPaymentController::class, 'storeForFolio'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.store');
                 Route::post('payments/{payment}/refunds', [ReservationPaymentController::class, 'refund'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.refunds.store');
                 Route::post('payments/{payment}/void', [ReservationPaymentController::class, 'void'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.void');
+                Route::post('credit-moves', [ReservationCreditMoveController::class, 'store'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('credit-moves.store');
+                Route::post('lines/{line}/credit-move/undo', [ReservationCreditMoveController::class, 'undo'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('lines.credit-move.undo');
                 Route::post('refund-credit', [ReservationPaymentController::class, 'refundCredit'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('refund-credit.store');
                 Route::post('online-refunds/{gatewayRefund}/retry', [ReservationPaymentController::class, 'retryOnlineRefund'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('online-refunds.retry');
                 Route::get('voucher', [ReservationFolioController::class, 'voucher'])->middleware('can:'.PermissionEnum::FolioPrintVoucher->value)->name('voucher');

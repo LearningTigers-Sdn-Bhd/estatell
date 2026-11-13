@@ -1555,6 +1555,15 @@ payer: string,
 taxes: string[],
 companyId: number | null,
 };
+export type CreditMoveData = {
+credit: string,
+targets: App.Data.Folio.CreditMoveTargetData[],
+};
+export type CreditMoveTargetData = {
+folioId: number,
+label: string,
+owes: string,
+};
 export type DiscountQuoteData = {
 lines: App.Data.Folio.DiscountQuoteLineData[],
 subtotal: string,
@@ -1648,6 +1657,7 @@ fix: string,
 }[],
 eInvoiceRequired: boolean,
 collectedTaxNote: App.Data.Folio.CollectedTaxNoteData | null,
+creditMove: App.Data.Folio.CreditMoveData | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -5650,7 +5660,7 @@ export type StayViewGrouping = 'none' | 'room_group' | 'room_type';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment' | 'folio_transfer';
 export type TabbedReport = 'guest-list' | 'daily-report' | 'housekeeping';
 export type TaxRateType = 'percent' | 'flat';
 export type TaxWaiverReason = 'paid_elsewhere' | 'guest_receipt';

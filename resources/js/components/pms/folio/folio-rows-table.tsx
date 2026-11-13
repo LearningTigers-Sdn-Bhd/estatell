@@ -151,6 +151,7 @@ export function FolioRowsTable({
         row: Row,
         action:
             | 'reverse'
+            | 'undo_credit_move'
             | 'move'
             | 'remove_discount'
             | 'refund'
@@ -497,6 +498,22 @@ export function FolioRowsTable({
                                                                 >
                                                                     <Ban />
                                                                     Void payment
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                        {canCorrectMoney &&
+                                                            row.actions.includes(
+                                                                'undo_credit_move',
+                                                            ) && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'undo_credit_move',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Undo2 />
+                                                                    Undo move
                                                                 </DropdownMenuItem>
                                                             )}
                                                         {row.actions.includes(

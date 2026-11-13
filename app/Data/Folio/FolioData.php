@@ -94,5 +94,7 @@ class FolioData extends Data
         public bool $eInvoiceRequired = false,
         /** Why taxes on this unit folio sit apart from their room charge: the company pays the room, not these taxes. */
         public ?CollectedTaxNoteData $collectedTaxNote = null,
+        /** Set on an Open folio in credit when another Open folio of the reservation owes money and the user holds `payment.record`. */
+        public ?CreditMoveData $creditMove = null,
     ) {}
 }

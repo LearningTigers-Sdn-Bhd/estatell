@@ -1,5 +1,6 @@
 import { Form, Link, router, usePage } from '@inertiajs/react';
 import {
+    ArrowLeftRight,
     ArrowRightLeft,
     BadgePercent,
     Banknote,
@@ -46,7 +47,9 @@ import {
 import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialog';
 import { SettleCityLedgerDialog } from '@/components/pms/folio/settle-city-ledger-dialog';
 import { VoidPaymentDialog } from '@/components/pms/folio/void-payment-dialog';
+import { MoveCreditDialog } from '@/components/pms/folio/move-credit-dialog';
 import { RefundCreditDialog } from '@/components/pms/folio/refund-credit-dialog';
+import { UndoCreditMoveDialog } from '@/components/pms/folio/undo-credit-move-dialog';
 import { RefundPaymentDialog } from '@/components/pms/folio/refund-payment-dialog';
 import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
@@ -210,6 +213,9 @@ export function FolioTab({
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [reversing, setReversing] =
         useState<App.Data.Folio.FolioRowData | null>(null);
+    const [undoingMove, setUndoingMove] =
+        useState<App.Data.Folio.FolioRowData | null>(null);
+    const [movingCredit, setMovingCredit] = useState(false);
     const [lineTarget, setLineTarget] =
         useState<ComponentProps<typeof ManualLineDialogs>['target']>(null);
     useFormOptions(
@@ -221,8 +227,10 @@ export function FolioTab({
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
     const canManageManually = folio?.canManageManually ?? false;
+    const canMoveCredit = (folio?.creditMove ?? null) !== null;
     const moreActions = (canMove: boolean) =>
         (canMove ||
+            canMoveCredit ||
             canManageRouting ||
             canManageManually ||
             oldFolioUrl !== null) && (
@@ -255,7 +263,21 @@ export function FolioTab({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                     )}
-                    {canMove && canManageRouting && <DropdownMenuSeparator />}
+                    {canMove && canMoveCredit && <DropdownMenuSeparator />}
+                    {canMoveCredit && (
+                        <DropdownMenuGroup>
+                            <DropdownMenuLabel>Payments</DropdownMenuLabel>
+                            <DropdownMenuItem
+                                onClick={() => setMovingCredit(true)}
+                            >
+                                <ArrowLeftRight />
+                                Move credit…
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                    )}
+                    {(canMove || canMoveCredit) && canManageRouting && (
+                        <DropdownMenuSeparator />
+                    )}
                     {canManageRouting && (
                         <DropdownMenuGroup>
                             <DropdownMenuLabel>Routing</DropdownMenuLabel>
@@ -271,7 +293,7 @@ export function FolioTab({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                     )}
-                    {(canMove || canManageRouting) &&
+                    {(canMove || canMoveCredit || canManageRouting) &&
                         (canManageManually || oldFolioUrl !== null) && (
                             <DropdownMenuSeparator />
                         )}
@@ -866,6 +888,8 @@ export function FolioTab({
                                     setVoiding(row);
                                 } else if (action === 'remove_discount') {
                                     setRemoving(row);
+                                } else if (action === 'undo_credit_move') {
+                                    setUndoingMove(row);
                                 } else if (row.lineId !== null) {
                                     const line = manualLines[row.lineId];
 
@@ -1011,6 +1035,23 @@ export function FolioTab({
                     row={reversing}
                     onClose={() => setReversing(null)}
                 />
+                <UndoCreditMoveDialog
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    row={undoingMove}
+                    currency={currency}
+                    onClose={() => setUndoingMove(null)}
+                />
+                {folio.creditMove !== null && (
+                    <MoveCreditDialog
+                        open={movingCredit}
+                        onOpenChange={setMovingCredit}
+                        reservationId={reservationId}
+                        folio={folio}
+                        move={folio.creditMove}
+                        currency={currency}
+                    />
+                )}
             </div>
         </div>
     );

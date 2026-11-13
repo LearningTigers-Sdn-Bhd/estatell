@@ -2,6 +2,9 @@
 
 namespace App\Services\Folio;
 
+use App\Actions\Folio\MoveFolioCredit;
+use App\Data\Folio\CreditMoveData;
+use App\Data\Folio\CreditMoveTargetData;
 use App\Data\Folio\FolioData;
 use App\Data\Folio\FolioOptionData;
 use App\Data\Folio\FolioRailItemData;
@@ -217,9 +220,11 @@ class FolioStatement
     }
 
     /**
-     * @param  array<int, string>  $labels
+     * The folio's short name: "Master", "Unit 203" or "Third party".
+     *
+     * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function name(Folio $folio, array $labels): string
+    public function name(Folio $folio, array $labels): string
     {
         return match ($folio->type) {
             FolioType::Master => __('Master'),
@@ -340,7 +345,7 @@ class FolioStatement
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->map(fn (ReservationUnitOptionData $unit): int => $unit->id)
             ->all()) : [];
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($reservation->property)?->toDateString());
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($reservation->property)?->toDateString(), $isOpen && ($can['recordPayment'] ?? false));
         $old = $posted->where('state', 'old')->values();
         $posted = $posted->where('state', 'posted')->values();
         $lineCount = $old->merge($posted)->whereNull('onFolio')->count();
@@ -438,6 +443,7 @@ class FolioStatement
             eInvoiceBuyer: $buyer === null ? null : [...$buyer, 'country_code' => app(CountryOptions::class)->alpha2($buyer['country_code'] ?? null) ?? 'MY'],
             eInvoiceRequired: $canSubmitEInvoice && $this->staysNeedingOwnEInvoice->isOverLimit($folio),
             collectedTaxNote: $this->collectedTaxRows->note($rows, $entries->pluck('folio')->filter()->keyBy('id'), $user),
+            creditMove: $isOpen && ($can['recordPayment'] ?? false) ? $this->creditMove($folio, $balance, $entries, $balances) : null,
             eInvoiceRejection: $rejected === null ? [] : array_map(
                 fn (array $reason): array => ['message' => $reason['message'], 'fix' => $reason['fix']],
                 array_values(array_filter($this->lhdnRejectionReasons->for($rejected), fn (array $reason): bool => $reason['where'] === 'buyer')),
@@ -506,7 +512,7 @@ class FolioStatement
      * @param  list<int>  $priceUnitIds
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false, ?Closure $businessDate = null): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false, ?Closure $businessDate = null, bool $canUndoCreditMove = false): array
     {
         $nightMorph = (new UnitNight)->getMorphClass();
         $today = false;
@@ -519,7 +525,7 @@ class FolioStatement
         $rows = collect();
         $sourceUnits = $this->lineSourceUnits->for($lines);
 
-        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches, &$today, $businessDate): void {
+        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches, &$today, $businessDate, $canUndoCreditMove): void {
             $tags = [];
             $unitId = $line->source_id === null ? $parentUnitId : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? $parentUnitId);
 
@@ -557,6 +563,10 @@ class FolioStatement
                 if ($canTakeBack && $payment->paymentMethod->type !== PaymentMethodType::Online && $businessDate !== null && BigDecimal::of($refundable)->isEqualTo($payment->amount) && $line->posting_date->toDateString() === ($today === false ? $today = $businessDate() : $today)) {
                     $actions[] = 'void';
                 }
+            }
+
+            if ($canUndoCreditMove && $level === 0 && $live && $payment === null && $line->kind === TransactionKind::Payment && str_starts_with((string) $line->idempotency_key, MoveFolioCredit::KEY_PREFIX)) {
+                $actions = ['undo_credit_move'];
             }
 
             $purpose = $payment?->purpose->folioRowLabel();
@@ -644,5 +654,33 @@ class FolioStatement
         }
 
         return array_values($scheduled->flatMap(fn (FolioRowData $row): array => isset($parents[$row->key]) ? [$parents[$row->key], $row] : [$row])->all());
+    }
+
+    /**
+     * What **Move credit…** offers: the folio's credit and the other Open folios that owe money. Null when the folio
+     * is not in credit or no other folio owes.
+     *
+     * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
+     * @param  array<int, string>  $balances
+     */
+    private function creditMove(Folio $folio, ?string $balance, Collection $entries, array $balances): ?CreditMoveData
+    {
+        if ($balance === null || ! BigDecimal::of($balance)->isNegative()) {
+            return null;
+        }
+
+        $targets = array_values($entries
+            ->filter(fn (array $other): bool => $other['folio'] !== null
+                && $other['folio']->id !== $folio->id
+                && $other['folio']->status === FolioStatus::Open
+                && BigDecimal::of($balances[$other['folio']->id] ?? '0')->isPositive())
+            ->map(fn (array $other): CreditMoveTargetData => new CreditMoveTargetData(
+                $other['folio']->id,
+                trim($other['item']->name.' · '.$other['item']->subtitle, ' ·'),
+                (string) BigDecimal::of($balances[$other['folio']->id])->toScale(2),
+            ))
+            ->all());
+
+        return $targets === [] ? null : new CreditMoveData((string) BigDecimal::of($balance)->negated()->toScale(2), $targets);
     }
 }

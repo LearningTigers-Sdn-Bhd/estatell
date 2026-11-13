@@ -93,6 +93,16 @@ class PostingResult
 
     public const REFUSAL_OPENING_AMOUNT_INVALID = 'opening_amount_invalid';
 
+    public const REFUSAL_CREDIT_MOVE_EMPTY = 'credit_move_empty';
+
+    public const REFUSAL_CREDIT_MOVE_AMOUNT_INVALID = 'credit_move_amount_invalid';
+
+    public const REFUSAL_CREDIT_MOVE_ABOVE_CREDIT = 'credit_move_above_credit';
+
+    public const REFUSAL_CREDIT_MOVE_ABOVE_OWED = 'credit_move_above_owed';
+
+    public const REFUSAL_NOT_A_CREDIT_MOVE = 'not_a_credit_move';
+
     /**
      * @param  list<FolioLine>  $lines
      */

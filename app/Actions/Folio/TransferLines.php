@@ -3,6 +3,7 @@
 namespace App\Actions\Folio;
 
 use App\Enums\FolioStatus;
+use App\Enums\SystemTransactionCode;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\User;
@@ -26,7 +27,7 @@ class TransferLines
      * caller logs what it did (`MoveCharges` writes `folio.charges_moved`).
      * A child that sits on another folio than its charge (a collected tax the guest pays, see `CollectedTaxPayer`) stays
      * on that folio: it is reversed and copied there, under the copy of its charge, and that folio must be Open too.
-     * A copy keeps the `migrated` flag of its line. A line that a payment owns is refused. The result lists the copies on the target. With `$closeSettled` (the default) the last step closes each source
+     * A copy keeps the `migrated` flag of its line. A line that a payment owns is refused, and so is a credit move line (`MoveFolioCredit`). The result lists the copies on the target. With `$closeSettled` (the default) the last step closes each source
      * and the target when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`); `MoveCharges` passes
      * false and closes the sources itself after it saved its routing rules. See docs/13-folio/02-posting-charges.md.
      *
@@ -71,6 +72,10 @@ class TransferLines
 
             if (FolioLine::query()->whereIn('id', $ids)->whereHas('payment')->exists()) {
                 return PostingResult::refused(PostingResult::REFUSAL_PAYMENT_LINE);
+            }
+
+            if (FolioLine::query()->whereIn('id', $ids)->whereHas('transactionCode', fn ($codes) => $codes->where('system_key', SystemTransactionCode::FolioTransfer->value))->exists()) {
+                return PostingResult::refused(PostingResult::REFUSAL_LINE_NOT_TRANSFERABLE);
             }
 
             $group = (string) Str::uuid();
