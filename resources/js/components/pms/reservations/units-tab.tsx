@@ -4,6 +4,7 @@ import {
     CalendarDays,
     Info,
     Pencil,
+    ReceiptText,
     Ship,
     Tag,
     User,
@@ -397,6 +398,23 @@ export function UnitsTab({
                         </div>
                     </Detail>
                 </div>
+                {unit.taxWaivers.length > 0 && (
+                    <Detail icon={ReceiptText} label="Tax">
+                        {unit.taxWaivers.map((waiver, index) => (
+                            <span key={waiver.taxId}>
+                                {index > 0 && (
+                                    <span className="pe-1 text-muted-foreground">
+                                        ·
+                                    </span>
+                                )}
+                                {waiver.taxName}:{' '}
+                                <span className="text-muted-foreground">
+                                    {waiver.summary}
+                                </span>
+                            </span>
+                        ))}
+                    </Detail>
+                )}
                 {doorPins !== null && (
                     <DoorPins
                         pins={doorPins}

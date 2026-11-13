@@ -30,6 +30,7 @@ function taxPayload(array $overrides = []): array
         'is_inclusive' => false,
         'foreign_guests_only' => false,
         'collect_at_check_in' => false,
+        'can_be_waived' => false,
         'registration_number' => ' dbkk 123 ',
         'enabled' => true,
     ], $overrides);
@@ -64,6 +65,8 @@ test('Malaysia properties receive disabled tax presets idempotently', function (
         ->and($tourism->rate)->toBe('10.00')
         ->and($tourism->foreign_guests_only)->toBeTrue()
         ->and($tourism->collect_at_check_in)->toBeTrue()
+        ->and($tourism->can_be_waived)->toBeTrue()
+        ->and($sst->can_be_waived)->toBeFalse()
         ->and($tourism->enabled)->toBeFalse();
 });
 
@@ -101,6 +104,7 @@ test('owners create a tax with its posting code and normalized values', function
         ->post(route('settings.taxes.store', $owner->property->code), taxPayload([
             'name' => ' Heritage levy ',
             'code' => 'heritage-fee',
+            'can_be_waived' => true,
         ]))
         ->assertRedirect(route('settings.taxes.index', $owner->property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Heritage levy created.']);
@@ -108,6 +112,7 @@ test('owners create a tax with its posting code and normalized values', function
     $tax = Tax::query()->where('code', 'HERITAGE_FEE')->sole();
     expect($tax->property_id)->toBe($owner->property->id)
         ->and($tax->registration_number)->toBe('DBKK 123')
+        ->and($tax->can_be_waived)->toBeTrue()
         ->and($tax->transactionCode->only(['code', 'name', 'kind', 'category', 'active']))->toBe([
             'code' => 'TAX_HERITAGE_FEE',
             'name' => 'Heritage levy',

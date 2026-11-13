@@ -162,7 +162,7 @@ The menu shows on a live charge. On the editor page **Move**, **Refund**, **Remo
 - **Add tax** refuses a tax that is part of the price (`tax_inclusive`): it would change the net amount, and the charge line never changes. **Recalculate tax** refuses (`net_amount_changed`) when the item's taxes would change the net amount.
 - Keys: the batch key is the Dialog's UUID. Lines: `split:{line_id}:{part}`, `tax-add:{line_id}:{tax_id}:{n}`, `tax-recalc:{line_id}:{n}:tax:{tax_id}`, where n counts the earlier ones on that line. A reversal is `reverse:{line_id}`, so a tax line reverses once.
 - Logged on the reservation: `folio.line_split`, `folio.line_tax_removed`, `folio.line_tax_added`, `folio.line_tax_recalculated`, each with the batch id and the reason.
-- **A room night's tax.** Remove tax fixes only that night. The audit charges the next nights with the normal taxes. A real exemption for a whole stay is a later item (see the [checklist](../checklist.md#later)).
+- **A room night's tax.** Remove tax fixes only that night. The audit charges the next nights with the normal taxes. For a tax someone else collected for the whole stay, use **Taxes paid elsewhere** on the unit (see [Tax waivers](../06-catalogues/03-taxes.md#tax-waivers)). Guest and company exemptions are a later item (see the [checklist](../checklist.md#later)).
 - The tax report counts these on their posting date, like any reversal.
 
 ## Edit line

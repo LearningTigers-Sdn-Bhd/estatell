@@ -64,6 +64,7 @@ class SaveOnboardingTaxes
                     isInclusive: $row['is_inclusive'],
                     foreignGuestsOnly: $row['foreign_guests_only'],
                     collectAtCheckIn: $row['collect_at_check_in'],
+                    canBeWaived: $existing instanceof Tax ? $existing->can_be_waived : $row['foreign_guests_only'],
                     registrationNumber: $row['registration_number'],
                     enabled: $row['enabled'],
                 );

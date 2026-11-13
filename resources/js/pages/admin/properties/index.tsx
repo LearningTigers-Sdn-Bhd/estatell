@@ -11,7 +11,8 @@ import { PageHeader } from '@/components/pms/page-header';
 import { CreatePropertySheet } from '@/components/pms/properties/create-property-sheet';
 import type { SetupMethod } from '@/components/pms/properties/create-property-sheet';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { dashboard } from '@/routes/admin';
 import { index, show, store } from '@/routes/admin/properties';
@@ -97,6 +98,36 @@ const columns = [
         cell: (info) => <DateText date={info.getValue()} />,
     }),
 ];
+
+/** The All, Onboarding and Waiting for approval tabs, for the tab bar and the breadcrumbs. */
+function adminPropertyTabs(): TabLink[] {
+    return [
+        {
+            value: 'all',
+            label: 'All',
+            icon: List,
+            href: index(),
+        },
+        {
+            value: 'onboarding',
+            label: 'Onboarding',
+            icon: Rocket,
+            href: index({
+                query: { filter: { status: 'onboarding' } },
+            }),
+        },
+        {
+            value: 'waiting',
+            label: 'Waiting for approval',
+            icon: Hourglass,
+            href: index({
+                query: {
+                    filter: { status: 'pending_approval' },
+                },
+            }),
+        },
+    ];
+}
 
 export default function PropertiesIndex({
     properties,
@@ -272,32 +303,7 @@ export default function PropertiesIndex({
                     className="gap-4"
                     triggerClassName="md:min-w-0 px-0 mr-6"
                     panelClassName="flex flex-col gap-4"
-                    tabs={[
-                        {
-                            value: 'all',
-                            label: 'All',
-                            icon: List,
-                            href: index(),
-                        },
-                        {
-                            value: 'onboarding',
-                            label: 'Onboarding',
-                            icon: Rocket,
-                            href: index({
-                                query: { filter: { status: 'onboarding' } },
-                            }),
-                        },
-                        {
-                            value: 'waiting',
-                            label: 'Waiting for approval',
-                            icon: Hourglass,
-                            href: index({
-                                query: {
-                                    filter: { status: 'pending_approval' },
-                                },
-                            }),
-                        },
-                    ]}
+                    tabs={adminPropertyTabs()}
                 >
                     <FilterBar
                         search={filters.search}
@@ -381,9 +387,17 @@ export default function PropertiesIndex({
     );
 }
 
-PropertiesIndex.layout = {
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Properties', href: index() },
-    ],
-};
+PropertiesIndex.layout = (props: { filters: { status: string } }) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Properties', href: index() },
+        ],
+        adminPropertyTabs(),
+        props.filters.status === 'pending_approval'
+            ? 'waiting'
+            : props.filters.status === 'onboarding'
+              ? 'onboarding'
+              : 'all',
+    ),
+});

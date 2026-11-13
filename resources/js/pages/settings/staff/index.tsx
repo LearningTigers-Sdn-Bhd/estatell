@@ -25,7 +25,8 @@ import { AddStaffDialog } from '@/components/pms/staff/add-staff-dialog';
 import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwords/export-temporary-passwords-menu';
 import { ResetTemporaryPassword } from '@/components/pms/temporary-passwords/reset-temporary-password';
 import { TemporaryPasswordMessageDialog } from '@/components/pms/temporary-passwords/temporary-password-message-dialog';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -895,6 +896,37 @@ function Invitations({
     );
 }
 
+/** The Staff tabs with their counts, for the tab bar and the breadcrumbs. */
+function staffTabs(counts: {
+    active: number;
+    invited: number;
+    deactivated: number;
+}): TabLink[] {
+    return [
+        {
+            value: 'active',
+            label: `Active (${counts.active})`,
+            title: 'Active',
+            icon: Users,
+            href: index(),
+        },
+        {
+            value: 'invited',
+            label: `Invited (${counts.invited})`,
+            title: 'Invited',
+            icon: Mail,
+            href: invited(),
+        },
+        {
+            value: 'deactivated',
+            label: `Deactivated (${counts.deactivated})`,
+            title: 'Deactivated',
+            icon: UserMinus,
+            href: deactivated(),
+        },
+    ];
+}
+
 export default function StaffIndex({
     tab,
     counts,
@@ -940,26 +972,7 @@ export default function StaffIndex({
                     panelWidth="full"
                     className="flex-1 gap-4"
                     panelClassName="flex flex-1 flex-col"
-                    tabs={[
-                        {
-                            value: 'active',
-                            label: `Active (${counts.active})`,
-                            icon: Users,
-                            href: index(),
-                        },
-                        {
-                            value: 'invited',
-                            label: `Invited (${counts.invited})`,
-                            icon: Mail,
-                            href: invited(),
-                        },
-                        {
-                            value: 'deactivated',
-                            label: `Deactivated (${counts.deactivated})`,
-                            icon: UserMinus,
-                            href: deactivated(),
-                        },
-                    ]}
+                    tabs={staffTabs(counts)}
                 >
                     {tab === 'active' && (
                         <ActiveStaff
@@ -997,6 +1010,13 @@ export default function StaffIndex({
     );
 }
 
-StaffIndex.layout = {
-    breadcrumbs: [{ title: 'Staff', href: index() }],
-};
+StaffIndex.layout = (props: {
+    tab: Tab;
+    counts: { active: number; invited: number; deactivated: number };
+}) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Staff', href: index() }],
+        staffTabs(props.counts),
+        props.tab,
+    ),
+});

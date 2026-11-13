@@ -8,6 +8,7 @@ use App\Actions\Folio\ManualBatchResult;
 use App\Actions\Folio\MoveChargesResult;
 use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\SaveOldFoliosResult;
+use App\Actions\Folio\TaxWaiverResult;
 use App\Services\Catalogues\TaxCalculator;
 
 /**
@@ -80,6 +81,11 @@ class FolioRefusals
             PostingResult::REFUSAL_LINE_HAS_DISCOUNT => [self::FORM, __('This charge has a discount. Remove the discount first.')],
             PostingResult::REFUSAL_TAX_NOT_ON_LINE => ['tax_ids', __('A tax you chose is not on this charge.')],
             PostingResult::REFUSAL_TAX_ALREADY_ON_LINE => ['tax_ids', __('A tax you chose is already on this charge.')],
+            TaxWaiverResult::REFUSAL_UNIT_NOT_WAIVABLE => [self::FORM, __('Taxes can be waived only for rooms that are confirmed, checked in or checked out.')],
+            TaxWaiverResult::REFUSAL_TAX_NOT_FOUND => ['tax_ids', __('A tax you chose is not available.')],
+            TaxWaiverResult::REFUSAL_TAX_NOT_WAIVABLE => ['tax_ids', __('A tax you chose cannot be marked as paid elsewhere.')],
+            TaxWaiverResult::REFUSAL_ALREADY_WAIVED => ['tax_ids', __('A tax you chose is already waived for this room.')],
+            TaxWaiverResult::REFUSAL_WAIVER_NOT_FOUND => [self::FORM, __('This tax is not waived for this room.')],
             PostingResult::REFUSAL_TAX_INCLUSIVE => ['tax_ids', __('A tax that is part of the price cannot be added to a posted charge.')],
             PostingResult::REFUSAL_TAX_UNCHANGED => [self::FORM, __('The tax on this charge is already correct.')],
             PostingResult::REFUSAL_NET_AMOUNT_CHANGED => [self::FORM, __('The taxes of this item would change the price of the charge. Reverse the charge and post it again.')],

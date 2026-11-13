@@ -14,7 +14,8 @@ import type { LucideIcon } from 'lucide-react';
 import PlatformSettingsController from '@/actions/App/Http/Controllers/Admin/PlatformSettingsController';
 import { CommissionSettings } from '@/components/pms/commissions/commission-settings';
 import { PageHeader } from '@/components/pms/page-header';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +49,36 @@ const storageIcons: Record<App.Enums.MediaDisk, LucideIcon> = {
     local: HardDrive,
     r2: Cloud,
 };
+
+/** The platform Settings tabs, for the tab bar and the breadcrumbs. */
+function platformSettingsTabs(): TabLink[] {
+    return [
+        {
+            value: 'general',
+            label: 'General',
+            icon: Settings,
+            href: edit(),
+        },
+        {
+            value: 'channels',
+            label: 'Channel manager',
+            icon: Waypoints,
+            href: channels(),
+        },
+        {
+            value: 'storage',
+            label: 'File storage',
+            icon: HardDrive,
+            href: storage(),
+        },
+        {
+            value: 'commissions',
+            label: 'Commissions',
+            icon: Percent,
+            href: commissions(),
+        },
+    ];
+}
 
 export default function PlatformSettings({
     activeTab,
@@ -131,35 +162,7 @@ export default function PlatformSettings({
                     description="Settings that apply to every property"
                 />
 
-                <TabLinks
-                    activeTab={activeTab}
-                    tabs={[
-                        {
-                            value: 'general',
-                            label: 'General',
-                            icon: Settings,
-                            href: edit(),
-                        },
-                        {
-                            value: 'channels',
-                            label: 'Channel manager',
-                            icon: Waypoints,
-                            href: channels(),
-                        },
-                        {
-                            value: 'storage',
-                            label: 'File storage',
-                            icon: HardDrive,
-                            href: storage(),
-                        },
-                        {
-                            value: 'commissions',
-                            label: 'Commissions',
-                            icon: Percent,
-                            href: commissions(),
-                        },
-                    ]}
-                >
+                <TabLinks activeTab={activeTab} tabs={platformSettingsTabs()}>
                     {section === null ? (
                         <CommissionSettings
                             rates={commissionRates}
@@ -277,9 +280,13 @@ export default function PlatformSettings({
     );
 }
 
-PlatformSettings.layout = {
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Settings', href: edit() },
-    ],
-};
+PlatformSettings.layout = (props: { activeTab: Tab }) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Settings', href: edit() },
+        ],
+        platformSettingsTabs(),
+        props.activeTab,
+    ),
+});

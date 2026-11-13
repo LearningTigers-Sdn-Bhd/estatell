@@ -5,11 +5,13 @@ namespace App\Actions\FrontDesk;
 use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Reservations\SyncReservationStatus;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\HousekeepingStatus;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Events\StayCheckedOut;
 use App\Models\Bed;
 use App\Models\Folio;
@@ -158,6 +160,8 @@ class CheckOutUnit
             ($this->syncReservationStatus)($locked->reservation);
 
             StayCheckedOut::dispatch($locked->property_id, $locked->id);
+
+            app(TriggerWebhook::class)(WebhookEvent::StayCheckedOut, $locked->property_id, ReservationUnit::class, $locked->id);
 
             return UnitStayResult::done($locked);
         });

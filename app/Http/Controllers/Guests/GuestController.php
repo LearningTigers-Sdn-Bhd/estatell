@@ -13,26 +13,34 @@ use App\Data\Guests\GuestMatchData;
 use App\Data\Guests\GuestNoteData;
 use App\Data\Guests\GuestOptionData;
 use App\Data\Guests\GuestRowData;
+use App\Data\Guests\GuestStayData;
+use App\Data\Guests\GuestStaySummaryData;
 use App\Data\Guests\TagData;
+use App\Data\Property\CurrencyData;
 use App\Enums\Gender;
 use App\Enums\GuestBulkAction;
 use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
+use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guests\BlacklistGuestRequest;
 use App\Http\Requests\Guests\BulkUpdateGuestsRequest;
 use App\Http\Requests\Guests\GuestRequest;
+use App\Models\BookingSource;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
 use App\Models\Property;
+use App\Models\ReservationUnit;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Guests\CountryOptions;
 use App\Services\Guests\GuestDirectory;
 use App\Services\Guests\GuestMatcher;
+use App\Services\Guests\GuestStayHistory;
 use App\Services\Property\PropertyToday;
+use App\Services\Reports\ReportLayoutResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,24 +53,47 @@ class GuestController extends Controller
     /**
      * List the property's guests with search, filters and sorting in the URL.
      */
-    public function index(Request $request, Property $property, GuestDirectory $guestDirectory): Response
+    public function index(Request $request, Property $property, GuestDirectory $guestDirectory, ReportLayoutResolver $layoutResolver): Response
     {
         $canManage = $request->user()->can(PermissionEnum::GuestsManage->value);
+        $layout = $layoutResolver->resolve($property, ReportKey::Guests);
+        $sort = $guestDirectory->visibleSort($request->string('sort', 'full_name')->toString(), $layout->visibleKeys());
 
         return Inertia::render('guests/index', [
-            'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request, $request->user()->can(PermissionEnum::GuestsViewDocuments->value)), PaginatedDataCollection::class),
+            'guests' => GuestRowData::collect($guestDirectory->paginate($property, $request, $request->user()->can(PermissionEnum::GuestsViewDocuments->value), $sort), PaginatedDataCollection::class),
+            'layout' => $layout,
+            'canEditLayout' => $request->user()->can(PermissionEnum::SettingsManage->value) && $request->user()->can(PermissionEnum::ReportsView->value),
+            'canBlacklist' => $request->user()->can(PermissionEnum::GuestsBlacklist->value),
+            'canAnonymize' => $request->user()->can(PermissionEnum::GuestsAnonymize->value),
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),
                 'tag' => $request->string('filter.tag')->toString(),
+                'source' => $request->string('filter.source')->toString(),
+                'returning' => $request->string('filter.returning')->toString(),
+                'contact' => $request->string('filter.contact')->toString(),
             ],
-            'sort' => $request->string('sort', 'full_name')->toString(),
+            'sort' => $sort,
             'statuses' => [
                 ['value' => GuestDirectory::STATUS_VIP, 'label' => __('VIP')],
                 ['value' => GuestDirectory::STATUS_BLACKLISTED, 'label' => __('Blacklisted')],
                 ['value' => GuestDirectory::STATUS_ANONYMIZED, 'label' => __('Archived')],
             ],
             'tags' => $this->tags($property),
+            'sources' => $property->bookingSources()->ordered()->get()
+                ->map(fn (BookingSource $source): array => ['value' => (string) $source->id, 'label' => $source->name])
+                ->values()
+                ->all(),
+            'returningOptions' => [
+                ['value' => GuestDirectory::RETURNING_FIRST, 'label' => __('First stay')],
+                ['value' => GuestDirectory::RETURNING_YES, 'label' => __('Returning')],
+            ],
+            'contactOptions' => [
+                ['value' => GuestDirectory::CONTACT_MISSING, 'label' => __('Missing email or phone')],
+                ['value' => GuestDirectory::CONTACT_NO_EMAIL, 'label' => __('No email')],
+                ['value' => GuestDirectory::CONTACT_NO_PHONE, 'label' => __('No phone')],
+            ],
+            'currency' => CurrencyData::forProperty($property->loadMissing('settings')),
             'countries' => $canManage ? app(CountryOptions::class)->options() : [],
             'canManage' => $canManage,
             'maxBulkGuests' => BulkUpdateGuestsRequest::MAX_GUESTS,
@@ -121,6 +152,14 @@ class GuestController extends Controller
                 ->map(fn (GuestNote $note): GuestNoteData => GuestNoteData::fromModel($note))
                 ->all(),
         ]);
+    }
+
+    /**
+     * Guest page, Stays tab: every stay, newest arrival first. A guest's stays are few, so the tab is not paginated.
+     */
+    public function stays(Request $request, Property $property, Guest $guest): Response
+    {
+        return $this->renderTab($request->user(), $guest, 'stays', withStays: true);
     }
 
     /**
@@ -204,12 +243,16 @@ class GuestController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's data is sent.
      *
-     * @param  'details'|'notes'|'documents'  $tab
+     * The stay figures in the header are on every tab. `$withStays` also sends the stay rows.
+     *
+     * @param  'details'|'notes'|'stays'|'documents'  $tab
      * @param  array<string, mixed>  $tabProps
      */
-    private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = []): Response
+    private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = [], bool $withStays = false): Response
     {
-        $guest->load(['tags', 'property']);
+        $guest->load(['tags', 'property.settings']);
+        $stays = app(GuestStayHistory::class)->stays($guest);
+        $since = app(PropertyToday::class)->date($guest->property)->subYear();
         if ($user->can(PermissionEnum::GuestsViewDocuments->value)) {
             $guest->loadMissing('documents.media');
         }
@@ -222,6 +265,9 @@ class GuestController extends Controller
             'canViewDocuments' => $user->can(PermissionEnum::GuestsViewDocuments->value),
             'canMerge' => $user->can(PermissionEnum::GuestsMerge->value),
             'canAnonymize' => $user->can(PermissionEnum::GuestsAnonymize->value),
+            'staySummary' => GuestStaySummaryData::fromStays($stays, $since),
+            'currency' => CurrencyData::forProperty($guest->property),
+            ...($withStays ? ['stays' => $stays->map(fn (ReservationUnit $unit): GuestStayData => GuestStayData::fromUnit($unit))->values()->all()] : []),
             ...$tabProps,
         ]);
     }

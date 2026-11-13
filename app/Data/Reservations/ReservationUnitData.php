@@ -22,6 +22,8 @@ use Spatie\LaravelData\Data;
  * `boatIn` and `boatOut` are the boat trips, read when `boatTrips` is loaded (otherwise null), and `canSetBoatIn` and
  * `canSetBoatOut` say whether the unit panel shows Change for them. `hasPriceOverride` shows the price override note,
  * with `priceOverrideReason` when one was given. `canChangeGuests` shows Change on the Guests row.
+ * `taxWaivers` lists the taxes the unit is not charged, and `taxWaiverForm` feeds the Taxes paid elsewhere Dialog (null
+ * when the user may not waive taxes).
  */
 class ReservationUnitData extends Data
 {
@@ -30,6 +32,7 @@ class ReservationUnitData extends Data
      * @param  list<string>  $assigned
      * @param  list<ReservationNightData>  $nights
      * @param  list<UnitActionData>  $actions
+     * @param  list<UnitTaxWaiverData>  $taxWaivers
      */
     public function __construct(
         public int $id,
@@ -62,13 +65,15 @@ class ReservationUnitData extends Data
         public bool $canSetBoatOut = false,
         public bool $hasPriceOverride = false,
         public bool $canChangeGuests = false,
+        public array $taxWaivers = [],
+        public ?UnitTaxWaiverFormData $taxWaiverForm = null,
     ) {}
 
     /**
      * @param  list<UnitActionData>  $actions
      * @param  list<int>  $chargedNightIds
      */
-    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = [], bool $canSetBoatIn = false, bool $canSetBoatOut = false, bool $hasPriceOverride = false, bool $canChangeGuests = false): self
+    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = [], bool $canSetBoatIn = false, bool $canSetBoatOut = false, bool $hasPriceOverride = false, bool $canChangeGuests = false, ?UnitTaxWaiverFormData $taxWaiverForm = null): self
     {
         $isDayUse = $unit->stay_type === StayType::DayUse;
         $trips = $unit->relationLoaded('boatTrips') ? $unit->boatTrips : collect();
@@ -110,6 +115,8 @@ class ReservationUnitData extends Data
             canSetBoatOut: $canSetBoatOut,
             hasPriceOverride: $hasPriceOverride,
             canChangeGuests: $canChangeGuests,
+            taxWaivers: array_values($unit->loadMissing('taxWaivers.tax')->taxWaivers->sortBy('tax_id')->map(UnitTaxWaiverData::fromModel(...))->all()),
+            taxWaiverForm: $taxWaiverForm,
         );
     }
 }

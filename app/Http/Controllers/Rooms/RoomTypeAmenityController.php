@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Rooms;
 use App\Actions\Rooms\SetRoomTypeAmenity;
 use App\Data\BookingEngine\AmenityPickerData;
 use App\Data\Rooms\RoomTypeData;
+use App\Data\Rooms\RoomTypeSwitchData;
 use App\Enums\AmenityType;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
@@ -25,6 +26,7 @@ class RoomTypeAmenityController extends Controller
     {
         return Inertia::render('settings/room-types/amenities', [
             'roomType' => RoomTypeData::fromModel($roomType),
+            'roomTypeSwitch' => RoomTypeSwitchData::forProperty($property, $roomType),
             'roomCount' => $roomType->rooms()->active()->count(),
             'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
             'amenities' => AmenityPickerData::forType(AmenityType::Room, $roomType->amenities()->get()),

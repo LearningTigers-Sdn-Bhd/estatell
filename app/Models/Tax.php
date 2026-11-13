@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property bool $is_inclusive
  * @property bool $foreign_guests_only
  * @property bool $collect_at_check_in
+ * @property bool $can_be_waived
  * @property string|null $registration_number
  * @property bool $enabled
  * @property CarbonImmutable|null $created_at
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 #[Fillable([
     'transaction_code_id', 'name', 'code', 'rate_type', 'rate', 'is_inclusive',
-    'foreign_guests_only', 'collect_at_check_in', 'registration_number', 'enabled',
+    'foreign_guests_only', 'collect_at_check_in', 'can_be_waived', 'registration_number', 'enabled',
 ])]
 class Tax extends Model
 {
@@ -48,6 +49,7 @@ class Tax extends Model
             'is_inclusive' => 'boolean',
             'foreign_guests_only' => 'boolean',
             'collect_at_check_in' => 'boolean',
+            'can_be_waived' => 'boolean',
             'enabled' => 'boolean',
         ];
     }
@@ -74,5 +76,15 @@ class Tax extends Model
     public function scopeEnabled(Builder $query): void
     {
         $query->where('enabled', true);
+    }
+
+    /**
+     * Enabled taxes staff can mark as paid elsewhere (Tax waivers).
+     *
+     * @param  Builder<Tax>  $query
+     */
+    public function scopeWaivable(Builder $query): void
+    {
+        $query->where('enabled', true)->where('can_be_waived', true);
     }
 }

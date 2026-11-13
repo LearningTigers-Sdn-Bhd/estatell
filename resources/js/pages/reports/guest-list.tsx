@@ -8,7 +8,8 @@ import { PageHeader } from '@/components/pms/page-header';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
 import type { ReportCells } from '@/components/pms/reports/report-screen';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { guestList } from '@/routes/reports';
 
 type Row =
@@ -130,6 +131,17 @@ const screens: Record<
     },
 };
 
+/** The report tabs with their counts, for the tab bar and the breadcrumbs. */
+function guestListTabs(tabs: Tab[]): TabLink[] {
+    return tabs.map((item) => ({
+        value: item.value,
+        label: `${item.label} (${item.count})`,
+        title: item.label,
+        icon: screens[item.value].icon,
+        href: item.href,
+    }));
+}
+
 export default function GuestList({ tab, tabs, ...props }: Props) {
     const screen = screens[tab] ?? screens.arrivals;
     const label = tabs.find((item) => item.value === tab)?.label ?? 'Arrivals';
@@ -149,12 +161,7 @@ export default function GuestList({ tab, tabs, ...props }: Props) {
                     panelWidth="full"
                     className="flex-1 gap-4"
                     panelClassName="flex flex-1 flex-col"
-                    tabs={tabs.map((item) => ({
-                        value: item.value,
-                        label: `${item.label} (${item.count})`,
-                        icon: screens[item.value].icon,
-                        href: item.href,
-                    }))}
+                    tabs={guestListTabs(tabs)}
                 >
                     <ReportScreen
                         key={tab}
@@ -176,6 +183,10 @@ export default function GuestList({ tab, tabs, ...props }: Props) {
     );
 }
 
-GuestList.layout = {
-    breadcrumbs: [{ title: 'Guest list', href: guestList() }],
-};
+GuestList.layout = (props: Pick<Props, 'tab' | 'tabs'>) => ({
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Guest list', href: guestList() }],
+        guestListTabs(props.tabs),
+        props.tab,
+    ),
+});

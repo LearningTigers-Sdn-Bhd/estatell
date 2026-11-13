@@ -19,6 +19,7 @@ enum UnitAction: string
     case MoveRoom = 'move-room';
     case UndoCheckIn = 'undo-check-in';
     case UndoCheckOut = 'undo-check-out';
+    case WaiveTax = 'waive-tax';
 
     public function label(): string
     {
@@ -34,6 +35,7 @@ enum UnitAction: string
             self::MoveRoom => __('Move room'),
             self::UndoCheckIn => __('Undo check-in'),
             self::UndoCheckOut => __('Undo check-out'),
+            self::WaiveTax => __('Taxes paid elsewhere…'),
         };
     }
 
@@ -44,6 +46,7 @@ enum UnitAction: string
             self::CheckOut, self::CheckOutAsDayUse, self::LateCheckOut => PermissionEnum::FrontDeskCheckOut,
             self::UndoCheckIn => PermissionEnum::FrontDeskUndoCheckIn,
             self::UndoCheckOut => PermissionEnum::FrontDeskUndoCheckOut,
+            self::WaiveTax => PermissionEnum::FolioWaiveTax,
             self::Cancel, self::NoShow, self::Reinstate, self::ChangeDates, self::MoveRoom => PermissionEnum::ReservationsManage,
         };
     }
@@ -64,6 +67,7 @@ enum UnitAction: string
             self::NoShow => $status->canTransitionTo(UnitStatus::NoShow),
             self::Reinstate => $status->canTransitionTo(UnitStatus::Confirmed),
             self::ChangeDates, self::MoveRoom => in_array($status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true),
+            self::WaiveTax => in_array($status, [UnitStatus::Confirmed, UnitStatus::CheckedIn, UnitStatus::CheckedOut], true),
         };
     }
 }

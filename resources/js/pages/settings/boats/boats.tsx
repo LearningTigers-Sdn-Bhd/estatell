@@ -5,7 +5,11 @@ import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
-import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
+import {
+    BoatSettingsTabs,
+    boatSettingsTabs,
+} from '@/components/pms/settings/boat-settings-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -306,5 +310,9 @@ export default function BoatsPage({ boats }: { boats: Boat[] }) {
 }
 
 BoatsPage.layout = {
-    breadcrumbs: [{ title: 'Boats', href: boatsSettings() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Boats', href: boatsSettings() }],
+        boatSettingsTabs(),
+        'boats',
+    ),
 };

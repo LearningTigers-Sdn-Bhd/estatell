@@ -35,6 +35,7 @@ class CreateTax
                 'is_inclusive' => $data->isInclusive,
                 'foreign_guests_only' => $data->foreignGuestsOnly,
                 'collect_at_check_in' => $data->collectAtCheckIn,
+                'can_be_waived' => $data->canBeWaived,
                 'registration_number' => $data->registrationNumber,
                 'enabled' => $data->enabled,
             ]);

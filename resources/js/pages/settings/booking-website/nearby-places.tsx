@@ -1,5 +1,8 @@
 import { Head } from '@inertiajs/react';
-import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import {
+    BookingWebsiteShell,
+    bookingWebsiteBreadcrumbs,
+} from '@/components/pms/booking-website/booking-website-shell';
 import { NearbyPlacesSection } from '@/components/pms/booking-website/nearby-places-section';
 
 export default function BookingWebsiteNearbyPlaces({
@@ -21,3 +24,9 @@ export default function BookingWebsiteNearbyPlaces({
         </>
     );
 }
+
+BookingWebsiteNearbyPlaces.layout = (
+    props: Parameters<typeof bookingWebsiteBreadcrumbs>[0],
+) => ({
+    breadcrumbs: bookingWebsiteBreadcrumbs(props, 'nearby-places'),
+});

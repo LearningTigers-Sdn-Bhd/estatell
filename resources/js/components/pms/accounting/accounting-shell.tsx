@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { accounts, edit, history } from '@/routes/settings/accounting';
@@ -16,6 +17,30 @@ type Step = {
     done: boolean;
     href: ReturnType<typeof edit>;
 };
+
+/** The Accounting tabs, for the tab bar and the breadcrumbs. */
+export function accountingTabs(): TabLink[] {
+    return [
+        {
+            value: 'connection',
+            label: 'Connection',
+            icon: Plug,
+            href: edit(),
+        },
+        {
+            value: 'accounts',
+            label: 'Accounts',
+            icon: ListChecks,
+            href: accounts(),
+        },
+        {
+            value: 'history',
+            label: 'History',
+            icon: History,
+            href: history(),
+        },
+    ];
+}
 
 /**
  * What every Accounting tab shows: the title with the setup status, the three setup steps with their progress, and the
@@ -119,26 +144,7 @@ export function AccountingShell({
                 activeTab={tab}
                 className="flex flex-col gap-4"
                 panelWidth="full"
-                tabs={[
-                    {
-                        value: 'connection',
-                        label: 'Connection',
-                        icon: Plug,
-                        href: edit(),
-                    },
-                    {
-                        value: 'accounts',
-                        label: 'Accounts',
-                        icon: ListChecks,
-                        href: accounts(),
-                    },
-                    {
-                        value: 'history',
-                        label: 'History',
-                        icon: History,
-                        href: history(),
-                    },
-                ]}
+                tabs={accountingTabs()}
             >
                 {children}
             </TabLinks>

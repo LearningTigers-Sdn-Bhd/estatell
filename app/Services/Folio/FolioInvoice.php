@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\ReservationUnit;
+use App\Services\Catalogues\TaxWaiverNotes;
 use App\Services\CityLedger\CompanyBillTo;
 use App\Services\Guests\CountryOptions;
 use App\Services\Property\AmountInWords;
@@ -30,6 +31,7 @@ class FolioInvoice
         private CompanyBillTo $companyBillTo,
         private CountryOptions $countryOptions,
         private AmountInWords $amountInWords,
+        private TaxWaiverNotes $taxWaiverNotes,
     ) {}
 
     public function for(Folio $folio): FolioInvoiceDocument
@@ -70,6 +72,7 @@ class FolioInvoice
             oldSystem: $old,
             oldTitle: $old === null ? null : (filled($folio->legacy_number) ? __('Old system · folio :number', ['number' => $folio->legacy_number]) : __('Old system')),
             total: (string) $total->toScale(2),
+            taxNotes: $this->taxWaiverNotes->for($onFolio),
         );
     }
 

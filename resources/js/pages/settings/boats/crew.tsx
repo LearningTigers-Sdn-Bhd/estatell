@@ -6,7 +6,11 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { PhoneInput } from '@/components/pms/phone-input';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
-import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
+import {
+    BoatSettingsTabs,
+    boatSettingsTabs,
+} from '@/components/pms/settings/boat-settings-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -264,5 +268,9 @@ export default function BoatCrewPage({ crew }: { crew: CrewMember[] }) {
 }
 
 BoatCrewPage.layout = {
-    breadcrumbs: [{ title: 'Boats', href: boatsSettings() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Boats', href: boatsSettings() }],
+        boatSettingsTabs(),
+        'crew',
+    ),
 };

@@ -21,7 +21,7 @@ class RegistrationCardLabels
         'Postal code', 'Country', 'I agree to receive offers', 'Please sign in the box.', 'Street and number', 'Unit, floor or building', 'Type your full name', 'Select',
         'Welcome, :name', 'Guest :position of :total', 'Agree to all', 'Untick all', ':ticked of :total confirmed', 'Your stay', 'Pick date of birth', 'Personal', 'Contact', 'Identity', 'Preferences', 'Requests or notes about your stay', ':count to confirm', 'Signature needed', 'Full screen', 'Thank you.',
         'Search countries', 'No matching countries.', 'Enter a valid phone number.', 'Enter a valid :country phone number.', 'Country code: :country',
-        'Next: :name (:position of :total)', 'Continue', 'All done. Please return the device to the front desk.', 'Staff: back to desk',
+        'Next: :name (:position of :total)', 'Continue', 'Please fill in.', 'All done. Please return the device to the front desk.', 'Staff: back to desk',
     ];
 
     /**

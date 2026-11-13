@@ -1,7 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import { ReceiptText } from 'lucide-react';
 import { useCallback } from 'react';
-import { CommissionTabs } from '@/components/pms/commissions/commission-tabs';
+import {
+    CommissionTabs,
+    commissionTabs,
+} from '@/components/pms/commissions/commission-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -214,9 +218,12 @@ export default function PayoutVouchersIndex({
 }
 
 PayoutVouchersIndex.layout = {
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Commissions', href: commissions() },
-        { title: 'Vouchers', href: index() },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Commissions', href: commissions() },
+        ],
+        commissionTabs(),
+        'vouchers',
+    ),
 };

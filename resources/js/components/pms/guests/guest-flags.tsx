@@ -1,4 +1,4 @@
-import { Ban, EyeOff, Star } from 'lucide-react';
+import { Ban, EyeOff, RefreshCw, Star } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
     Tooltip,
@@ -35,14 +35,16 @@ function Flag({
 }
 
 /**
- * VIP, anonymized and blacklisted markers as icons, each with a tooltip.
+ * VIP, returning, anonymized and blacklisted markers as icons, each with a tooltip. Returning is 2 or more stays.
  */
 export function GuestFlags({
     isVip,
+    isReturning = false,
     isAnonymized,
     isBlacklisted,
 }: {
     isVip: boolean;
+    isReturning?: boolean;
     isAnonymized: boolean;
     isBlacklisted: boolean;
 }) {
@@ -53,6 +55,13 @@ export function GuestFlags({
                     icon={Star}
                     label="VIP"
                     className="fill-current text-warning"
+                />
+            )}
+            {isReturning && (
+                <Flag
+                    icon={RefreshCw}
+                    label="Returning guest"
+                    className="text-info"
                 />
             )}
             {isAnonymized && (

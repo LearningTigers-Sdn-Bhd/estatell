@@ -1,6 +1,10 @@
 <?php
 
+use App\Actions\Guests\AddIdentityDocument;
+use App\Actions\Guests\UpdateIdentityDocument;
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\IdentityDocumentType;
 use App\Enums\MediaDisk;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
@@ -291,4 +295,31 @@ test('another property\'s guest or document returns 404', function () {
     $this->delete(route('guests.documents.destroy', [$code, $mine, $foreignDocument]))->assertNotFound();
     $this->get(route('guests.documents.scan', [$code, $foreign, $foreignDocument, 'front']))->assertNotFound();
     expect($mineButWrongGuest->refresh()->guest_id)->toBe($mine->id);
+});
+
+test('a MyKad saved without a country is Malaysian and a passport keeps none', function () {
+    $guest = Guest::factory()->create();
+    $add = app(AddIdentityDocument::class);
+
+    $mykad = $add(null, $guest, new IdentityDocumentInputData(IdentityDocumentType::MyKad, '900101141234', null, null));
+    $passport = $add(null, $guest, new IdentityDocumentInputData(IdentityDocumentType::Passport, 'A1234567', null, null));
+
+    expect($mykad->issuing_country_code)->toBe('MY')
+        ->and($passport->issuing_country_code)->toBeNull();
+
+    app(UpdateIdentityDocument::class)(null, $passport, new IdentityDocumentInputData(IdentityDocumentType::MyKad, '900101141235', null, null));
+
+    expect($passport->refresh()->issuing_country_code)->toBe('MY');
+});
+
+test('the migration fills MY on MyKads with no country only', function () {
+    $mykad = GuestIdentityDocument::factory()->create(['type' => 'mykad', 'issuing_country_code' => null]);
+    $passport = GuestIdentityDocument::factory()->create(['type' => 'passport', 'issuing_country_code' => null]);
+    $set = GuestIdentityDocument::factory()->create(['type' => 'mykad', 'issuing_country_code' => 'SG']);
+
+    (require database_path('migrations/2026_11_12_053202_fill_mykad_issuing_country.php'))->up();
+
+    expect($mykad->refresh()->issuing_country_code)->toBe('MY')
+        ->and($passport->refresh()->issuing_country_code)->toBeNull()
+        ->and($set->refresh()->issuing_country_code)->toBe('SG');
 });

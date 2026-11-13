@@ -7,7 +7,9 @@ test('admin pages share the admin navigation', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('admin.dashboard'))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('adminNavigation', 11)
+            ->has('adminNavigation', 12)
+            ->where('adminNavigation.6.title', 'Webhooks')
+            ->where('adminNavigation.6.href', '/admin/webhooks')
             ->where('adminNavigation.1', [
                 'title' => 'Properties',
                 'href' => '/admin/properties',
@@ -23,7 +25,7 @@ test('admin pages share the admin navigation', function () {
 test('admins get the admin navigation on their account pages', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('account.profile.edit'))
-        ->assertInertia(fn (Assert $page) => $page->has('adminNavigation', 11));
+        ->assertInertia(fn (Assert $page) => $page->has('adminNavigation', 12));
 });
 
 test('staff never get the admin navigation', function () {

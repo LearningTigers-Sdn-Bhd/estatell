@@ -7,6 +7,7 @@ use App\Actions\Folio\PostOpeningBalance;
 use App\Actions\Folio\PrepareOldFolios;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\CheckOutUnit;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Reservations\NewBookingData;
 use App\Enums\OldFolioMode;
 use App\Enums\StayType;
@@ -49,6 +50,14 @@ class CreateMigratedStay
      * See docs/12-reservations/12-past-and-migrated-stays.md#migrated-stay.
      */
     public function __invoke(User $actor, Property $property, NewBookingData $data, string $reason, OldFolioMode $oldFolio, ?string $openingAmount, ?string $legacyNumber, bool $withoutCard = false, bool $checkedOut = false): BookingResult
+    {
+        return TriggerWebhook::muted(fn (): BookingResult => $this->enter($actor, $property, $data, $reason, $oldFolio, $openingAmount, $legacyNumber, $withoutCard, $checkedOut));
+    }
+
+    /**
+     * Imported history sends no webhooks, so a receiver never messages a guest about an old stay.
+     */
+    private function enter(User $actor, Property $property, NewBookingData $data, string $reason, OldFolioMode $oldFolio, ?string $openingAmount, ?string $legacyNumber, bool $withoutCard = false, bool $checkedOut = false): BookingResult
     {
         if (trim($reason) === '') {
             return BookingResult::refused(BookingResult::REFUSAL_REASON_REQUIRED);

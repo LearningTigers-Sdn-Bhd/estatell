@@ -18,7 +18,8 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { NearbyPlaceLinkDialog } from '@/components/pms/nearby-place-link-dialog';
 import { PageHeader } from '@/components/pms/page-header';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -190,6 +191,16 @@ function RenamePlaceDialog({
     );
 }
 
+/** All, then one tab per approval status, for the tab bar and the breadcrumbs. */
+function nearbyPlaceTabs(statusOptions: EnumOption[]): TabLink[] {
+    return [{ value: ALL, label: 'All' }, ...statusOptions].map((option) => ({
+        value: option.value,
+        label: option.label,
+        icon: statusIcons[option.value] ?? MapPin,
+        href: index({ query: { status: option.value } }),
+    }));
+}
+
 export default function NearbyPlacesIndex({
     places,
     statusOptions,
@@ -236,14 +247,7 @@ export default function NearbyPlacesIndex({
                     className="gap-4"
                     triggerClassName="min-w-0 px-0 mr-6"
                     panelClassName="flex flex-col gap-4"
-                    tabs={[{ value: ALL, label: 'All' }, ...statusOptions].map(
-                        (option) => ({
-                            value: option.value,
-                            label: option.label,
-                            icon: statusIcons[option.value] ?? MapPin,
-                            href: index({ query: { status: option.value } }),
-                        }),
-                    )}
+                    tabs={nearbyPlaceTabs(statusOptions)}
                 >
                     <FilterBar
                         search={search}
@@ -400,9 +404,16 @@ export default function NearbyPlacesIndex({
     );
 }
 
-NearbyPlacesIndex.layout = {
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Nearby places', href: index() },
-    ],
-};
+NearbyPlacesIndex.layout = (props: {
+    statusOptions: EnumOption[];
+    status: string;
+}) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Nearby places', href: index() },
+        ],
+        nearbyPlaceTabs(props.statusOptions),
+        props.status,
+    ),
+});

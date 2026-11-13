@@ -17,6 +17,7 @@ use App\Models\GuestIdentityDocument;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\ReservationUnitTaxWaiver;
 use App\Models\Tax;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
@@ -582,7 +583,7 @@ test('the report only returns the requested row keys and is in the registry', fu
         ->and(ReportKey::PoliceReport->report())->toBeInstanceOf(PoliceReport::class)
         ->and(ReportKey::NonNationalGuests->maxRangeDays())->toBe(31)
         ->and(ReportKey::PoliceReport->maxRangeDays())->toBe(31)
-        ->and(array_map(fn ($column): string => $column->key, ReportKey::NonNationalGuests->columns()))->toBe(['reservation', 'guest', 'nationality', 'identity', 'id_type', 'id_number', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'nights', 'guests', 'adults', 'children', 'tourism_tax'])
+        ->and(array_map(fn ($column): string => $column->key, ReportKey::NonNationalGuests->columns()))->toBe(['reservation', 'guest', 'nationality', 'identity', 'id_type', 'id_number', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'nights', 'guests', 'adults', 'children', 'tourism_tax', 'paid_elsewhere'])
         ->and(array_map(fn ($column): string => $column->key, ReportKey::PoliceReport->columns()))->toBe(['guest', 'reservation', 'room', 'nationality', 'gender', 'date_of_birth', 'identity', 'id_type', 'id_number', 'address', 'phone', 'arrival', 'arrival_time', 'checked_in_at', 'checked_in_date', 'checked_in_time', 'departure', 'departure_time', 'checked_out_at', 'checked_out_date', 'checked_out_time', 'status']);
 });
 
@@ -736,4 +737,22 @@ test('the police report PDF prints the ID type over the number, the date over th
     expect($html)->toContain('<td class="">Passport<br><span class="nowrap">•••• 4567</span></td>')
         ->toContain('<td class="nowrap"><span class="nowrap">10 Oct 2026</span><br><span class="nowrap">20:00</span></td>')
         ->toContain('<th class="nowrap">Status</th>');
+});
+
+test('paid elsewhere names who collected a waived foreign-guest tax and leaves out other waived taxes', function () {
+    [, $property] = reportSetup(settings: ['time_zone' => 'Asia/Kuala_Lumpur']);
+    $ota = registerUnit($property, '2026-10-02', '2026-10-04');
+    $receipt = registerUnit($property, '2026-10-02', '2026-10-04');
+    $none = registerUnit($property, '2026-10-02', '2026-10-04');
+    $tax = foreignTax($property);
+    $localTax = Tax::factory()->create(['property_id' => $property->id, 'foreign_guests_only' => false]);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $ota->id, 'tax_id' => $tax->id, 'paid_to' => 'Trip.com', 'reference' => '1128000012345678']);
+    ReservationUnitTaxWaiver::factory()->guestReceipt()->create(['reservation_unit_id' => $receipt->id, 'tax_id' => $tax->id, 'reference' => 'TTX-88231']);
+    ReservationUnitTaxWaiver::factory()->create(['reservation_unit_id' => $none->id, 'tax_id' => $localTax->id, 'paid_to' => 'Agoda', 'reference' => '9']);
+
+    $rows = collect(app(NonNationalGuestsReport::class)->rows($property, new ReportFilters('2026-10-01', '2026-10-31')))->keyBy('key');
+
+    expect($rows[$ota->id]->paid_elsewhere)->toBe('Trip.com · 1128000012345678')
+        ->and($rows[$receipt->id]->paid_elsewhere)->toBe('Guest receipt · TTX-88231')
+        ->and($rows[$none->id]->paid_elsewhere)->toBe('');
 });

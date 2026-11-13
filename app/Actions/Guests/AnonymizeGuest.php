@@ -2,6 +2,8 @@
 
 namespace App\Actions\Guests;
 
+use App\Actions\Webhooks\TriggerWebhook;
+use App\Enums\WebhookEvent;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\User;
@@ -79,6 +81,8 @@ class AnonymizeGuest
                     'documents_removed' => $documentsRemoved,
                 ])
                 ->log('Guest anonymized');
+
+            app(TriggerWebhook::class)(WebhookEvent::GuestAnonymized, $guest->property_id, Guest::class, $guest->id);
 
             return true;
         });

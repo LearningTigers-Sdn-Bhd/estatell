@@ -18,7 +18,7 @@ media                       two single-file collections on each document: id_fro
 
 ## Enums
 
-`IdentityDocumentType`: MyKad, Passport, Other. `formatNumber()` shows a MyKad as `900101-14-1234`.
+`IdentityDocumentType`: MyKad, Passport, Other. `formatNumber()` shows a MyKad as `900101-14-1234`. `defaultIssuingCountry()` is `MY` for a MyKad: `AddIdentityDocument` and `UpdateIdentityDocument` store it when no issuing country is given, so a MyKad saved from the Details field is Malaysian. A passport or other document saved without a country keeps none. The migration `fill_mykad_issuing_country` set MY on earlier MyKads with no country.
 
 ## Rules
 
@@ -26,7 +26,7 @@ media                       two single-file collections on each document: id_fro
 - The number is stored **normalized**: uppercase letters and digits only. `900101-14-1234` and `900101141234` are the same number. `IdentityNumber` does this, and the blind index applies the same transformation. A MyKad must be 12 digits. Any number needs at least 4 characters.
 - Front and back scans are media files. Each collection keeps one file: a new file replaces the old one and deletes it. JPEG, PNG, WebP or PDF, up to 10 MB.
 - New scans are stored on the disk chosen in [platform settings](../01-platform/02-platform-settings.md#media-storage). Each `media` row keeps its own disk, so older files stay readable.
-- The number is **masked** (`•••• 1234`) in document lists. The guest Details form and expanded booking guest rows automatically fetch the full number for staff with document permission and show a normal editable field. Page props never carry the full number. Forms, the Reveal button and the edit sheet all fetch it with the logged `reveal` request.
+- The number is **masked** (`•••• 1234`) in props and in other lists. The guest Details form, the guest Documents tab and expanded booking guest rows automatically fetch the full number for staff with document permission, so the Documents tab shows each full number (the masked one while it loads, if it fails, and while impersonating). Page props never carry the full number. Forms, the Reveal button and the edit sheet all fetch it with the logged `reveal` request.
 - Revealing a number, opening the edit sheet (it fetches the number the same way) and opening a scan are written to the activity log on the guest: `guest.document_number_viewed` and `guest.document_scan_viewed`. Adding, changing and removing are logged too. No log entry contains the number.
 - The Non-national guests and Police reports follow the same rule: the ID number is masked without `guests.view-documents`, and a PDF or spreadsheet export that holds full numbers writes `report.exported_identity_numbers` to the activity log. See [Core reports](../22-reports/01-core-reports.md#built-non-national-guests-and-police-report).
 - Scans open through `guests.documents.scan`. It checks the permission and logs the view. On the `local` disk it then streams the file with `Cache-Control: no-store`. On R2 it redirects to a presigned URL that works for 5 minutes.
@@ -47,7 +47,7 @@ Routes under `/p/{code}/guests/{guest}/documents` (`guests.documents.*`).
 
 | Route                      | Permissions                                 | What                                                                                                                                                                                       |
 | -------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `index`                    | `guests.view-documents`                     | Documents tab on the guest page, with masked numbers                                                                                                                                       |
+| `index`                    | `guests.view-documents`                     | Documents tab on the guest page: a table of Type, Number (loaded through `reveal`), Country, Expires and Scans (thumbnails), with a ⋯ menu (Edit, Remove) for `guests.manage`              |
 | `reveal` (POST, JSON)      | `guests.view-documents`                     | The full number for the Reveal button                                                                                                                                                      |
 | `scan` (`front` or `back`) | `guests.view-documents`                     | The scan file (`local`) or a short-lived link (R2)                                                                                                                                         |     |
 | `store`, `update`          | `guests.view-documents` and `guests.manage` | Add and edit in one Sheet on the Documents tab (uploads inside a small Sheet are allowed, see [form containers](../design-system/05-form-containers.md)). There is no create or edit page. |

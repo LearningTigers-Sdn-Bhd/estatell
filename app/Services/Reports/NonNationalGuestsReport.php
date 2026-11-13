@@ -5,9 +5,11 @@ namespace App\Services\Reports;
 use App\Data\Reports\NonNationalGuestRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportTotals;
+use App\Enums\TaxWaiverReason;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Models\ReservationUnitTaxWaiver;
 use App\Services\Guests\CountryOptions;
 use App\Services\Reservations\ReservationRoomBox;
 use App\Services\Reservations\UnitNationality;
@@ -16,7 +18,7 @@ use Brick\Math\RoundingMode;
 
 /**
  * The reservation units with a foreign nationality that stayed in the date range, and the tourism tax posted for them
- * in the range. A unit is foreign when its nationality (its primary guest, else the booker) is set and is not `MY`,
+ * in the range, with who collected a waived tourism tax. A unit is foreign when its nationality (its primary guest, else the booker) is set and is not `MY`,
  * the rule `TaxCalculator` uses for a foreign-only tax. The nationality shows as a country name. The note counts the
  * units in the range with no nationality at all, because their tourism tax may be missing.
  * See docs/22-reports/01-core-reports.md.
@@ -49,6 +51,7 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
         $taxes = $this->tourismTax->forRange($property, $filters, array_values(array_map(intval(...), $foreign->pluck('reservation_id')->unique()->all())));
         $rooms = $this->roomBox->assignmentsForUnits(array_values(array_map(intval(...), $foreign->pluck('id')->all())));
         $guests = $foreign->mapWithKeys(fn (ReservationUnit $unit): array => [$unit->id => $this->guestOf($unit)]);
+        $paidElsewhere = $this->paidElsewhere(array_values(array_map(intval(...), $foreign->pluck('id')->all())));
         $identities = $this->identities->partsForGuests(array_values(array_map(intval(...), $guests->pluck('id')->all())));
 
         return array_values($foreign
@@ -62,6 +65,7 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
                 $rooms[$unit->id] ?? null,
                 $this->stays->nightsInRange($unit, $filters),
                 $taxes[$unit->id] ?? '0.00',
+                $paidElsewhere[$unit->id] ?? '',
             ))
             ->all());
     }
@@ -101,8 +105,29 @@ class NonNationalGuestsReport implements HasNote, HasTotals, Report
             'guests' => null,
             'adults' => array_sum(array_map(fn (NonNationalGuestRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (NonNationalGuestRow $row): int => $row->children, $rows)),
+            'paid_elsewhere' => null,
             'tourism_tax' => (string) array_reduce($rows, fn (BigDecimal $sum, NonNationalGuestRow $row): BigDecimal => $sum->plus($row->tourism_tax), BigDecimal::zero())->toScale(2, RoundingMode::HalfUp),
         ]);
+    }
+
+    /**
+     * Who collected each unit's waived foreign-guest taxes and the reference, by unit id: "Trip.com · 1128…" or "Guest
+     * receipt · TTX-88231", joined with "; " when a unit has more than one. One query. See
+     * docs/06-catalogues/03-taxes.md#tax-waivers.
+     *
+     * @param  list<int>  $unitIds
+     * @return array<int, string>
+     */
+    private function paidElsewhere(array $unitIds): array
+    {
+        return ReservationUnitTaxWaiver::query()
+            ->whereIn('reservation_unit_id', $unitIds)
+            ->whereHas('tax', fn ($taxes) => $taxes->where('foreign_guests_only', true))
+            ->orderBy('tax_id')
+            ->get()
+            ->groupBy('reservation_unit_id')
+            ->map(fn ($waivers): string => $waivers->map(fn (ReservationUnitTaxWaiver $waiver): string => ($waiver->reason === TaxWaiverReason::PaidElsewhere ? $waiver->paid_to : __('Guest receipt')).' · '.$waiver->reference)->unique()->implode('; '))
+            ->all();
     }
 
     /**

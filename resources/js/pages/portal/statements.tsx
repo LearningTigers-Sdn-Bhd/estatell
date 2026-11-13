@@ -19,7 +19,8 @@ import { PortalPaymentsTable } from '@/components/pms/portal/portal-payments-tab
 import { PortalProofsTable } from '@/components/pms/portal/portal-proofs-table';
 import { PortalStatTile } from '@/components/pms/portal/portal-stat-tile';
 import { PortalStatementSection } from '@/components/pms/portal/portal-statement';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import { statements } from '@/routes/portal';
 import {
@@ -30,6 +31,48 @@ import {
 import { store as storeSlip } from '@/routes/portal/statements/payment-slips';
 
 type Tab = 'statement' | 'invoices' | 'payments' | 'slips';
+
+/** The Statement, Invoices, Payments and Slips tabs, for the tab bar and the breadcrumbs. */
+function statementTabs(propertyCode: string, slipsWaiting: number): TabLink[] {
+    const key = { property: propertyCode };
+
+    return [
+        {
+            value: 'statement',
+            label: 'Statement',
+            icon: ScrollText,
+            href: statements.url(key),
+        },
+        {
+            value: 'invoices',
+            label: 'Invoices',
+            icon: ReceiptText,
+            href: invoicesTab.url(key),
+        },
+        {
+            value: 'payments',
+            label: 'Payments',
+            icon: HandCoins,
+            href: paymentsTab.url(key),
+        },
+        {
+            value: 'slips',
+            title: 'Slips',
+            label: (
+                <>
+                    Slips
+                    {slipsWaiting > 0 && (
+                        <span className="text-muted-foreground tabular-nums">
+                            {slipsWaiting}
+                        </span>
+                    )}
+                </>
+            ),
+            icon: FileImage,
+            href: slipsTab.url(key),
+        },
+    ];
+}
 
 /**
  * The company's statements at the property: the summary and Send payment above link tabs (Statement, Invoices,
@@ -77,41 +120,7 @@ export default function PortalStatements({
         </>
     );
 
-    const tabs = [
-        {
-            value: 'statement',
-            label: 'Statement',
-            icon: ScrollText,
-            href: statements.url(key),
-        },
-        {
-            value: 'invoices',
-            label: 'Invoices',
-            icon: ReceiptText,
-            href: invoicesTab.url(key),
-        },
-        {
-            value: 'payments',
-            label: 'Payments',
-            icon: HandCoins,
-            href: paymentsTab.url(key),
-        },
-        {
-            value: 'slips',
-            label: (
-                <>
-                    Slips
-                    {slipsWaiting > 0 && (
-                        <span className="text-muted-foreground tabular-nums">
-                            {slipsWaiting}
-                        </span>
-                    )}
-                </>
-            ),
-            icon: FileImage,
-            href: slipsTab.url(key),
-        },
-    ];
+    const tabs = statementTabs(propertyCode, slipsWaiting);
 
     return (
         <>
@@ -205,11 +214,19 @@ export default function PortalStatements({
     );
 }
 
-PortalStatements.layout = (props: { propertyCode: string }) => ({
-    breadcrumbs: [
-        {
-            title: 'Statements',
-            href: statements({ property: props.propertyCode }),
-        },
-    ],
+PortalStatements.layout = (props: {
+    propertyCode: string;
+    tab: Tab;
+    slipsWaiting: number;
+}) => ({
+    breadcrumbs: withTabCrumb(
+        [
+            {
+                title: 'Statements',
+                href: statements({ property: props.propertyCode }),
+            },
+        ],
+        statementTabs(props.propertyCode, props.slipsWaiting),
+        props.tab,
+    ),
 });

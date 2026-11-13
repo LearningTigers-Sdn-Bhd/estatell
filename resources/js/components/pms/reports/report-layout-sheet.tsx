@@ -82,6 +82,10 @@ type Props = {
     description?: string;
     /** Extra buttons next to Reset and Preview, for example Match screen on the Housekeeping board. */
     footerActions?: ReactNode;
+    /** False for a screen-only layout (the guest list): no Orientation and no Preview PDF. */
+    printable?: boolean;
+    /** Columns that always show: their switch stays on and cannot be turned off. They can still move. */
+    lockedKeys?: string[];
 };
 
 const PREVIEW_FORM_ID = 'report-layout-preview';
@@ -166,6 +170,8 @@ export function ReportLayoutSheet({
     onDone,
     description,
     footerActions,
+    printable = true,
+    lockedKeys = [],
 }: Props) {
     const { csrfToken } = usePage().props;
     const [processing, setProcessing] = useState(false);
@@ -269,7 +275,9 @@ export function ReportLayoutSheet({
                 title={`Layout · ${reportLabel}`}
                 description={
                     description ??
-                    'Choose the paper orientation and the columns, in the order they show, and how each aligns. The table behind this panel shows your changes.'
+                    (printable
+                        ? 'Choose the paper orientation and the columns, in the order they show, and how each aligns. The table behind this panel shows your changes.'
+                        : 'Choose the columns, in the order they show, and how each aligns. The table behind this panel shows your changes.')
                 }
                 errors={errors}
                 dirty={dirty}
@@ -288,14 +296,16 @@ export function ReportLayoutSheet({
                                 <RotateCcw data-icon="inline-start" />
                                 Reset to default
                             </Button>
-                            <Button
-                                type="submit"
-                                form={PREVIEW_FORM_ID}
-                                variant="outline"
-                            >
-                                Preview PDF
-                                <ExternalLink data-icon="inline-end" />
-                            </Button>
+                            {printable && (
+                                <Button
+                                    type="submit"
+                                    form={PREVIEW_FORM_ID}
+                                    variant="outline"
+                                >
+                                    Preview PDF
+                                    <ExternalLink data-icon="inline-end" />
+                                </Button>
+                            )}
                             {footerActions}
                         </div>
                         <div className="flex gap-2">
@@ -321,38 +331,42 @@ export function ReportLayoutSheet({
                 }
             >
                 <FieldGroup>
-                    <FieldSet>
-                        <FieldLegend variant="label">Orientation</FieldLegend>
-                        <RadioGroup
-                            value={draft.orientation}
-                            onValueChange={(orientation) =>
-                                onDraftChange({
-                                    ...draft,
-                                    orientation:
-                                        orientation as Layout['orientation'],
-                                })
-                            }
-                            className="flex flex-wrap gap-4"
-                        >
-                            {orientations.map((option) => (
-                                <Field
-                                    key={option.value}
-                                    orientation="horizontal"
-                                    className="w-auto"
-                                >
-                                    <RadioGroupItem
-                                        id={`orientation-${option.value}`}
-                                        value={option.value}
-                                    />
-                                    <FieldLabel
-                                        htmlFor={`orientation-${option.value}`}
+                    {printable && (
+                        <FieldSet>
+                            <FieldLegend variant="label">
+                                Orientation
+                            </FieldLegend>
+                            <RadioGroup
+                                value={draft.orientation}
+                                onValueChange={(orientation) =>
+                                    onDraftChange({
+                                        ...draft,
+                                        orientation:
+                                            orientation as Layout['orientation'],
+                                    })
+                                }
+                                className="flex flex-wrap gap-4"
+                            >
+                                {orientations.map((option) => (
+                                    <Field
+                                        key={option.value}
+                                        orientation="horizontal"
+                                        className="w-auto"
                                     >
-                                        {option.label}
-                                    </FieldLabel>
-                                </Field>
-                            ))}
-                        </RadioGroup>
-                    </FieldSet>
+                                        <RadioGroupItem
+                                            id={`orientation-${option.value}`}
+                                            value={option.value}
+                                        />
+                                        <FieldLabel
+                                            htmlFor={`orientation-${option.value}`}
+                                        >
+                                            {option.label}
+                                        </FieldLabel>
+                                    </Field>
+                                ))}
+                            </RadioGroup>
+                        </FieldSet>
+                    )}
 
                     <FieldSet>
                         <FieldLegend variant="label">Columns</FieldLegend>
@@ -375,10 +389,18 @@ export function ReportLayoutSheet({
                                             <Switch
                                                 size="sm"
                                                 id={`column-${column.key}`}
-                                                checked={column.visible}
+                                                checked={
+                                                    column.visible ||
+                                                    lockedKeys.includes(
+                                                        column.key,
+                                                    )
+                                                }
                                                 disabled={
-                                                    column.visible &&
-                                                    visibleCount === 1
+                                                    lockedKeys.includes(
+                                                        column.key,
+                                                    ) ||
+                                                    (column.visible &&
+                                                        visibleCount === 1)
                                                 }
                                                 onCheckedChange={(checked) =>
                                                     toggle(index, checked)
@@ -466,42 +488,49 @@ export function ReportLayoutSheet({
                 </FieldGroup>
             </FormOverlay>
 
-            <form
-                id={PREVIEW_FORM_ID}
-                method="post"
-                action={preview.url({ report })}
-                target="_blank"
-                hidden
-            >
-                <input type="hidden" name="_token" value={csrfToken} />
-                {Object.entries(dates).map(([name, value]) => (
-                    <input key={name} type="hidden" name={name} value={value} />
-                ))}
-                <input
-                    type="hidden"
-                    name="orientation"
-                    value={draft.orientation}
-                />
-                {draft.columns.map((column, index) => (
-                    <span key={column.key}>
+            {printable && (
+                <form
+                    id={PREVIEW_FORM_ID}
+                    method="post"
+                    action={preview.url({ report })}
+                    target="_blank"
+                    hidden
+                >
+                    <input type="hidden" name="_token" value={csrfToken} />
+                    {Object.entries(dates).map(([name, value]) => (
                         <input
+                            key={name}
                             type="hidden"
-                            name={`columns[${index}][key]`}
-                            value={column.key}
+                            name={name}
+                            value={value}
                         />
-                        <input
-                            type="hidden"
-                            name={`columns[${index}][visible]`}
-                            value={column.visible ? '1' : '0'}
-                        />
-                        <input
-                            type="hidden"
-                            name={`columns[${index}][align]`}
-                            value={column.align}
-                        />
-                    </span>
-                ))}
-            </form>
+                    ))}
+                    <input
+                        type="hidden"
+                        name="orientation"
+                        value={draft.orientation}
+                    />
+                    {draft.columns.map((column, index) => (
+                        <span key={column.key}>
+                            <input
+                                type="hidden"
+                                name={`columns[${index}][key]`}
+                                value={column.key}
+                            />
+                            <input
+                                type="hidden"
+                                name={`columns[${index}][visible]`}
+                                value={column.visible ? '1' : '0'}
+                            />
+                            <input
+                                type="hidden"
+                                name={`columns[${index}][align]`}
+                                value={column.align}
+                            />
+                        </span>
+                    ))}
+                </form>
+            )}
 
             <AlertDialog
                 open={confirmingReset}

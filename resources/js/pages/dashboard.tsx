@@ -19,10 +19,29 @@ import {
 import { TonightTile } from '@/components/pms/dashboard/tonight-tile';
 import { TilesSkeleton } from '@/components/pms/dashboard/tiles-skeleton';
 import { PerformanceTab } from '@/components/pms/dashboard/performance/performance-tab';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import { cn } from 'cn';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { dashboard } from '@/routes';
+
+/** The Performance and Today tabs, for the tab bar and the breadcrumbs. */
+function dashboardTabs(code: string): TabLink[] {
+    return [
+        {
+            value: 'performance',
+            label: 'Performance',
+            icon: ChartLine,
+            href: dashboard.url(code, { query: { tab: 'performance' } }),
+        },
+        {
+            value: 'today',
+            label: 'Today',
+            icon: CalendarCheck,
+            href: dashboard.url(code, { query: { tab: 'today' } }),
+        },
+    ];
+}
 
 export default function Dashboard({
     alert,
@@ -246,24 +265,7 @@ export default function Dashboard({
                         className="flex flex-1 flex-col gap-3"
                         panelWidth="full"
                         panelClassName="flex flex-1 flex-col gap-3"
-                        tabs={[
-                            {
-                                value: 'performance',
-                                label: 'Performance',
-                                icon: ChartLine,
-                                href: dashboard.url(code, {
-                                    query: { tab: 'performance' },
-                                }),
-                            },
-                            {
-                                value: 'today',
-                                label: 'Today',
-                                icon: CalendarCheck,
-                                href: dashboard.url(code, {
-                                    query: { tab: 'today' },
-                                }),
-                            },
-                        ]}
+                        tabs={dashboardTabs(code)}
                     >
                         {content}
                     </TabLinks>
@@ -298,12 +300,24 @@ export default function Dashboard({
 
 Dashboard.layout = (props: {
     property: App.Data.Property.PropertySummaryData;
-}) => ({
-    variant: 'fixed' as const,
-    breadcrumbs: [
+    tab: App.Enums.DashboardTab;
+    can: App.Data.Dashboard.DashboardAccessData;
+}) => {
+    const crumbs = [
         {
             title: props.property.name,
             href: dashboard(props.property.code),
         },
-    ],
-});
+    ];
+
+    return {
+        variant: 'fixed' as const,
+        breadcrumbs: props.can.canViewReports
+            ? withTabCrumb(
+                  crumbs,
+                  dashboardTabs(props.property.code),
+                  props.tab,
+              )
+            : crumbs,
+    };
+};

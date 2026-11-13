@@ -5,7 +5,11 @@ import {
     commissionBookingAlign,
     commissionBookingColumns,
 } from '@/components/pms/commissions/booking-columns';
-import { CommissionTabs } from '@/components/pms/commissions/commission-tabs';
+import {
+    CommissionTabs,
+    commissionTabs,
+} from '@/components/pms/commissions/commission-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
 import { TotalCard } from '@/components/pms/commissions/total-card';
 import { DataTable } from '@/components/pms/data-table';
 import { DatePicker } from '@/components/pms/date-picker';
@@ -231,8 +235,12 @@ export default function CommissionsIndex({
 }
 
 CommissionsIndex.layout = {
-    breadcrumbs: [
-        { title: 'Admin', href: dashboard() },
-        { title: 'Commissions', href: index() },
-    ],
+    breadcrumbs: withTabCrumb(
+        [
+            { title: 'Admin', href: dashboard() },
+            { title: 'Commissions', href: index() },
+        ],
+        commissionTabs(),
+        'bookings',
+    ),
 };

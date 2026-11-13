@@ -18,7 +18,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/guests/anonymize';
 
 /**
- * Confirms archiving a guest. The button stays disabled until Confirm is typed, because this cannot be undone.
+ * The Archive button of the guest page and its confirmation.
  */
 export function AnonymizeGuestDialog({
     guest,
@@ -26,6 +26,37 @@ export function AnonymizeGuestDialog({
     guest: App.Data.Guests.GuestData;
 }) {
     const [open, setOpen] = useState(false);
+
+    return (
+        <>
+            <HeaderActionButton
+                label="Archive"
+                icon={UserX}
+                variant="destructive"
+                onClick={() => setOpen(true)}
+            />
+            <ArchiveGuestDialog
+                guest={guest}
+                open={open}
+                onOpenChange={setOpen}
+            />
+        </>
+    );
+}
+
+/**
+ * Confirms archiving a guest. The button stays disabled until Confirm is typed, because this cannot be undone.
+ */
+export function ArchiveGuestDialog({
+    guest,
+    open,
+    onOpenChange,
+}: {
+    guest: { id: number; fullName: string };
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const setOpen = onOpenChange;
     const [typed, setTyped] = useState('');
     const confirmed = typed.trim() === 'Confirm';
 
@@ -37,12 +68,6 @@ export function AnonymizeGuestDialog({
                 setTyped('');
             }}
         >
-            <HeaderActionButton
-                label="Archive"
-                icon={UserX}
-                variant="destructive"
-                onClick={() => setOpen(true)}
-            />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>

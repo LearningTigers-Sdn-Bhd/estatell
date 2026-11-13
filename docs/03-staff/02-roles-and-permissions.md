@@ -68,6 +68,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `folio.reopen`                     | Reopen a Closed folio                                                       | ✓     | ✓       | Finance                           |
 | `folio.manual`                     | Manual Folio Editor, past and migrated stays, old system balances           | ✓     | ✓       | –                                 |
 | `folio.view-manual-entries`        | See the Manual marker and its reason on folio lines                         | ✓     | ✓       | Finance                           |
+| `folio.waive-tax`                  | Stop charging a tax for one unit because it was paid elsewhere              | ✓     | ✓       | Front desk, Finance               |
 | `payment.record`                   | Record a payment, download a receipt                                        | ✓     | ✓       | Front desk, Finance               |
 | `payment.refund`                   | Refund a payment to its own method, void a payment, refund a folio's credit | ✓     | ✓       | Front desk, Finance               |
 | `payment.refund-other-method`      | Refund to a method other than the payment's own, with a reason              | ✓     | ✓       | Finance                           |

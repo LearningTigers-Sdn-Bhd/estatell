@@ -13,7 +13,7 @@ import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { TabLinks } from '@/components/pms/tab-links';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import type { TabLink } from '@/components/pms/tab-links';
 import {
@@ -36,29 +36,9 @@ export type BookingWebsiteTab =
     | 'api';
 
 /**
- * Header and tab links of Settings › Booking website. Each tab is its own page and URL, and loads only its own data.
- * Design and SEO belong to Microsite mode, API to API only mode.
- * The header is the same on every tab: title, description, then the publish status and mode badges.
- * The tab content sits in a page-scroll `Workspace`; a tab may add a right rail with `aside`.
+ * The tabs of Settings › Booking website for the hotel's mode, for the tab bar and the breadcrumbs.
  */
-export function BookingWebsiteShell({
-    activeTab,
-    aside,
-    asideLabel,
-    asideWidth,
-    children,
-}: {
-    activeTab: BookingWebsiteTab;
-    /** Right rail of the tab, for example the publish checklist or the Google preview. */
-    aside?: ReactNode;
-    /** The accessible name of the rail. */
-    asideLabel?: string;
-    /** `wide` for a rail with wider content, such as the image slots. */
-    asideWidth?: 'default' | 'wide';
-    children: ReactNode;
-}) {
-    const { bookingMode, bookingWebsiteHeader: header } = usePage().props;
-    const apiOnly = bookingMode === 'api-only';
+export function bookingWebsiteTabs(apiOnly: boolean): TabLink[] {
     const allTabs: (TabLink & { mode?: 'microsite' | 'api-only' })[] = [
         {
             value: 'general',
@@ -106,13 +86,52 @@ export function BookingWebsiteShell({
             mode: 'api-only',
         },
     ];
-    const tabs: TabLink[] = allTabs
+    return allTabs
         .filter(
             (tab) =>
                 tab.mode === undefined ||
                 tab.mode === (apiOnly ? 'api-only' : 'microsite'),
         )
         .map(({ mode: _mode, ...tab }) => tab);
+}
+
+/** Booking website › {tab}. */
+export function bookingWebsiteBreadcrumbs(
+    props: { bookingMode?: string | null },
+    activeTab: BookingWebsiteTab,
+) {
+    return withTabCrumb(
+        [{ title: 'Booking website', href: general() }],
+        bookingWebsiteTabs(props.bookingMode === 'api-only'),
+        activeTab,
+    );
+}
+
+/**
+ * Header and tab links of Settings › Booking website. Each tab is its own page and URL, and loads only its own data.
+ * Design and SEO belong to Microsite mode, API to API only mode.
+ * The header is the same on every tab: title, description, then the publish status and mode badges.
+ * The tab content sits in a page-scroll `Workspace`; a tab may add a right rail with `aside`.
+ */
+export function BookingWebsiteShell({
+    activeTab,
+    aside,
+    asideLabel,
+    asideWidth,
+    children,
+}: {
+    activeTab: BookingWebsiteTab;
+    /** Right rail of the tab, for example the publish checklist or the Google preview. */
+    aside?: ReactNode;
+    /** The accessible name of the rail. */
+    asideLabel?: string;
+    /** `wide` for a rail with wider content, such as the image slots. */
+    asideWidth?: 'default' | 'wide';
+    children: ReactNode;
+}) {
+    const { bookingMode, bookingWebsiteHeader: header } = usePage().props;
+    const apiOnly = bookingMode === 'api-only';
+    const tabs = bookingWebsiteTabs(apiOnly);
 
     return (
         <div className="flex flex-1 flex-col gap-6 p-4">

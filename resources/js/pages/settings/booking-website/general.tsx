@@ -11,7 +11,10 @@ import {
     X,
 } from 'lucide-react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
-import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import {
+    BookingWebsiteShell,
+    bookingWebsiteBreadcrumbs,
+} from '@/components/pms/booking-website/booking-website-shell';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { SettingsInput } from '@/components/pms/settings/form-fields';
 import { SettingsSection } from '@/components/pms/settings-section';
@@ -281,3 +284,9 @@ export default function BookingWebsiteGeneral({
         </>
     );
 }
+
+BookingWebsiteGeneral.layout = (
+    props: Parameters<typeof bookingWebsiteBreadcrumbs>[0],
+) => ({
+    breadcrumbs: bookingWebsiteBreadcrumbs(props, 'general'),
+});

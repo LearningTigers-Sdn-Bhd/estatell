@@ -107,6 +107,8 @@ export default function RatePlanSavedPrices({
     );
 }
 
-RatePlanSavedPrices.layout = (props: { ratePlan: RatePlan }) => ({
-    breadcrumbs: ratePlanBreadcrumbs(props.ratePlan),
+RatePlanSavedPrices.layout = (
+    props: Parameters<typeof ratePlanBreadcrumbs>[0],
+) => ({
+    breadcrumbs: ratePlanBreadcrumbs(props, 'saved-prices'),
 });

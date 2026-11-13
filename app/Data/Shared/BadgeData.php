@@ -32,6 +32,7 @@ use App\Enums\RevisionKind;
 use App\Enums\RoomDayState;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookDeliveryStatus;
 use Spatie\LaravelData\Data;
 
 /**
@@ -56,6 +57,11 @@ class BadgeData extends Data
     }
 
     public static function fromRegistrationCardStatus(RegistrationCardStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromWebhookDeliveryStatus(WebhookDeliveryStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

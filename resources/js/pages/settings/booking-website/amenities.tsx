@@ -1,7 +1,10 @@
 import { Head } from '@inertiajs/react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
 import { AmenityPicker } from '@/components/pms/amenities/amenity-picker';
-import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import {
+    BookingWebsiteShell,
+    bookingWebsiteBreadcrumbs,
+} from '@/components/pms/booking-website/booking-website-shell';
 
 export default function BookingWebsiteAmenities({
     amenities,
@@ -29,3 +32,9 @@ export default function BookingWebsiteAmenities({
         </>
     );
 }
+
+BookingWebsiteAmenities.layout = (
+    props: Parameters<typeof bookingWebsiteBreadcrumbs>[0],
+) => ({
+    breadcrumbs: bookingWebsiteBreadcrumbs(props, 'amenities'),
+});
