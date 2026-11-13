@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { CalendarClock, TimerOff } from 'lucide-react';
 import { CardStep } from '@/components/concierge/card-step';
 import { CheckedOutStep } from '@/components/concierge/checked-out-step';
 import { IdentityStep } from '@/components/concierge/identity-step';
@@ -54,7 +55,9 @@ export default function ConciergeStay({
             centerContent={
                 stay.step === 'desk' ||
                 stay.step === 'payment' ||
-                stay.step === 'check_in'
+                stay.step === 'check_in' ||
+                stay.step === 'not_open' ||
+                stay.step === 'hold_expired'
             }
             back={{
                 href: lobby.url({ property: stay.property.code }),
@@ -97,12 +100,22 @@ export default function ConciergeStay({
             {stay.step === 'checked_out' && <CheckedOutStep stay={stay} />}
             {stay.step === 'not_open' && (
                 <MessageStep
+                    icon={CalendarClock}
+                    action={{
+                        href: lobby.url({ property: stay.property.code }),
+                        label: 'Back to home',
+                    }}
                     title="Check-in is not open yet"
                     body={`Check-in opens on your arrival day, ${stay.arrivalDate}. Come back to this page then.`}
                 />
             )}
             {stay.step === 'hold_expired' && (
                 <MessageStep
+                    icon={TimerOff}
+                    action={{
+                        href: lobby.url({ property: stay.property.code }),
+                        label: 'Start again',
+                    }}
                     title="Your room hold has ended"
                     body="The room was held for a short time and was not paid for, so it was released. Scan the lobby QR code to start again, or ask the front desk."
                 />

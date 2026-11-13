@@ -21,11 +21,13 @@ require_once __DIR__.'/../Support/ConciergeSetup.php';
 it('answers 404 for an unknown or expired link, a feature that is off and a suspended property', function () {
     ['property' => $property, 'token' => $token] = conciergeSetup();
 
-    $this->get('/c/'.str_repeat('a', 43))->assertNotFound();
+    $this->get('/c/'.str_repeat('a', 43))->assertNotFound()->assertInertia(fn (Assert $page) => $page
+        ->component('concierge/error')->where('status', 404)->where('recoveryUrl', null)->missing('property')->missing('stay'));
     $this->get('/c/short')->assertNotFound();
 
     $this->travelTo(now()->addDays(10));
-    $this->get("/c/{$token}")->assertNotFound();
+    $this->get("/c/{$token}")->assertNotFound()->assertInertia(fn (Assert $page) => $page
+        ->component('concierge/error')->where('status', 404)->where('recoveryUrl', null)->missing('property')->missing('stay'));
     $this->travelBack();
 
     Feature::for($property)->deactivate(Concierge::class);

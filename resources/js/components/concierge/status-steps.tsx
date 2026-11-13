@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import { ArrowRight, BedDouble, Check, KeyRound } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -47,12 +48,47 @@ export function FrontDeskStep({ propertyCode }: { propertyCode: string }) {
 }
 
 /** A heading and a sentence, for the steps that only tell the guest something. */
-export function MessageStep({ title, body }: { title: string; body: string }) {
+export function MessageStep({
+    title,
+    body,
+    icon: Icon,
+    action,
+}: {
+    title: string;
+    body: string;
+    icon: LucideIcon;
+    action: { href: string; label: string };
+}) {
     return (
-        <div className="flex max-w-2xl flex-col gap-2 rounded-lg border p-4">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="text-sm text-pretty text-muted-foreground">{body}</p>
-        </div>
+        <section
+            aria-labelledby="stay-message-title"
+            className="mx-auto flex w-full max-w-md flex-col items-center gap-6 py-6 text-center sm:py-10"
+        >
+            <div className="flex size-20 items-center justify-center rounded-full bg-muted/60 text-primary">
+                <Icon className="size-9" strokeWidth={1.5} aria-hidden />
+            </div>
+            <div className="flex flex-col gap-3">
+                <h2
+                    id="stay-message-title"
+                    className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl"
+                >
+                    {title}
+                </h2>
+                <p className="text-sm leading-relaxed text-pretty text-muted-foreground sm:text-base">
+                    {body}
+                </p>
+            </div>
+            <Link
+                href={action.href}
+                className={buttonVariants({
+                    size: 'lg',
+                    className: 'min-h-12 w-full sm:w-fit sm:px-5',
+                })}
+            >
+                {action.label}
+                <ArrowRight aria-hidden />
+            </Link>
+        </section>
     );
 }
 

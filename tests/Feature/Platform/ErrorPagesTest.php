@@ -242,3 +242,41 @@ test('authentication and validation failures keep their existing redirects', fun
     $this->from('/_test/form')->post('/_test/validation')->assertRedirect('/_test/form')
         ->assertSessionHasErrors('name');
 });
+
+test('concierge errors use guest recovery without shared booking or staff data', function (int $status) {
+    registerErrorPageRoute($status, '/c/test-stay/missing');
+
+    $this->get('/c/test-stay/missing')->assertStatus($status)
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('concierge/error')
+            ->where('status', $status)
+            ->where('recoveryUrl', $status === 503 ? url('/c/test-stay/missing') : null)
+            ->missing('property')
+            ->missing('stay')
+            ->missing('auth')
+            ->missing('navigation'));
+})->with([403, 404, 419, 500, 503]);
+
+test('concierge recovery accepts only safe guest referrers', function (?string $referrer, ?string $expected) {
+    registerErrorPageRoute(419, '/c/test-stay/missing');
+    $headers = ['X-Inertia' => 'true'];
+
+    if ($referrer !== null) {
+        $headers['Referer'] = $referrer;
+    }
+
+    $this->post('https://estatell.test/c/test-stay/missing', [], $headers)->assertStatus(419)
+        ->assertJsonPath('component', 'concierge/error')
+        ->assertJsonPath('props.recoveryUrl', $expected);
+})->with([
+    'no referrer' => [null, null],
+    'staff page' => ['https://estatell.test/dashboard', null],
+    'external page' => ['https://example.com/stay/ABC', null],
+    'same failed page' => ['https://estatell.test/c/test-stay/missing', null],
+    'traversal' => ['https://estatell.test/c/../dashboard', null],
+    'encoded traversal' => ['https://estatell.test/c/%2e%2e/dashboard', null],
+    'encoded backslash' => ['https://estatell.test/c/%5c../dashboard', null],
+    'encoded control' => ['https://estatell.test/c/%0a/dashboard', null],
+    'stay page' => ['https://estatell.test/c/test-stay', '/c/test-stay'],
+    'guest guide' => ['https://estatell.test/stay/ABC/info?section=property', '/stay/ABC/info?section=property'],
+]);

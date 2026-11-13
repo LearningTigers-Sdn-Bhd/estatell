@@ -161,11 +161,25 @@ return Application::configure(basePath: dirname(__DIR__))
                 $recoveryUrl = $request->fullUrl();
             }
 
+            $concierge = $request->is('stay/*', 'c/*');
+
+            if ($concierge) {
+                $recoveryPath = rawurldecode((string) parse_url($recoveryUrl, PHP_URL_PATH));
+
+                // Guest recovery stays within concierge routes, including after an unknown or expired link.
+                if ((! str_starts_with($recoveryPath, '/stay/') && ! str_starts_with($recoveryPath, '/c/'))
+                    || str_contains($recoveryPath, '\\')
+                    || preg_match('~(?:^|/)\.{1,2}(?:/|$)|[\x00-\x20\x7f]~', $recoveryPath) === 1
+                    || ($status !== 503 && $recoveryPath === $request->getPathInfo())) {
+                    $recoveryUrl = null;
+                }
+            }
+
             $appearance = $request->cookie('appearance');
             View::share('appearance', in_array($appearance, ['light', 'dark', 'system'], true) ? $appearance : 'system');
             Inertia::flushShared();
 
-            $response = $exception->rootView('app')->render('errors', [
+            $response = $exception->rootView('app')->render($concierge ? 'concierge/error' : 'errors', [
                 'status' => $status,
                 'recoveryUrl' => $recoveryUrl,
             ])->toResponse($request);

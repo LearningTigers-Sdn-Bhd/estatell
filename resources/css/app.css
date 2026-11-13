@@ -575,7 +575,8 @@
     }
 }
 
-.concierge-page-content > .concierge-identity-form {
+.concierge-page-content > .concierge-identity-form,
+.concierge-page-content > .concierge-registration-form {
     max-width: none;
 }
 

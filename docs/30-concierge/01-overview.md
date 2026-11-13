@@ -167,6 +167,12 @@ The wastays Guest Concierge was the reference for what a guest needs. This table
 | 7 days of access after check-out                                    | Built: the link works until 7 days after the departure date                                   |
 | Hotel photo hero and menu style                                     | Partly: the hub shows the property logo and name. No hero photo field exists                  |
 
+## Guest recovery and remaining screens
+
+Registration uses a responsive terms-and-signature layout with the existing signature pad, agreement requirement and signed terms version. Walk-in offers show the server-priced stay total, with a separate no-availability state. Not-open and expired-hold screens provide a centered explanation and a next action; refund requests show their status and the front desk reply together.
+
+Browser errors under `/stay/*` and `/c/*` use the concierge theme. Unknown and expired stay links return the same 404 page without property or booking details. Recovery links remain within concierge routes; staff, external, malformed and failed-page referrers are discarded. A 503 retry revisits the guest URL as a GET and never replays a submission. Staff and API error responses keep their existing behavior.
+
 ## Walk-in
 
 A walk-in is a booking made through the kiosk's own rules: the server prices it from the property's rates, a Confirmed booking and a unit folio are made at once, and the room is held for 10 minutes (`BookWalkIn::book`, shared with the kiosk). The guest then follows the same steps as any other guest, including payment. An unpaid hold is released by `ReleaseExpiredKioskHolds`.

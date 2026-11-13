@@ -90,20 +90,29 @@ export function CheckedOutStep({
 
             {stay.refundRequest && (
                 <section className="flex max-w-2xl flex-col gap-5 rounded-2xl border border-border/40 bg-card p-6">
-                    <h2 className="text-lg font-semibold">
-                        Your refund request
-                    </h2>
-                    <div className="flex flex-col gap-2 rounded-lg border p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm text-pretty">
-                                {stay.refundRequest.details}
-                            </p>
-                            <StatusBadge status={stay.refundRequest.status} />
-                        </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-4">
+                        <h2 className="flex items-center gap-2 text-lg font-semibold">
+                            <MessageSquare
+                                className="size-5 text-primary"
+                                aria-hidden
+                            />
+                            Your refund request
+                        </h2>
+                        <StatusBadge status={stay.refundRequest.status} />
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {stay.refundRequest.details}
+                        </p>
                         {stay.refundRequest.note && (
-                            <p className="text-sm text-pretty text-muted-foreground">
-                                {stay.refundRequest.note}
-                            </p>
+                            <div className="flex flex-col gap-2 rounded-xl bg-muted/50 p-4">
+                                <h3 className="text-xs font-medium">
+                                    Front desk update
+                                </h3>
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                                    {stay.refundRequest.note}
+                                </p>
+                            </div>
                         )}
                     </div>
                 </section>
