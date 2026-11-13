@@ -205,10 +205,12 @@ function CheckInForm({
 
     return (
         <FormOverlay
-            variant="dialog"
+            variant="sheet"
             size={endedStay !== null ? 'lg' : undefined}
             open={open}
             onOpenChange={onOpenChange}
+            dirty={form.isDirty}
+            discardTitle="Discard this check-in?"
             title={`Check in · ${unit.roomType}`}
             description={
                 <>
