@@ -77,7 +77,7 @@ test('front desk staff block a room', function () {
 
     $this->actingAs($frontDesk)
         ->from(route('front-desk.room-blocks.index', $property->code))
-        ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(), 'room_id' => $room->id, 'notes' => '  Aircon repair '])
+        ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(), 'room_ids' => [$room->id], 'notes' => '  Aircon repair '])
         ->assertRedirect(route('front-desk.room-blocks.index', $property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Room 203 blocked.']);
 
@@ -99,11 +99,100 @@ test('a bed of a dorm room can be blocked', function () {
     $bed = Bed::factory()->for($dorm)->create();
 
     $this->actingAs($owner)
-        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(), 'room_id' => $dorm->id, 'bed_id' => $bed->id])
+        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(), 'room_ids' => [$dorm->id], 'bed_id' => $bed->id])
         ->assertSessionHasNoErrors();
 
     expect(RoomBlock::query()->sole()->bed_id)->toBe($bed->id);
 });
+
+test('several rooms are blocked at once and a refused room is skipped', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $rooms = collect(['106', '107', '108'])->map(fn (string $number): Room => Room::factory()->for($property)->create(['number' => $number]));
+    $night = UnitNight::factory()->create(['room_id' => $rooms[2]->id, 'date' => '2026-10-13']);
+    $reference = $night->reservationUnit->reservation->reference;
+
+    $this->actingAs($owner)
+        ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(), 'room_ids' => $rooms->pluck('id')->all()])
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => "2 rooms blocked. 1 skipped: Room 108 has a stay on 13 Oct 2026 (booking {$reference}). Move the stay first."]);
+
+    expect(RoomBlock::query()->orderBy('room_id')->pluck('room_id')->all())->toBe([$rooms[0]->id, $rooms[1]->id])
+        ->and(Activity::query()->where('event', 'room_block.created')->count())->toBe(2);
+});
+
+test('blocking several rooms that are all refused is an error', function () {
+    $owner = User::factory()->owner()->create();
+    $rooms = Room::factory()->for($owner->property)->count(2)->create();
+    $rooms->each(fn (Room $room) => blockOn($room, ['starts_on' => '2026-10-12', 'ends_on' => '2026-10-20']));
+
+    $this->actingAs($owner)
+        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(), 'room_ids' => $rooms->pluck('id')->all()])
+        ->assertInertiaFlash('toast.type', 'error');
+
+    expect(RoomBlock::query()->count())->toBe(2);
+});
+
+test('ticked blocks end together and a block that has not started is skipped', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $room = Room::factory()->for($property)->create(['number' => '106']);
+    $dorm = blockedDorm($property);
+    $dorm->update(['number' => '12']);
+    $bed = Bed::factory()->for($dorm)->create(['label' => 'A1']);
+    $running = blockOn($room, ['starts_on' => '2026-10-09', 'ends_on' => '2026-10-20']);
+    $bedBlock = blockOn($dorm, ['bed_id' => $bed->id, 'starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
+    $upcoming = blockOn(Room::factory()->for($property)->create(['number' => '107']), ['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']);
+
+    $this->actingAs($owner)
+        ->post(route('front-desk.room-blocks.bulk-end', $property->code), ['block_ids' => [$running->id, $bedBlock->id, $upcoming->id], 'room_status' => 'clean'])
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => '2 blocks ended. 1 skipped: Block for Room 107 is not running today.']);
+
+    expect($running->refresh()->completed_at)->not->toBeNull()
+        ->and($bedBlock->refresh()->completed_at)->not->toBeNull()
+        ->and($upcoming->refresh()->completed_at)->toBeNull()
+        ->and($room->status->refresh()->status)->toBe(HousekeepingStatus::Clean)
+        ->and(Activity::query()->where('event', 'room_block.ended')->count())->toBe(2);
+});
+
+test('bulk end asks the room status only when a whole room is ticked', function () {
+    $owner = User::factory()->owner()->create();
+    $dorm = blockedDorm($owner->property);
+    $bedBlock = blockOn($dorm, ['bed_id' => Bed::factory()->for($dorm)->create()->id, 'starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
+    $roomBlock = blockOn(Room::factory()->for($owner->property)->create(), ['starts_on' => '2026-10-10', 'ends_on' => '2026-10-12']);
+    $url = route('front-desk.room-blocks.bulk-end', $owner->property->code);
+
+    $this->actingAs($owner)->post($url, ['block_ids' => [$bedBlock->id, $roomBlock->id]])->assertSessionHasErrors('room_status');
+    $this->post($url, ['block_ids' => [$bedBlock->id]])->assertSessionHasNoErrors();
+
+    expect($bedBlock->refresh()->completed_at)->not->toBeNull()
+        ->and($roomBlock->refresh()->completed_at)->toBeNull();
+});
+
+test('ticked blocks are cancelled together and a started block is skipped', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $upcoming = blockOn(Room::factory()->for($property)->create(), ['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']);
+    $later = blockOn(Room::factory()->for($property)->create(), ['starts_on' => '2026-11-01', 'ends_on' => '2026-11-30']);
+    $started = blockOn(Room::factory()->for($property)->create(['number' => '203']), ['starts_on' => '2026-10-09', 'ends_on' => '2026-10-20']);
+
+    $this->actingAs($owner)
+        ->post(route('front-desk.room-blocks.bulk-cancel', $property->code), ['block_ids' => [$upcoming->id, $later->id, $started->id]])
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => '2 blocks cancelled. 1 skipped: Block for Room 203 has started. End it instead.']);
+
+    expect(RoomBlock::query()->pluck('id')->all())->toBe([$started->id])
+        ->and(Activity::query()->where('event', 'room_block.cancelled')->count())->toBe(2);
+});
+
+test('bulk actions only take blocks of this property', function (string $route) {
+    $owner = User::factory()->owner()->create();
+    $other = blockOn(Room::factory()->create(), ['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']);
+
+    $this->actingAs($owner)
+        ->post(route($route, $owner->property->code), ['block_ids' => [$other->id], 'room_status' => 'dirty'])
+        ->assertSessionHasErrors('block_ids.0');
+
+    expect($other->refresh()->exists)->toBeTrue();
+})->with(['front-desk.room-blocks.bulk-end', 'front-desk.room-blocks.bulk-cancel']);
 
 test('block input is validated', function (Closure $payload, string $field) {
     $owner = User::factory()->owner()->create();
@@ -111,14 +200,16 @@ test('block input is validated', function (Closure $payload, string $field) {
     $room = Room::factory()->for($property)->create();
 
     $this->actingAs($owner)
-        ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(['room_id' => $room->id]), ...$payload($property, $room)])
+        ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(['room_ids' => [$room->id]]), ...$payload($property, $room)])
         ->assertSessionHasErrors($field);
 
     expect(RoomBlock::query()->count())->toBe(0);
 })->with([
-    'room is required' => [fn () => ['room_id' => null], 'room_id'],
-    'room must be active' => [fn (Property $property) => ['room_id' => Room::factory()->for($property)->archived()->create()->id], 'room_id'],
-    'room of another property' => [fn () => ['room_id' => Room::factory()->create()->id], 'room_id'],
+    'room is required' => [fn () => ['room_ids' => []], 'room_ids'],
+    'room must be active' => [fn (Property $property) => ['room_ids' => [Room::factory()->for($property)->archived()->create()->id]], 'room_ids.0'],
+    'room of another property' => [fn () => ['room_ids' => [Room::factory()->create()->id]], 'room_ids.0'],
+    'rooms are distinct' => [fn (Property $property, Room $room) => ['room_ids' => [$room->id, $room->id]], 'room_ids.0'],
+    'a bed needs one room' => [fn (Property $property) => ['room_ids' => [($dorm = blockedDorm($property))->id, Room::factory()->for($property)->create()->id], 'bed_id' => Bed::factory()->for($dorm)->create()->id], 'bed_id'],
     'bed must be in the room' => [fn (Property $property) => ['bed_id' => Bed::factory()->for(blockedDorm($property))->create()->id], 'bed_id'],
     'bed must be active' => [fn (Property $property, Room $room) => ['bed_id' => Bed::factory()->for($room)->archived()->create()->id], 'bed_id'],
     'reason must be known' => [fn () => ['reason' => 'party'], 'reason'],
@@ -138,7 +229,7 @@ test('today is the property\'s local date', function () {
     $room = Room::factory()->for($property)->create();
 
     $this->actingAs($owner)
-        ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(['starts_on' => '2026-10-10', 'ends_on' => '2026-10-11']), 'room_id' => $room->id])
+        ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(['starts_on' => '2026-10-10', 'ends_on' => '2026-10-11']), 'room_ids' => [$room->id]])
         ->assertSessionHasErrors('starts_on');
     $this->get(route('front-desk.room-blocks.index', $property->code))
         ->assertInertia(fn (Assert $page) => $page->where('today', '2026-10-11'));
@@ -154,14 +245,15 @@ test('overlapping blocks are refused', function (?string $existingBed, ?string $
     $response = $this->actingAs($owner)
         ->post(route('front-desk.room-blocks.store', $owner->property->code), [
             ...blockPayload(['starts_on' => '2026-10-12', 'ends_on' => '2026-10-14']),
-            'room_id' => $dorm->id,
+            'room_ids' => [$dorm->id],
             'bed_id' => $newBed ? $beds[$newBed]->id : null,
         ]);
 
     expect(RoomBlock::query()->count())->toBe($refused ? 2 : 3);
 
     if ($refused) {
-        $response->assertInertiaFlash('toast.type', 'error');
+        $unit = $newBed ? "Room {$dorm->number}, bed {$beds[$newBed]->label}" : "Room {$dorm->number}";
+        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$unit} is already blocked from 14 Oct 2026 to 20 Oct 2026. To change those nights, edit that block."]);
     }
 })->with([
     'room over room' => [null, null, true],
@@ -176,8 +268,9 @@ test('a block over a night with a stay is refused', function (string $stayOn, ?s
     $dorm = blockedDorm($owner->property);
     $dorm->update(['number' => '12']);
     $beds = ['A1' => Bed::factory()->for($dorm)->create(['label' => 'A1']), 'A2' => Bed::factory()->for($dorm)->create(['label' => 'A2'])];
+    $stayUnit = ($cancelled ? ReservationUnit::factory()->cancelled() : ReservationUnit::factory())->create();
     UnitNight::factory()->create([
-        'reservation_unit_id' => ($cancelled ? ReservationUnit::factory()->cancelled() : ReservationUnit::factory())->create()->id,
+        'reservation_unit_id' => $stayUnit->id,
         'date' => $date,
         ...($stayOn === 'room' ? ['room_id' => $dorm->id] : ['bed_id' => $beds[$stayOn]->id]),
     ]);
@@ -185,7 +278,7 @@ test('a block over a night with a stay is refused', function (string $stayOn, ?s
     $response = $this->actingAs($owner)
         ->post(route('front-desk.room-blocks.store', $owner->property->code), [
             ...blockPayload(),
-            'room_id' => $dorm->id,
+            'room_ids' => [$dorm->id],
             'bed_id' => $blockBed ? $beds[$blockBed]->id : null,
         ]);
 
@@ -193,7 +286,8 @@ test('a block over a night with a stay is refused', function (string $stayOn, ?s
 
     if ($refused) {
         $unit = $blockBed ? "Room 12, bed {$blockBed}" : 'Room 12';
-        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$unit} has a stay on some of these nights. Move the stay first."]);
+        $reference = $stayUnit->reservation->reference;
+        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$unit} has a stay on 13 Oct 2026 (booking {$reference}). Move the stay first."]);
         expect(Activity::query()->where('event', 'room_block.created')->count())->toBe(0);
     }
 })->with([
@@ -210,14 +304,40 @@ test('editing a block over a night with a stay is refused', function () {
     $owner = User::factory()->owner()->create();
     $room = Room::factory()->for($owner->property)->create(['number' => '203']);
     $block = blockOn($room, ['starts_on' => '2026-10-12', 'ends_on' => '2026-10-14']);
-    UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-16']);
+    $night = UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-16']);
+    $reference = $night->reservationUnit->reservation->reference;
 
     $this->actingAs($owner)
-        ->put(route('front-desk.room-blocks.update', [$owner->property->code, $block]), blockPayload(['ends_on' => '2026-10-16']))
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Room 203 has a stay on some of these nights. Move the stay first.']);
+        ->put(route('front-desk.room-blocks.update', [$owner->property->code, $block]), blockPayload(['ends_on' => '2026-10-17']))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => "Room 203 has a stay on 16 Oct 2026 (booking {$reference}). Move the stay first."]);
 
     expect($block->refresh()->ends_on->toDateString())->toBe('2026-10-14')
         ->and(Activity::query()->where('event', 'room_block.updated')->count())->toBe(0);
+});
+
+test('the tab link opens the past tab and anything else opens current', function (?string $query, string $tab) {
+    $owner = User::factory()->owner()->create();
+
+    $this->actingAs($owner)
+        ->get(route('front-desk.room-blocks.index', [$owner->property->code, ...($query === null ? [] : ['tab' => $query])]))
+        ->assertInertia(fn (Assert $page) => $page->where('tab', $tab));
+})->with([
+    'no tab' => [null, 'current'],
+    'past' => ['past', 'past'],
+    'unknown' => ['other', 'current'],
+]);
+
+test('editing a block over another block names that block', function () {
+    $owner = User::factory()->owner()->create();
+    $room = Room::factory()->for($owner->property)->create(['number' => '2017']);
+    $block = blockOn($room, ['starts_on' => '2026-10-12', 'ends_on' => '2026-10-14']);
+    blockOn($room, ['starts_on' => '2026-10-20', 'ends_on' => '2026-11-19']);
+
+    $this->actingAs($owner)
+        ->put(route('front-desk.room-blocks.update', [$owner->property->code, $block]), blockPayload(['ends_on' => '2026-12-31']))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Room 2017 is already blocked from 20 Oct 2026 to 19 Nov 2026. To change those nights, edit that block.']);
+
+    expect($block->refresh()->ends_on->toDateString())->toBe('2026-10-14');
 });
 
 test('a block made from the Timeline returns to the Timeline', function () {
@@ -227,7 +347,7 @@ test('a block made from the Timeline returns to the Timeline', function () {
 
     $this->actingAs($owner)
         ->from($timeline)
-        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(), 'room_id' => $room->id])
+        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(), 'room_ids' => [$room->id]])
         ->assertRedirect($timeline);
 });
 
@@ -237,7 +357,7 @@ test('back-to-back blocks do not overlap', function () {
     blockOn($room, ['starts_on' => '2026-10-12', 'ends_on' => '2026-10-14']);
 
     $this->actingAs($owner)
-        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']), 'room_id' => $room->id])
+        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(['starts_on' => '2026-10-15', 'ends_on' => '2026-10-16']), 'room_ids' => [$room->id]])
         ->assertInertiaFlash('toast.type', 'success');
 
     expect(RoomBlock::query()->count())->toBe(2);
@@ -402,6 +522,8 @@ test('blocking needs rooms.block', function () {
     $this->put(route('front-desk.room-blocks.update', [$code, $block]), [])->assertForbidden();
     $this->post(route('front-desk.room-blocks.end', [$code, $block]))->assertForbidden();
     $this->delete(route('front-desk.room-blocks.destroy', [$code, $block]))->assertForbidden();
+    $this->post(route('front-desk.room-blocks.bulk-end', $code), ['block_ids' => [$block->id]])->assertForbidden();
+    $this->post(route('front-desk.room-blocks.bulk-cancel', $code), ['block_ids' => [$block->id]])->assertForbidden();
 });
 
 test('another property\'s blocks are not reachable', function () {

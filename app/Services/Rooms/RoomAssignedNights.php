@@ -46,15 +46,16 @@ class RoomAssignedNights
     }
 
     /**
-     * Whether a unit that holds inventory has a night from the first to the last night (both included) that a block
-     * on the room, or on one of its beds, would take.
+     * The earliest night of a unit that holds inventory, from the first to the last night (both included), that a
+     * block on the room, or on one of its beds, would take. Null when there is none. Its reservation is loaded.
      *
      * Without a bed, a night on the room or on any of its beds counts. With a bed, a night on that bed or on the whole
      * room counts. A day use holds no night, so it does not count.
      */
-    public function existBetween(Room $room, ?int $bedId, string $firstNight, string $lastNight): bool
+    public function firstBetween(Room $room, ?int $bedId, string $firstNight, string $lastNight): ?UnitNight
     {
         return UnitNight::query()
+            ->select('unit_nights.*')
             ->join('reservation_units', 'reservation_units.id', '=', 'unit_nights.reservation_unit_id')
             ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
             ->whereBetween('unit_nights.date', [$firstNight, $lastNight])
@@ -65,6 +66,9 @@ class RoomAssignedNights
                     fn ($query) => $query->orWhereIn('unit_nights.bed_id', $room->beds()->select('id')),
                     fn ($query) => $query->orWhere('unit_nights.bed_id', $bedId),
                 ))
-            ->exists();
+            ->orderBy('unit_nights.date')
+            ->orderBy('unit_nights.id')
+            ->with('reservationUnit.reservation')
+            ->first();
     }
 }

@@ -7,7 +7,7 @@ export type Choice = { id: number; label: string };
 /**
  * A multi-select whose first item picks every choice and shows as one chip, for example **All units (5)** or
  * **All nights (3)**. From the all chip, picking one choice keeps only that choice, and removing the chip clears the
- * pick. Used by the group add-on, the group price and the Change price nights.
+ * pick. Used by the group add-on, the group price, the Change price nights and the Block room rooms.
  */
 export function MultiSelectWithAll({
     id,

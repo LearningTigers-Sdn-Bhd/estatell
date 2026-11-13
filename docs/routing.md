@@ -105,6 +105,8 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `GET /p/ES1142/front-desk/stay-view/version`                        | `front-desk.stay-view.version`                            | – (JSON)                                         |
 | `GET /p/ES1142/front-desk/room-blocks`                              | `front-desk.room-blocks.index`                            | `pages/front-desk/room-blocks/index.tsx`         |
 | `POST /p/ES1142/front-desk/room-blocks/{roomBlock}/end`             | `front-desk.room-blocks.end`                              | – (Action)                                       |
+| `POST /p/ES1142/front-desk/room-blocks/bulk/end`                    | `front-desk.room-blocks.bulk-end`                         | – (Action)                                       |
+| `POST /p/ES1142/front-desk/room-blocks/bulk/cancel`                 | `front-desk.room-blocks.bulk-cancel`                      | – (Action)                                       |
 | `GET /p/ES1142/reservations/create`                                 | `reservations.create`                                     | `pages/reservations/create.tsx`                  |
 | `POST /p/ES1142/reservations/{reservation}/units/{unit}/check-in`   | `reservations.units.check-in`                             | – (Action)                                       |
 | `GET /p/ES1142/finance/folios/{folio}`                              | `finance.folios.show`                                     | `pages/finance/folios/show.tsx`                  |
