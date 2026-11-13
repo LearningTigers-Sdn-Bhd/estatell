@@ -10,7 +10,11 @@ export default function ConciergeAmenities({
     amenities: App.Data.Concierge.ConciergeAmenityData[];
 }) {
     return (
-        <GuestFrame back={back} title="Hotel facilities">
+        <GuestFrame
+            back={back}
+            title="Hotel facilities"
+            description="See what’s available, where to find it, and any opening hours or booking requirements."
+        >
             <AmenityGroups amenities={amenities} />
         </GuestFrame>
     );

@@ -1,5 +1,6 @@
 import {
     Check,
+    Clock,
     ChevronDown,
     Copy,
     ExternalLink,
@@ -29,50 +30,46 @@ type Policies = App.Data.Concierge.ConciergePoliciesData;
 
 function TextSection({ title, text }: { title: string; text: string }) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>
-                    <h2>{title}</h2>
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm leading-7 whitespace-pre-wrap">{text}</p>
-            </CardContent>
-        </Card>
+        <section className="flex flex-col gap-4 border-b border-border/40 pb-6">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            <p className="max-w-3xl text-sm leading-7 whitespace-pre-wrap text-muted-foreground">
+                {text}
+            </p>
+        </section>
     );
 }
 
 function Times({ checkIn, checkOut }: { checkIn: string; checkOut: string }) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>
-                    <h2>Arrival & departure</h2>
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <dl className="grid grid-cols-2 divide-x">
-                    <div className="flex flex-col gap-2 pr-4">
-                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <LogIn className="size-4" aria-hidden />
-                            Check-in from
-                        </dt>
-                        <dd className="font-heading text-3xl font-medium tabular-nums">
-                            {checkIn}
-                        </dd>
-                    </div>
-                    <div className="flex flex-col gap-2 pl-4">
-                        <dt className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <LogOut className="size-4" aria-hidden />
-                            Check-out by
-                        </dt>
-                        <dd className="font-heading text-3xl font-medium tabular-nums">
-                            {checkOut}
-                        </dd>
-                    </div>
-                </dl>
-            </CardContent>
-        </Card>
+        <section
+            className="flex h-full flex-col gap-6 rounded-2xl bg-muted/50 p-6 sm:p-8"
+            aria-label="Arrival and departure times"
+        >
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Clock className="size-5 text-primary" aria-hidden />
+                Arrival & departure
+            </h2>
+            <dl className="grid grid-cols-2 divide-x divide-border/40">
+                <div className="flex flex-col gap-3 pr-4">
+                    <dt className="flex min-h-8 items-center gap-2 text-xs text-muted-foreground sm:min-h-0">
+                        <LogIn className="size-4" aria-hidden />
+                        Check-in from
+                    </dt>
+                    <dd className="text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+                        {checkIn}
+                    </dd>
+                </div>
+                <div className="flex flex-col gap-3 pl-4">
+                    <dt className="flex min-h-8 items-center gap-2 text-xs text-muted-foreground sm:min-h-0">
+                        <LogOut className="size-4" aria-hidden />
+                        Check-out by
+                    </dt>
+                    <dd className="text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+                        {checkOut}
+                    </dd>
+                </div>
+            </dl>
+        </section>
     );
 }
 
@@ -141,7 +138,7 @@ function Transport({
             {(transport.directions ||
                 transport.notes ||
                 travel.some(([, value]) => value)) && (
-                <Card>
+                <Card className="rounded-2xl">
                     <CardHeader>
                         <CardTitle>
                             <h2>Getting here</h2>
@@ -163,7 +160,7 @@ function Transport({
                 </Card>
             )}
             {(transport.parkingNotes || parking.some(([, value]) => value)) && (
-                <Card>
+                <Card className="rounded-2xl">
                     <CardHeader>
                         <CardTitle>
                             <h2>Parking</h2>
@@ -185,18 +182,21 @@ function Transport({
 
 export function PropertyOverview({ details }: { details: Property }) {
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8">
             <div className="grid gap-6 lg:grid-cols-2">
                 <Times
                     checkIn={details.checkInTime}
                     checkOut={details.checkOutTime}
                 />
                 {(details.addressLines.length > 0 || details.mapsUrl) && (
-                    <Card>
+                    <Card className="rounded-2xl">
                         <CardHeader>
                             <CardTitle>
                                 <h2 className="flex items-center gap-2">
-                                    <MapPin className="size-4" aria-hidden />
+                                    <MapPin
+                                        className="size-5 text-primary"
+                                        aria-hidden
+                                    />
                                     Find us
                                 </h2>
                             </CardTitle>
@@ -268,14 +268,14 @@ export function PropertyOverview({ details }: { details: Property }) {
 
 export function PropertyPolicies({ policies }: { policies: Policies }) {
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8">
             <div className="grid gap-6 lg:grid-cols-2">
                 <Times
                     checkIn={policies.checkInTime}
                     checkOut={policies.checkOutTime}
                 />
                 {(policies.smoking || policies.pets) && (
-                    <Card>
+                    <Card className="rounded-2xl">
                         <CardHeader>
                             <CardTitle>
                                 <h2>Good to know</h2>
@@ -292,6 +292,7 @@ export function PropertyPolicies({ policies }: { policies: Policies }) {
                     </Card>
                 )}
             </div>
+
             <TextSection
                 title="House rules"
                 text={
@@ -344,16 +345,27 @@ export function PropertyFaqs({
 
     if (faqs.length === 0) {
         return (
-            <EmptyState
-                icon={MessageCircleQuestion}
-                title="No questions listed yet"
-                description="If you need help, get in touch with the front desk."
-            />
+            <div className="rounded-2xl border border-border/40 bg-card px-5 py-8">
+                <EmptyState
+                    icon={MessageCircleQuestion}
+                    title="Have a question about your stay?"
+                    description="The property hasn’t added FAQs yet. Please contact the front desk for help."
+                />
+            </div>
         );
     }
 
     return (
         <div className="flex max-w-3xl flex-col gap-6">
+            <div className="flex items-center gap-3">
+                <MessageCircleQuestion
+                    className="size-6 text-primary"
+                    aria-hidden
+                />
+                <h2 className="text-xl font-semibold">
+                    Frequently asked questions
+                </h2>
+            </div>
             {faqs.length >= 6 && (
                 <Input
                     type="search"
@@ -361,7 +373,7 @@ export function PropertyFaqs({
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search questions"
                     aria-label="Search questions"
-                    className="min-h-11"
+                    className="min-h-12 bg-card"
                 />
             )}
             {shown.length === 0 && (
@@ -383,10 +395,16 @@ export function PropertyFaqs({
                         .map((faq) => (
                             <details
                                 key={faq.id}
-                                className="group overflow-hidden rounded-xl border bg-card"
+                                className="group overflow-hidden rounded-2xl border border-border/40 bg-card"
                             >
                                 <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                                    {faq.question}
+                                    <span className="flex items-start gap-3">
+                                        <MessageCircleQuestion
+                                            className="mt-0.5 size-4 shrink-0 text-primary"
+                                            aria-hidden
+                                        />
+                                        {faq.question}
+                                    </span>
                                     <ChevronDown
                                         className="size-4 shrink-0 transition-transform group-open:rotate-180"
                                         aria-hidden
@@ -411,12 +429,16 @@ function WifiNetwork({
     const [copied, copy] = useClipboard();
 
     return (
-        <Card>
+        <Card className="rounded-2xl">
             <CardHeader>
                 <CardTitle>
                     <h2 className="flex flex-wrap items-center gap-2">
-                        <Wifi className="size-4" aria-hidden />
-                        {network.name}
+                        <span className="flex size-11 items-center justify-center rounded-full bg-muted/60 text-primary">
+                            <Wifi className="size-5" aria-hidden />
+                        </span>
+                        <span className="text-lg font-semibold break-all">
+                            {network.name}
+                        </span>
                         {network.primary && (
                             <Badge variant="secondary">Main network</Badge>
                         )}
@@ -428,12 +450,12 @@ function WifiNetwork({
             </CardHeader>
             <CardContent>
                 {network.password ? (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-muted/50 p-5">
                         <div className="flex min-w-0 flex-col gap-1">
                             <p className="text-xs text-muted-foreground">
                                 Password
                             </p>
-                            <p className="font-mono text-lg break-all">
+                            <p className="font-mono text-xl break-all">
                                 {network.password}
                             </p>
                         </div>
@@ -469,16 +491,27 @@ export function PropertyWifi({
     wifi: App.Data.Concierge.ConciergeWifiData[];
 }) {
     return wifi.length === 0 ? (
-        <EmptyState
-            icon={Wifi}
-            title="No Wi-Fi details listed"
-            description="Ask the front desk for the network and password."
-        />
+        <div className="rounded-2xl border border-border/40 bg-card px-5 py-8">
+            <EmptyState
+                icon={Wifi}
+                title="Ask the front desk for Wi-Fi details"
+                description="The network name and password aren’t available on this page yet. The team can help you connect."
+            />
+        </div>
     ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-            {wifi.map((network) => (
-                <WifiNetwork key={network.id} network={network} />
-            ))}
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+                <h2 className="text-xl font-semibold">Connect to Wi-Fi</h2>
+                <p className="text-sm text-muted-foreground">
+                    Choose a network in your device’s Wi-Fi settings, then enter
+                    its password.
+                </p>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+                {wifi.map((network) => (
+                    <WifiNetwork key={network.id} network={network} />
+                ))}
+            </div>
         </div>
     );
 }

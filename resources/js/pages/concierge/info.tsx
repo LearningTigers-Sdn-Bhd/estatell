@@ -26,6 +26,15 @@ const sectionIcons: Record<string, LucideIcon> = {
     wifi: Wifi,
 };
 
+const sectionDescriptions: Record<string, string> = {
+    property:
+        'Arrival details, facilities and useful information for your stay.',
+    amenities: 'Facilities and services available at the property.',
+    policies: 'Arrival times, house rules and policies for your stay.',
+    faqs: 'Answers to common questions about the property.',
+    wifi: 'Network details for your stay.',
+};
+
 /** Each guide chapter has its own URL; only that chapter's guest-safe data is sent. */
 export default function ConciergeInfo({
     section,
@@ -49,8 +58,15 @@ export default function ConciergeInfo({
     return (
         <GuestFrame
             back={back}
-            title="Property guide"
-            description="Arrival details, facilities and useful information for your stay."
+            title={
+                section === 'property'
+                    ? 'Property guide'
+                    : (sections.find((item) => item.key === section)?.label ??
+                      'Property guide')
+            }
+            description={
+                sectionDescriptions[section] ?? sectionDescriptions.property
+            }
         >
             <TabLinks
                 className="concierge-guide-tabs"

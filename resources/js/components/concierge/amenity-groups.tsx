@@ -1,6 +1,5 @@
 import { Check, Sparkles } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type Amenity = App.Data.Concierge.ConciergeAmenityData;
@@ -42,24 +41,30 @@ export function AmenityGroups({ amenities }: { amenities: Amenity[] }) {
 
                 return (
                     <section key={category} className="flex flex-col gap-4">
-                        <h2 className="font-heading text-lg font-medium">
-                            {category}
-                        </h2>
+                        <div className="flex items-center gap-3 border-b border-border/40 pb-4">
+                            <span className="flex size-10 items-center justify-center rounded-xl bg-muted/60 text-primary">
+                                <Sparkles className="size-5" aria-hidden />
+                            </span>
+                            <h2 className="text-xl font-semibold">
+                                {category}
+                            </h2>
+                            <span className="ml-auto text-sm text-muted-foreground tabular-nums">
+                                {items.length}{' '}
+                                {items.length === 1 ? 'facility' : 'facilities'}
+                            </span>
+                        </div>
                         {simple.length > 0 && (
-                            <ul className="flex flex-wrap gap-3">
+                            <ul className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
                                 {simple.map((amenity) => (
-                                    <li key={amenity.name}>
-                                        <Badge
-                                            variant="secondary"
-                                            size="lg"
-                                            className="concierge-facility-tag"
-                                        >
-                                            <Check
-                                                data-icon="inline-start"
-                                                aria-hidden
-                                            />
-                                            {amenity.name}
-                                        </Badge>
+                                    <li
+                                        key={amenity.name}
+                                        className="flex items-center gap-3 border-b border-border/30 py-4 text-sm"
+                                    >
+                                        <Check
+                                            className="size-4 shrink-0 text-primary"
+                                            aria-hidden
+                                        />
+                                        {amenity.name}
                                     </li>
                                 ))}
                             </ul>
@@ -95,10 +100,10 @@ function Facility({ amenity }: { amenity: Amenity }) {
     ].filter(([, value]) => value) as [string, string][];
 
     return (
-        <Card>
+        <Card className="rounded-2xl">
             <CardHeader>
                 <CardTitle>
-                    <h3>{amenity.name}</h3>
+                    <h3 className="text-lg font-semibold">{amenity.name}</h3>
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
