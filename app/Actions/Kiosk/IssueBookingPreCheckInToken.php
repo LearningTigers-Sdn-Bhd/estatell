@@ -13,7 +13,7 @@ class IssueBookingPreCheckInToken
     {
         $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
         $expiresAt = CarbonImmutable::parse($stay->departure_date->toDateString(), $stay->property->settings->time_zone)
-            ->addDay()->startOfDay()->utc();
+            ->addDays(8)->startOfDay()->utc();
 
         BookingPreCheckInToken::query()->create([
             'property_id' => $stay->property_id,

@@ -16,7 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property int $property_id
- * @property int $booking_hold_id
+ * @property int|null $booking_hold_id
+ * @property int|null $reservation_unit_id
  * @property string $gateway_account
  * @property string $order_id
  * @property string|null $gateway_payment_id
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'booking_hold_id', 'gateway_account', 'order_id', 'gateway_payment_id', 'amount', 'status', 'return_url', 'gateway_payload'])]
+#[Fillable(['property_id', 'booking_hold_id', 'reservation_unit_id', 'gateway_account', 'order_id', 'gateway_payment_id', 'amount', 'status', 'return_url', 'gateway_payload'])]
 class GatewayPayment extends Model
 {
     /** @use HasFactory<GatewayPaymentFactory> */
@@ -59,5 +60,15 @@ class GatewayPayment extends Model
     public function hold(): BelongsTo
     {
         return $this->belongsTo(BookingHold::class, 'booking_hold_id');
+    }
+
+    /**
+     * The stay a Concierge page order pays for. Null for a booking hold order.
+     *
+     * @return BelongsTo<ReservationUnit, $this>
+     */
+    public function stay(): BelongsTo
+    {
+        return $this->belongsTo(ReservationUnit::class, 'reservation_unit_id');
     }
 }

@@ -1,5 +1,7 @@
 # Guest requests
 
+**Status: phase 1 built in part.** Built: the table, the four enums, `OpenGuestRequest`, `StartGuestRequest`, `ResolveGuestRequest`, `CancelGuestRequest`, `ReopenGuestRequest`, `AssignGuestRequest`, `GuestRequestListBuilder`, the three permissions and the list page with its New request, Resolve and Cancel dialogs. The Concierge page is an intake channel: it opens requests with `OpenGuestRequest` (source Concierge, no staff opener) and no separate API. Not built: `UpdateGuestRequest`, the row Sheet with the timeline, `OpenGuestRequestCounts`, `GuestRequestMetrics`, the reservation tab, the housekeeping board tag, the dashboard row and the two KPI tiles. The list filter `status=active` means Open and InProgress.
+
 ## Purpose
 
 Staff record what a guest asks for or complains about during a stay, hand it to someone, and close it. The module is a work queue for the front desk and housekeeping, and the data source for two dashboard KPIs: Complaint Resolution Time and Housekeeping Request Fulfillment Time.

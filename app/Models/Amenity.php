@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * An item on the shared amenity list (Wi-Fi, pool, balcony). The list is global; platform admins keep it, and
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read AmenityCategory $category
+ * @property-read (Pivot&object{location: string|null, opening_hours: string|null, fee_information: string|null, reservation_required: bool, reservation_instructions: string|null, guest_notes: string|null})|null $pivot Set when loaded through Property::amenities(); holds the guest details the property wrote for the amenity.
  */
 #[Fillable(['name', 'type', 'amenity_category_id', 'icon', 'position', 'active'])]
 class Amenity extends Model

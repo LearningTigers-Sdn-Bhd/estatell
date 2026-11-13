@@ -82,6 +82,9 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
 
     public const string PHOTOS = 'photos';
 
+    /** The photo beside the property name on the Concierge lobby page. One file; the lobby shows a stock photo without it. */
+    public const string HERO = 'hero';
+
     public const int PHOTO_LIMIT = 20;
 
     public const int PHOTO_MAX_KB = 5120;
@@ -103,12 +106,25 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         $this->addMediaCollection(self::PHOTOS)
             ->acceptsMimeTypes(self::PHOTO_MIME_TYPES)
             ->useDisk(config('filesystems.public_media'));
+
+        $this->addMediaCollection(self::HERO)
+            ->singleFile()
+            ->acceptsMimeTypes(self::PHOTO_MIME_TYPES)
+            ->useDisk(config('filesystems.public_media'));
+    }
+
+    /**
+     * The lobby hero photo's public URL, or null when none is uploaded (the lobby then shows its stock photo).
+     */
+    public function heroUrl(): ?string
+    {
+        return $this->getFirstMedia(self::HERO)?->getUrl('web');
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')->performOnCollections(self::PHOTOS)->nonQueued()->width(400);
-        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS)->nonQueued()->width(1600);
+        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS, self::HERO)->nonQueued()->width(1600);
     }
 
     /**
@@ -428,6 +444,36 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(Kiosk::class);
     }
 
+    /** @return HasMany<GuestRequest, $this> */
+    public function guestRequests(): HasMany
+    {
+        return $this->hasMany(GuestRequest::class);
+    }
+
+    /** @return HasMany<PropertyWifiNetwork, $this> */
+    public function wifiNetworks(): HasMany
+    {
+        return $this->hasMany(PropertyWifiNetwork::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** @return HasMany<PropertyFaq, $this> */
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(PropertyFaq::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** @return HasMany<PropertyInfoTopic, $this> */
+    public function infoTopics(): HasMany
+    {
+        return $this->hasMany(PropertyInfoTopic::class)->orderBy('position')->orderBy('id');
+    }
+
+    /** @return HasOne<PropertyTransportDetail, $this> */
+    public function transportDetail(): HasOne
+    {
+        return $this->hasOne(PropertyTransportDetail::class);
+    }
+
     /** @return BelongsToMany<NearbyPlace, $this> */
     public function nearbyPlaces(): BelongsToMany
     {
@@ -437,7 +483,7 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     /** @return BelongsToMany<Amenity, $this> */
     public function amenities(): BelongsToMany
     {
-        return $this->belongsToMany(Amenity::class, 'property_amenities');
+        return $this->belongsToMany(Amenity::class, 'property_amenities')->withPivot(['location', 'opening_hours', 'fee_information', 'reservation_required', 'reservation_instructions', 'guest_notes']);
     }
 
     /** @return HasOne<PropertyBookingSite, $this> */

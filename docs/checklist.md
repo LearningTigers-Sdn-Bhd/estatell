@@ -65,8 +65,8 @@ The rest of the channel work. Docs: [Connections and feature gate](21-channels/0
 
 Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.md). A first version is on `feat/concierge-self-check-in` (with the Concierge page, not merged). Check that branch before starting these items.
 
-- [ ] `feat(guest-requests): add guest requests and their actions` — the `guest_requests` table, `GuestRequestType`, `GuestRequestSource`, `GuestRequestStatus`, `GuestRequestRefusal`, the seven Actions, `OpenGuestRequestCounts`, `GuestRequestMetrics`, and the three `guest-requests.*` permissions with a syncing migration. Docs: [Guest requests](25-guest-requests/01-guest-requests.md).
-- [ ] `feat(guest-requests): add the requests list page` — the routes, `GuestRequestListBuilder`, the list table with the status badge moves, the row Sheet, the New request Sheet and the Requests sidebar item. Needs: guest requests and their actions. Docs: [List page](25-guest-requests/01-guest-requests.md#list-page).
+- [x] `feat(guest-requests): add guest requests and their actions` (built without `OpenGuestRequestCounts`, `GuestRequestMetrics` and `UpdateGuestRequest`) — the `guest_requests` table, `GuestRequestType`, `GuestRequestSource`, `GuestRequestStatus`, `GuestRequestRefusal`, the seven Actions, `OpenGuestRequestCounts`, `GuestRequestMetrics`, and the three `guest-requests.*` permissions with a syncing migration. Docs: [Guest requests](25-guest-requests/01-guest-requests.md).
+- [x] `feat(guest-requests): add the requests list page` (built without the row Sheet) — the routes, `GuestRequestListBuilder`, the list table with the status badge moves, the row Sheet, the New request Sheet and the Requests sidebar item. Needs: guest requests and their actions. Docs: [List page](25-guest-requests/01-guest-requests.md#list-page).
 - [ ] `feat(reservations): add the Requests tab` — `reservations.requests` with the shared Sheet. Needs: the requests list page. Docs: [Requests tab](12-reservations/06-reservation-page.md#requests-tab).
 - [ ] `feat(front-desk): show open requests in the dashboard to do` — the Requests row from `OpenGuestRequestCounts`; add the row to the dashboard doc. Needs: the requests list page. Docs: [Dashboard To do row](25-guest-requests/01-guest-requests.md#dashboard-to-do-row).
 - [ ] `feat(dashboard): add the request resolution time tiles` — Complaint Resolution Time and Housekeeping Request Fulfillment Time on the Performance tab, from `GuestRequestMetrics`. Needs: guest requests and their actions, and the Performance tab. Docs: [KPIs](25-guest-requests/01-guest-requests.md#kpis).
@@ -91,6 +91,32 @@ Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.
 - [ ] `feat(admin): deactivate a company user login` — a platform admin deactivates or reactivates a company user's login; properties only clear their portal login email. Needs: add the company portal login. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
 - [ ] Parked: `feat(registration): pair a signing tablet` — pairing code, Send to tablet, polling idle screen, per-property switch. Docs: [Signing tablet (parked)](16-registration/04-signing-flow.md#signing-tablet-parked).
 
+### 30 Concierge page
+
+Guest self check-in on the guest's own phone. Docs: [Concierge page](30-concierge/01-overview.md).
+
+- [x] `feat(concierge): add the Concierge feature and the lobby page` — the `Concierge` Pennant flag and its admin switch, `ConciergeStays`, `ConciergeLookupLockout`, `OpenConciergeStay`, the `concierge` middleware, `routes/concierge.php` and the lobby page. Docs: [Safety](30-concierge/01-overview.md#safety).
+- [x] `feat(concierge): check in on the guest's phone` — `ConciergeProgress`, `ConciergePageBuilder`, the one stay page with the ID, card, check-in and key steps, `SaveConciergeIdentity` and `CheckInConciergeStay`. Docs: [Flow](30-concierge/01-overview.md#flow).
+- [x] `feat(concierge): print the lobby QR code` — Settings, Concierge, with the QR made from the lobby address and a Print button.
+- [x] `feat(concierge): pay what is due before check-in` — `gateway_payments.reservation_unit_id`, `StartStayPayment`, `ConfirmStayPayment`, `RecordStayPayment`, the Curlec webhook branch and the payment step. Docs: [Payment](30-concierge/01-overview.md#payment).
+- [x] `feat(concierge): book a walk-in from the lobby page` — `property_settings.concierge_walk_in_enabled`, `BookWalkIn::book` and `KioskWalkIn::available` shared with the kiosk, `BookConciergeWalkIn` with an open hold limit, and the walk-in page. Docs: [Walk-in](30-concierge/01-overview.md#walk-in).
+- [x] `feat(concierge): add the in-stay pages` — the stay menu, `SubmitConciergeRequest` into the guest requests queue, the facilities and nearby places pages. Docs: [In-stay pages](30-concierge/01-overview.md#in-stay-pages).
+- [x] `feat(concierge): see the bill, pay it and check out` — `ConciergeBill`, the bill page, a Settlement payment for an open bill and `CheckOutConciergeStay`. Docs: [Bill and check-out](30-concierge/01-overview.md#bill-and-check-out).
+- [x] `feat(concierge): add the lobby hub and the property guide` — the hub, the booking code box page, contact, the guide (property, facilities, policies, FAQs), public nearby places, `property_wifi_networks`, `property_faqs`, `house_rules` and their staff section. Docs: [Property guide and contact](30-concierge/01-overview.md#property-guide-and-contact).
+- [x] `feat(concierge): add documents and refund requests` — the booking summary, receipt and invoice PDFs for the stay link, the Refund request type and its switch, and a stay link that lasts 7 days after departure. Docs: [Documents and refund requests](30-concierge/01-overview.md#documents-and-refund-requests).
+- [ ] `feat(concierge): add the AI concierge chat` — the later AI concierge item, with its own API key and knowledge base.
+- [x] `feat(concierge): email the stay link after check-in` — `SendConciergeStayLink` and `ConciergeStayLink`. A WhatsApp message is not built.
+- [ ] `feat(concierge): add facility opening hours and fees` — needs a place on the amenity registry and the staff page that edits it.
+- [ ] `feat(concierge): tell staff when a guest sends a request` — a notification to the assigned or on-duty staff.
+- [x] `feat(concierge): ask the front desk to check out` — `RequestConciergeCheckOut` and the Check-out asked state. Docs: [Bill and check-out](30-concierge/01-overview.md#bill-and-check-out).
+- [x] `feat(concierge): show the refund request status and remember the stay on the phone` — the status after check-out, and Continue your stay on the hub. Docs: [Returning guest](30-concierge/01-overview.md#returning-guest).
+- [x] `feat(concierge): let a guest request an e-invoice` — `ConciergeEInvoice`, `RequestConciergeEInvoice` and the e-invoice page at `/c/{token}/e-invoice`, using the staff buyer fields and `SubmitFolioEInvoice`. Docs: [E-invoice request](30-concierge/01-overview.md#e-invoice-request).
+- [x] `feat(concierge): add a hero photo to the lobby` — a per-property photo uploaded in Settings, Concierge, shown on the lobby hub and the booking-code page, with the stock photo as the default. Docs: [Lobby hero photo](30-concierge/01-overview.md#lobby-hero-photo).
+- [x] `feat(concierge): rework the stay screen` — stay details, Stay actions, Property services and More actions. Docs: [The stay screen](30-concierge/01-overview.md#the-stay-screen).
+- [ ] `feat(concierge): sign the registration card of the other guests` — today a card missing for another guest sends the guest to the desk.
+- [ ] `feat(concierge): choose one room of a multi-room booking` — today a booking code that matches more than one room opens nothing.
+- [ ] `chore(concierge): check the Curlec checkout script address` — before the first live payment. Docs: [Payment](30-concierge/01-overview.md#payment).
+
 ### Translations and accessibility
 
 - [ ] `feat(i18n): fill the Malay translations` — list the UI strings missing from `lang/ms.json` and draft the Malay. A Malay speaker reviews the wording before it ships.
@@ -101,7 +127,6 @@ Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.
 Topics on hold. Each one needs a planning session and its docs before it gets commit items. Do not build from these lines.
 
 - [ ] **new-wastays** — the OTA app. Its API endpoints come with the booking engine. Open: its commission, its rates and guest accounts.
-- [ ] **Concierge page** — like the booking engine, but for the guest's stay experience. After the booking engine.
 - [ ] **AI concierge** — can be turned on only when the concierge page is on. Admins hold the API key for now. After the concierge page.
 - [ ] **AroundThat programme** — recommends places from the AroundThat API. Later.
 - [ ] **Curlec key per property** — each property uses its own Curlec account, so guest money goes straight to the property and Estatell never holds it. Estatell invoices its commission each month, and refunds come from the property's account. This removes the BNM, Route and linked-account questions. It changes the payout vouchers and the "Estatell holds the money" decision, so confirm with the boss first. For now the booking engine goes live on Estatell's account.

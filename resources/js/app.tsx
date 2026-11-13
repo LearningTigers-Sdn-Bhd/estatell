@@ -32,6 +32,7 @@ void createInertiaApp({
                 return OnboardingLayout;
             case name === 'registration/guest':
             case name === 'registration/done':
+            case name.startsWith('concierge/'):
                 return GuestLayout;
             case name.startsWith('admin/'):
                 return AdminLayout;

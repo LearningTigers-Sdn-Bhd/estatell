@@ -13,6 +13,7 @@ use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
 use App\Models\Kiosk;
 use App\Models\KioskWalkInHold;
+use App\Models\Property;
 use App\Models\RoomType;
 use App\Services\FrontDesk\SelfCheckInPayment;
 use App\Services\Kiosk\KioskWalkIn;
@@ -28,11 +29,23 @@ class BookWalkIn
 
     public function __invoke(Kiosk $kiosk, KioskWalkInData $search, int $roomTypeId): KioskWalkInResult
     {
+        if (! $kiosk->property->settings->kiosk_walk_in_enabled) {
+            return new KioskWalkInResult(refusal: 'no_room_available');
+        }
+
+        return $this->book($kiosk->property, $kiosk, $search, $roomTypeId);
+    }
+
+    /**
+     * Book and hold the room for any channel. `$kiosk` is the machine that asked, or null for the Concierge page; each
+     * channel checks its own walk-in switch before it calls this.
+     */
+    public function book(Property $property, ?Kiosk $kiosk, KioskWalkInData $search, int $roomTypeId): KioskWalkInResult
+    {
         try {
-            return DB::transaction(function () use ($kiosk, $search, $roomTypeId): KioskWalkInResult {
-                $property = $kiosk->property;
+            return DB::transaction(function () use ($property, $kiosk, $search, $roomTypeId): KioskWalkInResult {
                 $type = RoomType::query()->where('property_id', $property->id)->lockForUpdate()->find($roomTypeId);
-                $offer = $type === null ? null : ($this->walkIn->offers($property, $search, $roomTypeId)[0] ?? null);
+                $offer = $type === null ? null : ($this->walkIn->available($property, $search, $roomTypeId)[0] ?? null);
                 if ($offer === null || ! $offer->available) {
                     return new KioskWalkInResult(refusal: 'no_room_available');
                 }
@@ -56,10 +69,11 @@ class BookWalkIn
                 ($this->createFolio)($booking->reservation, $stay);
                 $hold = KioskWalkInHold::query()->create([
                     'property_id' => $property->id, 'reservation_unit_id' => $stay->id,
-                    'kiosk_id' => $kiosk->id, 'expires_at' => now()->addMinutes(self::HOLD_MINUTES),
+                    'kiosk_id' => $kiosk?->id, 'expires_at' => now()->addMinutes(self::HOLD_MINUTES),
                 ]);
-                activity()->performedOn($stay)->event('kiosk.walk_in_booked')
-                    ->withProperties(['property_id' => $property->id, 'kiosk_id' => $kiosk->id])->log('Walk-in held at the kiosk');
+                activity()->performedOn($stay)->event($kiosk === null ? 'concierge.walk_in_booked' : 'kiosk.walk_in_booked')
+                    ->withProperties($kiosk === null ? ['property_id' => $property->id] : ['property_id' => $property->id, 'kiosk_id' => $kiosk->id])
+                    ->log($kiosk === null ? 'Walk-in held on the concierge page' : 'Walk-in held at the kiosk');
 
                 return new KioskWalkInResult($hold, Money::of($this->payment->shortfall($stay), $property->settings->currency));
             });

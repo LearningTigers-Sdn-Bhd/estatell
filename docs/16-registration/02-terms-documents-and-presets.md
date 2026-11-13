@@ -39,13 +39,13 @@ room_types.terms_document_id (nullable, foreign key, null on delete)
 
 `{{property_name}}`, `{{check_in_time}}`, `{{check_out_time}}`, `{{security_deposit}}`, `{{tourism_tax_rate}}`.
 
-| Placeholder        | Source                                                     |
-| ------------------ | ---------------------------------------------------------- |
-| `property_name`    | `properties.name`                                          |
-| `check_in_time`    | `property_settings.check_in_time`                          |
-| `check_out_time`   | `property_settings.check_out_time`                         |
-| `security_deposit` | `property_settings.security_deposit_amount`                |
-| `tourism_tax_rate` | The property's Tourism tax. Empty text when it is not set. |
+| Placeholder        | Source                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `property_name`    | `properties.name`                                                                                               |
+| `check_in_time`    | `property_settings.check_in_time`                                                                               |
+| `check_out_time`   | `property_settings.check_out_time`                                                                              |
+| `security_deposit` | `property_settings.security_deposit_amount`                                                                     |
+| `tourism_tax_rate` | The property's Tourism tax. Uses "the applicable amount" when no enabled rate is set, without inventing a rate. |
 
 - Allowed names live in the `TermsPlaceholder` enum. The Form Request rejects unknown placeholders.
 - Fees such as a late check-out fee, a smoking fine or a key card fee have no setting. Hotels type the amount into the terms text. A placeholder can be added later with its own setting.

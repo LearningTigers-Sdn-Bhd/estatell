@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Actions\DoorLocks\SyncStayCards;
 use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Models\ReservationUnit;
@@ -65,7 +66,11 @@ class SyncStayPasscodesJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        $syncStayPasscodes($unit);
-        $syncStayCards($unit);
+        try {
+            $syncStayPasscodes($unit);
+            $syncStayCards($unit);
+        } finally {
+            RetryStayPasscodes::finished($unit->id);
+        }
     }
 }

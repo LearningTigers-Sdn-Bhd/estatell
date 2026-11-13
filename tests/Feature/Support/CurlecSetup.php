@@ -51,6 +51,18 @@ class FakeCurlecGateway extends CurlecGateway
         return 'order_'.count($this->orders);
     }
 
+    /** @var array<string, string> Order ID to the payment Curlec captured on it, for orders paid without telling us. */
+    public array $captured = [];
+
+    public function capturedPaymentId(string $orderId): ?string
+    {
+        if ($this->failing) {
+            throw new CurlecRequestFailed('Curlec could not be reached.');
+        }
+
+        return $this->captured[$orderId] ?? null;
+    }
+
     public function refund(string $paymentId, int $amountInSubunits, string $receipt, int $refundId): ?string
     {
         if ($this->failing) {

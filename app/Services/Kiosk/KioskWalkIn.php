@@ -22,8 +22,19 @@ class KioskWalkIn
     /** @return list<KioskWalkInOffer> */
     public function offers(Property $property, KioskWalkInData $search, ?int $roomTypeId = null): array
     {
+        return $property->settings->kiosk_walk_in_enabled ? $this->available($property, $search, $roomTypeId) : [];
+    }
+
+    /**
+     * The rooms a walk-in can book from the property's own rates, whichever channel asks (the kiosk or the Concierge
+     * page); each channel checks its own switch first. Nothing on a day before the business date.
+     *
+     * @return list<KioskWalkInOffer>
+     */
+    public function available(Property $property, KioskWalkInData $search, ?int $roomTypeId = null): array
+    {
         $date = $this->businessDate->date($property);
-        if (! $property->settings->kiosk_walk_in_enabled || $date === null || $search->arrival->lt($date)) {
+        if ($date === null || $search->arrival->lt($date)) {
             return [];
         }
         $types = RoomType::query()->where('property_id', $property->id)->active()

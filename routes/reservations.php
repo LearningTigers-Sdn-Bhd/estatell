@@ -165,6 +165,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                     Route::post('key-cards', [ReservationKeyCardController::class, 'store'])->middleware('door-locks:elock')->name('key-cards.store');
                     Route::post('door-cards', [ReservationDoorCardController::class, 'store'])->middleware('door-locks:ttlock')->name('door-cards.store');
                     Route::delete('door-cards/{doorCard}', [ReservationDoorCardController::class, 'destroy'])->middleware('door-locks:ttlock')->name('door-cards.destroy');
+                    Route::post('door-pins/reissue', [ReservationDoorPinController::class, 'reissue'])->middleware('door-locks:ttlock')->name('door-pins.reissue');
                     Route::post('door-pins/{doorPasscode}/replace', [ReservationDoorPinController::class, 'replace'])->middleware('door-locks:ttlock')->name('door-pins.replace');
                 });
 

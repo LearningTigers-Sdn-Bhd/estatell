@@ -1,4 +1,5 @@
-import { Check, Copy, KeyRound } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { Check, Copy, KeyRound, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { SetDoorPinDialog } from '@/components/pms/reservations/set-door-pin-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { usePollWhile } from '@/hooks/use-poll-while';
+import { reissue } from '@/routes/reservations/units/door-pins';
 
 type Pins = App.Data.DoorLocks.UnitDoorPinsData;
 type Passcode = App.Data.DoorLocks.DoorPasscodeData;
@@ -138,6 +140,10 @@ export function DoorPins({
     const { polling, gaveUp } = usePollWhile(pins.syncing, {
         only: ['doorPins'],
     });
+    // A lock with a failed PIN, or none at all for no known reason, may just need asking again (the lock was unreachable).
+    const canReissue =
+        now.some((passcode) => passcode.status.value === 'failed') ||
+        pins.locksWithoutPin.some((lock) => lock.reason === null);
 
     return (
         <section className="flex items-start gap-x-2">
@@ -187,6 +193,26 @@ export function DoorPins({
                         </li>
                     ))}
                 </ul>
+                {canReissue && !polling && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="self-start"
+                        onClick={() =>
+                            router.post(
+                                reissue.url({
+                                    reservation: reservationId,
+                                    unit: unitId,
+                                }),
+                                {},
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        <RotateCcw data-icon="inline-start" aria-hidden />
+                        Make PIN again
+                    </Button>
+                )}
                 {earlier.length > 0 && (
                     <details className="text-sm text-muted-foreground">
                         <summary className="cursor-pointer select-none">

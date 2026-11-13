@@ -8,7 +8,6 @@ import {
     Plus,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import NearbyPlaceController from '@/actions/App/Http/Controllers/BookingEngine/NearbyPlaceController';
 import { EmptyState } from '@/components/pms/empty-state';
 import { NearbyPlaceLinkDialog } from '@/components/pms/nearby-place-link-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +37,23 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import * as bookingWebsiteRoutes from '@/routes/settings/booking-website/nearby-places';
+import { update as bookingWebsiteActive } from '@/routes/settings/booking-website/nearby-places/active';
+
+/** The routes the section sends changes to. Each page that shows the section has its own set, all handled by the same controller. */
+export type NearbyPlaceRoutes = {
+    store: typeof bookingWebsiteRoutes.store;
+    update: typeof bookingWebsiteRoutes.update;
+    destroy: typeof bookingWebsiteRoutes.destroy;
+    reorder: typeof bookingWebsiteRoutes.reorder;
+    suggested: typeof bookingWebsiteRoutes.suggested;
+    active: typeof bookingWebsiteActive;
+};
+
+const bookingWebsite: NearbyPlaceRoutes = {
+    ...bookingWebsiteRoutes,
+    active: bookingWebsiteActive,
+};
 
 type Place = App.Data.BookingEngine.PropertyNearbyPlaceData;
 type Suggestion = App.Data.BookingEngine.NearbyPlaceSuggestionData;
@@ -48,6 +64,7 @@ function isOwnPlace(row: Place | Suggestion): row is Place {
 
 /** Swap an on place with its neighbour and send the whole order, off places last. The server checks that the ids are the full list. */
 function movePlace(
+    routes: NearbyPlaceRoutes,
     onPlaces: Place[],
     offPlaces: Place[],
     position: number,
@@ -61,16 +78,18 @@ function movePlace(
     ];
 
     router.put(
-        NearbyPlaceController.reorder.url(),
+        routes.reorder.url(),
         { order: [...ids, ...offPlaces.map((place) => place.id)] },
         { preserveScroll: true },
     );
 }
 
 function EditPlaceDialog({
+    routes,
     place,
     onClose,
 }: {
+    routes: NearbyPlaceRoutes;
     place: Place;
     onClose: () => void;
 }) {
@@ -81,7 +100,7 @@ function EditPlaceDialog({
                     <DialogTitle>Edit {place.name}</DialogTitle>
                 </DialogHeader>
                 <Form
-                    {...NearbyPlaceController.update.form({
+                    {...routes.update.form({
                         nearbyPlace: place.id,
                     })}
                     options={{ preserveScroll: true }}
@@ -131,7 +150,7 @@ function EditPlaceDialog({
                                     className="sm:mr-auto"
                                     onClick={() =>
                                         router.delete(
-                                            NearbyPlaceController.destroy.url({
+                                            routes.destroy.url({
                                                 nearbyPlace: place.id,
                                             }),
                                             {
@@ -175,10 +194,13 @@ export function NearbyPlacesSection({
     places,
     suggestions,
     readOnly = false,
+    routes = bookingWebsite,
 }: {
     places: Place[];
     suggestions: Suggestion[];
     readOnly?: boolean;
+    /** Where the changes go. The Booking website routes by default; Concierge passes its own. */
+    routes?: NearbyPlaceRoutes;
 }) {
     const [adding, setAdding] = useState(false);
     const [editing, setEditing] = useState<Place | null>(null);
@@ -211,13 +233,13 @@ export function NearbyPlacesSection({
 
         if (isOwnPlace(row)) {
             router.put(
-                NearbyPlaceController.active.url({ nearbyPlace: row.id }),
+                routes.active.url({ nearbyPlace: row.id }),
                 { active },
                 options,
             );
         } else {
             router.post(
-                NearbyPlaceController.storeSuggested.url({
+                routes.suggested.url({
                     nearbyPlace: row.id,
                 }),
                 {},
@@ -280,6 +302,7 @@ export function NearbyPlacesSection({
                                     disabled={position === 0}
                                     onClick={() =>
                                         movePlace(
+                                            routes,
                                             onPlaces,
                                             offPlaces,
                                             position,
@@ -296,6 +319,7 @@ export function NearbyPlacesSection({
                                     disabled={position === onPlaces.length - 1}
                                     onClick={() =>
                                         movePlace(
+                                            routes,
                                             onPlaces,
                                             offPlaces,
                                             position,
@@ -369,7 +393,7 @@ export function NearbyPlacesSection({
             )}
 
             <NearbyPlaceLinkDialog
-                form={NearbyPlaceController.store.form()}
+                form={routes.store.form()}
                 description="Paste the link of a place guests may want to visit, such as a jetty, market or beach."
                 open={adding}
                 onOpenChange={setAdding}
@@ -377,6 +401,7 @@ export function NearbyPlacesSection({
             {editing && (
                 <EditPlaceDialog
                     key={editing.id}
+                    routes={routes}
                     place={editing}
                     onClose={() => setEditing(null)}
                 />

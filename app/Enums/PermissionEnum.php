@@ -71,6 +71,9 @@ enum PermissionEnum: string
     case BookingWebsiteManage = 'booking-website.manage';
     case BookingWebsitePublish = 'booking-website.publish';
     case BookingWebsiteApi = 'booking-website.api';
+    case GuestRequestsView = 'guest-requests.view';
+    case GuestRequestsManage = 'guest-requests.manage';
+    case GuestRequestsResolve = 'guest-requests.resolve';
     case EInvoiceView = 'einvoice.view';
     case EInvoiceManage = 'einvoice.manage';
     case PayoutsView = 'payouts.view';
@@ -141,6 +144,9 @@ enum PermissionEnum: string
             self::BookingWebsiteManage => __('Edit the booking website settings'),
             self::BookingWebsitePublish => __('Publish or unpublish the booking website'),
             self::BookingWebsiteApi => __('Manage the booking API token and return addresses'),
+            self::GuestRequestsView => __('View guest requests'),
+            self::GuestRequestsManage => __('Record, assign, cancel and reopen guest requests'),
+            self::GuestRequestsResolve => __('Start and resolve guest requests'),
             self::EInvoiceView => __('View e-invoices and submissions'),
             self::EInvoiceManage => __('Submit, cancel, and configure e-invoices'),
             self::PayoutsView => __('View payouts and commission from Estatell'),
@@ -169,6 +175,7 @@ enum PermissionEnum: string
             self::ReportsView => __('Reports'),
             self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes => __('Housekeeping'),
             self::BookingWebsiteManage, self::BookingWebsitePublish, self::BookingWebsiteApi => __('Booking website'),
+            self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve => __('Guest requests'),
             self::EInvoiceView, self::EInvoiceManage => __('Finance'),
             self::PayoutsView => __('Payouts'),
         };

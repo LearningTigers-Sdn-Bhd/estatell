@@ -54,7 +54,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'error', 'message' => __('This place is already on your list, or it cannot be added.')]
             : ['type' => 'success', 'message' => __(':name added.', ['name' => $place->name])]);
 
-        return to_route('settings.booking-website.nearby-places', $property);
+        return back();
     }
 
     public function storeSuggested(Request $request, Property $property, NearbyPlace $nearbyPlace, LinkSuggestedNearbyPlace $linkSuggestedNearbyPlace): RedirectResponse
@@ -63,7 +63,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'success', 'message' => __(':name added.', ['name' => $nearbyPlace->name])]
             : ['type' => 'error', 'message' => __('That place is no longer suggested. Reload the page and try again.')]);
 
-        return to_route('settings.booking-website.nearby-places', $property);
+        return back();
     }
 
     public function update(UpdateNearbyPlaceRequest $request, Property $property, NearbyPlace $nearbyPlace, UpdatePropertyNearbyPlace $updatePropertyNearbyPlace): RedirectResponse
@@ -72,7 +72,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'success', 'message' => __('Place saved.')]
             : ['type' => 'error', 'message' => __('That place is no longer on your list. Reload the page and try again.')]);
 
-        return to_route('settings.booking-website.nearby-places', $property);
+        return back();
     }
 
     public function active(SetNearbyPlaceActiveRequest $request, Property $property, NearbyPlace $nearbyPlace, SetPropertyNearbyPlaceActive $setPropertyNearbyPlaceActive): RedirectResponse
@@ -81,7 +81,7 @@ class NearbyPlaceController extends Controller
             Inertia::flash('toast', ['type' => 'error', 'message' => __('That change did not apply. Reload the page and try again.')]);
         }
 
-        return to_route('settings.booking-website.nearby-places', $property);
+        return back();
     }
 
     public function destroy(Request $request, Property $property, NearbyPlace $nearbyPlace, RemovePropertyNearbyPlace $removePropertyNearbyPlace): RedirectResponse
@@ -90,7 +90,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'success', 'message' => __(':name removed.', ['name' => $nearbyPlace->name])]
             : ['type' => 'error', 'message' => __('That place is no longer on your list. Reload the page and try again.')]);
 
-        return to_route('settings.booking-website.nearby-places', $property);
+        return back();
     }
 
     public function reorder(ReorderNearbyPlacesRequest $request, Property $property, ReorderPropertyNearbyPlaces $reorderPropertyNearbyPlaces): RedirectResponse
@@ -99,6 +99,6 @@ class NearbyPlaceController extends Controller
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Your places changed. Reload the page and try again.')]);
         }
 
-        return to_route('settings.booking-website.nearby-places', $property);
+        return back();
     }
 }

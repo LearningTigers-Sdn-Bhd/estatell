@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureBookingClientReach;
 use App\Http\Middleware\EnsureBookingEngineIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
+use App\Http\Middleware\EnsureConciergeIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEInvoicingIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
@@ -74,6 +75,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'kiosks' => EnsureKiosksAreActive::class,
             'payouts' => EnsurePayoutsAreShown::class,
             'booking-engine' => EnsureBookingEngineIsActive::class,
+            'concierge' => EnsureConciergeIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'keyport.device' => AuthenticateKeyportDevice::class,
             'keyport.version' => EnsureKeyportVersion::class,
@@ -88,6 +90,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList([ThrottleRequests::class, ThrottleRequestsWithRedis::class], AuthenticateApiToken::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePortalAccess::class);
+        $middleware->appendToPriorityList(SubstituteBindings::class, EnsureConciergeIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
@@ -158,11 +161,25 @@ return Application::configure(basePath: dirname(__DIR__))
                 $recoveryUrl = $request->fullUrl();
             }
 
+            $concierge = $request->is('stay/*', 'c/*');
+
+            if ($concierge) {
+                $recoveryPath = rawurldecode((string) parse_url($recoveryUrl, PHP_URL_PATH));
+
+                // Guest recovery stays within concierge routes, including after an unknown or expired link.
+                if ((! str_starts_with($recoveryPath, '/stay/') && ! str_starts_with($recoveryPath, '/c/'))
+                    || str_contains($recoveryPath, '\\')
+                    || preg_match('~(?:^|/)\.{1,2}(?:/|$)|[\x00-\x20\x7f]~', $recoveryPath) === 1
+                    || ($status !== 503 && $recoveryPath === $request->getPathInfo())) {
+                    $recoveryUrl = null;
+                }
+            }
+
             $appearance = $request->cookie('appearance');
             View::share('appearance', in_array($appearance, ['light', 'dark', 'system'], true) ? $appearance : 'system');
             Inertia::flushShared();
 
-            $response = $exception->rootView('app')->render('errors', [
+            $response = $exception->rootView('app')->render($concierge ? 'concierge/error' : 'errors', [
                 'status' => $status,
                 'recoveryUrl' => $recoveryUrl,
             ])->toResponse($request);
