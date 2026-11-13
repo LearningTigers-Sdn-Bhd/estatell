@@ -5,6 +5,7 @@ use App\Enums\ReportKey;
 use App\Http\Controllers\Reports\ActivityLogController;
 use App\Http\Controllers\Reports\AgentPaymentsReportController;
 use App\Http\Controllers\Reports\ArrivalsReportController;
+use App\Http\Controllers\Reports\BookingPerformanceReportController;
 use App\Http\Controllers\Reports\CheckedOutReportController;
 use App\Http\Controllers\Reports\DailyReportController;
 use App\Http\Controllers\Reports\DeparturesReportController;
@@ -40,6 +41,7 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('in-house', InHouseReportController::class)->name('in-house');
     Route::get('occupancy', OccupancyReportController::class)->name('occupancy');
     Route::get('revenue', RevenueReportController::class)->name('revenue');
+    Route::get('booking-performance', BookingPerformanceReportController::class)->name('booking-performance');
     Route::get('payments', PaymentsReportController::class)->name('payments');
     Route::get('folio-ledger', FolioLedgerReportController::class)->name('folio-ledger');
     Route::get('tax', TaxReportController::class)->name('tax');

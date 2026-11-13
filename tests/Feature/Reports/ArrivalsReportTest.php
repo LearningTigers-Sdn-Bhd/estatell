@@ -275,6 +275,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                         ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Tax', 'href' => "/p/{$property->code}/reports/tax", 'icon' => 'landmark', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Non-national guests', 'href' => "/p/{$property->code}/reports/non-national-guests", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Booking performance', 'href' => "/p/{$property->code}/reports/booking-performance", 'icon' => 'activity', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [

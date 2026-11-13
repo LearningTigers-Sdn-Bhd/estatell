@@ -217,24 +217,33 @@ The Payments report inside the tab, with `group=staff` as the default. It uses t
 
 ## 5. Booking performance
 
-A new report, `ReportKey::BookingPerformance`, category Revenue, range by **booking date**, 366 days.
+`ReportKey::BookingPerformance`, category Revenue, range by **booking date**, 366 days, landscape. Built by `BookingPerformanceReport` (`app/Services/Reports/`).
 
 ```
-Booking performance                    [Group by: Room type ▾]  [Export ▾]
+Booking performance
+Bookings made in these dates, with their room nights, room revenue, ADR and lead time.
+
+[🛏 Room type] [🌐 Source] [🏷 Rate plan] [◉ Status] [📅 Booking date]
+[ 1 Oct 2026 – 31 Oct 2026 ▾ ]                 [⚙ Layout]  [ Export ▾ ]
 ┌──────────────────┬──────────┬─────────────┬─────────────┬──────────┬──────────┐
 │ Room type        │ Bookings │ Room nights │ Revenue     │ ADR      │ Lead time│
 ├──────────────────┼──────────┼─────────────┼─────────────┼──────────┼──────────┤
-│ Deluxe Queen     │    72    │    160      │ 32,000.00   │ 200.00   │ 15 days  │
-│ Twin             │    51    │    118      │ 20,060.00   │ 170.00   │ 12 days  │
+│ Deluxe Queen     │    72    │    160      │ 32,000.00   │ 200.00   │ 15       │
+│ Twin             │    51    │    118      │ 20,060.00   │ 170.00   │ 12       │
 ├──────────────────┼──────────┼─────────────┼─────────────┼──────────┼──────────┤
-│ Total            │   167    │    379      │ 71,610.00   │ 188.95   │ 14 days  │
+│ Total            │   167    │    379      │ 71,610.00   │ 188.95   │ 14       │
 └──────────────────┴──────────┴─────────────┴─────────────┴──────────┴──────────┘
 ```
 
-- **Group by** (`group`): Booking date, Source, Room type, Rate plan, Status. It is a filter in the URL, not part of the layout. Wastays also grouped by fund collector and currency. They are left out until the channel work needs them.
-- **Room type counts per unit.** A booking with two room types counts in both rows. Room nights and Revenue come from that type's units only.
-- The total row counts distinct bookings, so it can be less than the sum of the rows. ADR and Lead time are worked out again from the totals.
-- Walk-ins have no lead time, as on the [dashboard Performance tab](../18-front-desk/06-dashboard-performance.md).
+- **Group tabs** (`group`): Room type (the default), Source, Rate plan, Status, Booking date (`ReportGroup::Day`). They are `TabLinks`, as on the Daily report, with the report screen embedded below them. Each tab is a link that keeps the dates and opens with its own default sort. The breadcrumb shows the open tab with the switch menu. The screen heading of the first column is the tab name. The PDF and spreadsheet heading stays **Group**, from the layout, and the PDF prints "By room type" and so on under the title. One layout serves every tab. Wastays also grouped by fund collector and currency. They are left out until the channel work needs them.
+- **Booking date** is `reservations.created_at` read in the property time zone. A channel booking's date is the day estatell received it, which is the OTA booking day in practice.
+- **Only overnight units count.** Day use units have no room nights.
+- **Room type, rate plan and status count per unit.** A booking with two room types counts in both rows. Room nights and Revenue come from that row's units only. A unit with no rate plan goes in **No rate plan**.
+- **Revenue** is the room revenue booked: the sum of `unit_nights.amount`. It leaves out add-ons and is not read from the folio, so it matches the dashboard ADR for the same stays.
+- **Cancelled and no-show units count only when grouped by Status.** Every other grouping counts Confirmed, Checked in and Checked out units.
+- The total row counts distinct bookings, so it can be less than the sum of the rows. ADR is worked out again from the totals.
+- **Lead time** is the average days from the booking date to arrival, per unit, rounded to whole days, as on the [dashboard Performance tab](../18-front-desk/06-dashboard-performance.md). Walk-ins have no lead time, shown as "—", and the total leaves them out.
+- The default sort is Revenue, highest first. Grouped by Day it is the date.
 
 ## Layouts
 
