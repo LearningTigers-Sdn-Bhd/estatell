@@ -64,6 +64,7 @@ The status enum is `HousekeepingStatus`, not `RoomStatus`, because the `RoomStat
 ## Actions
 
 - `CreateRoomBlock`, `UpdateRoomBlock`, `EndRoomBlock`, `CancelRoomBlock`. Each logs activity (`room_block.created`, `.updated`, `.ended`, `.cancelled`).
+- `CreateRoomBlocks` blocks several whole rooms for the same nights, reason and notes. It calls `CreateRoomBlock` once per room and is not one transaction: a refused room is skipped and the others are blocked. It returns a `RoomBlockBulkResult` (how many were done, and each skipped room with its refusal). Each block logs and fires `InventoryChanged` as a single block does, and the channel outbox merges the nights into one flush.
 - `CreateRoomBlock` returns the block or a `RoomBlockRefused`, and `UpdateRoomBlock` returns null or a `RoomBlockRefused`. It holds a `RoomBlockRefusal`: `unavailable` (archived room or bed), `ended`, `blocked` (another open block) or `has_stay`. The Actions write nothing, and the controller turns the refusal into an error toast.
 - The toast names the clash, so staff know what to do next:
     - `blocked`: "Room 2017 is already blocked from 20 Oct 2026 to 19 Nov 2026. To change those nights, edit that block." Staff who want a longer block edit the existing one instead of adding a second.
@@ -93,7 +94,10 @@ Room          Reason        Nights                      Notes
 - The tabs are `TabLinks`: Current and upcoming is the page URL, Past is `?tab=past`. A refresh keeps the open tab, and the open tab is the last breadcrumb.
 - The search matches the room number, bed, room type and notes.
 - The table header always shows. With no blocks, one row holds the empty state: **Block room** on Current and upcoming, or a note on Past. When the search or filters hide every block, the row says so and offers **Clear filters**.
-- **Block room** and **Edit** open a Dialog: room, bed (dorm rooms only, default "Whole room"), reason (full width), nights (`DateRangePicker`, two months side by side, one on a phone) and notes.
+- **Block room** and **Edit** open a Dialog: rooms, bed, reason (full width), nights (`DateRangePicker`, two months side by side, one on a phone) and notes.
+- **Rooms** is a `MultiSelectWithAll` with an **All rooms (N)** item. The form sends `room_ids`. The bed field shows only when one dorm room is picked (default "Whole room"); with two or more rooms each is blocked as a whole room, and the request refuses a `bed_id`. The button reads **Block N rooms**.
+- One room keeps the single toasts (":unit blocked." or the refusal). Several rooms give "N rooms blocked." and, when some were skipped, "N skipped:" with up to three reasons, like the housekeeping bulk actions. The toast is an error when nothing was blocked and info when some were skipped.
+- **Edit** keeps its one room and bed. The Timeline's **Block room** sends its one fixed room.
 - **End now** opens a confirm dialog. For a whole-room block it asks "Room is Dirty / Clean" (default Dirty).
 - **Cancel** opens a confirm dialog.
 - The form is `RoomBlockForm` (`components/pms/room-block-form.tsx`). The Timeline's **Block room** cell action opens the same form in the same Dialog, with the room fixed. See [Empty cell](../18-front-desk/07-timeline-editing.md#empty-cell).

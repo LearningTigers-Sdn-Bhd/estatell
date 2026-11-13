@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { MultiSelectWithAll } from '@/components/pms/reservations/multi-select-with-all';
+import { MultiSelectWithAll } from '@/components/pms/multi-select-with-all';
 import {
     KEEP_OPTIONS,
     useFormOptions,

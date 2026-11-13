@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { MultiSelectWithAll } from '@/components/pms/multi-select-with-all';
 import { Button } from '@/components/ui/button';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -19,7 +20,7 @@ type Room = App.Data.Rooms.RoomBlockRoomData;
 type Option = { value: string; label: string };
 
 type FormData = {
-    room_id: string;
+    room_ids: number[];
     bed_id: string;
     reason: App.Enums.RoomBlockReason;
     starts_on: string;
@@ -37,7 +38,8 @@ export type RoomBlockStart = {
 
 /**
  * The Block room form inside a Dialog: create a block, or edit the reason, nights and notes of one. The Room blocks
- * page picks the room here. The Timeline passes `start`, so the room is fixed and only the bed can change. Both save
+ * page picks one or more rooms here; a bed can only be picked when one dorm room is picked. The Timeline passes
+ * `start`, so the room is fixed and only the bed can change. Both save
  * through the room block routes, which redirect back to the page that opened the form.
  */
 export function RoomBlockForm({
@@ -58,11 +60,7 @@ export function RoomBlockForm({
     onDone: () => void;
 }) {
     const form = useForm<FormData>({
-        room_id: block
-            ? String(block.roomId)
-            : start
-              ? String(start.roomId)
-              : '',
+        room_ids: start ? [start.roomId] : [],
         bed_id: block?.bedId
             ? String(block.bedId)
             : start?.bedId
@@ -74,11 +72,21 @@ export function RoomBlockForm({
         notes: block?.notes ?? '',
     });
     const started = block !== null && block.startsOn <= today;
-    const room = rooms.find((item) => String(item.id) === form.data.room_id);
-    const roomOptions = rooms.map((item) => ({
-        value: String(item.id),
+    const room =
+        form.data.room_ids.length === 1
+            ? rooms.find((item) => item.id === form.data.room_ids[0])
+            : undefined;
+    const roomChoices = rooms.map((item) => ({
+        id: item.id,
         label: `${item.number} · ${item.roomTypeName}`,
     }));
+    const errors = form.errors as Record<string, string | undefined>;
+    const roomError =
+        errors.room_ids ??
+        Object.entries(errors).find(([key]) =>
+            key.startsWith('room_ids.'),
+        )?.[1];
+    const roomCount = form.data.room_ids.length;
     const bedOptions = (room?.beds ?? []).map((bed) => ({
         value: String(bed.id),
         label: `Bed ${bed.label}`,
@@ -99,7 +107,11 @@ export function RoomBlockForm({
     const submitButton = (
         <Button type="submit" disabled={form.processing} focusableWhenDisabled>
             {form.processing && <Spinner data-icon="inline-start" />}
-            {block ? 'Save changes' : 'Block room'}
+            {block
+                ? 'Save changes'
+                : roomCount > 1
+                  ? `Block ${roomCount} rooms`
+                  : 'Block room'}
         </Button>
     );
 
@@ -137,40 +149,51 @@ export function RoomBlockForm({
                     </Field>
                 ) : start ? (
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <Field data-invalid={!!form.errors.room_id}>
+                        <Field data-invalid={!!roomError}>
                             <FieldLabel>Room</FieldLabel>
                             <p className="text-sm">
                                 {room
                                     ? `${room.number} · ${room.roomTypeName}`
                                     : '—'}
                             </p>
-                            <FieldError>{form.errors.room_id}</FieldError>
+                            <FieldError>{roomError}</FieldError>
                         </Field>
                         {bedField}
                     </div>
                 ) : (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <Field data-invalid={!!form.errors.room_id}>
-                            <FieldLabel htmlFor="block-room">Room</FieldLabel>
-                            <EnumSelect
-                                id="block-room"
-                                name="room_id"
-                                options={roomOptions}
-                                value={form.data.room_id}
+                    <>
+                        <Field data-invalid={!!roomError}>
+                            <FieldLabel htmlFor="block-room_ids">
+                                Rooms
+                            </FieldLabel>
+                            <MultiSelectWithAll
+                                id="block-room_ids"
+                                name="room_ids"
+                                choices={roomChoices}
+                                allLabel="All rooms"
+                                placeholder="Choose the rooms, e.g. 106, 107"
+                                emptyLabel="No matching rooms."
+                                value={form.data.room_ids}
                                 onValueChange={(value) =>
                                     form.setData((data) => ({
                                         ...data,
-                                        room_id: value,
+                                        room_ids: value,
                                         bed_id: '',
                                     }))
                                 }
-                                aria-invalid={!!form.errors.room_id}
-                                className="w-full"
+                                invalid={!!roomError}
                             />
-                            <FieldError>{form.errors.room_id}</FieldError>
+                            {roomCount > 1 && (
+                                <FieldDescription>
+                                    Each room is blocked as a whole room. A room
+                                    with a stay or another block on these nights
+                                    is skipped.
+                                </FieldDescription>
+                            )}
+                            <FieldError>{roomError}</FieldError>
                         </Field>
                         {bedField}
-                    </div>
+                    </>
                 )}
                 <Field data-invalid={!!form.errors.reason}>
                     <FieldLabel htmlFor="block-reason">Reason</FieldLabel>

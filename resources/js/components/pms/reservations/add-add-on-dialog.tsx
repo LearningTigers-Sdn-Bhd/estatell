@@ -5,7 +5,7 @@ import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { GroupPreviewPanel } from '@/components/pms/reservations/group-preview-panel';
-import { MultiSelectWithAll } from '@/components/pms/reservations/multi-select-with-all';
+import { MultiSelectWithAll } from '@/components/pms/multi-select-with-all';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import {
     KEEP_OPTIONS,

@@ -463,7 +463,7 @@ test('blocking a room clears its needs maintenance flag', function () {
 
     $this->actingAs($frontDesk)
         ->post(route('front-desk.room-blocks.store', $property->code), [
-            'room_id' => $room->id,
+            'room_ids' => [$room->id],
             'reason' => 'maintenance',
             'starts_on' => '2026-10-12',
             'ends_on' => '2026-10-14',

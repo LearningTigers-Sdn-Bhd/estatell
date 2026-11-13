@@ -39,7 +39,7 @@ class RoomBlockRequest extends FormRequest
     }
 
     /**
-     * On create the room and bed are chosen. On edit they stay the same, and a started block keeps its first night.
+     * On create the rooms and, for a single room, the bed are chosen. On edit they stay the same, and a started block keeps its first night.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -66,8 +66,13 @@ class RoomBlockRequest extends FormRequest
 
         return [
             ...($current instanceof RoomBlock ? [] : [
-                'room_id' => ['required', 'integer', Rule::exists('rooms', 'id')->where('property_id', $property->id)->whereNull('archived_at')],
-                'bed_id' => ['nullable', 'integer', Rule::exists('beds', 'id')->where('room_id', (int) $this->input('room_id'))->whereNull('archived_at')],
+                'room_ids' => ['required', 'array', 'min:1'],
+                'room_ids.*' => ['integer', 'distinct', Rule::exists('rooms', 'id')->where('property_id', $property->id)->whereNull('archived_at')],
+                'bed_id' => [
+                    'nullable', 'integer',
+                    Rule::prohibitedIf(count((array) $this->input('room_ids')) > 1),
+                    Rule::exists('beds', 'id')->where('room_id', (int) $this->input('room_ids.0'))->whereNull('archived_at'),
+                ],
             ]),
             'reason' => ['required', Rule::enum(RoomBlockReason::class)],
             'starts_on' => $startsOnRules,
@@ -90,9 +95,21 @@ class RoomBlockRequest extends FormRequest
             'ends_on.after_or_equal' => __('The last night must be today or later, and not before the first night.'),
             'ends_on.before_or_equal' => __('A block can cover at most :count nights.', ['count' => self::MAX_NIGHTS]),
             'notes.required' => __('Add a note when the reason is Other.'),
-            'room_id.exists' => __('Choose an active room.'),
+            'room_ids.required' => __('Choose at least one room.'),
+            'room_ids.*.exists' => __('Choose active rooms.'),
+            'bed_id.prohibited' => __('Choose one room to block a bed.'),
             'bed_id.exists' => __('Choose an active bed in this room.'),
         ];
+    }
+
+    /**
+     * The rooms to block, on create.
+     *
+     * @return list<int>
+     */
+    public function roomIds(): array
+    {
+        return array_values(array_map(intval(...), (array) $this->validated('room_ids')));
     }
 
     public function toRoomBlockData(): RoomBlockInputData

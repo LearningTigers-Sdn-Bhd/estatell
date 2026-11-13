@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Rooms;
 
 use App\Actions\Rooms\CancelRoomBlock;
-use App\Actions\Rooms\CreateRoomBlock;
+use App\Actions\Rooms\CreateRoomBlocks;
 use App\Actions\Rooms\EndRoomBlock;
+use App\Actions\Rooms\RoomBlockBulkResult;
 use App\Actions\Rooms\RoomBlockRefused;
 use App\Actions\Rooms\UpdateRoomBlock;
 use App\Data\Rooms\RoomBlockData;
@@ -71,17 +72,33 @@ class RoomBlockController extends Controller
         ]);
     }
 
-    public function store(RoomBlockRequest $request, Property $property, CreateRoomBlock $createRoomBlock): RedirectResponse
+    /**
+     * Block one room (or one of its beds), or several whole rooms for the same nights.
+     */
+    public function store(RoomBlockRequest $request, Property $property, CreateRoomBlocks $createRoomBlocks): RedirectResponse
     {
-        $room = $property->rooms()->findOrFail($request->integer('room_id'));
-        $bed = $request->validated('bed_id') !== null ? $room->beds()->findOrFail($request->integer('bed_id')) : null;
+        $ids = $request->roomIds();
+        $rooms = $property->rooms()->whereIn('id', $ids)->ordered()->get();
 
-        $unit = $this->unitName($room, $bed);
-        $result = $createRoomBlock($request->user(), $room, $bed, $request->toRoomBlockData());
+        abort_if($rooms->count() !== count($ids), 404);
 
-        Inertia::flash('toast', $result instanceof RoomBlockRefused
-            ? ['type' => 'error', 'message' => $result->message($unit)]
-            : ['type' => 'success', 'message' => __(':unit blocked.', ['unit' => $unit])]);
+        $bed = $request->validated('bed_id') !== null ? $rooms->first()->beds()->findOrFail($request->integer('bed_id')) : null;
+        $result = $createRoomBlocks($request->user(), $rooms, $bed, $request->toRoomBlockData());
+
+        if ($rooms->count() === 1) {
+            $unit = $this->unitName($rooms->first(), $bed);
+            $refused = $result->skipped[0]['refused'] ?? null;
+
+            Inertia::flash('toast', $refused instanceof RoomBlockRefused
+                ? ['type' => 'error', 'message' => $refused->message($unit)]
+                : ['type' => 'success', 'message' => __(':unit blocked.', ['unit' => $unit])]);
+        } else {
+            Inertia::flash('toast', $this->bulkToast(
+                $result,
+                trans_choice('{0} No rooms blocked.|{1} :count room blocked.|[2,*] :count rooms blocked.', $result->done),
+                fn (array $skip): string => $skip['refused']?->message($this->unitName($skip['room'], $skip['bed'])) ?? '',
+            ));
+        }
 
         return back();
     }
@@ -119,6 +136,30 @@ class RoomBlockController extends Controller
             : ['type' => 'error', 'message' => __('Block for :unit cannot be cancelled because it has started. End it instead.', ['unit' => $unit])]);
 
         return back();
+    }
+
+    /**
+     * The toast of a bulk Action: what it did, then up to three skipped units with the reason.
+     *
+     * @param  callable(array{room: Room, bed: Bed|null, refused: RoomBlockRefused|null}): string  $reason
+     * @return array{type: string, message: string}
+     */
+    private function bulkToast(RoomBlockBulkResult $result, string $message, callable $reason): array
+    {
+        if ($result->skipped !== []) {
+            $reasons = array_map($reason, array_slice($result->skipped, 0, 3));
+            $more = count($result->skipped) - count($reasons);
+
+            $message .= ' '.__(':count skipped: :reasons', [
+                'count' => count($result->skipped),
+                'reasons' => implode(' ', $reasons).($more > 0 ? ' '.__('and :count more.', ['count' => $more]) : ''),
+            ]);
+        }
+
+        return [
+            'type' => $result->done === 0 ? 'error' : ($result->skipped === [] ? 'success' : 'info'),
+            'message' => $message,
+        ];
     }
 
     /**
