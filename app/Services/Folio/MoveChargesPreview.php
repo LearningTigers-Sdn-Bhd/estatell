@@ -18,6 +18,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -146,12 +147,19 @@ class MoveChargesPreview
     /**
      * The folio the To column starts on. `$to` is used when it is an Open folio of the reservation. Otherwise the Master
      * folio, or the first Open folio, other than the folio of the line to tick (so Move… on a Master charge starts on
-     * the first other Open folio). Null when the reservation has no Open folio to choose.
+     * the first other Open folio). A collected tax apart from its room line starts on that line's folio when Open.
+     * Null when the reservation has no Open folio to choose.
      */
     public function startTarget(Reservation $reservation, ?Folio $to, ?FolioLine $line): ?Folio
     {
         if ($to !== null && $to->status === FolioStatus::Open) {
             return $to;
+        }
+
+        $parentFolio = $line?->parent_line_id === null ? null : $line->parent?->folio;
+
+        if ($parentFolio !== null && $parentFolio->status === FolioStatus::Open && $parentFolio->reservation_id === $reservation->id) {
+            return $parentFolio;
         }
 
         $open = $this->folios($reservation, array_keys($this->unitLabels($reservation)))
@@ -183,7 +191,7 @@ class MoveChargesPreview
                 array_values($state['charges']->where('folioId', $folio->id)->pluck('data')->all()),
             ))->all()),
             targetId: $target->id,
-            lineIds: array_values(array_filter($lineIds, fn (int $id): bool => $state['charges']->contains(fn (array $charge): bool => $charge['lineId'] === $id && $charge['folioId'] !== $target->id))),
+            lineIds: array_values(array_filter($lineIds, fn (int $id): bool => $state['charges']->contains(fn (array $charge): bool => $charge['lineId'] === $id && self::canMoveTo($charge, $target)))),
             maxCharges: self::MAX_CHARGES,
             preview: $preview,
             cancelUrl: $cancelUrl,
@@ -203,10 +211,21 @@ class MoveChargesPreview
     }
 
     /**
+     * True when the charge may go to the target: never one already on it, and a collected tax only to its room line's
+     * folio.
+     *
+     * @param  array{folioId: int, parentFolioId: int|null}  $charge
+     */
+    private static function canMoveTo(array $charge, Folio $target): bool
+    {
+        return $charge['folioId'] !== $target->id && ($charge['parentFolioId'] === null || $charge['parentFolioId'] === $target->id);
+    }
+
+    /**
      * Everything read once per request: the folios and their names, the balances, the movable charges and the
      * Scheduled blocks.
      *
-     * @return array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}
+     * @return array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, parentFolioId: int|null, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>, guestTaxUnits: list<int>}
      */
     private function state(Property $property, Reservation $reservation): array
     {
@@ -223,15 +242,16 @@ class MoveChargesPreview
             ->map(fn (mixed $balance): string => (string) $balance)
             ->all();
 
+        $labels = $folios->mapWithKeys(fn (Folio $folio): array => [$folio->id => $this->statement->optionLabel($folio, $unitLabels)])->all();
+        $blocks = $this->scheduledRows->forReservation($property, $reservation, $unitLabels);
+
         return [
-            'labels' => $folios->mapWithKeys(fn (Folio $folio): array => [$folio->id => $this->statement->optionLabel($folio, $unitLabels)])->all(),
+            'labels' => $labels,
             'openFolios' => $openFolios,
             'balances' => $balances,
-            'charges' => $this->charges($openFolios, $unitLabels),
-            'blocks' => array_values(array_filter(
-                $this->scheduledRows->forReservation($property, $reservation, $unitLabels),
-                fn (array $block): bool => ! isset($block['guestTax']),
-            )),
+            'charges' => $this->charges($openFolios, $unitLabels, $labels),
+            'blocks' => array_values(array_filter($blocks, fn (array $block): bool => ! isset($block['guestTax']))),
+            'guestTaxUnits' => array_values(array_unique(array_map(fn (array $block): int => $block['unit'], array_filter($blocks, fn (array $block): bool => isset($block['guestTax']))))),
             'unitLabels' => $unitLabels,
             'units' => $reservation->units()->orderBy('id')->get()->keyBy('id'),
         ];
@@ -264,14 +284,18 @@ class MoveChargesPreview
     }
 
     /**
-     * The charges `TransferLines` accepts on the given folios, with their live children: not a child, not a reversal, not
-     * reversed and not owned by a payment.
+     * The charges `TransferLines` accepts on the given folios, with their live children on the same folio: not a child,
+     * not a reversal, not reversed and not owned by a payment. A child on another folio (a collected tax the guest pays)
+     * is not part of its charge's total, because it stays where it is when the charge moves. Then the live collected
+     * taxes that sit apart from their live room line: each moves on its own, only to that room line's folio
+     * (`parentFolioId`), which must be Open.
      *
      * @param  EloquentCollection<int, Folio>  $folios
      * @param  array<int, string>  $unitLabels
-     * @return Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>
+     * @param  array<int, string>  $labels
+     * @return Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, parentFolioId: int|null, total: non-empty-string, data: MoveChargeData}>
      */
-    private function charges(Collection $folios, array $unitLabels): Collection
+    private function charges(Collection $folios, array $unitLabels, array $labels): Collection
     {
         $lines = FolioLine::query()
             ->whereIn('folio_id', $folios->modelKeys())
@@ -289,45 +313,105 @@ class MoveChargesPreview
             $found = [];
 
             foreach ($children->get($line->id, []) as $child) {
+                if ($child->folio_id !== $line->folio_id) {
+                    continue;
+                }
+
                 $found = [...$found, ...($live($child) ? [$child] : []), ...$collect($child)];
             }
 
             return $found;
         };
+        $byId = $lines->keyBy('id');
+
+        $isApartTax = function (FolioLine $line) use ($byId, $live): bool {
+            $parent = $line->parent_line_id === null ? null : $byId->get($line->parent_line_id);
+
+            return $line->kind === TransactionKind::Tax && $live($line) && $parent !== null && $parent->parent_line_id === null && $live($parent) && $parent->folio_id !== $line->folio_id;
+        };
+        $isCharge = fn (FolioLine $line): bool => $line->parent_line_id === null && $live($line) && ! $paymentLines->has($line->id);
 
         return $lines
-            ->filter(fn (FolioLine $line): bool => $line->parent_line_id === null && $live($line) && ! $paymentLines->has($line->id))
-            ->map(function (FolioLine $line) use ($collect, $sourceUnits, $unitLabels): array {
-                $unitId = $line->source_id === null ? null : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? null);
-                $descendants = $collect($line);
-                $total = array_reduce($descendants, fn (BigDecimal $sum, FolioLine $child): BigDecimal => $sum->plus($child->amount), BigDecimal::of($line->amount));
-                $isRoom = $line->transactionCode->category === TransactionCategory::Room;
-
-                return [
-                    'lineId' => $line->id,
-                    'folioId' => $line->folio_id,
-                    'unitId' => $unitId,
-                    'isRoom' => $isRoom,
-                    'total' => (string) $total->toScale(2),
-                    'data' => new MoveChargeData(
-                        $line->id,
-                        $line->posting_date->toDateString(),
-                        $line->description,
-                        $unitId === null ? null : ($unitLabels[$unitId] ?? null),
-                        (string) $line->amount,
-                        (string) $total->toScale(2),
-                        $isRoom,
-                        array_values(array_map(fn (FolioLine $child): MoveChildData => new MoveChildData($child->description, (string) $child->amount), $descendants)),
-                    ),
-                ];
-            })
+            ->filter(fn (FolioLine $line): bool => $isCharge($line) || $isApartTax($line))
+            ->map(fn (FolioLine $line): array => $line->parent_line_id === null
+                ? $this->chargeOf($line, $collect($line), $sourceUnits, $unitLabels)
+                : $this->collectedTaxCharge($line, $byId->get($line->parent_line_id), $sourceUnits, $unitLabels, $labels))
             ->values();
+    }
+
+    /**
+     * A charge with its live descendants on the same folio.
+     *
+     * @param  array<int, FolioLine>  $descendants
+     * @param  array<string, int>  $sourceUnits
+     * @param  array<int, string>  $unitLabels
+     * @return array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, parentFolioId: int|null, total: non-empty-string, data: MoveChargeData}
+     */
+    private function chargeOf(FolioLine $line, array $descendants, array $sourceUnits, array $unitLabels): array
+    {
+        $unitId = $line->source_id === null ? null : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? null);
+        $total = array_reduce($descendants, fn (BigDecimal $sum, FolioLine $child): BigDecimal => $sum->plus($child->amount), BigDecimal::of($line->amount));
+        $isRoom = $line->transactionCode->category === TransactionCategory::Room;
+
+        return [
+            'lineId' => $line->id,
+            'folioId' => $line->folio_id,
+            'unitId' => $unitId,
+            'isRoom' => $isRoom,
+            'parentFolioId' => null,
+            'total' => (string) $total->toScale(2),
+            'data' => new MoveChargeData(
+                $line->id,
+                $line->posting_date->toDateString(),
+                $line->description,
+                $unitId === null ? null : ($unitLabels[$unitId] ?? null),
+                (string) $line->amount,
+                (string) $total->toScale(2),
+                $isRoom,
+                array_values(array_map(fn (FolioLine $child): MoveChildData => new MoveChildData($child->description, (string) $child->amount), $descendants)),
+            ),
+        ];
+    }
+
+    /**
+     * A collected tax that sits apart from its room line, as a charge that moves on its own to that line's folio.
+     *
+     * @param  array<string, int>  $sourceUnits
+     * @param  array<int, string>  $unitLabels
+     * @param  array<int, string>  $labels
+     * @return array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, parentFolioId: int|null, total: non-empty-string, data: MoveChargeData}
+     */
+    private function collectedTaxCharge(FolioLine $line, FolioLine $parent, array $sourceUnits, array $unitLabels, array $labels): array
+    {
+        $unitId = $parent->source_id === null ? null : ($sourceUnits[$parent->source_type.':'.$parent->source_id] ?? null);
+        $total = BigDecimal::of($line->amount);
+
+        return [
+            'lineId' => $line->id,
+            'folioId' => $line->folio_id,
+            'unitId' => $unitId,
+            'isRoom' => false,
+            'parentFolioId' => $parent->folio_id,
+            'total' => (string) $total->toScale(2),
+            'data' => new MoveChargeData(
+                $line->id,
+                $parent->posting_date->toDateString(),
+                $line->description,
+                $unitId === null ? null : ($unitLabels[$unitId] ?? null),
+                (string) $line->amount,
+                (string) $total->toScale(2),
+                false,
+                [],
+                $parent->folio_id,
+                $labels[$parent->folio_id] ?? null,
+            ),
+        ];
     }
 
     /**
      * @param  list<int>  $lineIds
      * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
-     * @param  array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>}  $state
+     * @param  array{labels: array<int, string>, openFolios: EloquentCollection<int, Folio>, balances: array<int, string>, charges: Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, parentFolioId: int|null, total: non-empty-string, data: MoveChargeData}>, blocks: list<array{target: int|null, unit: int, date: string, code: TransactionCode, follows?: TransactionCode|null, rows: list<FolioRowData>}>, unitLabels: array<int, string>, units: EloquentCollection<int, ReservationUnit>, guestTaxUnits: list<int>}  $state
      */
     private function compute(Property $property, Reservation $reservation, Folio $target, array $lineIds, array $schedules, array $state): MovePreviewData
     {
@@ -340,7 +424,7 @@ class MoveChargesPreview
         $money = fn (string $amount): string => trim($currency.' '.number_format((float) $amount, 2));
         $toLabel = $labels[$target->id];
 
-        $ticked = $charges->filter(fn (array $charge): bool => in_array($charge['lineId'], $lineIds, true) && $charge['folioId'] !== $target->id)->values();
+        $ticked = $charges->filter(fn (array $charge): bool => in_array($charge['lineId'], $lineIds, true) && self::canMoveTo($charge, $target))->values();
         $moved = $ticked->groupBy('folioId')->map(fn (Collection $group): BigDecimal => $group->reduce(fn (BigDecimal $sum, array $charge): BigDecimal => $sum->plus($charge['total']), BigDecimal::zero()));
         $movedTotal = $moved->reduce(fn (BigDecimal $sum, BigDecimal $amount): BigDecimal => $sum->plus($amount), BigDecimal::zero());
 
@@ -381,7 +465,7 @@ class MoveChargesPreview
      * and the sum of the Scheduled rows the target would hold after the move.
      *
      * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
-     * @param  Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>  $ticked
+     * @param  Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, parentFolioId: int|null, total: non-empty-string, data: MoveChargeData}>  $ticked
      * @param  array<string, mixed>  $state
      * @param  array<int, string>  $labels
      * @param  array<int, string>  $unitLabels
@@ -495,6 +579,12 @@ class MoveChargesPreview
             }
         }
 
+        foreach ($ticked->whereNotNull('parentFolioId')->pluck('unitId')->filter()->unique() as $unitId) {
+            if (in_array($unitId, $state['guestTaxUnits'], true)) {
+                $notes[] = __('Taxes at check-in of the nights of Room :room not charged yet still go to its own folio. To change that, use Edit group.', ['room' => $unitLabels[$unitId] ?? '—']);
+            }
+        }
+
         $notes = [...$notes, ...$this->paidNotes($reservation, $target, $schedules, $ticked, $state, $unitLabels, $money)];
 
         return [$choices, $incoming, array_values(array_unique($notes)), $this->rowsTotal($afterRows)];
@@ -505,7 +595,7 @@ class MoveChargesPreview
      * never moves, so the money stays behind as a credit, and staff should see that before they save.
      *
      * @param  list<array{unit: ReservationUnit, scope: string}>  $schedules
-     * @param  Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, total: non-empty-string, data: MoveChargeData}>  $ticked
+     * @param  Collection<int, array{lineId: int, folioId: int, unitId: int|null, isRoom: bool, parentFolioId: int|null, total: non-empty-string, data: MoveChargeData}>  $ticked
      * @param  array<string, mixed>  $state
      * @param  array<int, string>  $unitLabels
      * @return list<string>

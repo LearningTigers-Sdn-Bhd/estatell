@@ -113,6 +113,7 @@ class FolioRefusals
             PostingResult::REFUSAL_CREDIT_MOVE_ABOVE_CREDIT => ['moves', __('That is more than this folio holds. Lower the amounts and try again.')],
             PostingResult::REFUSAL_CREDIT_MOVE_ABOVE_OWED => ['moves', __('That is more than a folio owes. A folio cannot end in credit from a move.')],
             PostingResult::REFUSAL_NOT_A_CREDIT_MOVE => [self::FORM, __('This line is not a credit move.')],
+            PostingResult::REFUSAL_NOT_A_TAX_MOVE => [self::FORM, __('This line is not a tax moved from a guest folio.')],
             PostingResult::REFUSAL_NOT_OPENING_BALANCE => [self::FORM, __('This line is not an opening balance.')],
             PostingResult::REFUSAL_OPENING_BALANCE_EXISTS => [self::FORM, __('This folio already has an opening balance. Change it instead.')],
             SaveOldFoliosResult::REFUSAL_NOTHING_TO_SAVE => [self::FORM, __('Add at least one line.')],

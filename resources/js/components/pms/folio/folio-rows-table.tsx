@@ -152,6 +152,7 @@ export function FolioRowsTable({
         action:
             | 'reverse'
             | 'undo_credit_move'
+            | 'undo_tax_move'
             | 'move'
             | 'remove_discount'
             | 'refund'
@@ -544,6 +545,21 @@ export function FolioRowsTable({
                                                             >
                                                                 <Pencil />
                                                                 Edit line…
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {row.actions.includes(
+                                                            'undo_tax_move',
+                                                        ) && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    onAction(
+                                                                        row,
+                                                                        'undo_tax_move',
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Undo2 />
+                                                                Undo move
                                                             </DropdownMenuItem>
                                                         )}
                                                         {row.actions.includes(

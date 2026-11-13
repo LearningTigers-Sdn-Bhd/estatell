@@ -50,6 +50,7 @@ import { VoidPaymentDialog } from '@/components/pms/folio/void-payment-dialog';
 import { MoveCreditDialog } from '@/components/pms/folio/move-credit-dialog';
 import { RefundCreditDialog } from '@/components/pms/folio/refund-credit-dialog';
 import { UndoCreditMoveDialog } from '@/components/pms/folio/undo-credit-move-dialog';
+import { UndoTaxMoveDialog } from '@/components/pms/folio/undo-tax-move-dialog';
 import { RefundPaymentDialog } from '@/components/pms/folio/refund-payment-dialog';
 import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
@@ -216,6 +217,8 @@ export function FolioTab({
     const [undoingMove, setUndoingMove] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [movingCredit, setMovingCredit] = useState(false);
+    const [undoingTaxMove, setUndoingTaxMove] =
+        useState<App.Data.Folio.FolioRowData | null>(null);
     const [lineTarget, setLineTarget] =
         useState<ComponentProps<typeof ManualLineDialogs>['target']>(null);
     useFormOptions(
@@ -623,7 +626,10 @@ export function FolioTab({
                         </Alert>
                     )}
                     {folio.collectedTaxNote && (
-                        <CollectedTaxNote note={folio.collectedTaxNote} />
+                        <CollectedTaxNote
+                            note={folio.collectedTaxNote}
+                            reservationId={reservationId}
+                        />
                     )}
                     {folio.closedNotice && (
                         <Alert className="flex flex-wrap items-center gap-x-2 gap-y-2 has-data-[slot=alert-action]:pr-2.5 *:[svg]:translate-y-0">
@@ -890,6 +896,8 @@ export function FolioTab({
                                     setRemoving(row);
                                 } else if (action === 'undo_credit_move') {
                                     setUndoingMove(row);
+                                } else if (action === 'undo_tax_move') {
+                                    setUndoingTaxMove(row);
                                 } else if (row.lineId !== null) {
                                     const line = manualLines[row.lineId];
 
@@ -1042,6 +1050,14 @@ export function FolioTab({
                     currency={currency}
                     onClose={() => setUndoingMove(null)}
                 />
+                <UndoTaxMoveDialog
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    row={undoingTaxMove}
+                    rows={folio.rows}
+                    currency={currency}
+                    onClose={() => setUndoingTaxMove(null)}
+                />
                 {folio.creditMove !== null && (
                     <MoveCreditDialog
                         open={movingCredit}
@@ -1070,8 +1086,10 @@ function joinNames(names: string[]): string {
  */
 function CollectedTaxNote({
     note,
+    reservationId,
 }: {
     note: App.Data.Folio.CollectedTaxNoteData;
+    reservationId: number;
 }) {
     const them = note.taxes.length === 1 ? 'it' : 'them';
 
@@ -1093,6 +1111,30 @@ function CollectedTaxNote({
                             className="font-medium text-foreground underline underline-offset-4"
                         >
                             Company pays taxes collected at check-in
+                        </Link>
+                        .
+                    </p>
+                )}
+                {note.moveToFolioId !== null && note.moveLineIds.length > 0 && (
+                    <p>
+                        If {note.payer} pays the ones already charged,{' '}
+                        <Link
+                            href={moveCharges.url(
+                                { reservation: reservationId },
+                                {
+                                    query: {
+                                        to: note.moveToFolioId,
+                                        lines: note.moveLineIds,
+                                    },
+                                },
+                            )}
+                            className="font-medium text-foreground underline underline-offset-4"
+                        >
+                            move{' '}
+                            {note.moveLineIds.length === 1
+                                ? 'it'
+                                : `all ${note.moveLineIds.length}`}{' '}
+                            to {note.moveTo}
                         </Link>
                         .
                     </p>

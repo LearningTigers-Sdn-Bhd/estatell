@@ -8,7 +8,9 @@ use Spatie\LaravelData\Data;
  * One posted charge on the Move charges page, with its live tax and discount children. `total` is the charge plus
  * those children, the amount that leaves the source and lands on the target. Only charges that `TransferLines` accepts are
  * listed (no child, reversal, reversed line or payment line). `isRoom` is true for a Room category charge (the Room quick
- * select). `unit` is the label of the room that caused the charge.
+ * select). `unit` is the label of the room that caused the charge. A collected tax that sits apart from its room line
+ * (the guest pays it, see `CollectedTaxPayer`) is listed on its own, dated by its room line, with `onlyToFolioId` and
+ * `onlyToLabel`: the folio of that room line, the only target it can move to.
  */
 class MoveChargeData extends Data
 {
@@ -24,5 +26,7 @@ class MoveChargeData extends Data
         public string $total,
         public bool $isRoom,
         public array $children,
+        public ?int $onlyToFolioId = null,
+        public ?string $onlyToLabel = null,
     ) {}
 }

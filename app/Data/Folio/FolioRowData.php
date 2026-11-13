@@ -22,6 +22,8 @@ use Spatie\LaravelData\Data;
  * A row with `onFolio` is not a line of this folio: it is the parent charge of the taxes under it, which sits on the
  * folio `onFolio` names (a collected tax the guest pays while a company pays the room, see `CollectedTaxRows`). Its
  * amount is 0.00, it has no actions and it is never printable; the page shows it muted with a link to that folio.
+ * A collected tax that Move charges put back under its room line carries `undo_tax_move` and `taxMoveGroup`, the move it
+ * came with, so the Undo move Dialog can count the taxes that go back together.
  */
 class FolioRowData extends Data
 {
@@ -53,5 +55,6 @@ class FolioRowData extends Data
         public ?string $receivedOn = null,
         public ?string $notes = null,
         public ?FolioOptionData $onFolio = null,
+        public ?string $taxMoveGroup = null,
     ) {}
 }

@@ -83,6 +83,7 @@ class FolioStatement
         private ReportableLines $reportableLines,
         private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
         private CollectedTaxRows $collectedTaxRows,
+        private MovedCollectedTaxes $movedCollectedTaxes,
     ) {}
 
     /**
@@ -613,6 +614,27 @@ class FolioStatement
             }
 
             $walk($line, 1, $parentUnitId);
+            $row = $rows->last();
+
+            // A collected tax apart from its room line moves on its own, back under that line (Move charges).
+            if (in_array('move', $allowed, true) && $row?->key === 'line:'.$line->id && $line->kind === TransactionKind::Tax && $row->tags === [] && $parent->folio->status === FolioStatus::Open) {
+                $row->actions = ['move'];
+            }
+        }
+
+        // A collected tax that Move charges put back under its room line can go back to the guest folio it came from.
+        if (in_array('move', $allowed, true)) {
+            $originals = $this->movedCollectedTaxes->originals($lines->reject(fn (FolioLine $line): bool => $reversed->has($line->id)));
+            $byId = $lines->keyBy('id');
+
+            foreach ($rows as $row) {
+                $original = $row->lineId === null ? null : ($originals[$row->lineId] ?? null);
+
+                if ($original !== null && $row->tags === [] && $original->folio->status === FolioStatus::Open) {
+                    $row->actions = [...$row->actions, 'undo_tax_move'];
+                    $row->taxMoveGroup = $byId->get($row->lineId)?->transfer_group_id;
+                }
+            }
         }
 
         $discounted = $lines

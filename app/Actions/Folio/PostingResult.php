@@ -103,6 +103,8 @@ class PostingResult
 
     public const REFUSAL_NOT_A_CREDIT_MOVE = 'not_a_credit_move';
 
+    public const REFUSAL_NOT_A_TAX_MOVE = 'not_a_tax_move';
+
     /**
      * @param  list<FolioLine>  $lines
      */

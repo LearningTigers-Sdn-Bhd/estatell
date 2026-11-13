@@ -65,21 +65,33 @@ class CollectedTaxRows
     public function note(array $rows, Collection $folios, ?User $user): ?CollectedTaxNoteData
     {
         $company = null;
+        $companyFolio = null;
         $taxes = [];
-        $under = false;
+        $under = null;
+        $moveLineIds = [];
 
         foreach ($rows as $row) {
             if ($row->onFolio !== null) {
-                $company ??= $folios->get($row->onFolio->id)?->payerCompany;
-                $under = true;
+                $payer = $folios->get($row->onFolio->id)?->payerCompany;
+
+                if ($company === null && $payer !== null) {
+                    $company = $payer;
+                    $companyFolio = $row->onFolio;
+                }
+
+                $under = $row->onFolio->id;
 
                 continue;
             }
 
             if ($row->level === 0) {
-                $under = false;
-            } elseif ($under && $row->kind === TransactionKind::Tax && ! $this->isCorrection($row)) {
+                $under = null;
+            } elseif ($under !== null && $row->kind === TransactionKind::Tax && ! $this->isCorrection($row)) {
                 $taxes[$row->description] = true;
+
+                if ($under === $companyFolio?->id && $row->lineId !== null && in_array('move', $row->actions, true)) {
+                    $moveLineIds[] = $row->lineId;
+                }
             }
         }
 
@@ -91,6 +103,9 @@ class CollectedTaxRows
             $company->name,
             array_keys($taxes),
             $user?->can(PermissionEnum::CompanyManage->value) ? $company->id : null,
+            $moveLineIds,
+            $moveLineIds === [] ? null : $companyFolio?->id,
+            $moveLineIds === [] ? null : $companyFolio?->label,
         );
     }
 

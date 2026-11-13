@@ -1555,6 +1555,9 @@ export type CollectedTaxNoteData = {
 payer: string,
 taxes: string[],
 companyId: number | null,
+moveLineIds: number[],
+moveToFolioId: number | null,
+moveTo: string | null,
 };
 export type CreditMoveData = {
 credit: string,
@@ -1710,6 +1713,7 @@ methodType: string | null,
 receivedOn: string | null,
 notes: string | null,
 onFolio: App.Data.Folio.FolioOptionData | null,
+taxMoveGroup: string | null,
 };
 export type ManualFolioOptionData = {
 id: number,
@@ -1838,6 +1842,8 @@ amount: string,
 total: string,
 isRoom: boolean,
 children: App.Data.Folio.MoveChildData[],
+onlyToFolioId: number | null,
+onlyToLabel: string | null,
 };
 export type MoveChargesPageData = {
 reservationId: number,

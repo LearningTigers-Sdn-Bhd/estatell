@@ -46,8 +46,9 @@ On a narrow screen the columns stack: **From** first, a ↓ in place of the →,
 ## From
 
 - Every Open folio of the reservation except the target, one group each, named by `FolioStatement::optionLabel()`, with **Balance {before} → {after}**.
-- **Movable charges**: posted charge lines that are not a child, not a reversal and not reversed, and not owned by a payment. The same rules as `TransferLines`. Tax and discount children show under their charge with the amount ("+tax 20.00") and always move with it.
-- **Quick select**: **Room** ticks every movable Room charge, **All charges** every movable charge, **Clear** unticks all.
+- **Movable charges**: posted charge lines that are not a child, not a reversal and not reversed, and not owned by a payment. The same rules as `TransferLines`. Tax and discount children on the same folio show under their charge with the amount ("+tax 20.00") and always move with it. A child on another folio (a [collected tax](#collected-taxes) the guest pays) is not in its charge's total: it stays where it is when the charge moves.
+- **Collected taxes**: listed on their own; see [Collected taxes](#collected-taxes).
+- **Quick select**: **Room** ticks every movable Room charge, **All charges** every movable charge, **Taxes at check-in** (only when there are any) every collected tax that can go to the target, **Clear** unticks all.
 - **Not listed**: payment and refund lines (payments never move; move the charges to the money), Closed folios (a checked-out unit's folio must be reopened first; a folio settled to the city ledger never moves), and Voided folios.
 
 ## To
@@ -94,6 +95,33 @@ Every folio name in labels, notes, the toast and the log comes from `optionLabel
 | Activity log                                     | "Moved 30 charges (MYR 8,100.00) to {to} from 10 folios. Scheduled room nights of 10 rooms now go to {to}."     |
 
 Words the page does not use: "Upcoming" (the folio tab says Scheduled), "post" (staff say charge), "routing rule" in a choice label, "here" (two columns make it unclear) and "Transfer" (the page and the row menu say Move).
+
+## Collected taxes
+
+A Tax line the guest was to pay at check-in sits on the unit folio while its room line is on a folio a company pays ([Collected taxes](03-routing.md#collected-taxes)). When the company pays them after all, staff move the posted ones here.
+
+```
+FROM: Unit 101                                TO: Master · Borneo Trails
+ ☑ 12 Oct  Tourism Tax · 101   10.00   →        12 Oct  Tourism Tax   10.00
+     Under Room on Master · Borneo Trails
+```
+
+- **Listed:** each live Tax child whose live room line (a top-level line) sits on another Open folio, dated by its room line, with `MoveChargeData::onlyToFolioId` and `onlyToLabel`. It is one charge in the count and the 200 limit.
+- **Only to its room line's folio.** With another target, the row is disabled with "Moves only to {folio}, with its room", and a tick on it is dropped. `MoveChargesPreview::canMoveTo()` and the page's `canMoveTo()` apply the same rule.
+- **Writes:** `MoveCollectedTaxes` (Action, called by `MoveCharges` in its transaction): a reversal on the unit folio and a copy on the target as a child of the **same** room line, in the move's `transfer_group_id` (a new one when no charge moves). The copy goes through `TransferLines::copy()` (key `transfer:{group}:{line}`). It refuses `line_not_transferable` for any other line, and `folio_not_open` when the tax's folio is not Open. Reversing the room line later reverses the moved tax too.
+- **Entry points:** **Move…** in the row menu of such a tax on the unit folio (row action `move`, with `folio.transfer` and the room line's folio Open), which starts **To** on the room line's folio (`startTarget()`), and the link in the [collected-tax note](05-folio-page.md#collected-taxes), which opens the page with all of them ticked.
+- **Notes:** the existing note on money paid on the room's own folio counts these taxes. When the unit still has nights not charged whose taxes go to the guest, a note says so and points to Edit group ([Taxes at check-in](../12-reservations/02-group-bookings.md#taxes-at-check-in)).
+- Moving a tax from the room line's folio back to the guest is not on this page; see [Undo a tax move](#undo-a-tax-move).
+
+### Undo a tax move
+
+**Undo move** in the row menu of a tax that Move charges put back under its room line sends the taxes of that move back to the guest folio they came from.
+
+- **Which lines:** `MovedCollectedTaxes` (service) finds such a copy: a Tax line keyed `transfer:{group}:{original}` whose original is a Tax child of the **same** room line on another folio. A child that moved with its charge never matches. The row carries the action `undo_tax_move` and `taxMoveGroup`, with `folio.transfer`, an Open folio and the original's folio Open.
+- **Scope:** every live tax of that move on this folio, together. Charges moved in the same move stay, and so does a tax reversed since (with its room line).
+- **Writes:** `UndoCollectedTaxMove` (Action): a reversal of each copy, and a new copy of its original on the guest folio under the same room line (`TransferLines::copy()`), all in a new transfer group. Nothing is edited or deleted. The log is `folio.collected_tax_move_undone` (count, amount, line ids). The taxes can then move again on this page.
+- **Refusals:** `not_a_tax_move` (a line that is no such tax), `already_reversed` (it was undone or reversed), `folio_not_open` (reopen the guest folio first), `no_business_date`. Every check runs before the first write. A refusal is an error toast.
+- **Route:** `POST …/folios/{folio}/lines/{line}/tax-move/undo` (`reservations.folios.lines.tax-move.undo`), `folio.transfer`. The confirm is `UndoTaxMoveDialog`: "{n} tax lines · {amount} go back to the guest folio they came from", counted from the rows of the same `taxMoveGroup`.
 
 ## `MoveCharges`
 

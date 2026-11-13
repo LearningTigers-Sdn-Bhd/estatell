@@ -124,7 +124,11 @@ class TransferLines
         return $copies;
     }
 
-    private function copy(User $actor, FolioLine $line, Folio $target, string $postingDate, string $group, ?int $parentCopyId): FolioLine
+    /**
+     * Write the copy of one line on the target, keyed `transfer:{group}:{line id}`, under `$parentCopyId`. No check:
+     * the caller checks first. `MoveCollectedTaxes` uses it to put a collected tax back under its room line.
+     */
+    public function copy(User $actor, FolioLine $line, Folio $target, string $postingDate, string $group, ?int $parentCopyId): FolioLine
     {
         $copy = new FolioLine([
             'transaction_code_id' => $line->transaction_code_id,
