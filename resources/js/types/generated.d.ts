@@ -3800,6 +3800,8 @@ adults: number,
 children: number,
 company: string | null,
 status: App.Data.Shared.BadgeData,
+total: string,
+paid: string,
 balance: string,
 };
 export type BoatManifestRow = {
@@ -3856,6 +3858,8 @@ guests: string,
 adults: number,
 children: number,
 company: string | null,
+total: string,
+paid: string,
 balance: string,
 };
 export type DailyChargeRow = {
@@ -3918,6 +3922,8 @@ adults: number,
 children: number,
 company: string | null,
 status: App.Data.Shared.BadgeData,
+total: string,
+paid: string,
 balance: string,
 };
 export type DepositLiabilityRow = {
@@ -4024,6 +4030,8 @@ guests: string,
 adults: number,
 children: number,
 company: string | null,
+total: string,
+paid: string,
 balance: string,
 };
 export type MealCountRow = {

@@ -72,7 +72,7 @@ test('the page opens on the business date and a date in the URL replaces it', fu
         ->where('to', '2026-10-10')
         ->where('maxRangeDays', null)
         ->where('sort', 'room')
-        ->has('layout.columns', 13)
+        ->has('layout.columns', 15)
         ->where('rows.meta.total', 1));
 
     $this->actingAs($user)->get(inHouseUrl($property, '?date=2026-10-14'))->assertInertia(fn (Assert $page) => $page
@@ -170,7 +170,7 @@ test('the report returns only the requested row keys and is in the registry', fu
     $keys = array_map(fn ($column): string => $column->key, ReportKey::InHouse->columns());
 
     expect(array_map(fn (InHouseRow $row): int => $row->key, $report->rows($property, $filters, [$first->id])))->toBe([$first->id])
-        ->and($keys)->toBe(['reservation', 'guest', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'stay', 'guests', 'adults', 'children', 'company', 'balance'])
+        ->and($keys)->toBe(['reservation', 'guest', 'room', 'arrival', 'arrival_time', 'departure', 'departure_time', 'stay', 'guests', 'adults', 'children', 'company', 'total', 'paid', 'balance'])
         ->and(ReportKey::InHouse->maxRangeDays())->toBeNull()
         ->and(ReportKey::InHouse->report())->toBeInstanceOf(InHouseReport::class);
 });
@@ -208,7 +208,7 @@ test('the split columns and the totals count adults and children, and the time c
 
     expect($rows[0]->cells())->toMatchArray(['guests' => '2 / 1', 'adults' => '2', 'children' => '1', 'arrival_time' => '13:00', 'departure_time' => '11:30'])
         ->and($rows[0]->values())->toMatchArray(['adults' => 2, 'children' => 1])
-        ->and(ReportKey::InHouse->totals($rows)->figures)->toMatchArray(['adults' => 5, 'children' => 1, 'guests' => null, 'balance' => '0.00']);
+        ->and(ReportKey::InHouse->totals($rows)->figures)->toMatchArray(['adults' => 5, 'children' => 1, 'guests' => null, 'total' => '0.00', 'paid' => '0.00', 'balance' => '0.00']);
 
     $defaults = collect(ReportKey::InHouse->columns())->mapWithKeys(fn ($column): array => [$column->key => $column->defaultVisible]);
 

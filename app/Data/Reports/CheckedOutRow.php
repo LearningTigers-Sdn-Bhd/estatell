@@ -29,6 +29,8 @@ class CheckedOutRow extends Data implements ReportRow
         public int $adults,
         public int $children,
         public ?string $company,
+        public string $total,
+        public string $paid,
         public string $balance,
     ) {}
 
@@ -51,6 +53,8 @@ class CheckedOutRow extends Data implements ReportRow
             'adults' => (string) $this->adults,
             'children' => (string) $this->children,
             'company' => $this->company ?? '',
+            'total' => number_format((float) $this->total, 2),
+            'paid' => number_format((float) $this->paid, 2),
             'balance' => number_format((float) $this->balance, 2),
         ];
     }
@@ -74,6 +78,8 @@ class CheckedOutRow extends Data implements ReportRow
             'adults' => $this->adults,
             'children' => $this->children,
             'company' => $this->company ?? '',
+            'total' => round((float) $this->total, 2),
+            'paid' => round((float) $this->paid, 2),
             'balance' => round((float) $this->balance, 2),
         ];
     }
@@ -81,8 +87,9 @@ class CheckedOutRow extends Data implements ReportRow
     /**
      * @param  string|null  $room  The room number or bed label of the last night, when one is assigned.
      * @param  string  $timeZone  The property time zone the check-out time is shown in.
+     * @param  array{total: string, paid: string, balance: string}  $money  The total, paid and balance of the reservation.
      */
-    public static function fromModel(ReservationUnit $unit, ?string $room, string $balance, string $timeZone): self
+    public static function fromModel(ReservationUnit $unit, ?string $room, array $money, string $timeZone): self
     {
         $reservation = $unit->reservation;
         $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $reservation->booker;
@@ -103,7 +110,9 @@ class CheckedOutRow extends Data implements ReportRow
             adults: $unit->adults,
             children: $unit->children,
             company: $reservation->company?->name,
-            balance: $balance,
+            total: $money['total'],
+            paid: $money['paid'],
+            balance: $money['balance'],
         );
     }
 }

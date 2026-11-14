@@ -81,8 +81,8 @@ test('the default sort is the highest balance first and the default columns hide
 
     $this->actingAs($user)->get(checkedOutUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('sort', '-balance')
-        ->has('layout.columns', 14)
-        ->where('layout.columns', fn ($columns) => collect($columns)->where('visible', true)->pluck('key')->values()->all() === ['reservation', 'guest', 'room', 'checked_out_at', 'balance']));
+        ->has('layout.columns', 16)
+        ->where('layout.columns', fn ($columns) => collect($columns)->where('visible', true)->pluck('key')->values()->all() === ['reservation', 'guest', 'room', 'checked_out_at', 'total', 'paid', 'balance']));
 
     $keys = array_map(fn ($column): string => $column->key, ReportKey::CheckedOut->columns());
 
@@ -138,9 +138,9 @@ test('the PDF and the CSV export the checked out units', function () {
 
     $lines = array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF"))));
 
-    expect(str_getcsv($lines[0]))->toBe(['Booking', 'Guest', 'Room', 'Checked out', 'Balance (MYR)'])
+    expect(str_getcsv($lines[0]))->toBe(['Booking', 'Guest', 'Room', 'Checked out', 'Total (MYR)', 'Paid (MYR)', 'Balance (MYR)'])
         ->and($lines)->toHaveCount(3)
-        ->and(str_getcsv($lines[2]))->toBe(['Total', '', '', '', '0']);
+        ->and(str_getcsv($lines[2]))->toBe(['Total', '', '', '', '0', '0', '0']);
 });
 
 test('the default sort puts the highest balance first', function () {

@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * The shared part of the reports that list reservation units (Arrivals, Departures, In-house): it keeps the row keys
- * asked for, loads the guest, company and room type, and looks up the rooms and the balances with one query each.
+ * asked for, loads the guest, company and room type, and looks up the rooms and the reservation total, paid and balance with one query each.
  * The report builds the query (property, dates, status, order) and the row class. It also works out the shared figures
  * of their total rows.
  */
@@ -29,7 +29,7 @@ class UnitReportRows
      * @param  Builder<ReservationUnit>  $query
      * @param  list<int|string>|null  $rowKeys
      * @param  Closure(list<int>): array<int, string>  $roomsFor  The room number or bed label by unit id, for the unit ids.
-     * @param  Closure(ReservationUnit, ?string, string): TRow  $makeRow  Gets the unit, its room and the reservation balance.
+     * @param  Closure(ReservationUnit, ?string, array{total: string, paid: string, balance: string}): TRow  $makeRow  Gets the unit, its room and the total, paid and balance of the reservation.
      * @return list<TRow>
      */
     public function rows(Builder $query, ?array $rowKeys, Closure $roomsFor, Closure $makeRow): array
@@ -40,18 +40,18 @@ class UnitReportRows
             ->get();
 
         $rooms = $roomsFor(array_values(array_map(intval(...), $units->pluck('id')->all())));
-        $balances = $this->folioBalance->forReservations(array_values(array_map(intval(...), $units->pluck('reservation_id')->unique()->all())));
+        $figures = $this->folioBalance->figuresForReservations(array_values(array_map(intval(...), $units->pluck('reservation_id')->unique()->all())));
 
         return array_values($units
-            ->map(fn (ReservationUnit $unit) => $makeRow($unit, $rooms[$unit->id] ?? null, $balances[$unit->reservation_id]))
+            ->map(fn (ReservationUnit $unit) => $makeRow($unit, $rooms[$unit->id] ?? null, $figures[$unit->reservation_id]))
             ->all());
     }
 
     /**
-     * The sums of nights, adults and children, and the balance of each reservation once.
+     * The sums of nights, adults and children, and the total, paid and balance of each reservation once.
      *
      * @param  list<ArrivalRow|DepartureRow|CheckedOutRow>  $rows
-     * @return array{nights: int, adults: int, children: int, balance: string}
+     * @return array{nights: int, adults: int, children: int, total: string, paid: string, balance: string}
      */
     public function totalFigures(array $rows): array
     {
@@ -59,24 +59,35 @@ class UnitReportRows
             'nights' => array_sum(array_map(fn (ArrivalRow|DepartureRow|CheckedOutRow $row): int => $row->nights, $rows)),
             'adults' => array_sum(array_map(fn (ArrivalRow|DepartureRow|CheckedOutRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (ArrivalRow|DepartureRow|CheckedOutRow $row): int => $row->children, $rows)),
-            'balance' => $this->balanceTotal($rows),
+            ...$this->moneyTotals($rows),
         ];
     }
 
     /**
-     * The balance of each reservation in the rows, counted once. Every unit row shows the balance of its whole
-     * reservation, so a reservation with three units would count three times if the rows were added.
+     * The total, paid and balance of each reservation in the rows, counted once. Every unit row shows the figures of
+     * its whole reservation, so a reservation with three units would count three times if the rows were added.
      *
      * @param  list<ArrivalRow|DepartureRow|CheckedOutRow|InHouseRow>  $rows
+     * @return array{total: string, paid: string, balance: string}
      */
-    public function balanceTotal(array $rows): string
+    public function moneyTotals(array $rows): array
     {
-        $balances = [];
+        $reservations = [];
 
         foreach ($rows as $row) {
-            $balances[$row->reservation] = $row->balance;
+            $reservations[$row->reservation] = $row;
         }
 
-        return (string) array_reduce($balances, fn (BigDecimal $sum, string $balance): BigDecimal => $sum->plus($balance), BigDecimal::zero())->toScale(2, RoundingMode::HalfUp);
+        $sum = fn (string $field): string => (string) array_reduce(
+            $reservations,
+            fn (BigDecimal $sum, ArrivalRow|DepartureRow|CheckedOutRow|InHouseRow $row): BigDecimal => $sum->plus($row->{$field}),
+            BigDecimal::zero(),
+        )->toScale(2, RoundingMode::HalfUp);
+
+        return [
+            'total' => $sum('total'),
+            'paid' => $sum('paid'),
+            'balance' => $sum('balance'),
+        ];
     }
 }

@@ -8,6 +8,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
 use App\Enums\StayType;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\Company;
 use App\Models\Folio;
@@ -71,7 +72,7 @@ test('the page opens on the business date and lists the units that arrive', func
         ->has('businessDate.timeZone')
         ->where('maxRangeDays', 31)
         ->where('sort', 'arrival')
-        ->has('layout.columns', 15)
+        ->has('layout.columns', 17)
         ->where('layout.orientation', 'portrait')
         ->where('canEditLayout', true)
         ->has('rows.data', 1)
@@ -99,7 +100,7 @@ test('a single date in the URL is used for both ends', function () {
         ->has('rows.data', 1));
 });
 
-test('each row shows the guest, room, company and balance of the unit', function () {
+test('each row shows the guest, room, company, total, paid and balance of the unit', function () {
     [$user, $property] = reportSetup();
     $company = Company::factory()->for($property)->create(['name' => 'Borneo Travel']);
     $unit = arrivingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1], ['company_id' => $company->id]);
@@ -109,7 +110,8 @@ test('each row shows the guest, room, company and balance of the unit', function
     UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-10', 'room_id' => $room->id]);
     $folio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $unit->reservation_id]);
     FolioLine::factory()->create(['folio_id' => $folio->id, 'amount' => '350.00', 'unit_amount' => '350.00']);
-    FolioLine::factory()->payment('50.00')->create(['folio_id' => $folio->id]);
+    FolioLine::factory()->payment('80.00')->create(['folio_id' => $folio->id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'kind' => TransactionKind::Payment, 'description' => 'Refund', 'amount' => '30.00', 'unit_amount' => '30.00']);
     $voided = Folio::factory()->voided()->create(['property_id' => $property->id, 'reservation_id' => $unit->reservation_id]);
     FolioLine::factory()->create(['folio_id' => $voided->id, 'amount' => '999.00', 'unit_amount' => '999.00']);
 
@@ -124,10 +126,12 @@ test('each row shows the guest, room, company and balance of the unit', function
         ->where('rows.data.0.guests', '2 / 1')
         ->where('rows.data.0.company', 'Borneo Travel')
         ->where('rows.data.0.status.value', 'confirmed')
+        ->where('rows.data.0.total', '350.00')
+        ->where('rows.data.0.paid', '50.00')
         ->where('rows.data.0.balance', '300.00'));
 });
 
-test('the total row sums nights, adults and children and counts each reservation balance once', function () {
+test('the total row sums nights, adults and children and counts each reservation total, paid and balance once', function () {
     [$user, $property] = reportSetup();
     $group = arrivingUnit($property, '2026-10-10', ['adults' => 2, 'children' => 1]);
     $second = ReservationUnit::factory()->for($group->reservation)->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'adults' => 2, 'children' => 0]);
@@ -136,17 +140,20 @@ test('the total row sums nights, adults and children and counts each reservation
     FolioLine::factory()->create(['folio_id' => $groupFolio->id, 'amount' => '1200.00', 'unit_amount' => '1200.00']);
     $singleFolio = Folio::factory()->create(['property_id' => $property->id, 'reservation_id' => $single->reservation_id]);
     FolioLine::factory()->create(['folio_id' => $singleFolio->id, 'amount' => '150.00', 'unit_amount' => '150.00']);
+    FolioLine::factory()->payment('400.00')->create(['folio_id' => $groupFolio->id]);
 
     $this->actingAs($user)->get(arrivalsUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('totals.figures.nights', 6)
         ->where('totals.figures.adults', 5)
         ->where('totals.figures.children', 1)
-        ->where('totals.figures.balance', '1350.00')
+        ->where('totals.figures.total', '1350.00')
+        ->where('totals.figures.paid', '400.00')
+        ->where('totals.figures.balance', '950.00')
         ->where('totals.figures.guest', null));
 
     $selected = app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'), [$second->id, $single->id]);
 
-    expect(ReportKey::Arrivals->totals($selected)->figures)->toMatchArray(['nights' => 4, 'adults' => 3, 'children' => 0, 'balance' => '1350.00']);
+    expect(ReportKey::Arrivals->totals($selected)->figures)->toMatchArray(['nights' => 4, 'adults' => 3, 'children' => 0, 'total' => '1350.00', 'paid' => '400.00', 'balance' => '950.00']);
 });
 
 test('only the units of this property appear', function () {
@@ -254,8 +261,8 @@ test('the arrivals report is in the registry with its columns', function () {
     $keys = array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns());
     $visible = array_map(fn ($column): string => $column->key, array_filter(ReportKey::Arrivals->columns(), fn ($column): bool => $column->defaultVisible));
 
-    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'balance'])
-        ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'status', 'balance'])
+    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'total', 'paid', 'balance'])
+        ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'status', 'total', 'paid', 'balance'])
         ->and(ReportKey::Arrivals->maxRangeDays())->toBe(31)
         ->and(ReportKey::Arrivals->report())->toBeInstanceOf(ArrivalsReport::class);
 });

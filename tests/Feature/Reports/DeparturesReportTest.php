@@ -68,7 +68,7 @@ test('the page opens on the business date with the departure columns and sort', 
         ->where('to', '2026-10-10')
         ->where('maxRangeDays', 31)
         ->where('sort', 'departure')
-        ->has('layout.columns', 15)
+        ->has('layout.columns', 17)
         ->where('rows.meta.total', 1)
         ->where('rows.data.0.departure', '2026-10-10')
         ->where('rows.data.0.nights', 2));
@@ -151,9 +151,9 @@ test('the PDF and the CSV export the departures', function () {
 
     $lines = array_values(array_filter(explode("\n", ltrim($csv->streamedContent(), "\xEF\xBB\xBF"))));
 
-    expect(str_getcsv($lines[0]))->toBe(['Reservation no.', 'Guest', 'Departure', 'Departure time', 'Nights', 'Room type / room', 'Status', 'Balance (MYR)'])
+    expect(str_getcsv($lines[0]))->toBe(['Reservation no.', 'Guest', 'Departure', 'Departure time', 'Nights', 'Room type / room', 'Status', 'Total (MYR)', 'Paid (MYR)', 'Balance (MYR)'])
         ->and($lines)->toHaveCount(3)
-        ->and(str_getcsv($lines[2]))->toBe(['Total', '', '', '', '2', '', '', '0']);
+        ->and(str_getcsv($lines[2]))->toBe(['Total', '', '', '', '2', '', '', '0', '0', '0']);
 });
 
 test('the split columns hold the room type, the room of the last night, the guest counts and the departure time', function () {
