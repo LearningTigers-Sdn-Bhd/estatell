@@ -2,11 +2,13 @@
 
 namespace App\Actions\Platform;
 
+use App\Actions\Account\RecordSignIn;
 use App\Enums\ImpersonationReason;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Platform\Impersonation;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Session;
 
@@ -54,7 +56,7 @@ class StartImpersonation
                 : route('partner.properties.show', ['code' => $property->code], absolute: false),
         ]);
 
-        Auth::login($staff);
+        Context::scope(fn () => Auth::login($staff), hidden: [RecordSignIn::SUPPORT_SWITCH_CONTEXT_KEY => true]);
 
         activity()
             ->performedOn($property)

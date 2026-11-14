@@ -2,8 +2,10 @@
 
 namespace App\Actions\Platform;
 
+use App\Actions\Account\RecordSignIn;
 use App\Services\Platform\Impersonation;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Session;
 
 class StopImpersonation
@@ -27,7 +29,7 @@ class StopImpersonation
         ($this->recordEnd)();
 
         Session::forget(Impersonation::SESSION_KEY);
-        Auth::login($supportUser);
+        Context::scope(fn () => Auth::login($supportUser), hidden: [RecordSignIn::SUPPORT_SWITCH_CONTEXT_KEY => true]);
 
         return $returnUrl;
     }

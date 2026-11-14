@@ -30,6 +30,7 @@ use App\Enums\RegistrationCardStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\RevisionKind;
 use App\Enums\RoomDayState;
+use App\Enums\SignInResult;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Enums\WebhookDeliveryStatus;
@@ -159,6 +160,11 @@ class BadgeData extends Data
     public static function fromMailStatus(MailStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromSignInResult(SignInResult $result): self
+    {
+        return new self($result->value, $result->label(), $result->tone());
     }
 
     public static function fromPartnerStatus(PartnerStatus $status): self
