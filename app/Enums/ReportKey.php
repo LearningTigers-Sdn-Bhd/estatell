@@ -412,6 +412,8 @@ enum ReportKey: string
                 new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),
                 new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
                 new ReportColumn('checked_out_at', __('Checked out'), ColumnAlign::Left, true),
+                new ReportColumn('total', __('Total'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('paid', __('Paid'), ColumnAlign::Right, true, money: true),
                 new ReportColumn('balance', __('Balance'), ColumnAlign::Right, true, money: true),
                 new ReportColumn('phone', __('Phone'), ColumnAlign::Left, false),
                 new ReportColumn('departure', __('Departure'), ColumnAlign::Left, false),
@@ -464,6 +466,8 @@ enum ReportKey: string
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, false),
                 new ReportColumn('company', __('Company'), ColumnAlign::Left, false),
                 new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('total', __('Total'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('paid', __('Paid'), ColumnAlign::Right, true, money: true),
                 new ReportColumn('balance', __('Balance'), ColumnAlign::Right, true, money: true),
             ],
             self::Departures => [
@@ -482,6 +486,8 @@ enum ReportKey: string
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, false),
                 new ReportColumn('company', __('Company'), ColumnAlign::Left, false),
                 new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('total', __('Total'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('paid', __('Paid'), ColumnAlign::Right, true, money: true),
                 new ReportColumn('balance', __('Balance'), ColumnAlign::Right, true, money: true),
             ],
             self::InHouse => [
@@ -497,6 +503,8 @@ enum ReportKey: string
                 new ReportColumn('adults', __('Adults'), ColumnAlign::Right, false),
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, false),
                 new ReportColumn('company', __('Company'), ColumnAlign::Left, false),
+                new ReportColumn('total', __('Total'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('paid', __('Paid'), ColumnAlign::Right, true, money: true),
                 new ReportColumn('balance', __('Balance'), ColumnAlign::Right, true, money: true),
             ],
             self::Occupancy => [

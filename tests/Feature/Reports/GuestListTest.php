@@ -133,7 +133,7 @@ test('each tab uses the layout of its own report', function () {
         ->and($visible($balanceVisible('departures')))->toBeTrue();
     $this->actingAs($user)->get(guestListUrl($property, '?tab=checked-out'))->assertInertia(fn (Assert $page) => $page
         ->where('layout.orientation', 'landscape')
-        ->has('layout.columns', 14));
+        ->has('layout.columns', 16));
 });
 
 test('the old URLs redirect to the tab with the query', function (string $slug) {

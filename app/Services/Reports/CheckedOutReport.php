@@ -50,12 +50,12 @@ class CheckedOutReport implements HasTotals, Report
                 ->orderBy('id'),
             $rowKeys,
             fn (array $unitIds): array => $this->roomBox->lastNightAssignmentsForUnits($unitIds),
-            fn (ReservationUnit $unit, ?string $room, string $balance): CheckedOutRow => CheckedOutRow::fromModel($unit, $room, $balance, $timeZone),
+            fn (ReservationUnit $unit, ?string $room, array $money): CheckedOutRow => CheckedOutRow::fromModel($unit, $room, $money, $timeZone),
         );
     }
 
     /**
-     * The sums of nights, adults and children, and the balance of each reservation once.
+     * The sums of nights, adults and children, and the total, paid and balance of each reservation once.
      *
      * @param  list<CheckedOutRow>  $rows
      */
