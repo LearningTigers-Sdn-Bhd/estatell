@@ -32,6 +32,8 @@ class ArrivalRow extends Data implements ReportRow
         public int $children,
         public ?string $company,
         public BadgeData $status,
+        public string $total,
+        public string $paid,
         public string $balance,
     ) {}
 
@@ -56,6 +58,8 @@ class ArrivalRow extends Data implements ReportRow
             'children' => (string) $this->children,
             'company' => $this->company ?? '',
             'status' => $this->status->label,
+            'total' => number_format((float) $this->total, 2),
+            'paid' => number_format((float) $this->paid, 2),
             'balance' => number_format((float) $this->balance, 2),
         ];
     }
@@ -81,6 +85,8 @@ class ArrivalRow extends Data implements ReportRow
             'children' => $this->children,
             'company' => $this->company ?? '',
             'status' => $this->status->label,
+            'total' => round((float) $this->total, 2),
+            'paid' => round((float) $this->paid, 2),
             'balance' => round((float) $this->balance, 2),
         ];
     }
@@ -88,8 +94,9 @@ class ArrivalRow extends Data implements ReportRow
     /**
      * @param  string|null  $boat  The boat text, or null while the Boats feature is off.
      * @param  string|null  $room  The room number or bed label of the first night, when one is assigned.
+     * @param  array{total: string, paid: string, balance: string}  $money  The total, paid and balance of the reservation.
      */
-    public static function fromModel(ReservationUnit $unit, ?string $room, string $balance, ?string $boat = null): self
+    public static function fromModel(ReservationUnit $unit, ?string $room, array $money, ?string $boat = null): self
     {
         $reservation = $unit->reservation;
         $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $reservation->booker;
@@ -112,7 +119,9 @@ class ArrivalRow extends Data implements ReportRow
             children: $unit->children,
             company: $reservation->company?->name,
             status: BadgeData::fromUnitStatus($unit->status),
-            balance: $balance,
+            total: $money['total'],
+            paid: $money['paid'],
+            balance: $money['balance'],
         );
     }
 }

@@ -46,15 +46,24 @@ const reservation = (row: { reservation: string }) => (
     <span className="font-medium">{row.reservation}</span>
 );
 
-const balance = (
-    row: { balance: string },
-    currency: App.Data.Property.CurrencyData | null,
-) => <MoneyText amount={row.balance} currency={currency} plain />;
+type MoneyRow = { total: string; paid: string; balance: string };
+
+const money =
+    (field: keyof MoneyRow) =>
+    (row: MoneyRow, currency: App.Data.Property.CurrencyData | null) => (
+        <MoneyText amount={row[field]} currency={currency} plain />
+    );
+
+const total = money('total');
+const paid = money('paid');
+const balance = money('balance');
 
 const arrivalCells: ReportCells<App.Data.Reports.ArrivalRow> = {
     reservation,
     arrival: (row) => <DateText date={row.arrival} />,
     status: (row) => <StatusBadge status={row.status} />,
+    total,
+    paid,
     balance,
 };
 
@@ -62,6 +71,8 @@ const inHouseCells: ReportCells<App.Data.Reports.InHouseRow> = {
     reservation,
     arrival: (row) => <DateText date={row.arrival} />,
     departure: (row) => <DateText date={row.departure} />,
+    total,
+    paid,
     balance,
 };
 
@@ -69,6 +80,8 @@ const departureCells: ReportCells<App.Data.Reports.DepartureRow> = {
     reservation,
     departure: (row) => <DateText date={row.departure} />,
     status: (row) => <StatusBadge status={row.status} />,
+    total,
+    paid,
     balance,
 };
 
@@ -84,6 +97,8 @@ const checkedOutCells: ReportCells<App.Data.Reports.CheckedOutRow> = {
         ) : (
             <span className="text-muted-foreground">—</span>
         ),
+    total,
+    paid,
     balance,
 };
 
@@ -124,7 +139,7 @@ const screens: Record<
     'checked-out': {
         icon: LogOut,
         description:
-            'The units that checked out in the dates you pick, with their balance.',
+            'The units that checked out in the dates you pick, with what they spent and paid.',
         emptyTitle: 'No check-outs in these dates',
         emptyDescription: 'Pick other dates to see the units that checked out.',
         cells: checkedOutCells as unknown as ReportCells<Row>,

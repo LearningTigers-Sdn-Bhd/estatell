@@ -70,7 +70,7 @@ test('with no stored layout the resolver returns the code defaults', function ()
 
     expect($layout->orientation)->toBe(PageOrientation::Portrait)
         ->and(array_column($layout->columns, 'key'))->toBe(array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columnsFor($property)))
-        ->and($layout->visibleKeys())->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'nights', 'unit', 'status', 'balance']);
+        ->and($layout->visibleKeys())->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'nights', 'unit', 'status', 'total', 'paid', 'balance']);
 });
 
 test('stored columns keep their order, a new code column goes after the column before it and a stale key is ignored', function () {
@@ -84,8 +84,8 @@ test('stored columns keep their order, a new code column goes after the column b
 
     expect($layout->orientation)->toBe(PageOrientation::Landscape)
         ->and(array_slice($keys, 0, 4))->toBe(['balance', 'guest', 'reservation', 'phone'])
-        ->and($keys)->toHaveCount(15)->not->toContain('stale_key')
-        ->and(array_slice($keys, 4))->toBe(['arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status']);
+        ->and($keys)->toHaveCount(17)->not->toContain('stale_key')
+        ->and(array_slice($keys, 4))->toBe(['arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'total', 'paid']);
 
     $visible = array_column($layout->columns, 'visible', 'key');
 
@@ -114,7 +114,7 @@ test('UpdateReportLayout saves the orientation and the columns in order and logs
 
     expect($layout->orientation)->toBe(PageOrientation::Landscape)
         ->and($layout->columns->pluck('column_key')->all())->toBe($keys)
-        ->and($layout->columns->pluck('position')->all())->toBe(range(0, 14))
+        ->and($layout->columns->pluck('position')->all())->toBe(range(0, 16))
         ->and($layout->columns->firstWhere('column_key', 'phone')->is_visible)->toBeFalse();
 
     $activity = Activity::query()->where('event', 'report_layout.updated')->sole();
@@ -132,7 +132,7 @@ test('saving again replaces the columns and keeps one layout', function () {
     $action($user, $property, ReportKey::Arrivals, PageOrientation::Portrait, layoutDraft(hidden: ['guest']));
 
     expect(ReportLayout::query()->count())->toBe(1)
-        ->and(ReportLayoutColumn::query()->count())->toBe(15)
+        ->and(ReportLayoutColumn::query()->count())->toBe(17)
         ->and(ReportLayout::query()->sole()->orientation)->toBe(PageOrientation::Portrait);
 });
 
@@ -226,7 +226,7 @@ test('the arrivals page receives the saved layout and canEditLayout', function (
     $this->actingAs($manager)->get("/p/{$property->code}/reports/guest-list?tab=arrivals")->assertInertia(fn (Assert $page) => $page
         ->where('canEditLayout', true)
         ->where('layout.orientation', 'landscape')
-        ->has('layout.columns', 15)
+        ->has('layout.columns', 17)
         ->where('layout.columns.0', ['key' => 'balance', 'label' => 'Balance', 'align' => 'right', 'visible' => true, 'defaultAlign' => 'right', 'money' => true])
         ->where('layout.columns.2.visible', false)
         ->missing('columns'));
@@ -375,7 +375,7 @@ test('a layout stored before the split columns resolves with each one hidden rig
     $keys = array_column($layout->columns, 'key');
     $visible = array_column($layout->columns, 'visible', 'key');
 
-    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'balance'])
+    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'total', 'paid', 'balance'])
         ->and($visible['room_type'] || $visible['room'] || $visible['adults'] || $visible['children'])->toBeFalse()
         ->and($visible['arrival_time'])->toBeTrue();
 });

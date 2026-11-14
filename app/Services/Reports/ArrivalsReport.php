@@ -60,12 +60,12 @@ class ArrivalsReport implements HasTotals, Report
                 ->orderBy('id'),
             $rowKeys,
             fn (array $unitIds): array => $this->roomBox->assignmentsForUnits($unitIds),
-            fn (ReservationUnit $unit, ?string $room, string $balance): ArrivalRow => ArrivalRow::fromModel($unit, $room, $balance, $boats ? $this->boatTimes->forUnit($unit, BoatDirection::In) : null),
+            fn (ReservationUnit $unit, ?string $room, array $money): ArrivalRow => ArrivalRow::fromModel($unit, $room, $money, $boats ? $this->boatTimes->forUnit($unit, BoatDirection::In) : null),
         );
     }
 
     /**
-     * The sums of nights, adults and children, and the balance of each reservation once.
+     * The sums of nights, adults and children, and the total, paid and balance of each reservation once.
      *
      * @param  list<ArrivalRow>  $rows
      */

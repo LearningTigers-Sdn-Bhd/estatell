@@ -106,10 +106,12 @@ test('a portrait report with more than 6 columns prints tight, and the same colu
 
     $this->actingAs($user)->post(exportUrl($property, 'pdf'), ['from' => '2026-10-10', 'to' => '2026-10-10'])->assertOk();
 
+    $eightColumns = [...$captured->data, 'columns' => array_slice($captured->data['columns'], 0, 8)];
+
     expect($captured->data['orientation'])->toBe(PageOrientation::Portrait)
-        ->and(count($captured->data['columns']))->toBeGreaterThan(6)->toBeLessThanOrEqual(9)
-        ->and(view('pdf.report', $captured->data)->render())->toContain('.data { font-size:')
-        ->and(view('pdf.report', [...$captured->data, 'orientation' => PageOrientation::Landscape])->render())->not->toContain('.data { font-size:');
+        ->and(count($captured->data['columns']))->toBeGreaterThan(8)
+        ->and(view('pdf.report', $eightColumns)->render())->toContain('.data { font-size:')
+        ->and(view('pdf.report', [...$eightColumns, 'orientation' => PageOrientation::Landscape])->render())->not->toContain('.data { font-size:');
 });
 
 test('the PDF holds only the selected rows and ignores keys outside the dates or the property', function () {
@@ -174,8 +176,8 @@ test('the CSV follows the saved layout order and visibility and writes money as 
 
     $rows = csvRows($response->streamedContent());
 
-    expect($rows[0])->toBe(['Balance (MYR)', 'Guest', 'Arrival', 'Arrival time', 'Nights', 'Room type / room', 'Status'])
-        ->and($rows[1])->toBe(['350.5', 'Tan', '2026-10-10', '15:00', '2', $unit->roomType->name, 'Confirmed']);
+    expect($rows[0])->toBe(['Balance (MYR)', 'Guest', 'Arrival', 'Arrival time', 'Nights', 'Room type / room', 'Status', 'Total (MYR)', 'Paid (MYR)'])
+        ->and($rows[1])->toBe(['350.5', 'Tan', '2026-10-10', '15:00', '2', $unit->roomType->name, 'Confirmed', '350.5', '0']);
 });
 
 test('the spreadsheet sorts like the table and honours the selection', function () {

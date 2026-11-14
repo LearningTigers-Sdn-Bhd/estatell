@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
  * arrival is not in-house. An early check-out moves the departure date to the day it happens and removes the unused
  * nights, so the dates alone give the right answer for any date, past or open. `unit_nights` is read only for the
  * room or bed of that night. The total row sums adults and children and
- * counts the balance of each reservation once.
+ * counts the total, paid and balance of each reservation once.
  */
 class InHouseReport implements HasTotals, Report
 {
@@ -58,12 +58,12 @@ class InHouseReport implements HasTotals, Report
             $this->query($property, $filters)->orderBy('id'),
             $rowKeys,
             fn (array $unitIds): array => $this->roomBox->assignmentsForUnitsOn($unitIds, $filters->from),
-            fn (ReservationUnit $unit, ?string $room, string $balance): InHouseRow => InHouseRow::fromModel($unit, $room, $balance),
+            fn (ReservationUnit $unit, ?string $room, array $money): InHouseRow => InHouseRow::fromModel($unit, $room, $money),
         );
     }
 
     /**
-     * The sums of adults and children, and the balance of each reservation once.
+     * The sums of adults and children, and the total, paid and balance of each reservation once.
      *
      * @param  list<InHouseRow>  $rows
      */
@@ -81,7 +81,7 @@ class InHouseReport implements HasTotals, Report
             'adults' => array_sum(array_map(fn (InHouseRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (InHouseRow $row): int => $row->children, $rows)),
             'company' => null,
-            'balance' => $this->unitRows->balanceTotal($rows),
+            ...$this->unitRows->moneyTotals($rows),
         ]);
     }
 }
