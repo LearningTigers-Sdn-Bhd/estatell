@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Account\PruneSignInEvents;
 use App\Actions\ApiAccess\PruneIdempotencyKeys;
 use App\Actions\BookingEngine\ExpireBookingHolds;
 use App\Actions\BookingEngine\PurgeBookingHoldGuestDetails;
@@ -62,6 +63,8 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('purge-expired-identity-scans')->dailyAt('03:30')->onOneServer();
 
 Schedule::call(fn (): int => app(PruneMailEvents::class)())->name('prune-mail-events')->dailyAt('03:45')->onOneServer();
+
+Schedule::call(fn (): int => app(PruneSignInEvents::class)())->name('prune-sign-in-events')->dailyAt('03:40')->onOneServer();
 
 Schedule::call(fn (): int => app(PruneIdempotencyKeys::class)())->name('prune-api-idempotency-keys')->hourly()->onOneServer();
 

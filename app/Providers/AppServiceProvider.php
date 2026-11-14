@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Actions\Account\RecordSignIn;
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
 use App\Actions\DoorLocks\QueueStayKeyCards;
@@ -13,6 +14,7 @@ use App\Actions\Platform\RecordImpersonationEnd;
 use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
+use App\Enums\SignInResult;
 use App\Events\ChannelStructureChanged;
 use App\Events\FolioClosed;
 use App\Events\InventoryChanged;
@@ -33,6 +35,9 @@ use App\Services\Notifications\MillionSendTransport;
 use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Lockout;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -61,6 +66,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use InvalidArgumentException;
+use Laravel\Fortify\Events\TwoFactorAuthenticationFailed;
+use Laravel\Fortify\Fortify;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Contracts\Activity;
@@ -90,6 +97,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureSupportSessions();
         $this->configureMailBranding();
         $this->configureMailLog();
+        $this->configureSignInLog();
         $this->configureChannelEvents();
         $this->configureApiRateLimiting();
         $this->configureInertiaSsr();
@@ -181,6 +189,34 @@ class AppServiceProvider extends ServiceProvider
                 event(new ChannelStructureChanged($roomType->property_id));
             }
         });
+    }
+
+    /**
+     * Every sign-in attempt on the web login leaves a sign-in log row. A failed attempt is linked to the account its
+     * email belongs to, but the email itself is not stored. See docs/01-platform/07-sign-in-log.md.
+     */
+    protected function configureSignInLog(): void
+    {
+        $record = fn (SignInResult $result, ?User $user) => app(RecordSignIn::class)($result, $user, request());
+        $accountFor = fn (mixed $email): ?User => is_string($email) && $email !== ''
+            ? User::query()->where(Fortify::username(), Str::lower($email))->first()
+            : null;
+
+        Event::listen(Login::class, function (Login $event) use ($record): void {
+            if ($event->guard === config('fortify.guard') && $event->user instanceof User) {
+                $record(SignInResult::Succeeded, $event->user);
+            }
+        });
+
+        Event::listen(Failed::class, function (Failed $event) use ($record, $accountFor): void {
+            if ($event->guard === config('fortify.guard')) {
+                $record(SignInResult::Failed, $event->user instanceof User ? $event->user : $accountFor($event->credentials[Fortify::username()] ?? null));
+            }
+        });
+
+        Event::listen(TwoFactorAuthenticationFailed::class, fn (TwoFactorAuthenticationFailed $event) => $record(SignInResult::TwoFactorFailed, $event->user));
+
+        Event::listen(Lockout::class, fn (Lockout $event) => $record(SignInResult::LockedOut, $accountFor($event->request->input(Fortify::username()))));
     }
 
     /**

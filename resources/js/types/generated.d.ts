@@ -2594,6 +2594,18 @@ deactivated: boolean,
 canSendSetupLink: boolean,
 createdAt: string,
 };
+export type AdminSignInEventRowData = {
+id: number,
+occurredAt: string,
+userName: string | null,
+userEmail: string | null,
+userWhere: string | null,
+result: App.Data.Shared.BadgeData,
+ipAddress: string,
+countryCode: string | null,
+os: string | null,
+browser: string | null,
+};
 export type AdminWaitingPropertyData = {
 sentOn: string,
 warningsCount: number,
@@ -5324,6 +5336,7 @@ export type RoomDayState = 'arriving' | 'in_house' | 'departing' | 'vacant' | 'b
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SailingKind = 'guests' | 'job';
 export type SellUnit = 'room' | 'bed';
+export type SignInResult = 'succeeded' | 'failed' | 'two_factor_failed' | 'locked_out';
 export type SiteTemplateStatus = 'draft' | 'available' | 'retired';
 export type SiteTemplateType = 'standard' | 'custom';
 export type SpreadsheetFormat = 'csv' | 'xlsx';

@@ -28,6 +28,7 @@ class AdminNavigation
             new NavItemData(title: __('Nearby places'), href: route('admin.nearby-places.index', absolute: false), icon: 'map-pin', active: request()->routeIs('admin.nearby-places.*')),
             new NavItemData(title: __('Website templates'), href: route('admin.site-templates.index', absolute: false), icon: 'layout-template', active: request()->routeIs('admin.site-templates.*')),
             new NavItemData(title: __('Mail log'), href: route('admin.mail-events.index', absolute: false), icon: 'mail', active: request()->routeIs('admin.mail-events.*')),
+            new NavItemData(title: __('Sign-in log'), href: route('admin.sign-in-events.index', absolute: false), icon: 'shield', active: request()->routeIs('admin.sign-in-events.*')),
             new NavItemData(title: __('Horizon'), href: route('horizon.index', absolute: false), icon: 'activity', external: true),
         ];
     }
