@@ -206,7 +206,7 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
 | #   | Module                                 | Summary                                                                                                                |
 | --- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 01  | [Platform](01-platform/)               | Platform admins, platform settings, feature flags, impersonation, demo properties                                      |
+| 01  | [Platform](01-platform/)               | Platform admins, platform settings, feature flags, impersonation, demo properties, sign-in log                         |
 | 02  | [Property](02-property/)               | Properties, settings, defaults seeding, age groups, printing settings                                                  |
 | 03  | [Staff](03-staff/)                     | Staff invitations, roles and permissions                                                                               |
 | 04  | [Notifications](04-notifications/)     | Notification types and opt-out                                                                                         |
