@@ -37,6 +37,7 @@ return [
         'logins' => [
             ['property' => 'Pearlside View Resort', 'email' => 'pearlside@demo.estatell.com'],
             ['property' => 'Boreno Hotel', 'email' => 'boreno@demo.estatell.com'],
+            ['property' => 'Kopi Lane Hostel', 'email' => 'kopilane@demo.estatell.com'],
         ],
     ],
 

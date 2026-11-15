@@ -5,6 +5,7 @@ use App\Enums\ArInvoiceType;
 use App\Enums\BookingClientType;
 use App\Enums\BookingEngineMode;
 use App\Enums\PropertyStatus;
+use App\Enums\PropertyType;
 use App\Enums\UnitStatus;
 use App\Features\BookingEngine;
 use App\Models\ArInvoice;
@@ -13,6 +14,8 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Models\RoomBlock;
+use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceBalance;
 use Database\Seeders\DemoSeeder;
@@ -50,6 +53,7 @@ test('each demo property has an Owner login that uses the demo password', functi
 })->with([
     ['pearlside@demo.estatell.com', 'Pearlside View Resort'],
     ['boreno@demo.estatell.com', 'Boreno Hotel'],
+    ['kopilane@demo.estatell.com', 'Kopi Lane Hostel'],
 ]);
 
 test('the Owner logins on the partner Demo access card match the seeded Owners', function () {
@@ -58,6 +62,24 @@ test('the Owner logins on the partner Demo access card match the seeded Owners',
     foreach (config('estatell.demo.logins') as $login) {
         expect(User::query()->where('email', $login['email'])->sole()->property->name)->toBe($login['property']);
     }
+});
+
+test('Kopi Lane Hostel sells beds in four dorms, with beds in house and one bed blocked', function () {
+    $this->seed(DemoSeeder::class);
+
+    $hostel = Property::query()->where('name', 'Kopi Lane Hostel')->sole();
+    $club = Reservation::query()->where('property_id', $hostel->id)->where('group_name', 'Sabah Hiking Club')->sole();
+    $clubRooms = UnitNight::query()->whereIn('reservation_unit_id', $club->units()->select('id'))->join('beds', 'beds.id', '=', 'unit_nights.bed_id')->distinct()->pluck('beds.room_id');
+
+    expect($hostel->status)->toBe(PropertyStatus::Live)
+        ->and($hostel->type)->toBe(PropertyType::Hostel)
+        ->and(Room::query()->where('property_id', $hostel->id)->count())->toBe(8)
+        ->and($hostel->beds()->count())->toBe(26)
+        ->and(Reservation::query()->where('property_id', $hostel->id)->count())->toBe(15)
+        ->and(ReservationUnit::query()->where('property_id', $hostel->id)->where('status', UnitStatus::CheckedIn)->count())->toBe(3)
+        ->and(RoomBlock::query()->where('property_id', $hostel->id)->whereNotNull('bed_id')->count())->toBe(1)
+        ->and($club->units()->count())->toBe(8)
+        ->and($clubRooms)->toHaveCount(1);
 });
 
 test('Boreno Hotel has a paid, a part paid and a credited AR invoice', function () {
