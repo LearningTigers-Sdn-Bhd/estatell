@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 use RuntimeException;
 
 /**
- * Seeds the demo environment: Pearlside View Resort and Boreno Hotel. It runs at the nightly reset
+ * Seeds the demo environment: Pearlside View Resort, Boreno Hotel and Kopi Lane Hostel. It runs at the nightly reset
  * (`php artisan migrate:fresh --force --seeder=DemoSeeder`) and is never called from `DatabaseSeeder`, so it can't
  * run in production. See docs/deployment/demo_environment.md.
  */
@@ -18,7 +18,7 @@ class DemoSeeder extends Seeder
         self::password();
         DemoBookingEngineSeeder::token();
 
-        $this->call([OtaChannelSeeder::class, AmenitySeeder::class, SiteTemplateSeeder::class, PearlsideSeeder::class, BorenoSeeder::class, DemoBookingEngineSeeder::class]);
+        $this->call([OtaChannelSeeder::class, AmenitySeeder::class, SiteTemplateSeeder::class, PearlsideSeeder::class, BorenoSeeder::class, KopiLaneSeeder::class, DemoBookingEngineSeeder::class]);
     }
 
     /**
