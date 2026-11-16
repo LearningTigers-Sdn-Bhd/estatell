@@ -1,6 +1,7 @@
 import { Form, Link, router } from '@inertiajs/react';
 import {
     AppWindow,
+    BedSingle,
     Cable,
     Calculator,
     CircleCheck,
@@ -60,6 +61,7 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     'booking-engine': Globe,
     'e-invoicing': FileText,
     concierge: ConciergeBell,
+    'bed-room-types': BedSingle,
 };
 
 /** On and Off for the partner's read-only rows. */

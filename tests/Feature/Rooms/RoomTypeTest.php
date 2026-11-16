@@ -3,6 +3,7 @@
 use App\Actions\Rooms\ReorderRoomTypes;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\SellUnit;
+use App\Features\BedRoomTypes;
 use App\Models\Bed;
 use App\Models\BusinessDate;
 use App\Models\Property;
@@ -14,6 +15,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -49,7 +51,31 @@ test('the list shows active room types in order, then archived ones', function (
             ->where('roomTypes', fn ($roomTypes) => collect($roomTypes)->pluck('name')->all() === ['Dorm', 'Second', 'Old'])
             ->where('roomTypes.0.sellUnit', 'bed')
             ->where('roomTypes.2.archived', true)
-            ->where('sellUnits', SellUnit::options()));
+            ->where('sellUnits', SellUnit::options())
+            ->where('bedsOn', false));
+});
+
+test('bed room types are refused and Sold by is hidden until the feature is on for the property', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $url = route('settings.room-types.store', $property->code);
+
+    $this->actingAs($owner)
+        ->post($url, roomTypePayload(['name' => 'Dorm', 'sell_unit' => 'bed', 'max_adults' => 1, 'base_occupancy' => 1]))
+        ->assertSessionHasErrors(['sell_unit' => 'Bed room types are not available yet.']);
+
+    $this->get(route('settings.room-types.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('bedsOn', false));
+
+    Feature::for($property)->activate(BedRoomTypes::class);
+
+    $this->get(route('settings.room-types.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('bedsOn', true));
+
+    $this->post($url, roomTypePayload(['name' => 'Dorm', 'sell_unit' => 'bed', 'max_adults' => 1, 'base_occupancy' => 1]))
+        ->assertSessionHasNoErrors();
+
+    expect($property->roomTypes()->sole()->sell_unit)->toBe(SellUnit::Bed);
 });
 
 test('owners create a room type at the end of the list', function () {

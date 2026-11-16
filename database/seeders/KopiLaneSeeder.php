@@ -47,6 +47,7 @@ use App\Enums\PropertyType;
 use App\Enums\RoomBlockReason;
 use App\Enums\SellUnit;
 use App\Enums\TransactionCategory;
+use App\Features\BedRoomTypes;
 use App\Models\Bed;
 use App\Models\BookingSource;
 use App\Models\ChargeItem;
@@ -67,6 +68,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\Concerns\SeedsThroughActions;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 use RuntimeException;
 
 /**
@@ -171,6 +173,7 @@ class KopiLaneSeeder extends Seeder
 
         app(GenerateDocumentPrefix::class)($property);
         app(SeedPropertyDefaults::class)($property, PropertyType::Hostel, 'MY');
+        Feature::for($property)->activate(BedRoomTypes::class);
         $property->forceFill(['status' => PropertyStatus::Live, 'went_live_at' => now()])->save();
 
         return $property->refresh();

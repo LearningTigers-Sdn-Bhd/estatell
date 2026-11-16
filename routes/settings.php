@@ -138,16 +138,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('/', [RoomController::class, 'store'])->name('store');
             Route::post('generate/preview', [RoomController::class, 'preview'])->name('generate.preview');
             Route::post('generate', [RoomController::class, 'generate'])->name('generate');
-            Route::post('beds/generate', [BedController::class, 'generate'])->name('beds.generate');
+            Route::post('beds/generate', [BedController::class, 'generate'])->middleware('beds')->name('beds.generate');
             Route::post('change-type', [RoomController::class, 'changeType'])->name('change-type');
             Route::post('archive-many', [RoomController::class, 'archiveMany'])->name('archive-many');
             Route::put('{room}', [RoomController::class, 'update'])->name('update');
             Route::post('{room}/archive', [RoomController::class, 'archive'])->name('archive');
             Route::post('{room}/restore', [RoomController::class, 'restore'])->name('restore');
-            Route::post('{room}/beds', [BedController::class, 'store'])->name('beds.store');
-            Route::put('{room}/beds/{bed}', [BedController::class, 'update'])->name('beds.update');
-            Route::post('{room}/beds/{bed}/archive', [BedController::class, 'archive'])->name('beds.archive');
-            Route::post('{room}/beds/{bed}/restore', [BedController::class, 'restore'])->name('beds.restore');
+            Route::post('{room}/beds', [BedController::class, 'store'])->middleware('beds')->name('beds.store');
+            Route::put('{room}/beds/{bed}', [BedController::class, 'update'])->middleware('beds')->name('beds.update');
+            Route::post('{room}/beds/{bed}/archive', [BedController::class, 'archive'])->middleware('beds')->name('beds.archive');
+            Route::post('{room}/beds/{bed}/restore', [BedController::class, 'restore'])->middleware('beds')->name('beds.restore');
         });
     });
 

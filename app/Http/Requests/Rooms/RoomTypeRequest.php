@@ -67,9 +67,18 @@ class RoomTypeRequest extends FormRequest
             'print_label' => ['sometimes', 'nullable', 'string', 'max:12'],
             'sell_unit' => [
                 'required', Rule::enum(SellUnit::class),
-                function (string $attribute, mixed $value, Closure $fail) use ($current): void {
+                function (string $attribute, mixed $value, Closure $fail) use ($property, $current): void {
                     if ($current instanceof RoomType && $current->sell_unit->value !== $value && $current->rooms()->exists()) {
                         $fail(__('Sold by cannot change while this room type has rooms.'));
+
+                        return;
+                    }
+
+                    $unit = SellUnit::tryFrom((string) $value);
+                    $kept = $current instanceof RoomType && $current->sell_unit === $unit;
+
+                    if ($unit !== null && ! $kept && ! in_array($unit, SellUnit::availableFor($property), true)) {
+                        $fail(__('Bed room types are not available yet.'));
                     }
                 },
             ],

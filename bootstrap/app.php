@@ -5,6 +5,7 @@ use App\Http\Middleware\AuthenticateKeyportDevice;
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
+use App\Http\Middleware\EnsureBedsAreActive;
 use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureBookingClientReach;
 use App\Http\Middleware\EnsureBookingEngineIsActive;
@@ -68,6 +69,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.idempotent' => ReplayIdempotentRequest::class,
             'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
+            'beds' => EnsureBedsAreActive::class,
             'boats' => EnsureBoatsIsActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
@@ -94,6 +96,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBedsAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);

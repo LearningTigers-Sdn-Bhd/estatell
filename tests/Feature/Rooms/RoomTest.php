@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\DefaultRoleEnum;
+use App\Enums\SellUnit;
+use App\Features\BedRoomTypes;
 use App\Models\BusinessDate;
 use App\Models\Property;
 use App\Models\Room;
@@ -10,6 +12,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 test('the page lists the property\'s rooms, groups and room types only', function () {
@@ -191,6 +194,7 @@ test('a room cannot be restored while an active room uses its number', function 
 test('sold by is locked once a room type has rooms', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
+    Feature::for($property)->activate(BedRoomTypes::class);
     $type = RoomType::factory()->for($property)->create(['name' => 'Standard']);
     $payload = ['name' => 'Standard', 'sell_unit' => 'bed', 'max_adults' => 1, 'max_children' => 0, 'base_occupancy' => 1];
     $url = route('settings.room-types.update', [$property->code, $type]);
@@ -203,6 +207,11 @@ test('sold by is locked once a room type has rooms', function () {
     $this->put($url, [...$payload, 'sell_unit' => 'room'])->assertSessionHasErrors('sell_unit');
     $this->put($url, [...$payload, 'max_adults' => 2])->assertSessionHasNoErrors();
     expect($type->refresh()->sell_unit->value)->toBe('bed');
+
+    Feature::for($property)->deactivate(BedRoomTypes::class);
+
+    $this->put($url, [...$payload, 'max_adults' => 3])->assertSessionHasNoErrors();
+    expect($type->refresh()->only(['sell_unit', 'max_adults']))->toBe(['sell_unit' => SellUnit::Bed, 'max_adults' => 3]);
 });
 
 test('viewing needs rooms.view and changing needs rooms.manage', function () {
