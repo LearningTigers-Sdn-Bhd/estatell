@@ -47,3 +47,5 @@ There is no `property_id`. A bed reaches its property through its room, so the p
 ## UI
 
 On Settings > Rooms, a room of a Bed type shows its active bed count and a Beds button. The button opens a sheet with the bed list (rename, archive), an Add beds panel and the archived beds (restore). The panel is a radio choice: **Generate** (how many, and a prefix that defaults to the room letter) or **Manual** (add 1 bed and type its label). The header has Add beds, which applies one count to every dorm room without beds.
+
+The Rooms tab of a Bed room type has the same Beds button and an Add beds for the rooms of that type (see [Room types](01-room-types.md#rooms-tab)). Every bed action returns to the page it was sent from, with Settings > Rooms as the fallback. The default prefixes come from `BedRoomLetters` (a Service).
