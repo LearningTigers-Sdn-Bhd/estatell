@@ -31,16 +31,44 @@ class RecordSignIn
             return false;
         }
 
-        SignInEvent::query()->create([
+        $event = SignInEvent::query()->create([
             'user_id' => $user?->id,
             'result' => $result,
             'ip_address' => $request->ip() ?? 'unknown',
             'country_code' => $this->countryCode($request),
+            'city' => $this->place($request, 'cf-ipcity'),
+            'region' => $this->place($request, 'cf-region'),
+            'asn' => $this->asn($request),
             ...$this->devices->describe($request->userAgent()),
             'occurred_at' => now(),
+            'last_active_at' => $result === SignInResult::Succeeded ? now() : null,
         ]);
 
+        if ($result === SignInResult::Succeeded && $request->hasSession()) {
+            $request->session()->put([SignInEvent::SESSION_KEY => $event->id, TouchSignInSession::TOUCHED_AT_KEY => now()->getTimestamp()]);
+        }
+
         return true;
+    }
+
+    /**
+     * A city or region from Cloudflare's visitor location headers, cut to the column length. Empty when missing.
+     */
+    private function place(Request $request, string $header): ?string
+    {
+        $value = trim((string) $request->header($header));
+
+        return $value === '' ? null : mb_substr($value, 0, 80);
+    }
+
+    /**
+     * The network number the `X-Client-ASN` transform rule adds. Anything other than a positive number is ignored.
+     */
+    private function asn(Request $request): ?int
+    {
+        $asn = (string) $request->header('X-Client-ASN');
+
+        return preg_match('/^[1-9]\d{0,9}$/', $asn) === 1 && (int) $asn <= 4294967295 ? (int) $asn : null;
     }
 
     /**
