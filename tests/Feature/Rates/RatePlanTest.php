@@ -10,6 +10,7 @@ use App\Enums\AgeBandPricing;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
+use App\Features\BedRoomTypes;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
@@ -19,6 +20,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 /** @return array{0: User, 1: Property} */
@@ -526,6 +528,7 @@ test('active plans are reordered and a stale list is refused', function () {
 
 test('a new room type is linked to the first active plan that fits its sell unit', function () {
     [$owner, $property] = ratePlanOwner();
+    Feature::for($property)->activate(BedRoomTypes::class);
     RatePlan::factory()->for($property)->archived()->create(['position' => 1]);
     $perBed = RatePlan::factory()->for($property)->perBed()->create(['position' => 2]);
     $perRoom = RatePlan::factory()->for($property)->create(['position' => 3]);
@@ -547,6 +550,7 @@ test('a new room type is linked to the first active plan that fits its sell unit
 
 test('a room type with no fitting plan stays unlinked', function () {
     [$owner, $property] = ratePlanOwner();
+    Feature::for($property)->activate(BedRoomTypes::class);
     RatePlan::factory()->for($property)->create();
 
     $this->actingAs($owner)
@@ -560,6 +564,7 @@ test('a room type with no fitting plan stays unlinked', function () {
 
 test('changing a room type\'s sell unit swaps its links to a plan that fits', function () {
     [$owner, $property] = ratePlanOwner();
+    Feature::for($property)->activate(BedRoomTypes::class);
     $perRoom = RatePlan::factory()->for($property)->create(['position' => 1]);
     $perBed = RatePlan::factory()->for($property)->perBed()->create(['position' => 2]);
     $roomType = RoomType::factory()->for($property)->create(['name' => 'Deluxe']);

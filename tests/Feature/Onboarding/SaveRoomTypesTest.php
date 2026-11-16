@@ -3,6 +3,7 @@
 use App\Actions\Onboarding\SaveOnboardingRoomTypes;
 use App\Enums\SellUnit;
 use App\Enums\StepState;
+use App\Features\BedRoomTypes;
 use App\Models\Bed;
 use App\Models\Property;
 use App\Models\Room;
@@ -10,6 +11,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Services\Onboarding\Checks\RoomTypesCheck;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/OnboardingSetup.php';
 
@@ -80,7 +82,16 @@ test('a new row may reuse the name of a removed room type', function () {
         ->and($this->property->roomTypes()->active()->pluck('name')->all())->toBe(['garden room']);
 });
 
-test('a new row sold by bed creates a room type sold by bed', function () {
+test('a new row sold by bed is refused while bed room types are off', function () {
+    ($this->save)([roomTypeRow('6-Bed Mixed Dorm', ['sell_unit' => 'bed', 'max_adults' => 1])])
+        ->assertSessionHasErrors(['rows.0.sell_unit' => 'Bed room types are not available yet.']);
+
+    expect($this->property->roomTypes()->count())->toBe(0);
+});
+
+test('a new row sold by bed creates a room type sold by bed when bed room types are on', function () {
+    Feature::for($this->property)->activate(BedRoomTypes::class);
+
     ($this->save)([
         roomTypeRow('Private Room'),
         roomTypeRow('6-Bed Mixed Dorm', ['sell_unit' => 'bed', 'max_adults' => 1]),
@@ -113,6 +124,8 @@ test('room types sold by bed are rows like any other: updated, ordered, archived
 });
 
 test('sold by changes on a saved room type without rooms and is fixed once it has any room', function () {
+    Feature::for($this->property)->activate(BedRoomTypes::class);
+
     $empty = RoomType::factory()->for($this->property)->create(['name' => 'Empty']);
     $withRoom = RoomType::factory()->for($this->property)->create(['name' => 'With room']);
     Room::factory()->for($this->property)->for($withRoom)->archived()->create();
@@ -223,7 +236,7 @@ test('the page sends every room type with whether it has rooms and opens as a pr
             ->where('roomTypes.0.hasRooms', false)
             ->where('roomTypes.1.sellUnit', 'bed')
             ->where('roomTypes.1.hasRooms', true)
-            ->where('sellUnits', SellUnit::options())
+            ->where('sellUnits', SellUnit::options([SellUnit::Room]))
             ->where('locked', false)
             ->where('blockedBy', null));
 

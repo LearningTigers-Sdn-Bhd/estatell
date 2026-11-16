@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, BedDouble, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { ArchiveRoomTypeButton } from '@/components/pms/rooms/archive-room-type-button';
 import { GuestsIncludedLabel } from '@/components/pms/rooms/room-type-details-form';
@@ -78,7 +78,7 @@ function RoomTypeForm({
     sellUnits,
     termsDocuments,
 }: {
-    sellUnits: SellUnitOption[];
+    sellUnits: EnumOption[];
     termsDocuments: SellUnitOption[];
 }) {
     const form = useForm<FormData>(emptyForm);
@@ -276,7 +276,7 @@ export default function RoomTypesIndex({
     termsDocuments,
 }: {
     roomTypes: RoomType[];
-    sellUnits: SellUnitOption[];
+    sellUnits: EnumOption[];
     termsDocuments: { value: number; label: string }[];
 }) {
     const [creating, setCreating] = useState(false);

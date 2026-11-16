@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { RoomTypeDetailsForm } from '@/components/pms/rooms/room-type-details-form';
 import {
     RoomTypeShell,
@@ -18,7 +19,7 @@ export default function RoomTypeEdit({
     roomType: RoomType;
     roomCount: number;
     canManage: boolean;
-    sellUnits: { value: string; label: string }[];
+    sellUnits: EnumOption[];
     termsDocuments: { value: number; label: string }[];
 }) {
     return (

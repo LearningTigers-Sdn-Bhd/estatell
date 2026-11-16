@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use App\Features\AccountingIntegration;
+use App\Features\BedRoomTypes;
 use App\Features\Boats;
 use App\Features\BookingEngine;
 use App\Features\ChannelManager;
@@ -24,6 +25,7 @@ enum PlatformFeature: string
     case Kiosks = 'kiosks';
     case BookingEngine = 'booking-engine';
     case Concierge = 'concierge';
+    case BedRoomTypes = 'bed-room-types';
 
     public function label(): string
     {
@@ -36,6 +38,7 @@ enum PlatformFeature: string
             self::Kiosks => __('Kiosks'),
             self::BookingEngine => __('Booking engine'),
             self::Concierge => __('Concierge page'),
+            self::BedRoomTypes => __('Bed room types'),
         };
     }
 
@@ -50,6 +53,7 @@ enum PlatformFeature: string
             self::Kiosks => __('Self check-in kiosks: pairing, settings and the kiosk API for this property.'),
             self::BookingEngine => __('Let guests book and pay online, on a booking website or through the API.'),
             self::Concierge => __('Guest self check-in on the guest\'s own phone, from a lobby QR code or the pre-check-in link.'),
+            self::BedRoomTypes => __('Create room types sold by bed, for dorms. Room types that already sell beds keep working while this is off.'),
         };
     }
 
@@ -67,6 +71,7 @@ enum PlatformFeature: string
             self::Kiosks => Kiosks::class,
             self::BookingEngine => BookingEngine::class,
             self::Concierge => Concierge::class,
+            self::BedRoomTypes => BedRoomTypes::class,
         };
     }
 }

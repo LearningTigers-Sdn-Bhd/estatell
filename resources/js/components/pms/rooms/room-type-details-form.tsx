@@ -1,5 +1,5 @@
 import { Info } from 'lucide-react';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
@@ -21,8 +21,6 @@ import {
 import { update } from '@/routes/settings/room-types';
 
 type RoomType = App.Data.Rooms.RoomTypeData;
-type Option = { value: string; label: string };
-
 /**
  * Explains "Guests included" wherever the label appears.
  */
@@ -60,7 +58,7 @@ export function RoomTypeDetailsForm({
     readOnly,
 }: {
     roomType: RoomType;
-    sellUnits: Option[];
+    sellUnits: EnumOption[];
     termsDocuments: { value: number; label: string }[];
     readOnly: boolean;
 }) {

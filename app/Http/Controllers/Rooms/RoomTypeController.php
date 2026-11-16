@@ -45,7 +45,7 @@ class RoomTypeController extends Controller
                 ->ordered()
                 ->get()
                 ->map(fn (RoomType $roomType): RoomTypeData => RoomTypeData::fromModel($roomType)),
-            'sellUnits' => SellUnit::options(),
+            'sellUnits' => SellUnit::options(SellUnit::availableFor($property)),
             'termsDocuments' => $this->termsDocumentOptions($property),
         ]);
     }
@@ -69,7 +69,7 @@ class RoomTypeController extends Controller
             'roomTypeSwitch' => RoomTypeSwitchData::forProperty($property, $roomType),
             'roomCount' => $this->roomCount($roomType),
             'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
-            'sellUnits' => SellUnit::options(),
+            'sellUnits' => SellUnit::options(SellUnit::availableFor($property)),
             'termsDocuments' => $this->termsDocumentOptions($property),
         ]);
     }
