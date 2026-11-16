@@ -2780,6 +2780,18 @@ export type AcceptPartnerInvitationData = {
 name: string,
 password: string,
 };
+export type AdminContactEnquiryRowData = {
+id: number,
+receivedAt: string,
+hotelName: string,
+location: string,
+name: string,
+email: string,
+phone: string,
+roomCount: number,
+message: string,
+status: App.Data.Shared.BadgeData,
+};
 export type AdminGoLiveReviewData = {
 code: string,
 name: string,
@@ -5583,6 +5595,7 @@ export type CompanyType = 'corporate' | 'travel_agent' | 'government';
 export type CompanyUserStatus = 'pending' | 'active' | 'revoked';
 export type ConciergeEInvoiceState = 'after_check_out' | 'unavailable' | 'window_closed' | 'in_summary' | 'open' | 'processing' | 'valid';
 export type ConciergeStep = 'identity' | 'card' | 'payment' | 'check_in' | 'key' | 'home' | 'checked_out' | 'not_open' | 'hold_expired' | 'desk';
+export type ContactEnquiryStatus = 'new' | 'contacted' | 'closed';
 export type DashboardTab = 'performance' | 'today';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';

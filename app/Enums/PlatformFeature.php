@@ -38,7 +38,7 @@ enum PlatformFeature: string
             self::Kiosks => __('Kiosks'),
             self::BookingEngine => __('Booking engine'),
             self::Concierge => __('Concierge page'),
-            self::BedRoomTypes => __('Bed room types'),
+            self::BedRoomTypes => __('Dormitory features'),
         };
     }
 

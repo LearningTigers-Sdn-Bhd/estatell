@@ -26,6 +26,7 @@ class SearchEngineController extends Controller
                 'Allow: /services/',
                 'Allow: /terms-and-conditions',
                 'Allow: /privacy-policy',
+                'Allow: /contact',
                 'Allow: /sitemap.xml',
                 'Allow: /llms.txt',
                 'Disallow: /',
@@ -44,6 +45,7 @@ class SearchEngineController extends Controller
             ...array_map(fn (string $slug): string => $this->servicePath($slug), ServicePages::slugs()),
             route('terms', absolute: false),
             route('privacy', absolute: false),
+            route('contact', absolute: false),
         ];
 
         $urls = implode('', array_map(fn (string $path): string => '<url><loc>'.e(ServicePages::url($path)).'</loc></url>', $paths));

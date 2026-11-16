@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { home, privacy, terms } from '@/routes';
+import { contact, home, privacy, terms } from '@/routes';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { Navbar } from './navbar';
 import { Container } from './ui';
@@ -159,6 +159,12 @@ export function LegalPage({
                             aria-label="Legal"
                             className="flex flex-wrap gap-x-6 gap-y-2 text-sm"
                         >
+                            <Link
+                                href={contact()}
+                                className="inline-flex min-h-11 items-center text-foreground/75 hover:text-chart-1"
+                            >
+                                Contact Us
+                            </Link>
                             <Link
                                 href={terms()}
                                 aria-current={

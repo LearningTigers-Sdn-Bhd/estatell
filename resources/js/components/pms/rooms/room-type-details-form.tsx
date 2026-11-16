@@ -111,8 +111,8 @@ export function RoomTypeDetailsForm({
                                 )?.label ?? roomType.sellUnit}
                             </p>
                             <FieldDescription>
-                                This room type sells beds. Bed room types are
-                                turned off for this property.
+                                This room type sells beds. Dormitory features
+                                are turned off for this property.
                             </FieldDescription>
                         </Field>
                     )}

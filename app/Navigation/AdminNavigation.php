@@ -3,7 +3,9 @@
 namespace App\Navigation;
 
 use App\Data\Navigation\NavItemData;
+use App\Enums\ContactEnquiryStatus;
 use App\Enums\PropertyStatus;
+use App\Models\ContactEnquiry;
 use App\Models\Property;
 
 /**
@@ -27,10 +29,19 @@ class AdminNavigation
             new NavItemData(title: __('Amenities'), href: route('admin.amenities.index', absolute: false), icon: 'sparkles', active: request()->routeIs('admin.amenities.*')),
             new NavItemData(title: __('Nearby places'), href: route('admin.nearby-places.index', absolute: false), icon: 'map-pin', active: request()->routeIs('admin.nearby-places.*')),
             new NavItemData(title: __('Website templates'), href: route('admin.site-templates.index', absolute: false), icon: 'layout-template', active: request()->routeIs('admin.site-templates.*')),
+            new NavItemData(title: __('Enquiries'), href: route('admin.enquiries.index', absolute: false), icon: 'inbox', badge: $this->newEnquiries(), active: request()->routeIs('admin.enquiries.*')),
             new NavItemData(title: __('Mail log'), href: route('admin.mail-events.index', absolute: false), icon: 'mail', active: request()->routeIs('admin.mail-events.*')),
             new NavItemData(title: __('Sign-in log'), href: route('admin.sign-in-events.index', absolute: false), icon: 'shield', active: request()->routeIs('admin.sign-in-events.*')),
             new NavItemData(title: __('Horizon'), href: route('horizon.index', absolute: false), icon: 'activity', external: true),
         ];
+    }
+
+    /**
+     * How many enquiries are still New, or null when none are.
+     */
+    private function newEnquiries(): ?int
+    {
+        return ContactEnquiry::query()->where('status', ContactEnquiryStatus::New)->count() ?: null;
     }
 
     /**

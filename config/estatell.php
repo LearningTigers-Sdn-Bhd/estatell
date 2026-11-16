@@ -18,6 +18,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Contact Us enquiries
+    |--------------------------------------------------------------------------
+    |
+    | Where a notification goes when a visitor sends the public Contact Us form.
+    | The enquiry is also saved, so a failed email loses nothing. See
+    | docs/01-platform/08-contact-enquiries.md.
+    |
+    */
+
+    'contact_notify_email' => env('CONTACT_NOTIFY_EMAIL', 'hello@estatell.com'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Demo environment
     |--------------------------------------------------------------------------
     |

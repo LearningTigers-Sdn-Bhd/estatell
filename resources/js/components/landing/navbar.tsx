@@ -10,6 +10,7 @@ const links = [
     { href: '/#platform', label: 'Platform' },
     { href: '/#save-ota', label: 'Direct Booking' },
     { href: '/#plans', label: 'Pricing' },
+    { href: '/contact', label: 'Contact Us' },
 ];
 
 export function Navbar() {
