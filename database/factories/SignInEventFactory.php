@@ -21,14 +21,18 @@ class SignInEventFactory extends Factory
             'result' => SignInResult::Succeeded,
             'ip_address' => fake()->ipv4(),
             'country_code' => 'MY',
+            'city' => 'Kota Kinabalu',
+            'region' => 'Sabah',
+            'asn' => 4788,
             'os' => 'Windows',
             'browser' => 'Chrome',
             'occurred_at' => now(),
+            'last_active_at' => now(),
         ];
     }
 
     public function failed(): static
     {
-        return $this->state(['result' => SignInResult::Failed]);
+        return $this->state(['result' => SignInResult::Failed, 'last_active_at' => null]);
     }
 }

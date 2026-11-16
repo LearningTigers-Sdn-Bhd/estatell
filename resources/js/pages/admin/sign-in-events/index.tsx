@@ -42,9 +42,9 @@ const noFilters: Filters = {
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
-function countryName(code: string | null): string {
+function countryName(code: string | null): string | null {
     if (!code) {
-        return '—';
+        return null;
     }
 
     try {
@@ -54,12 +54,21 @@ function countryName(code: string | null): string {
     }
 }
 
+function location(row: Row): string {
+    const country = countryName(row.countryCode);
+    const place = [row.city, row.region !== row.city ? row.region : null]
+        .filter(Boolean)
+        .join(', ');
+
+    return [place, country].filter(Boolean).join(' · ') || '—';
+}
+
 const column = dataTableColumns<Row>();
 
 const columns = [
     column.accessor('occurredAt', {
         id: 'occurred_at',
-        header: 'Time (UTC)',
+        header: 'Time (MYT)',
         cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
     }),
     column.accessor('userName', {
@@ -93,6 +102,26 @@ const columns = [
         enableSorting: false,
         cell: (info) => <StatusBadge status={info.getValue()} />,
     }),
+    column.accessor('session', {
+        header: 'Session',
+        enableSorting: false,
+        cell: (info) => {
+            const session = info.getValue();
+
+            if (!session) {
+                return <span className="text-muted-foreground">—</span>;
+            }
+
+            return (
+                <span className="flex flex-col items-start gap-1">
+                    <StatusBadge status={session} />
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                        Last active {info.row.original.lastActiveAt}
+                    </span>
+                </span>
+            );
+        },
+    }),
     column.accessor('ipAddress', {
         header: 'IP address',
         enableSorting: false,
@@ -100,10 +129,15 @@ const columns = [
             <span className="font-mono text-xs">{info.getValue()}</span>
         ),
     }),
-    column.accessor('countryCode', {
-        header: 'Country',
+    column.accessor('city', {
+        header: 'Location',
         enableSorting: false,
-        cell: (info) => countryName(info.getValue()),
+        cell: (info) => location(info.row.original),
+    }),
+    column.accessor('network', {
+        header: 'Network',
+        enableSorting: false,
+        cell: (info) => info.getValue() ?? '—',
     }),
     column.accessor('os', {
         header: 'Device',

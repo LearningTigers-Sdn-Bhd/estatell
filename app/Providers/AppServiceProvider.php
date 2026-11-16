@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Account\RecordSignIn;
+use App\Actions\Account\RecordSignOut;
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
 use App\Actions\Concierge\SendConciergeStayLink;
@@ -231,6 +232,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(TwoFactorAuthenticationFailed::class, fn (TwoFactorAuthenticationFailed $event) => $record(SignInResult::TwoFactorFailed, $event->user));
 
         Event::listen(Lockout::class, fn (Lockout $event) => $record(SignInResult::LockedOut, $accountFor($event->request->input(Fortify::username()))));
+
+        Event::listen(Logout::class, function (Logout $event): void {
+            if ($event->guard === config('fortify.guard') && request()->hasSession()) {
+                app(RecordSignOut::class)(request()->session());
+            }
+        });
     }
 
     /**

@@ -2921,8 +2921,13 @@ userWhere: string | null,
 result: App.Data.Shared.BadgeData,
 ipAddress: string,
 countryCode: string | null,
+city: string | null,
+region: string | null,
+network: string | null,
 os: string | null,
 browser: string | null,
+session: App.Data.Shared.BadgeData | null,
+lastActiveAt: string | null,
 };
 export type AdminWaitingPropertyData = {
 sentOn: string,
@@ -5711,6 +5716,7 @@ export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SailingKind = 'guests' | 'job';
 export type SellUnit = 'room' | 'bed';
 export type SignInResult = 'succeeded' | 'failed' | 'two_factor_failed' | 'locked_out';
+export type SignInSessionStatus = 'active' | 'idle' | 'signed_out' | 'ended';
 export type SiteTemplateStatus = 'draft' | 'available' | 'retired';
 export type SiteTemplateType = 'standard' | 'custom';
 export type SpreadsheetFormat = 'csv' | 'xlsx';
