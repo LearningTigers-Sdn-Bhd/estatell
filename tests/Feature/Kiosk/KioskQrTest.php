@@ -63,10 +63,10 @@ it('rejects expired tokens even if the stay itself could still be found', functi
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
 });
 
-it('applies the same arrival window to QR lookup and never serves cancelled stays', function () {
+it('finds an early stay by QR as not open yet and never serves cancelled stays', function () {
     ['unit' => $unit] = kioskStaySetup(['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17']);
     $link = app(IssueBookingPreCheckInToken::class)($unit);
-    kioskPost('/bookings/find', ['qr_token' => $link])->assertStatus(409)->assertJsonPath('error.code', 'arrival_not_reached');
+    kioskPost('/bookings/find', ['qr_token' => $link])->assertOk()->assertJsonPath('check_in_open', false);
     $unit->forceFill(['status' => UnitStatus::Cancelled])->save();
 
     kioskPost('/bookings/find', ['qr_token' => $link])->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');

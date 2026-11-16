@@ -213,3 +213,26 @@ it('defaults the config to PIN, no walk-in and 60 seconds', function () {
 
     kioskRead('/config')->assertOk()->assertJsonPath('key_mode', 'pin')->assertJsonPath('walk_in_enabled', false)->assertJsonPath('idle_timeout_seconds', 60);
 });
+
+it('refuses check-in before the check-in time and checks in once it is reached', function () {
+    ['unit' => $unit, 'property' => $property] = kioskCheckInSetup(['check_in_time' => '23:59:00']);
+    $this->travelTo(now()->startOfDay()->addHour());
+
+    kioskRead("/stays/{$unit->id}/eligibility")->assertOk()->assertExactJson(['eligible' => false, 'reason' => 'check_in_time_not_reached']);
+    kioskPost("/stays/{$unit->id}/check-in")->assertStatus(409)->assertJsonPath('error.code', 'check_in_time_not_reached');
+    expect($unit->refresh()->status)->toBe(UnitStatus::Confirmed);
+
+    $property->settings->forceFill(['check_in_time' => '00:00:00'])->save();
+
+    kioskPost("/stays/{$unit->id}/check-in")->assertOk();
+    expect($unit->refresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+it('does not open the key, cards or folio of a stay before its arrival day', function () {
+    ['unit' => $unit] = kioskCheckInSetup();
+    $early = kioskStayFor($unit->property, 'R-950', ['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']);
+
+    kioskRead("/stays/{$early['unit']->id}/eligibility")->assertNotFound();
+    kioskRead("/stays/{$early['unit']->id}/key")->assertNotFound();
+    kioskPost("/stays/{$early['unit']->id}/check-in")->assertNotFound();
+});

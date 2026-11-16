@@ -28,6 +28,8 @@ it('finds a booking by reference', function () {
             'unit_type' => 'Deluxe Double',
             'steps_required' => ['id' => true, 'registration_card' => false],
             'status' => 'confirmed',
+            'check_in_open' => true,
+            'check_in_opens_at' => null,
             'check_out_open' => false,
             'key_available' => false,
             'room_number' => null,
@@ -93,12 +95,26 @@ it('does not treat a reference as a QR token', function () {
     kioskPost('/bookings/find', ['qr_token' => 'R-100'])->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
 });
 
-it('answers arrival_not_reached before the arrival day', function () {
-    kioskStaySetup(['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17']);
+it('finds a stay before its arrival day and says when check-in opens', function () {
+    kioskStaySetup(['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17'])['property']->settings->forceFill(['check_in_time' => '15:00:00'])->save();
 
-    kioskPost('/bookings/find', ['reference' => 'R-100'])
-        ->assertStatus(409)
-        ->assertJsonPath('error.code', 'arrival_not_reached');
+    $found = kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('check_in_open', false);
+
+    expect($found->json('check_in_opens_at'))->toStartWith('2026-10-15T15:00:00');
+});
+
+it('finds a stay on its arrival day before the check-in time and says when it opens', function () {
+    ['property' => $property] = kioskStaySetup();
+    $property->settings->forceFill(['check_in_time' => '23:59:00'])->save();
+    $this->travelTo(now()->startOfDay()->addHour());
+
+    $found = kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('check_in_open', false);
+
+    expect($found->json('check_in_opens_at'))->toStartWith('2026-10-14T23:59:00');
+
+    $property->settings->forceFill(['check_in_time' => '00:00:00'])->save();
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('check_in_open', true)->assertJsonPath('check_in_opens_at', null);
 });
 
 it('does not find a stay that is not ready to arrive or depart, cancelled or already over', function (array $unit) {
@@ -215,14 +231,12 @@ it('does not reset the failure count when a booking is found', function () {
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
 });
 
-it('counts an early arrival as a failed lookup too, so it cannot be used to confirm references', function () {
+it('does not count an early arrival as a failed lookup, because the stay was found', function () {
     kioskStaySetup(['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17']);
 
-    foreach (range(1, KioskLookupLockout::MAX_FAILURES) as $ignored) {
-        kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(409);
+    foreach (range(1, KioskLookupLockout::MAX_FAILURES + 1) as $ignored) {
+        kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
     }
-
-    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
 });
 
 it('keeps the lockout per kiosk', function () {

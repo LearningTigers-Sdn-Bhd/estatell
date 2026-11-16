@@ -63,17 +63,18 @@ class KioskStays
 
     /**
      * @param  list<UnitStatus>  $statuses  The statuses the caller can work on (default: Confirmed, before check-in).
+     * @param  bool  $early  Also open a stay whose arrival day is not reached yet, for the steps a guest may do before check-in (ID and registration card). Nothing else may set it.
      * @return ReservationUnit|null The stay with that id in the property, only while its window is open. A stay
      *                              outside the window or in another status is the same as a missing one.
      */
-    public function find(Property $property, int $id, array $statuses = [UnitStatus::Confirmed], bool $checkOut = false): ?ReservationUnit
+    public function find(Property $property, int $id, array $statuses = [UnitStatus::Confirmed], bool $checkOut = false, bool $early = false): ?ReservationUnit
     {
         $stay = ReservationUnit::query()
             ->where('property_id', $property->id)
             ->whereIn('status', $statuses)
             ->find($id);
 
-        return $stay !== null && ! $this->holds->expired($property, $stay->id) && ($checkOut ? $this->checkOutWindow($stay) : $this->window($stay) === self::OPEN) ? $stay : null;
+        return $stay !== null && ! $this->holds->expired($property, $stay->id) && ($checkOut ? $this->checkOutWindow($stay) : in_array($this->window($stay), $early ? [self::OPEN, self::EARLY] : [self::OPEN], true)) ? $stay : null;
     }
 
     public function expiredHold(Property $property, int $id): bool
