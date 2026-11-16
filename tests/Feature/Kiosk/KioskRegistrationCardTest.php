@@ -126,9 +126,9 @@ it('answers signed false for a body that is not valid, without echoing it', func
 it('answers booking_not_found for a stay of another property, a missing stay and a stay outside the window', function () {
     ['unit' => $unit, 'version' => $version] = kioskCardSetup();
     $other = kioskStayFor(Property::factory()->create(), 'R-900');
-    $early = kioskStayFor($unit->property, 'R-901', ['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']);
+    $over = kioskStayFor($unit->property, 'R-901', ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12']);
 
-    foreach ([$other['unit']->id, 999999, $early['unit']->id] as $id) {
+    foreach ([$other['unit']->id, 999999, $over['unit']->id] as $id) {
         kioskRead("/stays/{$id}/registration-card")->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
         kioskPost("/stays/{$id}/registration-card/sign", ['terms_version' => $version, 'signature_png' => KIOSK_PNG])->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
     }
@@ -150,4 +150,14 @@ it('answers a stay that has no published terms with server_error and signs nothi
 
     kioskRead("/stays/{$unit->id}/registration-card")->assertStatus(409)->assertJsonPath('error.code', 'server_error');
     kioskPost("/stays/{$unit->id}/registration-card/sign", ['terms_version' => 1, 'signature_png' => KIOSK_PNG])->assertOk()->assertExactJson(['signed' => false]);
+});
+
+it('serves and signs the registration card before the arrival day, as a pre-check-in step', function () {
+    ['unit' => $unit, 'version' => $version] = kioskCardSetup();
+    $early = kioskStayFor($unit->property, 'R-902', ['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']);
+
+    kioskRead("/stays/{$early['unit']->id}/registration-card")->assertOk();
+    kioskPost("/stays/{$early['unit']->id}/registration-card/sign", ['terms_version' => $version, 'signature_png' => KIOSK_PNG])->assertOk();
+
+    expect(RegistrationCard::query()->count())->toBe(1);
 });

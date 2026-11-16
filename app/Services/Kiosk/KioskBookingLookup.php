@@ -20,7 +20,7 @@ final readonly class KioskBookingLookup
 
     /**
      * @param  array{id: bool, registration_card: bool}|null  $steps
-     * @param  array{status: string, check_out_open: bool, key_available: bool, room_number: string|null}|null  $state
+     * @param  array{status: string, check_in_open: bool, check_in_opens_at: string|null, check_out_open: bool, key_available: bool, room_number: string|null}|null  $state
      */
     private function __construct(
         public ?ReservationUnit $stay,
@@ -35,7 +35,7 @@ final readonly class KioskBookingLookup
      * while the kiosk may still show a key, the room (`key_available`, see `KioskStays::KEY_WINDOW_MINUTES`).
      *
      * @param  array{id: bool, registration_card: bool}  $steps
-     * @param  array{status: string, check_out_open: bool, key_available: bool, room_number: string|null}  $state
+     * @param  array{status: string, check_in_open: bool, check_in_opens_at: string|null, check_out_open: bool, key_available: bool, room_number: string|null}  $state
      */
     public static function found(ReservationUnit $stay, string $guestName, array $steps, array $state): self
     {

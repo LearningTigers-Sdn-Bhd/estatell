@@ -24,11 +24,16 @@ use Spatie\LaravelCipherSweet\Contracts\CipherSweetEncrypted;
  * @property SignInResult $result
  * @property string $ip_address
  * @property string|null $country_code
+ * @property string|null $city
+ * @property string|null $region
+ * @property int|null $asn
  * @property string|null $os
  * @property string|null $browser
  * @property CarbonImmutable $occurred_at
+ * @property CarbonImmutable|null $last_active_at
+ * @property CarbonImmutable|null $signed_out_at
  */
-#[Fillable(['user_id', 'result', 'ip_address', 'country_code', 'os', 'browser', 'occurred_at'])]
+#[Fillable(['user_id', 'result', 'ip_address', 'country_code', 'city', 'region', 'asn', 'os', 'browser', 'occurred_at', 'last_active_at', 'signed_out_at'])]
 class SignInEvent extends Model implements CipherSweetEncrypted
 {
     /** @use HasFactory<SignInEventFactory> */
@@ -37,6 +42,11 @@ class SignInEvent extends Model implements CipherSweetEncrypted
     public const string IP_INDEX = 'ip_address_index';
 
     public const int RETENTION_DAYS = 90;
+
+    /**
+     * The session key that holds the id of the signed-in row for this browser session.
+     */
+    public const string SESSION_KEY = 'sign_in_log.event_id';
 
     public $timestamps = false;
 
@@ -54,7 +64,10 @@ class SignInEvent extends Model implements CipherSweetEncrypted
     {
         return [
             'result' => SignInResult::class,
+            'asn' => 'integer',
             'occurred_at' => 'immutable_datetime',
+            'last_active_at' => 'immutable_datetime',
+            'signed_out_at' => 'immutable_datetime',
         ];
     }
 

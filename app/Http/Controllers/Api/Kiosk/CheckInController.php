@@ -49,6 +49,7 @@ class CheckInController extends KioskStayController
             'balance_not_settled' => __('Please see the front desk.'),
             'nationality_required' => __('Please confirm your nationality.'),
             'arrival_not_reached' => __('Check-in is not open for this booking yet.'),
+            'check_in_time_not_reached' => __('Check-in is not open yet. Please come back at check-in time.'),
             default => __('Please see the front desk.'),
         };
     }

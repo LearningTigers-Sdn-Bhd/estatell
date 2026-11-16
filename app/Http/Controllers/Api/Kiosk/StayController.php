@@ -14,7 +14,7 @@ class StayController extends KioskStayController
 {
     public function identity(StoreStayIdentityRequest $request, string $id, SaveStayIdentity $saveIdentity): KioskIdentityResource|JsonResponse
     {
-        $stay = $this->stay($request, $id);
+        $stay = $this->stay($request, $id, early: true);
 
         return $stay instanceof JsonResponse
             ? $stay
@@ -23,7 +23,7 @@ class StayController extends KioskStayController
 
     public function guest(UpdateStayGuestRequest $request, string $id, CorrectStayGuest $correctGuest): KioskAcceptedResource|JsonResponse
     {
-        $stay = $this->stay($request, $id);
+        $stay = $this->stay($request, $id, early: true);
 
         return $stay instanceof JsonResponse
             ? $stay

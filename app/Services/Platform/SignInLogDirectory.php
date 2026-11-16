@@ -6,6 +6,7 @@ use App\Data\Platform\AdminSignInEventRowData;
 use App\Enums\SignInResult;
 use App\Models\Property;
 use App\Models\SignInEvent;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -22,6 +23,11 @@ class SignInLogDirectory
     public const int PER_PAGE = 25;
 
     /**
+     * The log is shown, and its date filters read, in Malaysia time. Rows are stored in UTC.
+     */
+    public const string TIME_ZONE = 'Asia/Kuala_Lumpur';
+
+    /**
      * @return LengthAwarePaginator<int, SignInEvent>
      */
     public function paginate(Request $request): LengthAwarePaginator
@@ -31,8 +37,8 @@ class SignInLogDirectory
                 AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search)),
                 AllowedFilter::exact('result'),
                 AllowedFilter::callback('property', fn (Builder $query, string $propertyId) => $query->whereHas('user', fn (Builder $user) => $user->where('property_id', $propertyId))),
-                AllowedFilter::callback('from', fn (Builder $query, string $date) => $query->where('occurred_at', '>=', $date.' 00:00:00')),
-                AllowedFilter::callback('to', fn (Builder $query, string $date) => $query->where('occurred_at', '<=', $date.' 23:59:59')),
+                AllowedFilter::callback('from', fn (Builder $query, string $date) => $query->where('occurred_at', '>=', CarbonImmutable::parse($date, self::TIME_ZONE)->startOfDay()->utc())),
+                AllowedFilter::callback('to', fn (Builder $query, string $date) => $query->where('occurred_at', '<=', CarbonImmutable::parse($date, self::TIME_ZONE)->endOfDay()->utc())),
             )
             ->allowedSorts('occurred_at')
             ->defaultSort('-occurred_at')

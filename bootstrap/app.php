@@ -28,6 +28,7 @@ use App\Http\Middleware\LogoutDeactivatedUsers;
 use App\Http\Middleware\ReplayIdempotentRequest;
 use App\Http\Middleware\RequireSupportTwoFactor;
 use App\Http\Middleware\TrackOnboardingActivity;
+use App\Http\Middleware\TrackSignInActivity;
 use App\Http\Responses\ApiError;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -108,6 +109,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             AuthenticateSession::class,
             LogoutDeactivatedUsers::class,
+            TrackSignInActivity::class,
             EnsurePasswordChanged::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,

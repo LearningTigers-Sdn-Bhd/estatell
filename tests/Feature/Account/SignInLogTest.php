@@ -2,6 +2,7 @@
 
 use App\Actions\Account\PruneSignInEvents;
 use App\Enums\SignInResult;
+use App\Enums\SignInSessionStatus;
 use App\Models\Property;
 use App\Models\SignInEvent;
 use App\Models\User;
@@ -28,6 +29,62 @@ it('records a sign-in with the country and device, and keeps the IP address encr
         ->and($event->browser)->toBe('Chrome')
         ->and(DB::table('sign_in_events')->value('ip_address'))->not->toContain('203.0.113.7');
 });
+
+it('records city, region and network from Cloudflare, and ignores a bad network number', function (string $asn, ?int $stored) {
+    $user = User::factory()->for(Property::factory())->create();
+
+    $this->withHeaders(['cf-ipcity' => 'Kota Kinabalu', 'cf-region' => 'Sabah', 'X-Client-ASN' => $asn])
+        ->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
+
+    expect(SignInEvent::query()->sole())
+        ->city->toBe('Kota Kinabalu')
+        ->region->toBe('Sabah')
+        ->asn->toBe($stored);
+})->with([
+    'TM' => ['4788', 4788],
+    'not a number' => ['TM', null],
+    'zero' => ['0', null],
+]);
+
+it('tracks the session from sign-in to sign-out', function () {
+    $user = User::factory()->for(Property::factory())->create();
+
+    $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
+    $event = SignInEvent::query()->sole();
+
+    expect($event->last_active_at?->equalTo(now()))->toBeTrue()
+        ->and(session(SignInEvent::SESSION_KEY))->toBe($event->id);
+
+    $this->travel(30)->seconds();
+    $this->get(route('account.profile.edit'));
+    expect($event->refresh()->last_active_at?->equalTo(now()->subSeconds(30)))->toBeTrue();
+
+    $this->travel(2)->minutes();
+    $this->get(route('account.profile.edit'), ['X-Inertia' => 'true', 'X-Inertia-Partial-Data' => 'businessDate', 'X-Inertia-Partial-Component' => 'account/profile']);
+    expect($event->refresh()->last_active_at?->equalTo(now()->subMinutes(2)->subSeconds(30)))->toBeTrue();
+
+    $this->get(route('account.profile.edit'));
+    expect($event->refresh()->last_active_at?->equalTo(now()))->toBeTrue();
+
+    $this->travel(1)->minutes();
+    $this->post(route('logout'));
+
+    expect($event->refresh())
+        ->signed_out_at->not->toBeNull()
+        ->last_active_at->toEqual($event->signed_out_at);
+});
+
+it('works out the session status from the last active and sign-out times', function (?int $minutesAgo, bool $signedOut, ?SignInSessionStatus $status) {
+    $lastActiveAt = $minutesAgo === null ? null : now()->subMinutes($minutesAgo);
+
+    expect(SignInSessionStatus::at($lastActiveAt, $signedOut ? now() : null, now()))->toBe($status);
+})->with([
+    'just now' => [1, false, SignInSessionStatus::Active],
+    'ten minutes' => [10, false, SignInSessionStatus::Idle],
+    'past the session lifetime' => [121, false, SignInSessionStatus::Ended],
+    'signed out' => [1, true, SignInSessionStatus::SignedOut],
+    'failed attempt' => [null, false, null],
+]);
 
 it('links a wrong password to the account and stores no email for an unknown one', function () {
     $user = User::factory()->for(Property::factory())->create(['email' => 'staff@example.test']);
@@ -124,6 +181,22 @@ it('lists the sign-in log for admins with search, result, property and date filt
         ->component('admin/sign-in-events/index')
         ->where('counts', ['succeeded' => 1, 'failed' => 2, 'two_factor_failed' => 0, 'locked_out' => 0])
         ->where('events.data.0.userWhere', $property->name));
+});
+
+it('shows times, location and network in Malaysia terms', function () {
+    $admin = User::factory()->admin()->create();
+    SignInEvent::factory()->create(['occurred_at' => '2026-10-13 17:30:00', 'last_active_at' => '2026-10-13 17:30:00', 'asn' => 9534]);
+    SignInEvent::factory()->create(['occurred_at' => '2026-10-13 15:30:00', 'asn' => 64512]);
+
+    $rows = fn (array $query) => $this->actingAs($admin)->get(route('admin.sign-in-events.index', $query))->viewData('page')['props']['events']['data'];
+
+    expect($rows(['filter' => ['from' => '2026-10-14']]))->sequence(fn ($row) => $row
+        ->occurredAt->toBe('2026-10-14 01:30')
+        ->lastActiveAt->toBe('2026-10-14 01:30')
+        ->city->toBe('Kota Kinabalu')
+        ->network->toBe('Maxis')
+        ->session->value->toBe('ended'))
+        ->and(collect($rows(['filter' => ['to' => '2026-10-13']]))->pluck('network')->all())->toBe(['AS64512']);
 });
 
 it('hides the sign-in log from property staff', function () {
