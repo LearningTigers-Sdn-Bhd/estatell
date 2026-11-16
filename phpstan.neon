@@ -3,6 +3,10 @@ includes:
     - vendor/nesbot/carbon/extension.neon
 
 parameters:
+    # Laravel leaves this property null when a seeder runs without a console command.
+    stubFiles:
+        - phpstan-seeder.stub
+
     paths:
         - app/
         - bootstrap/app.php

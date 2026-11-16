@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
-import { ArrowRight, MessageCircle, Copy, Check } from 'lucide-react';
+import { ArrowRight, MessageCircle, Copy, Check, Mail } from 'lucide-react';
 import { services } from './services';
 import { Container } from './ui';
 import { useScrollReveal, useStaggerReveal } from './use-reveal';
-import { privacy, terms } from '@/routes';
+import { contact, privacy, terms } from '@/routes';
 
 const contacts = [
     {
@@ -101,6 +101,13 @@ export function Closing() {
                                     (opens in a new tab)
                                 </span>
                             </a>
+                            <Link
+                                href={contact()}
+                                className="inline-flex min-h-12 w-full items-center justify-center gap-3 px-1 py-3 text-sm font-medium text-foreground underline decoration-border underline-offset-8 transition-colors hover:text-chart-1 hover:decoration-chart-1 motion-reduce:transition-none sm:w-auto"
+                            >
+                                <Mail className="size-4" aria-hidden="true" />
+                                Contact Us
+                            </Link>
                         </div>
                     </div>
 
@@ -193,6 +200,12 @@ export function Closing() {
                         className="mt-2 flex flex-wrap gap-x-5 border-t border-border pt-2 lg:mt-0 lg:border-0 lg:pt-0"
                         aria-label="Legal"
                     >
+                        <Link
+                            href={contact()}
+                            className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"
+                        >
+                            Contact Us
+                        </Link>
                         <Link
                             href={terms()}
                             className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"

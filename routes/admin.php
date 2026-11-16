@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AmenityCategoryController;
 use App\Http\Controllers\Admin\AmenityController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CommissionRateController;
+use App\Http\Controllers\Admin\ContactEnquiryController;
 use App\Http\Controllers\Admin\EInvoiceGuideController;
 use App\Http\Controllers\Admin\MailEventController;
 use App\Http\Controllers\Admin\NearbyPlaceController;
@@ -79,6 +80,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('properties/{property:code}/reactivate', [PropertyStatusController::class, 'reactivate'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.reactivate');
     Route::put('properties/{property:code}/partner', [PropertyPartnerController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.partner.update');
     Route::post('properties/{property:code}/owner/setup-link', OwnerSetupLinkController::class)->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.owner.setup-link');
+    Route::get('enquiries', [ContactEnquiryController::class, 'index'])->name('enquiries.index');
+    Route::get('enquiries/{enquiry}', [ContactEnquiryController::class, 'show'])->where('enquiry', '[0-9]+')->name('enquiries.show');
+    Route::delete('enquiries/{enquiry}', [ContactEnquiryController::class, 'destroy'])->where('enquiry', '[0-9]+')->middleware('support.2fa')->name('enquiries.destroy');
+    Route::put('enquiries/{enquiry}/status', [ContactEnquiryController::class, 'updateStatus'])->where('enquiry', '[0-9]+')->middleware('support.2fa')->name('enquiries.status.update');
     Route::get('mail-log', [MailEventController::class, 'index'])->name('mail-events.index');
     Route::get('mail-log/{mailEvent}', [MailEventController::class, 'show'])->where('mailEvent', '[0-9]+')->name('mail-events.show');
     Route::get('sign-in-log', [SignInEventController::class, 'index'])->name('sign-in-events.index');

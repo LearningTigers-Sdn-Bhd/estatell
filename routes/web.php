@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Guests\MykadReaderDownloadController;
 use App\Http\Controllers\HomeRedirectController;
+use App\Http\Controllers\Landing\ContactController;
 use App\Http\Controllers\Landing\SearchEngineController;
 use App\Http\Controllers\Landing\ServicePageController;
 use App\Http\Controllers\Platform\CommandSearchController;
@@ -19,6 +20,8 @@ use Symfony\Component\HttpFoundation\Response;
 Route::inertia('/', 'landing')->name('home');
 Route::inertia('terms-and-conditions', 'legal/terms')->name('terms');
 Route::inertia('privacy-policy', 'legal/privacy')->name('privacy');
+Route::get('contact', [ContactController::class, 'show'])->name('contact');
+Route::post('contact', [ContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
 
 // One public page per service. The slugs come from resources/js/components/landing/services.json, the same file the pages render.
 Route::get('services/{slug}', [ServicePageController::class, 'show'])->whereIn('slug', ServicePages::slugs())->name('services.show');

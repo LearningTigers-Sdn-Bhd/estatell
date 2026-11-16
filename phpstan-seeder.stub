@@ -1,0 +1,9 @@
+<?php
+
+namespace Illuminate\Database;
+
+abstract class Seeder
+{
+    /** @var \Illuminate\Console\Command|null */
+    protected $command;
+}
