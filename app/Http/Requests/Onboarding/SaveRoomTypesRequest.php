@@ -98,14 +98,35 @@ class SaveRoomTypesRequest extends OnboardingStepRequest
     }
 
     /**
-     * A saved room type keeps its sell unit once it has any room, archived ones included.
+     * A saved room type keeps its sell unit once it has any room, archived ones included. A sell unit the property cannot
+     * pick (Bed while BedRoomTypes is off) is allowed only on a saved room type that already has it.
      */
     private function checkSellUnit(Property $property, string $attribute, mixed $value, Closure $fail): void
     {
         $index = (int) explode('.', $attribute)[1];
         $id = ((array) $this->input('rows'))[$index]['id'] ?? null;
 
-        if ($id === null || ! is_string($value)) {
+        if (! is_string($value)) {
+            return;
+        }
+
+        $unit = SellUnit::tryFrom($value);
+
+        if ($unit !== null && ! in_array($unit, SellUnit::availableFor($property), true)) {
+            $kept = $id !== null && RoomType::query()
+                ->where('property_id', $property->id)
+                ->whereKey((int) $id)
+                ->where('sell_unit', $unit->value)
+                ->exists();
+
+            if (! $kept) {
+                $fail(__('Bed room types are not available yet.'));
+
+                return;
+            }
+        }
+
+        if ($id === null) {
             return;
         }
 

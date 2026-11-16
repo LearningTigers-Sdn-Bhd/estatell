@@ -42,7 +42,7 @@ There is no `property_id`. A bed reaches its property through its room, so the p
 
 ## Permissions
 
-`rooms.view` opens the rooms page (which lists beds). `rooms.manage` adds, renames, archives, restores and generates beds.
+`rooms.view` opens the rooms page (which lists beds). `rooms.manage` adds, renames, archives, restores and generates beds. The bed routes also need the property's `BedRoomTypes` [feature](../01-platform/03-feature-flags.md): the `beds` middleware (`EnsureBedsAreActive`) answers 404 while it is off.
 
 ## UI
 

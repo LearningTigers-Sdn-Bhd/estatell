@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, BedDouble, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { ArchiveRoomTypeButton } from '@/components/pms/rooms/archive-room-type-button';
 import { GuestsIncludedLabel } from '@/components/pms/rooms/room-type-details-form';
@@ -76,9 +76,12 @@ const emptyForm: FormData = {
  */
 function RoomTypeForm({
     sellUnits,
+    bedsOn,
     termsDocuments,
 }: {
-    sellUnits: SellUnitOption[];
+    sellUnits: EnumOption[];
+    /** The property can sell beds. While off, Sold by is hidden and the room type sells rooms. */
+    bedsOn: boolean;
     termsDocuments: SellUnitOption[];
 }) {
     const form = useForm<FormData>(emptyForm);
@@ -123,24 +126,26 @@ function RoomTypeForm({
                     />
                     <FieldError>{form.errors.description}</FieldError>
                 </Field>
-                <Field>
-                    <FieldLabel htmlFor="room-type-sell-unit">
-                        Sold by
-                    </FieldLabel>
-                    <EnumSelect
-                        id="room-type-sell-unit"
-                        options={sellUnits}
-                        value={form.data.sell_unit}
-                        onValueChange={(value) =>
-                            form.setData('sell_unit', value)
-                        }
-                        aria-invalid={!!form.errors.sell_unit}
-                    />
-                    <FieldDescription>
-                        A Bed room type sells one bed at a time, for dorms.
-                    </FieldDescription>
-                    <FieldError>{form.errors.sell_unit}</FieldError>
-                </Field>
+                {bedsOn && (
+                    <Field>
+                        <FieldLabel htmlFor="room-type-sell-unit">
+                            Sold by
+                        </FieldLabel>
+                        <EnumSelect
+                            id="room-type-sell-unit"
+                            options={sellUnits}
+                            value={form.data.sell_unit}
+                            onValueChange={(value) =>
+                                form.setData('sell_unit', value)
+                            }
+                            aria-invalid={!!form.errors.sell_unit}
+                        />
+                        <FieldDescription>
+                            A Bed room type sells one bed at a time, for dorms.
+                        </FieldDescription>
+                        <FieldError>{form.errors.sell_unit}</FieldError>
+                    </Field>
+                )}
                 <div className="grid grid-cols-3 gap-3">
                     <Field>
                         <FieldLabel htmlFor="room-type-adults">
@@ -273,15 +278,20 @@ function RoomTypeForm({
 export default function RoomTypesIndex({
     roomTypes,
     sellUnits,
+    bedsOn,
     termsDocuments,
 }: {
     roomTypes: RoomType[];
-    sellUnits: SellUnitOption[];
+    sellUnits: EnumOption[];
+    bedsOn: boolean;
     termsDocuments: { value: number; label: string }[];
 }) {
     const [creating, setCreating] = useState(false);
     const active = roomTypes.filter((roomType) => !roomType.archived);
     const archived = roomTypes.filter((roomType) => roomType.archived);
+    // Sold by shows while beds are on, or while a room type still sells beds.
+    const showSoldBy =
+        bedsOn || roomTypes.some((roomType) => roomType.sellUnit === 'bed');
     const sellUnitLabel = (value: string) =>
         sellUnits.find((option) => option.value === value)?.label ?? value;
 
@@ -326,7 +336,9 @@ export default function RoomTypesIndex({
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Name</TableHead>
-                                    <TableHead>Sold by</TableHead>
+                                    {showSoldBy && (
+                                        <TableHead>Sold by</TableHead>
+                                    )}
                                     <TableHead className="text-right">
                                         <GuestsIncludedLabel />
                                     </TableHead>
@@ -351,9 +363,13 @@ export default function RoomTypesIndex({
                                                 {roomType.name}
                                             </Link>
                                         </TableCell>
-                                        <TableCell>
-                                            {sellUnitLabel(roomType.sellUnit)}
-                                        </TableCell>
+                                        {showSoldBy && (
+                                            <TableCell>
+                                                {sellUnitLabel(
+                                                    roomType.sellUnit,
+                                                )}
+                                            </TableCell>
+                                        )}
                                         <TableCell className="text-right tabular-nums">
                                             {roomType.baseOccupancy}
                                         </TableCell>
@@ -430,11 +446,13 @@ export default function RoomTypesIndex({
                                                     Archived
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>
-                                                {sellUnitLabel(
-                                                    roomType.sellUnit,
-                                                )}
-                                            </TableCell>
+                                            {showSoldBy && (
+                                                <TableCell>
+                                                    {sellUnitLabel(
+                                                        roomType.sellUnit,
+                                                    )}
+                                                </TableCell>
+                                            )}
                                             <TableCell className="text-right">
                                                 <Button
                                                     variant="ghost"
@@ -475,6 +493,7 @@ export default function RoomTypesIndex({
                     {creating && (
                         <RoomTypeForm
                             sellUnits={sellUnits}
+                            bedsOn={bedsOn}
                             termsDocuments={termsDocuments.map((document) => ({
                                 value: String(document.value),
                                 label: document.label,

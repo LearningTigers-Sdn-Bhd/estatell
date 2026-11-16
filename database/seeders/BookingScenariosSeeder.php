@@ -65,6 +65,7 @@ use App\Enums\RateDerivation;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\TransactionCategory;
+use App\Features\BedRoomTypes;
 use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Company;
@@ -91,6 +92,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Pennant\Feature;
 use RuntimeException;
 use UnhandledMatchError;
 
@@ -275,6 +277,7 @@ class BookingScenariosSeeder extends Seeder
 
         app(GenerateDocumentPrefix::class)($property);
         app(SeedPropertyDefaults::class)($property, PropertyType::Hostel, 'MY');
+        Feature::for($property)->activate(BedRoomTypes::class);
         app(UpdatePropertySettings::class)($property, [
             'check_out_time' => '12:00',
             'auto_assign_rooms' => true,

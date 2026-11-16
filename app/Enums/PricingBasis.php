@@ -2,11 +2,14 @@
 
 namespace App\Enums;
 
+use App\Features\BedRoomTypes;
+use App\Models\Property;
 use App\Services\Rates\Pricing\PackagePricing;
 use App\Services\Rates\Pricing\PerBedPricing;
 use App\Services\Rates\Pricing\PerGuestPricing;
 use App\Services\Rates\Pricing\PerRoomPricing;
 use App\Services\Rates\Pricing\StayPricing;
+use Laravel\Pennant\Feature;
 use LogicException;
 
 /**
@@ -121,13 +124,27 @@ enum PricingBasis: string
     }
 
     /**
+     * The pricing bases a new rate plan may pick at the property. Per bed needs the BedRoomTypes feature; a plan that
+     * already prices per bed keeps it while the feature is off.
+     *
+     * @return list<self>
+     */
+    public static function availableFor(Property $property): array
+    {
+        return Feature::for($property)->active(BedRoomTypes::class)
+            ? self::cases()
+            : array_values(array_filter(self::cases(), fn (self $basis): bool => $basis !== self::PerBed));
+    }
+
+    /**
+     * @param  list<self>|null  $available  The bases to offer; null offers every basis.
      * @return list<array{value: string, label: string}>
      */
-    public static function options(): array
+    public static function options(?array $available = null): array
     {
         return array_map(
             fn (self $basis): array => ['value' => $basis->value, 'label' => $basis->label()],
-            self::cases(),
+            $available ?? self::cases(),
         );
     }
 }

@@ -18,12 +18,13 @@ Test drive was removed from onboarding on 2026-10-16. Two demo properties replac
 
 ## Properties
 
-| Property              | Type       | Seeder            | Shows                                                                                                                                    |
-| --------------------- | ---------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Pearlside View Resort | Resort     | `PearlsideSeeder` | 30 rooms (garden, sea view, family suites, water villas), packages and meals, day use, a dive group, SST, tourism tax and service charge |
-| Boreno Hotel          | City hotel | `BorenoSeeder`    | 30 rooms (standard, deluxe, executive suites), corporate guests, a conference block, the city ledger                                     |
+| Property              | Type       | Seeder            | Shows                                                                                                                                                             |
+| --------------------- | ---------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pearlside View Resort | Resort     | `PearlsideSeeder` | 30 rooms (garden, sea view, family suites, water villas), packages and meals, day use, a dive group, SST, tourism tax and service charge                          |
+| Boreno Hotel          | City hotel | `BorenoSeeder`    | 30 rooms (standard, deluxe, executive suites), corporate guests, a conference block, the city ledger                                                              |
+| Kopi Lane Hostel      | Hostel     | `KopiLaneSeeder`  | 4 dorm rooms with 26 beds (two 8-bed mixed, a 6-bed female, a 4-bed) and 4 private doubles, per-bed rates, a group on beds, a club on a whole dorm, a blocked bed |
 
-The name is **Boreno**, not Borneo. Both are Live. Boats are not in the demo.
+The name is **Boreno**, not Borneo. All three are Live. Boats are not in the demo.
 
 A separate Boreno copy can run in production for internal use through `BorenoProductionSeeder`. It uses `owner@boreno.com` and `BORENO_SEED_PASSWORD`, not the public demo logins. It is a normal property without a flag or nightly reset. See [Production environment](../deployment/production_environment.md#boreno-hotel-for-internal-use).
 
@@ -31,7 +32,7 @@ A separate Boreno copy can run in production for internal use through `BorenoPro
 
 ## Data
 
-`DemoSeeder` runs `OtaChannelSeeder`, `PearlsideSeeder`, `BorenoSeeder` and `DemoBookingEngineSeeder` through the real Actions only, so the ledger, AR balances and reports add up. It runs at every [reset](../deployment/demo_environment.md#reset) and takes about 3.5 s (measured locally).
+`DemoSeeder` runs `OtaChannelSeeder`, `PearlsideSeeder`, `BorenoSeeder`, `KopiLaneSeeder` and `DemoBookingEngineSeeder` through the real Actions only, so the ledger, AR balances and reports add up. It runs at every [reset](../deployment/demo_environment.md#reset) and takes about 3.5 s (measured locally).
 
 1. Setup: room types, rooms, taxes, rates, charge items, discounts, companies.
 2. Open the business date on today.
@@ -39,15 +40,15 @@ A separate Boreno copy can run in production for internal use through `BorenoPro
 
 Fixed names and amounts, no random Faker data (Faker is not in the production image), so every reset looks the same and support can say "open the booking for Ahmad Razak". Dates are relative to today.
 
-| Area         | Pearlside View Resort                                                                  | Boreno Hotel                                                                                                        |
-| ------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Reservations | 22: future bookings, a dive group (MasterPays), a day use, a no-show, a cancellation   | 18: future and company bookings, a conference block (MasterPays), a no-show, a cancellation                         |
-| Front desk   | Arrivals today, a walk-in and a water villa in house                                   | 2 arrivals today, 2 in house (Ahmad Razak, VIP, on the Sabah Energy account)                                        |
-| Folio        | Charges, a reversed line, a transfer to a third-party folio, routing, a closed invoice | Charges in house, company charges moved to company folios                                                           |
-| Payments     | Cash, card and bank transfer, an advance, a refund                                     | Card deposit, cash advance, bank transfers from companies                                                           |
-| City ledger  | None                                                                                   | 3 companies, 3 AR invoices: paid, part paid (the travel agent, near its RM 1,200 limit), and one with a credit note |
-| Housekeeping | Default statuses                                                                       | Dirty and inspected rooms, remarks, one room that needs maintenance                                                 |
-| Night audit  | No closed days. Room charges post at the first night audit.                            | Same                                                                                                                |
+| Area         | Pearlside View Resort                                                                  | Boreno Hotel                                                                                                        | Kopi Lane Hostel                                                                                                                              |
+| ------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reservations | 22: future bookings, a dive group (MasterPays), a day use, a no-show, a cancellation   | 18: future and company bookings, a conference block (MasterPays), a no-show, a cancellation                         | 15: solo beds, friends on 4 beds (EachPays), the Sabah Hiking Club on all 8 beds of D2 (MasterPays), private rooms, a no-show, a cancellation |
+| Front desk   | Arrivals today, a walk-in and a water villa in house                                   | 2 arrivals today, 2 in house (Ahmad Razak, VIP, on the Sabah Energy account)                                        | 3 arrivals today, 3 backpackers in house on beds; bed A8 in D1 blocked for 3 nights (maintenance)                                             |
+| Folio        | Charges, a reversed line, a transfer to a third-party folio, routing, a closed invoice | Charges in house, company charges moved to company folios                                                           | Padlock, towel, laundry, shuttle and breakfast charges on the in-house beds                                                                   |
+| Payments     | Cash, card and bank transfer, an advance, a refund                                     | Card deposit, cash advance, bank transfers from companies                                                           | A card advance on the friends' booking, a cash advance                                                                                        |
+| City ledger  | None                                                                                   | 3 companies, 3 AR invoices: paid, part paid (the travel agent, near its RM 1,200 limit), and one with a credit note | None                                                                                                                                          |
+| Housekeeping | Default statuses                                                                       | Dirty and inspected rooms, remarks, one room that needs maintenance                                                 | Dorm D2 and room 103 dirty, 104 inspected, a remark on D2                                                                                     |
+| Night audit  | No closed days. Room charges post at the first night audit.                            | Same                                                                                                                | Same                                                                                                                                          |
 
 Later: 14 days of history with closed night audits, room charges, overdue AR invoices and real report numbers. See [Checklist](../checklist.md#demo).
 
@@ -59,6 +60,7 @@ A user belongs to one property (`users.property_id`), so each demo property has 
 | --------------------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
 | Pearlside View Resort | `pearlside@demo.estatell.com` | `pearlside.manager@`, `pearlside.frontdesk@`, `pearlside.housekeeping@demo.estatell.com` |
 | Boreno Hotel          | `boreno@demo.estatell.com`    | `boreno.manager@`, `boreno.frontdesk@`, `boreno.housekeeping@demo.estatell.com`          |
+| Kopi Lane Hostel      | `kopilane@demo.estatell.com`  | `kopilane.manager@`, `kopilane.frontdesk@`, `kopilane.housekeeping@demo.estatell.com`    |
 
 - The partner portal in production shows a **Demo access** card with the demo link, both Owner logins and **Copy login**. Production reads `DEMO_URL` and `DEMO_PASSWORD`. Partners can't change it.
 - To change the password: set `DEMO_PASSWORD` on both environments, then reset the demo.

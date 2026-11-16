@@ -10,6 +10,7 @@ use App\Enums\AgeBandPricing;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
+use App\Features\BedRoomTypes;
 use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\PropertySetting;
@@ -19,6 +20,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 /** @return array{0: User, 1: Property} */
@@ -81,7 +83,24 @@ test('the list shows active plans in order with their room types, then archived 
             ->where('ratePlans.0.pricingTone', 'info')
             ->where('ratePlans.1.pricingTone', 'success')
             ->where('statuses', fn ($statuses) => collect($statuses)->pluck('value')->all() === ['active', 'archived'])
-            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'per_bed', 'package', 'day_use']));
+            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'package', 'day_use']));
+});
+
+test('a per bed plan is refused and left out of the options until bed room types are on', function () {
+    [$owner, $property] = ratePlanOwner();
+    $url = route('settings.rate-plans.store', $property->code);
+
+    $this->actingAs($owner)
+        ->post($url, ['name' => 'Dorm bed', 'pricing_basis' => 'per_bed'])
+        ->assertSessionHasErrors(['pricing_basis' => 'Per bed rate plans are not available yet.']);
+
+    Feature::for($property)->activate(BedRoomTypes::class);
+
+    $this->get(route('settings.rate-plans.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->contains('per_bed')));
+    $this->post($url, ['name' => 'Dorm bed', 'pricing_basis' => 'per_bed'])->assertSessionHasNoErrors();
+
+    expect(RatePlan::query()->where('name', 'Dorm bed')->sole()->pricing_basis)->toBe(PricingBasis::PerBed);
 });
 
 test('owners create a plan at the end of the list and land on its room types tab', function () {
@@ -526,6 +545,7 @@ test('active plans are reordered and a stale list is refused', function () {
 
 test('a new room type is linked to the first active plan that fits its sell unit', function () {
     [$owner, $property] = ratePlanOwner();
+    Feature::for($property)->activate(BedRoomTypes::class);
     RatePlan::factory()->for($property)->archived()->create(['position' => 1]);
     $perBed = RatePlan::factory()->for($property)->perBed()->create(['position' => 2]);
     $perRoom = RatePlan::factory()->for($property)->create(['position' => 3]);
@@ -547,6 +567,7 @@ test('a new room type is linked to the first active plan that fits its sell unit
 
 test('a room type with no fitting plan stays unlinked', function () {
     [$owner, $property] = ratePlanOwner();
+    Feature::for($property)->activate(BedRoomTypes::class);
     RatePlan::factory()->for($property)->create();
 
     $this->actingAs($owner)
@@ -560,6 +581,7 @@ test('a room type with no fitting plan stays unlinked', function () {
 
 test('changing a room type\'s sell unit swaps its links to a plan that fits', function () {
     [$owner, $property] = ratePlanOwner();
+    Feature::for($property)->activate(BedRoomTypes::class);
     $perRoom = RatePlan::factory()->for($property)->create(['position' => 1]);
     $perBed = RatePlan::factory()->for($property)->perBed()->create(['position' => 2]);
     $roomType = RoomType::factory()->for($property)->create(['name' => 'Deluxe']);

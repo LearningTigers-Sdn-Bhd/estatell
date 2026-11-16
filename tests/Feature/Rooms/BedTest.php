@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\DefaultRoleEnum;
+use App\Features\BedRoomTypes;
 use App\Models\Bed;
 use App\Models\Property;
 use App\Models\Room;
@@ -8,10 +9,13 @@ use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 function dormRoom(Property $property, array $attributes = []): Room
 {
+    Feature::for($property)->activate(BedRoomTypes::class);
+
     return Room::factory()->for($property)->create([
         'room_type_id' => RoomType::factory()->for($property)->bed()->create()->id,
         ...$attributes,
@@ -53,9 +57,24 @@ test('owners add a bed to a dorm room', function () {
         ->and(Activity::query()->where('event', 'bed.created')->count())->toBe(1);
 });
 
+test('the bed routes answer 404 while bed room types are off', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $room = Room::factory()->for($property)->create(['room_type_id' => RoomType::factory()->for($property)->bed()->create()->id]);
+    $bed = Bed::factory()->for($room)->create();
+
+    $this->actingAs($owner)->post(route('settings.rooms.beds.store', [$property->code, $room]), ['label' => 'A2'])->assertNotFound();
+    $this->put(route('settings.rooms.beds.update', [$property->code, $room, $bed]), ['label' => 'B1'])->assertNotFound();
+    $this->post(route('settings.rooms.beds.archive', [$property->code, $room, $bed]))->assertNotFound();
+    $this->post(route('settings.rooms.beds.generate', $property->code), ['count' => 2])->assertNotFound();
+
+    expect($room->beds()->pluck('label')->all())->toBe([$bed->label]);
+});
+
 test('a room whose type sells rooms cannot have beds', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
+    Feature::for($property)->activate(BedRoomTypes::class);
     $room = Room::factory()->for($property)->create();
 
     $this->actingAs($owner)

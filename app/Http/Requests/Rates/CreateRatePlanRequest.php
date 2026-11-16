@@ -51,7 +51,16 @@ class CreateRatePlanRequest extends FormRequest
                     }
                 },
             ],
-            'pricing_basis' => ['required', Rule::enum(PricingBasis::class)],
+            'pricing_basis' => [
+                'required', Rule::enum(PricingBasis::class),
+                function (string $attribute, mixed $value, Closure $fail) use ($property): void {
+                    $basis = PricingBasis::tryFrom((string) $value);
+
+                    if ($basis !== null && ! in_array($basis, PricingBasis::availableFor($property), true)) {
+                        $fail(__('Per bed rate plans are not available yet.'));
+                    }
+                },
+            ],
             'fixed_nights' => ['exclude_unless:pricing_basis,package', 'required', 'integer', 'between:1,30'],
             'package_unit' => ['exclude_unless:pricing_basis,package', 'required', Rule::enum(PackageUnit::class)],
             'day_use_min_hours' => ['exclude_unless:pricing_basis,day_use', 'required', 'integer', 'between:1,24'],

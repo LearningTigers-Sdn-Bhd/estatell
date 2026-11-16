@@ -164,6 +164,8 @@ A plan links only room types whose sell unit fits its pricing basis.
 
 Plans fall into two families: room plans and bed plans. Package is the only basis that can link both. The Form Request enforces the table with `Rule::enum(PricingBasis::class)->only(...)`.
 
+PerBed needs the property's `BedRoomTypes` [feature](../01-platform/03-feature-flags.md). While it is off, New rate plan leaves Per bed out (`PricingBasis::availableFor($property)`), and `CreateRatePlanRequest` refuses `per_bed` with "Per bed rate plans are not available yet." A plan that already prices per bed keeps working.
+
 ## Rules
 
 - `rates`, `package_prices` and `channel_rate_plan_mappings` exist only for a linked plan and room type pair.
