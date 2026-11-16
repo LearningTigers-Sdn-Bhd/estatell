@@ -272,7 +272,6 @@ it('does not write to a stay outside the check-in window, and answers like a mis
         ->and(GuestIdentityDocument::query()->where('guest_id', $guest->id)->exists())->toBeFalse()
         ->and($guest->refresh()->full_name)->toBe('Aisha Rahman');
 })->with([
-    'arrival not reached' => [['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17']],
     'stay already over' => [['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']],
 ]);
 
@@ -281,4 +280,14 @@ it('does not write to any stay while the property has no open business date', fu
     BusinessDate::query()->where('property_id', $property->id)->delete();
 
     kioskPost("/stays/{$stay->id}/identity", kioskMyKadBody())->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
+});
+
+it('saves the ID of a stay before its arrival day, and then stops asking for it', function () {
+    ['unit' => $stay, 'guest' => $guest] = kioskStaySetup(['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17']);
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertJsonPath('steps_required.id', true);
+    kioskPost("/stays/{$stay->id}/identity", kioskMyKadBody())->assertOk();
+
+    expect(GuestIdentityDocument::query()->where('guest_id', $guest->id)->exists())->toBeTrue();
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertJsonPath('steps_required.id', false);
 });

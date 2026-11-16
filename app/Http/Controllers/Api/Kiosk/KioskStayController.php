@@ -33,8 +33,9 @@ abstract class KioskStayController extends Controller
      * @param  list<UnitStatus>  $statuses
      * @param  bool  $kioskCheckInOnly  A stay that is already CheckedIn counts only when a kiosk checked it in, so a
      *                                  guessed id cannot reach the room or key of a guest the front desk checked in.
+     * @param  bool  $early  The call is a pre-check-in step (ID, guest, registration card), so a stay before its arrival day counts.
      */
-    protected function stay(Request $request, string $id, array $statuses = [UnitStatus::Confirmed], bool $kioskCheckInOnly = false, bool $checkOut = false): ReservationUnit|JsonResponse
+    protected function stay(Request $request, string $id, array $statuses = [UnitStatus::Confirmed], bool $kioskCheckInOnly = false, bool $checkOut = false, bool $early = false): ReservationUnit|JsonResponse
     {
         $kiosk = $this->kiosk($request);
 
@@ -42,7 +43,7 @@ abstract class KioskStayController extends Controller
             return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $this->lockout->retryAfter($kiosk)]);
         }
 
-        $stay = ctype_digit($id) ? $this->stays->find($kiosk->property, (int) $id, $statuses, $checkOut) : null;
+        $stay = ctype_digit($id) ? $this->stays->find($kiosk->property, (int) $id, $statuses, $checkOut, $early) : null;
 
         if ($stay !== null && $kioskCheckInOnly && $stay->status === UnitStatus::CheckedIn && ! $this->stays->checkedInByKiosk($stay)) {
             $stay = null;

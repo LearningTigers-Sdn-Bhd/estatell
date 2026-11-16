@@ -16,7 +16,7 @@ class RegistrationCardController extends KioskStayController
 {
     public function show(Request $request, string $id, KioskRegistrationTerms $terms, KioskLanguage $language): KioskTermsResource|JsonResponse
     {
-        $stay = $this->stay($request, $id);
+        $stay = $this->stay($request, $id, early: true);
 
         if ($stay instanceof JsonResponse) {
             return $stay;
@@ -31,7 +31,7 @@ class RegistrationCardController extends KioskStayController
 
     public function sign(SignRegistrationCardRequest $request, string $id, KioskLanguage $language, SignStayRegistrationCard $signCard): KioskSignedResource|JsonResponse
     {
-        $stay = $this->stay($request, $id);
+        $stay = $this->stay($request, $id, early: true);
 
         return $stay instanceof JsonResponse
             ? $stay
