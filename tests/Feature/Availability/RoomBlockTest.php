@@ -3,6 +3,7 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\HousekeepingStatus;
 use App\Enums\RoomBlockReason;
+use App\Features\BedRoomTypes;
 use App\Models\Bed;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -14,6 +15,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -490,6 +492,7 @@ test('archiving a room or bed ends its current and upcoming blocks', function ()
     $running = blockOn($room, ['starts_on' => '2026-10-09', 'ends_on' => '2026-10-11']);
     $upcoming = blockOn($room, ['starts_on' => '2026-10-20', 'ends_on' => '2026-10-21']);
     $dorm = blockedDorm($owner->property);
+    Feature::for($owner->property)->activate(BedRoomTypes::class);
     $bed = Bed::factory()->for($dorm)->create();
     $bedBlock = blockOn($dorm, ['bed_id' => $bed->id]);
 

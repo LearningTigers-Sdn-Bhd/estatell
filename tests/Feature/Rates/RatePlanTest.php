@@ -83,7 +83,24 @@ test('the list shows active plans in order with their room types, then archived 
             ->where('ratePlans.0.pricingTone', 'info')
             ->where('ratePlans.1.pricingTone', 'success')
             ->where('statuses', fn ($statuses) => collect($statuses)->pluck('value')->all() === ['active', 'archived'])
-            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'per_bed', 'package', 'day_use']));
+            ->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->all() === ['per_room', 'per_guest', 'package', 'day_use']));
+});
+
+test('a per bed plan is refused and left out of the options until bed room types are on', function () {
+    [$owner, $property] = ratePlanOwner();
+    $url = route('settings.rate-plans.store', $property->code);
+
+    $this->actingAs($owner)
+        ->post($url, ['name' => 'Dorm bed', 'pricing_basis' => 'per_bed'])
+        ->assertSessionHasErrors(['pricing_basis' => 'Per bed rate plans are not available yet.']);
+
+    Feature::for($property)->activate(BedRoomTypes::class);
+
+    $this->get(route('settings.rate-plans.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('pricingBases', fn ($bases) => collect($bases)->pluck('value')->contains('per_bed')));
+    $this->post($url, ['name' => 'Dorm bed', 'pricing_basis' => 'per_bed'])->assertSessionHasNoErrors();
+
+    expect(RatePlan::query()->where('name', 'Dorm bed')->sole()->pricing_basis)->toBe(PricingBasis::PerBed);
 });
 
 test('owners create a plan at the end of the list and land on its room types tab', function () {

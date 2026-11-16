@@ -27,7 +27,7 @@ class RoomTypeController extends Controller
         return Inertia::render('onboarding/room-types', [
             'roomTypes' => $property->roomTypes()->active()->ordered()->withExists('rooms')->get()
                 ->map(fn (RoomType $roomType): OnboardingRoomTypeData => OnboardingRoomTypeData::fromModel($roomType)),
-            'sellUnits' => SellUnit::options(SellUnit::availableFor($property)),
+            'sellUnits' => SellUnit::options(),
             'maxRows' => SaveRoomTypesRequest::MAX_ROWS,
             'locked' => $blockingStep !== null,
             'blockedBy' => $blockingStep === null ? null : [

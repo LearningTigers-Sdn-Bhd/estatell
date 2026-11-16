@@ -14,12 +14,14 @@ export default function RoomTypeEdit({
     roomCount,
     canManage,
     sellUnits,
+    bedsOn,
     termsDocuments,
 }: {
     roomType: RoomType;
     roomCount: number;
     canManage: boolean;
     sellUnits: EnumOption[];
+    bedsOn: boolean;
     termsDocuments: { value: number; label: string }[];
 }) {
     return (
@@ -34,6 +36,7 @@ export default function RoomTypeEdit({
                 <RoomTypeDetailsForm
                     roomType={roomType}
                     sellUnits={sellUnits}
+                    bedsOn={bedsOn}
                     termsDocuments={termsDocuments}
                     readOnly={isRoomTypeReadOnly(roomType, canManage)}
                 />

@@ -1,15 +1,19 @@
 <?php
 
+use App\Features\BedRoomTypes;
 use App\Models\Bed;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
 use App\Services\Rooms\BedLabelGenerator;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 function dorm(Property $property, string $number, array $attributes = []): Room
 {
+    Feature::for($property)->activate(BedRoomTypes::class);
+
     return Room::factory()->for($property)->create([
         'room_type_id' => RoomType::factory()->for($property)->bed()->create()->id,
         'number' => $number,

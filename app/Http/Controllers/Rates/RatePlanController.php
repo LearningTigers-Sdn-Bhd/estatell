@@ -109,7 +109,7 @@ class RatePlanController extends Controller
                 ->get()
                 ->map(fn (RatePlan $ratePlan): RatePlanData => RatePlanData::fromModel($ratePlan)),
             'statuses' => RatePlanStatus::options(),
-            'pricingBases' => PricingBasis::options(),
+            'pricingBases' => PricingBasis::options(PricingBasis::availableFor($property)),
             'packageUnits' => PackageUnit::options(),
             'roomTypes' => $property->roomTypes()->active()->ordered()->get()
                 ->map(fn (RoomType $roomType): NewRatePlanRoomTypeData => NewRatePlanRoomTypeData::fromModel($roomType)),

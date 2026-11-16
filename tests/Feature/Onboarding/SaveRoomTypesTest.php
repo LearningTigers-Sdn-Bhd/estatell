@@ -236,7 +236,7 @@ test('the page sends every room type with whether it has rooms and opens as a pr
             ->where('roomTypes.0.hasRooms', false)
             ->where('roomTypes.1.sellUnit', 'bed')
             ->where('roomTypes.1.hasRooms', true)
-            ->where('sellUnits', SellUnit::options([SellUnit::Room]))
+            ->where('sellUnits', SellUnit::options())
             ->where('locked', false)
             ->where('blockedBy', null));
 

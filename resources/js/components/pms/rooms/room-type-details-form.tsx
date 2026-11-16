@@ -54,11 +54,14 @@ export function GuestsIncludedLabel() {
 export function RoomTypeDetailsForm({
     roomType,
     sellUnits,
+    bedsOn,
     termsDocuments,
     readOnly,
 }: {
     roomType: RoomType;
     sellUnits: EnumOption[];
+    /** The property can sell beds. While off, Sold by is hidden, or shown as text on a type that already sells beds. */
+    bedsOn: boolean;
     termsDocuments: { value: number; label: string }[];
     readOnly: boolean;
 }) {
@@ -81,15 +84,38 @@ export function RoomTypeDetailsForm({
                         placeholder="e.g. Deluxe King"
                         disabled={readOnly}
                     />
-                    <SettingsSelect
-                        name="sell_unit"
-                        label="Sold by"
-                        value={roomType.sellUnit}
-                        options={sellUnits}
-                        error={errors.sell_unit}
-                        description="A Bed room type sells one bed at a time, for dorms."
-                        disabled={readOnly}
-                    />
+                    {bedsOn ? (
+                        <SettingsSelect
+                            name="sell_unit"
+                            label="Sold by"
+                            value={roomType.sellUnit}
+                            options={sellUnits}
+                            error={errors.sell_unit}
+                            description="A Bed room type sells one bed at a time, for dorms."
+                            disabled={readOnly}
+                        />
+                    ) : (
+                        <input
+                            type="hidden"
+                            name="sell_unit"
+                            value={roomType.sellUnit}
+                        />
+                    )}
+                    {!bedsOn && roomType.sellUnit === 'bed' && (
+                        <Field>
+                            <FieldLabel>Sold by</FieldLabel>
+                            <p className="text-sm">
+                                {sellUnits.find(
+                                    (option) =>
+                                        option.value === roomType.sellUnit,
+                                )?.label ?? roomType.sellUnit}
+                            </p>
+                            <FieldDescription>
+                                This room type sells beds. Bed room types are
+                                turned off for this property.
+                            </FieldDescription>
+                        </Field>
+                    )}
                     <Field className="md:col-span-2">
                         <FieldLabel htmlFor="description">
                             Description

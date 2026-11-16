@@ -34,22 +34,12 @@ enum SellUnit: string
     }
 
     /**
-     * @param  list<self>|null  $available  The pickable units; the rest show disabled. Null makes every unit pickable.
-     * @return list<array{value: string, label: string, disabled: bool, description: string|null}>
+     * @return list<array{value: string, label: string}>
      */
-    public static function options(?array $available = null): array
+    public static function options(): array
     {
         return array_map(
-            function (self $unit) use ($available): array {
-                $pickable = $available === null || in_array($unit, $available, true);
-
-                return [
-                    'value' => $unit->value,
-                    'label' => $unit->label(),
-                    'disabled' => ! $pickable,
-                    'description' => $pickable ? null : __('Not available yet'),
-                ];
-            },
+            fn (self $unit): array => ['value' => $unit->value, 'label' => $unit->label()],
             self::cases(),
         );
     }
