@@ -105,6 +105,31 @@ php artisan db:seed --class=VarsityLoftSeeder --force --no-interaction
 - Dates are relative to the day it runs and never reset, so "arrivals today" become past bookings after a while. Room charges post at the first night audit.
 - Tourism Tax is on for room revenue, as at Kopi Lane. Whether SST and Tourism Tax apply to student long stays is still to check.
 
+## Rimba Kinabatangan Lodge for sales pitches
+
+Rimba Kinabatangan Lodge is a rainforest lodge on the Kinabatangan River in Sabah, for pitches to resorts and nature lodges. Like Varsity Loft, it exists only in production, uses `BORENO_SEED_PASSWORD`, needs the platform amenity list, and is never part of the public demo.
+
+Run this command once in the production `web` container:
+
+```sh
+php artisan db:seed --class=RimbaLodgeSeeder --force --no-interaction
+```
+
+- Owner: `owner@rimbalodge.com`. Other staff: `manager@`, `frontdesk@`, `housekeeping@rimbalodge.com`.
+
+| Area         | Seeded                                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rooms        | 15 rooms: 6 river view chalets, 6 jungle chalets, 2 family longhouse rooms, and a 6-bed researcher dorm sold per bed                                                             |
+| Rates        | Room Only (Friday and Saturday cost more), Researcher Bed (per bed, 20% off from 14 nights), and two packages priced per guest                                                   |
+| Packages     | 2D1N Rainforest Package (dinner, breakfast, 2 river cruises, a night walk) and 3D2N Wildlife Package (every meal, 4 river cruises, a night walk, the oxbow lake trek)            |
+| Reservations | 16: package couples and a family, a tour group of 3 chalets from the travel agent, 3 researchers billed to the NGO, arrivals today, a no-show, a cancellation                    |
+| Front desk   | 3 stays in house with charges (binoculars, jetty transfer, packed lunch, river cruise, night walk) and advances by card, bank transfer and cash                                  |
+| City ledger  | Borneo Nature Tours (travel agent, RM 15,000 limit) and Kinabatangan Wildlife Trust. One agent stay settled to the city ledger, part paid                                        |
+| Taxes        | SST and Tourism Tax on room revenue                                                                                                                                              |
+| Booking site | Booking engine on, Microsite mode, not published. About text, a location on the river, the nightly plans bookable online, 36 property amenities and amenities on every room type |
+
+- The same rules as Varsity Loft apply: one transaction, skipped if the property exists, dates that never reset, and no publishing until photos are added.
+
 ## Scheduled tasks
 
 From `routes/console.php`.

@@ -30,6 +30,8 @@ A separate Boreno copy can run in production for internal use through `BorenoPro
 
 Varsity Loft, a student hostel next to Universiti Malaysia Sabah, exists only in production for sales pitches (`VarsityLoftSeeder`, with the Boreno staff password `BORENO_SEED_PASSWORD`). It is not in `DemoSeeder`. See [Production environment](../deployment/production_environment.md#varsity-loft-for-sales-pitches).
 
+Rimba Kinabatangan Lodge, a rainforest lodge with packages, is the same: production only (`RimbaLodgeSeeder`, `BORENO_SEED_PASSWORD`). See [Production environment](../deployment/production_environment.md#rimba-kinabatangan-lodge-for-sales-pitches).
+
 `PearlsideSeeder` extends `SandbaySeeder` and changes only the name, address and logins, so the dev seeder and the demo resort stay the same data. `SandbaySeeder` stays the local development seeder. The shared front desk and folio steps live in `Database\Seeders\Concerns\SeedsThroughActions`.
 
 ## Data
