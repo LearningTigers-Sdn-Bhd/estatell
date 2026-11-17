@@ -73,6 +73,63 @@ php artisan db:seed --class=BorenoProductionSeeder --force --no-interaction
 
 This property has normal production behavior. Demo account restrictions and the nightly demo reset do not apply. No mail, jobs or reports exclude it automatically.
 
+## Varsity Loft for sales pitches
+
+Varsity Loft is a student hostel next to Universiti Malaysia Sabah in Kota Kinabalu. It exists only in production, for pitches to student hostels. It is never part of the public demo. Like Boreno, it is a normal property with no flag and no nightly reset.
+
+It uses the Boreno staff password, `BORENO_SEED_PASSWORD`, so it needs no variable of its own. Never use `DEMO_PASSWORD`: partners see it on the Demo access card. All four staff accounts use this password initially.
+
+Run this command once in the production `web` container:
+
+```sh
+php artisan db:seed --class=VarsityLoftSeeder --force --no-interaction
+```
+
+- Owner: `owner@varsityloft.com`.
+- Other staff: `manager@`, `frontdesk@`, `housekeeping@varsityloft.com`.
+- Data:
+
+| Area         | Seeded                                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Rooms        | 20 rooms and 40 beds: 4-bed male rooms (101–104), 4-bed female rooms (201–204), twin sharing (301–304), single study rooms, two studios                                                                |
+| Rates        | Shared Bed (per bed) and Room Only, the same price every night, with long-stay discounts: 15% from 28 nights, 25% from 90 nights                                                                       |
+| Reservations | 16: semester stays, move-ins today, a UMS intake group on all of rooms 103 and 104, short stays (parents, an interview, exam week), a no-show, a cancellation                                          |
+| Front desk   | 3 students in house with security deposits and advances; one bed in room 101 blocked for repair                                                                                                        |
+| City ledger  | Universiti Malaysia Sabah and Yayasan Sabah. One sponsored stay settled to the city ledger, part paid                                                                                                  |
+| Booking site | Booking engine on, Microsite mode, not published. Slug `varsity-loft`, About text, a Google Maps location near UMS, both plans bookable online, 31 property amenities and amenities on every room type |
+
+- It needs the platform amenity list (`AmenitySeeder`, part of `DatabaseSeeder`). Without it the seeder stops with "Run AmenitySeeder first".
+- To publish the site, add a template, its images, property photos and room type photos first. Publishing makes the hostel bookable by the public, so keep it unpublished unless the pitch needs a live booking.
+- The seeder uses one transaction. A failed step leaves no partial property.
+- If a property named Varsity Loft already exists, the seeder skips it without changing data or passwords.
+- Dates are relative to the day it runs and never reset, so "arrivals today" become past bookings after a while. Room charges post at the first night audit.
+- Tourism Tax is on for room revenue, as at Kopi Lane. Whether SST and Tourism Tax apply to student long stays is still to check.
+
+## Rimba Kinabatangan Lodge for sales pitches
+
+Rimba Kinabatangan Lodge is a rainforest lodge on the Kinabatangan River in Sabah, for pitches to resorts and nature lodges. Like Varsity Loft, it exists only in production, uses `BORENO_SEED_PASSWORD`, needs the platform amenity list, and is never part of the public demo.
+
+Run this command once in the production `web` container:
+
+```sh
+php artisan db:seed --class=RimbaLodgeSeeder --force --no-interaction
+```
+
+- Owner: `owner@rimbalodge.com`. Other staff: `manager@`, `frontdesk@`, `housekeeping@rimbalodge.com`.
+
+| Area         | Seeded                                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rooms        | 15 rooms: 6 river view chalets, 6 jungle chalets, 2 family longhouse rooms, and a 6-bed researcher dorm sold per bed                                                             |
+| Rates        | Room Only (Friday and Saturday cost more), Researcher Bed (per bed, 20% off from 14 nights), and two packages priced per guest                                                   |
+| Packages     | 2D1N Rainforest Package (dinner, breakfast, 2 river cruises, a night walk) and 3D2N Wildlife Package (every meal, 4 river cruises, a night walk, the oxbow lake trek)            |
+| Reservations | 16: package couples and a family, a tour group of 3 chalets from the travel agent, 3 researchers billed to the NGO, arrivals today, a no-show, a cancellation                    |
+| Front desk   | 3 stays in house with charges (binoculars, jetty transfer, packed lunch, river cruise, night walk) and advances by card, bank transfer and cash                                  |
+| City ledger  | Borneo Nature Tours (travel agent, RM 15,000 limit) and Kinabatangan Wildlife Trust. One agent stay settled to the city ledger, part paid                                        |
+| Taxes        | SST and Tourism Tax on room revenue                                                                                                                                              |
+| Booking site | Booking engine on, Microsite mode, not published. About text, a location on the river, the nightly plans bookable online, 36 property amenities and amenities on every room type |
+
+- The same rules as Varsity Loft apply: one transaction, skipped if the property exists, dates that never reset, and no publishing until photos are added.
+
 ## Scheduled tasks
 
 From `routes/console.php`.

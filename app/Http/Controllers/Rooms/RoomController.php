@@ -16,7 +16,6 @@ use App\Data\Rooms\RoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Rooms\RoomTypeData;
 use App\Enums\PermissionEnum;
-use App\Enums\SellUnit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rooms\BulkRoomsRequest;
 use App\Http\Requests\Rooms\ChangeRoomsTypeRequest;
@@ -28,6 +27,7 @@ use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
 use App\Services\Rooms\BedLabelGenerator;
+use App\Services\Rooms\BedRoomLetters;
 use App\Services\Rooms\RoomNumberAvailability;
 use App\Services\Rooms\RoomNumberGenerator;
 use Illuminate\Http\JsonResponse;
@@ -42,7 +42,7 @@ class RoomController extends Controller
      * Groups, room types, beds and every room of the property. The lists are bounded, so they load once
      * and the browser groups and filters them.
      */
-    public function index(Request $request, Property $property, BedLabelGenerator $bedLabels): Response
+    public function index(Request $request, Property $property, BedRoomLetters $bedRoomLetters): Response
     {
         return Inertia::render('settings/rooms/index', [
             'view' => $request->query('view') === 'map' ? 'map' : 'list',
@@ -50,7 +50,7 @@ class RoomController extends Controller
                 ->map(fn (Room $room): RoomData => RoomData::fromModel($room)),
             'beds' => $property->beds()->ordered()->get()
                 ->map(fn (Bed $bed): BedData => BedData::fromModel($bed)),
-            'bedPrefixes' => $this->bedPrefixes($property, $bedLabels),
+            'bedPrefixes' => $bedRoomLetters->forProperty($property),
             'roomGroups' => $property->roomGroups()->ordered()->get()
                 ->map(fn (RoomGroup $group): RoomGroupData => RoomGroupData::fromModel($group)),
             'roomTypes' => $property->roomTypes()->ordered()->get()
@@ -59,22 +59,6 @@ class RoomController extends Controller
             'bedLimit' => BedLabelGenerator::MAX_BEDS,
             'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
         ]);
-    }
-
-    /**
-     * The default bed prefix (the room's letter) of each active Bed room, keyed by room id.
-     *
-     * @return array<int, string>
-     */
-    private function bedPrefixes(Property $property, BedLabelGenerator $bedLabels): array
-    {
-        return $property->rooms()->active()
-            ->whereHas('roomType', fn ($query) => $query->where('sell_unit', SellUnit::Bed->value))
-            ->ordered()
-            ->pluck('id')
-            ->values()
-            ->mapWithKeys(fn (int $id, int $index): array => [$id => $bedLabels->letter($index)])
-            ->all();
     }
 
     public function store(RoomRequest $request, Property $property, CreateRoom $createRoom): RedirectResponse

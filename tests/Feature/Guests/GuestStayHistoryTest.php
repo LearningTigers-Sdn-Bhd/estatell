@@ -232,7 +232,8 @@ test('the guest list shows the stay figures and sorts by spend with guests witho
     Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aaron New']);
 
     foreach ([[$big, '900.00'], [$small, '100.00']] as [$guest, $amount]) {
-        $unit = stayFor($guest, reservation: Reservation::factory()->ota('Agoda')->create(['property_id' => $property->id]));
+        // The guest books it, so the factory adds no booker with a random name to the list.
+        $unit = stayFor($guest, reservation: Reservation::factory()->ota('Agoda')->create(['property_id' => $property->id, 'booker_guest_id' => $guest->id]));
         FolioLine::factory()->create(['folio_id' => unitFolio($unit)->id, 'amount' => $amount]);
     }
 

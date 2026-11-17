@@ -16,6 +16,9 @@ export default function RoomTypeRooms({
     otherRooms,
     roomGroups,
     generateLimit,
+    beds,
+    bedPrefixes,
+    bedLimit,
 }: {
     roomType: RoomType;
     roomCount: number;
@@ -24,6 +27,9 @@ export default function RoomTypeRooms({
     otherRooms: App.Data.Rooms.RoomTypeRoomChoiceData[];
     roomGroups: App.Data.Rooms.RoomGroupData[];
     generateLimit: number;
+    beds: App.Data.Rooms.BedData[] | null;
+    bedPrefixes: Record<number, string>;
+    bedLimit: number;
 }) {
     // A new key remounts the form with the saved rooms, so unsaved picks never outlive a save.
     const signature = rooms
@@ -46,6 +52,9 @@ export default function RoomTypeRooms({
                     otherRooms={otherRooms}
                     roomGroups={roomGroups}
                     generateLimit={generateLimit}
+                    beds={beds}
+                    bedPrefixes={bedPrefixes}
+                    bedLimit={bedLimit}
                     readOnly={isRoomTypeReadOnly(roomType, canManage)}
                 />
             </RoomTypeShell>

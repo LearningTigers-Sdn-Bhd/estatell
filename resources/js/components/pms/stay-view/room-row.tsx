@@ -43,7 +43,9 @@ export function RoomLabel({ room }: { room: Room }) {
                         isBed && 'pl-3',
                     )}
                 >
-                    {isBed ? room.roomNumber : room.roomTypeName}
+                    {isBed
+                        ? `${room.roomNumber} · ${room.roomTypeName}`
+                        : room.roomTypeName}
                 </span>
             </span>
             {room.doNotDisturb && (

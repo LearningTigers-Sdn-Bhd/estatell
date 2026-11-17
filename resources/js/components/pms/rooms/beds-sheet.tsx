@@ -134,7 +134,9 @@ function GenerateBedsForm({
             <FieldGroup>
                 <Field>
                     <FieldLabel htmlFor="bed-count">
-                        {roomIds ? 'How many beds' : 'Beds per room'}
+                        {roomIds?.length === 1
+                            ? 'How many beds'
+                            : 'Beds per room'}
                     </FieldLabel>
                     <Input
                         id="bed-count"
@@ -461,32 +463,34 @@ export function BedsSheet({
 
 /**
  * Add the same number of beds to every dorm room that has none. Each room gets its own letter.
+ * With `roomIds`, only those rooms get beds (the room type page passes its rooms without beds).
  */
 export function GenerateAllBedsSheet({
     open,
     onOpenChange,
     limit,
+    roomIds = null,
+    title = 'Add beds to dorm rooms',
+    description = 'Every dorm room without beds gets the same number of beds. The first dorm room gets A1, A2 ..., the next B1, B2 ..., and so on. Rooms that already have beds are left alone.',
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     limit: number;
+    roomIds?: number[] | null;
+    title?: string;
+    description?: string;
 }) {
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="data-[side=right]:sm:max-w-xl">
                 <SheetHeader>
-                    <SheetTitle>Add beds to dorm rooms</SheetTitle>
-                    <SheetDescription>
-                        Every dorm room without beds gets the same number of
-                        beds. The first dorm room gets A1, A2 ..., the next B1,
-                        B2 ..., and so on. Rooms that already have beds are left
-                        alone.
-                    </SheetDescription>
+                    <SheetTitle>{title}</SheetTitle>
+                    <SheetDescription>{description}</SheetDescription>
                 </SheetHeader>
                 {open && (
                     <div className="px-4">
                         <GenerateBedsForm
-                            roomIds={null}
+                            roomIds={roomIds}
                             limit={limit}
                             defaultCount="6"
                             submitLabel="Add beds"

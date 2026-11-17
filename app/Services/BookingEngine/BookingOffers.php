@@ -65,7 +65,7 @@ class BookingOffers
 
     /**
      * The offer of each line a guest chose, in order, with the same rules as `forStay()`. A line is null when its plan is
-     * not sold online or does not sell its room type.
+     * not sold online or does not sell its room type. A bed line takes one adult and no children.
      *
      * @param  list<NewBookingHoldLineData>  $lines
      * @return list<BookingOffer|null>
@@ -84,7 +84,7 @@ class BookingOffers
 
             return $plan === null || $roomType === null
                 ? null
-                : $this->offer($context, $plan, $roomType, $nights[$roomType->id] ?? [], $policy, $arrival, $departure, $line->adults, $line->childAges, $nationality);
+                : $this->offer($context, $plan, $roomType, $nights[$roomType->id] ?? [], $policy, $arrival, $departure, $line->adults, $line->childAges, $nationality, oneBedPerLine: true);
         }, $lines);
     }
 
@@ -106,14 +106,25 @@ class BookingOffers
     }
 
     /**
+     * A search prices one bed for any party. A chosen line refuses a bed with more than one adult or with children, so no
+     * guest is dropped without a word.
+     *
      * @param  list<NightAvailability>  $nights
      * @param  list<int>  $childAges
      */
-    private function offer(OnlinePriceContext $context, RatePlan $plan, RoomType $roomType, array $nights, ?RoomRevenuePolicy $policy, CarbonImmutable $arrival, CarbonImmutable $departure, int $adults, array $childAges, ?string $nationality): BookingOffer
+    private function offer(OnlinePriceContext $context, RatePlan $plan, RoomType $roomType, array $nights, ?RoomRevenuePolicy $policy, CarbonImmutable $arrival, CarbonImmutable $departure, int $adults, array $childAges, ?string $nationality, bool $oneBedPerLine = false): BookingOffer
     {
         $left = $nights === [] ? 0 : min(array_map(fn (NightAvailability $night): int => $night->available, $nights));
         $blocked = fn (string $code, string $message): BookingOffer => new BookingOffer($roomType, $plan, $left, null, $policy, $code, $message);
         $isBed = $roomType->sell_unit === SellUnit::Bed;
+
+        if ($isBed && $oneBedPerLine && $adults > 1) {
+            return $blocked(self::REFUSAL_TOO_MANY_ADULTS, __('A bed takes one adult. Send one line for each bed.'));
+        }
+
+        if ($isBed && $oneBedPerLine && $childAges !== []) {
+            return $blocked(self::REFUSAL_TOO_MANY_CHILDREN, __('Dorm beds are for adults only.'));
+        }
 
         if (! $isBed && $adults > $roomType->max_adults) {
             return $blocked(self::REFUSAL_TOO_MANY_ADULTS, __('This room takes at most :count adults.', ['count' => $roomType->max_adults]));

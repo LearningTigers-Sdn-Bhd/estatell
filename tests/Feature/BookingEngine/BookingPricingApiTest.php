@@ -106,6 +106,8 @@ it('refuses what a hold would refuse', function (string $code, Closure $body) {
     'a plan that does not sell the room type' => ['plan_not_available', fn (array $setup) => ['lines' => [['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['plan']->id, 'adults' => 1]]]],
     'a plan of another property' => ['plan_not_available', fn (array $setup) => ['lines' => [['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => RatePlan::factory()->create()->id, 'adults' => 1]]]],
     'too many adults' => ['too_many_adults', fn (array $setup) => ['lines' => [[...pricingLine($setup), 'adults' => 40]]]],
+    'a bed with two adults' => ['too_many_adults', fn (array $setup) => ['lines' => [['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 2]]]],
+    'a bed with a child' => ['too_many_children', fn (array $setup) => ['lines' => [['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1, 'child_ages' => [5]]]]],
     'more lines than rooms' => ['not_available', fn (array $setup) => ['lines' => [pricingLine($setup), pricingLine($setup), pricingLine($setup)]]],
     'an arrival past the window' => ['outside_window', fn () => ['arrival' => '2028-01-01', 'departure' => '2028-01-02']],
 ]);

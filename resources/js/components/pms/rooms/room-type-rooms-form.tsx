@@ -1,7 +1,12 @@
 import { BedDouble, ChevronDown, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
+import {
+    BedsSheet,
+    GenerateAllBedsSheet,
+} from '@/components/pms/rooms/beds-sheet';
 import { GenerateRoomsSheet } from '@/components/pms/rooms/generate-rooms-sheet';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { Button } from '@/components/ui/button';
@@ -34,6 +39,8 @@ import { update } from '@/routes/settings/room-types/rooms';
 
 type RoomType = App.Data.Rooms.RoomTypeData;
 type Choice = App.Data.Rooms.RoomTypeRoomChoiceData;
+type Room = App.Data.Rooms.RoomData;
+type Bed = App.Data.Rooms.BedData;
 
 type Row = {
     id: number;
@@ -80,6 +87,46 @@ function RoomInputs({
                 </span>
             ))}
         </div>
+    );
+}
+
+/**
+ * A header or row button. With a `disabledReason` it is disabled and the reason shows as a tooltip.
+ */
+function ReasonButton({
+    disabledReason,
+    onClick,
+    children,
+}: {
+    disabledReason: string | null;
+    onClick: () => void;
+    children: ReactNode;
+}) {
+    if (disabledReason === null) {
+        return (
+            <Button type="button" variant="outline" size="sm" onClick={onClick}>
+                {children}
+            </Button>
+        );
+    }
+
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        focusableWhenDisabled
+                    />
+                }
+            >
+                {children}
+            </TooltipTrigger>
+            <TooltipContent>{disabledReason}</TooltipContent>
+        </Tooltip>
     );
 }
 
@@ -130,6 +177,8 @@ function AddRoomsPicker({
 /**
  * The Rooms tab: a group for each room of the type, and rooms picked from other types. Nothing moves until Save.
  * Rooms never leave a type here; they move when they are added on another type's page.
+ * `beds` is set for a Bed room type: each saved room shows its bed count and a Beds button, and Add beds fills
+ * the rooms without beds. Bed changes save at once, so their buttons wait until the rooms form is saved.
  */
 export function RoomTypeRoomsForm({
     roomType,
@@ -137,13 +186,19 @@ export function RoomTypeRoomsForm({
     otherRooms,
     roomGroups,
     generateLimit,
+    beds,
+    bedPrefixes,
+    bedLimit,
     readOnly,
 }: {
     roomType: RoomType;
-    rooms: App.Data.Rooms.RoomData[];
+    rooms: Room[];
     otherRooms: Choice[];
     roomGroups: App.Data.Rooms.RoomGroupData[];
     generateLimit: number;
+    beds: Bed[] | null;
+    bedPrefixes: Record<number, string>;
+    bedLimit: number;
     readOnly: boolean;
 }) {
     const [added, setAdded] = useState<Choice[]>([]);
@@ -153,6 +208,8 @@ export function RoomTypeRoomsForm({
         ),
     );
     const [generating, setGenerating] = useState(false);
+    const [bedsRoom, setBedsRoom] = useState<Room | null>(null);
+    const [addingBeds, setAddingBeds] = useState(false);
 
     const rows: Row[] = [
         ...rooms.map((room) => ({
@@ -172,6 +229,21 @@ export function RoomTypeRoomsForm({
         label: group.name,
     }));
 
+    const hasChanges =
+        added.length > 0 ||
+        rooms.some(
+            (room) =>
+                (groups[room.id] ?? '') !== String(room.roomGroupId ?? ''),
+        );
+    const savedFirst = (dirty: boolean) =>
+        dirty ? 'Save or discard your changes first.' : null;
+    const bedCount = (roomId: number) =>
+        (beds ?? []).filter((bed) => bed.roomId === roomId && !bed.archived)
+            .length;
+    const roomsWithoutBeds = rooms
+        .filter((room) => bedCount(room.id) === 0)
+        .map((room) => room.id);
+
     const pick = (choice: Choice) => {
         setAdded((previous) => [...previous, choice]);
         setGroups((previous) => ({
@@ -188,7 +260,11 @@ export function RoomTypeRoomsForm({
             <SettingsSection
                 form={update.form({ roomType: roomType.id })}
                 title="Rooms"
-                description="Rooms of this type and their group."
+                description={
+                    beds === null
+                        ? 'Rooms of this type and their group.'
+                        : 'Rooms of this type, their group and beds.'
+                }
                 submitLabel="Save rooms"
                 contentClassName="flex flex-col gap-4"
                 readOnly={readOnly}
@@ -198,36 +274,26 @@ export function RoomTypeRoomsForm({
                         ? undefined
                         : ({ isDirty }) => (
                               <>
-                                  {isDirty ? (
-                                      <Tooltip>
-                                          <TooltipTrigger
-                                              render={
-                                                  <Button
-                                                      type="button"
-                                                      variant="outline"
-                                                      size="sm"
-                                                      disabled
-                                                      focusableWhenDisabled
-                                                  />
-                                              }
-                                          >
-                                              Generate rooms
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                              Save or discard your changes
-                                              first.
-                                          </TooltipContent>
-                                      </Tooltip>
-                                  ) : (
-                                      <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => setGenerating(true)}
+                                  {beds !== null && rooms.length > 0 && (
+                                      <ReasonButton
+                                          disabledReason={
+                                              savedFirst(isDirty) ??
+                                              (roomsWithoutBeds.length === 0
+                                                  ? 'Every room already has beds.'
+                                                  : null)
+                                          }
+                                          onClick={() => setAddingBeds(true)}
                                       >
-                                          Generate rooms
-                                      </Button>
+                                          <BedDouble data-icon="inline-start" />
+                                          Add beds
+                                      </ReasonButton>
                                   )}
+                                  <ReasonButton
+                                      disabledReason={savedFirst(isDirty)}
+                                      onClick={() => setGenerating(true)}
+                                  >
+                                      Generate rooms
+                                  </ReasonButton>
                                   <AddRoomsPicker
                                       choices={otherRooms.filter(
                                           (choice) => !addedIds.has(choice.id),
@@ -259,6 +325,9 @@ export function RoomTypeRoomsForm({
                                         <TableRow>
                                             <TableHead>Room</TableHead>
                                             <TableHead>Group</TableHead>
+                                            {beds !== null && (
+                                                <TableHead>Beds</TableHead>
+                                            )}
                                             <TableHead>
                                                 <span className="sr-only">
                                                     Moved from
@@ -295,6 +364,42 @@ export function RoomTypeRoomsForm({
                                                         className="w-48"
                                                     />
                                                 </TableCell>
+                                                {beds !== null && (
+                                                    <TableCell>
+                                                        {row.from === null ? (
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="w-6 tabular-nums">
+                                                                    {bedCount(
+                                                                        row.id,
+                                                                    )}
+                                                                </span>
+                                                                {!readOnly && (
+                                                                    <ReasonButton
+                                                                        disabledReason={savedFirst(
+                                                                            hasChanges,
+                                                                        )}
+                                                                        onClick={() =>
+                                                                            setBedsRoom(
+                                                                                rooms.find(
+                                                                                    (
+                                                                                        room,
+                                                                                    ) =>
+                                                                                        room.id ===
+                                                                                        row.id,
+                                                                                ) ??
+                                                                                    null,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        Beds
+                                                                    </ReasonButton>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            '—'
+                                                        )}
+                                                    </TableCell>
+                                                )}
                                                 <TableCell>
                                                     {row.from !== null && (
                                                         <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
@@ -330,6 +435,25 @@ export function RoomTypeRoomsForm({
                     limit={generateLimit}
                     roomType={{ id: roomType.id, name: roomType.name }}
                 />
+            )}
+            {!readOnly && beds !== null && (
+                <>
+                    <BedsSheet
+                        room={bedsRoom}
+                        beds={beds}
+                        prefixes={bedPrefixes}
+                        limit={bedLimit}
+                        onClose={() => setBedsRoom(null)}
+                    />
+                    <GenerateAllBedsSheet
+                        open={addingBeds}
+                        onOpenChange={setAddingBeds}
+                        limit={bedLimit}
+                        roomIds={roomsWithoutBeds}
+                        title={`Add beds to ${roomType.name}`}
+                        description="Every room of this type without beds gets the same number of beds. Each room gets its own letter: A1, A2 ..., then B1, B2 ..., and so on. Rooms that already have beds are left alone."
+                    />
+                </>
             )}
         </>
     );
