@@ -57,6 +57,24 @@ test('owners add a bed to a dorm room', function () {
         ->and(Activity::query()->where('event', 'bed.created')->count())->toBe(1);
 });
 
+test('bed changes return to the page they came from', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $room = dormRoom($property);
+    $roomTypePage = route('settings.room-types.rooms.edit', [$property->code, $room->room_type_id]);
+
+    $this->actingAs($owner)
+        ->from($roomTypePage)
+        ->post(route('settings.rooms.beds.store', [$property->code, $room]), ['label' => 'A1'])
+        ->assertRedirect($roomTypePage);
+
+    $this->from($roomTypePage)
+        ->post(route('settings.rooms.beds.generate', $property->code), ['count' => 2, 'room_ids' => [$room->id]])
+        ->assertRedirect($roomTypePage);
+
+    expect($room->beds()->count())->toBe(3);
+});
+
 test('the bed routes answer 404 while bed room types are off', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;

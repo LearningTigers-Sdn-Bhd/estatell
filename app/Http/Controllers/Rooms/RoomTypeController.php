@@ -9,6 +9,7 @@ use App\Actions\Rooms\CreateRoomType;
 use App\Actions\Rooms\ReorderRoomTypes;
 use App\Actions\Rooms\RestoreRoomType;
 use App\Actions\Rooms\UpdateRoomType;
+use App\Data\Rooms\BedData;
 use App\Data\Rooms\RoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Rooms\RoomTypeData;
@@ -21,11 +22,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Rooms\AssignRoomTypeRoomsRequest;
 use App\Http\Requests\Rooms\ReorderRoomTypesRequest;
 use App\Http\Requests\Rooms\RoomTypeRequest;
+use App\Models\Bed;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
 use App\Services\Channels\ChannelArchiveGuard;
+use App\Services\Rooms\BedLabelGenerator;
+use App\Services\Rooms\BedRoomLetters;
 use App\Services\Rooms\RoomNumberGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,9 +82,14 @@ class RoomTypeController extends Controller
 
     /**
      * The Rooms tab: the active rooms of this type, the groups to put them in and the rooms of other types that can move in.
+     * A Bed room type also gets the beds of its rooms while the property has bed room types on; otherwise `beds` is null.
      */
-    public function editRooms(Request $request, Property $property, RoomType $roomType): Response
+    public function editRooms(Request $request, Property $property, RoomType $roomType, BedRoomLetters $bedRoomLetters): Response
     {
+        $showBeds = $roomType->sell_unit === SellUnit::Bed
+            && in_array(SellUnit::Bed, SellUnit::availableFor($property), true);
+        $roomIds = $roomType->rooms()->active()->pluck('id');
+
         return Inertia::render('settings/room-types/rooms', [
             'roomType' => RoomTypeData::fromModel($roomType),
             'roomTypeSwitch' => RoomTypeSwitchData::forProperty($property, $roomType),
@@ -97,6 +106,14 @@ class RoomTypeController extends Controller
             'roomGroups' => $property->roomGroups()->ordered()->get()
                 ->map(fn (RoomGroup $group): RoomGroupData => RoomGroupData::fromModel($group)),
             'generateLimit' => RoomNumberGenerator::MAX_ROOMS,
+            'beds' => $showBeds
+                ? $property->beds()->whereIn('beds.room_id', $roomIds)->ordered()->get()
+                    ->map(fn (Bed $bed): BedData => BedData::fromModel($bed))
+                : null,
+            'bedPrefixes' => $showBeds
+                ? array_intersect_key($bedRoomLetters->forProperty($property), $roomIds->flip()->all())
+                : [],
+            'bedLimit' => BedLabelGenerator::MAX_BEDS,
         ]);
     }
 

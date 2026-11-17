@@ -28,7 +28,7 @@ class BedController extends Controller
             ? ['type' => 'success', 'message' => __('Bed :label created.', ['label' => $bed->label])]
             : ['type' => 'error', 'message' => __('Room :number cannot have beds. It is archived or its room type sells rooms.', ['number' => $room->number])]);
 
-        return to_route('settings.rooms.index', $property);
+        return back(fallback: route('settings.rooms.index', $property));
     }
 
     public function update(BedRequest $request, Property $property, Room $room, Bed $bed, UpdateBed $updateBed): RedirectResponse
@@ -37,7 +37,7 @@ class BedController extends Controller
             ? ['type' => 'success', 'message' => __('Bed :label saved.', ['label' => $request->validated('label')])]
             : ['type' => 'error', 'message' => __('Bed :label is archived. Restore it before editing.', ['label' => $bed->label])]);
 
-        return to_route('settings.rooms.index', $property);
+        return back(fallback: route('settings.rooms.index', $property));
     }
 
     public function archive(Request $request, Property $property, Room $room, Bed $bed, ArchiveBed $archiveBed): RedirectResponse
@@ -46,7 +46,7 @@ class BedController extends Controller
             ? ['type' => 'success', 'message' => __('Bed :label archived.', ['label' => $bed->label])]
             : ['type' => 'error', 'message' => __('Bed :label is already archived.', ['label' => $bed->label])]);
 
-        return to_route('settings.rooms.index', $property);
+        return back(fallback: route('settings.rooms.index', $property));
     }
 
     public function restore(Request $request, Property $property, Room $room, Bed $bed, RestoreBed $restoreBed): RedirectResponse
@@ -55,7 +55,7 @@ class BedController extends Controller
             ? ['type' => 'success', 'message' => __('Bed :label restored.', ['label' => $bed->label])]
             : ['type' => 'error', 'message' => __('Bed :label cannot be restored. Another bed in the room uses the same label.', ['label' => $bed->label])]);
 
-        return to_route('settings.rooms.index', $property);
+        return back(fallback: route('settings.rooms.index', $property));
     }
 
     /**
@@ -76,6 +76,6 @@ class BedController extends Controller
             ? ['type' => 'error', 'message' => __('No beds added. Every dorm room already has beds.')]
             : ['type' => 'success', 'message' => trans_choice('{1} :count bed added.|[2,*] :count beds added.', $created, ['count' => $created])]);
 
-        return to_route('settings.rooms.index', $property);
+        return back(fallback: route('settings.rooms.index', $property));
     }
 }

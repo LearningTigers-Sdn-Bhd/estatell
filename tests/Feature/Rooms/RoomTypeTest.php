@@ -358,6 +358,45 @@ test('the Rooms tab lists the type\'s active rooms and the active rooms of other
             ->where('roomCount', 1));
 });
 
+test('the rooms tab of a bed room type sends the beds and letters of its own rooms', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    Feature::for($property)->activate(BedRoomTypes::class);
+    $otherDorm = RoomType::factory()->for($property)->bed()->create();
+    $dorm = RoomType::factory()->for($property)->bed()->create();
+    Room::factory()->for($property)->create(['room_type_id' => $otherDorm->id, 'position' => 1]);
+    $first = Room::factory()->for($property)->create(['room_type_id' => $dorm->id, 'position' => 2]);
+    $second = Room::factory()->for($property)->create(['room_type_id' => $dorm->id, 'position' => 3]);
+    Bed::factory()->for($first)->create(['label' => 'B1']);
+    Bed::factory()->for($first)->archived()->create(['label' => 'B2']);
+    Bed::factory()->for(Room::factory()->for($property)->create(['room_type_id' => $otherDorm->id, 'position' => 9]))->create();
+
+    $this->actingAs($owner)
+        ->get(route('settings.room-types.rooms.edit', [$property->code, $dorm]))
+        ->assertInertia(fn (Assert $page) => $page->component('settings/room-types/rooms')
+            ->has('beds', 2)
+            ->where('beds.0.roomId', $first->id)
+            ->where('beds.1.archived', true)
+            ->where('bedPrefixes', [$first->id => 'B', $second->id => 'C'])
+            ->where('bedLimit', 50));
+});
+
+test('the rooms tab sends no beds for a room type that sells rooms, or while bed room types are off', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $roomType = RoomType::factory()->for($property)->create();
+    $dorm = RoomType::factory()->for($property)->bed()->create();
+
+    $this->actingAs($owner)
+        ->get(route('settings.room-types.rooms.edit', [$property->code, $dorm]))
+        ->assertInertia(fn (Assert $page) => $page->where('beds', null)->where('bedPrefixes', []));
+
+    Feature::for($property)->activate(BedRoomTypes::class);
+
+    $this->get(route('settings.room-types.rooms.edit', [$property->code, $roomType]))
+        ->assertInertia(fn (Assert $page) => $page->where('beds', null));
+});
+
 /**
  * @param  list<array{0: Room, 1: int|null}>  $rows  Room and group id pairs.
  * @return array{rooms: list<array{room_id: int, room_group_id: int|null}>}

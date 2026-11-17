@@ -75,6 +75,8 @@ Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.
 ### Demo
 
 - [x] `feat(platform): add Kopi Lane Hostel to the demo` — `KopiLaneSeeder` (a hostel with 4 dorm rooms, 26 beds and 4 private doubles, per-bed rates, bed bookings, a blocked bed), called by `DemoSeeder`, its Owner login in `estatell.demo.logins`. Not in the booking engine demo. Tests in `DemoSeederTest`. Docs: [Demo properties](01-platform/06-demo-properties.md#properties).
+- [x] `feat(platform): add Varsity Loft for sales pitches` — `VarsityLoftSeeder` (a student hostel next to UMS with 20 rooms and 40 beds, semester stays with long-stay discounts, a university intake group, a sponsored stay on the city ledger, the booking engine set up but not published, About text and amenities), production only, logins `@varsityloft.com` with `BORENO_SEED_PASSWORD`. Tests in `VarsityLoftSeederTest`. Docs: [Production environment](deployment/production_environment.md#varsity-loft-for-sales-pitches).
+- [x] `feat(platform): add Rimba Kinabatangan Lodge for sales pitches` — `RimbaLodgeSeeder` (a rainforest lodge with 15 rooms and a 6-bed researcher dorm, 2D1N and 3D2N packages per guest, a travel agent tour group, researchers billed to an NGO, an agent stay on the city ledger, the booking engine set up but not published), production only, logins `@rimbalodge.com` with `BORENO_SEED_PASSWORD`. Tests in `RimbaLodgeSeederTest`. Docs: [Production environment](deployment/production_environment.md#rimba-kinabatangan-lodge-for-sales-pitches).
 - [ ] `feat(platform): seed 14 days of demo history` — `DemoSeeder` opens the business date 14 days ago and runs a forced `RunNightAudit` each day, for overdue AR invoices and real report numbers. To verify first: how long the reset takes. Needs: the demo environment. Docs: [Demo properties](01-platform/06-demo-properties.md#data).
 
 ### Folio
@@ -1168,6 +1170,7 @@ Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, a
 - [x] `feat(booking-engine): price a basket of rooms` — `POST properties/{code}/pricing`, and `BookingBasket`, shared with `CreateBookingHold`. The microsite's several-room booking uses it. Docs: [API](29-booking-engine/02-api.md#pricing).
 - [x] `fix(booking-engine): tidy the API contract` — stay times as `15:00`, and one error shape for field errors under `/api/booking/v1`. Docs: [API](29-booking-engine/02-api.md#rules).
 - [x] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md), [Local development](29-booking-engine/10-local-dev-microsite.md). Built in that repo (PR #1, `4365dbd`); live since 2026-11-12.
+- [x] `fix(booking-engine): take one adult per bed line` — `pricing` and a hold refuse a bed line with more than one adult (`too_many_adults`) or with children (`too_many_children`), instead of dropping them. A search still prices one bed for any party. Ship after the microsite's dorm beds change. Docs: [API](29-booking-engine/02-api.md#checkout).
 
 ### 30 Commission fees
 
