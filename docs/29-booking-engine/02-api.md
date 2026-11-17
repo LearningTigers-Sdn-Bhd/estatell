@@ -61,7 +61,7 @@ The body of `offers` and `search` is the stay and the party of one room.
 | `child_ages`  | Optional, each from 0 to 17                                              |
 | `nationality` | Optional in `offers`, a 2-letter country code. `search` ignores it       |
 
-- An offer is the price of one room, or one bed for one adult. A bed ignores the party.
+- An offer is the price of one room, or one bed for one adult. A search prices one bed for any party, so a client can show the price per bed.
 - With no nationality, a guest is priced as a local guest, from the property's country. The hold prices again with the real one, so a change in the online total refuses with `price_changed`.
 - Only plans in the `bookableOnline` scope are sold. Auto-added items are in the total.
 - `pay_online` has `subtotal`, `taxes` and `total`. `pay_at_property` has `taxes` and `total`. A tax line has `name`, `amount` and `inclusive`. See [Taxes in the online total](03-checkout-and-hold.md#taxes-in-the-online-total).
@@ -101,7 +101,7 @@ The body of `POST properties/{code}/holds`:
 | `special_requests`                             | Optional, up to 1000 characters                                                    |
 | `lines`                                        | Required, 1 to 50. One line is one room or bed                                     |
 | `lines.*.room_type_id`, `lines.*.rate_plan_id` | Required, from the offer                                                           |
-| `lines.*.adults`                               | Required, 1 to 50. A bed ignores the party                                         |
+| `lines.*.adults`                               | Required, 1 to 50. A bed line takes 1 adult and no children: send one line per bed |
 | `lines.*.child_ages`                           | Optional, each from 0 to 17                                                        |
 
 Send the guest's address in the `X-Guest-IP` header. The answer holds `token`, `status`, `expires_at`, `online_total` and `pay_at_property`, and no guest details. Reading or releasing a hold returns the same without `pay_at_property`. See [Checkout and hold](03-checkout-and-hold.md).

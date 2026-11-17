@@ -1168,6 +1168,7 @@ Planned on 2026-11-03. **Live since 2026-11-12** on Estatell's Curlec account, a
 - [x] `feat(booking-engine): price a basket of rooms` — `POST properties/{code}/pricing`, and `BookingBasket`, shared with `CreateBookingHold`. The microsite's several-room booking uses it. Docs: [API](29-booking-engine/02-api.md#pricing).
 - [x] `fix(booking-engine): tidy the API contract` — stay times as `15:00`, and one error shape for field errors under `/api/booking/v1`. Docs: [API](29-booking-engine/02-api.md#rules).
 - [x] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md), [Local development](29-booking-engine/10-local-dev-microsite.md). Built in that repo (PR #1, `4365dbd`); live since 2026-11-12.
+- [x] `fix(booking-engine): take one adult per bed line` — `pricing` and a hold refuse a bed line with more than one adult (`too_many_adults`) or with children (`too_many_children`), instead of dropping them. A search still prices one bed for any party. Ship after the microsite's dorm beds change. Docs: [API](29-booking-engine/02-api.md#checkout).
 
 ### 30 Commission fees
 

@@ -5,7 +5,7 @@ namespace App\Data\BookingEngine;
 use Spatie\LaravelData\Data;
 
 /**
- * One room or bed a guest chose. A bed is for one adult, so `CreateBookingHold` ignores the party of a bed line.
+ * One room or bed a guest chose. A bed line takes one adult and no children; `BookingOffers::forLines()` refuses others.
  */
 class NewBookingHoldLineData extends Data
 {

@@ -122,14 +122,14 @@ it('stores guest details encrypted', function () {
         ->and($row->guest_nationality)->not->toBe('MY');
 });
 
-it('stores one row per child, and ignores the party of a bed', function () {
+it('stores one row per child, and one adult on a bed', function () {
     $setup = bookingApiProperty();
     $setup['roomType']->forceFill(['max_children' => 2])->save();
     bookingMicrositeClient();
 
     postHold($setup, ['total' => '280.00', 'lines' => [
         [...holdLine($setup), 'child_ages' => [4, 9]],
-        ['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 3, 'child_ages' => [5]],
+        ['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1],
     ]])->assertCreated();
 
     [$room, $bed] = BookingHold::query()->sole()->lines()->with('children')->get()->all();
@@ -168,6 +168,8 @@ it('refuses a hold the server would not sell', function (string $code, Closure $
         return ['lines' => [['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $other->id, 'adults' => 1]]];
     }],
     'too many adults' => ['too_many_adults', fn (array $setup) => ['lines' => [[...holdLine($setup), 'adults' => 40]]]],
+    'a bed with two adults' => ['too_many_adults', fn (array $setup) => ['total' => '80.00', 'lines' => [['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 2]]]],
+    'a bed with a child' => ['too_many_children', fn (array $setup) => ['total' => '80.00', 'lines' => [['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1, 'child_ages' => [5]]]]],
     'more lines than rooms' => ['not_available', fn (array $setup) => ['total' => '600.00', 'lines' => [holdLine($setup), holdLine($setup), holdLine($setup)]]],
     'a total that changed' => ['price_changed', fn () => ['total' => '150.00']],
 ]);
