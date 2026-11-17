@@ -73,6 +73,38 @@ php artisan db:seed --class=BorenoProductionSeeder --force --no-interaction
 
 This property has normal production behavior. Demo account restrictions and the nightly demo reset do not apply. No mail, jobs or reports exclude it automatically.
 
+## Varsity Loft for sales pitches
+
+Varsity Loft is a student hostel next to Universiti Malaysia Sabah in Kota Kinabalu. It exists only in production, for pitches to student hostels. It is never part of the public demo. Like Boreno, it is a normal property with no flag and no nightly reset.
+
+It uses the Boreno staff password, `BORENO_SEED_PASSWORD`, so it needs no variable of its own. Never use `DEMO_PASSWORD`: partners see it on the Demo access card. All four staff accounts use this password initially.
+
+Run this command once in the production `web` container:
+
+```sh
+php artisan db:seed --class=VarsityLoftSeeder --force --no-interaction
+```
+
+- Owner: `owner@varsityloft.com`.
+- Other staff: `manager@`, `frontdesk@`, `housekeeping@varsityloft.com`.
+- Data:
+
+| Area         | Seeded                                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Rooms        | 20 rooms and 40 beds: 4-bed male rooms (101–104), 4-bed female rooms (201–204), twin sharing (301–304), single study rooms, two studios                                                                |
+| Rates        | Shared Bed (per bed) and Room Only, the same price every night, with long-stay discounts: 15% from 28 nights, 25% from 90 nights                                                                       |
+| Reservations | 16: semester stays, move-ins today, a UMS intake group on all of rooms 103 and 104, short stays (parents, an interview, exam week), a no-show, a cancellation                                          |
+| Front desk   | 3 students in house with security deposits and advances; one bed in room 101 blocked for repair                                                                                                        |
+| City ledger  | Universiti Malaysia Sabah and Yayasan Sabah. One sponsored stay settled to the city ledger, part paid                                                                                                  |
+| Booking site | Booking engine on, Microsite mode, not published. Slug `varsity-loft`, About text, a Google Maps location near UMS, both plans bookable online, 31 property amenities and amenities on every room type |
+
+- It needs the platform amenity list (`AmenitySeeder`, part of `DatabaseSeeder`). Without it the seeder stops with "Run AmenitySeeder first".
+- To publish the site, add a template, its images, property photos and room type photos first. Publishing makes the hostel bookable by the public, so keep it unpublished unless the pitch needs a live booking.
+- The seeder uses one transaction. A failed step leaves no partial property.
+- If a property named Varsity Loft already exists, the seeder skips it without changing data or passwords.
+- Dates are relative to the day it runs and never reset, so "arrivals today" become past bookings after a while. Room charges post at the first night audit.
+- Tourism Tax is on for room revenue, as at Kopi Lane. Whether SST and Tourism Tax apply to student long stays is still to check.
+
 ## Scheduled tasks
 
 From `routes/console.php`.

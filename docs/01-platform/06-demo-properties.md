@@ -28,6 +28,8 @@ The name is **Boreno**, not Borneo. All three are Live. Boats are not in the dem
 
 A separate Boreno copy can run in production for internal use through `BorenoProductionSeeder`. It uses `owner@boreno.com` and `BORENO_SEED_PASSWORD`, not the public demo logins. It is a normal property without a flag or nightly reset. See [Production environment](../deployment/production_environment.md#boreno-hotel-for-internal-use).
 
+Varsity Loft, a student hostel next to Universiti Malaysia Sabah, exists only in production for sales pitches (`VarsityLoftSeeder`, with the Boreno staff password `BORENO_SEED_PASSWORD`). It is not in `DemoSeeder`. See [Production environment](../deployment/production_environment.md#varsity-loft-for-sales-pitches).
+
 `PearlsideSeeder` extends `SandbaySeeder` and changes only the name, address and logins, so the dev seeder and the demo resort stay the same data. `SandbaySeeder` stays the local development seeder. The shared front desk and folio steps live in `Database\Seeders\Concerns\SeedsThroughActions`.
 
 ## Data

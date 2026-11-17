@@ -75,6 +75,7 @@ Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.
 ### Demo
 
 - [x] `feat(platform): add Kopi Lane Hostel to the demo` — `KopiLaneSeeder` (a hostel with 4 dorm rooms, 26 beds and 4 private doubles, per-bed rates, bed bookings, a blocked bed), called by `DemoSeeder`, its Owner login in `estatell.demo.logins`. Not in the booking engine demo. Tests in `DemoSeederTest`. Docs: [Demo properties](01-platform/06-demo-properties.md#properties).
+- [x] `feat(platform): add Varsity Loft for sales pitches` — `VarsityLoftSeeder` (a student hostel next to UMS with 20 rooms and 40 beds, semester stays with long-stay discounts, a university intake group, a sponsored stay on the city ledger, the booking engine set up but not published, About text and amenities), production only, logins `@varsityloft.com` with `BORENO_SEED_PASSWORD`. Tests in `VarsityLoftSeederTest`. Docs: [Production environment](deployment/production_environment.md#varsity-loft-for-sales-pitches).
 - [ ] `feat(platform): seed 14 days of demo history` — `DemoSeeder` opens the business date 14 days ago and runs a forced `RunNightAudit` each day, for overdue AR invoices and real report numbers. To verify first: how long the reset takes. Needs: the demo environment. Docs: [Demo properties](01-platform/06-demo-properties.md#data).
 
 ### Folio
