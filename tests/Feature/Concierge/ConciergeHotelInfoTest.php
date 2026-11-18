@@ -33,8 +33,7 @@ function liveOwner(): array
 it('lets staff save the hotel info, and logs only a real change', function () {
     [$owner, $property] = liveOwner();
     $payload = [
-        'about' => '  A quiet guesthouse by the sea.  ',
-        'arrival_instructions' => 'Ring the bell.',
+        'arrival_instructions' => '  Ring the bell.  ',
         'departure_instructions' => '',
         'directions' => 'Turn left at the second light.',
         'airport_distance_km' => 25,
@@ -50,20 +49,21 @@ it('lets staff save the hotel info, and logs only a real change', function () {
 
     $settings = $property->settings()->first();
     $transport = PropertyTransportDetail::query()->sole();
-    expect($settings->about)->toBe('A quiet guesthouse by the sea.')
+    expect($settings->arrival_instructions)->toBe('Ring the bell.')
         ->and($settings->departure_instructions)->toBeNull()
         ->and($transport->airport_transfer_offered)->toBeTrue()
         ->and($transport->airport_transfer_price)->toBe('80.00')
         ->and(Activity::query()->where('event', 'concierge.hotel-info-updated')->count())->toBe(1);
 
     $this->actingAs($owner)->get(route('settings.concierge.hotel-info', $property))->assertInertia(fn (Assert $page) => $page
-        ->where('hotelInfo.about', 'A quiet guesthouse by the sea.')
+        ->where('hotelInfo.arrivalInstructions', 'Ring the bell.')
         ->where('hotelInfo.airportDistanceKm', 25));
 });
 
 it('shows the hotel info to guests, and a part with nothing filled does not show', function () {
     ['property' => $property] = conciergeSetup();
-    $property->settings->forceFill(['about' => 'By the sea.', 'arrival_instructions' => 'Ring the bell.'])->save();
+    $property->update(['about' => 'By the sea.']);
+    $property->settings->forceFill(['arrival_instructions' => 'Ring the bell.'])->save();
     PropertyTransportDetail::factory()->create(['property_id' => $property->id, 'airport_distance_km' => 25, 'airport_travel_minutes' => 35, 'airport_transfer_offered' => true, 'airport_transfer_price' => '80.00', 'airport_transfer_lead_hours' => 24]);
     PropertyInfoTopic::factory()->create(['property_id' => $property->id, 'title' => 'Laundry']);
 

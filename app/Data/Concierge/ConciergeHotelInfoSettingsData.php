@@ -11,7 +11,6 @@ use Spatie\LaravelData\Data;
 class ConciergeHotelInfoSettingsData extends Data
 {
     public function __construct(
-        public ?string $about,
         public ?string $arrivalInstructions,
         public ?string $departureInstructions,
         public ?string $directions,
@@ -45,7 +44,6 @@ class ConciergeHotelInfoSettingsData extends Data
         $transport = $property->transportDetail;
 
         return new self(
-            $settings?->about,
             $settings?->arrival_instructions,
             $settings?->departure_instructions,
             $transport?->directions,

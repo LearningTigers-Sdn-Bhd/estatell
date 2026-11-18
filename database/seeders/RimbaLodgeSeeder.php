@@ -25,6 +25,7 @@ use App\Actions\NightAudit\OpenBusinessDate;
 use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
+use App\Actions\Property\UpdatePropertyProfile;
 use App\Actions\Rates\CreateRatePlan;
 use App\Actions\Rates\SavePackagePricing;
 use App\Actions\Rates\SaveRatePlanInclusions;
@@ -755,7 +756,8 @@ class RimbaLodgeSeeder extends Seeder
 
         $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=5.5108,118.1964';
 
-        app(SaveBookingWebsiteGeneral::class)($property, $owner, (string) $property->slug, $mapsUrl, self::ABOUT, new MapsPlace(self::NAME, '5.5108', '118.1964', $mapsUrl));
+        app(SaveBookingWebsiteGeneral::class)($property, $owner, (string) $property->slug, $mapsUrl, new MapsPlace(self::NAME, '5.5108', '118.1964', $mapsUrl));
+        app(UpdatePropertyProfile::class)($owner, $property, ['about' => self::ABOUT]);
     }
 
     private int $sourceCursor = 0;

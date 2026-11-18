@@ -25,7 +25,6 @@ class SaveHotelInfoRequest extends FormRequest
         $km = ['nullable', 'integer', 'min:0', 'max:9999'];
 
         return [
-            'about' => ['nullable', 'string', 'max:3000'],
             'arrival_instructions' => ['nullable', 'string', 'max:1000'],
             'departure_instructions' => ['nullable', 'string', 'max:1000'],
             'directions' => ['nullable', 'string', 'max:2000'],

@@ -26,6 +26,7 @@ use App\Actions\NightAudit\OpenBusinessDate;
 use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\IssuePropertyCode;
 use App\Actions\Property\SeedPropertyDefaults;
+use App\Actions\Property\UpdatePropertyProfile;
 use App\Actions\Rates\CreateRatePlan;
 use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
@@ -734,7 +735,8 @@ class VarsityLoftSeeder extends Seeder
 
         $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=6.0367,116.1186';
 
-        app(SaveBookingWebsiteGeneral::class)($property, $owner, (string) $property->slug, $mapsUrl, self::ABOUT, new MapsPlace(self::NAME, '6.0367', '116.1186', $mapsUrl));
+        app(SaveBookingWebsiteGeneral::class)($property, $owner, (string) $property->slug, $mapsUrl, new MapsPlace(self::NAME, '6.0367', '116.1186', $mapsUrl));
+        app(UpdatePropertyProfile::class)($owner, $property, ['about' => self::ABOUT]);
     }
 
     /**

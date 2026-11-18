@@ -39,7 +39,7 @@ export default function ConciergeHotelInfo({
                         <LobbyHeroCard heroUrl={heroUrl} />
                         <LinkedSection
                             title="Property profile"
-                            body="The property name, address, and arrival times come from the property profile."
+                            body="The property name, address, About text and arrival times come from the property profile."
                             ready={hasAddress}
                             href={profile.url()}
                             action="Edit property profile"

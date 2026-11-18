@@ -46,7 +46,7 @@ class ConciergeGuide
             mapsUrl: $this->mapsUrl($property),
             checkInTime: $this->time($property->settings->check_in_time),
             checkOutTime: $this->time($property->settings->check_out_time),
-            about: $property->settings->about,
+            about: $property->about,
             arrivalInstructions: $property->settings->arrival_instructions,
             departureInstructions: $property->settings->departure_instructions,
             transport: $this->transport($property),

@@ -25,6 +25,7 @@ class UpdatePropertyProfileRequest extends FormRequest
             ...SavePropertyBasicsRequest::identityRules(),
             'contact_phone' => ['nullable', 'string', 'max:50'],
             'contact_email' => ['nullable', 'email', 'max:255'],
+            'about' => ['nullable', 'string', 'max:3000'],
         ];
     }
 }

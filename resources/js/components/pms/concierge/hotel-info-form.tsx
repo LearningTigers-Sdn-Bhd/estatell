@@ -51,7 +51,7 @@ function Section({
     children: ReactNode;
 }) {
     return (
-        <section className="flex flex-col gap-4 border-t pt-6">
+        <section className="flex flex-col gap-4 border-t pt-6 first-of-type:border-t-0 first-of-type:pt-0">
             <div className="flex flex-col gap-1">
                 <h3 className="text-sm font-semibold">{title}</h3>
                 <p className="text-sm text-muted-foreground">{description}</p>
@@ -61,7 +61,7 @@ function Section({
     );
 }
 
-/** What the property tells guests about itself and how to get there. Everything is optional; an empty part is not shown. */
+/** What the property tells guests about arrival and departure and how to get there. The About text is on the property profile. Everything is optional; an empty part is not shown. */
 export function HotelInfoForm({
     info,
     parkingOptions,
@@ -85,16 +85,6 @@ export function HotelInfoForm({
                         name="airport_transfer_offered"
                         value={transfer ? '1' : '0'}
                     />
-                    <TextField
-                        name="about"
-                        placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
-                        label="About the property"
-                        defaultValue={info.about}
-                        error={errors.about}
-                        rows={4}
-                        maxLength={3000}
-                    />
-
                     <ArrivalSection info={info} errors={errors} />
                     <DirectionsSection info={info} errors={errors} />
                     <TransportSection

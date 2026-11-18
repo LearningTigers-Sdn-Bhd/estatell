@@ -23,7 +23,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property PaymentMode $payment_mode
  * @property int|null $site_template_id
  * @property string|null $main_color
- * @property string|null $about_text
  * @property string|null $seo_title
  * @property string|null $seo_description
  * @property CarbonImmutable|null $published_at
@@ -33,7 +32,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property-read SiteTemplate|null $siteTemplate
  */
 #[Fillable([
-    'property_id', 'mode', 'payment_mode', 'site_template_id', 'main_color', 'about_text', 'seo_title', 'seo_description', 'published_at',
+    'property_id', 'mode', 'payment_mode', 'site_template_id', 'main_color', 'seo_title', 'seo_description', 'published_at',
 ])]
 class PropertyBookingSite extends Model implements HasMedia
 {

@@ -80,7 +80,7 @@ test('the seeder sets up the booking site with About, location and amenities, bu
     expect(Feature::for($property)->active(BookingEngine::class))->toBeTrue()
         ->and($site->mode)->toBe(BookingEngineMode::Microsite)
         ->and($site->isPublished())->toBeFalse()
-        ->and($site->about_text)->toContain('Universiti Malaysia Sabah')
+        ->and($property->about)->toContain('Universiti Malaysia Sabah')
         ->and($property->slug)->toBe('varsity-loft')
         ->and($property->latitude)->not->toBeNull()
         ->and(RatePlan::query()->where('property_id', $property->id)->bookableOnline()->count())->toBe(2)

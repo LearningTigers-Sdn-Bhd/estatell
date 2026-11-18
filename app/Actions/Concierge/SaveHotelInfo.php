@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class SaveHotelInfo
 {
-    public const array SETTING_FIELDS = ['about', 'arrival_instructions', 'departure_instructions'];
+    public const array SETTING_FIELDS = ['arrival_instructions', 'departure_instructions'];
 
     public const array TRANSPORT_FIELDS = [
         'directions', 'airport_distance_km', 'airport_travel_minutes', 'station_distance_km', 'station_travel_minutes',
@@ -19,7 +19,7 @@ class SaveHotelInfo
     ];
 
     /**
-     * Save what the property tells its guests about itself: the description, the arrival and departure instructions and
+     * Save what the property tells its guests about itself: the arrival and departure instructions and
      * how to get there. A blank value is stored as null. Nothing is written or logged when nothing changed.
      *
      * @param  array<string, mixed>  $data  Validated fields of `SETTING_FIELDS` and `TRANSPORT_FIELDS`.
