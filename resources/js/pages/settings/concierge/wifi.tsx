@@ -3,22 +3,21 @@ import {
     ConciergeShell,
     conciergeBreadcrumbs,
 } from '@/components/pms/concierge/concierge-shell';
-import { AddWifiSection, WifiList } from '@/components/pms/concierge/wifi-tab';
+import { WifiNetworks } from '@/components/pms/concierge/wifi-tab';
 
+/** Concierge › Wi-Fi: the networks in a table. No rail, so the table takes the full width. */
 export default function ConciergeWifi({
     wifiNetworks,
+    wifiLimit,
 }: {
     wifiNetworks: App.Data.Concierge.ConciergeWifiData[];
+    wifiLimit: number;
 }) {
     return (
         <>
             <Head title="Concierge Wi-Fi" />
-            <ConciergeShell
-                activeTab="wifi"
-                asideLabel="Add a network"
-                aside={<AddWifiSection />}
-            >
-                <WifiList networks={wifiNetworks} />
+            <ConciergeShell activeTab="wifi">
+                <WifiNetworks networks={wifiNetworks} limit={wifiLimit} />
             </ConciergeShell>
         </>
     );

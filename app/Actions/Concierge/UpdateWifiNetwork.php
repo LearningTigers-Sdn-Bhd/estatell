@@ -8,12 +8,17 @@ use App\Models\User;
 class UpdateWifiNetwork
 {
     /**
-     * Change whether a network is the main one and whether guests see it. A new main network replaces the old one. Nothing
-     * is written or logged when nothing changed.
+     * Change a network's name, password, note and whether it is the main one. A new main network replaces the old one.
+     * Nothing is written or logged when nothing changed. The log names the changed fields, never the password.
      */
-    public function __invoke(User $actor, PropertyWifiNetwork $network, bool $active, bool $primary): void
+    public function __invoke(User $actor, PropertyWifiNetwork $network, string $name, ?string $password, ?string $note, bool $primary): void
     {
-        $network->fill(['active' => $active, 'primary_network' => $primary]);
+        $network->fill([
+            'name' => trim($name),
+            'password' => filled($password) ? trim((string) $password) : null,
+            'note' => filled($note) ? trim((string) $note) : null,
+            'primary_network' => $primary,
+        ]);
 
         if (! $network->isDirty()) {
             return;

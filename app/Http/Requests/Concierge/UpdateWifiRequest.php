@@ -18,7 +18,9 @@ class UpdateWifiRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'active' => ['required', 'boolean'],
+            'name' => ['required', 'string', 'max:100', 'regex:/\S/'],
+            'password' => ['nullable', 'string', 'max:100'],
+            'note' => ['nullable', 'string', 'max:200'],
             'primary_network' => ['required', 'boolean'],
         ];
     }

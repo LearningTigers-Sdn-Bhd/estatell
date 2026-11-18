@@ -178,24 +178,51 @@ it('lists the main Wi-Fi network first and keeps a staff-only network from the g
     expect(PropertyWifiNetwork::query()->where('primary_network', true)->count())->toBe(1);
 });
 
-it('lets staff change the main and guest switches of a network, in their own property only', function () {
+it('lets staff edit a network and make it the main one, in their own property only', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     $property->forceFill(['status' => 'live'])->save();
     Feature::for($property)->activate(Concierge::class);
     $first = PropertyWifiNetwork::factory()->create(['property_id' => $property->id, 'primary_network' => true]);
-    $second = PropertyWifiNetwork::factory()->create(['property_id' => $property->id]);
+    $second = PropertyWifiNetwork::factory()->create(['property_id' => $property->id, 'name' => 'Lobby', 'password' => 'old']);
     $other = PropertyWifiNetwork::factory()->create(['property_id' => Property::factory()->create()->id]);
 
-    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['active' => true, 'primary_network' => true])->assertRedirect();
-    expect($first->refresh()->primary_network)->toBeFalse()->and($second->refresh()->primary_network)->toBeTrue();
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['name' => ' Rooms ', 'password' => 'secret2026', 'note' => '', 'primary_network' => true])->assertRedirect();
+    $second->refresh();
+    expect($first->refresh()->primary_network)->toBeFalse()
+        ->and($second->primary_network)->toBeTrue()
+        ->and($second->name)->toBe('Rooms')
+        ->and($second->password)->toBe('secret2026')
+        ->and($second->note)->toBeNull();
 
-    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['active' => false, 'primary_network' => true]);
-    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['active' => false, 'primary_network' => true]);
-    expect($second->refresh()->active)->toBeFalse()
-        ->and(Activity::query()->where('event', 'concierge.wifi-updated')->count())->toBe(2);
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['name' => 'Rooms', 'password' => 'secret2026', 'primary_network' => true]);
+    expect(Activity::query()->where('event', 'concierge.wifi-updated')->count())->toBe(1)
+        ->and(Activity::query()->get()->toJson())->not->toContain('secret2026');
 
-    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $other]), ['active' => false, 'primary_network' => false])->assertNotFound();
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $second]), ['name' => ' ', 'primary_network' => true])->assertSessionHasErrors('name');
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.update', [$property, $other]), ['name' => 'X', 'primary_network' => false])->assertNotFound();
+});
+
+it('lets staff hide a network from guests and show it again, logging only a real change', function () {
+    ['token' => $token, 'property' => $property] = conciergeInStaySetup();
+    $owner = User::factory()->owner()->create(['property_id' => $property->id]);
+    $network = PropertyWifiNetwork::factory()->create(['property_id' => $property->id, 'name' => 'Back office']);
+    $other = PropertyWifiNetwork::factory()->create(['property_id' => Property::factory()->create()->id]);
+
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.active.update', [$property, $network]), ['active' => false])->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.active.update', [$property, $network]), ['active' => false])->assertRedirect();
+    expect($network->refresh()->active)->toBeFalse()
+        ->and(Activity::query()->where('event', 'concierge.wifi-hidden')->count())->toBe(1);
+    $this->actingAs($owner)->get(route('settings.concierge.wifi', $property))->assertInertia(fn (Assert $page) => $page->where('wifiNetworks.0.active', false)->where('wifiLimit', 10));
+
+    auth()->logout();
+    $this->get("/c/{$token}/info/wifi")->assertInertia(fn (Assert $page) => $page->has('wifi', 0));
+
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.active.update', [$property, $network]), ['active' => true])->assertRedirect();
+    expect($network->refresh()->active)->toBeTrue()
+        ->and(Activity::query()->where('event', 'concierge.wifi-shown')->count())->toBe(1);
+
+    $this->actingAs($owner)->put(route('settings.concierge.wifi.active.update', [$property, $other]), ['active' => false])->assertNotFound();
 });
 
 it('groups the questions under a topic', function () {

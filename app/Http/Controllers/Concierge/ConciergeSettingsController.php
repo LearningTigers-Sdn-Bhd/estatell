@@ -15,6 +15,7 @@ use App\Actions\Concierge\SaveGettingHere;
 use App\Actions\Concierge\SaveGuestContacts;
 use App\Actions\Concierge\SaveGuestGuidelines;
 use App\Actions\Concierge\SetInfoTopicActive;
+use App\Actions\Concierge\SetWifiNetworkActive;
 use App\Actions\Concierge\UpdateConciergeSettings;
 use App\Actions\Concierge\UpdateInfoTopic;
 use App\Actions\Concierge\UpdateWifiNetwork;
@@ -41,6 +42,7 @@ use App\Http\Requests\Concierge\SaveGettingHereRequest;
 use App\Http\Requests\Concierge\SaveGuestContactsRequest;
 use App\Http\Requests\Concierge\SaveGuestGuidelinesRequest;
 use App\Http\Requests\Concierge\SetInfoTopicActiveRequest;
+use App\Http\Requests\Concierge\SetWifiNetworkActiveRequest;
 use App\Http\Requests\Concierge\StoreFaqRequest;
 use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
@@ -169,6 +171,7 @@ class ConciergeSettingsController extends Controller
     {
         return $this->renderTab($property, 'wifi', [
             'wifiNetworks' => $property->wifiNetworks()->get()->map(ConciergeWifiData::fromModel(...))->values(),
+            'wifiLimit' => AddWifiNetwork::MAX,
         ]);
     }
 
@@ -220,9 +223,16 @@ class ConciergeSettingsController extends Controller
 
     public function updateWifi(UpdateWifiRequest $request, Property $property, PropertyWifiNetwork $wifiNetwork, UpdateWifiNetwork $updateNetwork): RedirectResponse
     {
-        $updateNetwork($request->user(), $wifiNetwork, $request->boolean('active'), $request->boolean('primary_network'));
+        $updateNetwork($request->user(), $wifiNetwork, $request->string('name')->toString(), $request->input('password'), $request->input('note'), $request->boolean('primary_network'));
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Wi-Fi network updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Wi-Fi network saved.')]);
+
+        return back();
+    }
+
+    public function wifiActive(SetWifiNetworkActiveRequest $request, Property $property, PropertyWifiNetwork $wifiNetwork, SetWifiNetworkActive $setNetworkActive): RedirectResponse
+    {
+        $setNetworkActive($request->user(), $wifiNetwork, $request->boolean('active'));
 
         return back();
     }
