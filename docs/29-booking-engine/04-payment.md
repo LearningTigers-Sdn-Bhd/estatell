@@ -49,7 +49,7 @@ The payment item covers payment and confirmation only. One step in this doc is a
 ## Data model
 
 ```
-gateway_payments   id, property_id, booking_hold_id, gateway_account,
+gateway_payments   id, property_id, booking_hold_id, gateway_account, mode (PaymentMode),
                    order_id (unique), gateway_payment_id (unique, nullable),
                    amount, status (GatewayPaymentStatus), gateway_payload (jsonb, nullable),
                    timestamps
@@ -67,14 +67,15 @@ gateway_events     id, gateway_account, event_id (unique), event_type, payload (
 - `booking_hold_id` is unique on `gateway_payments`. A hold has one order, and a guest who retries gets the same one, so they cannot pay two orders.
 - The raw payloads use the jsonb allowlist for gateway payloads.
 - `gateway_account` records which Curlec account took the payment, so a later account move can still refund old payments.
+- `mode` records whether the payment was Test or Live. Its refund uses the same keys. See [Payment mode](#payment-mode).
 - **`payments` stays as it is.** A trigger rejects every UPDATE on it, so a row cannot go from Pending to Completed. `gateway_payments` tracks the attempt, and the `payments` row is written once the money is confirmed. `PaymentStatus::Pending`, `Failed` and the `gateway_payload` note in [Payments](../14-payments/01-payments-and-refunds.md) are not needed for this.
 - `GatewayPaymentStatus`: Created, Paid, Failed. `GatewayRefundStatus`: Pending, Processed, Failed. A Failed refund goes back to Pending on a retry, with a new attempt.
 
 ## Gateway code
 
-- One class, `CurlecGateway` (`app/Services/Payments/`), with `createOrder`, `refund`, `verifySignature` and `verifyWebhook`.
+- One class, `CurlecGateway` (`app/Services/Payments/`), with `createOrder`, `refund`, `verifySignature` and `verifyWebhook`. Each call takes a `PaymentMode`, which picks the keys.
 - It is built from the wastays `razorpay` adapter's flow, using the Razorpay API that Curlec documents. There is no multi-gateway registry.
-- Keys are in `config/services.php`: `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`. `CURLEC_ACCOUNT` names the account on each row, and defaults to `primary`.
+- Keys are in `config/services.php`: `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`, and the test set `CURLEC_TEST_KEY_ID`, `CURLEC_TEST_KEY_SECRET`, `CURLEC_TEST_WEBHOOK_SECRET`. A test key never falls back to the live one. `CURLEC_ACCOUNT` names the account on each row, and defaults to `primary`.
 - Order notes hold `app: estatell` and the hold token only. The microsite prefills Curlec's checkout form with the guest's email and phone, so the guest does not type them twice.
 
 ## Curlec rules
@@ -108,9 +109,9 @@ https://www.sandbayresort.com/booking/done?hold={token}&payment=confirming
 
 ## Webhook
 
-`POST /webhooks/curlec` (`webhooks.curlec`) in `routes/webhooks.php`.
+`POST /webhooks/curlec` (`webhooks.curlec`) in `routes/webhooks.php`. Curlec's test mode posts to `POST /webhooks/curlec/test` (`webhooks.curlec.test`), which checks the test secret. Both routes then work the same way.
 
-1. Check the signature against the raw body. A bad signature returns 400 and saves nothing.
+1. Check the signature against the raw body, with the route's secret. A bad signature returns 400 and saves nothing.
 2. Save the event by `event_id`, from the `x-razorpay-event-id` header, and answer 200.
 3. `ProcessCurlecEventJob` processes it. An order estatell did not create is marked processed and ignored. A repeat of an unprocessed event queues it again, which is safe because one order makes one booking.
 
@@ -176,17 +177,51 @@ In the Taken case, the `gateway_payments` row becomes Paid and `RequestOnlineRef
 
 ## Environments
 
-| Environment     | Gateway                                   |
-| --------------- | ----------------------------------------- |
-| Automated tests | `FakeCurlecGateway`, bound only in tests  |
-| Local and demo  | Curlec test keys, with its mock bank page |
-| Production      | Curlec live keys only                     |
+| Environment     | Gateway                                                                     |
+| --------------- | --------------------------------------------------------------------------- |
+| Automated tests | `FakeCurlecGateway`, bound only in tests                                    |
+| Local and demo  | Curlec test keys, with its mock bank page                                   |
+| Production      | Curlec live keys, and the test keys for sites in [Test mode](#payment-mode) |
 
 No route confirms a booking without a verified payment.
 
 Curlec delivers webhooks only to public addresses and rejects localhost. Local checks therefore stop before the booking is created, so test the full flow on the demo.
 
 The test and live modes have separate keys and data. The dashboard's Test Mode switch only changes what the dashboard shows, so it never affects live payments. Each server uses its own keys.
+
+## Payment mode
+
+A booking website takes **Test** or **Live** payments. Test lets an owner, or us in a sales pitch, make a real booking without real money. The booking shows in the PMS like any other.
+
+```
+Booking site (Test)                     PMS
+Pick room, pay with a Curlec test card
+        │
+        ▼ webhook to /webhooks/curlec/test
+"Booking confirmed"  ────────────────▶  Reservation [Test]
+                                        Room taken, folio paid, email sent
+                                               │ staff cancel it
+                                               ▼
+                                        Refund in Curlec's test system
+                                        Room free again
+```
+
+| Rule         | Detail                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Where        | Settings › Booking website › General, the **Test payments** switch. It saves at once                                     |
+| Who          | `booking-website.payment-mode`, in either direction                                                                      |
+| Default      | A new site starts in Test (`SetUpBookingSite`). Sites that existed before are Live                                       |
+| Keys         | Test uses `CURLEC_TEST_*`. On local and demo, set them to the same test keys                                             |
+| Each payment | Keeps the mode it was made in (`gateway_payments.mode`). Its refund uses that mode's keys, even after the site goes Live |
+| Publish      | Publishing in Test asks first. It does not switch the mode                                                               |
+| Booking      | A Reservation with a **Test** badge (`TestBookings`). No commission: `OnlineBookingMoney` counts Live payments only      |
+| Header       | A **Test payments** badge on every Booking website tab                                                                   |
+| API          | `holds/{token}/payment` returns `test_mode` and the test `key_id`                                                        |
+| Concierge    | Stay payments are always Live, so guests who are really staying never get a test checkout                                |
+
+- A test booking takes a room like any booking. Channex pushes the lower availability, and pushes it back when staff cancel. Test on a date far ahead, or on a property with no channel connection.
+- Reports count a test booking until it is cancelled. The payment and its refund stay on the folio and add up to zero.
+- Curlec's webhook body is the same in both modes, so the route tells the mode. Curlec lets each mode have its own webhook address.
 
 ## Price
 
@@ -208,7 +243,6 @@ The booking does not use `fromChannel`, so availability and restrictions are sti
 | During the build | What `redirect: true` does on a failed payment. Curlec's docs disagree     |
 | During the build | How Curlec's form is isolated from the page. Its docs do not say           |
 | During the build | Whether FPX has its own test flow                                          |
-| During the build | Whether test and live webhooks are set up separately                       |
 
 ## Fees
 

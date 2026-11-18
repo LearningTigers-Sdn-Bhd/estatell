@@ -183,7 +183,7 @@ class ConciergeController extends Controller
         $currency = $stay->property->settings->currency->getCurrencyCode();
 
         return response()->json([
-            'key' => $gateway->keyId(),
+            'key' => $gateway->keyId($result->payment->mode),
             'order_id' => $result->payment->order_id,
             'amount' => Money::of($result->payment->amount, $currency)->getMinorAmount()->toInt(),
             'currency' => $currency,

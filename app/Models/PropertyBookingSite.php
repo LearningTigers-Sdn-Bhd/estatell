@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BookingEngineMode;
+use App\Enums\PaymentMode;
 use Carbon\CarbonImmutable;
 use Database\Factories\PropertyBookingSiteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,11 +15,12 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * The booking website settings of one property: its mode, look, texts and whether it is published.
+ * The booking website settings of one property: its mode, payment mode, look, texts and whether it is published.
  *
  * @property int $id
  * @property int $property_id
  * @property BookingEngineMode $mode
+ * @property PaymentMode $payment_mode
  * @property int|null $site_template_id
  * @property string|null $main_color
  * @property string|null $about_text
@@ -31,7 +33,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property-read SiteTemplate|null $siteTemplate
  */
 #[Fillable([
-    'property_id', 'mode', 'site_template_id', 'main_color', 'about_text', 'seo_title', 'seo_description', 'published_at',
+    'property_id', 'mode', 'payment_mode', 'site_template_id', 'main_color', 'about_text', 'seo_title', 'seo_description', 'published_at',
 ])]
 class PropertyBookingSite extends Model implements HasMedia
 {
@@ -54,6 +56,7 @@ class PropertyBookingSite extends Model implements HasMedia
     {
         return [
             'mode' => BookingEngineMode::class,
+            'payment_mode' => PaymentMode::class,
             'published_at' => 'immutable_datetime',
         ];
     }

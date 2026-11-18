@@ -4,6 +4,7 @@ namespace App\Services\BookingEngine;
 
 use App\Enums\GatewayPaymentStatus;
 use App\Enums\GatewayRefundStatus;
+use App\Enums\PaymentMode;
 use App\Models\BookingHold;
 use App\Models\GatewayPayment;
 use App\Models\GatewayRefund;
@@ -14,7 +15,8 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * The money Estatell collected through Curlec for a booking engine reservation: the paid payment, the fee Curlec charged,
- * the room total the guest booked before tax, and the processed refunds. Commission fees reads it.
+ * the room total the guest booked before tax, and the processed refunds. Commission fees reads it. A Test payment moved
+ * no real money, so it is never counted: its booking has no commission.
  * See docs/30-commission-fees/03-ledger.md.
  */
 class OnlineBookingMoney
@@ -34,6 +36,7 @@ class OnlineBookingMoney
         $payment = GatewayPayment::query()
             ->where('booking_hold_id', $hold->id)
             ->where('status', GatewayPaymentStatus::Paid)
+            ->where('mode', PaymentMode::Live)
             ->first();
 
         if ($payment === null) {
@@ -69,6 +72,7 @@ class OnlineBookingMoney
     {
         $payments = GatewayPayment::query()
             ->where('status', GatewayPaymentStatus::Paid)
+            ->where('mode', PaymentMode::Live)
             ->whereHas('hold', fn (Builder $hold) => $hold->whereNotNull('reservation_id'))
             ->whereNotExists(fn (QueryBuilder $entries) => $entries
                 ->from('commission_entries')

@@ -274,6 +274,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('publish', [BookingWebsiteController::class, 'publish'])->name('publish');
             Route::post('unpublish', [BookingWebsiteController::class, 'unpublish'])->name('unpublish');
         });
+        Route::put('payment-mode', [BookingWebsiteController::class, 'updatePaymentMode'])->middleware('can:'.PermissionEnum::BookingWebsitePaymentMode->value)->name('payment-mode.update');
         Route::middleware('can:'.PermissionEnum::BookingWebsiteApi->value)->group(function () {
             Route::get('api', [BookingApiController::class, 'show'])->name('api');
             Route::post('api/token', [BookingApiController::class, 'issueToken'])->name('api.token.store');

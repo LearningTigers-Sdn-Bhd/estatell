@@ -23,6 +23,7 @@ use App\Enums\GatewayRefundStatus;
 use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
+use App\Enums\PaymentMode;
 use App\Enums\PaymentReportStatus;
 use App\Enums\PayoutVoucherStatus;
 use App\Enums\PropertyStatus;
@@ -75,6 +76,11 @@ class BadgeData extends Data
     }
 
     public static function fromBookingEngineMode(BookingEngineMode $mode): self
+    {
+        return new self($mode->value, $mode->label(), $mode->tone());
+    }
+
+    public static function fromPaymentMode(PaymentMode $mode): self
     {
         return new self($mode->value, $mode->label(), $mode->tone());
     }

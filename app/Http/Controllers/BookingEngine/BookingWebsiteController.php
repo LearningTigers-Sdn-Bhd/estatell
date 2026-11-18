@@ -8,6 +8,7 @@ use App\Actions\BookingEngine\RemoveSiteImage;
 use App\Actions\BookingEngine\SaveBookingWebsiteDesign;
 use App\Actions\BookingEngine\SaveBookingWebsiteGeneral;
 use App\Actions\BookingEngine\SaveBookingWebsiteSeo;
+use App\Actions\BookingEngine\SetBookingSitePaymentMode;
 use App\Actions\BookingEngine\SetPropertyAmenity;
 use App\Actions\BookingEngine\SetRatePlanBookableOnline;
 use App\Actions\BookingEngine\SetUpBookingSite;
@@ -21,6 +22,7 @@ use App\Data\BookingEngine\BookingWebsiteSeoData;
 use App\Enums\AmenityType;
 use App\Enums\BookableOnlineResult;
 use App\Enums\BookingEngineMode;
+use App\Enums\PaymentMode;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\CopyAlbumPhotoRequest;
@@ -28,6 +30,7 @@ use App\Http\Requests\BookingEngine\SaveBookingWebsiteDesignRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteGeneralRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteSeoRequest;
 use App\Http\Requests\BookingEngine\SetAmenityRequest;
+use App\Http\Requests\BookingEngine\SetPaymentModeRequest;
 use App\Http\Requests\BookingEngine\SetRatePlanBookableRequest;
 use App\Http\Requests\BookingEngine\UploadSiteImageRequest;
 use App\Models\Property;
@@ -47,13 +50,28 @@ class BookingWebsiteController extends Controller
     /**
      * The General tab: status, web address, Google Maps link, about text and the publish checklist.
      */
-    public function general(Property $property, SetUpBookingSite $setUpBookingSite, BookingSiteChecklist $checklist): Response
+    public function general(Request $request, Property $property, SetUpBookingSite $setUpBookingSite, BookingSiteChecklist $checklist): Response
     {
         $site = $setUpBookingSite($property);
 
         return Inertia::render('settings/booking-website/general', [
             'general' => BookingWebsiteGeneralData::fromModels($property->refresh(), $site, $checklist),
+            'canChangePaymentMode' => $request->user()->can(PermissionEnum::BookingWebsitePaymentMode->value),
         ]);
+    }
+
+    /**
+     * The Test payments switch. It saves at once; only new payments use the new mode.
+     */
+    public function updatePaymentMode(SetPaymentModeRequest $request, Property $property, SetUpBookingSite $setUpBookingSite, SetBookingSitePaymentMode $setPaymentMode): RedirectResponse
+    {
+        $mode = $request->paymentMode();
+
+        if ($setPaymentMode($setUpBookingSite($property), $request->user(), $mode)) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => $mode === PaymentMode::Test ? __('Test payments on. Guests pay no real money.') : __('Live payments on. Guests pay real money.')]);
+        }
+
+        return back();
     }
 
     public function updateGeneral(SaveBookingWebsiteGeneralRequest $request, Property $property, SaveBookingWebsiteGeneral $saveBookingWebsiteGeneral, GoogleMapsLink $googleMapsLink): RedirectResponse

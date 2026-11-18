@@ -20,7 +20,8 @@ class SendOnlineRefund
     /**
      * Send a Pending refund to Curlec, once it has no Curlec ID. A refund Curlec refuses for good becomes Failed. A problem
      * worth another try (Curlec unreachable, balance too low) keeps it Pending for `ResendWaitingOnlineRefunds`, and admins
-     * are alerted the first time. The receipt holds the attempt, because Curlec treats a repeated receipt as a repeat.
+     * are alerted the first time. The refund uses the keys of the payment's own mode, so a test payment is refunded in
+     * Curlec's test system after the site went Live. The receipt holds the attempt, because Curlec treats a repeated receipt as a repeat.
      * See docs/29-booking-engine/05-cancel-and-refund.md#when-a-refund-cannot-run.
      */
     public function __invoke(GatewayRefund $refund): void
@@ -35,6 +36,7 @@ class SendOnlineRefund
 
         try {
             $curlecRefundId = $this->gateway->refund(
+                $current->gatewayPayment->mode,
                 (string) $current->gatewayPayment->gateway_payment_id,
                 Money::of($current->amount, $currency)->getMinorAmount()->toInt(),
                 "refund-{$current->id}-{$current->attempts}",

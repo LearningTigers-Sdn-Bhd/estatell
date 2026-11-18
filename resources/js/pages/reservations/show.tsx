@@ -9,6 +9,7 @@ import { FolioTab } from '@/components/pms/folio/folio-tab';
 import { SettlePastStayDialog } from '@/components/pms/folio/settle-past-stay-dialog';
 import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
@@ -43,6 +44,7 @@ type Tab = 'units' | 'guests' | 'add-ons' | 'folio' | 'activity';
 type Props = {
     reservation: App.Data.Reservations.ReservationData;
     money: App.Data.Reservations.ReservationMoneyData;
+    testBooking: App.Data.Shared.BadgeData | null;
     paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
     agentBill: App.Data.Reservations.AgentBillData | null;
     proofsWaiting: number;
@@ -149,6 +151,7 @@ function reservationTabs(reservationId: number): TabLink[] {
 export default function ReservationShow({
     reservation,
     money,
+    testBooking,
     paymentSchedule,
     agentBill,
     proofsWaiting,
@@ -341,6 +344,9 @@ export default function ReservationShow({
                     }
                     badge={
                         <>
+                            {testBooking && (
+                                <StatusBadge status={testBooking} />
+                            )}
                             {reservation.isGroup && (
                                 <Badge variant="outline">Group</Badge>
                             )}
