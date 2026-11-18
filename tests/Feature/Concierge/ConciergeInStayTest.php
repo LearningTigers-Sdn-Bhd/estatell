@@ -230,6 +230,11 @@ it('orders the stay payment in Test mode only while the property has test paymen
 
     $this->postJson("/c/{$token}/payment")->assertOk();
     expect($gateway->orders[1]['mode'])->toBe(PaymentMode::Test)->and(GatewayPayment::query()->sole()->mode)->toBe(PaymentMode::Test);
+
+    $property->settings->forceFill(['concierge_test_payments_enabled' => false])->save();
+
+    $this->postJson("/c/{$token}/payment")->assertOk();
+    expect($gateway->orders)->toHaveCount(3)->and($gateway->orders[2]['mode'])->toBe(PaymentMode::Live);
 });
 
 it('starts no payment when the bill owes nothing', function () {

@@ -78,8 +78,11 @@ class StartStayPayment
             return StayPaymentResult::refused(StayPaymentResult::REFUSAL_UNAVAILABLE, __('Online payment is not available for this property. Pay at the front desk.'));
         }
 
+        $mode = $stay->property->settings->concierge_test_payments_enabled ? PaymentMode::Test : PaymentMode::Live;
+
         $open = GatewayPayment::query()
             ->where('reservation_unit_id', $stay->id)
+            ->where('mode', $mode)
             ->where('status', '<>', GatewayPaymentStatus::Paid)
             ->where('amount', $due)
             ->latest('id')
@@ -90,7 +93,6 @@ class StartStayPayment
         }
 
         $currency = $stay->property->settings->currency->getCurrencyCode();
-        $mode = $stay->property->settings->concierge_test_payments_enabled ? PaymentMode::Test : PaymentMode::Live;
 
         try {
             $orderId = $this->gateway->createOrder(

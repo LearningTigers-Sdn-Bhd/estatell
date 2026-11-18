@@ -11,10 +11,13 @@ use App\Data\Kiosk\KioskIdentityData;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\ReservationUnit;
+use App\Services\Concierge\ReturningGuest;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Propaganistas\LaravelPhone\PhoneNumber;
+use Throwable;
 
 class SaveConciergeIdentity
 {
@@ -24,6 +27,7 @@ class SaveConciergeIdentity
         private UpdateIdentityDocument $updateDocument,
         private SetGuestDetails $setGuestDetails,
         private RegistrationCardFieldRules $fieldRules,
+        private ReturningGuest $returning,
     ) {}
 
     /**
@@ -40,6 +44,10 @@ class SaveConciergeIdentity
         return DB::transaction(function () use ($stay, $data, $front, $back): KioskIdentityResult {
             $guest = $this->stays->guest($stay);
 
+            if ($guest !== null && blank($guest->full_name)) {
+                $guest = $this->returning->join($stay, $data->document->number, $data->dateOfBirth) ?? $guest;
+            }
+
             if ($guest === null || ! $this->saveDocument($guest, $data->document, $front, $back)) {
                 return KioskIdentityResult::refused();
             }
@@ -49,6 +57,8 @@ class SaveConciergeIdentity
                 'nationality_code' => $data->nationalityCode,
                 'date_of_birth' => $data->dateOfBirth,
                 'gender' => $data->gender,
+                'email' => filled($data->email) ? mb_strtolower(trim($data->email)) : null,
+                'phone' => $this->phone($data->phone, $stay),
             ], keepExisting: true, context: ['channel' => 'concierge']);
 
             if (! $filled) {
@@ -67,6 +77,19 @@ class SaveConciergeIdentity
                 blank($guest->nationality_code) && $this->fieldRules->nationalityIsNeededForTax($stay->property),
             );
         });
+    }
+
+    private function phone(?string $phone, ReservationUnit $stay): ?string
+    {
+        if (blank($phone)) {
+            return null;
+        }
+
+        try {
+            return (new PhoneNumber($phone, $stay->property->country_code ?? 'MY'))->formatE164();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function saveDocument(Guest $guest, IdentityDocumentInputData $input, ?UploadedFile $front, ?UploadedFile $back): bool

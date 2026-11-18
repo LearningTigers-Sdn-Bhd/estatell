@@ -25,6 +25,7 @@ Route::middleware(['concierge', 'throttle:concierge'])->group(function () {
     Route::prefix('c/{token}')->name('concierge.')->group(function () {
         Route::get('/', [ConciergeController::class, 'show'])->name('show');
         Route::post('identity', [ConciergeController::class, 'identity'])->middleware('throttle:concierge-write')->name('identity');
+        Route::post('identity/returning', [ConciergeController::class, 'returning'])->middleware('throttle:concierge-returning')->name('identity.returning');
         Route::post('sign', [ConciergeController::class, 'sign'])->middleware('throttle:concierge-write')->name('sign');
         Route::post('check-in', [ConciergeController::class, 'checkIn'])->middleware('throttle:concierge-write')->name('check-in');
         Route::get('requests', [ConciergeStayController::class, 'requests'])->name('requests');

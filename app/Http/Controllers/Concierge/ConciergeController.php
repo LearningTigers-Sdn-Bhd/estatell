@@ -20,6 +20,7 @@ use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concierge\ConfirmPaymentRequest;
 use App\Http\Requests\Concierge\FindStayRequest;
+use App\Http\Requests\Concierge\ReturningGuestRequest;
 use App\Http\Requests\Concierge\SaveIdentityRequest;
 use App\Http\Requests\Concierge\SignCardRequest;
 use App\Http\Requests\Concierge\WalkInRequest;
@@ -28,6 +29,7 @@ use App\Models\ReservationUnit;
 use App\Services\Concierge\ConciergeDayUse;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergePageBuilder;
+use App\Services\Concierge\ReturningGuest;
 use App\Services\Guests\CountryOptions;
 use App\Services\Kiosk\KioskPin;
 use App\Services\Kiosk\KioskWalkIn;
@@ -135,6 +137,21 @@ class ConciergeController extends Controller
             $result->nationalityRequired => ['type' => 'error', 'message' => __('Choose your nationality to continue.')],
             default => ['type' => 'success', 'message' => __('Your details are saved.')],
         });
+
+        return to_route('concierge.show', ['token' => $token]);
+    }
+
+    /**
+     * A walk-in gives the ID number and date of birth to be recognised as a returning guest. A match moves the stay to
+     * that guest, so the ID step is already done; no match changes nothing, and the page shows the full ID form.
+     */
+    public function returning(ReturningGuestRequest $request, string $token, ReturningGuest $returning): RedirectResponse
+    {
+        $joined = $returning->join($this->stay($request), $request->string('number')->toString(), $request->dateOfBirth());
+
+        if ($joined !== null) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Welcome back. We have your details.')]);
+        }
 
         return to_route('concierge.show', ['token' => $token]);
     }
