@@ -2,7 +2,6 @@ import { Form, Head } from '@inertiajs/react';
 import {
     Check,
     CloudOff,
-    CloudUpload,
     Copy,
     ExternalLink,
     Globe,
@@ -15,6 +14,8 @@ import {
     BookingWebsiteShell,
     bookingWebsiteBreadcrumbs,
 } from '@/components/pms/booking-website/booking-website-shell';
+import { PaymentModeSection } from '@/components/pms/booking-website/payment-mode-section';
+import { PublishSiteButton } from '@/components/pms/booking-website/publish-site-button';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { SettingsInput } from '@/components/pms/settings/form-fields';
 import { SettingsSection } from '@/components/pms/settings-section';
@@ -46,8 +47,10 @@ const ABOUT_MAX = 1000;
 
 export default function BookingWebsiteGeneral({
     general,
+    canChangePaymentMode,
 }: {
     general: App.Data.BookingEngine.BookingWebsiteGeneralData;
+    canChangePaymentMode: boolean;
 }) {
     const [, copy] = useClipboard();
     const apiOnly = general.mode === 'api-only';
@@ -132,154 +135,148 @@ export default function BookingWebsiteGeneral({
                                 )}
                             </Form>
                         ) : (
-                            <Form {...BookingWebsiteController.publish.form()}>
-                                {({ processing }) => (
-                                    <Button
-                                        type="submit"
-                                        className="w-full"
-                                        disabled={
-                                            !general.canPublish || processing
-                                        }
-                                        focusableWhenDisabled
-                                    >
-                                        {processing ? (
-                                            <Spinner data-icon="inline-start" />
-                                        ) : (
-                                            <CloudUpload data-icon="inline-start" />
-                                        )}
-                                        {apiOnly ? 'Go live' : 'Publish'}
-                                    </Button>
-                                )}
-                            </Form>
+                            <PublishSiteButton
+                                label={apiOnly ? 'Go live' : 'Publish'}
+                                canPublish={general.canPublish}
+                                testPayments={general.paymentMode === 'test'}
+                            />
                         )}
                     </div>
                 }
             >
-                <SettingsSection
-                    headerClassName="ps-3 pt-2"
-                    submitInHeader
-                    submitIcon={Save}
-                    guardUnsavedChanges
-                    form={BookingWebsiteController.updateGeneral.form()}
-                    title="Web address"
-                    description="Where guests find your booking website."
-                    contentClassName="grid gap-5"
-                >
-                    {(errors) => (
-                        <>
-                            {general.slugLocked && (
-                                <input
-                                    type="hidden"
-                                    name="slug"
-                                    value={general.slug}
-                                />
-                            )}
-                            <Field data-invalid={!!errors.slug}>
-                                <FieldLabel htmlFor="slug">
-                                    Web address
-                                </FieldLabel>
-                                <InputGroup>
-                                    <InputGroupAddon>
-                                        <Globe aria-hidden />
-                                        <InputGroupText className="whitespace-nowrap max-sm:hidden">
-                                            {general.baseUrl}/
-                                        </InputGroupText>
-                                    </InputGroupAddon>
-                                    <InputGroupInput
-                                        id="slug"
-                                        name={
-                                            general.slugLocked
-                                                ? 'slug-shown'
-                                                : 'slug'
-                                        }
-                                        defaultValue={general.slug}
-                                        placeholder="e.g. sand-bay"
-                                        autoComplete="off"
-                                        disabled={general.slugLocked}
-                                        aria-invalid={!!errors.slug}
+                <div className="flex flex-col gap-6 pb-2">
+                    <SettingsSection
+                        headerClassName="ps-3 pt-2"
+                        submitInHeader
+                        submitIcon={Save}
+                        guardUnsavedChanges
+                        form={BookingWebsiteController.updateGeneral.form()}
+                        title="Web address"
+                        description="Where guests find your booking website."
+                        contentClassName="grid gap-5"
+                    >
+                        {(errors) => (
+                            <>
+                                {general.slugLocked && (
+                                    <input
+                                        type="hidden"
+                                        name="slug"
+                                        value={general.slug}
                                     />
-                                    <InputGroupAddon align="inline-end">
-                                        <Tooltip>
-                                            <TooltipTrigger
-                                                render={
-                                                    <InputGroupButton
-                                                        size="icon-xs"
-                                                        aria-label="Copy link"
-                                                        onClick={copyAddress}
-                                                    />
-                                                }
-                                            >
-                                                <Copy />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                Copy link
-                                            </TooltipContent>
-                                        </Tooltip>
-                                        <Tooltip>
-                                            <TooltipTrigger
-                                                render={
-                                                    <a
-                                                        href={
-                                                            general.webAddress
-                                                        }
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        aria-label="Open site"
-                                                        className={buttonVariants(
-                                                            {
-                                                                variant:
-                                                                    'ghost',
-                                                                size: 'icon-xs',
-                                                            },
-                                                        )}
-                                                    />
-                                                }
-                                            >
-                                                <ExternalLink />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                Open site
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </InputGroupAddon>
-                                </InputGroup>
-                                <FieldDescription>
-                                    {general.slugLocked
-                                        ? 'Only support can change it after you publish.'
-                                        : 'Lower case letters, digits and hyphens.'}
-                                </FieldDescription>
-                                <FieldError>{errors.slug}</FieldError>
-                            </Field>
-                            <SettingsInput
-                                name="google_maps_url"
-                                label="Google Maps link"
-                                value={general.googleMapsUrl}
-                                placeholder="https://www.google.com/maps/place/..."
-                                description="Paste the link of your property on Google Maps."
-                                error={errors.google_maps_url}
-                            />
-                            <Field data-invalid={!!errors.about_text}>
-                                <FieldLabel htmlFor="about_text">
-                                    About
-                                </FieldLabel>
-                                <Textarea
-                                    id="about_text"
-                                    name="about_text"
-                                    rows={5}
-                                    maxLength={ABOUT_MAX}
-                                    defaultValue={general.aboutText ?? ''}
-                                    placeholder="e.g. A quiet beach resort in Pangkor"
-                                    aria-invalid={!!errors.about_text}
+                                )}
+                                <Field data-invalid={!!errors.slug}>
+                                    <FieldLabel htmlFor="slug">
+                                        Web address
+                                    </FieldLabel>
+                                    <InputGroup>
+                                        <InputGroupAddon>
+                                            <Globe aria-hidden />
+                                            <InputGroupText className="whitespace-nowrap max-sm:hidden">
+                                                {general.baseUrl}/
+                                            </InputGroupText>
+                                        </InputGroupAddon>
+                                        <InputGroupInput
+                                            id="slug"
+                                            name={
+                                                general.slugLocked
+                                                    ? 'slug-shown'
+                                                    : 'slug'
+                                            }
+                                            defaultValue={general.slug}
+                                            placeholder="e.g. sand-bay"
+                                            autoComplete="off"
+                                            disabled={general.slugLocked}
+                                            aria-invalid={!!errors.slug}
+                                        />
+                                        <InputGroupAddon align="inline-end">
+                                            <Tooltip>
+                                                <TooltipTrigger
+                                                    render={
+                                                        <InputGroupButton
+                                                            size="icon-xs"
+                                                            aria-label="Copy link"
+                                                            onClick={
+                                                                copyAddress
+                                                            }
+                                                        />
+                                                    }
+                                                >
+                                                    <Copy />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Copy link
+                                                </TooltipContent>
+                                            </Tooltip>
+                                            <Tooltip>
+                                                <TooltipTrigger
+                                                    render={
+                                                        <a
+                                                            href={
+                                                                general.webAddress
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            aria-label="Open site"
+                                                            className={buttonVariants(
+                                                                {
+                                                                    variant:
+                                                                        'ghost',
+                                                                    size: 'icon-xs',
+                                                                },
+                                                            )}
+                                                        />
+                                                    }
+                                                >
+                                                    <ExternalLink />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    Open site
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                    <FieldDescription>
+                                        {general.slugLocked
+                                            ? 'Only support can change it after you publish.'
+                                            : 'Lower case letters, digits and hyphens.'}
+                                    </FieldDescription>
+                                    <FieldError>{errors.slug}</FieldError>
+                                </Field>
+                                <SettingsInput
+                                    name="google_maps_url"
+                                    label="Google Maps link"
+                                    value={general.googleMapsUrl}
+                                    placeholder="https://www.google.com/maps/place/..."
+                                    description="Paste the link of your property on Google Maps."
+                                    error={errors.google_maps_url}
                                 />
-                                <FieldDescription>
-                                    Guests read this on your booking website. Up
-                                    to {ABOUT_MAX} characters.
-                                </FieldDescription>
-                                <FieldError>{errors.about_text}</FieldError>
-                            </Field>
-                        </>
-                    )}
-                </SettingsSection>
+                                <Field data-invalid={!!errors.about_text}>
+                                    <FieldLabel htmlFor="about_text">
+                                        About
+                                    </FieldLabel>
+                                    <Textarea
+                                        id="about_text"
+                                        name="about_text"
+                                        rows={5}
+                                        maxLength={ABOUT_MAX}
+                                        defaultValue={general.aboutText ?? ''}
+                                        placeholder="e.g. A quiet beach resort in Pangkor"
+                                        aria-invalid={!!errors.about_text}
+                                    />
+                                    <FieldDescription>
+                                        Guests read this on your booking
+                                        website. Up to {ABOUT_MAX} characters.
+                                    </FieldDescription>
+                                    <FieldError>{errors.about_text}</FieldError>
+                                </Field>
+                            </>
+                        )}
+                    </SettingsSection>
+                    <PaymentModeSection
+                        paymentMode={general.paymentMode}
+                        canChange={canChangePaymentMode}
+                    />
+                </div>
             </BookingWebsiteShell>
         </>
     );

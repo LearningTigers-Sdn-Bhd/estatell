@@ -2,20 +2,22 @@
 
 namespace App\Services\Payments;
 
+use App\Enums\PaymentMode;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 /**
  * The one class that talks to Curlec, which documents the Razorpay API. Order notes hold only the app name and the hold
- * token, because guest identity data never goes to the gateway. With no secret set, every signature fails.
- * See docs/29-booking-engine/04-payment.md#gateway-code.
+ * token, because guest identity data never goes to the gateway. With no secret set, every signature fails. Each call
+ * names the payment mode, which picks the live or the test keys.
+ * See docs/29-booking-engine/04-payment.md#gateway-code and #payment-mode.
  */
 class CurlecGateway
 {
-    public function keyId(): string
+    public function keyId(PaymentMode $mode): string
     {
-        return (string) config('services.curlec.key_id');
+        return $this->credential($mode, 'key_id');
     }
 
     public function account(): string
@@ -28,10 +30,10 @@ class CurlecGateway
      *
      * @throws CurlecRequestFailed
      */
-    public function createOrder(int $amountInSubunits, string $currency, string $receipt, string $holdToken): string
+    public function createOrder(PaymentMode $mode, int $amountInSubunits, string $currency, string $receipt, string $holdToken): string
     {
         try {
-            $response = Http::withBasicAuth($this->keyId(), (string) config('services.curlec.key_secret'))
+            $response = Http::withBasicAuth($this->keyId($mode), $this->credential($mode, 'key_secret'))
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(15)
@@ -60,10 +62,10 @@ class CurlecGateway
      *
      * @throws CurlecRequestFailed
      */
-    public function capturedPaymentId(string $orderId): ?string
+    public function capturedPaymentId(PaymentMode $mode, string $orderId): ?string
     {
         try {
-            $response = Http::withBasicAuth($this->keyId(), (string) config('services.curlec.key_secret'))
+            $response = Http::withBasicAuth($this->keyId($mode), $this->credential($mode, 'key_secret'))
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(15)
@@ -93,10 +95,10 @@ class CurlecGateway
      * @throws CurlecRequestFailed Worth asking again: Curlec is unreachable, its balance is too low, or the payment is busy.
      * @throws CurlecRefundRefused Asking again will not help.
      */
-    public function refund(string $paymentId, int $amountInSubunits, string $receipt, int $refundId): ?string
+    public function refund(PaymentMode $mode, string $paymentId, int $amountInSubunits, string $receipt, int $refundId): ?string
     {
         try {
-            $response = Http::withBasicAuth($this->keyId(), (string) config('services.curlec.key_secret'))
+            $response = Http::withBasicAuth($this->keyId($mode), $this->credential($mode, 'key_secret'))
                 ->acceptJson()
                 ->connectTimeout(5)
                 ->timeout(15)
@@ -131,17 +133,26 @@ class CurlecGateway
     /**
      * Whether the signature the guest's browser brought back was made by Curlec for this order and payment.
      */
-    public function verifySignature(string $orderId, string $paymentId, string $signature): bool
+    public function verifySignature(PaymentMode $mode, string $orderId, string $paymentId, string $signature): bool
     {
-        return $this->matches($orderId.'|'.$paymentId, (string) config('services.curlec.key_secret'), $signature);
+        return $this->matches($orderId.'|'.$paymentId, $this->credential($mode, 'key_secret'), $signature);
     }
 
     /**
      * Whether a webhook's signature matches its raw body.
      */
-    public function verifyWebhook(string $rawBody, string $signature): bool
+    public function verifyWebhook(PaymentMode $mode, string $rawBody, string $signature): bool
     {
-        return $this->matches($rawBody, (string) config('services.curlec.webhook_secret'), $signature);
+        return $this->matches($rawBody, $this->credential($mode, 'webhook_secret'), $signature);
+    }
+
+    /**
+     * A live key from `services.curlec`, or a test key from `services.curlec.test`. A test key never falls back to the
+     * live one, so a Test site cannot take real money.
+     */
+    private function credential(PaymentMode $mode, string $name): string
+    {
+        return (string) config($mode === PaymentMode::Test ? "services.curlec.test.{$name}" : "services.curlec.{$name}");
     }
 
     private function matches(string $message, string $secret, string $signature): bool

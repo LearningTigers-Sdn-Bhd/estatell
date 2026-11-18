@@ -8,6 +8,7 @@ Let the property set up its booking website, and let support help without extra 
 
 ```
 property_booking_sites   id, property_id (unique), mode (BookingEngineMode),
+                         payment_mode (PaymentMode, default live),
                          site_template_id (nullable), main_color (nullable),
                          about_text (nullable), seo_title (nullable),
                          seo_description (nullable), published_at (nullable),
@@ -16,7 +17,7 @@ properties               + slug (unique, nullable), latitude, longitude, google_
 rate_plans               + bookable_online (bool, default false)
 ```
 
-- `BookingEngineMode`: Microsite, ApiOnly.
+- `BookingEngineMode`: Microsite, ApiOnly. `PaymentMode`: Test, Live. A new site starts in Test: see [Payment mode](04-payment.md#payment-mode).
 - Slugs are lower case letters, digits and hyphens, 3 to 50 characters. A property gets one from its name when the General tab is first opened (`SetUpBookingSite`, which also creates the `property_booking_sites` row as Microsite). Until it is published, the owner can edit it on the General tab. After publishing, only admins change it, because a change breaks links already shared.
 - `site_template_id` is a foreign key to `site_templates`, and a template in use cannot be deleted.
 - **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template, Required images, Property photos, Room photos and Location rows, the [template registry](08-microsite.md#template-registry), the Design and SEO tabs with Choose from album, and the Rates tab with the Public rate plan row. Each later item adds its own checklist row. The about text on the General tab (up to 1000 characters, empty clears it). The admin switch for the mode (see [Mode switch](#mode-switch)). Not built yet: the admin change of a published slug.
@@ -25,15 +26,15 @@ rate_plans               + bookable_online (bool, default false)
 
 Settings › Booking website (`/p/{code}/settings/booking-website`, `settings.booking-website.*`) appears when the flag is on. Each tab is its own URL, controller method and page.
 
-| Tab           | Microsite | API only | Holds                                      | Right rail                    | Permission                                                           |
-| ------------- | --------- | -------- | ------------------------------------------ | ----------------------------- | -------------------------------------------------------------------- |
-| General       | Yes       | Yes      | Status, web address, Maps link, about text | Checklist, Publish or Go live | `booking-website.manage`; publishing needs `booking-website.publish` |
-| Design        | Yes       | No       | Template, main colour                      | Images                        | `booking-website.manage`                                             |
-| Amenities     | Yes       | Yes      | Property amenities                         | None                          | `booking-website.manage`                                             |
-| Nearby places | Yes       | Yes      | Add a place, suggestions, your places      | None                          | `booking-website.manage`                                             |
-| Rates         | Yes       | Yes      | Which rate plans guests can book           | None                          | `booking-website.manage`                                             |
-| SEO           | Yes       | No       | Google title and description               | Google preview                | `booking-website.manage`                                             |
-| API           | No        | Yes      | Token, return addresses                    | Developer quick start         | `booking-website.api`                                                |
+| Tab           | Microsite | API only | Holds                                                     | Right rail                    | Permission                                                                                                                          |
+| ------------- | --------- | -------- | --------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| General       | Yes       | Yes      | Status, web address, Maps link, about text, Test payments | Checklist, Publish or Go live | `booking-website.manage`; publishing needs `booking-website.publish`; the Test payments switch needs `booking-website.payment-mode` |
+| Design        | Yes       | No       | Template, main colour                                     | Images                        | `booking-website.manage`                                                                                                            |
+| Amenities     | Yes       | Yes      | Property amenities                                        | None                          | `booking-website.manage`                                                                                                            |
+| Nearby places | Yes       | Yes      | Add a place, suggestions, your places                     | None                          | `booking-website.manage`                                                                                                            |
+| Rates         | Yes       | Yes      | Which rate plans guests can book                          | None                          | `booking-website.manage`                                                                                                            |
+| SEO           | Yes       | No       | Google title and description                              | Google preview                | `booking-website.manage`                                                                                                            |
+| API           | No        | Yes      | Token, return addresses                                   | Developer quick start         | `booking-website.api`                                                                                                               |
 
 The header is the same on every tab: the title, "Let guests book and pay online.", then a badge row with the publish status (Published in success, Not published in neutral) and the mode (Microsite with a globe icon, API only with a code icon, both in info). The `booking-engine` middleware shares the badges as `bookingWebsiteHeader` (`BookingWebsiteHeaderData`).
 
@@ -49,6 +50,10 @@ The tabs use `Workspace` with `scroll="page"`: bordered panels as on the reserva
 │ Google Maps    [ e.g. https://www.google.com/maps/...] │
 │ About          [ e.g. A quiet beach resort in Pangkor ]│
 │                                                        │
+│ Payments                                               │
+│ (●) Test payments                                      │
+│     Guests pay with Curlec test cards. No real money.  │
+│                                                        │
 │ Before you publish                                     │
 │ ✓ Template chosen                                      │
 │ ✓ Required images added                                │
@@ -62,7 +67,7 @@ The tabs use `Workspace` with `scroll="page"`: bordered panels as on the reserva
 └────────────────────────────────────────────────────────┘
 ```
 
-The checklist is calculated from data. In API only mode, Publish becomes **Go live**, and the template and required images rows are left out. Unpublishing takes the site offline, and booked guests keep their Manage booking link.
+The checklist is calculated from data. The **Test payments** switch saves at once and needs `booking-website.payment-mode`; without it the switch is locked. While Test is on, Publish asks "Publish with test payments?" first. In API only mode, Publish becomes **Go live**, and the template and required images rows are left out. Unpublishing takes the site offline, and booked guests keep their Manage booking link.
 
 - **Property photos** is done when the [property album](../02-property/01-properties.md#photos) has at least one photo. Both modes have this row.
 - **Room photos** is done when every active room type has at least one photo. Both modes have this row.
@@ -198,13 +203,14 @@ Only active, nightly plans with `company_access` Everyone appear (`RatePlan::sco
 
 ## Permissions
 
-| Permission                | Allows                                     | Default role |
-| ------------------------- | ------------------------------------------ | ------------ |
-| `booking-website.manage`  | Edit every tab except API; pick a template | Owner        |
-| `booking-website.publish` | Publish or unpublish                       | Owner        |
-| `booking-website.api`     | Manage the API token and return addresses  | Owner        |
+| Permission                     | Allows                                     | Default role |
+| ------------------------------ | ------------------------------------------ | ------------ |
+| `booking-website.manage`       | Edit every tab except API; pick a template | Owner        |
+| `booking-website.publish`      | Publish or unpublish                       | Owner        |
+| `booking-website.api`          | Manage the API token and return addresses  | Owner        |
+| `booking-website.payment-mode` | Switch payments between Test and Live      | Owner        |
 
-Each role can change in [Roles and permissions](../03-staff/02-roles-and-permissions.md). A migration syncs the three permissions.
+Each role can change in [Roles and permissions](../03-staff/02-roles-and-permissions.md). Migrations sync the four permissions.
 
 | Who                               | Access                                                                                                                         |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |

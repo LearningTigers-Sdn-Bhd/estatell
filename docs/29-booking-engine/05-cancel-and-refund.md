@@ -107,7 +107,7 @@ Curlec gives its result
 ```
 
 1. `RequestOnlineRefund` writes a `gateway_refunds` row (Pending) and one `gateway_refund_parts` row for each `payments` row it gives back. It locks the Curlec payment and the folios, so two requests cannot exceed a payment.
-2. After commit, `SendOnlineRefundJob` runs `SendOnlineRefund`, which calls Curlec. The `receipt` is `refund-{id}-{attempt}`, which Curlec treats as an idempotency key. The notes hold our row's ID, so a webhook that arrives before Curlec's answer still finds its row.
+2. After commit, `SendOnlineRefundJob` runs `SendOnlineRefund`, which calls Curlec. The `receipt` is `refund-{id}-{attempt}`, which Curlec treats as an idempotency key. A [test payment](04-payment.md#payment-mode)'s refund uses `refund-{id}-{created timestamp}-{attempt}`, because every environment shares one Curlec test account and demo and local IDs repeat after a reset. The notes hold our row's ID, so a webhook that arrives before Curlec's answer still finds its row.
 3. On `refund.processed`, `CompleteOnlineRefund` marks the row Processed and calls `RefundPayment` once for each part, in one transaction. A group booking has one Curlec refund and one fee, with one line for each unit. If a line is refused, everything rolls back, the row stays Pending, and the queue tries again.
 4. On `refund.failed`, `FailOnlineRefund` marks the row Failed. Staff with `payment.refund` and admins are alerted, and the credit stays on the folio until it is retried.
 

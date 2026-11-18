@@ -4,6 +4,7 @@ namespace App\Actions\Concierge;
 
 use App\Enums\GatewayPaymentStatus;
 use App\Enums\PaymentMethodType;
+use App\Enums\PaymentMode;
 use App\Enums\UnitStatus;
 use App\Models\GatewayPayment;
 use App\Models\PaymentMethod;
@@ -31,7 +32,7 @@ class StartStayPayment
 
         foreach ($open as $payment) {
             try {
-                $paymentId = $this->gateway->capturedPaymentId($payment->order_id);
+                $paymentId = $this->gateway->capturedPaymentId($payment->mode, $payment->order_id);
             } catch (CurlecRequestFailed $failed) {
                 report($failed);
 
@@ -49,7 +50,8 @@ class StartStayPayment
      * (`SelfCheckInPayment::shortfall`), and once the guest is checked in the whole open bill (`ConciergeBill::due`). A guest who retries with the same amount due gets the same unpaid order, so two orders
      * for one amount are never open. The order is created before its row is saved, because the call must not hold a
      * database lock. Refused, writing nothing, when the stay is not open for check-in, nothing is due, or the property has
-     * no Online payment method. Curlec being down is `payment_unavailable`.
+     * no Online payment method. Curlec being down is `payment_unavailable`. Stay payments are always Live: the booking
+     * website's Test mode never reaches guests who are really staying.
      * See docs/30-concierge/01-overview.md#payment.
      */
     public function __invoke(ReservationUnit $stay): StayPaymentResult
@@ -91,6 +93,7 @@ class StartStayPayment
 
         try {
             $orderId = $this->gateway->createOrder(
+                PaymentMode::Live,
                 Money::of($due, $currency)->getMinorAmount()->toInt(),
                 $currency,
                 'stay-'.$stay->id.'-'.Str::lower(Str::random(8)),
@@ -106,6 +109,7 @@ class StartStayPayment
             'property_id' => $stay->property_id,
             'reservation_unit_id' => $stay->id,
             'gateway_account' => $this->gateway->account(),
+            'mode' => PaymentMode::Live,
             'order_id' => $orderId,
             'amount' => $due,
             'status' => GatewayPaymentStatus::Created,

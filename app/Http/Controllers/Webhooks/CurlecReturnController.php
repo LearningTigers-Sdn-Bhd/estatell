@@ -24,7 +24,7 @@ class CurlecReturnController extends Controller
         $payment = GatewayPayment::query()->where('booking_hold_id', $hold->id)->first();
         $orderId = (string) $request->input('razorpay_order_id');
         $isOwnOrder = $orderId !== '' && $payment?->order_id === $orderId;
-        $isPaid = $isOwnOrder && $gateway->verifySignature($orderId, (string) $request->input('razorpay_payment_id'), (string) $request->input('razorpay_signature'));
+        $isPaid = $isOwnOrder && $gateway->verifySignature($payment->mode, $orderId, (string) $request->input('razorpay_payment_id'), (string) $request->input('razorpay_signature'));
 
         return redirect()->away($paymentReturn->url($hold, $payment, $isPaid), 303);
     }

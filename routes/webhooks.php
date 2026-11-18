@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('channex', ChannexWebhookController::class)->middleware(VerifyChannexSignature::class)->name('channex');
 Route::post('millionsend', MillionSendWebhookController::class)->middleware(VerifyMillionSendSignature::class)->name('millionsend');
-Route::post('curlec', CurlecWebhookController::class)->middleware(VerifyCurlecSignature::class)->name('curlec');
+Route::post('curlec', CurlecWebhookController::class)->middleware(VerifyCurlecSignature::class)->defaults('paymentMode', 'live')->name('curlec');
+Route::post('curlec/test', CurlecWebhookController::class)->middleware(VerifyCurlecSignature::class)->defaults('paymentMode', 'test')->name('curlec.test');
 Route::match(['get', 'post'], 'curlec/return/{token}', CurlecReturnController::class)->name('curlec.return');
 Route::post('curlec/stay/{token}', [ConciergeController::class, 'paymentReturn'])->middleware('concierge')->name('curlec.stay-return');

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PaymentMode;
 use App\Models\GatewayEvent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,6 +18,7 @@ class GatewayEventFactory extends Factory
     {
         return [
             'gateway_account' => 'primary',
+            'mode' => PaymentMode::Live,
             'event_id' => 'evt_'.fake()->unique()->bothify('##########'),
             'event_type' => 'order.paid',
             'payload' => [],
