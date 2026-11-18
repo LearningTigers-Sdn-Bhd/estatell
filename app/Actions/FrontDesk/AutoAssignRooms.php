@@ -23,8 +23,9 @@ class AutoAssignRooms
     ) {}
 
     /**
-     * Give a unit that has no room or bed a free one for the whole stay. Rooms and beds are tried in the order of
-     * the room group, then the room position, with a Dirty room after a Clean or Inspected one. Each try goes through
+     * Give a unit that has no room or bed a free one for the whole stay. Rooms and beds are tried with a room that has a door lock
+     * linked first (a guest gets a room they can open with a PIN or card when one is free, even if it is Dirty), then a Clean or Inspected
+     * room before a Dirty one, then the room group, then the room position. Each try goes through
      * `AssignRoom` or `AssignBed`, which lock and check again, so a pick that a parallel request took is skipped and
      * the next one is tried. The caller decides when to run it: `auto_assign_rooms` is a property setting.
      * Returns `no_free_unit` when nothing is free. See docs/18-front-desk/02-room-and-bed-assignment.md.
@@ -60,6 +61,7 @@ class AutoAssignRooms
         }
 
         $query = DB::table('rooms')
+            ->leftJoin('door_locks', 'door_locks.room_id', '=', 'rooms.id')
             ->leftJoin('room_groups', 'room_groups.id', '=', 'rooms.room_group_id')
             ->leftJoin('room_statuses', 'room_statuses.room_id', '=', 'rooms.id');
 
@@ -70,6 +72,7 @@ class AutoAssignRooms
         }
 
         return array_values($query
+            ->orderByRaw('door_locks.id IS NULL')
             ->orderByRaw("CASE WHEN room_statuses.status = 'dirty' THEN 1 ELSE 0 END")
             ->orderByRaw('room_groups.position IS NULL')
             ->orderBy('room_groups.position')

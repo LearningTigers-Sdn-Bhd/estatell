@@ -7,6 +7,7 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Features\Concierge;
 use App\Jobs\ReleaseExpiredKioskHolds;
+use App\Models\DoorLock;
 use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
@@ -343,4 +344,27 @@ it('leaves a booking made earlier with its own guest', function () {
     $this->post("/c/{$token}/identity", conciergeIdentityBody(['email' => 'same@example.com']))->assertSessionHasNoErrors();
 
     expect(app(KioskStays::class)->guest($unit)->id)->toBe($booked->id)->and($other->refresh()->merged_into_id)->toBeNull();
+});
+
+it('gives a walk-in the room that has a door lock linked, before the first free room', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
+    DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $locked->id]);
+
+    $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->assertRedirect();
+
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    expect($stay->nights()->sole()->room_id)->toBe($locked->id);
+});
+
+it('holds the room that has a door lock for a day use walk-in', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
+    DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $locked->id]);
+
+    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
+
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    expect($stay->dayUse->room_id)->toBe($locked->id);
 });
