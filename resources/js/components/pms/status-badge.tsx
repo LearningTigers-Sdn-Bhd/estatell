@@ -18,6 +18,7 @@ export function StatusBadge({
     icon: Icon,
     dot = true,
     size,
+    className,
 }: {
     status: App.Data.Shared.BadgeData;
     /** Replaces the dot when the badge needs an icon as well as a tone. */
@@ -25,12 +26,14 @@ export function StatusBadge({
     /** Set to false for a badge with tone only. */
     dot?: boolean;
     size?: 'default' | 'lg';
+    /** Layout only, for example a minimum width so badges in a column line up. */
+    className?: string;
 }) {
     return (
         <Badge
             variant="secondary"
             size={size}
-            className={cn(toneClasses[status.tone])}
+            className={cn(toneClasses[status.tone], className)}
         >
             {Icon && <Icon aria-hidden />}
             {!Icon && dot && (

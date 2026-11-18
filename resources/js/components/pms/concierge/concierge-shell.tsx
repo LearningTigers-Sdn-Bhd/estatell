@@ -124,6 +124,7 @@ export function ConciergeShell({
                 <TabLinks
                     tabs={conciergeTabs()}
                     activeTab={activeTab}
+                    triggerClassName="md:min-w-0"
                     panelWidth="full"
                     className="flex flex-col gap-4 lg:flex-1"
                     panelClassName="flex flex-col lg:flex-1"

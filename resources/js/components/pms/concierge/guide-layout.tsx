@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Circle, CircleCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -49,14 +49,22 @@ export function PanelStack({ children }: { children: ReactNode }) {
     );
 }
 
+/** Whether a guide section is ready for guests: a green Ready or an amber Add details. */
 export function Status({ ready }: { ready: boolean }) {
-    const Icon = ready ? CircleCheck : Circle;
-
     return (
-        <Badge variant={ready ? 'secondary' : 'outline'}>
-            <Icon data-icon="inline-start" aria-hidden />
-            {ready ? 'Ready' : 'Add details'}
-        </Badge>
+        <StatusBadge
+            status={
+                ready
+                    ? { value: 'ready', label: 'Ready', tone: 'success' }
+                    : {
+                          value: 'missing',
+                          label: 'Add details',
+                          tone: 'warning',
+                      }
+            }
+            icon={ready ? CircleCheck : Circle}
+            className="min-w-26"
+        />
     );
 }
 

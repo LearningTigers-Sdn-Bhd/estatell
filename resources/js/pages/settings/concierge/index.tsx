@@ -14,7 +14,7 @@ import {
     LobbyCheckIn,
 } from '@/components/pms/concierge/overview-tab';
 
-/** Concierge › Overview: how complete the guest guide is, the lobby QR and the guest action switches. */
+/** Concierge › Overview: how complete the guest guide is and the guest action switches, with the lobby QR in the rail. */
 export default function ConciergeOverview({
     lobbyUrl,
     lobbyQr,
@@ -39,23 +39,21 @@ export default function ConciergeOverview({
             <Head title="Concierge" />
             <ConciergeShell
                 activeTab="overview"
-                asideLabel="Lobby and guest actions"
-                aside={
-                    <PanelStack>
-                        <LobbyCheckIn lobbyUrl={lobbyUrl} lobbyQr={lobbyQr} />
-                        <GuestActionsCard
-                            houseRules={houseRules}
-                            walkInEnabled={walkInEnabled}
-                            refundRequestsEnabled={refundRequestsEnabled}
-                            locationCheckEnabled={locationCheckEnabled}
-                            hasLocation={hasLocation}
-                        />
-                    </PanelStack>
-                }
+                asideLabel="Lobby check-in"
+                aside={<LobbyCheckIn lobbyUrl={lobbyUrl} lobbyQr={lobbyQr} />}
             >
-                <GuideReadiness
-                    items={guideReadiness({ sections, houseRules })}
-                />
+                <PanelStack>
+                    <GuideReadiness
+                        items={guideReadiness({ sections, houseRules })}
+                    />
+                    <GuestActionsCard
+                        houseRules={houseRules}
+                        walkInEnabled={walkInEnabled}
+                        refundRequestsEnabled={refundRequestsEnabled}
+                        locationCheckEnabled={locationCheckEnabled}
+                        hasLocation={hasLocation}
+                    />
+                </PanelStack>
             </ConciergeShell>
         </>
     );
