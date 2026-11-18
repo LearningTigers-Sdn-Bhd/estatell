@@ -6,10 +6,13 @@ use App\Actions\Guests\AddIdentityDocument;
 use App\Actions\Guests\SetGuestDetails;
 use App\Actions\Guests\UpdateIdentityDocument;
 use App\Actions\Kiosk\KioskIdentityResult;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Guests\IdentityDocumentInputData;
 use App\Data\Kiosk\KioskIdentityData;
+use App\Enums\WebhookEvent;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
@@ -46,6 +49,7 @@ class SaveConciergeIdentity
                 return KioskIdentityResult::refused();
             }
 
+            $before = $this->contact($guest);
             $filled = ($this->setGuestDetails)($guest, [
                 'full_name' => $data->fullName,
                 'nationality_code' => $data->nationalityCode,
@@ -66,11 +70,35 @@ class SaveConciergeIdentity
                 ->log('ID entered on the concierge page');
 
             $guest->refresh();
+            $this->announceBooker($stay, $guest, $before);
 
             return KioskIdentityResult::accepted(
                 blank($guest->nationality_code) && $this->fieldRules->nationalityIsNeededForTax($stay->property),
             );
         });
+    }
+
+    /**
+     * A walk-in is booked with an empty booker before the ID step, so `booking.created` carries no contact details.
+     * When the ID step fills the booker's contact details, `booking.updated` sends them to booking listeners.
+     *
+     * @param  array<string, string|null>  $before
+     */
+    private function announceBooker(ReservationUnit $stay, Guest $guest, array $before): void
+    {
+        if ($this->contact($guest) === $before || $stay->reservation()->value('booker_guest_id') !== $guest->id) {
+            return;
+        }
+
+        app(TriggerWebhook::class)(WebhookEvent::BookingUpdated, $stay->property_id, Reservation::class, $stay->reservation_id);
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function contact(Guest $guest): array
+    {
+        return $guest->only(['full_name', 'email', 'phone', 'country_code', 'nationality_code']);
     }
 
     private function phone(?string $phone, ReservationUnit $stay): ?string

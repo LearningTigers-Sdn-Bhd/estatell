@@ -6,7 +6,9 @@ use App\Enums\HousekeepingStatus;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Features\Concierge;
+use App\Jobs\BroadcastWebhookJob;
 use App\Jobs\ReleaseExpiredKioskHolds;
 use App\Models\DoorLock;
 use App\Models\Folio;
@@ -22,9 +24,11 @@ use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
+use App\Models\WebhookEndpoint;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
 use Database\Factories\BookingSourceFactory;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -371,18 +375,43 @@ it('holds the room that has a door lock for a day use walk-in', function () {
     expect($stay->dayUse->room_id)->toBe($locked->id);
 });
 
-it('never offers or holds a Dirty room for a day use walk-in', function () {
-    ['property' => $property, 'type' => $type, 'room' => $room] = conciergeWalkInSetup();
+it('holds the Dirty room that has a door lock for a day use walk-in, so the room is booked again after a check-out', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     conciergeDayUsePlan($property, $type);
     $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
     DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $locked->id]);
     RoomStatus::query()->where('room_id', $locked->id)->update(['status' => HousekeepingStatus::Dirty]);
-    $body = ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id];
 
-    $this->post("/stay/{$property->code}/walk-in", $body)->assertRedirect();
+    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    expect($stay->dayUse->room_id)->toBe($room->id);
+    expect($stay->dayUse->room_id)->toBe($locked->id);
+});
 
-    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:30&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+it('holds a Clean room before a Dirty one for a day use walk-in when no room has a door lock', function () {
+    ['property' => $property, 'type' => $type, 'room' => $room] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $clean = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
+    RoomStatus::query()->where('room_id', $room->id)->update(['status' => HousekeepingStatus::Dirty]);
+
+    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
+
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    expect($stay->dayUse->room_id)->toBe($clean->id);
+});
+
+it('sends booking.updated with the booker details once the ID step fills a walk-in booker', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->assertRedirect();
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    $token = basename(app(IssueBookingPreCheckInToken::class)($stay));
+    Queue::fake();
+    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingUpdated])->create();
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
+
+    Queue::assertPushed(BroadcastWebhookJob::class, fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::BookingUpdated && $job->subjectId === $stay->reservation_id);
+    $job = Queue::pushed(BroadcastWebhookJob::class)->first(fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::BookingUpdated);
+    $booker = app($job->event->payloadBuilder())->build($job->event, $stay->reservation, $job->context)['booking']['booker'];
+    expect($booker['name'])->toBe('Aisha Rahman')->and($booker['email'])->toBe('aisha@example.com');
 });
