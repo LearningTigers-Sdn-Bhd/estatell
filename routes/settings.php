@@ -327,6 +327,13 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
     Route::prefix('concierge')->name('concierge.')->middleware(['concierge', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [ConciergeSettingsController::class, 'index'])->name('index');
+        Route::get('hotel-info', [ConciergeSettingsController::class, 'hotelInfo'])->name('hotel-info');
+        Route::get('policies', [ConciergeSettingsController::class, 'policies'])->name('policies');
+        Route::get('faqs', [ConciergeSettingsController::class, 'faqs'])->name('faqs');
+        Route::get('amenities', [ConciergeSettingsController::class, 'amenities'])->name('amenities');
+        Route::get('nearby-places', [ConciergeSettingsController::class, 'nearbyPlaces'])->name('nearby-places');
+        Route::get('wifi', [ConciergeSettingsController::class, 'wifi'])->name('wifi');
+        Route::get('contacts', [ConciergeSettingsController::class, 'contacts'])->name('contacts');
         Route::put('/', [ConciergeSettingsController::class, 'update'])->name('update');
         Route::post('hero', [ConciergeSettingsController::class, 'storeHero'])->name('hero.store');
         Route::delete('hero', [ConciergeSettingsController::class, 'destroyHero'])->name('hero.destroy');

@@ -3,15 +3,9 @@ import {
     RemovableItem,
     TextField,
 } from '@/components/pms/concierge/content-fields';
+import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { AddItemForm } from '@/components/pms/concierge/item-forms';
 import { EmptyState } from '@/components/pms/empty-state';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { destroy, store } from '@/routes/settings/concierge/topics';
 
 /** Extra topics the property tells guests about, each under its own title (laundry, parking rules, nearby clinic). */
@@ -21,15 +15,11 @@ export function InfoTopics({
     topics: App.Data.Concierge.ConciergeTopicData[];
 }) {
     return (
-        <Card className="print:hidden">
-            <CardHeader>
-                <CardTitle>Additional information</CardTitle>
-                <CardDescription>
-                    Add topics such as laundry, parking rules, or a nearby
-                    clinic. They appear under The property in the guide.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
+        <PanelSection
+            title="Additional information"
+            description="Add topics such as laundry, parking rules, or a nearby clinic. They appear under The property in the guide."
+        >
+            <div className="flex flex-col gap-5">
                 {topics.length > 0 ? (
                     <ul className="flex flex-col">
                         {topics.map((topic) => (
@@ -79,7 +69,7 @@ export function InfoTopics({
                         </>
                     )}
                 />
-            </CardContent>
-        </Card>
+            </div>
+        </PanelSection>
     );
 }

@@ -1,14 +1,8 @@
 import { router } from '@inertiajs/react';
 import { Trash2, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { FieldError } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { destroy, store } from '@/routes/settings/concierge/hero';
@@ -41,15 +35,11 @@ export function LobbyHeroCard({ heroUrl }: { heroUrl: string | null }) {
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Lobby photo</CardTitle>
-                <CardDescription>
-                    The large photo guests see on the lobby page. Without one, a
-                    stock coast photo is shown.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+        <PanelSection
+            title="Lobby photo"
+            description="The large photo guests see on the lobby page. Without one, a stock coast photo is shown."
+        >
+            <div className="flex flex-col gap-3">
                 <div className="aspect-video overflow-hidden rounded-md border bg-muted">
                     <img
                         src={heroUrl ?? '/images/concierge-editorial-coast.jpg'}
@@ -108,7 +98,7 @@ export function LobbyHeroCard({ heroUrl }: { heroUrl: string | null }) {
                     JPEG, PNG or WebP, up to 5 MB. Landscape works best.
                 </p>
                 <FieldError>{error}</FieldError>
-            </CardContent>
-        </Card>
+            </div>
+        </PanelSection>
     );
 }

@@ -2,7 +2,6 @@ import {
     NearbyPlacesSection,
     type NearbyPlaceRoutes,
 } from '@/components/pms/booking-website/nearby-places-section';
-import { Card, CardContent } from '@/components/ui/card';
 import * as concierge from '@/routes/settings/concierge/nearby-places';
 import { update as active } from '@/routes/settings/concierge/nearby-places/active';
 
@@ -18,14 +17,10 @@ export function NearbyTab({
     suggestions: App.Data.BookingEngine.NearbyPlaceSuggestionData[];
 }) {
     return (
-        <Card className="print:hidden">
-            <CardContent>
-                <NearbyPlacesSection
-                    places={places}
-                    suggestions={suggestions}
-                    routes={routes}
-                />
-            </CardContent>
-        </Card>
+        <NearbyPlacesSection
+            places={places}
+            suggestions={suggestions}
+            routes={routes}
+        />
     );
 }

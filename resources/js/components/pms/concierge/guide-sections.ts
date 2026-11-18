@@ -1,7 +1,6 @@
 import {
     CircleHelp,
     Hotel,
-    LayoutDashboard,
     MapPin,
     Phone,
     ScrollText,
@@ -15,6 +14,8 @@ export type Sections = {
     hasContact: boolean;
     amenities: number;
     nearbyPlaces: number;
+    faqs: number;
+    wifiNetworks: number;
 };
 
 type Tab = { key: string; label: string; icon: LucideIcon };
@@ -25,18 +26,12 @@ export const GUIDE_SECTIONS = [
     { key: 'policies', label: 'Policies', icon: ScrollText },
     { key: 'faqs', label: 'FAQs', icon: CircleHelp },
     { key: 'amenities', label: 'Amenities', icon: Sparkles },
-    { key: 'nearby', label: 'Nearby places', icon: MapPin },
+    { key: 'nearby-places', label: 'Nearby places', icon: MapPin },
     { key: 'wifi', label: 'Wi-Fi', icon: Wifi },
-    { key: 'contact', label: 'Contact', icon: Phone },
+    { key: 'contacts', label: 'Contact', icon: Phone },
 ] as const satisfies readonly Tab[];
 
 export type GuideSectionKey = (typeof GUIDE_SECTIONS)[number]['key'];
-
-/** Every tab of the settings page: the overview and each guide section. */
-export const CONCIERGE_TABS: readonly Tab[] = [
-    { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-    ...GUIDE_SECTIONS,
-];
 
 export type GuideSectionStatus = Tab & {
     key: GuideSectionKey;
@@ -60,13 +55,9 @@ export function sectionSummary(n: number, one: string, many: string): string {
 export function guideReadiness({
     sections,
     houseRules,
-    faqCount,
-    wifiCount,
 }: {
     sections: Sections;
     houseRules: string | null;
-    faqCount: number;
-    wifiCount: number;
 }): GuideSectionStatus[] {
     const state: Record<GuideSectionKey, { ready: boolean; detail: string }> = {
         'hotel-info': {
@@ -82,8 +73,8 @@ export function guideReadiness({
                 : 'No house rules yet.',
         },
         faqs: {
-            ready: faqCount > 0,
-            detail: sectionSummary(faqCount, 'question', 'questions'),
+            ready: sections.faqs > 0,
+            detail: sectionSummary(sections.faqs, 'question', 'questions'),
         },
         amenities: {
             ready: sections.amenities > 0,
@@ -93,15 +84,19 @@ export function guideReadiness({
                 'facilities',
             ),
         },
-        nearby: {
+        'nearby-places': {
             ready: sections.nearbyPlaces > 0,
             detail: sectionSummary(sections.nearbyPlaces, 'place', 'places'),
         },
         wifi: {
-            ready: wifiCount > 0,
-            detail: sectionSummary(wifiCount, 'network', 'networks'),
+            ready: sections.wifiNetworks > 0,
+            detail: sectionSummary(
+                sections.wifiNetworks,
+                'network',
+                'networks',
+            ),
         },
-        contact: {
+        contacts: {
             ready: sections.hasContact,
             detail: sections.hasContact
                 ? 'A phone number or email is set.'

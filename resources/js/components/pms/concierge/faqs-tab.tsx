@@ -3,89 +3,89 @@ import {
     RemovableItem,
     TextField,
 } from '@/components/pms/concierge/content-fields';
-import { ContentGrid } from '@/components/pms/concierge/guide-layout';
 import {
-    AddItemCard,
-    ItemListCard,
+    AddItemSection,
+    ItemListSection,
 } from '@/components/pms/concierge/item-forms';
 import { destroy, store } from '@/routes/settings/concierge/faqs';
 
-/** The questions guests ask, with a form to add one. */
-export function FaqsTab({
+/** The form to add a question. */
+export function AddFaqSection() {
+    return (
+        <AddItemSection
+            title="Add a question"
+            description="Answer a practical question guests ask before or during their stay."
+            action={store.url()}
+            submitLabel="Add question"
+            fields={(errors) => (
+                <>
+                    <TextField
+                        name="topic"
+                        label="Topic (optional)"
+                        error={errors.topic}
+                        maxLength={100}
+                        placeholder="e.g. Breakfast"
+                    />
+                    <TextField
+                        name="question"
+                        label="Question"
+                        error={errors.question}
+                        required
+                        maxLength={200}
+                        placeholder="e.g. Is breakfast included?"
+                    />
+                    <TextField
+                        name="answer"
+                        placeholder="e.g. Yes. Breakfast is served from 7 to 10 am at the lobby café."
+                        label="Answer"
+                        error={errors.answer}
+                        required
+                        rows={5}
+                        maxLength={1000}
+                    />
+                </>
+            )}
+        />
+    );
+}
+
+/** The questions guests ask. */
+export function FaqList({
     faqs,
 }: {
     faqs: App.Data.Concierge.ConciergeFaqData[];
 }) {
     return (
-        <ContentGrid
-            aside={
-                <AddItemCard
-                    title="Add a question"
-                    description="Answer a practical question guests ask before or during their stay."
-                    action={store.url()}
-                    submitLabel="Add question"
-                    fields={(errors) => (
-                        <>
-                            <TextField
-                                name="topic"
-                                label="Topic (optional)"
-                                error={errors.topic}
-                                maxLength={100}
-                                placeholder="e.g. Breakfast"
-                            />
-                            <TextField
-                                name="question"
-                                label="Question"
-                                error={errors.question}
-                                required
-                                maxLength={200}
-                                placeholder="e.g. Is breakfast included?"
-                            />
-                            <TextField
-                                name="answer"
-                                placeholder="e.g. Yes. Breakfast is served from 7 to 10 am at the lobby café."
-                                label="Answer"
-                                error={errors.answer}
-                                required
-                                rows={5}
-                                maxLength={1000}
-                            />
-                        </>
-                    )}
-                />
-            }
+        <ItemListSection
+            title="Questions guests ask"
+            description="These answers appear in the property guide before and during a stay, grouped by topic."
+            count={faqs.length}
+            one="question"
+            many="questions"
+            empty={{
+                icon: CircleHelp,
+                title: 'No questions yet',
+                description:
+                    'Add the questions your front desk answers most often. They will appear in the guest guide.',
+            }}
         >
-            <ItemListCard
-                title="Questions guests ask"
-                description="These answers appear in the property guide before and during a stay, grouped by topic."
-                count={faqs.length}
-                one="question"
-                many="questions"
-                empty={{
-                    icon: CircleHelp,
-                    title: 'No questions yet',
-                    description:
-                        'Add the questions your front desk answers most often. They will appear in the guest guide.',
-                }}
-            >
-                {faqs.map((faq) => (
-                    <RemovableItem
-                        key={faq.id}
-                        url={destroy.url({ faq: faq.id })}
-                        label={`Remove question: ${faq.question}`}
-                    >
-                        {faq.topic && (
-                            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                {faq.topic}
-                            </span>
-                        )}
-                        <span className="font-medium">{faq.question}</span>
-                        <span className="text-pretty whitespace-pre-wrap text-muted-foreground">
-                            {faq.answer}
+            {faqs.map((faq) => (
+                <RemovableItem
+                    key={faq.id}
+                    url={destroy.url({ faq: faq.id })}
+                    label={`Remove question: ${faq.question}`}
+                >
+                    {faq.topic && (
+                        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            {faq.topic}
                         </span>
-                    </RemovableItem>
-                ))}
-            </ItemListCard>
-        </ContentGrid>
+                    )}
+                    <span className="font-medium">{faq.question}</span>
+                    <span className="text-pretty whitespace-pre-wrap text-muted-foreground">
+                        {faq.answer}
+                    </span>
+                </RemovableItem>
+            ))}
+        </ItemListSection>
     );
 }

@@ -56,7 +56,7 @@ it('lets staff save the hotel info, and logs only a real change', function () {
         ->and($transport->airport_transfer_price)->toBe('80.00')
         ->and(Activity::query()->where('event', 'concierge.hotel-info-updated')->count())->toBe(1);
 
-    $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($owner)->get(route('settings.concierge.hotel-info', $property))->assertInertia(fn (Assert $page) => $page
         ->where('hotelInfo.about', 'A quiet guesthouse by the sea.')
         ->where('hotelInfo.airportDistanceKm', 25));
 });
@@ -165,7 +165,7 @@ it('saves the guest contacts and needs the hours when the desk is not open all d
     $this->actingAs($owner)->put(route('settings.concierge.contacts.update', $property), ['front_desk_open_24h' => true, 'duty_manager_phone' => 'call me'])->assertSessionHasErrors('duty_manager_phone');
     $this->actingAs($owner)->put(route('settings.concierge.contacts.update', $property), ['front_desk_open_24h' => false, 'front_desk_opens_at' => '08:00', 'front_desk_closes_at' => '22:00', 'emergency_phone' => '03-1234 5678'])->assertRedirect();
 
-    $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($owner)->get(route('settings.concierge.contacts', $property))->assertInertia(fn (Assert $page) => $page
         ->where('contacts.frontDeskOpen24h', false)
         ->where('contacts.frontDeskOpensAt', '08:00')
         ->where('contacts.emergencyPhone', '03-1234 5678'));
@@ -207,7 +207,7 @@ it('lets staff write the guest details of an amenity the property offers, and sh
         ->and(Activity::query()->where('event', 'concierge.amenity-details-updated')->count())->toBe(1)
         ->and($property->amenities()->whereKey($gym->id)->first()->pivot->location)->toBeNull();
 
-    $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($owner)->get(route('settings.concierge.amenities', $property))->assertInertia(fn (Assert $page) => $page
         ->has('amenityDetails', 2)
         ->where('amenityDetails.1.name', 'Pool')
         ->where('amenityDetails.1.openingHours', '7 am to 10 pm')
@@ -278,7 +278,7 @@ it('lets staff manage nearby places from Concierge without the booking engine', 
 
     expect($property->nearbyPlaces()->pluck('nearby_places.id')->all())->toBe([$suggested->id]);
 
-    $this->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
+    $this->get(route('settings.concierge.nearby-places', $property))->assertInertia(fn (Assert $page) => $page
         ->has('nearbyPlaces', 1)
         ->has('suggestions'));
 });

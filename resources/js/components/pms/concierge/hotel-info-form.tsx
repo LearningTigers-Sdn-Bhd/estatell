@@ -7,13 +7,7 @@ import {
     SwitchRow,
     TextField,
 } from '@/components/pms/concierge/content-fields';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { update } from '@/routes/settings/concierge/hotel-info';
 
 type Info = App.Data.Concierge.ConciergeHotelInfoSettingsData;
@@ -81,60 +75,54 @@ export function HotelInfoForm({
     const [transfer, setTransfer] = useState(info.airportTransferOffered);
 
     return (
-        <Card className="print:hidden">
-            <CardHeader>
-                <CardTitle>Property and travel information</CardTitle>
-                <CardDescription>
-                    All fields are optional. Share only the details guests need
-                    for arrival, departure, and getting around.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form
-                    action={update.url()}
-                    method="put"
-                    options={keepPage}
-                    className="flex flex-col gap-8"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <input
-                                type="hidden"
-                                name="airport_transfer_offered"
-                                value={transfer ? '1' : '0'}
-                            />
-                            <TextField
-                                name="about"
-                                placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
-                                label="About the property"
-                                defaultValue={info.about}
-                                error={errors.about}
-                                rows={4}
-                                maxLength={3000}
-                            />
+        <PanelSection
+            title="Property and travel information"
+            description="All fields are optional. Share only the details guests need for arrival, departure, and getting around."
+        >
+            <Form
+                action={update.url()}
+                method="put"
+                options={keepPage}
+                className="flex flex-col gap-8"
+            >
+                {({ processing, errors }) => (
+                    <>
+                        <input
+                            type="hidden"
+                            name="airport_transfer_offered"
+                            value={transfer ? '1' : '0'}
+                        />
+                        <TextField
+                            name="about"
+                            placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
+                            label="About the property"
+                            defaultValue={info.about}
+                            error={errors.about}
+                            rows={4}
+                            maxLength={3000}
+                        />
 
-                            <ArrivalSection info={info} errors={errors} />
-                            <DirectionsSection info={info} errors={errors} />
-                            <TransportSection
-                                info={info}
-                                errors={errors}
-                                transfer={transfer}
-                                onTransferChange={setTransfer}
-                            />
-                            <ParkingSection
-                                info={info}
-                                errors={errors}
-                                options={parkingOptions}
-                            />
+                        <ArrivalSection info={info} errors={errors} />
+                        <DirectionsSection info={info} errors={errors} />
+                        <TransportSection
+                            info={info}
+                            errors={errors}
+                            transfer={transfer}
+                            onTransferChange={setTransfer}
+                        />
+                        <ParkingSection
+                            info={info}
+                            errors={errors}
+                            options={parkingOptions}
+                        />
 
-                            <SubmitButton processing={processing}>
-                                Save
-                            </SubmitButton>
-                        </>
-                    )}
-                </Form>
-            </CardContent>
-        </Card>
+                        <SubmitButton processing={processing}>
+                            Save
+                        </SubmitButton>
+                    </>
+                )}
+            </Form>
+        </PanelSection>
     );
 }
 

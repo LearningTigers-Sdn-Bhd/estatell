@@ -7,15 +7,8 @@ import {
 } from '@/components/pms/concierge/content-fields';
 import { countLabel } from '@/components/pms/concierge/guide-sections';
 import { EmptyState } from '@/components/pms/empty-state';
+import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { Badge } from '@/components/ui/badge';
-import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { FieldGroup } from '@/components/ui/field';
 
 type Errors = Record<string, string>;
@@ -58,8 +51,8 @@ export function AddItemForm({
     );
 }
 
-/** A card holding an AddItemForm. */
-export function AddItemCard({
+/** A panel section holding an AddItemForm. */
+export function AddItemSection({
     title,
     description,
     ...form
@@ -71,20 +64,14 @@ export function AddItemCard({
     fields: (errors: Errors) => ReactNode;
 }) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <AddItemForm {...form} />
-            </CardContent>
-        </Card>
+        <PanelSection title={title} description={description}>
+            <AddItemForm {...form} />
+        </PanelSection>
     );
 }
 
-/** A card listing items, with a count badge and an empty state. `children` are the rows. */
-export function ItemListCard({
+/** A panel section listing items, with a count badge and an empty state. `children` are the rows. */
+export function ItemListSection({
     title,
     description,
     count,
@@ -102,23 +89,18 @@ export function ItemListCard({
     children: ReactNode;
 }) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-                <CardAction>
-                    <Badge variant="outline">
-                        {countLabel(count, one, many)}
-                    </Badge>
-                </CardAction>
-            </CardHeader>
-            <CardContent>
-                {count > 0 ? (
-                    <ul className="flex flex-col">{children}</ul>
-                ) : (
-                    <EmptyState {...empty} />
-                )}
-            </CardContent>
-        </Card>
+        <PanelSection
+            title={title}
+            description={description}
+            action={
+                <Badge variant="outline">{countLabel(count, one, many)}</Badge>
+            }
+        >
+            {count > 0 ? (
+                <ul className="flex flex-col">{children}</ul>
+            ) : (
+                <EmptyState {...empty} />
+            )}
+        </PanelSection>
     );
 }

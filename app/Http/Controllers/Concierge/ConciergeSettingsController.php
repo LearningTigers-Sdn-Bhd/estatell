@@ -55,57 +55,106 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The staff side of the Concierge page: the lobby QR, the switches and the content guests read (house rules, Wi-Fi
- * networks and FAQs).
+ * The staff side of the Concierge page: the lobby QR, the switches and the content guests read. Each tab is its own
+ * URL and sends only its own data.
  */
 class ConciergeSettingsController extends Controller
 {
-    /**
-     * The staff page with the lobby address and its QR code to print.
-     */
-    public function index(Request $request, Property $property, ConciergeLobbyQr $qr, ConciergeGuide $guide, NearbyPlaceSuggestions $suggestions): Response
-    {
-        $url = route('concierge.lobby', ['property' => $property->code]);
+    public function __construct(private ConciergeLobbyQr $qr) {}
 
+    /**
+     * Overview tab: how complete the guest guide is, the lobby QR and the guest action switches.
+     */
+    public function index(Property $property): Response
+    {
         $property->loadMissing('settings');
 
-        return Inertia::render('settings/concierge/index', [
-            'lobbyUrl' => $url,
-            'lobbyQr' => $qr->dataUri($url),
+        return $this->renderTab($property, 'index', [
+            'houseRules' => $property->settings?->house_rules,
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
-            'heroUrl' => $property->heroUrl(),
-            'houseRules' => $property->settings?->house_rules,
             'locationCheckEnabled' => (bool) $property->settings?->concierge_location_check_enabled,
             'hasLocation' => filled($property->latitude) && filled($property->longitude),
-            'policyTexts' => [
-                'roomPolicy' => $property->settings?->room_policy,
-                'paymentPolicy' => $property->settings?->payment_policy,
-                'otherPolicies' => $property->settings?->other_policies,
+            'sections' => [
+                'hasAddress' => filled($property->address_line1),
+                'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
+                'amenities' => $property->amenities()->count(),
+                'nearbyPlaces' => $property->nearbyPlaces()->wherePivot('active', true)->count(),
+                'faqs' => $property->faqs()->count(),
+                'wifiNetworks' => $property->wifiNetworks()->count(),
             ],
-            'wifiNetworks' => $property->wifiNetworks()->get()->map(ConciergeWifiData::fromModel(...))->values(),
-            'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
+        ]);
+    }
+
+    public function hotelInfo(Property $property): Response
+    {
+        return $this->renderTab($property, 'hotel-info', [
+            'heroUrl' => $property->heroUrl(),
+            'hasAddress' => filled($property->address_line1),
             'hotelInfo' => ConciergeHotelInfoSettingsData::fromProperty($property->loadMissing('transportDetail')),
             'parkingOptions' => [
                 'availability' => ParkingAvailability::options(),
                 'types' => ParkingType::options(),
                 'priceUnits' => ParkingPriceUnit::options(),
             ],
-            'contacts' => ConciergeContactSettingsData::fromProperty($property),
+            'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
+        ]);
+    }
+
+    public function policies(Property $property, ConciergeGuide $guide): Response
+    {
+        $property->loadMissing('settings');
+
+        return $this->renderTab($property, 'policies', [
+            'houseRules' => $property->settings?->house_rules,
+            'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
+            'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
+            'policyTexts' => [
+                'roomPolicy' => $property->settings?->room_policy,
+                'paymentPolicy' => $property->settings?->payment_policy,
+                'otherPolicies' => $property->settings?->other_policies,
+            ],
+            'policyTerms' => $guide->terms($property),
+        ]);
+    }
+
+    public function faqs(Property $property): Response
+    {
+        return $this->renderTab($property, 'faqs', [
+            'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
+        ]);
+    }
+
+    public function amenities(Request $request, Property $property): Response
+    {
+        return $this->renderTab($property, 'amenities', [
             'amenities' => AmenityPickerData::forType(AmenityType::Property, $property->amenities()->get()),
             'amenityDetails' => $property->amenities()->with('category')->orderBy('position')->get()->map(ConciergeAmenitySettingsData::fromModel(...))->values(),
             'page' => max(1, $request->integer('page', 1)),
             'listUrl' => $request->url(),
-            'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
-            'policyTerms' => $guide->terms($property),
-            'sections' => [
-                'hasAddress' => filled($property->address_line1),
-                'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
-                'amenities' => $property->amenities()->count(),
-                'nearbyPlaces' => $property->nearbyPlaces()->wherePivot('active', true)->count(),
-            ],
+        ]);
+    }
+
+    public function nearbyPlaces(Property $property, NearbyPlaceSuggestions $suggestions): Response
+    {
+        return $this->renderTab($property, 'nearby-places', [
             'nearbyPlaces' => $suggestions->ownPlaces($property)->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
             'suggestions' => $suggestions->for($property)->map(fn (NearbyPlace $place): NearbyPlaceSuggestionData => NearbyPlaceSuggestionData::fromModel($place))->values(),
+        ]);
+    }
+
+    public function wifi(Property $property): Response
+    {
+        return $this->renderTab($property, 'wifi', [
+            'wifiNetworks' => $property->wifiNetworks()->get()->map(ConciergeWifiData::fromModel(...))->values(),
+        ]);
+    }
+
+    public function contacts(Property $property): Response
+    {
+        return $this->renderTab($property, 'contacts', [
+            'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
+            'contacts' => ConciergeContactSettingsData::fromProperty($property),
         ]);
     }
 
@@ -244,5 +293,22 @@ class ConciergeSettingsController extends Controller
             : ['type' => 'error', 'message' => __('The property no longer offers this amenity. Reload the page.')]);
 
         return back();
+    }
+
+    /**
+     * Every tab gets the lobby address and QR for the header and the printed sheet, then its own data.
+     *
+     * @param  'index'|'hotel-info'|'policies'|'faqs'|'amenities'|'nearby-places'|'wifi'|'contacts'  $page
+     * @param  array<string, mixed>  $tabProps
+     */
+    private function renderTab(Property $property, string $page, array $tabProps): Response
+    {
+        $url = route('concierge.lobby', ['property' => $property->code]);
+
+        return Inertia::render("settings/concierge/{$page}", [
+            'lobbyUrl' => $url,
+            'lobbyQr' => $this->qr->dataUri($url),
+            ...$tabProps,
+        ]);
     }
 }

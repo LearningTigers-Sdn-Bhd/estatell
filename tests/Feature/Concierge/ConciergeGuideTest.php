@@ -230,13 +230,15 @@ it('lets staff keep the Wi-Fi networks and FAQs, and encrypts the password', fun
         ->and(Activity::query()->get()->toJson())->not->toContain('welcome2026');
 
     $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
-        ->where('wifiNetworks.0.name', 'Guest Wi-Fi')
-        ->where('faqs.0.answer', '7 to 10 am')
         ->where('refundRequestsEnabled', true)
         ->where('houseRules', 'Quiet hours')
         ->where('sections.amenities', 0)
         ->where('sections.nearbyPlaces', 0)
-        ->has('policyTerms'));
+        ->where('sections.faqs', 1)
+        ->where('sections.wifiNetworks', 1));
+    $this->get(route('settings.concierge.wifi', $property))->assertInertia(fn (Assert $page) => $page->where('wifiNetworks.0.name', 'Guest Wi-Fi'));
+    $this->get(route('settings.concierge.faqs', $property))->assertInertia(fn (Assert $page) => $page->where('faqs.0.answer', '7 to 10 am'));
+    $this->get(route('settings.concierge.policies', $property))->assertInertia(fn (Assert $page) => $page->has('policyTerms'));
 
     $this->actingAs($owner)->delete(route('settings.concierge.wifi.destroy', [$property, $network]))->assertRedirect();
     $this->actingAs($owner)->delete(route('settings.concierge.faqs.destroy', [$property, PropertyFaq::query()->sole()]))->assertRedirect();

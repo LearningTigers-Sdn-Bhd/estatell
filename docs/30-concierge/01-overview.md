@@ -73,6 +73,23 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 | `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice          |
 | `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch        |
 
+### Staff settings page
+
+Settings › Concierge follows the Settings archetype, like Booking website. Each tab is a `TabLinks` link with its own GET route, controller method and page, and the server sends only that tab's data. The open tab is the last breadcrumb. Every tab shares the page header (View lobby, Print lobby QR) and the printed QR sheet, through `ConciergeShell`.
+
+| Tab           | Route                              | Page                               | Right rail                                  |
+| ------------- | ---------------------------------- | ---------------------------------- | ------------------------------------------- |
+| Overview      | `settings.concierge.index`         | `settings/concierge/index`         | Lobby QR, guest action switches             |
+| Hotel info    | `settings.concierge.hotel-info`    | `settings/concierge/hotel-info`    | Lobby photo, property profile, extra topics |
+| Policies      | `settings.concierge.policies`      | `settings/concierge/policies`      | Charge policies from Room revenue           |
+| FAQs          | `settings.concierge.faqs`          | `settings/concierge/faqs`          | Add a question                              |
+| Amenities     | `settings.concierge.amenities`     | `settings/concierge/amenities`     | None                                        |
+| Nearby places | `settings.concierge.nearby-places` | `settings/concierge/nearby-places` | None                                        |
+| Wi-Fi         | `settings.concierge.wifi`          | `settings/concierge/wifi`          | Add a network                               |
+| Contact       | `settings.concierge.contacts`      | `settings/concierge/contacts`      | Phone and email from the property profile   |
+
+The tab content sits in a page-scroll `Workspace` (`scroll="page"`). Sections inside a panel use `PanelSection`, not cards. The Overview rows link to each tab. Amenities and Nearby places edit the same data as the Booking website tabs of the same name.
+
 All guest routes sit behind the `concierge` middleware (`EnsureConciergeIsActive`) and are throttled. A write through a link works only on a Confirmed or CheckedIn stay; a link to a cancelled stay can only be read, to show `hold_expired`.
 
 ## Payment
