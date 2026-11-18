@@ -13,7 +13,8 @@ import {
     amenities,
     contacts,
     faqs,
-    hotelInfo,
+    gettingHere,
+    guestGuidelines,
     index,
     nearbyPlaces,
     policies,
@@ -24,7 +25,8 @@ export type ConciergeTab = 'overview' | (typeof GUIDE_SECTIONS)[number]['key'];
 
 const HREFS: Record<ConciergeTab, () => string> = {
     overview: () => index.url(),
-    'hotel-info': () => hotelInfo.url(),
+    'guest-guidelines': () => guestGuidelines.url(),
+    'getting-here': () => gettingHere.url(),
     policies: () => policies.url(),
     faqs: () => faqs.url(),
     amenities: () => amenities.url(),

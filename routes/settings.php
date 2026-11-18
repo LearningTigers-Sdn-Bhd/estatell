@@ -327,7 +327,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
     Route::prefix('concierge')->name('concierge.')->middleware(['concierge', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [ConciergeSettingsController::class, 'index'])->name('index');
-        Route::get('hotel-info', [ConciergeSettingsController::class, 'hotelInfo'])->name('hotel-info');
+        Route::get('guest-guidelines', [ConciergeSettingsController::class, 'guestGuidelines'])->name('guest-guidelines');
+        Route::get('getting-here', [ConciergeSettingsController::class, 'gettingHere'])->name('getting-here');
         Route::get('policies', [ConciergeSettingsController::class, 'policies'])->name('policies');
         Route::get('faqs', [ConciergeSettingsController::class, 'faqs'])->name('faqs');
         Route::get('amenities', [ConciergeSettingsController::class, 'amenities'])->name('amenities');
@@ -352,7 +353,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('{nearbyPlace}/active', [NearbyPlaceController::class, 'active'])->whereNumber('nearbyPlace')->name('active.update');
             Route::delete('{nearbyPlace}', [NearbyPlaceController::class, 'destroy'])->whereNumber('nearbyPlace')->name('destroy');
         });
-        Route::put('hotel-info', [ConciergeSettingsController::class, 'updateHotelInfo'])->name('hotel-info.update');
+        Route::put('guest-guidelines', [ConciergeSettingsController::class, 'updateGuestGuidelines'])->name('guest-guidelines.update');
+        Route::put('getting-here', [ConciergeSettingsController::class, 'updateGettingHere'])->name('getting-here.update');
         Route::put('contacts', [ConciergeSettingsController::class, 'updateContacts'])->name('contacts.update');
         Route::post('topics', [ConciergeSettingsController::class, 'storeTopic'])->name('topics.store');
         Route::delete('topics/{infoTopic}', [ConciergeSettingsController::class, 'destroyTopic'])->name('topics.destroy');

@@ -11,8 +11,9 @@ use App\Actions\Concierge\RemoveFaq;
 use App\Actions\Concierge\RemoveInfoTopic;
 use App\Actions\Concierge\RemoveWifiNetwork;
 use App\Actions\Concierge\SaveAmenityDetail;
+use App\Actions\Concierge\SaveGettingHere;
 use App\Actions\Concierge\SaveGuestContacts;
-use App\Actions\Concierge\SaveHotelInfo;
+use App\Actions\Concierge\SaveGuestGuidelines;
 use App\Actions\Concierge\UpdateConciergeSettings;
 use App\Actions\Concierge\UpdateWifiNetwork;
 use App\Actions\Concierge\UploadConciergeHero;
@@ -22,7 +23,8 @@ use App\Data\BookingEngine\PropertyNearbyPlaceData;
 use App\Data\Concierge\ConciergeAmenitySettingsData;
 use App\Data\Concierge\ConciergeContactSettingsData;
 use App\Data\Concierge\ConciergeFaqData;
-use App\Data\Concierge\ConciergeHotelInfoSettingsData;
+use App\Data\Concierge\ConciergeGettingHereData;
+use App\Data\Concierge\ConciergeGuestGuidelinesData;
 use App\Data\Concierge\ConciergeTopicData;
 use App\Data\Concierge\ConciergeWifiData;
 use App\Enums\AmenityType;
@@ -32,8 +34,9 @@ use App\Enums\ParkingType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\SetAmenityRequest;
 use App\Http\Requests\Concierge\SaveAmenityDetailRequest;
+use App\Http\Requests\Concierge\SaveGettingHereRequest;
 use App\Http\Requests\Concierge\SaveGuestContactsRequest;
-use App\Http\Requests\Concierge\SaveHotelInfoRequest;
+use App\Http\Requests\Concierge\SaveGuestGuidelinesRequest;
 use App\Http\Requests\Concierge\StoreFaqRequest;
 use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
@@ -63,19 +66,21 @@ class ConciergeSettingsController extends Controller
     public function __construct(private ConciergeLobbyQr $qr) {}
 
     /**
-     * Overview tab: how complete the guest guide is, the lobby QR and the guest action switches.
+     * Overview tab: how complete the guest guide is, the lobby QR and photo, and the guest action switches.
      */
     public function index(Property $property): Response
     {
         $property->loadMissing('settings');
 
         return $this->renderTab($property, 'index', [
+            'heroUrl' => $property->heroUrl(),
             'houseRules' => $property->settings?->house_rules,
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
             'locationCheckEnabled' => (bool) $property->settings?->concierge_location_check_enabled,
             'hasLocation' => filled($property->latitude) && filled($property->longitude),
             'sections' => [
+                'hasArrivalInstructions' => filled($property->settings?->arrival_instructions),
                 'hasAddress' => filled($property->address_line1),
                 'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
                 'amenities' => $property->amenities()->count(),
@@ -86,18 +91,30 @@ class ConciergeSettingsController extends Controller
         ]);
     }
 
-    public function hotelInfo(Property $property): Response
+    /**
+     * Guest guidelines tab: the arrival and departure steps and the extra topics.
+     */
+    public function guestGuidelines(Property $property): Response
     {
-        return $this->renderTab($property, 'hotel-info', [
-            'heroUrl' => $property->heroUrl(),
+        return $this->renderTab($property, 'guest-guidelines', [
+            'guidelines' => ConciergeGuestGuidelinesData::fromProperty($property->loadMissing('settings')),
+            'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
+        ]);
+    }
+
+    /**
+     * Getting here tab: directions, travel times, transfers and parking, with whether the address is set.
+     */
+    public function gettingHere(Property $property): Response
+    {
+        return $this->renderTab($property, 'getting-here', [
             'hasAddress' => filled($property->address_line1),
-            'hotelInfo' => ConciergeHotelInfoSettingsData::fromProperty($property->loadMissing('transportDetail')),
+            'gettingHere' => ConciergeGettingHereData::fromProperty($property->loadMissing('transportDetail')),
             'parkingOptions' => [
                 'availability' => ParkingAvailability::options(),
                 'types' => ParkingType::options(),
                 'priceUnits' => ParkingPriceUnit::options(),
             ],
-            'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
         ]);
     }
 
@@ -234,11 +251,20 @@ class ConciergeSettingsController extends Controller
         return back();
     }
 
-    public function updateHotelInfo(SaveHotelInfoRequest $request, Property $property, SaveHotelInfo $saveHotelInfo): RedirectResponse
+    public function updateGuestGuidelines(SaveGuestGuidelinesRequest $request, Property $property, SaveGuestGuidelines $saveGuestGuidelines): RedirectResponse
     {
-        $saveHotelInfo($request->user(), $property, $request->validated());
+        $saveGuestGuidelines($request->user(), $property, $request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Hotel info saved.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Guest guidelines saved.')]);
+
+        return back();
+    }
+
+    public function updateGettingHere(SaveGettingHereRequest $request, Property $property, SaveGettingHere $saveGettingHere): RedirectResponse
+    {
+        $saveGettingHere($request->user(), $property, $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Getting here saved.')]);
 
         return back();
     }
@@ -298,7 +324,7 @@ class ConciergeSettingsController extends Controller
     /**
      * Every tab gets the lobby address and QR for the header and the printed sheet, then its own data.
      *
-     * @param  'index'|'hotel-info'|'policies'|'faqs'|'amenities'|'nearby-places'|'wifi'|'contacts'  $page
+     * @param  'index'|'guest-guidelines'|'getting-here'|'policies'|'faqs'|'amenities'|'nearby-places'|'wifi'|'contacts'  $page
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, string $page, array $tabProps): Response

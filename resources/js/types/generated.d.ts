@@ -1152,9 +1152,7 @@ question: string,
 answer: string,
 topic: string | null,
 };
-export type ConciergeHotelInfoSettingsData = {
-arrivalInstructions: string | null,
-departureInstructions: string | null,
+export type ConciergeGettingHereData = {
 directions: string | null,
 airportDistanceKm: number | null,
 airportTravelMinutes: number | null,
@@ -1178,6 +1176,10 @@ parkingHeightLimitM: string | null,
 parkingEvCharging: boolean,
 parkingBookingRequired: boolean,
 transportNotes: string | null,
+};
+export type ConciergeGuestGuidelinesData = {
+arrivalInstructions: string | null,
+departureInstructions: string | null,
 };
 export type ConciergeIdentityPrefillData = {
 fullName: string | null,

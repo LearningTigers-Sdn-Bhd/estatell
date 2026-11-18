@@ -1,13 +1,14 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import {
     SelectField,
     SwitchRow,
     TextField,
 } from '@/components/pms/concierge/content-fields';
+import { FormBlock } from '@/components/pms/concierge/guide-layout';
 import { ConciergeFormSection } from '@/components/pms/concierge/settings-form';
-import { update } from '@/routes/settings/concierge/hotel-info';
+import { update } from '@/routes/settings/concierge/getting-here';
 
-type Info = App.Data.Concierge.ConciergeHotelInfoSettingsData;
+type Info = App.Data.Concierge.ConciergeGettingHereData;
 type Errors = Record<string, string>;
 export type ParkingOptions = {
     availability: { value: string; label: string }[];
@@ -40,29 +41,8 @@ const DISTANCES = [
     },
 ] as const;
 
-/** A titled block of the form, divided from the one above. */
-function Section({
-    title,
-    description,
-    children,
-}: {
-    title: string;
-    description: string;
-    children: ReactNode;
-}) {
-    return (
-        <section className="flex flex-col gap-4 border-t pt-6 first-of-type:border-t-0 first-of-type:pt-0">
-            <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-semibold">{title}</h3>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-            {children}
-        </section>
-    );
-}
-
-/** What the property tells guests about arrival and departure and how to get there. The About text is on the property profile. Everything is optional; an empty part is not shown. */
-export function HotelInfoForm({
+/** How guests reach the property and where they park. Everything is optional; an empty part is not shown to guests. */
+export function GettingHereForm({
     info,
     parkingOptions,
 }: {
@@ -75,8 +55,8 @@ export function HotelInfoForm({
         <ConciergeFormSection
             form={update.form()}
             contentClassName="flex flex-col gap-8"
-            title="Property and travel information"
-            description="All fields are optional. Share only the details guests need for arrival, departure, and getting around."
+            title="Getting here"
+            description="How guests reach the property and where they park. All fields are optional."
         >
             {(errors) => (
                 <>
@@ -85,7 +65,6 @@ export function HotelInfoForm({
                         name="airport_transfer_offered"
                         value={transfer ? '1' : '0'}
                     />
-                    <ArrivalSection info={info} errors={errors} />
                     <DirectionsSection info={info} errors={errors} />
                     <TransportSection
                         info={info}
@@ -104,39 +83,9 @@ export function HotelInfoForm({
     );
 }
 
-function ArrivalSection({ info, errors }: { info: Info; errors: Errors }) {
-    return (
-        <Section
-            title="Arrival and departure"
-            description="Give guests only the steps they need on arrival and when they leave."
-        >
-            <div className="grid gap-4 md:grid-cols-2">
-                <TextField
-                    name="arrival_instructions"
-                    label="Arrival instructions"
-                    defaultValue={info.arrivalInstructions}
-                    error={errors.arrival_instructions}
-                    rows={3}
-                    maxLength={1000}
-                    placeholder="e.g. Take the lift to level 3. The front desk is on your left."
-                />
-                <TextField
-                    name="departure_instructions"
-                    label="Departure instructions"
-                    defaultValue={info.departureInstructions}
-                    error={errors.departure_instructions}
-                    rows={3}
-                    maxLength={1000}
-                    placeholder="e.g. Leave the key card at the front desk."
-                />
-            </div>
-        </Section>
-    );
-}
-
 function DirectionsSection({ info, errors }: { info: Info; errors: Errors }) {
     return (
-        <Section
+        <FormBlock
             title="Directions and travel times"
             description="Add typical distances and journey times if you know them."
         >
@@ -179,7 +128,7 @@ function DirectionsSection({ info, errors }: { info: Info; errors: Errors }) {
                     </fieldset>
                 ))}
             </div>
-        </Section>
+        </FormBlock>
     );
 }
 
@@ -195,7 +144,7 @@ function TransportSection({
     onTransferChange: (offered: boolean) => void;
 }) {
     return (
-        <Section
+        <FormBlock
             title="Transfers and local transport"
             description="Add airport pickup, shuttle, and public transport details."
         >
@@ -264,7 +213,7 @@ function TransportSection({
                 rows={2}
                 maxLength={1000}
             />
-        </Section>
+        </FormBlock>
     );
 }
 
@@ -283,7 +232,7 @@ function ParkingSection({
     );
 
     return (
-        <Section
+        <FormBlock
             title="Parking"
             description="Tell guests where to park, what it costs, and what fits."
         >
@@ -369,6 +318,6 @@ function ParkingSection({
                 onChange={setBookingRequired}
                 className="items-center rounded-lg border p-4"
             />
-        </Section>
+        </FormBlock>
     );
 }

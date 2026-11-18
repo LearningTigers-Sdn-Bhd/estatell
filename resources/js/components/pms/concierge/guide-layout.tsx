@@ -100,3 +100,24 @@ export function LinkedSection({
         </PanelSection>
     );
 }
+
+/** A titled block of the form, divided from the one above. */
+export function FormBlock({
+    title,
+    description,
+    children,
+}: {
+    title: string;
+    description: string;
+    children: ReactNode;
+}) {
+    return (
+        <section className="flex flex-col gap-4 border-t pt-6 first-of-type:border-t-0 first-of-type:pt-0">
+            <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-semibold">{title}</h3>
+                <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+            {children}
+        </section>
+    );
+}

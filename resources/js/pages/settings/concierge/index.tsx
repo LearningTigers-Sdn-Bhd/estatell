@@ -9,16 +9,18 @@ import {
     guideReadiness,
     type Sections,
 } from '@/components/pms/concierge/guide-sections';
+import { LobbyHeroCard } from '@/components/pms/concierge/lobby-hero-card';
 import {
     GuideProgress,
     GuideReadiness,
     LobbyCheckIn,
 } from '@/components/pms/concierge/overview-tab';
 
-/** Concierge › Overview: the guest guide sections and the guest action switches, with the guide progress and the lobby QR in the rail. */
+/** Concierge › Overview: the guest guide sections and the guest action switches, with the guide progress, the lobby QR and the lobby photo in the rail. */
 export default function ConciergeOverview({
     lobbyUrl,
     lobbyQr,
+    heroUrl,
     houseRules,
     walkInEnabled,
     refundRequestsEnabled,
@@ -28,6 +30,7 @@ export default function ConciergeOverview({
 }: {
     lobbyUrl: string;
     lobbyQr: string;
+    heroUrl: string | null;
     houseRules: string | null;
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
@@ -42,11 +45,17 @@ export default function ConciergeOverview({
             <Head title="Concierge" />
             <ConciergeShell
                 activeTab="overview"
-                asideLabel="Guide progress and lobby check-in"
+                asideLabel="Guide progress, lobby check-in and lobby photo"
                 aside={
                     <div className="flex flex-col gap-4">
                         <GuideProgress items={readiness} />
-                        <LobbyCheckIn lobbyUrl={lobbyUrl} lobbyQr={lobbyQr} />
+                        <PanelStack>
+                            <LobbyCheckIn
+                                lobbyUrl={lobbyUrl}
+                                lobbyQr={lobbyQr}
+                            />
+                            <LobbyHeroCard heroUrl={heroUrl} />
+                        </PanelStack>
                     </div>
                 }
             >

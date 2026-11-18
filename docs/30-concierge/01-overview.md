@@ -77,18 +77,19 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 
 Settings › Concierge follows the Settings archetype, like Booking website. Each tab is a `TabLinks` link with its own GET route, controller method and page, and the server sends only that tab's data. The open tab is the last breadcrumb. Every tab shares the page header (View lobby, Print lobby QR) and the printed QR sheet, through `ConciergeShell`.
 
-| Tab           | Route                              | Page                               | Right rail                                  |
-| ------------- | ---------------------------------- | ---------------------------------- | ------------------------------------------- |
-| Overview      | `settings.concierge.index`         | `settings/concierge/index`         | Lobby QR, guest action switches             |
-| Hotel info    | `settings.concierge.hotel-info`    | `settings/concierge/hotel-info`    | Lobby photo, property profile, extra topics |
-| Policies      | `settings.concierge.policies`      | `settings/concierge/policies`      | Charge policies from Room revenue           |
-| FAQs          | `settings.concierge.faqs`          | `settings/concierge/faqs`          | Add a question                              |
-| Amenities     | `settings.concierge.amenities`     | `settings/concierge/amenities`     | None                                        |
-| Nearby places | `settings.concierge.nearby-places` | `settings/concierge/nearby-places` | None                                        |
-| Wi-Fi         | `settings.concierge.wifi`          | `settings/concierge/wifi`          | Add a network                               |
-| Contact       | `settings.concierge.contacts`      | `settings/concierge/contacts`      | Phone and email from the property profile   |
+| Tab              | Route                                 | Page                                  | Right rail                                      |
+| ---------------- | ------------------------------------- | ------------------------------------- | ----------------------------------------------- |
+| Overview         | `settings.concierge.index`            | `settings/concierge/index`            | Guide progress, lobby QR, lobby photo           |
+| Guest guidelines | `settings.concierge.guest-guidelines` | `settings/concierge/guest-guidelines` | None (arrival and departure, then extra topics) |
+| Getting here     | `settings.concierge.getting-here`     | `settings/concierge/getting-here`     | Property profile (the address)                  |
+| Policies         | `settings.concierge.policies`         | `settings/concierge/policies`         | Charge policies from Room revenue               |
+| FAQs             | `settings.concierge.faqs`             | `settings/concierge/faqs`             | Add a question                                  |
+| Amenities        | `settings.concierge.amenities`        | `settings/concierge/amenities`        | None                                            |
+| Nearby places    | `settings.concierge.nearby-places`    | `settings/concierge/nearby-places`    | None                                            |
+| Wi-Fi            | `settings.concierge.wifi`             | `settings/concierge/wifi`             | Add a network                                   |
+| Contact          | `settings.concierge.contacts`         | `settings/concierge/contacts`         | Phone and email from the property profile       |
 
-The tab content sits in a page-scroll `Workspace` (`scroll="page"`). Sections inside a panel use `PanelSection`, not cards. The Overview rows link to each tab. Amenities and Nearby places edit the same data as the Booking website tabs of the same name.
+The tab content sits in a fixed-height `Workspace` with a 28rem rail, like the reservation page: each panel scrolls on its own, and a tab with no rail takes the full width. Sections inside a panel use `PanelSection`, not cards. The Overview rows link to each tab. Guest guidelines is ready when the arrival instructions are written; Getting here is ready when the property address is set. Guest guidelines (`SaveGuestGuidelines`, `property_settings`) and Getting here (`SaveGettingHere`, `property_transport_details`) each save on their own and log `concierge.guest-guidelines-updated` and `concierge.getting-here-updated`. Amenities and Nearby places edit the same data as the Booking website tabs of the same name.
 
 All guest routes sit behind the `concierge` middleware (`EnsureConciergeIsActive`) and are throttled. A write through a link works only on a Confirmed or CheckedIn stay; a link to a cancelled stay can only be read, to show `hold_expired`.
 
@@ -205,7 +206,7 @@ The wastays Guest Concierge was the reference for what a guest needs. This table
 
 ## Lobby hero photo
 
-The large photo beside the property name on the lobby hub and on the booking-code page. Staff upload it in Settings, Concierge, Hotel info, on the **Lobby photo** card (JPEG, PNG or WebP, up to 5 MB, one per property; it saves at once). It is stored in the `hero` media collection of the property on the public media disk, so guests read it with no login. With none uploaded, or after **Use stock photo**, both pages show the stock coast photo (`public/images/concierge-editorial-coast.jpg`). Upload and removal are logged as `concierge.settings-updated`.
+The large photo beside the property name on the lobby hub and on the booking-code page. Staff upload it in Settings, Concierge, Overview, on the **Lobby photo** card in the rail (JPEG, PNG or WebP, up to 5 MB, one per property; it saves at once). It is stored in the `hero` media collection of the property on the public media disk, so guests read it with no login. With none uploaded, or after **Use stock photo**, both pages show the stock coast photo (`public/images/concierge-editorial-coast.jpg`). Upload and removal are logged as `concierge.settings-updated`.
 
 ## Guest recovery and remaining screens
 

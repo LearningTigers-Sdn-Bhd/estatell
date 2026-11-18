@@ -1,7 +1,8 @@
 import {
+    BookOpenText,
     CircleHelp,
-    Hotel,
     MapPin,
+    Navigation,
     Phone,
     ScrollText,
     Sparkles,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 
 export type Sections = {
+    hasArrivalInstructions: boolean;
     hasAddress: boolean;
     hasContact: boolean;
     amenities: number;
@@ -22,7 +24,8 @@ type Tab = { key: string; label: string; icon: LucideIcon };
 
 /** The sections of the guest guide, in the order staff see them. */
 export const GUIDE_SECTIONS = [
-    { key: 'hotel-info', label: 'Hotel info', icon: Hotel },
+    { key: 'guest-guidelines', label: 'Guest guidelines', icon: BookOpenText },
+    { key: 'getting-here', label: 'Getting here', icon: Navigation },
     { key: 'policies', label: 'Policies', icon: ScrollText },
     { key: 'faqs', label: 'FAQs', icon: CircleHelp },
     { key: 'amenities', label: 'Amenities', icon: Sparkles },
@@ -60,7 +63,13 @@ export function guideReadiness({
     houseRules: string | null;
 }): GuideSectionStatus[] {
     const state: Record<GuideSectionKey, { ready: boolean; detail: string }> = {
-        'hotel-info': {
+        'guest-guidelines': {
+            ready: sections.hasArrivalInstructions,
+            detail: sections.hasArrivalInstructions
+                ? 'Arrival instructions are written.'
+                : 'Add the arrival instructions.',
+        },
+        'getting-here': {
             ready: sections.hasAddress,
             detail: sections.hasAddress
                 ? 'The property address is set.'

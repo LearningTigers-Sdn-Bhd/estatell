@@ -100,14 +100,15 @@ it('opens each tab on its own URL with only that tab\'s data', function (string 
             }
         });
 })->with([
-    'overview' => ['settings.concierge.index', 'settings/concierge/index', ['sections', 'houseRules', 'walkInEnabled'], ['faqs', 'wifiNetworks', 'hotelInfo', 'suggestions']],
-    'hotel info' => ['settings.concierge.hotel-info', 'settings/concierge/hotel-info', ['hotelInfo', 'parkingOptions', 'topics', 'heroUrl'], ['faqs', 'contacts', 'suggestions']],
-    'policies' => ['settings.concierge.policies', 'settings/concierge/policies', ['houseRules', 'policyTexts', 'policyTerms'], ['faqs', 'hotelInfo']],
-    'FAQs' => ['settings.concierge.faqs', 'settings/concierge/faqs', ['faqs'], ['wifiNetworks', 'hotelInfo']],
+    'overview' => ['settings.concierge.index', 'settings/concierge/index', ['sections', 'houseRules', 'walkInEnabled', 'heroUrl'], ['faqs', 'wifiNetworks', 'gettingHere', 'suggestions']],
+    'guest guidelines' => ['settings.concierge.guest-guidelines', 'settings/concierge/guest-guidelines', ['guidelines', 'topics'], ['gettingHere', 'parkingOptions', 'heroUrl', 'faqs']],
+    'getting here' => ['settings.concierge.getting-here', 'settings/concierge/getting-here', ['gettingHere', 'parkingOptions', 'hasAddress'], ['guidelines', 'topics', 'heroUrl']],
+    'policies' => ['settings.concierge.policies', 'settings/concierge/policies', ['houseRules', 'policyTexts', 'policyTerms'], ['faqs', 'gettingHere']],
+    'FAQs' => ['settings.concierge.faqs', 'settings/concierge/faqs', ['faqs'], ['wifiNetworks', 'gettingHere']],
     'amenities' => ['settings.concierge.amenities', 'settings/concierge/amenities', ['amenities', 'amenityDetails', 'page', 'listUrl'], ['faqs', 'suggestions']],
     'nearby places' => ['settings.concierge.nearby-places', 'settings/concierge/nearby-places', ['nearbyPlaces', 'suggestions'], ['faqs', 'amenities']],
-    'Wi-Fi' => ['settings.concierge.wifi', 'settings/concierge/wifi', ['wifiNetworks'], ['faqs', 'hotelInfo']],
-    'contacts' => ['settings.concierge.contacts', 'settings/concierge/contacts', ['contacts', 'hasContact'], ['faqs', 'hotelInfo']],
+    'Wi-Fi' => ['settings.concierge.wifi', 'settings/concierge/wifi', ['wifiNetworks'], ['faqs', 'gettingHere']],
+    'contacts' => ['settings.concierge.contacts', 'settings/concierge/contacts', ['contacts', 'hasContact'], ['faqs', 'gettingHere']],
 ]);
 
 it('answers 404 while the feature is off', function () {

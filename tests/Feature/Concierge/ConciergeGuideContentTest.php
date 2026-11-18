@@ -8,6 +8,7 @@ use App\Models\Amenity;
 use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Models\PropertyInfoTopic;
+use App\Models\PropertySetting;
 use App\Models\PropertyTransportDetail;
 use App\Models\RoomType;
 use App\Models\User;
@@ -30,11 +31,29 @@ function liveOwner(): array
     return [$owner, $property];
 }
 
-it('lets staff save the hotel info, and logs only a real change', function () {
+it('lets staff save the guest guidelines, and logs only a real change', function () {
+    [$owner, $property] = liveOwner();
+    $payload = ['arrival_instructions' => '  Ring the bell.  ', 'departure_instructions' => ''];
+
+    $this->actingAs($owner)->put(route('settings.concierge.guest-guidelines.update', $property), $payload)->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.guest-guidelines.update', $property), $payload)->assertRedirect();
+
+    $settings = $property->settings()->first();
+    expect($settings->arrival_instructions)->toBe('Ring the bell.')
+        ->and($settings->departure_instructions)->toBeNull()
+        ->and(PropertyTransportDetail::query()->exists())->toBeFalse()
+        ->and(Activity::query()->where('event', 'concierge.guest-guidelines-updated')->count())->toBe(1);
+
+    $this->actingAs($owner)->get(route('settings.concierge.guest-guidelines', $property))->assertInertia(fn (Assert $page) => $page
+        ->where('guidelines.arrivalInstructions', 'Ring the bell.')
+        ->where('guidelines.departureInstructions', null));
+    $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page
+        ->where('sections.hasArrivalInstructions', true));
+});
+
+it('lets staff save how guests get here, and logs only a real change', function () {
     [$owner, $property] = liveOwner();
     $payload = [
-        'arrival_instructions' => '  Ring the bell.  ',
-        'departure_instructions' => '',
         'directions' => 'Turn left at the second light.',
         'airport_distance_km' => 25,
         'airport_travel_minutes' => 35,
@@ -44,23 +63,20 @@ it('lets staff save the hotel info, and logs only a real change', function () {
         'pickup_point' => 'Arrival hall',
     ];
 
-    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), $payload)->assertRedirect();
-    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), $payload)->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.getting-here.update', $property), $payload)->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.getting-here.update', $property), $payload)->assertRedirect();
 
-    $settings = $property->settings()->first();
     $transport = PropertyTransportDetail::query()->sole();
-    expect($settings->arrival_instructions)->toBe('Ring the bell.')
-        ->and($settings->departure_instructions)->toBeNull()
-        ->and($transport->airport_transfer_offered)->toBeTrue()
+    expect($transport->airport_transfer_offered)->toBeTrue()
         ->and($transport->airport_transfer_price)->toBe('80.00')
-        ->and(Activity::query()->where('event', 'concierge.hotel-info-updated')->count())->toBe(1);
+        ->and(Activity::query()->where('event', 'concierge.getting-here-updated')->count())->toBe(1);
 
-    $this->actingAs($owner)->get(route('settings.concierge.hotel-info', $property))->assertInertia(fn (Assert $page) => $page
-        ->where('hotelInfo.arrivalInstructions', 'Ring the bell.')
-        ->where('hotelInfo.airportDistanceKm', 25));
+    $this->actingAs($owner)->get(route('settings.concierge.getting-here', $property))->assertInertia(fn (Assert $page) => $page
+        ->where('gettingHere.directions', 'Turn left at the second light.')
+        ->where('gettingHere.airportDistanceKm', 25));
 });
 
-it('shows the hotel info to guests, and a part with nothing filled does not show', function () {
+it('shows the guest guidelines and getting here details to guests, and a part with nothing filled does not show', function () {
     ['property' => $property] = conciergeSetup();
     $property->update(['about' => 'By the sea.']);
     $property->settings->forceFill(['arrival_instructions' => 'Ring the bell.'])->save();
@@ -81,8 +97,9 @@ it('shows the hotel info to guests, and a part with nothing filled does not show
 
 it('saves structured parking details and words them for the guest', function () {
     [$owner, $property] = liveOwner();
+    PropertySetting::factory()->create(['property_id' => $property->id]);
 
-    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), [
+    $this->actingAs($owner)->put(route('settings.concierge.getting-here.update', $property), [
         'airport_transfer_offered' => false, 'parking_availability' => 'on_site', 'parking_type' => 'both', 'parking_price' => '10',
         'parking_price_unit' => 'night', 'parking_spaces' => 20, 'parking_height_limit_m' => '2.1', 'parking_ev_charging' => true,
         'parking_booking_required' => true,
@@ -99,13 +116,13 @@ it('saves structured parking details and words them for the guest', function () 
         ->where('details.transport.parkingEvCharging', true)
         ->where('details.transport.parkingBookingRequired', true));
 
-    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), ['airport_transfer_offered' => false, 'parking_availability' => 'none', 'parking_price' => '10', 'parking_ev_charging' => true])->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.getting-here.update', $property), ['airport_transfer_offered' => false, 'parking_availability' => 'none', 'parking_price' => '10', 'parking_ev_charging' => true])->assertRedirect();
     $this->get("/stay/{$property->code}/info")->assertInertia(fn (Assert $page) => $page
         ->where('details.transport.parkingAvailability', 'No parking')
         ->where('details.transport.parkingPrice', null)
         ->where('details.transport.parkingEvCharging', false));
 
-    $this->actingAs($owner)->put(route('settings.concierge.hotel-info.update', $property), ['airport_transfer_offered' => false, 'parking_availability' => 'roof'])->assertSessionHasErrors('parking_availability');
+    $this->actingAs($owner)->put(route('settings.concierge.getting-here.update', $property), ['airport_transfer_offered' => false, 'parking_availability' => 'roof'])->assertSessionHasErrors('parking_availability');
 });
 
 it('tells the guest what the room types say about smoking and pets', function () {
@@ -180,7 +197,7 @@ it('lets staff keep extra topics, up to a limit, and refuses another property\'s
     $this->actingAs($owner)->post(route('settings.concierge.topics.store', $property), ['title' => '', 'body' => 'x'])->assertSessionHasErrors('title');
     $this->actingAs($owner)->delete(route('settings.concierge.topics.destroy', [$property, $foreign]))->assertNotFound();
     $this->actingAs($staff)->post(route('settings.concierge.topics.store', $property), ['title' => 'X', 'body' => 'Y'])->assertForbidden();
-    $this->actingAs($staff)->put(route('settings.concierge.hotel-info.update', $property), ['airport_transfer_offered' => false])->assertForbidden();
+    $this->actingAs($staff)->put(route('settings.concierge.getting-here.update', $property), ['airport_transfer_offered' => false])->assertForbidden();
 
     PropertyInfoTopic::factory()->count(AddInfoTopic::MAX - 1)->create(['property_id' => $property->id]);
     $this->actingAs($owner)->post(route('settings.concierge.topics.store', $property), ['title' => 'Over', 'body' => 'The limit.'])->assertRedirect();
