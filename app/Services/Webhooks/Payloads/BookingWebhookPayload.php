@@ -28,7 +28,11 @@ class BookingWebhookPayload implements WebhookPayloadBuilder
         if ($subject instanceof ReservationUnit) {
             $reservation = Reservation::query()->find($subject->reservation_id);
 
-            return $reservation === null ? null : ['booking' => $this->booking($reservation), 'unit_id' => $subject->id];
+            return $reservation === null ? null : [
+                'booking' => $this->booking($reservation),
+                'unit_id' => $subject->id,
+                ...($event === WebhookEvent::StayWelcomeReady ? ['stay' => $context['stay'] ?? null] : []),
+            ];
         }
 
         return $subject instanceof Reservation ? ['booking' => $this->booking($subject)] : null;
