@@ -15,6 +15,7 @@ use App\Enums\GuestRequestType;
 use App\Enums\Locale;
 use App\Models\Guest;
 use App\Models\GuestRequest;
+use App\Models\KioskWalkInHold;
 use App\Models\ReservationUnit;
 use App\Services\FrontDesk\SelfCheckInPayment;
 use App\Services\Kiosk\KioskPin;
@@ -59,6 +60,8 @@ class ConciergePageBuilder
         $opensLater = in_array($step, [ConciergeStep::Identity, ConciergeStep::Card, ConciergeStep::Payment, ConciergeStep::NotOpen], true)
             && ($this->stays->window($stay) !== KioskStays::OPEN || ! $this->concierge->checkInTimeReached($stay));
 
+        $walkIn = KioskWalkInHold::query()->where('reservation_unit_id', $stay->id)->exists();
+
         return new ConciergeStayData(
             token: $token,
             step: $step,
@@ -78,15 +81,18 @@ class ConciergePageBuilder
             checkOutAsked: in_array($step, [ConciergeStep::Key, ConciergeStep::Home], true) && $this->checkOut->open($stay) !== null,
             refundRequest: $step === ConciergeStep::CheckedOut ? $this->refundRequest($stay) : null,
             locationRequired: $stay->property->settings->concierge_location_check_enabled && filled($stay->property->latitude) && filled($stay->property->longitude),
-            identity: $step === ConciergeStep::Identity && $guest !== null ? $this->identity($guest) : null,
+            identity: $step === ConciergeStep::Identity && $guest !== null && ! $walkIn ? $this->identity($guest) : null,
             eInvoiceUrl: $step === ConciergeStep::CheckedOut && $this->eInvoice->isOffered($stay) ? route('concierge.e-invoice', ['token' => $token], absolute: false) : null,
             checkInTime: $opensLater ? $this->concierge->checkInOpensAt($stay)?->format('H:i') : null,
             checkInOpensLater: $opensLater,
+            walkIn: $step === ConciergeStep::Identity && $walkIn,
         );
     }
 
     /**
-     * The guest's saved details and their latest identity document, so the ID step starts filled.
+     * The guest's saved details and their latest identity document, so the ID step starts filled. A walk-in never gets
+     * it: its guest may have been joined to a returning guest by the ID number, and an anonymous page must not show that
+     * guest's saved details.
      */
     private function identity(Guest $guest): ConciergeIdentityPrefillData
     {

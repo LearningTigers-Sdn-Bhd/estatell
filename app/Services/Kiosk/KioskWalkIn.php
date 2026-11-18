@@ -9,6 +9,7 @@ use App\Enums\SellUnit;
 use App\Models\BookingSource;
 use App\Models\Property;
 use App\Models\RoomType;
+use App\Services\Concierge\ConciergeDayUse;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Reservations\AutoAddOns;
 use App\Services\Reservations\BookingQuote;
@@ -17,7 +18,7 @@ use Brick\Money\Money;
 
 class KioskWalkIn
 {
-    public function __construct(private BookingQuote $quote, private AutoAddOns $autoAddOns, private CurrentBusinessDate $businessDate) {}
+    public function __construct(private BookingQuote $quote, private AutoAddOns $autoAddOns, private CurrentBusinessDate $businessDate, private ConciergeDayUse $dayUse) {}
 
     /** @return list<KioskWalkInOffer> */
     public function offers(Property $property, KioskWalkInData $search, ?int $roomTypeId = null): array
@@ -36,6 +37,9 @@ class KioskWalkIn
         $date = $this->businessDate->date($property);
         if ($date === null || $search->arrival->lt($date)) {
             return [];
+        }
+        if ($search->isDayUse()) {
+            return $this->dayUse->available($property, $search, $roomTypeId);
         }
         $types = RoomType::query()->where('property_id', $property->id)->active()
             ->where('max_adults', '>=', $search->adults)->where('max_children', '>=', count($search->childAges))

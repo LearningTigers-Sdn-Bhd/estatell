@@ -3,6 +3,7 @@
 use App\Enums\GuestRequestSource;
 use App\Enums\GuestRequestStatus;
 use App\Enums\PaymentMethodType;
+use App\Enums\PaymentMode;
 use App\Enums\PaymentPurpose;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
@@ -210,6 +211,30 @@ it('pays the open bill online, posting a settlement on the unit folio', function
     expect(Payment::query()->where('reference', 'pay_bill')->sole()->purpose)->toBe(PaymentPurpose::Settlement)
         ->and(GatewayPayment::query()->sole()->reservation_unit_id)->not->toBeNull();
     $this->get("/c/{$token}/bill")->assertInertia(fn (Assert $page) => $page->where('bill.due', '0.00')->where('bill.canCheckOut', true));
+});
+
+it('orders the stay payment in Test mode only while the property has test payments on', function () {
+    config(['services.curlec.account' => 'primary']);
+    ['token' => $token, 'folio' => $folio, 'property' => $property] = conciergeInStaySetup();
+    $code = TransactionCode::factory()->for($property)->system(SystemTransactionCode::OnlinePayment)->create();
+    PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => $code->id, 'name' => 'Online', 'type' => PaymentMethodType::Online, 'requires_reference' => false]);
+    $gateway = new FakeCurlecGateway;
+    app()->instance(CurlecGateway::class, $gateway);
+    FolioLine::factory()->for($folio)->create(['amount' => '75.00', 'unit_amount' => '75.00']);
+
+    $this->postJson("/c/{$token}/payment")->assertOk();
+    expect($gateway->orders[0]['mode'])->toBe(PaymentMode::Live)->and(GatewayPayment::query()->sole()->mode)->toBe(PaymentMode::Live);
+
+    GatewayPayment::query()->delete();
+    $property->settings->forceFill(['concierge_test_payments_enabled' => true])->save();
+
+    $this->postJson("/c/{$token}/payment")->assertOk();
+    expect($gateway->orders[1]['mode'])->toBe(PaymentMode::Test)->and(GatewayPayment::query()->sole()->mode)->toBe(PaymentMode::Test);
+
+    $property->settings->forceFill(['concierge_test_payments_enabled' => false])->save();
+
+    $this->postJson("/c/{$token}/payment")->assertOk();
+    expect($gateway->orders)->toHaveCount(3)->and($gateway->orders[2]['mode'])->toBe(PaymentMode::Live);
 });
 
 it('starts no payment when the bill owes nothing', function () {

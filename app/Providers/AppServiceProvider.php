@@ -143,6 +143,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by('concierge-write:'.(is_string($token) ? $token : $request->ip()).'|'.$request->route()?->getName());
         });
         RateLimiter::for('concierge-lookup', fn (Request $request): Limit => Limit::perMinute(30)->by('concierge-lookup:'.$request->ip()));
+        RateLimiter::for('concierge-returning', fn (Request $request): array => [
+            Limit::perHour(5)->by('concierge-returning:'.$request->route('token').'|'.$request->ip()),
+            Limit::perHour(20)->by('concierge-returning:'.$request->ip()),
+        ]);
         RateLimiter::for('concierge-walk-in', fn (Request $request): Limit => Limit::perMinutes(10, 6)->by('concierge-walk-in:'.$request->ip()));
         RateLimiter::for('api-walk-in', function (Request $request): array {
             $kiosk = $request->attributes->get('kiosk');

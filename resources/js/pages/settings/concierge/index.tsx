@@ -25,6 +25,7 @@ export default function ConciergeOverview({
     walkInEnabled,
     refundRequestsEnabled,
     locationCheckEnabled,
+    testPaymentsEnabled,
     hasLocation,
     sections,
 }: {
@@ -35,6 +36,7 @@ export default function ConciergeOverview({
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
     locationCheckEnabled: boolean;
+    testPaymentsEnabled: boolean;
     hasLocation: boolean;
     sections: Sections;
 }) {
@@ -66,6 +68,7 @@ export default function ConciergeOverview({
                         walkInEnabled={walkInEnabled}
                         refundRequestsEnabled={refundRequestsEnabled}
                         locationCheckEnabled={locationCheckEnabled}
+                        testPaymentsEnabled={testPaymentsEnabled}
                         hasLocation={hasLocation}
                     />
                 </PanelStack>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concierge;
 
+use App\Data\Kiosk\KioskIdentityData;
 use App\Http\Requests\Kiosk\StoreStayIdentityRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
@@ -24,9 +25,20 @@ class SaveIdentityRequest extends StoreStayIdentityRequest
             // Blank is allowed with `keep_saved_document`: the action then keeps the guest's saved document of that kind.
             'number' => ['required_without:keep_saved_document', 'nullable', 'string', 'min:4', 'max:40', Rule::when($this->input('kind') === 'my_kad', ['digits:12'])],
             'keep_saved_document' => ['nullable', 'boolean'],
+            'email' => ['nullable', 'email:rfc', 'max:254'],
+            'phone' => ['nullable', 'string', 'regex:/^[0-9+()\s-]{6,30}$/'],
             'scan' => ['nullable', 'image', 'max:8192'],
             'scan_back' => ['nullable', 'image', 'max:8192'],
         ];
+    }
+
+    public function toIdentityData(): KioskIdentityData
+    {
+        $data = parent::toIdentityData();
+        $data->email = $this->filled('email') ? $this->string('email')->toString() : null;
+        $data->phone = $this->filled('phone') ? $this->string('phone')->toString() : null;
+
+        return $data;
     }
 
     protected function failedValidation(Validator $validator): never

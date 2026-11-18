@@ -21,7 +21,7 @@ class SetGuestDetails
      * corrects their own details). Returns false when the guest was merged into another guest or anonymized.
      * The activity log names the fields that changed, never the values.
      *
-     * @param  array{full_name?: string|null, nationality_code?: string|null, date_of_birth?: CarbonImmutable|null, gender?: Gender|null}  $details
+     * @param  array{full_name?: string|null, nationality_code?: string|null, date_of_birth?: CarbonImmutable|null, gender?: Gender|null, email?: string|null, phone?: string|null}  $details
      * @param  array<string, mixed>  $context  Extra activity log properties, for example the kiosk.
      */
     public function __invoke(Guest $guest, array $details, bool $keepExisting, ?User $actor = null, array $context = []): bool
