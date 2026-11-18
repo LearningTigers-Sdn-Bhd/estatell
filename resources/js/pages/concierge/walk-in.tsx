@@ -1,4 +1,4 @@
-import { Form, Link } from "@inertiajs/react";
+import { Form, Link } from '@inertiajs/react';
 import {
     ArrowRight,
     BedDouble,
@@ -7,24 +7,24 @@ import {
     Moon,
     Search,
     UsersRound,
-} from "lucide-react";
-import { EmptyState } from "@/components/pms/empty-state";
-import { GuestFrame } from "@/components/concierge/stay-menu";
-import { Button, buttonVariants } from "@/components/ui/button";
+} from 'lucide-react';
+import { EmptyState } from '@/components/pms/empty-state';
+import { GuestFrame } from '@/components/concierge/stay-menu';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Field,
     FieldError,
     FieldGroup,
     FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
-import { enterCode, lobby, walkIn } from "@/routes/concierge";
-import { book } from "@/routes/concierge/walk-in";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import { enterCode, lobby, walkIn } from '@/routes/concierge';
+import { book } from '@/routes/concierge/walk-in';
 
 function money(amount: string, currency: string): string {
     return new Intl.NumberFormat(undefined, {
-        style: "currency",
+        style: 'currency',
         currency,
     }).format(Number(amount));
 }
@@ -43,32 +43,32 @@ export default function ConciergeWalkIn({
     property: App.Data.Property.PropertySummaryData;
     adults: number;
     nights: number;
-    stayType: "overnight" | "day_use";
+    stayType: 'overnight' | 'day_use';
     startTime: string;
     hours: number;
     canDayUse: boolean;
     offers: App.Data.Concierge.ConciergeOfferData[];
 }) {
-    const dayUse = stayType === "day_use";
+    const dayUse = stayType === 'day_use';
     const length = dayUse
-        ? `${hours} ${hours === 1 ? "hour" : "hours"}`
-        : `${nights} ${nights === 1 ? "night" : "nights"}`;
+        ? `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+        : `${nights} ${nights === 1 ? 'night' : 'nights'}`;
 
     return (
         <GuestFrame
             back={{
                 href: lobby.url({ property: property.code }),
-                label: "Home",
+                label: 'Home',
             }}
             title={
                 dayUse
-                    ? "Book a room for a few hours"
-                    : "Book a room for tonight"
+                    ? 'Book a room for a few hours'
+                    : 'Book a room for tonight'
             }
             description={
                 dayUse
-                    ? "Choose your guests, start time and hours, then select a room. Payment and check-in follow."
-                    : "Choose your guests and number of nights, then select a room. Payment and check-in follow."
+                    ? 'Choose your guests, start time and hours, then select a room. Payment and check-in follow.'
+                    : 'Choose your guests and number of nights, then select a room. Payment and check-in follow.'
             }
         >
             <section
@@ -84,7 +84,7 @@ export default function ConciergeWalkIn({
                         role="group"
                         aria-label="Stay type"
                     >
-                        {(["overnight", "day_use"] as const).map((type) => (
+                        {(['overnight', 'day_use'] as const).map((type) => (
                             <Link
                                 key={type}
                                 href={walkIn.url(
@@ -92,17 +92,17 @@ export default function ConciergeWalkIn({
                                     { query: { stay_type: type, adults } },
                                 )}
                                 aria-current={
-                                    stayType === type ? "true" : undefined
+                                    stayType === type ? 'true' : undefined
                                 }
                                 className={buttonVariants({
                                     variant:
                                         stayType === type
-                                            ? "default"
-                                            : "outline",
-                                    className: "min-h-11 flex-1",
+                                            ? 'default'
+                                            : 'outline',
+                                    className: 'min-h-11 flex-1',
                                 })}
                             >
-                                {type === "overnight" ? "Overnight" : "Day use"}
+                                {type === 'overnight' ? 'Overnight' : 'Day use'}
                             </Link>
                         ))}
                     </div>
@@ -119,7 +119,7 @@ export default function ConciergeWalkIn({
                                 value={stayType}
                             />
                             <FieldGroup
-                                className={`grid flex-1 gap-4 ${dayUse ? "grid-cols-3" : "grid-cols-2"}`}
+                                className={`grid flex-1 gap-4 ${dayUse ? 'grid-cols-3' : 'grid-cols-2'}`}
                             >
                                 <Field data-invalid={!!errors.adults}>
                                     <FieldLabel htmlFor="adults">
@@ -241,7 +241,7 @@ export default function ConciergeWalkIn({
                     <EmptyState
                         icon={BedDouble}
                         title="No rooms available for these details"
-                        description={`No room is available for ${adults} ${adults === 1 ? "adult" : "adults"} and ${length}. Try fewer guests${dayUse ? ", another time or fewer hours" : " or nights"}, or ask the front desk.`}
+                        description={`No room is available for ${adults} ${adults === 1 ? 'adult' : 'adults'} and ${length}. Try fewer guests${dayUse ? ', another time or fewer hours' : ' or nights'}, or ask the front desk.`}
                     />
                 </div>
             ) : (
@@ -257,8 +257,8 @@ export default function ConciergeWalkIn({
                             Choose a room
                         </h2>
                         <p className="text-sm text-muted-foreground tabular-nums">
-                            {offers.length}{" "}
-                            {offers.length === 1 ? "option" : "options"}
+                            {offers.length}{' '}
+                            {offers.length === 1 ? 'option' : 'options'}
                         </p>
                     </div>
                     <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -363,8 +363,8 @@ export default function ConciergeWalkIn({
                 <Link
                     href={enterCode.url({ property: property.code })}
                     className={buttonVariants({
-                        variant: "outline",
-                        className: "min-h-11 w-full sm:w-fit",
+                        variant: 'outline',
+                        className: 'min-h-11 w-full sm:w-fit',
                     })}
                 >
                     Find my booking

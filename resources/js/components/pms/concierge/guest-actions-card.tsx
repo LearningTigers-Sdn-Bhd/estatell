@@ -1,5 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { BedDouble, FlaskConical, MapPinCheck, ReceiptText } from 'lucide-react';
+import {
+    BedDouble,
+    FlaskConical,
+    MapPinCheck,
+    ReceiptText,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PanelSection } from '@/components/pms/concierge/guide-layout';

@@ -10,7 +10,6 @@ use App\Models\Property;
 use App\Models\RoomType;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Kiosk\KioskWalkInOffer;
-use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Rates\RestrictionCheck;
 use Brick\Money\Money;
@@ -23,7 +22,7 @@ use Brick\Money\Money;
  */
 class ConciergeDayUse
 {
-    public function __construct(private DayUseOffers $offers, private DayUseAvailability $availability, private RestrictionCheck $restrictions, private PropertyToday $today) {}
+    public function __construct(private DayUseOffers $offers, private DayUseAvailability $availability, private RestrictionCheck $restrictions) {}
 
     /**
      * Whether the property sells day use to guests at all: an active room type sold per room and an active Day use plan for it.
