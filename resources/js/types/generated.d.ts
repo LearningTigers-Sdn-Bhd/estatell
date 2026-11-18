@@ -1279,6 +1279,7 @@ identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
 eInvoiceUrl: string | null,
 checkInTime: string | null,
 checkInOpensLater: boolean,
+walkIn: boolean,
 };
 export type ConciergeTermsData = {
 version: number,
@@ -2280,12 +2281,16 @@ fullName: string,
 nationalityCode: string | null,
 dateOfBirth: string | null,
 gender: App.Enums.Gender | null,
+email: string | null,
+phone: string | null,
 };
 export type KioskWalkInData = {
 arrival: string,
 nights: number,
 adults: number,
 childAges: number[],
+startTime: string | null,
+hours: number | null,
 };
 }
 namespace Meals {

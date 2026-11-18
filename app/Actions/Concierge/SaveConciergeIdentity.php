@@ -15,6 +15,8 @@ use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Propaganistas\LaravelPhone\PhoneNumber;
+use Throwable;
 
 class SaveConciergeIdentity
 {
@@ -49,6 +51,8 @@ class SaveConciergeIdentity
                 'nationality_code' => $data->nationalityCode,
                 'date_of_birth' => $data->dateOfBirth,
                 'gender' => $data->gender,
+                'email' => filled($data->email) ? mb_strtolower(trim($data->email)) : null,
+                'phone' => $this->phone($data->phone, $stay),
             ], keepExisting: true, context: ['channel' => 'concierge']);
 
             if (! $filled) {
@@ -67,6 +71,19 @@ class SaveConciergeIdentity
                 blank($guest->nationality_code) && $this->fieldRules->nationalityIsNeededForTax($stay->property),
             );
         });
+    }
+
+    private function phone(?string $phone, ReservationUnit $stay): ?string
+    {
+        if (blank($phone)) {
+            return null;
+        }
+
+        try {
+            return (new PhoneNumber($phone, $stay->property->country_code ?? 'MY'))->formatE164();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function saveDocument(Guest $guest, IdentityDocumentInputData $input, ?UploadedFile $front, ?UploadedFile $back): bool

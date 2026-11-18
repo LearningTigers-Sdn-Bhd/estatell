@@ -60,18 +60,19 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 
 ## Routes
 
-| Route                                  | Name                            | Purpose                                       |
-| -------------------------------------- | ------------------------------- | --------------------------------------------- |
-| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`      | Lobby, and open a stay by booking code        |
-| `GET/POST /stay/{code}/walk-in`        | `concierge.walk-in`, `.book`    | Offers for tonight, and book one              |
-| `GET /c/{token}`                       | `concierge.show`                | The stay page                                 |
-| `POST /c/{token}/identity`             | `concierge.identity`            | Save the typed ID and optional photos         |
-| `POST /c/{token}/sign`                 | `concierge.sign`                | Sign the primary guest's registration card    |
-| `POST /c/{token}/payment`              | `concierge.payment`             | Start the Curlec order. JSON for the checkout |
-| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`     | Confirm a finished checkout by its signature  |
-| `POST /c/{token}/check-in`             | `concierge.check-in`            | Check in with the front desk's rules          |
-| `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice          |
-| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch        |
+| Route                                  | Name                            | Purpose                                                     |
+| -------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
+| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`      | Lobby, and open a stay by booking code                      |
+| `GET/POST /stay/{code}/walk-in`        | `concierge.walk-in`, `.book`    | Offers for tonight, and book one                            |
+| `GET /c/{token}`                       | `concierge.show`                | The stay page                                               |
+| `POST /c/{token}/identity`             | `concierge.identity`            | Save the typed ID and optional photos                       |
+| `POST /c/{token}/sign`                 | `concierge.sign`                | Sign the primary guest's registration card                  |
+| `POST /c/{token}/payment`              | `concierge.payment`             | Start the Curlec order. JSON for the checkout               |
+| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`     | Confirm a finished checkout by its signature                |
+| `POST /c/{token}/identity/returning`   | `concierge.identity.returning`  | Recognise a returning walk-in (ID number and date of birth) |
+| `POST /c/{token}/check-in`             | `concierge.check-in`            | Check in with the front desk's rules                        |
+| `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice                        |
+| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch                      |
 
 ### Staff settings page
 
@@ -98,6 +99,8 @@ All guest routes sit behind the `concierge` middleware (`EnsureConciergeIsActive
 ## Payment
 
 A Curlec order is for a booking hold or for a stay. `gateway_payments.reservation_unit_id` is set for a stay order, and exactly one of it and `booking_hold_id` is set (a check constraint). Refunds, the webhook and the alerts treat both kinds the same way.
+
+Stay payments are Live by default. A property can switch on `property_settings.concierge_test_payments_enabled` (Settings › Concierge › Guest actions › Test payments, off by default). New orders then use Curlec's Test keys and are saved with mode Test, so no real money moves; each payment keeps its mode, so its refund and webhook use the same keys. It is separate from the booking website's payment mode.
 
 1. `StartStayPayment` creates the order for the shortfall. A guest who retries with the same amount due gets the same unpaid order.
 2. The page opens Curlec's checkout. When it finishes, the page posts the order id, payment id and signature to `payment/confirm`.
@@ -219,6 +222,14 @@ Browser errors under `/stay/*` and `/c/*` use the concierge theme. Unknown and e
 ## Walk-in
 
 A walk-in is a booking made through the kiosk's own rules: the server prices it from the property's rates, a Confirmed booking and a unit folio are made at once, and the room is held for 10 minutes (`BookWalkIn::book`, shared with the kiosk). The guest then follows the same steps as any other guest, including payment. An unpaid hold is released by `ReleaseExpiredKioskHolds`.
+
+### Returning guests
+
+A returning guest does not retype their details. A walk-in's guest starts with no name, and the walk-in's ID step first shows **Stayed with us before?**: the ID number and the date of birth. `ReturningGuest` looks for a guest of the property with that ID number **and** that date of birth (`GuestMatcher`). If one is found, `MergeGuests` moves the stay to that profile, so the guest's history and flags carry over and the ID step is already done; `concierge.returning_guest_joined` is logged with the guest ids, never the number or the date. With no match nothing changes and the page shows the full ID form with what was typed kept; it never says whether a profile exists. The page is open to anyone, so an ID number alone proves nothing, and an email, a phone or a name never joins a guest (staff see them as duplicate suggestions). The page never shows a profile back to the guest, and a walk-in's ID step is never pre-filled. A MyKad number (12 digits) is never joined, because it holds the date of birth so the date proves nothing; staff merge those guests. A profile with no date of birth is not joined: the guest fills the form this time and the date is saved for the next stay. Only that throttled check joins a guest: the full ID form never does. `POST /c/{token}/identity/returning` allows 5 tries an hour per stay link and address, and 20 an hour per address. The ID step also takes an optional phone (saved as E.164) and email. A booking made earlier already has a named guest, so it is never merged this way. The card signature is still asked each stay. A one-time code to the saved email or phone is a possible later step.
+
+### Day use
+
+A property that sells day use (an active room type sold per room and an active Day use plan for it) shows an **Overnight / Day use** switch on the walk-in page. A day use search takes adults, a start time and whole hours (1 to 12) for today. `ConciergeDayUse` offers each room type at the cheapest Day use plan that prices those hours today, inside the plan's Sold between window and hour limits, with no stop sell, and with a room free for the block (`DayUseAvailability`). A start time that has passed is never offered. Booking holds the first free room for 10 minutes, with the same payment, release and check-in as a night walk-in. `AddUnit` accepts a day use line without a staff member only when the booking source is Walk-in, so the booking engine and channels still cannot sell it. A typed price is staff-only, so a plan is required. The stay page shows 0 nights for a day use stay.
 
 - **Location check:** a property can switch on `property_settings.concierge_location_check_enabled` (off by default). Then, when the property has coordinates, the page asks the browser for the guest's position and `CheckInConciergeStay` refuses `location_required` (none sent) or `too_far_away` (more than 50 m from the property). A property with no coordinates, or with the switch off, asks nothing.
 - The walk-in switch is `property_settings.concierge_walk_in_enabled`, off by default and separate from the kiosk's switch.

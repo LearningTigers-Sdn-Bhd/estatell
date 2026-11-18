@@ -38,7 +38,7 @@ class MergeGuests
      * Folios that the merged guest pays move to the survivor through `RepointGuestFolios`.
      * Modules that point at a guest add their own re-pointing here.
      */
-    public function __invoke(User $actor, Guest $survivor, Guest $merged): bool
+    public function __invoke(?User $actor, Guest $survivor, Guest $merged): bool
     {
         if ($survivor->id === $merged->id) {
             return false;

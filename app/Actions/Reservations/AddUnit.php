@@ -5,6 +5,7 @@ namespace App\Actions\Reservations;
 use App\Actions\Boats\SetBoatTrip;
 use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewUnitData;
+use App\Enums\BookingSourceType;
 use App\Enums\CompanyAccess;
 use App\Enums\DiscountScope;
 use App\Enums\PermissionEnum;
@@ -105,7 +106,8 @@ class AddUnit
         }
 
         if ($data->stayType === StayType::DayUse) {
-            if ($actor === null) {
+            // No staff member is acting only for the Concierge page, which sells day use to a guest as a walk-in.
+            if ($actor === null && $reservation->bookingSource->type !== BookingSourceType::WalkIn) {
                 return $refuse(ReservationResult::REFUSAL_INVALID_STAY);
             }
 

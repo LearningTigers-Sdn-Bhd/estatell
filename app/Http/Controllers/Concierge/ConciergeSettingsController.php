@@ -87,6 +87,7 @@ class ConciergeSettingsController extends Controller
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
             'locationCheckEnabled' => (bool) $property->settings?->concierge_location_check_enabled,
+            'testPaymentsEnabled' => (bool) $property->settings?->concierge_test_payments_enabled,
             'hasLocation' => filled($property->latitude) && filled($property->longitude),
             'sections' => [
                 'hasArrivalInstructions' => filled($property->settings?->arrival_instructions),
@@ -189,7 +190,7 @@ class ConciergeSettingsController extends Controller
 
     public function update(UpdateSettingsRequest $request, Property $property, UpdateConciergeSettings $updateSettings): RedirectResponse
     {
-        $updateSettings($request->user(), $property, $request->boolean('walk_in_enabled'), $request->boolean('refund_requests_enabled'), $request->input('house_rules'), $request->safe()->only(UpdateConciergeSettings::POLICY_FIELDS), $request->has('location_check_enabled') ? $request->boolean('location_check_enabled') : null);
+        $updateSettings($request->user(), $property, $request->boolean('walk_in_enabled'), $request->boolean('refund_requests_enabled'), $request->input('house_rules'), $request->safe()->only(UpdateConciergeSettings::POLICY_FIELDS), $request->has('location_check_enabled') ? $request->boolean('location_check_enabled') : null, $request->has('test_payments_enabled') ? $request->boolean('test_payments_enabled') : null);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Concierge settings saved.')]);
 

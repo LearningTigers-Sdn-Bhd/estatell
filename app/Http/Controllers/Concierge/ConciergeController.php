@@ -20,13 +20,16 @@ use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concierge\ConfirmPaymentRequest;
 use App\Http\Requests\Concierge\FindStayRequest;
+use App\Http\Requests\Concierge\ReturningGuestRequest;
 use App\Http\Requests\Concierge\SaveIdentityRequest;
 use App\Http\Requests\Concierge\SignCardRequest;
 use App\Http\Requests\Concierge\WalkInRequest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Concierge\ConciergeDayUse;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergePageBuilder;
+use App\Services\Concierge\ReturningGuest;
 use App\Services\Guests\CountryOptions;
 use App\Services\Kiosk\KioskPin;
 use App\Services\Kiosk\KioskWalkIn;
@@ -63,7 +66,7 @@ class ConciergeController extends Controller
     /**
      * A guest with no booking: two adults for one night is shown first, with the server's price for each room that is free.
      */
-    public function walkIn(WalkInRequest $request, Property $property, KioskWalkIn $walkIn, CurrentBusinessDate $businessDate): Response
+    public function walkIn(WalkInRequest $request, Property $property, KioskWalkIn $walkIn, CurrentBusinessDate $businessDate, ConciergeDayUse $dayUse): Response
     {
         abort_unless($property->settings?->concierge_walk_in_enabled, 404);
 
@@ -74,6 +77,10 @@ class ConciergeController extends Controller
             'property' => PropertySummaryData::fromModel($property),
             'adults' => $request->integer('adults'),
             'nights' => $request->integer('nights'),
+            'stayType' => $request->isDayUse() ? 'day_use' : 'overnight',
+            'startTime' => $request->isDayUse() ? $request->string('start_time')->toString() : '10:00',
+            'hours' => $request->isDayUse() ? $request->integer('hours') : 4,
+            'canDayUse' => $dayUse->isSold($property),
             'offers' => array_values(array_map(ConciergeOfferData::fromOffer(...), $offers)),
         ]);
     }
@@ -130,6 +137,21 @@ class ConciergeController extends Controller
             $result->nationalityRequired => ['type' => 'error', 'message' => __('Choose your nationality to continue.')],
             default => ['type' => 'success', 'message' => __('Your details are saved.')],
         });
+
+        return to_route('concierge.show', ['token' => $token]);
+    }
+
+    /**
+     * A walk-in gives the ID number and date of birth to be recognised as a returning guest. A match moves the stay to
+     * that guest, so the ID step is already done; no match changes nothing, and the page shows the full ID form.
+     */
+    public function returning(ReturningGuestRequest $request, string $token, ReturningGuest $returning): RedirectResponse
+    {
+        $joined = $returning->join($this->stay($request), $request->string('number')->toString(), $request->dateOfBirth());
+
+        if ($joined !== null) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Welcome back. We have your details.')]);
+        }
 
         return to_route('concierge.show', ['token' => $token]);
     }
