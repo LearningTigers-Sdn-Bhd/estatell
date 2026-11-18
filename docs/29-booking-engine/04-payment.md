@@ -59,7 +59,7 @@ gateway_refunds    id, property_id, gateway_payment_id, gateway_refund_id (uniqu
                    requested_by (nullable), gateway_payload (jsonb, nullable), timestamps
 gateway_refund_parts
                    id, gateway_refund_id, payment_id, amount, timestamps
-gateway_events     id, gateway_account, event_id (unique), event_type, payload (jsonb),
+gateway_events     id, gateway_account, mode (PaymentMode), event_id (unique), event_type, payload (jsonb),
                    processed_at (nullable), timestamps
 ```
 
@@ -222,6 +222,8 @@ Pick room, pay with a Curlec test card
 - A test booking takes a room like any booking. Channex pushes the lower availability, and pushes it back when staff cancel. Test on a date far ahead, or on a property with no channel connection.
 - Reports count a test booking until it is cancelled. The payment and its refund stay on the folio and add up to zero.
 - Curlec's webhook body is the same in both modes, so the route tells the mode. Curlec lets each mode have its own webhook address.
+- The event keeps its route's mode (`gateway_events.mode`) and acts only on payments of that mode. More machines hold the test secret than the live one, so a test-signed event must never confirm, fail or refund a live order.
+- On demo, the "live" keys are test keys too. Point Curlec's test account at both `/webhooks/curlec` and `/webhooks/curlec/test`, so each site's events reach the route of its mode.
 
 ## Price
 

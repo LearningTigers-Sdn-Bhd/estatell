@@ -4,6 +4,7 @@ require_once __DIR__.'/../Support/CurlecSetup.php';
 
 use App\Actions\BookingEngine\SetUpBookingSite;
 use App\Actions\Payments\RefundHeldPayment;
+use App\Enums\GatewayPaymentStatus;
 use App\Enums\PaymentMode;
 use App\Enums\PermissionEnum;
 use App\Features\BookingEngine;
@@ -107,6 +108,18 @@ test('the test webhook checks the test secret and books the paid hold', function
 
     expect(GatewayEvent::query()->sole()->processed_at)->not->toBeNull()
         ->and($hold->refresh()->reservation_id)->not->toBeNull();
+});
+
+test('a test-signed event never confirms a live order', function () {
+    $setup = testModeSetup();
+    $hold = curlecHold($setup);
+    GatewayPayment::factory()->create(['booking_hold_id' => $hold->id, 'property_id' => $hold->property_id, 'order_id' => 'order_abc', 'amount' => $hold->total_amount, 'mode' => PaymentMode::Live]);
+
+    postTestModeWebhook(curlecOrderPaid())->assertOk();
+
+    expect(GatewayEvent::query()->sole())->mode->toBe(PaymentMode::Test)->processed_at->not->toBeNull()
+        ->and(GatewayPayment::query()->sole()->status)->toBe(GatewayPaymentStatus::Created)
+        ->and($hold->refresh()->reservation_id)->toBeNull();
 });
 
 test('each webhook route accepts only its own secret', function () {
