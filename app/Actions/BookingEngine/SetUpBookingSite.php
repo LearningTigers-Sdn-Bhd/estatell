@@ -3,6 +3,7 @@
 namespace App\Actions\BookingEngine;
 
 use App\Enums\BookingEngineMode;
+use App\Enums\PaymentMode;
 use App\Models\Property;
 use App\Models\PropertyBookingSite;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Create the property's booking site row the first time the module is opened, and give the property its web address
- * slug from its name. Safe to call again: it changes nothing once the row and the slug exist.
+ * slug from its name. A new site takes Test payments until someone switches it to Live. Safe to call again: it changes nothing once the row and the slug exist.
  */
 class SetUpBookingSite
 {
@@ -19,7 +20,7 @@ class SetUpBookingSite
         return DB::transaction(function () use ($property): PropertyBookingSite {
             $site = PropertyBookingSite::query()->firstOrCreate(
                 ['property_id' => $property->id],
-                ['mode' => BookingEngineMode::Microsite],
+                ['mode' => BookingEngineMode::Microsite, 'payment_mode' => PaymentMode::Test],
             );
 
             if ($property->slug === null) {

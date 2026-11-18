@@ -110,7 +110,8 @@ export function bookingWebsiteBreadcrumbs(
 /**
  * Header and tab links of Settings › Booking website. Each tab is its own page and URL, and loads only its own data.
  * Design and SEO belong to Microsite mode, API to API only mode.
- * The header is the same on every tab: title, description, then the publish status and mode badges.
+ * The header is the same on every tab: title, description, then the publish status and mode badges, and a Test
+ * payments badge while the site takes test payments.
  * The tab content sits in a page-scroll `Workspace`; a tab may add a right rail with `aside`.
  */
 export function BookingWebsiteShell({
@@ -146,6 +147,9 @@ export function BookingWebsiteShell({
                                 status={header.mode}
                                 icon={apiOnly ? CodeXml : Globe}
                             />
+                            {header.testPayments && (
+                                <StatusBadge status={header.testPayments} />
+                            )}
                         </>
                     )
                 }

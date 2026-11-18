@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\GatewayPaymentStatus;
+use App\Enums\PaymentMode;
 use Carbon\CarbonImmutable;
 use Database\Factories\GatewayPaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,7 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * The Curlec order of a hold, and whether it was paid. A hold has one, so a guest who retries cannot pay two orders. The
+ * The Curlec order of a hold or a stay, and whether it was paid. `mode` is the payment mode it was made in, so its
+ * refund uses the same keys. A hold has one, so a guest who retries cannot pay two orders. The
  * `payments` rows are written only once the money is confirmed. See docs/29-booking-engine/04-payment.md.
  *
  * @property int $id
@@ -19,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $booking_hold_id
  * @property int|null $reservation_unit_id
  * @property string $gateway_account
+ * @property PaymentMode $mode
  * @property string $order_id
  * @property string|null $gateway_payment_id
  * @property string $amount
@@ -28,7 +31,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'booking_hold_id', 'reservation_unit_id', 'gateway_account', 'order_id', 'gateway_payment_id', 'amount', 'status', 'return_url', 'gateway_payload'])]
+#[Fillable(['property_id', 'booking_hold_id', 'reservation_unit_id', 'gateway_account', 'mode', 'order_id', 'gateway_payment_id', 'amount', 'status', 'return_url', 'gateway_payload'])]
 class GatewayPayment extends Model
 {
     /** @use HasFactory<GatewayPaymentFactory> */
@@ -42,6 +45,7 @@ class GatewayPayment extends Model
         return [
             'amount' => 'decimal:2',
             'status' => GatewayPaymentStatus::class,
+            'mode' => PaymentMode::class,
             'gateway_payload' => 'array',
         ];
     }

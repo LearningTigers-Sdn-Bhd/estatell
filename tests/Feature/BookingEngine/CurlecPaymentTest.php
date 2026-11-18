@@ -13,6 +13,7 @@ use App\Enums\BookingSourceType;
 use App\Enums\FolioType;
 use App\Enums\GatewayPaymentStatus;
 use App\Enums\PaymentMethodType;
+use App\Enums\PaymentMode;
 use App\Enums\PaymentPurpose;
 use App\Features\BookingEngine;
 use App\Jobs\ProcessCurlecEventJob;
@@ -61,6 +62,7 @@ test('starting a payment creates an order for the amount estatell calculated', f
         'currency' => $setup['property']->settings->currency->getCurrencyCode(),
         'callback_url' => route('webhooks.curlec.return', ['token' => $hold->token]),
         'timeout' => 1200,
+        'test_mode' => false,
     ]);
 
     expect($setup['gateway']->orders)->toHaveCount(1)
@@ -133,7 +135,7 @@ test('the order sent to Curlec holds no guest details', function () {
     config(['services.curlec.base_url' => 'https://curlec.test/v1', 'services.curlec.key_id' => 'key', 'services.curlec.key_secret' => 'secret']);
     Http::fake(['curlec.test/*' => Http::response(['id' => 'order_real'])]);
 
-    $orderId = app(CurlecGateway::class)->createOrder(20000, 'MYR', 'hold-1', 'the-token');
+    $orderId = app(CurlecGateway::class)->createOrder(PaymentMode::Live, 20000, 'MYR', 'hold-1', 'the-token');
 
     expect($orderId)->toBe('order_real');
     Http::assertSent(fn (Request $request): bool => $request->url() === 'https://curlec.test/v1/orders'

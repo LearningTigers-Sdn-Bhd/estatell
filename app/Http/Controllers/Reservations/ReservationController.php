@@ -17,6 +17,7 @@ use App\Data\Reservations\ReservationStatusCountData;
 use App\Data\Reservations\ReservationUnitData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Reservations\UnitTaxWaiverFormData;
+use App\Data\Shared\BadgeData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\CollectedTaxesPayer;
@@ -25,6 +26,7 @@ use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\LockProvider;
 use App\Enums\ManualFolioReason;
+use App\Enums\PaymentMode;
 use App\Enums\PaymentProofStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationStatus;
@@ -49,6 +51,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Boats\BoatTripAccess;
 use App\Services\Boats\ReservationBoatSummary;
+use App\Services\BookingEngine\TestBookings;
 use App\Services\Catalogues\TaxWaivers;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
@@ -453,6 +456,7 @@ class ReservationController extends Controller
         return Inertia::render('reservations/show', [
             'reservation' => $overview['reservation'],
             'money' => $money,
+            'testBooking' => app(TestBookings::class)->isTest($reservation) ? BadgeData::fromPaymentMode(PaymentMode::Test) : null,
             'paymentSchedule' => PaymentScheduleData::forReservation($reservation),
             'agentBill' => $reservation->deposit_due_at === null ? null : app(AgentBill::class)->for($reservation),
             ...$this->paymentProofProps($user, $property, $reservation, $tab),

@@ -74,7 +74,7 @@ Sanctum's own `last_used_at` is off, so the token's owner records "last used", a
 
 ## Test mode
 
-Developers test on the [demo environment](../deployment/demo_environment.md), with Curlec's test system. Production has no test path, so no test code or flag reaches real data.
+Developers test on the [demo environment](../deployment/demo_environment.md), with Curlec's test system. An owner can also test on production, with the property's own rooms, through the [payment mode](04-payment.md#payment-mode) switch.
 
 ```
               Testing                               Live

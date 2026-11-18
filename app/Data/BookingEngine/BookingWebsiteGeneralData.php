@@ -9,6 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * What the General tab shows. `slugLocked` is true once the site is published, because a new slug breaks links already shared.
+ * `paymentMode` is `test` or `live`.
  */
 class BookingWebsiteGeneralData extends Data
 {
@@ -27,6 +28,7 @@ class BookingWebsiteGeneralData extends Data
         public ?string $aboutText,
         public array $checklist,
         public bool $canPublish,
+        public string $paymentMode,
     ) {}
 
     public static function fromModels(Property $property, PropertyBookingSite $site, BookingSiteChecklist $checklist): self
@@ -46,6 +48,7 @@ class BookingWebsiteGeneralData extends Data
             aboutText: $site->about_text,
             checklist: $checklist->items($site),
             canPublish: $checklist->isComplete($site),
+            paymentMode: $site->payment_mode->value,
         );
     }
 

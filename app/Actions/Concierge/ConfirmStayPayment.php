@@ -23,17 +23,13 @@ class ConfirmStayPayment
      */
     public function __invoke(ReservationUnit $stay, string $orderId, string $paymentId, string $signature): bool
     {
-        if (! $this->gateway->verifySignature($orderId, $paymentId, $signature)) {
-            return false;
-        }
-
         $payment = GatewayPayment::query()
             ->where('property_id', $stay->property_id)
             ->where('reservation_unit_id', $stay->id)
             ->where('order_id', $orderId)
             ->first();
 
-        if ($payment === null) {
+        if ($payment === null || ! $this->gateway->verifySignature($payment->mode, $orderId, $paymentId, $signature)) {
             return false;
         }
 

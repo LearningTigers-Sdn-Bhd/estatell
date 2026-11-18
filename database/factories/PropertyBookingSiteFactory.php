@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\BookingEngineMode;
+use App\Enums\PaymentMode;
 use App\Models\Property;
 use App\Models\PropertyBookingSite;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,6 +23,7 @@ class PropertyBookingSiteFactory extends Factory
         return [
             'property_id' => Property::factory(),
             'mode' => BookingEngineMode::Microsite,
+            'payment_mode' => PaymentMode::Live,
         ];
     }
 
@@ -33,5 +35,10 @@ class PropertyBookingSiteFactory extends Factory
     public function published(): static
     {
         return $this->state(['published_at' => now()]);
+    }
+
+    public function testPayments(): static
+    {
+        return $this->state(['payment_mode' => PaymentMode::Test]);
     }
 }

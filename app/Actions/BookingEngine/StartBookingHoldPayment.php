@@ -4,6 +4,7 @@ namespace App\Actions\BookingEngine;
 
 use App\Enums\BookingHoldStatus;
 use App\Enums\GatewayPaymentStatus;
+use App\Enums\PaymentMode;
 use App\Models\BookingClient;
 use App\Models\BookingHold;
 use App\Models\GatewayPayment;
@@ -17,8 +18,9 @@ use Brick\Money\Money;
  * gets the same one, so they cannot pay twice. The order is created before the row is saved, because the call must not
  * hold a database lock. When two requests race, the second order is never shown and cannot be paid. An API only client
  * names an approved return address; a retry may name another, and the guest returns to the last one. The demo client may
- * name any http or https address, so a developer can test from their own machine.
- * See docs/29-booking-engine/04-payment.md#flow and docs/29-booking-engine/09-api-only-mode.md#access.
+ * name any http or https address, so a developer can test from their own machine. The order uses the booking website's
+ * payment mode, and the row keeps it.
+ * See docs/29-booking-engine/04-payment.md#flow, #payment-mode and docs/29-booking-engine/09-api-only-mode.md#access.
  */
 class StartBookingHoldPayment
 {
@@ -57,9 +59,11 @@ class StartBookingHoldPayment
         }
 
         $currency = $property->settings->currency->getCurrencyCode();
+        $mode = $property->bookingSite()->first()->payment_mode ?? PaymentMode::Live;
 
         try {
             $orderId = $this->gateway->createOrder(
+                $mode,
                 Money::of($hold->total_amount, $currency)->getMinorAmount()->toInt(),
                 $currency,
                 'hold-'.$hold->id,
@@ -76,6 +80,7 @@ class StartBookingHoldPayment
             [
                 'property_id' => $hold->property_id,
                 'gateway_account' => $this->gateway->account(),
+                'mode' => $mode,
                 'order_id' => $orderId,
                 'amount' => $hold->total_amount,
                 'status' => GatewayPaymentStatus::Created,

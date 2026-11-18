@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Notification;
 
 /**
  * Act on one saved Curlec event. An order estatell did not create, and any event it does not use, is marked processed and
- * ignored. Returns false when the booking or a refund's folio line could not be made: the event stays unprocessed for the
+ * ignored, and so is an event for a payment of the other mode. Returns false when the booking or a refund's folio line could not be made: the event stays unprocessed for the
  * queue to retry, and admins are alerted on the first attempt only. See docs/29-booking-engine/04-payment.md#webhook.
  */
 class ProcessCurlecEvent
@@ -55,7 +55,7 @@ class ProcessCurlecEvent
 
     private function orderPaid(GatewayEvent $event, bool $isFirstAttempt): bool
     {
-        $payment = $this->payment(data_get($event->payload, 'payload.order.entity.id'));
+        $payment = $this->payment($event, data_get($event->payload, 'payload.order.entity.id'));
 
         if ($payment === null) {
             return true;
@@ -99,7 +99,7 @@ class ProcessCurlecEvent
      */
     private function paymentFailed(GatewayEvent $event): bool
     {
-        $payment = $this->payment(data_get($event->payload, 'payload.payment.entity.order_id'));
+        $payment = $this->payment($event, data_get($event->payload, 'payload.payment.entity.order_id'));
 
         if ($payment !== null) {
             $this->record($payment, GatewayPaymentStatus::Failed, $event);
@@ -195,7 +195,7 @@ class ProcessCurlecEvent
         $curlecRefundId = data_get($entity, 'id');
 
         if (is_string($curlecRefundId) && $curlecRefundId !== '') {
-            $refund = GatewayRefund::query()->where('gateway_refund_id', $curlecRefundId)->first();
+            $refund = GatewayRefund::query()->where('gateway_refund_id', $curlecRefundId)->whereRelation('gatewayPayment', 'mode', $event->mode)->first();
 
             if ($refund !== null) {
                 return $refund;
@@ -205,7 +205,7 @@ class ProcessCurlecEvent
         $ourId = data_get($entity, 'notes.refund');
 
         return data_get($entity, 'notes.app') === 'estatell' && is_numeric($ourId)
-            ? GatewayRefund::query()->whereKey((int) $ourId)->whereNull('gateway_refund_id')->first()
+            ? GatewayRefund::query()->whereKey((int) $ourId)->whereNull('gateway_refund_id')->whereRelation('gatewayPayment', 'mode', $event->mode)->first()
             : null;
     }
 
@@ -218,16 +218,19 @@ class ProcessCurlecEvent
             return;
         }
 
-        $payment = GatewayPayment::query()->where('gateway_payment_id', $paymentId)->first();
+        $payment = GatewayPayment::query()->where('gateway_payment_id', $paymentId)->where('mode', $event->mode)->first();
 
         if ($payment !== null) {
             ($this->alert)($payment, __('A refund was made outside estatell (:refund). Record it on the manual folio, with the refund ID as its reference.', ['refund' => (string) data_get($entity, 'id')]));
         }
     }
 
-    private function payment(mixed $orderId): ?GatewayPayment
+    /**
+     * The payment of an order, only when it was made in the event's mode. A test-signed event never touches a live order.
+     */
+    private function payment(GatewayEvent $event, mixed $orderId): ?GatewayPayment
     {
-        return is_string($orderId) ? GatewayPayment::query()->with('hold')->where('order_id', $orderId)->first() : null;
+        return is_string($orderId) ? GatewayPayment::query()->with('hold')->where('order_id', $orderId)->where('mode', $event->mode)->first() : null;
     }
 
     /**

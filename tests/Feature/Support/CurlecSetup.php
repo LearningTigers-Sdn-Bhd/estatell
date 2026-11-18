@@ -4,6 +4,7 @@ require_once __DIR__.'/BookingApiSetup.php';
 
 use App\Enums\BookingSourceType;
 use App\Enums\PaymentMethodType;
+use App\Enums\PaymentMode;
 use App\Enums\SystemTransactionCode;
 use App\Models\BookingHold;
 use App\Models\BookingHoldLine;
@@ -26,10 +27,10 @@ const CURLEC_KEY_SECRET = 'test-key-secret';
  */
 class FakeCurlecGateway extends CurlecGateway
 {
-    /** @var list<array{amount: int, currency: string, receipt: string, token: string}> */
+    /** @var list<array{mode: PaymentMode, amount: int, currency: string, receipt: string, token: string}> */
     public array $orders = [];
 
-    /** @var list<array{paymentId: string, amount: int, receipt: string, refundId: int}> */
+    /** @var list<array{mode: PaymentMode, paymentId: string, amount: int, receipt: string, refundId: int}> */
     public array $refunds = [];
 
     public bool $failing = false;
@@ -40,13 +41,13 @@ class FakeCurlecGateway extends CurlecGateway
     /** False acts as if Curlec answered a repeated receipt, so the row gets its ID from the webhook. */
     public bool $answersWithId = true;
 
-    public function createOrder(int $amountInSubunits, string $currency, string $receipt, string $holdToken): string
+    public function createOrder(PaymentMode $mode, int $amountInSubunits, string $currency, string $receipt, string $holdToken): string
     {
         if ($this->failing) {
             throw new CurlecRequestFailed('Curlec could not be reached.');
         }
 
-        $this->orders[] = ['amount' => $amountInSubunits, 'currency' => $currency, 'receipt' => $receipt, 'token' => $holdToken];
+        $this->orders[] = ['mode' => $mode, 'amount' => $amountInSubunits, 'currency' => $currency, 'receipt' => $receipt, 'token' => $holdToken];
 
         return 'order_'.count($this->orders);
     }
@@ -54,7 +55,7 @@ class FakeCurlecGateway extends CurlecGateway
     /** @var array<string, string> Order ID to the payment Curlec captured on it, for orders paid without telling us. */
     public array $captured = [];
 
-    public function capturedPaymentId(string $orderId): ?string
+    public function capturedPaymentId(PaymentMode $mode, string $orderId): ?string
     {
         if ($this->failing) {
             throw new CurlecRequestFailed('Curlec could not be reached.');
@@ -63,7 +64,7 @@ class FakeCurlecGateway extends CurlecGateway
         return $this->captured[$orderId] ?? null;
     }
 
-    public function refund(string $paymentId, int $amountInSubunits, string $receipt, int $refundId): ?string
+    public function refund(PaymentMode $mode, string $paymentId, int $amountInSubunits, string $receipt, int $refundId): ?string
     {
         if ($this->failing) {
             throw new CurlecRequestFailed('Curlec could not be reached.');
@@ -73,7 +74,7 @@ class FakeCurlecGateway extends CurlecGateway
             throw new CurlecRefundRefused($this->refusing);
         }
 
-        $this->refunds[] = ['paymentId' => $paymentId, 'amount' => $amountInSubunits, 'receipt' => $receipt, 'refundId' => $refundId];
+        $this->refunds[] = ['mode' => $mode, 'paymentId' => $paymentId, 'amount' => $amountInSubunits, 'receipt' => $receipt, 'refundId' => $refundId];
 
         return $this->answersWithId ? 'rfnd_'.count($this->refunds) : null;
     }

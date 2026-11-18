@@ -16,6 +16,7 @@ use App\Actions\Payments\VoidPayment;
 use App\Enums\BookingHoldStatus;
 use App\Enums\FolioStatus;
 use App\Enums\GatewayRefundStatus;
+use App\Enums\PaymentMode;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\Folio;
@@ -101,7 +102,7 @@ test('the refund sent to Curlec holds no guest details', function () {
     config(['services.curlec.base_url' => 'https://curlec.test/v1', 'services.curlec.key_id' => 'key', 'services.curlec.key_secret' => 'secret']);
     Http::fake(['curlec.test/*' => Http::response(['id' => 'rfnd_real'])]);
 
-    expect(app(CurlecGateway::class)->refund('pay_1', 5000, 'refund-9-1', 9))->toBe('rfnd_real');
+    expect(app(CurlecGateway::class)->refund(PaymentMode::Live, 'pay_1', 5000, 'refund-9-1', 9))->toBe('rfnd_real');
 
     Http::assertSent(fn (Request $request): bool => $request->url() === 'https://curlec.test/v1/payments/pay_1/refund'
         && $request->data() === ['amount' => 5000, 'receipt' => 'refund-9-1', 'notes' => ['app' => 'estatell', 'refund' => '9']]);
@@ -111,7 +112,7 @@ test('the gateway tells a problem worth retrying from a final refusal and a repe
     config(['services.curlec.base_url' => 'https://curlec.test/v1']);
     Http::fake(['curlec.test/*' => Http::response(['error' => ['description' => $description]], $status)]);
 
-    $call = fn () => app(CurlecGateway::class)->refund('pay_1', 5000, 'refund-9-1', 9);
+    $call = fn () => app(CurlecGateway::class)->refund(PaymentMode::Live, 'pay_1', 5000, 'refund-9-1', 9);
 
     $exception === null ? expect($call())->toBeNull() : expect($call)->toThrow($exception);
 })->with([
