@@ -2,7 +2,6 @@
 
 use App\Actions\Concierge\SendConciergeStayLink;
 use App\Enums\UnitStatus;
-use App\Events\StayCheckedIn;
 use App\Features\Concierge;
 use App\Models\BookingPreCheckInToken;
 use App\Notifications\ConciergeStayLink;
@@ -37,7 +36,7 @@ it('sends nothing, and makes no link, when the guest has no email address', func
     $guest->forceFill(['email' => null])->save();
     $before = BookingPreCheckInToken::query()->count();
 
-    app(SendConciergeStayLink::class)(new StayCheckedIn($property->id, $unit->id));
+    app(SendConciergeStayLink::class)($property->id, $unit->id, null);
 
     Notification::assertNothingSent();
     expect(BookingPreCheckInToken::query()->count())->toBe($before);
@@ -50,7 +49,7 @@ it('sends nothing while the property has the Concierge feature off', function ()
     Feature::for($property)->deactivate(Concierge::class);
     $before = BookingPreCheckInToken::query()->count();
 
-    app(SendConciergeStayLink::class)(new StayCheckedIn($property->id, $unit->id));
+    app(SendConciergeStayLink::class)($property->id, $unit->id, null);
 
     Notification::assertNothingSent();
     expect(BookingPreCheckInToken::query()->count())->toBe($before);
@@ -61,7 +60,7 @@ it('ignores a stay of another property', function () {
     ['property' => $property, 'unit' => $unit, 'guest' => $guest] = conciergeSetup();
     $guest->forceFill(['email' => 'aisha@example.test'])->save();
 
-    app(SendConciergeStayLink::class)(new StayCheckedIn($property->id + 999, $unit->id));
+    app(SendConciergeStayLink::class)($property->id + 999, $unit->id, null);
 
     Notification::assertNothingSent();
 });

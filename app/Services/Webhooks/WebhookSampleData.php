@@ -18,6 +18,7 @@ class WebhookSampleData
         return match ($event) {
             WebhookEvent::BookingCreated, WebhookEvent::BookingUpdated, WebhookEvent::BookingCancelled, WebhookEvent::BookingNoShow => ['booking' => $this->booking()],
             WebhookEvent::StayCheckedIn, WebhookEvent::StayCheckedOut => ['booking' => $this->booking(), 'unit_id' => 501],
+            WebhookEvent::StayWelcomeReady => ['booking' => $this->booking(), 'unit_id' => 501, 'stay' => ['url' => url('/c/sample-token'), 'room' => '101', 'guest' => $this->guest(), 'pin' => ['code' => '123456', 'valid_until' => now()->addDays(2)->toIso8601String(), 'valid_until_text' => now()->addDays(2)->isoFormat('D MMM YYYY, h:mm A')]]],
             WebhookEvent::PaymentReceived, WebhookEvent::PaymentRefunded => ['payment' => $this->payment($event), 'booking' => $this->booking()],
             WebhookEvent::FolioClosed => ['folio' => ['id' => 701, 'number' => 'F-000123', 'type' => 'unit', 'status' => 'closed', 'invoice_number' => 'INV-000123', 'unit_id' => 501, 'balance' => '0.00', 'closed_at' => now()->toIso8601String()], 'booking' => $this->booking()],
             WebhookEvent::GuestCreated, WebhookEvent::GuestUpdated => ['guest' => $this->guest()],

@@ -6,15 +6,17 @@ use App\Actions\Webhooks\BroadcastWebhook;
 use App\Enums\WebhookEvent;
 use App\Models\Property;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
  * Builds the payload of one event and hands it to every endpoint that hears it. It runs after the change committed,
- * so the payload shows the saved state. A subject that is gone sends nothing.
+ * so the payload shows the saved state. A subject that is gone sends nothing. The job is encrypted in the queue, as its
+ * context can hold a door PIN and a stay link (`stay.welcome_ready`).
  */
-class BroadcastWebhookJob implements ShouldQueue
+class BroadcastWebhookJob implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 

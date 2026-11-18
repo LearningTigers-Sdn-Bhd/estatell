@@ -23,6 +23,7 @@ enum WebhookEvent: string
     case BookingNoShow = 'booking.no_show';
     case StayCheckedIn = 'stay.checked_in';
     case StayCheckedOut = 'stay.checked_out';
+    case StayWelcomeReady = 'stay.welcome_ready';
     case PaymentReceived = 'payment.received';
     case PaymentRefunded = 'payment.refunded';
     case FolioClosed = 'folio.closed';
@@ -44,6 +45,7 @@ enum WebhookEvent: string
             self::BookingNoShow => __('Booking no-show'),
             self::StayCheckedIn => __('Checked in'),
             self::StayCheckedOut => __('Checked out'),
+            self::StayWelcomeReady => __('Welcome ready (with door PIN)'),
             self::PaymentReceived => __('Payment received'),
             self::PaymentRefunded => __('Payment refunded'),
             self::FolioClosed => __('Folio closed'),
@@ -65,7 +67,7 @@ enum WebhookEvent: string
     {
         return match ($this) {
             self::BookingCreated, self::BookingUpdated, self::BookingCancelled, self::BookingNoShow => __('Booking'),
-            self::StayCheckedIn, self::StayCheckedOut => __('Stay'),
+            self::StayCheckedIn, self::StayCheckedOut, self::StayWelcomeReady => __('Stay'),
             self::PaymentReceived, self::PaymentRefunded, self::FolioClosed => __('Payment'),
             self::GuestCreated, self::GuestUpdated, self::GuestMerged, self::GuestAnonymized => __('Guest'),
             self::RoomCleaned, self::RoomMaintenanceFlagged => __('Housekeeping'),
@@ -81,7 +83,7 @@ enum WebhookEvent: string
     public function payloadBuilder(): string
     {
         return match ($this) {
-            self::BookingCreated, self::BookingUpdated, self::BookingCancelled, self::BookingNoShow, self::StayCheckedIn, self::StayCheckedOut => BookingWebhookPayload::class,
+            self::BookingCreated, self::BookingUpdated, self::BookingCancelled, self::BookingNoShow, self::StayCheckedIn, self::StayCheckedOut, self::StayWelcomeReady => BookingWebhookPayload::class,
             self::PaymentReceived, self::PaymentRefunded => PaymentWebhookPayload::class,
             self::FolioClosed => FolioWebhookPayload::class,
             self::GuestCreated, self::GuestUpdated, self::GuestMerged, self::GuestAnonymized => GuestWebhookPayload::class,

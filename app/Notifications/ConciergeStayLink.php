@@ -22,6 +22,10 @@ class ConciergeStayLink extends Notification implements ShouldQueue
         public string $arrivalDate,
         public string $departureDate,
         public string $stayUrl,
+        public ?string $roomNumber = null,
+        public ?string $pinCode = null,
+        public ?string $pinValidUntil = null,
+        public bool $pinOnStayPage = false,
     ) {
         $this->afterCommit();
     }
@@ -40,14 +44,20 @@ class ConciergeStayLink extends Notification implements ShouldQueue
             ->markdown('notifications::email', [
                 'mailTitle' => __('Your stay at :property', ['property' => $this->propertyName]),
                 'propertyName' => $this->propertyName,
-                'mailDetails' => [
+                'mailDetails' => array_filter([
                     __('Check-in') => $this->arrivalDate,
                     __('Check-out') => $this->departureDate,
-                ],
+                    __('Room') => $this->roomNumber,
+                    __('Door PIN') => $this->pinCode,
+                    __('PIN valid until') => $this->pinCode === null ? null : $this->pinValidUntil,
+                ]),
             ])
-            ->subject(__('Your stay at :property: your link', ['property' => $this->propertyName]))
+            ->subject($this->pinCode === null
+                ? __('Your stay at :property: your link', ['property' => $this->propertyName])
+                : __('Your stay at :property: your door PIN and link', ['property' => $this->propertyName]))
             ->greeting(__('Hello :name,', ['name' => $this->guestName]))
             ->line(__('Welcome to :property. Use the link below during your stay to ask the front desk for something, see your bill and documents, and check out.', ['property' => $this->propertyName]))
+            ->when($this->pinOnStayPage, fn (MailMessage $mail) => $mail->line(__('Your door PIN is not ready yet. It will show on your stay page as soon as it is.')))
             ->action(__('Open my stay'), $this->stayUrl)
             ->line(__('Keep this email. Anyone who has the link can open your stay page.'));
     }
