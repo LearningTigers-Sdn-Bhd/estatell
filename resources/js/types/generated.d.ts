@@ -1278,6 +1278,7 @@ export type ConciergeTopicData = {
 id: number,
 title: string,
 body: string,
+active: boolean,
 };
 export type ConciergeTransportData = {
 directions: string | null,

@@ -207,6 +207,47 @@ it('lets staff keep extra topics, up to a limit, and refuses another property\'s
     expect($property->infoTopics()->count())->toBe(AddInfoTopic::MAX - 1);
 });
 
+it('lets staff edit a topic and switch it off, which hides it from guests, and logs only a real change', function () {
+    [$owner, $property] = liveOwner();
+    PropertySetting::factory()->create(['property_id' => $property->id]);
+    $topic = PropertyInfoTopic::factory()->create(['property_id' => $property->id, 'title' => 'Laundry', 'body' => 'Level 2.']);
+
+    $this->actingAs($owner)->put(route('settings.concierge.topics.update', [$property, $topic]), ['title' => ' Laundry room ', 'body' => 'Level 3.'])->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.topics.update', [$property, $topic]), ['title' => 'Laundry room', 'body' => 'Level 3.'])->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.topics.update', [$property, $topic]), ['title' => ' ', 'body' => 'x'])->assertSessionHasErrors('title');
+
+    expect($topic->refresh()->title)->toBe('Laundry room')
+        ->and(Activity::query()->where('event', 'concierge.topic-updated')->count())->toBe(1);
+
+    $this->actingAs($owner)->put(route('settings.concierge.topics.active.update', [$property, $topic]), ['active' => false])->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.topics.active.update', [$property, $topic]), ['active' => false])->assertRedirect();
+
+    expect($topic->refresh()->active)->toBeFalse()
+        ->and(Activity::query()->where('event', 'concierge.topic-hidden')->count())->toBe(1);
+
+    $this->get("/stay/{$property->code}/info")->assertInertia(fn (Assert $page) => $page->where('details.topics', []));
+    $this->actingAs($owner)->get(route('settings.concierge.guest-guidelines', $property))->assertInertia(fn (Assert $page) => $page
+        ->where('topics.0.active', false)
+        ->where('topicLimit', AddInfoTopic::MAX));
+
+    $this->actingAs($owner)->put(route('settings.concierge.topics.active.update', [$property, $topic]), ['active' => true])->assertRedirect();
+    $this->get("/stay/{$property->code}/info")->assertInertia(fn (Assert $page) => $page->where('details.topics.0.title', 'Laundry room'));
+});
+
+it('refuses to edit or switch another property\'s topic, and staff without the permission', function () {
+    [$owner, $property] = liveOwner();
+    $foreign = PropertyInfoTopic::factory()->create();
+    $own = PropertyInfoTopic::factory()->create(['property_id' => $property->id]);
+    $staff = User::factory()->for($property)->withPermissions([PermissionEnum::GuestRequestsView])->create();
+
+    $this->actingAs($owner)->put(route('settings.concierge.topics.update', [$property, $foreign]), ['title' => 'X', 'body' => 'Y'])->assertNotFound();
+    $this->actingAs($owner)->put(route('settings.concierge.topics.active.update', [$property, $foreign]), ['active' => false])->assertNotFound();
+    $this->actingAs($staff)->put(route('settings.concierge.topics.update', [$property, $own]), ['title' => 'X', 'body' => 'Y'])->assertForbidden();
+    $this->actingAs($staff)->put(route('settings.concierge.topics.active.update', [$property, $own]), ['active' => false])->assertForbidden();
+
+    expect($foreign->refresh()->active)->toBeTrue()->and($own->refresh()->active)->toBeTrue();
+});
+
 it('lets staff write the guest details of an amenity the property offers, and shows them to guests', function () {
     [$owner, $property] = liveOwner();
     $pool = Amenity::factory()->create(['name' => 'Pool', 'position' => 2]);

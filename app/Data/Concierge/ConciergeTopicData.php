@@ -11,10 +11,11 @@ class ConciergeTopicData extends Data
         public int $id,
         public string $title,
         public string $body,
+        public bool $active,
     ) {}
 
     public static function fromModel(PropertyInfoTopic $topic): self
     {
-        return new self($topic->id, $topic->title, $topic->body);
+        return new self($topic->id, $topic->title, $topic->body, $topic->active);
     }
 }

@@ -14,7 +14,9 @@ use App\Actions\Concierge\SaveAmenityDetail;
 use App\Actions\Concierge\SaveGettingHere;
 use App\Actions\Concierge\SaveGuestContacts;
 use App\Actions\Concierge\SaveGuestGuidelines;
+use App\Actions\Concierge\SetInfoTopicActive;
 use App\Actions\Concierge\UpdateConciergeSettings;
+use App\Actions\Concierge\UpdateInfoTopic;
 use App\Actions\Concierge\UpdateWifiNetwork;
 use App\Actions\Concierge\UploadConciergeHero;
 use App\Data\BookingEngine\AmenityPickerData;
@@ -37,6 +39,7 @@ use App\Http\Requests\Concierge\SaveAmenityDetailRequest;
 use App\Http\Requests\Concierge\SaveGettingHereRequest;
 use App\Http\Requests\Concierge\SaveGuestContactsRequest;
 use App\Http\Requests\Concierge\SaveGuestGuidelinesRequest;
+use App\Http\Requests\Concierge\SetInfoTopicActiveRequest;
 use App\Http\Requests\Concierge\StoreFaqRequest;
 use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
@@ -92,13 +95,14 @@ class ConciergeSettingsController extends Controller
     }
 
     /**
-     * Guest guidelines tab: the arrival and departure steps and the extra topics.
+     * Guest guidelines tab: the arrival and departure steps and the interesting topics, with how many topics are allowed.
      */
     public function guestGuidelines(Property $property): Response
     {
         return $this->renderTab($property, 'guest-guidelines', [
             'guidelines' => ConciergeGuestGuidelinesData::fromProperty($property->loadMissing('settings')),
             'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
+            'topicLimit' => AddInfoTopic::MAX,
         ]);
     }
 
@@ -285,6 +289,22 @@ class ConciergeSettingsController extends Controller
         Inertia::flash('toast', $topic === null
             ? ['type' => 'error', 'message' => __('A property can list up to :count extra topics.', ['count' => AddInfoTopic::MAX])]
             : ['type' => 'success', 'message' => __('Topic added.')]);
+
+        return back();
+    }
+
+    public function updateTopic(StoreInfoTopicRequest $request, Property $property, PropertyInfoTopic $infoTopic, UpdateInfoTopic $updateTopic): RedirectResponse
+    {
+        $updateTopic($request->user(), $infoTopic, $request->string('title')->toString(), $request->string('body')->toString());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Topic saved.')]);
+
+        return back();
+    }
+
+    public function topicActive(SetInfoTopicActiveRequest $request, Property $property, PropertyInfoTopic $infoTopic, SetInfoTopicActive $setTopicActive): RedirectResponse
+    {
+        $setTopicActive($request->user(), $infoTopic, $request->boolean('active'));
 
         return back();
     }

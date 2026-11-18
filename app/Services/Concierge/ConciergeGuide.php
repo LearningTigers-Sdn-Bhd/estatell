@@ -50,7 +50,7 @@ class ConciergeGuide
             arrivalInstructions: $property->settings->arrival_instructions,
             departureInstructions: $property->settings->departure_instructions,
             transport: $this->transport($property),
-            topics: array_values($property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->all()),
+            topics: array_values($property->infoTopics()->where('active', true)->get()->map(ConciergeTopicData::fromModel(...))->all()),
         );
     }
 

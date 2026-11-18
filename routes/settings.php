@@ -357,6 +357,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('getting-here', [ConciergeSettingsController::class, 'updateGettingHere'])->name('getting-here.update');
         Route::put('contacts', [ConciergeSettingsController::class, 'updateContacts'])->name('contacts.update');
         Route::post('topics', [ConciergeSettingsController::class, 'storeTopic'])->name('topics.store');
+        Route::put('topics/{infoTopic}', [ConciergeSettingsController::class, 'updateTopic'])->name('topics.update');
+        Route::put('topics/{infoTopic}/active', [ConciergeSettingsController::class, 'topicActive'])->name('topics.active.update');
         Route::delete('topics/{infoTopic}', [ConciergeSettingsController::class, 'destroyTopic'])->name('topics.destroy');
     });
 
