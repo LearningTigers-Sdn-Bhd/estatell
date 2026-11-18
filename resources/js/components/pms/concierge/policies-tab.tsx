@@ -1,11 +1,26 @@
 import { Link } from '@inertiajs/react';
-import { ScrollText } from 'lucide-react';
+import {
+    CalendarX,
+    Clock,
+    LogOut,
+    Pencil,
+    ScrollText,
+    UserX,
+    type LucideIcon,
+} from 'lucide-react';
 import { TextField } from '@/components/pms/concierge/content-fields';
 import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { SettingsForm } from '@/components/pms/concierge/settings-form';
 import { EmptyState } from '@/components/pms/empty-state';
 import { buttonVariants } from '@/components/ui/button';
 import { index as roomRevenue } from '@/routes/settings/room-revenue';
+
+const policyIcons: Record<App.Enums.PolicyTab, LucideIcon> = {
+    cancellation: CalendarX,
+    'no-show': UserX,
+    'late-checkout': Clock,
+    'early-departure': LogOut,
+};
 
 /** The charge policy wording guests read. It comes from Room revenue, so this only shows it. */
 export function ChargePolicies({
@@ -19,18 +34,30 @@ export function ChargePolicies({
             description="Guests read this wording with each charge policy. Edit the source in Room revenue."
         >
             {policyTerms.length > 0 ? (
-                <ul className="flex flex-col gap-3">
-                    {policyTerms.map((term) => (
-                        <li
-                            key={term.label}
-                            className="flex flex-col gap-1 border-b pb-3 text-sm last:border-b-0 last:pb-0"
-                        >
-                            <span className="font-medium">{term.label}</span>
-                            <span className="text-pretty text-muted-foreground">
-                                {term.text}
-                            </span>
-                        </li>
-                    ))}
+                <ul className="flex flex-col divide-y rounded-lg border">
+                    {policyTerms.map((term) => {
+                        const Icon = policyIcons[term.tab];
+
+                        return (
+                            <li
+                                key={term.tab}
+                                className="flex items-start gap-2 px-4 py-3 text-sm"
+                            >
+                                <Icon
+                                    aria-hidden
+                                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                />
+                                <div className="flex min-w-0 flex-col gap-1">
+                                    <span className="font-medium">
+                                        {term.label}
+                                    </span>
+                                    <span className="text-pretty text-muted-foreground">
+                                        {term.text}
+                                    </span>
+                                </div>
+                            </li>
+                        );
+                    })}
                 </ul>
             ) : (
                 <EmptyState
@@ -43,9 +70,10 @@ export function ChargePolicies({
                 href={roomRevenue.url()}
                 className={buttonVariants({
                     variant: 'outline',
-                    className: 'self-start',
+                    className: 'w-full',
                 })}
             >
+                <Pencil data-icon="inline-start" />
                 Edit in Room revenue
             </Link>
         </PanelSection>

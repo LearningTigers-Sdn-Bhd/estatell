@@ -221,7 +221,7 @@ class ConciergeGuide
             $text = $policy === null ? '' : trim($malay && filled(trim($policy->text_ms)) ? $policy->text_ms : $policy->text_en);
 
             if ($text !== '') {
-                $terms[] = new ConciergePolicyTermData($tab->label(), $text);
+                $terms[] = new ConciergePolicyTermData($tab, $tab->label(), $text);
             }
         }
 

@@ -1220,6 +1220,7 @@ pets: string | null,
 terms: App.Data.Concierge.ConciergePolicyTermData[],
 };
 export type ConciergePolicyTermData = {
+tab: App.Enums.PolicyTab,
 label: string,
 text: string,
 };
