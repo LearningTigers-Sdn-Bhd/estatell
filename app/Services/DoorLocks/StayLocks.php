@@ -3,12 +3,13 @@
 namespace App\Services\DoorLocks;
 
 use App\Enums\LockProvider;
+use App\Enums\StayType;
 use App\Models\DoorLock;
 use App\Models\ReservationUnit;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * The door locks of the rooms a stay unit sleeps in, from its nights. It reads only. `current()` and `for()` return TTLock locks, which
+ * The door locks of the rooms a stay unit sleeps in, from its nights (or from its day use block). It reads only. `current()` and `for()` return TTLock locks, which
  * the PIN and card code drives; `currentElock()` returns the eLock locks, which only Keyport key cards open.
  */
 class StayLocks
@@ -42,17 +43,31 @@ class StayLocks
      */
     private function inCurrentRoom(ReservationUnit $unit, LockProvider $provider): Collection
     {
+        $roomId = $this->currentRoomId($unit);
+
+        // No room: nothing to open. `where('room_id', null)` would match every unlinked lock of the property.
+        if ($roomId === null) {
+            return new Collection;
+        }
+
+        return DoorLock::query()->ofProvider($provider)->where('property_id', $unit->property_id)->where('room_id', $roomId)->with('property.doorLockConnection')->orderBy('id')->get();
+    }
+
+    /**
+     * The room the unit sleeps in now. A day use unit has no nights: its one room is on its day use block.
+     */
+    private function currentRoomId(ReservationUnit $unit): ?int
+    {
+        if ($unit->stay_type === StayType::DayUse) {
+            return $unit->dayUse()->value('room_id');
+        }
+
         $timeZone = $unit->property->settings->time_zone ?? 'Asia/Kuala_Lumpur';
         $nights = $unit->nights()->whereNotNull('room_id');
         $night = (clone $nights)->whereDate('date', '<=', now($timeZone)->toDateString())->orderByDesc('date')->first()
             ?? (clone $nights)->orderBy('date')->first();
 
-        // No room on any night: nothing to open. `where('room_id', null)` would match every unlinked lock of the property.
-        if ($night === null) {
-            return new Collection;
-        }
-
-        return DoorLock::query()->ofProvider($provider)->where('property_id', $unit->property_id)->where('room_id', $night->room_id)->with('property.doorLockConnection')->orderBy('id')->get();
+        return $night?->room_id;
     }
 
     /**
@@ -62,7 +77,9 @@ class StayLocks
      */
     public function for(ReservationUnit $unit): Collection
     {
-        $roomIds = $unit->nights()->whereNotNull('room_id')->pluck('room_id')->unique();
+        $roomIds = $unit->stay_type === StayType::DayUse
+            ? $unit->dayUse()->whereNotNull('room_id')->pluck('room_id')
+            : $unit->nights()->whereNotNull('room_id')->pluck('room_id')->unique();
 
         return DoorLock::query()->ofProvider(LockProvider::TTLock)->where('property_id', $unit->property_id)->whereIn('room_id', $roomIds)->with('property.doorLockConnection')->orderBy('id')->get();
     }

@@ -14,8 +14,11 @@ use App\Jobs\SyncStayPasscodesJob;
 use App\Models\DoorCard;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
+use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Services\DoorLocks\PinStrength;
+use App\Services\DoorLocks\StayLocks;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -99,6 +102,35 @@ it('revokes the PIN when the stay is no longer checked in', function () {
     app(SyncStayPasscodes::class)($unit->refresh());
 
     expect(DoorPasscode::query()->sole()->status)->toBe(PasscodeStatus::Revoked);
+});
+
+it('issues a PIN for a day use stay on the lock of its day use room', function () {
+    ['property' => $property, 'room' => $room, 'lock' => $lock] = doorLockSetup();
+    $unit = ReservationUnit::factory()->checkedIn()->dayUse('2026-10-14', '10:00', 13, $room->id)->create([
+        'reservation_id' => Reservation::factory()->create(['property_id' => $property->id])->id,
+    ]);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+
+    $passcode = DoorPasscode::query()->sole();
+    expect($passcode->door_lock_id)->toBe($lock->id)
+        ->and($passcode->status)->toBe(PasscodeStatus::Active)
+        ->and($passcode->reservation_unit_id)->toBe($unit->id)
+        ->and(app(StayLocks::class)->for($unit)->pluck('id')->all())->toBe([$lock->id]);
+});
+
+it('gives a day use stay no PIN when its room has no lock', function () {
+    ['property' => $property] = doorLockSetup();
+    $bare = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    $unit = ReservationUnit::factory()->checkedIn()->dayUse('2026-10-14', '10:00', 13, $bare->id)->create([
+        'reservation_id' => Reservation::factory()->create(['property_id' => $property->id])->id,
+    ]);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+
+    expect(DoorPasscode::query()->count())->toBe(0);
 });
 
 it('moves the PIN to the new room’s lock', function () {
