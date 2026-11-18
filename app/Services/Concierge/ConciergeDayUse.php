@@ -4,9 +4,11 @@ namespace App\Services\Concierge;
 
 use App\Data\Kiosk\KioskWalkInData;
 use App\Enums\CompanyAccess;
+use App\Enums\HousekeepingStatus;
 use App\Enums\SellUnit;
 use App\Models\DoorLock;
 use App\Models\Property;
+use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Kiosk\KioskWalkInOffer;
@@ -18,7 +20,8 @@ use Brick\Money\Money;
  * The day use rooms a guest can book from the Concierge lobby page: a room sold per room, a Day use plan that prices the
  * hours on the date, no stop sell, and a room free for the block. A guest may not start a block that has begun, so the
  * plan's window and hour limits always apply. The cheapest plan wins per room type, and the offer holds the first free
- * room, one with a door lock linked first. See docs/12-reservations/10-day-use.md and docs/30-concierge/01-overview.md#day-use.
+ * room, one with a door lock linked first. A Dirty room is never offered: no staff member is there to check it, and an
+ * early day use check-out frees its room at once. See docs/12-reservations/10-day-use.md and docs/30-concierge/01-overview.md#day-use.
  */
 class ConciergeDayUse
 {
@@ -58,9 +61,10 @@ class ConciergeDayUse
             ->with(['ratePlans' => fn ($plans) => $plans->where('rate_plans.property_id', $property->id)->active()->dayUse()->where('company_access', CompanyAccess::Everyone)->ordered()])->ordered()->get();
         $offers = [];
         $locked = DoorLock::query()->where('property_id', $property->id)->whereNotNull('room_id')->pluck('room_id')->map(fn (mixed $id): int => (int) $id)->all();
+        $dirty = RoomStatus::query()->where('property_id', $property->id)->where('status', HousekeepingStatus::Dirty->value)->pluck('room_id')->map(fn (mixed $id): int => (int) $id)->all();
 
         foreach ($types as $type) {
-            $free = $this->availability->freeRooms($type, $search->arrival, (string) $search->startTime, $endsAt);
+            $free = array_values(array_filter($this->availability->freeRooms($type, $search->arrival, (string) $search->startTime, $endsAt), fn ($room): bool => ! in_array($room->id, $dirty, true)));
             $room = array_find($free, fn ($room): bool => in_array($room->id, $locked, true)) ?? $free[0] ?? null;
             $best = null;
 

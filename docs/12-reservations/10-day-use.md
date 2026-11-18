@@ -30,15 +30,17 @@ reservation_units   + stay_type (StayType, default Overnight)
                     CHECK DayUse:    departure_date = arrival_date
 unit_day_uses       id, reservation_unit_id (unique FK), date, room_id (nullable FK),
                     starts_at (time), ends_at (time), hours, amount, override_amount (nullable), released_at (nullable),
-                    timestamps
+                    vacated_at (time, nullable), timestamps
                     CHECK ends_at > starts_at, hours from 1 to 24,
-                          hours = (ends_at - starts_at) in whole hours
-                    EXCLUDE USING gist (room_id WITH =, tsrange(date + starts_at, date + ends_at) WITH &&)
+                          hours = (ends_at - starts_at) in whole hours,
+                          vacated_at null or from starts_at to before ends_at
+                    EXCLUDE USING gist (room_id WITH =, tsrange(date + starts_at, date + COALESCE(vacated_at, ends_at)) WITH &&)
                           WHERE room_id IS NOT NULL AND released_at IS NULL
 ```
 
 - `StayType`: Overnight, DayUse, with `label()`. A DayUse unit's length label is "Day use · 4h", never "0 nights", everywhere a stay length shows (reservation list and card, unit panel, reports, `StayTotal`).
 - `unit_day_uses` holds the room, the hours and the price of the block. It is the day use counterpart of `unit_nights`. `amount` is the price charged. `override_amount` (nullable, 0 or more) is set when staff override the price, and then `amount` equals it (see [Price override](#price-override)).
+- `vacated_at` is set when the guest checks out on the date before `ends_at`: the check-out time to the minute, not before `starts_at`. The room is free from then on, for another day use or an overnight arrival. `ends_at`, `hours` and `amount` keep what was sold, so the bill and reports do not change. Undo check-out clears it. Decided 2026-11-18 after a hotel could not sell 15:00–17:00 in a room whose 14:00–17:00 guest left at 15:00.
 - `released_at` is set when the unit is Cancelled or NoShow and cleared on reinstate, so the exclusion constraint only covers live blocks. The constraint needs the `btree_gist` Postgres extension. The migration enables it with `Schema::ensureExtensionExists('btree_gist')`. It ships with standard PostgreSQL and is a trusted extension, so a user with CREATE on the database can install it.
 - `arrival_time` and `departure_time` on the unit equal `starts_at` and `ends_at`, so the arrivals, departures and late check-out code read one place.
 
@@ -190,11 +192,11 @@ The [Past stay](12-past-and-migrated-stays.md#past-stay) mode gains the **Stay t
 
 `DayUseAvailability` (service, `app/Services/Availability/`) lists the rooms of a room type that are free on a date between two times. A room is free when it is active, not in an open room block on that date, and none of these overlaps the hours:
 
-| Busy because                                            | Busy from – until                                                 |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| An overnight unit has the room on the night before      | Until the unit's `departure_time`, or the property check-out time |
-| An overnight unit has the room on the night of the date | From the unit's `arrival_time`, or the property check-in time     |
-| Another live day use has the room                       | Its `starts_at` to `ends_at`                                      |
+| Busy because                                            | Busy from – until                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------------------- |
+| An overnight unit has the room on the night before      | Until the unit's `departure_time`, or the property check-out time         |
+| An overnight unit has the room on the night of the date | From the unit's `arrival_time`, or the property check-in time             |
+| Another live day use has the room                       | Its `starts_at` to `ends_at`, or to `vacated_at` after an early check-out |
 
 - Overnight availability (`AvailabilityService`) does not change: a day use has no nights.
 - An overnight unit with no room yet does not hold a specific room. `AutoAssignRooms`, `MoveUnit`, manual `AssignRoom` and the overnight room picks at booking skip a room with a live day use that overlaps the unit's arrival or departure time on that date.
@@ -229,7 +231,7 @@ No new tax column. A tax applies to the codes in its charge list (the `tax_trans
 | Action                                                | Day use rule                                                                                                                                                                                                                                                                            |
 | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Check in                                              | On the business date that equals the date. `stay_ended` and `arrival_not_reached` read the date for day use, because arrival and departure are the same day. The room comes from `unit_day_uses`.                                                                                       |
-| Check out                                             | On or after the date, as today. Marks the room of `unit_day_uses` Dirty, which matters for the evening arrival.                                                                                                                                                                         |
+| Check out                                             | On or after the date, as today. Marks the room of `unit_day_uses` Dirty, which matters for the evening arrival. A check-out on the date before `ends_at` sets `vacated_at`, so the room is free from then on.                                                                           |
 | Cancel, no-show                                       | The policy counts the block as one night priced at the block (first night, whole stay and one charge all give the block price; Current rate uses `quoteDayUse`). `ReleaseUnitRooms` sets `released_at` and keeps `room_id`.                                                             |
 | Reinstate                                             | Until the date (`stay_ended` after it). Locks the room row and re-checks it for those hours with `DayUseAvailability::isFree`, or refuses `not_available`. Keeps an override without quoting again; otherwise prices the block with `quoteDayUse`. Clears `released_at`.                |
 | Change dates, extend, early check-out, late check-out | Not offered for day use at first. Cancel and book again. Changing hours is a later item.                                                                                                                                                                                                |

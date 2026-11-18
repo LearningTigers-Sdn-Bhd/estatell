@@ -253,14 +253,14 @@ class FreeUnits
             ->whereNull('unit_day_uses.released_at')
             ->whereBetween('unit_day_uses.date', [$first, $departureDate])
             ->when($exceptUnitId !== null, fn ($query) => $query->where('reservation_units.id', '!=', $exceptUnitId))
-            ->get(['unit_day_uses.room_id', 'unit_day_uses.date', 'unit_day_uses.starts_at', 'unit_day_uses.ends_at']);
+            ->get(['unit_day_uses.room_id', 'unit_day_uses.date', 'unit_day_uses.starts_at', 'unit_day_uses.ends_at', 'unit_day_uses.vacated_at']);
         $taken = [];
 
         foreach ($blocks as $block) {
             $date = $block->date->toDateString();
 
             if ($date === $first) {
-                $overlaps = $block->ends_at > $arrives;
+                $overlaps = ($block->vacated_at ?? $block->ends_at) > $arrives;
                 $night = $date;
             } elseif ($date === $departureDate) {
                 $overlaps = $block->starts_at < $departs;

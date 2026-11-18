@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Collection;
  * room block on that date, and none of these overlaps the hours: an overnight guest who stayed the night before and
  * leaves after the start (until the unit's `departure_time`), an overnight guest who has the room on the night of the
  * date (from the unit's `arrival_time`), a guest who stays through the date (the whole day), and another live day use
- * (its `starts_at` to `ends_at`). A day use never changes overnight availability. It reads only.
+ * (its `starts_at` to `ends_at`, or to `vacated_at` when its guest checked out early). A day use never changes overnight availability. It reads only.
  * See docs/12-reservations/10-day-use.md.
  */
 class DayUseAvailability
@@ -71,7 +71,7 @@ class DayUseAvailability
             ->whereNull('unit_day_uses.released_at')
             ->whereDate('unit_day_uses.date', $date->toDateString())
             ->where('unit_day_uses.starts_at', '<', $this->normalize($until))
-            ->where('unit_day_uses.ends_at', '>', $this->normalize($from))
+            ->whereRaw('COALESCE(unit_day_uses.vacated_at, unit_day_uses.ends_at) > ?', [$this->normalize($from)])
             ->exists();
     }
 
@@ -157,7 +157,7 @@ class DayUseAvailability
             ->whereNull('unit_day_uses.released_at')
             ->whereDate('unit_day_uses.date', $day)
             ->where('unit_day_uses.starts_at', '<', $end)
-            ->where('unit_day_uses.ends_at', '>', $start)
+            ->whereRaw('COALESCE(unit_day_uses.vacated_at, unit_day_uses.ends_at) > ?', [$start])
             ->when($exceptUnitId !== null, fn ($query) => $query->where('reservation_units.id', '!=', $exceptUnitId))
             ->pluck('unit_day_uses.room_id');
 

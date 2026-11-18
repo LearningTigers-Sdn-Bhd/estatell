@@ -12,7 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * The room, the hours and the price of a day use unit. It is the day use counterpart of `unit_nights`.
  * `starts_at` and `ends_at` are `H:i:s` times on `date`. `released_at` is set while the unit is Cancelled or NoShow,
- * so the exclusion constraint only covers live blocks.
+ * so the exclusion constraint only covers live blocks. `vacated_at` (`H:i:s`) is set when the guest checked out before
+ * `ends_at`: the room is free from then on, while `ends_at`, `hours` and `amount` keep what was sold.
  *
  * @property int $id
  * @property int $reservation_unit_id
@@ -24,10 +25,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $amount
  * @property string|null $override_amount
  * @property CarbonImmutable|null $released_at
+ * @property string|null $vacated_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['date', 'room_id', 'starts_at', 'ends_at', 'hours', 'amount', 'override_amount', 'released_at'])]
+#[Fillable(['date', 'room_id', 'starts_at', 'ends_at', 'hours', 'amount', 'override_amount', 'released_at', 'vacated_at'])]
 class UnitDayUse extends Model
 {
     /** @use HasFactory<UnitDayUseFactory> */
