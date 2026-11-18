@@ -280,7 +280,7 @@ it('sells a room freed by an early day use check-out once housekeeping marks it 
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     conciergeDayUsePlan($property, $type);
     $first = conciergeDayUseHeldAt($this, $property, $type, '18:00', '18:00', 4);
-    $first->forceFill(['status' => UnitStatus::CheckedOut])->save();
+    $first->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now(), 'checked_out_at' => now()->addMinutes(100)])->save();
     $first->dayUse->forceFill(['vacated_at' => '19:40:00'])->save();
     Room::query()->whereKeyNot($first->dayUse->room_id)->where('room_type_id', $type->id)->update(['archived_at' => now()]);
     RoomStatus::query()->where('room_id', $first->dayUse->room_id)->update(['status' => HousekeepingStatus::Dirty]);
