@@ -101,7 +101,17 @@ Deposits are normal payments on the event folio before the event date. They show
 
 ## City ledger
 
-A company payer can **Settle to City ledger** as on a reservation folio, if AR invoices accept a folio with no reservation. To verify in the events item; if they do not, that action is hidden on event folios in the first version.
+A company payer can **Settle to City ledger** on an event folio, as on a reservation folio (checked in the code on 2026-11-18). `ar_invoices` links by `folio_id`, not by reservation, and `SettleToCityLedger` needs only an Open folio with a company payer. `ArInvoiceDetail` already reads the reservation with `?->`.
+
+Three places assume a folio has a reservation. The events item fixes them:
+
+| Where                                               | Today                              | Change                                                                      |
+| --------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------- |
+| `ArInvoicePrinter` (`$folio->reservation->units()`) | Fails on an event folio            | No units for an event folio: the lines print with no room                   |
+| `InHouseUnits::roomsFor()`                          | Reads the reservation's units      | Returns no rooms for an event folio                                         |
+| `IncomingScheduledCharges::for()`                   | Checks unposted charges from units | Also checks the event's unposted facility bookings (from the bookings item) |
+
+The invoice strip shows the event number where it shows the reservation reference today.
 
 ## Actions
 
