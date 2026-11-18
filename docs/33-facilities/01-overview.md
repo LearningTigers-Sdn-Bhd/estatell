@@ -24,6 +24,8 @@ Lodges and resorts sell more than rooms: an event hall, a BBQ pit, kayaks, a Riv
 
 A facility is not an amenity. An amenity is a fact shown to guests ("Swimming pool, 07:00–19:00"). A facility is booked by staff. One place can be both. They are not linked in this plan.
 
+**Naming (decided 2026-11-18):** both names stay. Staff edit amenities in Settings, Concierge, **Amenities**, and facilities in Settings, **Facilities**, so staff never see the two under one name. Guest pages keep the label "Hotel facilities" for amenities and never show bookable facilities. In staff UI and code, use **Amenity** for what is shown to guests (`property_amenities`) and **Facility** for what is booked (`facilities`).
+
 "Private" and "Shared" follow Bookinglayer, which marks rooms Private (P) or Shared (S).
 
 ## Two cases
@@ -63,8 +65,12 @@ Folio actions on an event folio use the existing folio permissions (`folio.post`
 
 ## Assumptions to confirm with the client
 
-1. Activities (River Safari, Night Walk) are Shared facilities. Assigning a guide or a boat to a session is not in this plan.
-2. Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.
+We recommend yes to both. Questions to ask:
+
+| #   | Assumption                                                                                                                 | Question for the client                                                                                                                                         | If the answer is no                                                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | Activities (River Safari, Night Walk) are Shared facilities. Assigning a guide or a boat to a session is not in this plan. | "Should River Safari and Night Walk work like a shared facility: sessions with a headcount limit and a participant list? Guide or boat assignment comes later." | Activities drop out. Facilities covers halls and equipment only.                  |
+| 2   | Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.                   | "Do you hold the hall for a client before the deposit is paid?"                                                                                                 | Tentative goes away. Every booking blocks, and `EventStatus` starts at Confirmed. |
 
 ## Not in this plan
 
