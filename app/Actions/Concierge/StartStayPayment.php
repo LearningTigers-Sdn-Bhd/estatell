@@ -50,8 +50,8 @@ class StartStayPayment
      * (`SelfCheckInPayment::shortfall`), and once the guest is checked in the whole open bill (`ConciergeBill::due`). A guest who retries with the same amount due gets the same unpaid order, so two orders
      * for one amount are never open. The order is created before its row is saved, because the call must not hold a
      * database lock. Refused, writing nothing, when the stay is not open for check-in, nothing is due, or the property has
-     * no Online payment method. Curlec being down is `payment_unavailable`. Stay payments are always Live: the booking
-     * website's Test mode never reaches guests who are really staying.
+     * no Online payment method. Curlec being down is `payment_unavailable`. Stay payments are Live unless the property turned
+     * on `concierge_test_payments_enabled`; the booking website's Test mode never reaches stays.
      * See docs/30-concierge/01-overview.md#payment.
      */
     public function __invoke(ReservationUnit $stay): StayPaymentResult
@@ -90,10 +90,11 @@ class StartStayPayment
         }
 
         $currency = $stay->property->settings->currency->getCurrencyCode();
+        $mode = $stay->property->settings->concierge_test_payments_enabled ? PaymentMode::Test : PaymentMode::Live;
 
         try {
             $orderId = $this->gateway->createOrder(
-                PaymentMode::Live,
+                $mode,
                 Money::of($due, $currency)->getMinorAmount()->toInt(),
                 $currency,
                 'stay-'.$stay->id.'-'.Str::lower(Str::random(8)),
@@ -109,7 +110,7 @@ class StartStayPayment
             'property_id' => $stay->property_id,
             'reservation_unit_id' => $stay->id,
             'gateway_account' => $this->gateway->account(),
-            'mode' => PaymentMode::Live,
+            'mode' => $mode,
             'order_id' => $orderId,
             'amount' => $due,
             'status' => GatewayPaymentStatus::Created,

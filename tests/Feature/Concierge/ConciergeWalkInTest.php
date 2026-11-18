@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\BookingSourceType;
+use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Features\Concierge;
@@ -149,4 +150,74 @@ it('asks the walk-in for the deposit after the ID, the same as a guest with a bo
     $this->post($location.'/identity', conciergeIdentityBody())->assertRedirect($location);
 
     $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.step', 'payment')->where('stay.shortfall', '100.00'));
+});
+
+/**
+ * Adds a Day use plan (2 to 6 hours, no window) at RM 60 for 2h and RM 20 more an hour, for tonight, to the room type.
+ */
+function conciergeDayUsePlan(Property $property, RoomType $type): RatePlan
+{
+    $plan = RatePlan::factory()->for($property)->dayUse(2, 6)->create(['name' => 'Day use']);
+    $type->ratePlans()->attach($plan);
+    $rate = Rate::factory()->create(['rate_plan_id' => $plan->id, 'room_type_id' => $type->id, 'date' => '2026-10-14', 'amount' => null]);
+
+    foreach (range(2, 6) as $hours) {
+        $rate->hourPrices()->create(['hours' => $hours, 'amount' => number_format(60 + ($hours - 2) * 20, 2, '.', '')]);
+    }
+
+    return $plan;
+}
+
+it('offers day use only to a property that sells it', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+
+    $this->get("/stay/{$property->code}/walk-in")->assertInertia(fn (Assert $page) => $page->where('canDayUse', false)->where('stayType', 'overnight'));
+
+    conciergeDayUsePlan($property, $type);
+
+    $this->get("/stay/{$property->code}/walk-in")->assertInertia(fn (Assert $page) => $page->where('canDayUse', true));
+});
+
+it('prices a day use from the plan and offers the room type', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2&start_time=20:30&hours=2")->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('stayType', 'day_use')
+        ->where('hours', 2)
+        ->has('offers', 1)
+        ->where('offers.0.roomTypeId', $type->id)
+        ->where('offers.0.total', '60.00'));
+
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2&start_time=20:30&hours=3")->assertInertia(fn (Assert $page) => $page->where('offers.0.total', '80.00'));
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2&start_time=20:30&hours=7")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+});
+
+it('books and holds a day use room, which the same hours then cannot book again', function () {
+    ['property' => $property, 'type' => $type, 'room' => $room] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $body = ['stay_type' => 'day_use', 'adults' => 2, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id];
+
+    $this->post("/stay/{$property->code}/walk-in", $body)->assertRedirect();
+
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    expect($stay->stay_type)->toBe(StayType::DayUse)
+        ->and($stay->status)->toBe(UnitStatus::Confirmed)
+        ->and($stay->dayUse->room_id)->toBe($room->id)
+        ->and($stay->dayUse->hours)->toBe(2)
+        ->and($stay->dayUse->amount)->toBe('60.00');
+
+    $this->post("/stay/{$property->code}/walk-in", $body)->assertSessionHasErrors('room_type_id');
+    expect(KioskWalkInHold::query()->count())->toBe(1);
+});
+
+it('opens a day use search on the next half hour for two hours, and refuses one that already started', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2")->assertSessionHasNoErrors()->assertInertia(fn (Assert $page) => $page
+        ->where('startTime', '20:30')
+        ->where('hours', 2)
+        ->where('offers.0.total', '60.00'));
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2&start_time=00:00&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
 });

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BedDouble, MapPinCheck, ReceiptText } from 'lucide-react';
+import { BedDouble, FlaskConical, MapPinCheck, ReceiptText } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PanelSection } from '@/components/pms/concierge/guide-layout';
@@ -21,6 +21,7 @@ type Switches = {
     walk_in_enabled: boolean;
     refund_requests_enabled: boolean;
     location_check_enabled: boolean;
+    test_payments_enabled: boolean;
 };
 
 type GuestAction = {
@@ -39,12 +40,14 @@ export function GuestActionsCard({
     walkInEnabled,
     refundRequestsEnabled,
     locationCheckEnabled,
+    testPaymentsEnabled,
     hasLocation,
 }: {
     houseRules: string | null;
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
     locationCheckEnabled: boolean;
+    testPaymentsEnabled: boolean;
     hasLocation: boolean;
 }) {
     const form = useAutoSave<Switches>(
@@ -52,6 +55,7 @@ export function GuestActionsCard({
             walk_in_enabled: walkInEnabled,
             refund_requests_enabled: refundRequestsEnabled,
             location_check_enabled: locationCheckEnabled,
+            test_payments_enabled: testPaymentsEnabled,
         },
         (value) => ({
             url: update.url(),
@@ -90,6 +94,12 @@ export function GuestActionsCard({
                     first. Without it, this has no effect.
                 </>
             ),
+        },
+        {
+            name: 'test_payments_enabled',
+            icon: FlaskConical,
+            title: 'Test payments',
+            body: 'Guests pay with Curlec test cards and no real money moves. Turn it off before real guests pay.',
         },
     ];
 

@@ -4,7 +4,7 @@
 
 Sell a room for a number of hours on one day, for example 10:00 to 14:00 for MYR 95, and have it back for the overnight guest that evening. Transit hotels, airport hotels and resorts sell it to travellers between flights or to a wedding party getting ready.
 
-Day use is sold at the front desk only. It is never on the public site, the company portal or a channel.
+Day use is sold at the front desk, and by a guest as a walk-in on the Concierge lobby page (see [Concierge](../30-concierge/01-overview.md#day-use)). It is never on the public site, the company portal or a channel.
 
 ## Decisions
 

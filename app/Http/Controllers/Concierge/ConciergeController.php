@@ -25,6 +25,7 @@ use App\Http\Requests\Concierge\SignCardRequest;
 use App\Http\Requests\Concierge\WalkInRequest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Concierge\ConciergeDayUse;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergePageBuilder;
 use App\Services\Guests\CountryOptions;
@@ -63,7 +64,7 @@ class ConciergeController extends Controller
     /**
      * A guest with no booking: two adults for one night is shown first, with the server's price for each room that is free.
      */
-    public function walkIn(WalkInRequest $request, Property $property, KioskWalkIn $walkIn, CurrentBusinessDate $businessDate): Response
+    public function walkIn(WalkInRequest $request, Property $property, KioskWalkIn $walkIn, CurrentBusinessDate $businessDate, ConciergeDayUse $dayUse): Response
     {
         abort_unless($property->settings?->concierge_walk_in_enabled, 404);
 
@@ -74,6 +75,10 @@ class ConciergeController extends Controller
             'property' => PropertySummaryData::fromModel($property),
             'adults' => $request->integer('adults'),
             'nights' => $request->integer('nights'),
+            'stayType' => $request->isDayUse() ? 'day_use' : 'overnight',
+            'startTime' => $request->isDayUse() ? $request->string('start_time')->toString() : '10:00',
+            'hours' => $request->isDayUse() ? $request->integer('hours') : 4,
+            'canDayUse' => $dayUse->isSold($property),
             'offers' => array_values(array_map(ConciergeOfferData::fromOffer(...), $offers)),
         ]);
     }

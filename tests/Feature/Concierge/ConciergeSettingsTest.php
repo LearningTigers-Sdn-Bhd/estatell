@@ -74,6 +74,17 @@ it('saves the location check switch, and leaves it alone when a save omits it', 
     $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page->where('locationCheckEnabled', true));
 });
 
+it('saves the test payments switch, and leaves it alone when a save omits it', function () {
+    ['owner' => $owner, 'property' => $property] = conciergeSettingsSetup();
+    $base = ['walk_in_enabled' => false, 'refund_requests_enabled' => false, 'house_rules' => null];
+
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base + ['test_payments_enabled' => true]);
+    $this->actingAs($owner)->put(route('settings.concierge.update', $property), $base);
+
+    expect($property->refresh()->settings->concierge_test_payments_enabled)->toBeTrue();
+    $this->actingAs($owner)->get(route('settings.concierge.index', $property))->assertInertia(fn (Assert $page) => $page->where('testPaymentsEnabled', true));
+});
+
 it('does not let staff without the settings permission change the switch', function () {
     ['property' => $property] = conciergeSettingsSetup();
     $staff = User::factory()->for($property)->withPermissions([])->create();

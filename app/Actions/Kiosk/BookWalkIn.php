@@ -11,6 +11,7 @@ use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
+use App\Enums\StayType;
 use App\Models\Kiosk;
 use App\Models\KioskWalkInHold;
 use App\Models\Property;
@@ -58,7 +59,9 @@ class BookWalkIn
                 $guest = ($this->createGuest)(null, $property, ['full_name' => '']);
                 $booking = ($this->createBooking)(null, $property, new NewBookingData(
                     bookingSource: $source,
-                    units: [new NewUnitData($offer->roomType->id, $offer->ratePlan->id, $search->arrival, $search->arrival->addDays($search->nights), $search->adults, $search->childAges, addOns: $this->autoAddOns->forUnit($property))],
+                    units: [$search->isDayUse()
+                        ? new NewUnitData($offer->roomType->id, $offer->ratePlan->id, $search->arrival, $search->arrival, $search->adults, $search->childAges, stayType: StayType::DayUse, startTime: $search->startTime, hours: $search->hours, roomId: $offer->roomId)
+                        : new NewUnitData($offer->roomType->id, $offer->ratePlan->id, $search->arrival, $search->arrival->addDays($search->nights), $search->adults, $search->childAges, addOns: $this->autoAddOns->forUnit($property))],
                     guests: [new NewBookingGuestData(guestId: $guest->id, unitIndex: 0)],
                     billingMode: BillingMode::EachPays,
                 ));

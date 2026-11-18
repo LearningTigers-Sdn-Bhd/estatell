@@ -99,6 +99,8 @@ All guest routes sit behind the `concierge` middleware (`EnsureConciergeIsActive
 
 A Curlec order is for a booking hold or for a stay. `gateway_payments.reservation_unit_id` is set for a stay order, and exactly one of it and `booking_hold_id` is set (a check constraint). Refunds, the webhook and the alerts treat both kinds the same way.
 
+Stay payments are Live by default. A property can switch on `property_settings.concierge_test_payments_enabled` (Settings › Concierge › Guest actions › Test payments, off by default). New orders then use Curlec's Test keys and are saved with mode Test, so no real money moves; each payment keeps its mode, so its refund and webhook use the same keys. It is separate from the booking website's payment mode.
+
 1. `StartStayPayment` creates the order for the shortfall. A guest who retries with the same amount due gets the same unpaid order.
 2. The page opens Curlec's checkout. When it finishes, the page posts the order id, payment id and signature to `payment/confirm`.
 3. `ConfirmStayPayment` checks the signature and that the order is this stay's, then `RecordStayPayment` posts an Advance with the Online method on the unit folio. The folio line key is `online:{order}:{unit}`.
@@ -219,6 +221,10 @@ Browser errors under `/stay/*` and `/c/*` use the concierge theme. Unknown and e
 ## Walk-in
 
 A walk-in is a booking made through the kiosk's own rules: the server prices it from the property's rates, a Confirmed booking and a unit folio are made at once, and the room is held for 10 minutes (`BookWalkIn::book`, shared with the kiosk). The guest then follows the same steps as any other guest, including payment. An unpaid hold is released by `ReleaseExpiredKioskHolds`.
+
+### Day use
+
+A property that sells day use (an active room type sold per room and an active Day use plan for it) shows an **Overnight / Day use** switch on the walk-in page. A day use search takes adults, a start time and whole hours (1 to 12) for today. `ConciergeDayUse` offers each room type at the cheapest Day use plan that prices those hours today, inside the plan's Sold between window and hour limits, with no stop sell, and with a room free for the block (`DayUseAvailability`). A start time that has passed is never offered. Booking holds the first free room for 10 minutes, with the same payment, release and check-in as a night walk-in. `AddUnit` accepts a day use line without a staff member only when the booking source is Walk-in, so the booking engine and channels still cannot sell it. A typed price is staff-only, so a plan is required. The stay page shows 0 nights for a day use stay.
 
 - **Location check:** a property can switch on `property_settings.concierge_location_check_enabled` (off by default). Then, when the property has coordinates, the page asks the browser for the guest's position and `CheckInConciergeStay` refuses `location_required` (none sent) or `too_far_away` (more than 50 m from the property). A property with no coordinates, or with the switch off, asks nothing.
 - The walk-in switch is `property_settings.concierge_walk_in_enabled`, off by default and separate from the kiosk's switch.
