@@ -14,9 +14,11 @@ use App\Actions\Concierge\SaveAmenityDetail;
 use App\Actions\Concierge\SaveGettingHere;
 use App\Actions\Concierge\SaveGuestContacts;
 use App\Actions\Concierge\SaveGuestGuidelines;
+use App\Actions\Concierge\SetFaqActive;
 use App\Actions\Concierge\SetInfoTopicActive;
 use App\Actions\Concierge\SetWifiNetworkActive;
 use App\Actions\Concierge\UpdateConciergeSettings;
+use App\Actions\Concierge\UpdateFaq;
 use App\Actions\Concierge\UpdateInfoTopic;
 use App\Actions\Concierge\UpdateWifiNetwork;
 use App\Actions\Concierge\UploadConciergeHero;
@@ -41,6 +43,7 @@ use App\Http\Requests\Concierge\SaveAmenityDetailRequest;
 use App\Http\Requests\Concierge\SaveGettingHereRequest;
 use App\Http\Requests\Concierge\SaveGuestContactsRequest;
 use App\Http\Requests\Concierge\SaveGuestGuidelinesRequest;
+use App\Http\Requests\Concierge\SetFaqActiveRequest;
 use App\Http\Requests\Concierge\SetInfoTopicActiveRequest;
 use App\Http\Requests\Concierge\SetWifiNetworkActiveRequest;
 use App\Http\Requests\Concierge\StoreFaqRequest;
@@ -146,6 +149,7 @@ class ConciergeSettingsController extends Controller
     {
         return $this->renderTab($property, 'faqs', [
             'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
+            'faqLimit' => AddFaq::MAX,
         ]);
     }
 
@@ -253,6 +257,22 @@ class ConciergeSettingsController extends Controller
         Inertia::flash('toast', $faq === null
             ? ['type' => 'error', 'message' => __('A property can list up to :count questions.', ['count' => AddFaq::MAX])]
             : ['type' => 'success', 'message' => __('Question added.')]);
+
+        return back();
+    }
+
+    public function updateFaq(StoreFaqRequest $request, Property $property, PropertyFaq $faq, UpdateFaq $updateFaq): RedirectResponse
+    {
+        $updateFaq($request->user(), $faq, $request->string('question')->toString(), $request->string('answer')->toString(), $request->input('topic'));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Question saved.')]);
+
+        return back();
+    }
+
+    public function faqActive(SetFaqActiveRequest $request, Property $property, PropertyFaq $faq, SetFaqActive $setFaqActive): RedirectResponse
+    {
+        $setFaqActive($request->user(), $faq, $request->boolean('active'));
 
         return back();
     }

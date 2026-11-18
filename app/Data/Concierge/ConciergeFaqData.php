@@ -12,10 +12,11 @@ class ConciergeFaqData extends Data
         public string $question,
         public string $answer,
         public ?string $topic,
+        public bool $active,
     ) {}
 
     public static function fromModel(PropertyFaq $faq): self
     {
-        return new self($faq->id, $faq->question, $faq->answer, $faq->topic);
+        return new self($faq->id, $faq->question, $faq->answer, $faq->topic, $faq->active);
     }
 }

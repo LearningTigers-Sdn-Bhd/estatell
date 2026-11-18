@@ -238,6 +238,52 @@ it('groups the questions under a topic', function () {
     $this->get("/stay/{$property->code}/info/faqs")->assertInertia(fn (Assert $page) => $page->where('faqs.0.topic', 'Breakfast')->where('faqs.1.topic', null));
 });
 
+it('lets staff edit a question and its topic, in their own property only', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $property->forceFill(['status' => 'live'])->save();
+    Feature::for($property)->activate(Concierge::class);
+    $faq = PropertyFaq::factory()->create(['property_id' => $property->id, 'topic' => 'Breakfast']);
+    $other = PropertyFaq::factory()->create(['property_id' => Property::factory()->create()->id]);
+
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.update', [$property, $faq]), ['topic' => ' Parking ', 'question' => ' Is parking free? ', 'answer' => 'Yes, in the basement.'])->assertRedirect();
+    $faq->refresh();
+    expect($faq->topic)->toBe('Parking')
+        ->and($faq->question)->toBe('Is parking free?')
+        ->and($faq->answer)->toBe('Yes, in the basement.');
+
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.update', [$property, $faq]), ['topic' => '', 'question' => 'Is parking free?', 'answer' => 'Yes, in the basement.'])->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.update', [$property, $faq]), ['topic' => '', 'question' => 'Is parking free?', 'answer' => 'Yes, in the basement.'])->assertRedirect();
+    expect($faq->refresh()->topic)->toBeNull()
+        ->and(Activity::query()->where('event', 'concierge.faq-updated')->count())->toBe(2);
+
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.update', [$property, $faq]), ['question' => 'Q', 'answer' => ' '])->assertSessionHasErrors('answer');
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.update', [$property, $other]), ['question' => 'Q', 'answer' => 'A'])->assertNotFound();
+});
+
+it('lets staff hide a question from guests and show it again, logging only a real change', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $property->forceFill(['status' => 'live'])->save();
+    Feature::for($property)->activate(Concierge::class);
+    $hidden = PropertyFaq::factory()->create(['property_id' => $property->id, 'question' => 'Staff only?', 'position' => 1]);
+    PropertyFaq::factory()->create(['property_id' => $property->id, 'question' => 'Breakfast?', 'position' => 2]);
+    $other = PropertyFaq::factory()->create(['property_id' => Property::factory()->create()->id]);
+
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.active.update', [$property, $hidden]), ['active' => false])->assertRedirect();
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.active.update', [$property, $hidden]), ['active' => false])->assertRedirect();
+    expect($hidden->refresh()->active)->toBeFalse()
+        ->and(Activity::query()->where('event', 'concierge.faq-hidden')->count())->toBe(1);
+    $this->get(route('settings.concierge.faqs', $property))->assertInertia(fn (Assert $page) => $page->has('faqs', 2)->where('faqs.0.active', false)->where('faqLimit', 30));
+    $this->get("/stay/{$property->code}/info/faqs")->assertInertia(fn (Assert $page) => $page->has('faqs', 1)->where('faqs.0.question', 'Breakfast?'));
+
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.active.update', [$property, $hidden]), ['active' => true])->assertRedirect();
+    expect($hidden->refresh()->active)->toBeTrue()
+        ->and(Activity::query()->where('event', 'concierge.faq-shown')->count())->toBe(1);
+
+    $this->actingAs($owner)->put(route('settings.concierge.faqs.active.update', [$property, $other]), ['active' => false])->assertNotFound();
+});
+
 it('lets staff keep the Wi-Fi networks and FAQs, and encrypts the password', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;

@@ -21,6 +21,7 @@ class PropertyFaqFactory extends Factory
             'question' => 'Is breakfast included?',
             'answer' => 'Breakfast is served from 7 to 10 am.',
             'position' => 0,
+            'active' => true,
         ];
     }
 }

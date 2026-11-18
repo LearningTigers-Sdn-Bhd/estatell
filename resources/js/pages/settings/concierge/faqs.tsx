@@ -3,22 +3,21 @@ import {
     ConciergeShell,
     conciergeBreadcrumbs,
 } from '@/components/pms/concierge/concierge-shell';
-import { AddFaqSection, FaqList } from '@/components/pms/concierge/faqs-tab';
+import { FaqTable } from '@/components/pms/concierge/faqs-tab';
 
+/** Concierge › FAQs: the questions in a table grouped by topic. No rail, so the table takes the full width. */
 export default function ConciergeFaqs({
     faqs,
+    faqLimit,
 }: {
     faqs: App.Data.Concierge.ConciergeFaqData[];
+    faqLimit: number;
 }) {
     return (
         <>
             <Head title="Concierge FAQs" />
-            <ConciergeShell
-                activeTab="faqs"
-                asideLabel="Add a question"
-                aside={<AddFaqSection />}
-            >
-                <FaqList faqs={faqs} />
+            <ConciergeShell activeTab="faqs">
+                <FaqTable faqs={faqs} limit={faqLimit} />
             </ConciergeShell>
         </>
     );

@@ -343,6 +343,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('wifi/{wifiNetwork}/active', [ConciergeSettingsController::class, 'wifiActive'])->name('wifi.active.update');
         Route::delete('wifi/{wifiNetwork}', [ConciergeSettingsController::class, 'destroyWifi'])->name('wifi.destroy');
         Route::post('faqs', [ConciergeSettingsController::class, 'storeFaq'])->name('faqs.store');
+        Route::put('faqs/{faq}', [ConciergeSettingsController::class, 'updateFaq'])->name('faqs.update');
+        Route::put('faqs/{faq}/active', [ConciergeSettingsController::class, 'faqActive'])->name('faqs.active.update');
         Route::delete('faqs/{faq}', [ConciergeSettingsController::class, 'destroyFaq'])->name('faqs.destroy');
         Route::put('amenities', [ConciergeSettingsController::class, 'toggleAmenity'])->name('amenities.toggle');
         Route::put('amenities/{amenity}', [ConciergeSettingsController::class, 'updateAmenity'])->whereNumber('amenity')->name('amenities.update');

@@ -1151,6 +1151,7 @@ id: number,
 question: string,
 answer: string,
 topic: string | null,
+active: boolean,
 };
 export type ConciergeGettingHereData = {
 directions: string | null,

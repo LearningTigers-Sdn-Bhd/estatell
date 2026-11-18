@@ -233,7 +233,7 @@ class ConciergeGuide
      */
     public function faqs(Property $property): array
     {
-        return $property->faqs()->get()->map(fn (PropertyFaq $faq): ConciergeFaqData => ConciergeFaqData::fromModel($faq))->all();
+        return $property->faqs()->where('active', true)->get()->map(fn (PropertyFaq $faq): ConciergeFaqData => ConciergeFaqData::fromModel($faq))->all();
     }
 
     /**
