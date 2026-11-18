@@ -59,7 +59,8 @@ class CheckOutUnit
      * balance, the scheduled-charge check and the folios alone: the folios stay Open with their balance, and the
      * room is not marked Dirty, because the stay ended in the past. `$groupSettled` (only the wastays replay passes it) lets a stay whose money is settled across its group check out with a balance on its folio, which then stays Open. `$sameDayLeaver` (only the wastays replay passes it)
      * checks out a one-night stay on its arrival date, before its departure date: its night posts first with the audit's
-     * key, so the folio closes and the invoice is issued on that business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
+     * key, so the folio closes and the invoice is issued on that business date. A day use that leaves before its block ends
+     * frees the room from then on (`vacated_at`). Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(?User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false, bool $sameDayLeaver = false, bool $groupSettled = false): UnitStayResult
     {
@@ -116,6 +117,8 @@ class CheckOutUnit
             $locked->status = UnitStatus::CheckedOut;
             $locked->checked_out_at = $asOf ?? now();
             $locked->save();
+
+            $this->vacateDayUse($locked);
 
             $openFolios = $skipBalanceCheck ? [] : $this->openUnitFolios($locked);
 
@@ -191,6 +194,36 @@ class CheckOutUnit
             'last_changed_by' => $actor?->id,
             'last_changed_at' => now(),
         ]);
+    }
+
+    /**
+     * A day use guest who leaves before the block ends frees the room from the check-out time (`vacated_at`, to the
+     * minute, not before `starts_at`). `ends_at`, `hours` and `amount` keep what was sold. A check-out on a later date
+     * or at or after `ends_at` changes nothing.
+     */
+    private function vacateDayUse(ReservationUnit $unit): void
+    {
+        if ($unit->stay_type !== StayType::DayUse || $unit->checked_out_at === null) {
+            return;
+        }
+
+        $block = $unit->dayUse()->first();
+
+        if ($block === null) {
+            return;
+        }
+
+        $leftAt = $unit->checked_out_at->setTimezone($unit->property->settings->time_zone ?? config('app.timezone'));
+
+        if ($leftAt->toDateString() !== $block->date->toDateString()) {
+            return;
+        }
+
+        $vacatedAt = max($leftAt->format('H:i:00'), $block->starts_at);
+
+        if ($vacatedAt < $block->ends_at) {
+            $block->forceFill(['vacated_at' => $vacatedAt])->save();
+        }
     }
 
     /**

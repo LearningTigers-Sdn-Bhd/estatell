@@ -10,6 +10,7 @@ use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\MoveUnit;
 use App\Actions\FrontDesk\ReinstateUnit;
+use App\Actions\FrontDesk\UndoCheckOut;
 use App\Actions\Reservations\AssignmentResult;
 use App\Enums\ChargingUnit;
 use App\Enums\HousekeepingStatus;
@@ -28,6 +29,7 @@ use App\Models\RoomRevenuePolicy;
 use App\Models\RoomStatus;
 use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
+use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Folio\ScheduledFolioRows;
@@ -389,4 +391,92 @@ test('the move preview of a day use lists the rooms free for its hours and not a
     $busy = $this->actingAs($setup['actor'])->postJson($url, $query)->assertOk()->json();
 
     expect($busy['units'])->toBe([]);
+});
+
+/**
+ * The day use of `dayUseDesk()` from 14:00 to 17:00, checked in, and checked out at `$time` on its date (property time).
+ *
+ * @return array<string, mixed>
+ */
+function dayUseCheckedOutAt(string $time, int $daysLater = 0): array
+{
+    $setup = dayUseDesk(['startTime' => '14:00', 'hours' => 3]);
+    $setup['unit']->forceFill(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()])->save();
+    test()->travelTo(CarbonImmutable::parse($setup['date']->addDays($daysLater)->toDateString().' '.$time, $setup['property']->settings->time_zone));
+
+    expect(app(CheckOutUnit::class)($setup['actor'], $setup['unit'])->isRefused())->toBeFalse();
+
+    return $setup;
+}
+
+test('an early day use check-out frees the room from the check-out time', function () {
+    $setup = dayUseCheckedOutAt('15:00:40');
+    $roomIds = fn (string $from, string $to) => array_map(fn ($room) => $room->id, app(DayUseAvailability::class)->freeRooms($setup['roomType'], $setup['date'], $from, $to));
+    $dayUse = $setup['unit']->dayUse()->sole();
+
+    expect($dayUse->vacated_at)->toBe('15:00:00')
+        ->and($dayUse->ends_at)->toBe('17:00:00')
+        ->and($dayUse->hours)->toBe(3)
+        ->and($dayUse->amount)->toBe('80.00')
+        ->and($roomIds('15:00', '17:00'))->toContain($setup['rooms'][0]->id)
+        ->and($roomIds('14:30', '17:00'))->not->toContain($setup['rooms'][0]->id);
+
+    $next = otherDayUse($setup, ['startTime' => '15:00', 'hours' => 2]);
+
+    expect($next->dayUse()->sole()->room_id)->toBe($setup['rooms'][0]->id);
+});
+
+test('an early day use check-out frees the room for an overnight guest arriving after it', function () {
+    $setup = dayUseCheckedOutAt('15:00');
+    $free = fn (string $arrivalTime) => array_map(
+        fn ($room) => $room->id,
+        app(FreeUnits::class)->forStay($setup['roomType'], $setup['date'], $setup['date']->addDay(), null, $arrivalTime, '11:00'),
+    );
+
+    expect($free('15:00'))->toContain($setup['rooms'][0]->id)
+        ->and($free('14:30'))->not->toContain($setup['rooms'][0]->id);
+});
+
+test('a day use checked out at or after its end, or on a later date, keeps the whole block', function (string $time, int $daysLater) {
+    $setup = dayUseCheckedOutAt($time, $daysLater);
+
+    expect($setup['unit']->dayUse()->sole()->vacated_at)->toBeNull()
+        ->and(app(DayUseAvailability::class)->isFree($setup['roomType'], $setup['rooms'][0]->id, $setup['date'], '16:00', '18:00'))->toBeFalse();
+})->with([
+    'at the end' => ['17:00', 0],
+    'after the end' => ['18:30', 0],
+    'the next day' => ['09:00', 1],
+]);
+
+test('the database refuses a day use that overlaps the hours before the check-out', function () {
+    $setup = dayUseCheckedOutAt('15:00');
+    $taker = otherDayUse($setup, ['startTime' => '15:00', 'hours' => 2]);
+
+    expectDatabaseRefuses(fn () => $taker->dayUse()->update(['starts_at' => '14:00:00', 'ends_at' => '16:00:00']), 'unit_day_uses_no_overlap');
+});
+
+test('undo check-out of a day use clears vacated_at, and is refused once the room is taken that day', function () {
+    $setup = dayUseCheckedOutAt('15:00');
+
+    $done = app(UndoCheckOut::class)($setup['actor'], $setup['unit']->fresh(), 'Guest came back');
+
+    expect($done->isRefused())->toBeFalse()
+        ->and($setup['unit']->dayUse()->sole()->vacated_at)->toBeNull();
+
+    expect(app(CheckOutUnit::class)($setup['actor'], $setup['unit']->fresh())->isRefused())->toBeFalse();
+    $overnight = ReservationUnit::factory()->withNights()->create([
+        'reservation_id' => Reservation::factory()->create(['property_id' => $setup['property']->id, 'booker_guest_id' => $setup['guest']->id])->id,
+        'property_id' => $setup['property']->id,
+        'room_type_id' => $setup['roomType']->id,
+        'rate_plan_id' => $setup['basic']->id,
+        'arrival_date' => $setup['date']->toDateString(),
+        'departure_date' => $setup['date']->addDay()->toDateString(),
+        'arrival_time' => '16:00',
+    ]);
+    $overnight->nights()->update(['room_id' => $setup['rooms'][0]->id]);
+
+    $refused = app(UndoCheckOut::class)($setup['actor'], $setup['unit']->fresh(), 'Guest came back');
+
+    expect($refused->refusal)->toBe('room_taken')
+        ->and($setup['unit']->dayUse()->sole()->vacated_at)->toBe('15:00:00');
 });

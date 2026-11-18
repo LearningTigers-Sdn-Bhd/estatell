@@ -88,19 +88,29 @@ class UndoCheckOutRule
 
     /**
      * Another unit holds the room (or the bed) the guest used last: a night on the business date, or a day use block
-     * on it that is not released.
+     * on it that is not released. For a day use, also a night on the block's date: an early check-out frees the room
+     * (`vacated_at`), so an overnight guest may have been put in it.
      */
     private function isTaken(ReservationUnit $unit, string $today): bool
     {
         if ($unit->stay_type === StayType::DayUse) {
             $block = $unit->dayUse;
 
-            return $block?->room_id !== null && UnitDayUse::query()
+            if ($block?->room_id === null) {
+                return false;
+            }
+
+            return UnitDayUse::query()
                 ->where('room_id', $block->room_id)
                 ->whereDate('date', $block->date->toDateString())
                 ->whereNull('released_at')
                 ->where('reservation_unit_id', '!=', $unit->id)
-                ->exists();
+                ->exists()
+                || UnitNight::query()
+                    ->where('room_id', $block->room_id)
+                    ->whereDate('date', $block->date->toDateString())
+                    ->where('reservation_unit_id', '!=', $unit->id)
+                    ->exists();
         }
 
         $last = $unit->nights()->whereDate('date', '<=', $today)->where(fn ($query) => $query->whereNotNull('room_id')->orWhereNotNull('bed_id'))->orderByDesc('date')->first();
