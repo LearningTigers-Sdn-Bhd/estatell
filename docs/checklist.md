@@ -120,6 +120,19 @@ Guest self check-in on the guest's own phone. Docs: [Concierge page](30-concierg
 - [ ] `feat(concierge): choose one room of a multi-room booking` — today a booking code that matches more than one room opens nothing.
 - [ ] `chore(concierge): check the Curlec checkout script address` — before the first live payment. Docs: [Payment](30-concierge/01-overview.md#payment).
 
+### 33 Facilities
+
+Planned on 2026-11-18 for a two-lodge client (Sepilok and Kinabatangan). Build in this order. Docs: [Facilities and events](33-facilities/01-overview.md). Confirm the two [assumptions](33-facilities/01-overview.md#assumptions-to-confirm-with-the-client) with the client before item 4.
+
+- [x] `docs(facilities): plan facilities and event folios`
+- [ ] `feat(facilities): add facilities in settings` — the `Facilities` Pennant flag and its admin switch, the `facilities` middleware, `facilities`, `FacilitySharing`, `FacilityCapacityUnit`, `FacilityRateBasis`, `TransactionCategory::Facility`, the charge item per facility, the settings page and Sheet. Docs: [Facility settings](33-facilities/02-facility-settings.md).
+- [ ] `feat(events): add events and event folios` — `events`, `EventStatus`, `FolioType::Event`, nullable `folios.reservation_id` with `event_id`, `CreateFolio::forEvent`, the Events list, New event, the event page Folio tab, `events.*` permissions. Every `folio->reservation` caller handles an event folio. Needs: facilities in settings. Docs: [Events and event folios](33-facilities/03-events-and-event-folios.md).
+- [ ] `feat(facilities): book facilities for events with the clash check` — `facility_bookings`, `FacilityBookingStatus`, `FacilityAvailability`, `BookFacility`, `UpdateFacilityBooking`, `CancelFacilityBooking`, the Book facility Dialog, the event Bookings tab, `ConfirmEvent` and `CancelEvent` with bookings, `facilities.book`. Needs: events. Docs: [Facility bookings](33-facilities/04-facility-bookings.md).
+- [ ] `feat(facilities): book facilities on reservations with Charge to` — the reservation Facilities tab, Charge to with **+ New third-party folio…**, `CancelFacilityBookings` from `CancelReservation`. Needs: book facilities for events. Docs: [Charge to](33-facilities/04-facility-bookings.md#charge-to).
+- [ ] `feat(facilities): post facility charges in the night audit` — `PostFacilityBooking`, `PostFacilityCharges`, `PostFacilityChargesStep`, Post now, Scheduled rows in `ScheduledFolioRows`, the reversal on cancel. Needs: book facilities on reservations. Docs: [Posting](33-facilities/04-facility-bookings.md#posting).
+- [ ] `feat(facilities): show facilities on the Timeline View` — `FacilityTimeline`, `FacilityDayCell`, the Facilities section, the day peek, **Show facilities** in Filters. Needs: post facility charges. Docs: [Timeline](33-facilities/05-timeline-and-report.md#facilities-section-on-the-timeline-view).
+- [ ] `feat(reports): add facility bookings and event deposits` — `ReportKey::FacilityBookings`, the report, event folios in Deposit liability, Payments, Folio ledger and Tax. Needs: show facilities on the Timeline View. Docs: [Facility bookings report](33-facilities/05-timeline-and-report.md#facility-bookings-report).
+
 ### Translations and accessibility
 
 - [ ] `feat(i18n): fill the Malay translations` — list the UI strings missing from `lang/ms.json` and draft the Malay. A Malay speaker reviews the wording before it ships.
