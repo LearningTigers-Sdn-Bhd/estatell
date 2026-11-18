@@ -11,7 +11,6 @@ use App\Data\Kiosk\KioskIdentityData;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\ReservationUnit;
-use App\Services\Concierge\ReturningGuest;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
 use Illuminate\Http\UploadedFile;
@@ -27,7 +26,6 @@ class SaveConciergeIdentity
         private UpdateIdentityDocument $updateDocument,
         private SetGuestDetails $setGuestDetails,
         private RegistrationCardFieldRules $fieldRules,
-        private ReturningGuest $returning,
     ) {}
 
     /**
@@ -43,10 +41,6 @@ class SaveConciergeIdentity
 
         return DB::transaction(function () use ($stay, $data, $front, $back): KioskIdentityResult {
             $guest = $this->stays->guest($stay);
-
-            if ($guest !== null && blank($guest->full_name)) {
-                $guest = $this->returning->join($stay, $data->document->number, $data->dateOfBirth) ?? $guest;
-            }
 
             if ($guest === null || ! $this->saveDocument($guest, $data->document, $front, $back)) {
                 return KioskIdentityResult::refused();

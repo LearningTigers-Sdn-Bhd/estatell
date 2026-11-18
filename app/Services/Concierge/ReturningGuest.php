@@ -15,7 +15,8 @@ use Carbon\CarbonInterface;
  * Joins the guest of a Concierge walk-in to a returning guest of the property, so the guest does not type their details
  * again. The page is open to anyone, so an ID number alone proves nothing: the guest must also give the date of birth
  * saved on that profile. Nothing from the profile is shown back to the guest. A guest whose profile has no date of birth
- * is not joined (the ID form is filled this time and saves one for the next stay). A booking made earlier already has a
+ * is not joined (the ID form is filled this time and saves one for the next stay). A MyKad number (12 digits) is never
+ * joined: it holds the date of birth, so the date proves nothing, and staff merge those guests. A booking made earlier already has a
  * named guest, so only a walk-in's nameless guest is ever merged. See docs/30-concierge/01-overview.md#returning-guests.
  */
 class ReturningGuest
@@ -36,7 +37,7 @@ class ReturningGuest
     {
         $placeholder = $this->stays->guest($stay);
 
-        if ($idNumber === '' || $dateOfBirth === null || $placeholder === null || filled($placeholder->full_name) || ! $this->isWalkIn($stay)) {
+        if ($idNumber === '' || preg_match('/^\d{12}$/', $idNumber) === 1 || $dateOfBirth === null || $placeholder === null || filled($placeholder->full_name) || ! $this->isWalkIn($stay)) {
             return null;
         }
 
