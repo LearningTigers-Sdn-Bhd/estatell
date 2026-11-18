@@ -84,7 +84,7 @@ export function LinkedSection({
                 href={href}
                 className={buttonVariants({
                     variant: 'outline',
-                    className: 'min-h-11 self-start',
+                    className: 'self-start',
                 })}
             >
                 {action}

@@ -1,13 +1,10 @@
-import { Form } from '@inertiajs/react';
 import { useState, type ReactNode } from 'react';
 import {
-    keepPage,
     SelectField,
-    SubmitButton,
     SwitchRow,
     TextField,
 } from '@/components/pms/concierge/content-fields';
-import { PanelSection } from '@/components/pms/concierge/guide-layout';
+import { ConciergeFormSection } from '@/components/pms/concierge/settings-form';
 import { update } from '@/routes/settings/concierge/hotel-info';
 
 type Info = App.Data.Concierge.ConciergeHotelInfoSettingsData;
@@ -75,54 +72,45 @@ export function HotelInfoForm({
     const [transfer, setTransfer] = useState(info.airportTransferOffered);
 
     return (
-        <PanelSection
+        <ConciergeFormSection
+            form={update.form()}
+            contentClassName="flex flex-col gap-8"
             title="Property and travel information"
             description="All fields are optional. Share only the details guests need for arrival, departure, and getting around."
         >
-            <Form
-                action={update.url()}
-                method="put"
-                options={keepPage}
-                className="flex flex-col gap-8"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <input
-                            type="hidden"
-                            name="airport_transfer_offered"
-                            value={transfer ? '1' : '0'}
-                        />
-                        <TextField
-                            name="about"
-                            placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
-                            label="About the property"
-                            defaultValue={info.about}
-                            error={errors.about}
-                            rows={4}
-                            maxLength={3000}
-                        />
+            {(errors) => (
+                <>
+                    <input
+                        type="hidden"
+                        name="airport_transfer_offered"
+                        value={transfer ? '1' : '0'}
+                    />
+                    <TextField
+                        name="about"
+                        placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
+                        label="About the property"
+                        defaultValue={info.about}
+                        error={errors.about}
+                        rows={4}
+                        maxLength={3000}
+                    />
 
-                        <ArrivalSection info={info} errors={errors} />
-                        <DirectionsSection info={info} errors={errors} />
-                        <TransportSection
-                            info={info}
-                            errors={errors}
-                            transfer={transfer}
-                            onTransferChange={setTransfer}
-                        />
-                        <ParkingSection
-                            info={info}
-                            errors={errors}
-                            options={parkingOptions}
-                        />
-
-                        <SubmitButton processing={processing}>
-                            Save
-                        </SubmitButton>
-                    </>
-                )}
-            </Form>
-        </PanelSection>
+                    <ArrivalSection info={info} errors={errors} />
+                    <DirectionsSection info={info} errors={errors} />
+                    <TransportSection
+                        info={info}
+                        errors={errors}
+                        transfer={transfer}
+                        onTransferChange={setTransfer}
+                    />
+                    <ParkingSection
+                        info={info}
+                        errors={errors}
+                        options={parkingOptions}
+                    />
+                </>
+            )}
+        </ConciergeFormSection>
     );
 }
 

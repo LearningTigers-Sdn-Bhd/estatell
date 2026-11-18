@@ -43,7 +43,7 @@ export function ChargePolicies({
                 href={roomRevenue.url()}
                 className={buttonVariants({
                     variant: 'outline',
-                    className: 'min-h-11 self-start',
+                    className: 'self-start',
                 })}
             >
                 Edit in Room revenue
@@ -69,57 +69,54 @@ export function HouseRulesForm({
     refundRequestsEnabled: boolean;
 }) {
     return (
-        <PanelSection
+        <SettingsForm
             title="House rules and terms"
             description="Set the expectations guests should know before they arrive. Leave a box empty to hide it from guests."
+            kept={{
+                walk_in_enabled: walkInEnabled,
+                refund_requests_enabled: refundRequestsEnabled,
+            }}
         >
-            <SettingsForm
-                kept={{
-                    walk_in_enabled: walkInEnabled,
-                    refund_requests_enabled: refundRequestsEnabled,
-                }}
-            >
-                {(errors) => (
-                    <>
-                        <TextField
-                            name="house_rules"
-                            label="Rules for guests"
-                            defaultValue={houseRules}
-                            error={errors.house_rules}
-                            rows={8}
-                            maxLength={2000}
-                            placeholder="e.g. Quiet hours from 10 pm. No smoking in the rooms."
-                        />
-                        <TextField
-                            name="room_policy"
-                            label="Room terms"
-                            defaultValue={policyTexts.roomPolicy}
-                            error={errors.room_policy}
-                            rows={4}
-                            maxLength={2000}
-                            placeholder="e.g. Children under 12 stay free. Cots on request. Pets are not allowed. Extra cleaning is charged."
-                        />
-                        <TextField
-                            name="payment_policy"
-                            label="Payment and deposits"
-                            defaultValue={policyTexts.paymentPolicy}
-                            error={errors.payment_policy}
-                            rows={4}
-                            maxLength={2000}
-                            placeholder="e.g. Pay at check-in. A RM 100 deposit is held and returned at check-out."
-                        />
-                        <TextField
-                            name="other_policies"
-                            label="Other policies"
-                            defaultValue={policyTexts.otherPolicies}
-                            error={errors.other_policies}
-                            rows={4}
-                            maxLength={2000}
-                            placeholder="e.g. Lost property is kept for 30 days."
-                        />
-                    </>
-                )}
-            </SettingsForm>
-        </PanelSection>
+            {(errors) => (
+                <>
+                    <TextField
+                        name="house_rules"
+                        label="Rules for guests"
+                        defaultValue={houseRules}
+                        error={errors.house_rules}
+                        rows={8}
+                        maxLength={2000}
+                        placeholder="e.g. Quiet hours from 10 pm. No smoking in the rooms."
+                    />
+                    <TextField
+                        name="room_policy"
+                        label="Room terms"
+                        defaultValue={policyTexts.roomPolicy}
+                        error={errors.room_policy}
+                        rows={4}
+                        maxLength={2000}
+                        placeholder="e.g. Children under 12 stay free. Cots on request. Pets are not allowed. Extra cleaning is charged."
+                    />
+                    <TextField
+                        name="payment_policy"
+                        label="Payment and deposits"
+                        defaultValue={policyTexts.paymentPolicy}
+                        error={errors.payment_policy}
+                        rows={4}
+                        maxLength={2000}
+                        placeholder="e.g. Pay at check-in. A RM 100 deposit is held and returned at check-out."
+                    />
+                    <TextField
+                        name="other_policies"
+                        label="Other policies"
+                        defaultValue={policyTexts.otherPolicies}
+                        error={errors.other_policies}
+                        rows={4}
+                        maxLength={2000}
+                        placeholder="e.g. Lost property is kept for 30 days."
+                    />
+                </>
+            )}
+        </SettingsForm>
     );
 }

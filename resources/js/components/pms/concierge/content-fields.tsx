@@ -6,6 +6,11 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Select,
     SelectContent,
     SelectGroup,
@@ -69,7 +74,6 @@ export function TextField({
                     placeholder={placeholder}
                     required={required}
                     autoComplete={autoComplete}
-                    className="min-h-11"
                 />
             )}
             <FieldError>{error}</FieldError>
@@ -101,7 +105,7 @@ export function SelectField({
                 items={options}
                 defaultValue={defaultValue ?? undefined}
             >
-                <SelectTrigger id={name} className="min-h-11 w-full">
+                <SelectTrigger id={name} className="w-full">
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,7 +139,7 @@ export function SubmitButton({
         <Button
             type="submit"
             variant={variant}
-            className="min-h-11 self-end"
+            className="self-end"
             disabled={processing}
             focusableWhenDisabled
         >
@@ -224,16 +228,22 @@ export function RemovableItem({
     return (
         <li className="flex items-start justify-between gap-3 border-b py-4 text-sm first:pt-0 last:border-b-0 last:pb-0">
             <span className="flex min-w-0 flex-col gap-1">{children}</span>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon-lg"
-                className="size-11 shrink-0"
-                aria-label={label}
-                onClick={() => router.delete(url, keepPage)}
-            >
-                <Trash2 />
-            </Button>
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={label}
+                            onClick={() => router.delete(url, keepPage)}
+                        />
+                    }
+                >
+                    <Trash2 />
+                </TooltipTrigger>
+                <TooltipContent>Remove</TooltipContent>
+            </Tooltip>
         </li>
     );
 }

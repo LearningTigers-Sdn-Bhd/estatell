@@ -8,6 +8,11 @@ import {
 import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toggle } from '@/routes/settings/concierge/amenities';
 
 type Details = App.Data.Concierge.ConciergeAmenitySettingsData;
@@ -54,16 +59,24 @@ export function AmenitiesTab({
                                 {hasAmenityDetails(item) && (
                                     <Badge variant="secondary">Added</Badge>
                                 )}
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-lg"
-                                    className="size-11 shrink-0"
-                                    aria-label={`Edit details of ${amenity.name}`}
-                                    onClick={() => setEditing(item)}
-                                >
-                                    <Pencil />
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={`Edit details of ${amenity.name}`}
+                                                onClick={() => setEditing(item)}
+                                            />
+                                        }
+                                    >
+                                        <Pencil />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Edit details
+                                    </TooltipContent>
+                                </Tooltip>
                             </span>
                         )
                     );

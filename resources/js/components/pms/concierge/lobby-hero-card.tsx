@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Trash2, Upload } from 'lucide-react';
+import { ImageOff, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { Button } from '@/components/ui/button';
@@ -89,7 +89,7 @@ export function LobbyHeroCard({ heroUrl }: { heroUrl: string | null }) {
                                 })
                             }
                         >
-                            <Trash2 data-icon="inline-start" />
+                            <ImageOff data-icon="inline-start" />
                             Use stock photo
                         </Button>
                     )}

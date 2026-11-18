@@ -105,7 +105,6 @@ export function ConciergeShell({
                                 rel="noreferrer"
                                 className={buttonVariants({
                                     variant: 'outline',
-                                    className: 'min-h-11',
                                 })}
                             >
                                 <ExternalLink data-icon="inline-start" />
@@ -113,7 +112,7 @@ export function ConciergeShell({
                             </a>
                             <Button
                                 type="button"
-                                className="min-h-11"
+                                variant="outline"
                                 onClick={() => window.print()}
                             >
                                 <Printer data-icon="inline-start" />

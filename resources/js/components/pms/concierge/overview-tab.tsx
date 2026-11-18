@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { conciergeTabUrl } from '@/components/pms/concierge/concierge-shell';
 import { PanelSection, Status } from '@/components/pms/concierge/guide-layout';
 import type { GuideSectionStatus } from '@/components/pms/concierge/guide-sections';
@@ -40,7 +40,7 @@ export function GuideReadiness({ items }: { items: GuideSectionStatus[] }) {
                             href={conciergeTabUrl(next.key)}
                             className={buttonVariants({
                                 variant: 'link',
-                                className: 'min-h-11 text-foreground',
+                                className: 'text-foreground',
                             })}
                         >
                             Continue with {next.label}
@@ -100,21 +100,7 @@ export function LobbyCheckIn({
         >
             <div className="flex flex-col items-center gap-4">
                 <LobbyQr url={lobbyUrl} qr={lobbyQr} className="size-40" />
-                <div className="flex flex-wrap justify-center gap-2">
-                    <a
-                        href={lobbyUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={buttonVariants({
-                            variant: 'outline',
-                            className: 'min-h-11',
-                        })}
-                    >
-                        <ExternalLink data-icon="inline-start" />
-                        Open lobby page
-                    </a>
-                    <CopyLinkButton url={lobbyUrl} />
-                </div>
+                <CopyLinkButton url={lobbyUrl} />
             </div>
         </PanelSection>
     );

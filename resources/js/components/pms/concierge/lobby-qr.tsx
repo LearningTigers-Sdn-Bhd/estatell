@@ -51,7 +51,7 @@ export function CopyLinkButton({
         <Button
             type="button"
             variant="ghost"
-            className={cn('min-h-11', className)}
+            className={className}
             onClick={() => copy(url)}
         >
             <Icon data-icon="inline-start" />
