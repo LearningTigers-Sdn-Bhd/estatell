@@ -1,15 +1,9 @@
-import { router } from '@inertiajs/react';
-import { Trash2, type LucideIcon } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import {
     Select,
     SelectContent,
@@ -193,67 +187,5 @@ export function SwitchRow({
             </div>
             <Switch id={id} checked={checked} onCheckedChange={onChange} />
         </div>
-    );
-}
-
-/** A SwitchRow that sends `1` or `0` under `name` with the native form around it. */
-export function SwitchInput({
-    name,
-    title,
-    body,
-    defaultChecked,
-}: {
-    name: string;
-    title: string;
-    body?: string;
-    defaultChecked: boolean;
-}) {
-    const [checked, setChecked] = useState(defaultChecked);
-
-    return (
-        <>
-            <input type="hidden" name={name} value={checked ? '1' : '0'} />
-            <SwitchRow
-                id={`${name}_switch`}
-                title={title}
-                body={body}
-                checked={checked}
-                onChange={setChecked}
-                className="items-center rounded-lg border p-4"
-            />
-        </>
-    );
-}
-
-/** A list row with a remove button. `label` names the target for screen readers. */
-export function RemovableItem({
-    url,
-    label,
-    children,
-}: {
-    url: string;
-    label: string;
-    children: ReactNode;
-}) {
-    return (
-        <li className="flex items-start justify-between gap-3 border-b py-4 text-sm first:pt-0 last:border-b-0 last:pb-0">
-            <span className="flex min-w-0 flex-col gap-1">{children}</span>
-            <Tooltip>
-                <TooltipTrigger
-                    render={
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={label}
-                            onClick={() => router.delete(url, keepPage)}
-                        />
-                    }
-                >
-                    <Trash2 />
-                </TooltipTrigger>
-                <TooltipContent>Remove</TooltipContent>
-            </Tooltip>
-        </li>
     );
 }
