@@ -33,6 +33,7 @@ use App\Models\UnitNight;
 use App\Models\WebhookEndpoint;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
+use Carbon\CarbonImmutable;
 use Database\Factories\BookingSourceFactory;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Queue;
@@ -232,15 +233,66 @@ it('books and holds a day use room, which the same hours then cannot book again'
     expect(KioskWalkInHold::query()->count())->toBe(1);
 });
 
-it('opens a day use search on the next half hour for two hours, and refuses one that already started', function () {
+it('opens a day use search on the half hour running now for two hours, and refuses one that already started', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     conciergeDayUsePlan($property, $type);
 
     $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2")->assertSessionHasNoErrors()->assertInertia(fn (Assert $page) => $page
-        ->where('startTime', '20:30')
+        ->where('startTime', '20:00')
         ->where('hours', 2)
         ->where('offers.0.total', '60.00'));
     $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2&start_time=00:00&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+});
+
+/**
+ * Hold a day use walk-in at a local time today and return the stay.
+ */
+function conciergeDayUseHeldAt(TestCase $test, Property $property, RoomType $type, string $now, string $start, int $hours): ReservationUnit
+{
+    $test->travelTo(CarbonImmutable::parse("2026-10-14 {$now}", $property->settings->time_zone));
+    $test->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => $start, 'hours' => $hours, 'room_type_id' => $type->id])->assertSessionHasNoErrors();
+
+    return ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->latest('id')->firstOrFail()->reservation_unit_id);
+}
+
+it('sells a day use room at the exact time the last block ends, in the half hour running now', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $first = conciergeDayUseHeldAt($this, $property, $type, '18:00', '18:00', 2);
+
+    $next = conciergeDayUseHeldAt($this, $property, $type, '20:02', '20:00', 2);
+
+    expect($next->dayUse->room_id)->toBe($first->dayUse->room_id)
+        ->and($next->dayUse->starts_at)->toBe('20:00:00')
+        ->and($next->dayUse->ends_at)->toBe('22:00:00');
+});
+
+it('refuses a day use start before the half hour running now', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $this->travelTo(CarbonImmutable::parse('2026-10-14 20:02', $property->settings->time_zone));
+
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=19:30&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:00&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 1));
+});
+
+it('sells a room freed by an early day use check-out once housekeeping marks it Clean', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $first = conciergeDayUseHeldAt($this, $property, $type, '18:00', '18:00', 4);
+    $first->forceFill(['status' => UnitStatus::CheckedOut])->save();
+    $first->dayUse->forceFill(['vacated_at' => '19:40:00'])->save();
+    Room::query()->whereKeyNot($first->dayUse->room_id)->where('room_type_id', $type->id)->update(['archived_at' => now()]);
+    RoomStatus::query()->where('room_id', $first->dayUse->room_id)->update(['status' => HousekeepingStatus::Dirty]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-14 20:02', $property->settings->time_zone));
+    $search = "/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:00&hours=2";
+
+    $this->get($search)->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+
+    RoomStatus::query()->where('room_id', $first->dayUse->room_id)->update(['status' => HousekeepingStatus::Clean]);
+
+    $this->get($search)->assertInertia(fn (Assert $page) => $page->has('offers', 1));
+    expect(conciergeDayUseHeldAt($this, $property, $type, '20:02', '20:00', 2)->dayUse->room_id)->toBe($first->dayUse->room_id);
 });
 
 /**
@@ -383,44 +435,20 @@ it('holds the room that has a door lock for a day use walk-in', function () {
     expect($stay->dayUse->room_id)->toBe($locked->id);
 });
 
-it('holds the Dirty room that has a door lock for a day use walk-in, so the room is booked again after a check-out', function () {
-    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+it('never offers or holds a Dirty room for a day use walk-in', function () {
+    ['property' => $property, 'type' => $type, 'room' => $room] = conciergeWalkInSetup();
     conciergeDayUsePlan($property, $type);
     $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
     DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $locked->id]);
     RoomStatus::query()->where('room_id', $locked->id)->update(['status' => HousekeepingStatus::Dirty]);
+    $body = ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id];
 
-    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
-
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    expect($stay->dayUse->room_id)->toBe($locked->id);
-});
-
-it('holds a Clean room before a Dirty one for a day use walk-in when no room has a door lock', function () {
-    ['property' => $property, 'type' => $type, 'room' => $room] = conciergeWalkInSetup();
-    conciergeDayUsePlan($property, $type);
-    $clean = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
-    RoomStatus::query()->where('room_id', $room->id)->update(['status' => HousekeepingStatus::Dirty]);
-
-    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
+    $this->post("/stay/{$property->code}/walk-in", $body)->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    expect($stay->dayUse->room_id)->toBe($clean->id);
-});
+    expect($stay->dayUse->room_id)->toBe($room->id);
 
-it('holds a Clean room with a door lock before a Dirty one with a door lock for a day use walk-in', function () {
-    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    conciergeDayUsePlan($property, $type);
-    $dirty = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102', 'position' => 1]);
-    $clean = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '103', 'position' => 2]);
-    DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $dirty->id]);
-    DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $clean->id]);
-    RoomStatus::query()->where('room_id', $dirty->id)->update(['status' => HousekeepingStatus::Dirty]);
-
-    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
-
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    expect($stay->dayUse->room_id)->toBe($clean->id);
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:30&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
 });
 
 it('sends booking.created for a walk-in only once its hold is paid, with the booker details, and only once', function () {

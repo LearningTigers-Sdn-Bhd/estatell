@@ -39,7 +39,7 @@ class WalkInRequest extends FormRequest
             $property = $this->route('property');
 
             if ($this->isDayUse() && $property instanceof Property) {
-                $this->mergeIfMissing(['start_time' => $this->nextHalfHour($property)]);
+                $this->mergeIfMissing(['start_time' => $this->currentHalfHour($property)]);
             }
         }
     }
@@ -60,14 +60,14 @@ class WalkInRequest extends FormRequest
     }
 
     /**
-     * The first half hour still ahead in the property's time zone, so a day use search opens on a time that can sell.
+     * The half hour running now in the property's time zone (15:00 at 15:02), so a day use search opens on "now".
      */
-    private function nextHalfHour(Property $property): string
+    private function currentHalfHour(Property $property): string
     {
         $now = app(PropertyToday::class)->now($property);
-        $minutes = (intdiv($now->hour * 60 + $now->minute, 30) + 1) * 30;
+        $minutes = intdiv($now->hour * 60 + $now->minute, 30) * 30;
 
-        return sprintf('%02d:%02d', intdiv(min($minutes, 23 * 60 + 30), 60), min($minutes, 23 * 60 + 30) % 60);
+        return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
     }
 
     public function isDayUse(): bool
