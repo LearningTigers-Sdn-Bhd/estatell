@@ -122,4 +122,4 @@ Production sends through MillionSend, a Resend-compatible email API. Set `MAIL_M
 - Before using it on staging, define a `viewMailbox` gate that uses the `admin` gate. Captured mail can hold reset tokens.
 - Tests are not affected: Laravel's test environment uses the `array` mailer.
 
-`ConciergeStayLink` is a plain notification class like `OnlineBookingConfirmed`, not a `NotificationType` case. `SendConciergeStayLink` sends it by mail to the guest's address when a stay checks in and the property has the Concierge feature on. It shows the dates and an **Open my stay** button. See [Stay link email](../30-concierge/01-overview.md#stay-link-email).
+`ConciergeStayLink` is a plain notification class like `OnlineBookingConfirmed`, not a `NotificationType` case. `SendConciergeStayLink` sends it by mail to the guest's address once the stay's door PIN is ready after check-in (or after 60 seconds without it), when the property has the Concierge feature on. It shows the dates, the room, the door PIN and an **Open my stay** button. See [Stay link email](../30-concierge/01-overview.md#stay-link-email).

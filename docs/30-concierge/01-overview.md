@@ -118,9 +118,17 @@ They open from the stay menu once the guest is checked in. Each works only for a
 - **Asking the desk:** when the guest cannot check out alone (money is owed, a deposit is held, or it is before the departure day), the bill page offers **Ask the front desk to check you out** with an optional note. It becomes a guest request of the type Other whose details start with `Check-out request` (`RequestConciergeCheckOut`), in the staff Requests list. One can be open at a time. While it is open the bill and the stay page show "Check-out asked".
 - After check-out the link shows the thank-you, the documents and, when a refund request was sent, how it is going, and the e-invoice page. The refund request and the e-invoice request are the only writes it accepts; every other write answers 404.
 
-## Stay link email
+## Welcome email and webhook
 
-When a stay checks in, by the page, the front desk or the kiosk, `SendConciergeStayLink` (a listener of `StayCheckedIn`) makes a new link and emails it to the guest with `ConciergeStayLink`. Nothing is sent while the property has the Concierge feature off or when the guest has no email address. The email is a plain notification to the address on the guest, like the online booking confirmation, so it skips the preference matrix. Older links stay valid until they expire.
+When a stay checks in, by the page, the front desk or the kiosk, a listener of `StayCheckedIn` queues `SendStayWelcomeJob`. The guest gets one welcome, so the PIN is in it:
+
+- While the stay's door PIN is still being made (`KioskPin` says `pending`), the job asks again every 5 seconds, up to 60 seconds after check-in (`SendStayWelcomeJob::HOLD_SECONDS`).
+- When the PIN is ready, `SendConciergeStayLink` sends the welcome with the PIN, the room and the time the PIN ends.
+- When the PIN failed, took longer than 60 seconds, or the stay has no lock, the welcome is sent without the PIN. If the stay could have a PIN, the email says it will show on the stay page.
+
+The welcome is two messages from one moment: the `ConciergeStayLink` email (to the guest's address) and the `stay.welcome_ready` webhook, which a WhatsApp automation can listen to (see [Outgoing webhooks](../32-webhooks/01-outgoing-webhooks.md)). Each makes a new link; older links stay valid until they expire. Nothing is sent, and no link is made, while the property has the Concierge feature off. The email is skipped when the guest has no address, and the webhook when no endpoint hears it. The email is a plain notification, like the online booking confirmation, so it skips the preference matrix.
+
+The webhook carries the door PIN, so an admin who opens the delivery Sheet sees it, as they already see the PIN on the stay.
 
 ## Returning guest
 
