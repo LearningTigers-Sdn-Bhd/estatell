@@ -195,6 +195,9 @@ One word per idea, in docs, code and UI.
 | Booking engine    | The feature that lets guests book and pay online, through the API                                        |                                            |
 | Microsite         | The property's booking website at `booking.estatell.com/{slug}`, a separate app                          | booking site, mini site                    |
 | Hold              | A room kept for 20 minutes while a guest pays                                                            | quote, reservation (for this)              |
+| Facility          | Something staff book by date and time: a hall, kayaks, an activity. Private or Shared                    | resource, venue                            |
+| Amenity           | What the property offers, shown to guests (`property_amenities`). Not booked                             | facility (in code)                         |
+| Event             | A bill for people who are not staying, with one event folio                                              | function, non-guest folio                  |
 
 "Travel agent" appears only as a company type. "Portal" appears in UI labels and in `portal_*` columns.
 
@@ -238,3 +241,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 30  | [Commission fees](30-commission-fees/) | Commission per service, money held for properties, monthly payout vouchers                                                          |
 | 31  | [E-invoicing](31-einvoice/)            | LHDN MyInvois e-invoicing: folios, AR invoices, monthly consolidation, credit notes (feature flag)                                  |
 | 32  | [Webhooks](32-webhooks/)               | Outgoing webhooks: admins register URLs that receive signed JSON when bookings, stays, payments or guests change                    |
+| 33  | [Facilities](33-facilities/)           | Bookable halls, equipment and activities (Private or Shared), events and event folios (feature flag, planned)                       |
