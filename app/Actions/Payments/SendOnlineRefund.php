@@ -3,6 +3,7 @@
 namespace App\Actions\Payments;
 
 use App\Enums\GatewayRefundStatus;
+use App\Enums\PaymentMode;
 use App\Models\GatewayRefund;
 use App\Services\Payments\CurlecGateway;
 use App\Services\Payments\CurlecRefundRefused;
@@ -39,7 +40,7 @@ class SendOnlineRefund
                 $current->gatewayPayment->mode,
                 (string) $current->gatewayPayment->gateway_payment_id,
                 Money::of($current->amount, $currency)->getMinorAmount()->toInt(),
-                "refund-{$current->id}-{$current->attempts}",
+                $this->receipt($current),
                 $current->id,
             );
         } catch (CurlecRefundRefused $refused) {
@@ -63,5 +64,17 @@ class SendOnlineRefund
             ->whereNull('gateway_refund_id')
             ->where('status', GatewayRefundStatus::Pending)
             ->update(['failure_reason' => null, 'updated_at' => now(), ...($curlecRefundId === null ? [] : ['gateway_refund_id' => $curlecRefundId])]);
+    }
+
+    /**
+     * Curlec's idempotency key for this attempt. Production, demo and every local machine share one Curlec test account,
+     * and demo and local databases reset, so refund IDs repeat there. A test refund's receipt also holds the time the row
+     * was made, so it never matches an older refund's. Live receipts stay `refund-{id}-{attempt}`.
+     */
+    private function receipt(GatewayRefund $refund): string
+    {
+        return $refund->gatewayPayment->mode === PaymentMode::Test
+            ? "refund-{$refund->id}-{$refund->created_at?->getTimestamp()}-{$refund->attempts}"
+            : "refund-{$refund->id}-{$refund->attempts}";
     }
 }

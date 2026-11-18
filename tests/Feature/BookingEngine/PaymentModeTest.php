@@ -10,6 +10,7 @@ use App\Features\BookingEngine;
 use App\Models\BookingHold;
 use App\Models\GatewayEvent;
 use App\Models\GatewayPayment;
+use App\Models\GatewayRefund;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -129,8 +130,11 @@ test('a test payment is refunded with the test keys after the site went Live', f
 
     $result = app(RefundHeldPayment::class)($staff, Payment::query()->sole(), '200.00', null, 'key-1');
 
+    $refund = GatewayRefund::query()->sole();
+
     expect($result->isRefused())->toBeFalse()
-        ->and($setup['gateway']->refunds[0]['mode'])->toBe(PaymentMode::Test);
+        ->and($setup['gateway']->refunds[0]['mode'])->toBe(PaymentMode::Test)
+        ->and($setup['gateway']->refunds[0]['receipt'])->toBe("refund-{$refund->id}-{$refund->created_at->getTimestamp()}-1");
 });
 
 test('a test booking has no commission and shows a Test badge', function () {
