@@ -9,7 +9,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class SaveHotelInfoRequest extends FormRequest
+class SaveGettingHereRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -25,9 +25,6 @@ class SaveHotelInfoRequest extends FormRequest
         $km = ['nullable', 'integer', 'min:0', 'max:9999'];
 
         return [
-            'about' => ['nullable', 'string', 'max:3000'],
-            'arrival_instructions' => ['nullable', 'string', 'max:1000'],
-            'departure_instructions' => ['nullable', 'string', 'max:1000'],
             'directions' => ['nullable', 'string', 'max:2000'],
             'airport_distance_km' => $km,
             'airport_travel_minutes' => $minutes,

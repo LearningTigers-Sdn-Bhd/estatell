@@ -64,7 +64,7 @@ export function Workspace({
     hideAside?: boolean;
     /** Whether each panel scrolls on its own or the page scrolls. */
     scroll?: WorkspaceScroll;
-    /** With `scroll="page"`: `default` is 20rem, `wide` is 28rem for a rail with wider content. */
+    /** The aside width: `default` is 20rem, `wide` is 28rem for a rail with wider content. */
     asideWidth?: 'default' | 'wide';
     /** Centre panel, the content of the open tab. */
     children: ReactNode;
@@ -99,10 +99,14 @@ export function Workspace({
                 list
                     ? hideAside
                         ? 'lg:grid-cols-[14rem_minmax(0,1fr)_0rem]'
-                        : 'lg:grid-cols-[14rem_minmax(0,1fr)_20rem]'
+                        : asideWidth === 'wide'
+                          ? 'lg:grid-cols-[14rem_minmax(0,1fr)_28rem]'
+                          : 'lg:grid-cols-[14rem_minmax(0,1fr)_20rem]'
                     : hideAside
                       ? 'lg:grid-cols-[minmax(0,1fr)_0rem]'
-                      : 'lg:grid-cols-[minmax(0,1fr)_20rem]',
+                      : asideWidth === 'wide'
+                        ? 'lg:grid-cols-[minmax(0,1fr)_28rem]'
+                        : 'lg:grid-cols-[minmax(0,1fr)_20rem]',
             )}
         >
             <Panel
@@ -114,7 +118,14 @@ export function Workspace({
                 label={asideLabel}
                 inert={hideAside}
             >
-                <div className={cn(hideAside && 'lg:w-77')}>{aside}</div>
+                <div
+                    className={cn(
+                        hideAside &&
+                            (asideWidth === 'wide' ? 'lg:w-109' : 'lg:w-77'),
+                    )}
+                >
+                    {aside}
+                </div>
             </Panel>
             {list && (
                 <Panel className="order-2 lg:order-1" label="Choose">

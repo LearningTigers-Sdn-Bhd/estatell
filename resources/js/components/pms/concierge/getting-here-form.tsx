@@ -1,22 +1,15 @@
-import { Form } from '@inertiajs/react';
-import { useState, type ReactNode } from 'react';
+import { CalendarCheck, Plane, PlugZap } from 'lucide-react';
+import { useState } from 'react';
 import {
-    keepPage,
     SelectField,
-    SubmitButton,
     SwitchRow,
     TextField,
 } from '@/components/pms/concierge/content-fields';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { update } from '@/routes/settings/concierge/hotel-info';
+import { FormBlock } from '@/components/pms/concierge/guide-layout';
+import { ConciergeFormSection } from '@/components/pms/concierge/settings-form';
+import { update } from '@/routes/settings/concierge/getting-here';
 
-type Info = App.Data.Concierge.ConciergeHotelInfoSettingsData;
+type Info = App.Data.Concierge.ConciergeGettingHereData;
 type Errors = Record<string, string>;
 export type ParkingOptions = {
     availability: { value: string; label: string }[];
@@ -49,29 +42,8 @@ const DISTANCES = [
     },
 ] as const;
 
-/** A titled block of the form, divided from the one above. */
-function Section({
-    title,
-    description,
-    children,
-}: {
-    title: string;
-    description: string;
-    children: ReactNode;
-}) {
-    return (
-        <section className="flex flex-col gap-4 border-t pt-6">
-            <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-semibold">{title}</h3>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-            {children}
-        </section>
-    );
-}
-
-/** What the property tells guests about itself and how to get there. Everything is optional; an empty part is not shown. */
-export function HotelInfoForm({
+/** How guests reach the property and where they park. Everything is optional; an empty part is not shown to guests. */
+export function GettingHereForm({
     info,
     parkingOptions,
 }: {
@@ -81,96 +53,40 @@ export function HotelInfoForm({
     const [transfer, setTransfer] = useState(info.airportTransferOffered);
 
     return (
-        <Card className="print:hidden">
-            <CardHeader>
-                <CardTitle>Property and travel information</CardTitle>
-                <CardDescription>
-                    All fields are optional. Share only the details guests need
-                    for arrival, departure, and getting around.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form
-                    action={update.url()}
-                    method="put"
-                    options={keepPage}
-                    className="flex flex-col gap-8"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <input
-                                type="hidden"
-                                name="airport_transfer_offered"
-                                value={transfer ? '1' : '0'}
-                            />
-                            <TextField
-                                name="about"
-                                placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
-                                label="About the property"
-                                defaultValue={info.about}
-                                error={errors.about}
-                                rows={4}
-                                maxLength={3000}
-                            />
-
-                            <ArrivalSection info={info} errors={errors} />
-                            <DirectionsSection info={info} errors={errors} />
-                            <TransportSection
-                                info={info}
-                                errors={errors}
-                                transfer={transfer}
-                                onTransferChange={setTransfer}
-                            />
-                            <ParkingSection
-                                info={info}
-                                errors={errors}
-                                options={parkingOptions}
-                            />
-
-                            <SubmitButton processing={processing}>
-                                Save
-                            </SubmitButton>
-                        </>
-                    )}
-                </Form>
-            </CardContent>
-        </Card>
-    );
-}
-
-function ArrivalSection({ info, errors }: { info: Info; errors: Errors }) {
-    return (
-        <Section
-            title="Arrival and departure"
-            description="Give guests only the steps they need on arrival and when they leave."
+        <ConciergeFormSection
+            form={update.form()}
+            contentClassName="flex flex-col gap-8"
+            title="Getting here"
+            description="How guests reach the property and where they park. All fields are optional."
         >
-            <div className="grid gap-4 md:grid-cols-2">
-                <TextField
-                    name="arrival_instructions"
-                    label="Arrival instructions"
-                    defaultValue={info.arrivalInstructions}
-                    error={errors.arrival_instructions}
-                    rows={3}
-                    maxLength={1000}
-                    placeholder="e.g. Take the lift to level 3. The front desk is on your left."
-                />
-                <TextField
-                    name="departure_instructions"
-                    label="Departure instructions"
-                    defaultValue={info.departureInstructions}
-                    error={errors.departure_instructions}
-                    rows={3}
-                    maxLength={1000}
-                    placeholder="e.g. Leave the key card at the front desk."
-                />
-            </div>
-        </Section>
+            {(errors) => (
+                <>
+                    <input
+                        type="hidden"
+                        name="airport_transfer_offered"
+                        value={transfer ? '1' : '0'}
+                    />
+                    <DirectionsSection info={info} errors={errors} />
+                    <TransportSection
+                        info={info}
+                        errors={errors}
+                        transfer={transfer}
+                        onTransferChange={setTransfer}
+                    />
+                    <ParkingSection
+                        info={info}
+                        errors={errors}
+                        options={parkingOptions}
+                    />
+                </>
+            )}
+        </ConciergeFormSection>
     );
 }
 
 function DirectionsSection({ info, errors }: { info: Info; errors: Errors }) {
     return (
-        <Section
+        <FormBlock
             title="Directions and travel times"
             description="Add typical distances and journey times if you know them."
         >
@@ -213,7 +129,7 @@ function DirectionsSection({ info, errors }: { info: Info; errors: Errors }) {
                     </fieldset>
                 ))}
             </div>
-        </Section>
+        </FormBlock>
     );
 }
 
@@ -229,12 +145,13 @@ function TransportSection({
     onTransferChange: (offered: boolean) => void;
 }) {
     return (
-        <Section
+        <FormBlock
             title="Transfers and local transport"
             description="Add airport pickup, shuttle, and public transport details."
         >
             <SwitchRow
                 id="airport_transfer_switch"
+                icon={Plane}
                 title="Airport transfer available"
                 body="Include the price, booking notice, and pickup point."
                 checked={transfer}
@@ -298,7 +215,7 @@ function TransportSection({
                 rows={2}
                 maxLength={1000}
             />
-        </Section>
+        </FormBlock>
     );
 }
 
@@ -317,7 +234,7 @@ function ParkingSection({
     );
 
     return (
-        <Section
+        <FormBlock
             title="Parking"
             description="Tell guests where to park, what it costs, and what fits."
         >
@@ -389,6 +306,7 @@ function ParkingSection({
             />
             <SwitchRow
                 id="parking_ev_charging_switch"
+                icon={PlugZap}
                 title="EV charging available"
                 body="Guests with electric cars will see this."
                 checked={evCharging}
@@ -397,12 +315,13 @@ function ParkingSection({
             />
             <SwitchRow
                 id="parking_booking_required_switch"
+                icon={CalendarCheck}
                 title="Parking must be booked"
                 body="Guests are told to book a space before they arrive."
                 checked={bookingRequired}
                 onChange={setBookingRequired}
                 className="items-center rounded-lg border p-4"
             />
-        </Section>
+        </FormBlock>
     );
 }

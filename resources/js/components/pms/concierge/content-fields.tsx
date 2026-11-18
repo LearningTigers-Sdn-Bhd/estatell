@@ -1,6 +1,5 @@
-import { router } from '@inertiajs/react';
-import { Trash2, type LucideIcon } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -69,7 +68,6 @@ export function TextField({
                     placeholder={placeholder}
                     required={required}
                     autoComplete={autoComplete}
-                    className="min-h-11"
                 />
             )}
             <FieldError>{error}</FieldError>
@@ -101,7 +99,7 @@ export function SelectField({
                 items={options}
                 defaultValue={defaultValue ?? undefined}
             >
-                <SelectTrigger id={name} className="min-h-11 w-full">
+                <SelectTrigger id={name} className="w-full">
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,7 +133,7 @@ export function SubmitButton({
         <Button
             type="submit"
             variant={variant}
-            className="min-h-11 self-end"
+            className="self-end"
             disabled={processing}
             focusableWhenDisabled
         >
@@ -149,9 +147,10 @@ export function SubmitButton({
     );
 }
 
-/** A title and an on/off switch, with an optional line of explanation. */
+/** A title and an on/off switch, with an optional icon and line of explanation. */
 export function SwitchRow({
     id,
+    icon: Icon,
     title,
     body,
     checked,
@@ -159,6 +158,7 @@ export function SwitchRow({
     className,
 }: {
     id: string;
+    icon?: LucideIcon;
     title: string;
     body?: string;
     checked: boolean;
@@ -169,71 +169,23 @@ export function SwitchRow({
         <div
             className={cn('flex items-start justify-between gap-4', className)}
         >
-            <div className="flex flex-col gap-1">
-                <Label htmlFor={id}>{title}</Label>
-                {body && (
-                    <p className="text-sm text-pretty text-muted-foreground">
-                        {body}
-                    </p>
+            <div className="flex min-w-0 items-start gap-2">
+                {Icon && (
+                    <Icon
+                        aria-hidden
+                        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                    />
                 )}
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor={id}>{title}</Label>
+                    {body && (
+                        <p className="text-sm text-pretty text-muted-foreground">
+                            {body}
+                        </p>
+                    )}
+                </div>
             </div>
             <Switch id={id} checked={checked} onCheckedChange={onChange} />
         </div>
-    );
-}
-
-/** A SwitchRow that sends `1` or `0` under `name` with the native form around it. */
-export function SwitchInput({
-    name,
-    title,
-    body,
-    defaultChecked,
-}: {
-    name: string;
-    title: string;
-    body?: string;
-    defaultChecked: boolean;
-}) {
-    const [checked, setChecked] = useState(defaultChecked);
-
-    return (
-        <>
-            <input type="hidden" name={name} value={checked ? '1' : '0'} />
-            <SwitchRow
-                id={`${name}_switch`}
-                title={title}
-                body={body}
-                checked={checked}
-                onChange={setChecked}
-                className="items-center rounded-lg border p-4"
-            />
-        </>
-    );
-}
-
-/** A list row with a remove button. `label` names the target for screen readers. */
-export function RemovableItem({
-    url,
-    label,
-    children,
-}: {
-    url: string;
-    label: string;
-    children: ReactNode;
-}) {
-    return (
-        <li className="flex items-start justify-between gap-3 border-b py-4 text-sm first:pt-0 last:border-b-0 last:pb-0">
-            <span className="flex min-w-0 flex-col gap-1">{children}</span>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon-lg"
-                className="size-11 shrink-0"
-                aria-label={label}
-                onClick={() => router.delete(url, keepPage)}
-            >
-                <Trash2 />
-            </Button>
-        </li>
     );
 }

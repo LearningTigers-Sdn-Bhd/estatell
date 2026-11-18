@@ -323,7 +323,6 @@ slugLocked: boolean,
 baseUrl: string,
 webAddress: string,
 googleMapsUrl: string | null,
-aboutText: string | null,
 checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
 canPublish: boolean,
 paymentMode: string,
@@ -1152,11 +1151,9 @@ id: number,
 question: string,
 answer: string,
 topic: string | null,
+active: boolean,
 };
-export type ConciergeHotelInfoSettingsData = {
-about: string | null,
-arrivalInstructions: string | null,
-departureInstructions: string | null,
+export type ConciergeGettingHereData = {
 directions: string | null,
 airportDistanceKm: number | null,
 airportTravelMinutes: number | null,
@@ -1180,6 +1177,10 @@ parkingHeightLimitM: string | null,
 parkingEvCharging: boolean,
 parkingBookingRequired: boolean,
 transportNotes: string | null,
+};
+export type ConciergeGuestGuidelinesData = {
+arrivalInstructions: string | null,
+departureInstructions: string | null,
 };
 export type ConciergeIdentityPrefillData = {
 fullName: string | null,
@@ -1220,8 +1221,18 @@ pets: string | null,
 terms: App.Data.Concierge.ConciergePolicyTermData[],
 };
 export type ConciergePolicyTermData = {
+tab: App.Enums.PolicyTab,
 label: string,
 text: string,
+};
+export type ConciergeProfileData = {
+addressLine1: string | null,
+addressLine2: string | null,
+postalCode: string | null,
+city: string | null,
+googleMapsUrl: string | null,
+phone: string | null,
+email: string | null,
 };
 export type ConciergePropertyData = {
 name: string,
@@ -1278,6 +1289,7 @@ export type ConciergeTopicData = {
 id: number,
 title: string,
 body: string,
+active: boolean,
 };
 export type ConciergeTransportData = {
 directions: string | null,
@@ -3354,6 +3366,7 @@ stateCode: string | null,
 postalCode: string | null,
 contactPhone: string | null,
 contactEmail: string | null,
+about: string | null,
 registrationNumber: string | null,
 registrationNumberLabel: string,
 tin: string | null,

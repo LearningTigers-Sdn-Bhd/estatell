@@ -47,8 +47,7 @@ it('returns the site settings with images of current slots only', function () {
 it('returns the property content with active nearby places and no review status', function () {
     ['property' => $property] = bookingApiProperty();
     bookingMicrositeClient();
-    $property->update(['address_line1' => 'Jalan Pantai', 'contact_phone' => '+60 12-345 6789', 'contact_email' => 'hello@example.com']);
-    $property->bookingSite->update(['about_text' => 'By the sea']);
+    $property->update(['address_line1' => 'Jalan Pantai', 'contact_phone' => '+60 12-345 6789', 'contact_email' => 'hello@example.com', 'about' => 'By the sea']);
     $property->amenities()->attach(Amenity::factory()->create(['name' => 'Pool']));
     $shown = NearbyPlace::factory()->create(['name' => 'Jetty', 'status' => NearbyPlaceStatus::Pending]);
     $hidden = NearbyPlace::factory()->create(['name' => 'Hidden market']);

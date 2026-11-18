@@ -2,6 +2,7 @@
 
 namespace App\Data\Concierge;
 
+use App\Enums\PolicyTab;
 use Spatie\LaravelData\Data;
 
 /**
@@ -10,6 +11,7 @@ use Spatie\LaravelData\Data;
 class ConciergePolicyTermData extends Data
 {
     public function __construct(
+        public PolicyTab $tab,
         public string $label,
         public string $text,
     ) {}

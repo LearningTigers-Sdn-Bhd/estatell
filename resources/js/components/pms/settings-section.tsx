@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
-import { useRef, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -27,6 +27,8 @@ type SectionActions = ReactNode | ((state: { isDirty: boolean }) => ReactNode);
  * `actions` sit on the right of the header, and wrap below the description on a phone.
  * `hideHeader` leaves the title and description out when the page header already says them; the title still names
  * the unsaved changes dialog.
+ * `saveBar` replaces the save button with a bar that floats at the bottom of the window while it has unsaved changes,
+ * with Discard and Save. Use it with `guardUnsavedChanges` for a long form.
  */
 export function SettingsSection({
     form,
@@ -41,6 +43,7 @@ export function SettingsSection({
     submitInHeader = false,
     submitIcon,
     hideHeader = false,
+    saveBar = false,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -59,9 +62,13 @@ export function SettingsSection({
     submitIcon?: LucideIcon;
     /** Leaves out the title and description, for a section that repeats the page header. */
     hideHeader?: boolean;
+    /** Shows Discard and Save in a floating bar while the form has unsaved changes. */
+    saveBar?: boolean;
     children: (errors: Record<string, string>) => ReactNode;
 }) {
     const afterSave = useRef<(() => void) | null>(null);
+    // Remounting the fields on Discard also resets their React state, such as switches and selects.
+    const [fieldsKey, setFieldsKey] = useState(0);
 
     return (
         <Form
@@ -74,7 +81,7 @@ export function SettingsSection({
                 afterSave.current = null;
             }}
         >
-            {({ processing, errors, isDirty, submit }) => (
+            {({ processing, errors, isDirty, submit, resetAndClearErrors }) => (
                 <SettingsSectionContent
                     title={title}
                     description={description}
@@ -87,14 +94,21 @@ export function SettingsSection({
                     submitInHeader={submitInHeader}
                     submitIcon={submitIcon}
                     hideHeader={hideHeader}
+                    saveBar={saveBar}
                     processing={processing}
                     isDirty={isDirty}
                     onSave={(onSaved) => {
                         afterSave.current = onSaved;
                         submit();
                     }}
+                    onDiscard={() => {
+                        setFieldsKey((key) => key + 1);
+                        resetAndClearErrors();
+                    }}
                 >
-                    {children(errors)}
+                    <div key={fieldsKey} className="contents">
+                        {children(errors)}
+                    </div>
                 </SettingsSectionContent>
             )}
         </Form>
@@ -113,9 +127,11 @@ function SettingsSectionContent({
     submitInHeader,
     submitIcon: SubmitIcon,
     hideHeader,
+    saveBar,
     processing,
     isDirty,
     onSave,
+    onDiscard,
     children,
 }: {
     title: string;
@@ -129,9 +145,11 @@ function SettingsSectionContent({
     submitInHeader: boolean;
     submitIcon?: LucideIcon;
     hideHeader: boolean;
+    saveBar: boolean;
     processing: boolean;
     isDirty: boolean;
     onSave: (onSaved: () => void) => void;
+    onDiscard: () => void;
     children: ReactNode;
 }) {
     const guard = useUnsavedChanges(
@@ -152,7 +170,7 @@ function SettingsSectionContent({
             {submitLabel}
         </Button>
     );
-    const showSaveInHeader = submitInHeader && !readOnly;
+    const showSaveInHeader = submitInHeader && !saveBar && !readOnly;
 
     return (
         <section className="flex flex-col gap-5">
@@ -185,8 +203,34 @@ function SettingsSectionContent({
                 </header>
             )}
             <div className={contentClassName}>{children}</div>
-            {!readOnly && !submitInHeader && (
+            {!readOnly && !submitInHeader && !saveBar && (
                 <footer className="flex justify-end">{saveButton}</footer>
+            )}
+            {!readOnly && saveBar && isDirty && (
+                <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center">
+                    <div
+                        role="region"
+                        aria-label={`Unsaved changes to ${title}`}
+                        aria-busy={processing}
+                        className="pointer-events-auto flex w-full animate-in items-center gap-2 rounded-xl border bg-popover py-2 pr-2 pl-4 text-popover-foreground shadow-lg duration-200 fade-in-0 slide-in-from-bottom-4 sm:w-auto"
+                    >
+                        <span className="mr-2 text-sm font-medium">
+                            Unsaved changes
+                        </span>
+                        <div className="ml-auto flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onDiscard}
+                                disabled={processing}
+                                focusableWhenDisabled
+                            >
+                                Discard
+                            </Button>
+                            {saveButton}
+                        </div>
+                    </div>
+                </div>
             )}
             {guardUnsavedChanges && !readOnly && (
                 <UnsavedChangesDialog

@@ -203,3 +203,23 @@ test('the money corrections switch defaults on and saves on the support section'
     expect($settings->refresh()->allow_support_money_corrections)->toBeFalse()
         ->and($settings->allow_support_access)->toBeTrue();
 });
+
+test('the About text saves on the profile, trims, clears when empty and stops at 3000 characters', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    PropertySetting::factory()->for($property)->create();
+    $input = ['name' => $property->name, 'address_line1' => 'Lot 12', 'city' => 'Kota Kinabalu'];
+    $url = route('settings.profile.update', $property->code);
+
+    $this->actingAs($owner)->put($url, [...$input, 'about' => "  A quiet beach resort in Pangkor.  \n"])->assertSessionHasNoErrors();
+
+    expect($property->refresh()->about)->toBe('A quiet beach resort in Pangkor.');
+    $this->get(route('settings.profile', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('profile.about', 'A quiet beach resort in Pangkor.'));
+
+    $this->put($url, [...$input, 'about' => str_repeat('a', 3001)])->assertSessionHasErrors('about');
+    expect($property->refresh()->about)->toBe('A quiet beach resort in Pangkor.');
+
+    $this->put($url, [...$input, 'about' => ''])->assertSessionHasNoErrors();
+    expect($property->refresh()->about)->toBeNull();
+});

@@ -21,6 +21,7 @@ class PropertyInfoTopicFactory extends Factory
             'title' => 'Laundry',
             'body' => 'Self-service laundry is on level 2, open 8 am to 10 pm.',
             'position' => 0,
+            'active' => true,
         ];
     }
 }
