@@ -21,13 +21,13 @@ class SendStayWelcomeJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    /** How long the welcome waits for the PIN. */
-    public const int HOLD_SECONDS = 60;
+    /** How long the welcome waits for the PIN: as long as the stay page waits before it calls a PIN failed. */
+    public const int HOLD_SECONDS = KioskPin::WAIT_SECONDS;
 
     private const int POLL_SECONDS = 5;
 
     /** Room for the polls of the hold: a released job counts as an attempt. */
-    public int $tries = 20;
+    public int $tries = 40;
 
     public int $maxExceptions = 3;
 
