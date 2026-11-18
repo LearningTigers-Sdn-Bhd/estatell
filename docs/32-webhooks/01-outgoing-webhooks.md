@@ -108,6 +108,8 @@ An Action that causes an event calls `TriggerWebhook` with the event, the proper
 | Operations   | `night_audit.completed`    | A night audit completes.                                                  |
 |              | `channel.alert`            | The channel manager reports a problem.                                    |
 
+A walk-in from the kiosk or the Concierge page is held with an empty booker before the ID step, so `BookWalkIn` sends no `booking.created`. `AnnounceWalkInBooking` sends it once the hold is kept: at the first payment (`RecordPayment`) or the check-in (`CheckInUnit`), whichever comes first. By then the ID step has filled the booker's name, email and phone. `kiosk_walk_in_holds.announced_at` makes sure it is sent once. A hold nobody pays is released and sends nothing (decided 2026-11-18).
+
 Where each event is sent from is listed in [Build order](#build-order).
 
 ## Payload

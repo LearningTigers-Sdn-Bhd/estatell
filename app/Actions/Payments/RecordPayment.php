@@ -5,6 +5,7 @@ namespace App\Actions\Payments;
 use App\Actions\Folio\CloseSettledUnitFolio;
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostFolioCharge;
+use App\Actions\Kiosk\AnnounceWalkInBooking;
 use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Payments\NewPaymentData;
 use App\Enums\DocumentType;
@@ -212,6 +213,7 @@ class RecordPayment
 
             ($this->closeSettledUnitFolio)($actor, $target);
 
+            app(AnnounceWalkInBooking::class)($reservation->property_id, $reservation->id);
             app(TriggerWebhook::class)(WebhookEvent::PaymentReceived, $payment->property_id, Payment::class, $payment->id);
 
             return PaymentResult::recorded($payment->refresh(), [...$surchargeLines, $line->refresh()]);

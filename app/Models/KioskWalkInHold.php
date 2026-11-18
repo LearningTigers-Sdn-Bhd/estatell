@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $kiosk_id
  * @property CarbonImmutable $expires_at
  * @property CarbonImmutable|null $released_at
+ * @property CarbonImmutable|null $announced_at
  */
 #[Fillable(['property_id', 'reservation_unit_id', 'kiosk_id', 'expires_at', 'released_at'])]
 class KioskWalkInHold extends Model
@@ -26,7 +27,7 @@ class KioskWalkInHold extends Model
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['expires_at' => 'immutable_datetime', 'released_at' => 'immutable_datetime'];
+        return ['expires_at' => 'immutable_datetime', 'released_at' => 'immutable_datetime', 'announced_at' => 'immutable_datetime'];
     }
 
     /** @return BelongsTo<ReservationUnit, $this> */

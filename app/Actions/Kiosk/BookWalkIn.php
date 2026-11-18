@@ -5,7 +5,9 @@ namespace App\Actions\Kiosk;
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Reservations\BookingRefused;
+use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Data\Kiosk\KioskWalkInData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
@@ -57,14 +59,15 @@ class BookWalkIn
 
                 // Identity is collected after the hold. An empty name lets the ID step fill it without inventing guest data.
                 $guest = ($this->createGuest)(null, $property, ['full_name' => '']);
-                $booking = ($this->createBooking)(null, $property, new NewBookingData(
+                // `booking.created` waits until the hold is kept (`AnnounceWalkInBooking`), when the booker has a name.
+                $booking = TriggerWebhook::muted(fn (): BookingResult => ($this->createBooking)(null, $property, new NewBookingData(
                     bookingSource: $source,
                     units: [$search->isDayUse()
                         ? new NewUnitData($offer->roomType->id, $offer->ratePlan->id, $search->arrival, $search->arrival, $search->adults, $search->childAges, stayType: StayType::DayUse, startTime: $search->startTime, hours: $search->hours, roomId: $offer->roomId)
                         : new NewUnitData($offer->roomType->id, $offer->ratePlan->id, $search->arrival, $search->arrival->addDays($search->nights), $search->adults, $search->childAges, addOns: $this->autoAddOns->forUnit($property))],
                     guests: [new NewBookingGuestData(guestId: $guest->id, unitIndex: 0)],
                     billingMode: BillingMode::EachPays,
-                ));
+                )));
                 if ($booking->isRefused()) {
                     throw new BookingRefused($booking);
                 }
