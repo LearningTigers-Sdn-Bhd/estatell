@@ -1,10 +1,15 @@
 <?php
 
 use App\Actions\Kiosk\IssueBookingPreCheckInToken;
+use App\Actions\Payments\RecordPayment;
+use App\Data\Payments\NewPaymentData;
 use App\Enums\BookingSourceType;
 use App\Enums\HousekeepingStatus;
+use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Enums\WebhookEvent;
 use App\Features\Concierge;
@@ -15,6 +20,7 @@ use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\KioskWalkInHold;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -28,7 +34,9 @@ use App\Models\WebhookEndpoint;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
 use Database\Factories\BookingSourceFactory;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -400,18 +408,56 @@ it('holds a Clean room before a Dirty one for a day use walk-in when no room has
     expect($stay->dayUse->room_id)->toBe($clean->id);
 });
 
-it('sends booking.updated with the booker details once the ID step fills a walk-in booker', function () {
+it('holds a Clean room with a door lock before a Dirty one with a door lock for a day use walk-in', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->assertRedirect();
+    conciergeDayUsePlan($property, $type);
+    $dirty = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102', 'position' => 1]);
+    $clean = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '103', 'position' => 2]);
+    DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $dirty->id]);
+    DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $clean->id]);
+    RoomStatus::query()->where('room_id', $dirty->id)->update(['status' => HousekeepingStatus::Dirty]);
+
+    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
+
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    $token = basename(app(IssueBookingPreCheckInToken::class)($stay));
+    expect($stay->dayUse->room_id)->toBe($clean->id);
+});
+
+it('sends booking.created for a walk-in only once its hold is paid, with the booker details, and only once', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     Queue::fake();
-    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingUpdated])->create();
+    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingCreated])->create();
+    $cash = PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => TransactionCode::factory()->for($property)->create(['kind' => TransactionKind::Payment])->id, 'name' => 'Cash', 'type' => PaymentMethodType::Cash, 'requires_reference' => false]);
+    $created = fn (): Collection => Queue::pushed(BroadcastWebhookJob::class)->filter(fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::BookingCreated);
 
-    $this->post("/c/{$token}/identity", conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
+    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    $this->post($location.'/identity', conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
 
-    Queue::assertPushed(BroadcastWebhookJob::class, fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::BookingUpdated && $job->subjectId === $stay->reservation_id);
-    $job = Queue::pushed(BroadcastWebhookJob::class)->first(fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::BookingUpdated);
-    $booker = app($job->event->payloadBuilder())->build($job->event, $stay->reservation, $job->context)['booking']['booker'];
-    expect($booker['name'])->toBe('Aisha Rahman')->and($booker['email'])->toBe('aisha@example.com');
+    expect($created())->toHaveCount(0);
+
+    foreach (['60.00', '40.00'] as $amount) {
+        $result = app(RecordPayment::class)(null, $stay->reservation, null, $stay, new NewPaymentData($cash->id, PaymentPurpose::Advance, $amount, null, (string) Str::uuid()));
+        expect($result->refusal ?? null)->toBeNull();
+    }
+
+    expect($created())->toHaveCount(1);
+    $job = $created()->first();
+    $booker = app($job->event->payloadBuilder())->build($job->event, $stay->reservation->refresh(), $job->context)['booking']['booker'];
+    expect($job->subjectId)->toBe($stay->reservation_id)
+        ->and($booker['name'])->toBe('Aisha Rahman')
+        ->and($booker['email'])->toBe('aisha@example.com')
+        ->and(KioskWalkInHold::query()->sole()->announced_at)->not->toBeNull();
+});
+
+it('sends no booking.created for a walk-in hold that nobody pays', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    Queue::fake();
+    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingCreated, WebhookEvent::BookingCancelled])->create();
+
+    $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->assertRedirect();
+    $this->travelTo(now()->addMinutes(11));
+    ReleaseExpiredKioskHolds::dispatchSync();
+
+    Queue::assertNotPushed(BroadcastWebhookJob::class);
 });

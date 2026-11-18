@@ -20,8 +20,8 @@ use Brick\Money\Money;
  * The day use rooms a guest can book from the Concierge lobby page: a room sold per room, a Day use plan that prices the
  * hours on the date, no stop sell, and a room free for the block. A guest may not start a block that has begun, so the
  * plan's window and hour limits always apply. The cheapest plan wins per room type, and the offer holds the first free
- * room in the order `AutoAssignRooms` uses: one with a door lock linked first (even if it is Dirty), then a Clean or
- * Inspected room before a Dirty one. See docs/12-reservations/10-day-use.md and docs/30-concierge/01-overview.md#day-use.
+ * room in the order `AutoAssignRooms` uses: one with a door lock linked first (even if it is Dirty), and a Clean or
+ * Inspected room before a Dirty one within each. See docs/12-reservations/10-day-use.md and docs/30-concierge/01-overview.md#day-use.
  */
 class ConciergeDayUse
 {
@@ -65,7 +65,8 @@ class ConciergeDayUse
 
         foreach ($types as $type) {
             $free = $this->availability->freeRooms($type, $search->arrival, (string) $search->startTime, $endsAt);
-            $room = array_find($free, fn ($room): bool => in_array($room->id, $locked, true))
+            $room = array_find($free, fn ($room): bool => in_array($room->id, $locked, true) && ! in_array($room->id, $dirty, true))
+                ?? array_find($free, fn ($room): bool => in_array($room->id, $locked, true))
                 ?? array_find($free, fn ($room): bool => ! in_array($room->id, $dirty, true))
                 ?? $free[0] ?? null;
             $best = null;
