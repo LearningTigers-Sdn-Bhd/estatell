@@ -25,5 +25,6 @@ export default function ConciergeFaqs({
 }
 
 ConciergeFaqs.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('faqs'),
 });

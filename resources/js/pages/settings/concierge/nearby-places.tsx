@@ -23,5 +23,6 @@ export default function ConciergeNearbyPlaces({
 }
 
 ConciergeNearbyPlaces.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('nearby-places'),
 });

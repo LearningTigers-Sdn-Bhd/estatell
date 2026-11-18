@@ -45,5 +45,6 @@ export default function ConciergePolicies({
 }
 
 ConciergePolicies.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('policies'),
 });

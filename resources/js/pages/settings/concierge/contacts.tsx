@@ -37,5 +37,6 @@ export default function ConciergeContacts({
 }
 
 ConciergeContacts.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('contacts'),
 });

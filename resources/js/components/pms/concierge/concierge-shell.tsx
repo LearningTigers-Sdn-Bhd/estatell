@@ -71,7 +71,8 @@ export function conciergeBreadcrumbs(activeTab: ConciergeTab) {
 /**
  * Header and tab links of Settings › Concierge. Each tab is its own page and URL, and loads only its own data.
  * The header is the same on every tab: open the lobby page or print its QR code. The tab content sits in a
- * page-scroll `Workspace`; a tab may add a right rail with `aside`.
+ * fixed-height `Workspace` like the reservation page: each panel scrolls on its own. A tab may add a 28rem right
+ * rail with `aside`; without one the content takes the full width. Each page sets the layout `variant: 'fixed'`.
  */
 export function ConciergeShell({
     activeTab,
@@ -92,8 +93,8 @@ export function ConciergeShell({
     }>().props;
 
     return (
-        <div className="flex flex-1 flex-col gap-6 p-4">
-            <div className="flex flex-1 flex-col gap-6 print:hidden">
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 lg:overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-6 print:hidden">
                 <PageHeader
                     title="Concierge"
                     description="Set up the guide guests read before and during their stay, and the QR code they scan in the lobby."
@@ -126,13 +127,14 @@ export function ConciergeShell({
                     activeTab={activeTab}
                     triggerClassName="md:min-w-0"
                     panelWidth="full"
-                    className="flex flex-col gap-4 lg:flex-1"
-                    panelClassName="flex flex-col lg:flex-1"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
                     <Workspace
-                        scroll="page"
                         aside={aside}
                         asideLabel={asideLabel}
+                        hideAside={aside === undefined}
+                        asideWidth="wide"
                     >
                         {children}
                     </Workspace>

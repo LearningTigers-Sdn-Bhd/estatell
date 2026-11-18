@@ -58,5 +58,6 @@ export default function ConciergeHotelInfo({
 }
 
 ConciergeHotelInfo.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('hotel-info'),
 });

@@ -10,11 +10,12 @@ import {
     type Sections,
 } from '@/components/pms/concierge/guide-sections';
 import {
+    GuideProgress,
     GuideReadiness,
     LobbyCheckIn,
 } from '@/components/pms/concierge/overview-tab';
 
-/** Concierge › Overview: how complete the guest guide is and the guest action switches, with the lobby QR in the rail. */
+/** Concierge › Overview: the guest guide sections and the guest action switches, with the guide progress and the lobby QR in the rail. */
 export default function ConciergeOverview({
     lobbyUrl,
     lobbyQr,
@@ -34,18 +35,23 @@ export default function ConciergeOverview({
     hasLocation: boolean;
     sections: Sections;
 }) {
+    const readiness = guideReadiness({ sections, houseRules });
+
     return (
         <>
             <Head title="Concierge" />
             <ConciergeShell
                 activeTab="overview"
-                asideLabel="Lobby check-in"
-                aside={<LobbyCheckIn lobbyUrl={lobbyUrl} lobbyQr={lobbyQr} />}
+                asideLabel="Guide progress and lobby check-in"
+                aside={
+                    <div className="flex flex-col gap-4">
+                        <GuideProgress items={readiness} />
+                        <LobbyCheckIn lobbyUrl={lobbyUrl} lobbyQr={lobbyQr} />
+                    </div>
+                }
             >
                 <PanelStack>
-                    <GuideReadiness
-                        items={guideReadiness({ sections, houseRules })}
-                    />
+                    <GuideReadiness items={readiness} />
                     <GuestActionsCard
                         houseRules={houseRules}
                         walkInEnabled={walkInEnabled}
@@ -60,5 +66,6 @@ export default function ConciergeOverview({
 }
 
 ConciergeOverview.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('overview'),
 });

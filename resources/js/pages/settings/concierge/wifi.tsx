@@ -25,5 +25,6 @@ export default function ConciergeWifi({
 }
 
 ConciergeWifi.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('wifi'),
 });

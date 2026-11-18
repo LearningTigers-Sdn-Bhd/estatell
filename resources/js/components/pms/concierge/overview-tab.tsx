@@ -1,10 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ListChecks } from 'lucide-react';
 import { conciergeTabUrl } from '@/components/pms/concierge/concierge-shell';
 import { PanelSection, Status } from '@/components/pms/concierge/guide-layout';
 import type { GuideSectionStatus } from '@/components/pms/concierge/guide-sections';
 import { CopyLinkButton, LobbyQr } from '@/components/pms/concierge/lobby-qr';
-import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import {
     Table,
@@ -15,26 +15,34 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
-/** How complete the guest guide is, with a table row per section that opens its tab. */
-export function GuideReadiness({ items }: { items: GuideSectionStatus[] }) {
+/** How many guest guide sections are ready, as a progress bar in an alert at the top of the rail. */
+export function GuideProgress({ items }: { items: GuideSectionStatus[] }) {
     const ready = items.filter((item) => item.ready).length;
 
+    return (
+        <Alert role="status">
+            <ListChecks />
+            <AlertTitle>
+                {ready} of {items.length} ready
+            </AlertTitle>
+            <AlertDescription>
+                <Progress
+                    value={(ready / items.length) * 100}
+                    aria-label="Guest guide readiness"
+                    className="mt-1.5"
+                />
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+/** A table row per guest guide section that opens its tab. */
+export function GuideReadiness({ items }: { items: GuideSectionStatus[] }) {
     return (
         <PanelSection
             title="Guest guide"
             description="Complete each section so guests can find the property information they need."
-            action={
-                <Badge
-                    variant={ready === items.length ? 'secondary' : 'outline'}
-                >
-                    {ready} of {items.length} ready
-                </Badge>
-            }
         >
-            <Progress
-                value={(ready / items.length) * 100}
-                aria-label="Guest guide readiness"
-            />
             <div className="overflow-x-auto rounded-xl border">
                 <Table>
                     <TableHeader>

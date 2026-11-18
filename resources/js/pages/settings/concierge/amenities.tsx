@@ -32,5 +32,6 @@ export default function ConciergeAmenities({
 }
 
 ConciergeAmenities.layout = () => ({
+    variant: 'fixed',
     breadcrumbs: conciergeBreadcrumbs('amenities'),
 });
