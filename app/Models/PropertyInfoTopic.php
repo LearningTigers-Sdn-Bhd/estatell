@@ -17,14 +17,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $title
  * @property string $body
  * @property int $position
+ * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'title', 'body', 'position'])]
+#[Fillable(['property_id', 'title', 'body', 'position', 'active'])]
 class PropertyInfoTopic extends Model
 {
     /** @use HasFactory<PropertyInfoTopicFactory> */
     use HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return ['active' => 'boolean'];
+    }
 
     /** @return BelongsTo<Property, $this> */
     public function property(): BelongsTo

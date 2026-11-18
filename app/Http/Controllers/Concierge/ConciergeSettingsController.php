@@ -11,9 +11,15 @@ use App\Actions\Concierge\RemoveFaq;
 use App\Actions\Concierge\RemoveInfoTopic;
 use App\Actions\Concierge\RemoveWifiNetwork;
 use App\Actions\Concierge\SaveAmenityDetail;
+use App\Actions\Concierge\SaveGettingHere;
 use App\Actions\Concierge\SaveGuestContacts;
-use App\Actions\Concierge\SaveHotelInfo;
+use App\Actions\Concierge\SaveGuestGuidelines;
+use App\Actions\Concierge\SetFaqActive;
+use App\Actions\Concierge\SetInfoTopicActive;
+use App\Actions\Concierge\SetWifiNetworkActive;
 use App\Actions\Concierge\UpdateConciergeSettings;
+use App\Actions\Concierge\UpdateFaq;
+use App\Actions\Concierge\UpdateInfoTopic;
 use App\Actions\Concierge\UpdateWifiNetwork;
 use App\Actions\Concierge\UploadConciergeHero;
 use App\Data\BookingEngine\AmenityPickerData;
@@ -22,7 +28,9 @@ use App\Data\BookingEngine\PropertyNearbyPlaceData;
 use App\Data\Concierge\ConciergeAmenitySettingsData;
 use App\Data\Concierge\ConciergeContactSettingsData;
 use App\Data\Concierge\ConciergeFaqData;
-use App\Data\Concierge\ConciergeHotelInfoSettingsData;
+use App\Data\Concierge\ConciergeGettingHereData;
+use App\Data\Concierge\ConciergeGuestGuidelinesData;
+use App\Data\Concierge\ConciergeProfileData;
 use App\Data\Concierge\ConciergeTopicData;
 use App\Data\Concierge\ConciergeWifiData;
 use App\Enums\AmenityType;
@@ -32,8 +40,12 @@ use App\Enums\ParkingType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\SetAmenityRequest;
 use App\Http\Requests\Concierge\SaveAmenityDetailRequest;
+use App\Http\Requests\Concierge\SaveGettingHereRequest;
 use App\Http\Requests\Concierge\SaveGuestContactsRequest;
-use App\Http\Requests\Concierge\SaveHotelInfoRequest;
+use App\Http\Requests\Concierge\SaveGuestGuidelinesRequest;
+use App\Http\Requests\Concierge\SetFaqActiveRequest;
+use App\Http\Requests\Concierge\SetInfoTopicActiveRequest;
+use App\Http\Requests\Concierge\SetWifiNetworkActiveRequest;
 use App\Http\Requests\Concierge\StoreFaqRequest;
 use App\Http\Requests\Concierge\StoreInfoTopicRequest;
 use App\Http\Requests\Concierge\StoreWifiRequest;
@@ -55,57 +67,123 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The staff side of the Concierge page: the lobby QR, the switches and the content guests read (house rules, Wi-Fi
- * networks and FAQs).
+ * The staff side of the Concierge page: the lobby QR, the switches and the content guests read. Each tab is its own
+ * URL and sends only its own data.
  */
 class ConciergeSettingsController extends Controller
 {
-    /**
-     * The staff page with the lobby address and its QR code to print.
-     */
-    public function index(Request $request, Property $property, ConciergeLobbyQr $qr, ConciergeGuide $guide, NearbyPlaceSuggestions $suggestions): Response
-    {
-        $url = route('concierge.lobby', ['property' => $property->code]);
+    public function __construct(private ConciergeLobbyQr $qr) {}
 
+    /**
+     * Overview tab: how complete the guest guide is, the lobby QR and photo, and the guest action switches.
+     */
+    public function index(Property $property): Response
+    {
         $property->loadMissing('settings');
 
-        return Inertia::render('settings/concierge/index', [
-            'lobbyUrl' => $url,
-            'lobbyQr' => $qr->dataUri($url),
-            'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
-            'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
+        return $this->renderTab($property, 'index', [
             'heroUrl' => $property->heroUrl(),
             'houseRules' => $property->settings?->house_rules,
+            'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
+            'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
             'locationCheckEnabled' => (bool) $property->settings?->concierge_location_check_enabled,
             'hasLocation' => filled($property->latitude) && filled($property->longitude),
-            'policyTexts' => [
-                'roomPolicy' => $property->settings?->room_policy,
-                'paymentPolicy' => $property->settings?->payment_policy,
-                'otherPolicies' => $property->settings?->other_policies,
+            'sections' => [
+                'hasArrivalInstructions' => filled($property->settings?->arrival_instructions),
+                'hasAddress' => filled($property->address_line1),
+                'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
+                'amenities' => $property->amenities()->count(),
+                'nearbyPlaces' => $property->nearbyPlaces()->wherePivot('active', true)->count(),
+                'faqs' => $property->faqs()->count(),
+                'wifiNetworks' => $property->wifiNetworks()->count(),
             ],
-            'wifiNetworks' => $property->wifiNetworks()->get()->map(ConciergeWifiData::fromModel(...))->values(),
-            'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
-            'hotelInfo' => ConciergeHotelInfoSettingsData::fromProperty($property->loadMissing('transportDetail')),
+        ]);
+    }
+
+    /**
+     * Guest guidelines tab: the arrival and departure steps and the interesting topics, with how many topics are allowed.
+     */
+    public function guestGuidelines(Property $property): Response
+    {
+        return $this->renderTab($property, 'guest-guidelines', [
+            'guidelines' => ConciergeGuestGuidelinesData::fromProperty($property->loadMissing('settings')),
+            'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
+            'topicLimit' => AddInfoTopic::MAX,
+        ]);
+    }
+
+    /**
+     * Getting here tab: directions, travel times, transfers and parking, with the profile address shown read-only.
+     */
+    public function gettingHere(Property $property): Response
+    {
+        return $this->renderTab($property, 'getting-here', [
+            'profile' => ConciergeProfileData::fromProperty($property),
+            'gettingHere' => ConciergeGettingHereData::fromProperty($property->loadMissing('transportDetail')),
             'parkingOptions' => [
                 'availability' => ParkingAvailability::options(),
                 'types' => ParkingType::options(),
                 'priceUnits' => ParkingPriceUnit::options(),
             ],
-            'contacts' => ConciergeContactSettingsData::fromProperty($property),
+        ]);
+    }
+
+    public function policies(Property $property, ConciergeGuide $guide): Response
+    {
+        $property->loadMissing('settings');
+
+        return $this->renderTab($property, 'policies', [
+            'houseRules' => $property->settings?->house_rules,
+            'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
+            'refundRequestsEnabled' => (bool) $property->settings?->concierge_refund_requests_enabled,
+            'policyTexts' => [
+                'roomPolicy' => $property->settings?->room_policy,
+                'paymentPolicy' => $property->settings?->payment_policy,
+                'otherPolicies' => $property->settings?->other_policies,
+            ],
+            'policyTerms' => $guide->terms($property),
+        ]);
+    }
+
+    public function faqs(Property $property): Response
+    {
+        return $this->renderTab($property, 'faqs', [
+            'faqs' => $property->faqs()->get()->map(ConciergeFaqData::fromModel(...))->values(),
+            'faqLimit' => AddFaq::MAX,
+        ]);
+    }
+
+    public function amenities(Request $request, Property $property): Response
+    {
+        return $this->renderTab($property, 'amenities', [
             'amenities' => AmenityPickerData::forType(AmenityType::Property, $property->amenities()->get()),
             'amenityDetails' => $property->amenities()->with('category')->orderBy('position')->get()->map(ConciergeAmenitySettingsData::fromModel(...))->values(),
             'page' => max(1, $request->integer('page', 1)),
             'listUrl' => $request->url(),
-            'topics' => $property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->values(),
-            'policyTerms' => $guide->terms($property),
-            'sections' => [
-                'hasAddress' => filled($property->address_line1),
-                'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
-                'amenities' => $property->amenities()->count(),
-                'nearbyPlaces' => $property->nearbyPlaces()->wherePivot('active', true)->count(),
-            ],
+        ]);
+    }
+
+    public function nearbyPlaces(Property $property, NearbyPlaceSuggestions $suggestions): Response
+    {
+        return $this->renderTab($property, 'nearby-places', [
             'nearbyPlaces' => $suggestions->ownPlaces($property)->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
             'suggestions' => $suggestions->for($property)->map(fn (NearbyPlace $place): NearbyPlaceSuggestionData => NearbyPlaceSuggestionData::fromModel($place))->values(),
+        ]);
+    }
+
+    public function wifi(Property $property): Response
+    {
+        return $this->renderTab($property, 'wifi', [
+            'wifiNetworks' => $property->wifiNetworks()->get()->map(ConciergeWifiData::fromModel(...))->values(),
+            'wifiLimit' => AddWifiNetwork::MAX,
+        ]);
+    }
+
+    public function contacts(Property $property): Response
+    {
+        return $this->renderTab($property, 'contacts', [
+            'profile' => ConciergeProfileData::fromProperty($property),
+            'contacts' => ConciergeContactSettingsData::fromProperty($property),
         ]);
     }
 
@@ -149,9 +227,16 @@ class ConciergeSettingsController extends Controller
 
     public function updateWifi(UpdateWifiRequest $request, Property $property, PropertyWifiNetwork $wifiNetwork, UpdateWifiNetwork $updateNetwork): RedirectResponse
     {
-        $updateNetwork($request->user(), $wifiNetwork, $request->boolean('active'), $request->boolean('primary_network'));
+        $updateNetwork($request->user(), $wifiNetwork, $request->string('name')->toString(), $request->input('password'), $request->input('note'), $request->boolean('primary_network'));
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Wi-Fi network updated.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Wi-Fi network saved.')]);
+
+        return back();
+    }
+
+    public function wifiActive(SetWifiNetworkActiveRequest $request, Property $property, PropertyWifiNetwork $wifiNetwork, SetWifiNetworkActive $setNetworkActive): RedirectResponse
+    {
+        $setNetworkActive($request->user(), $wifiNetwork, $request->boolean('active'));
 
         return back();
     }
@@ -176,6 +261,22 @@ class ConciergeSettingsController extends Controller
         return back();
     }
 
+    public function updateFaq(StoreFaqRequest $request, Property $property, PropertyFaq $faq, UpdateFaq $updateFaq): RedirectResponse
+    {
+        $updateFaq($request->user(), $faq, $request->string('question')->toString(), $request->string('answer')->toString(), $request->input('topic'));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Question saved.')]);
+
+        return back();
+    }
+
+    public function faqActive(SetFaqActiveRequest $request, Property $property, PropertyFaq $faq, SetFaqActive $setFaqActive): RedirectResponse
+    {
+        $setFaqActive($request->user(), $faq, $request->boolean('active'));
+
+        return back();
+    }
+
     public function destroyFaq(Request $request, Property $property, PropertyFaq $faq, RemoveFaq $removeFaq): RedirectResponse
     {
         $removeFaq($request->user(), $faq);
@@ -185,11 +286,20 @@ class ConciergeSettingsController extends Controller
         return back();
     }
 
-    public function updateHotelInfo(SaveHotelInfoRequest $request, Property $property, SaveHotelInfo $saveHotelInfo): RedirectResponse
+    public function updateGuestGuidelines(SaveGuestGuidelinesRequest $request, Property $property, SaveGuestGuidelines $saveGuestGuidelines): RedirectResponse
     {
-        $saveHotelInfo($request->user(), $property, $request->validated());
+        $saveGuestGuidelines($request->user(), $property, $request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Hotel info saved.')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Guest guidelines saved.')]);
+
+        return back();
+    }
+
+    public function updateGettingHere(SaveGettingHereRequest $request, Property $property, SaveGettingHere $saveGettingHere): RedirectResponse
+    {
+        $saveGettingHere($request->user(), $property, $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Getting here saved.')]);
 
         return back();
     }
@@ -210,6 +320,22 @@ class ConciergeSettingsController extends Controller
         Inertia::flash('toast', $topic === null
             ? ['type' => 'error', 'message' => __('A property can list up to :count extra topics.', ['count' => AddInfoTopic::MAX])]
             : ['type' => 'success', 'message' => __('Topic added.')]);
+
+        return back();
+    }
+
+    public function updateTopic(StoreInfoTopicRequest $request, Property $property, PropertyInfoTopic $infoTopic, UpdateInfoTopic $updateTopic): RedirectResponse
+    {
+        $updateTopic($request->user(), $infoTopic, $request->string('title')->toString(), $request->string('body')->toString());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Topic saved.')]);
+
+        return back();
+    }
+
+    public function topicActive(SetInfoTopicActiveRequest $request, Property $property, PropertyInfoTopic $infoTopic, SetInfoTopicActive $setTopicActive): RedirectResponse
+    {
+        $setTopicActive($request->user(), $infoTopic, $request->boolean('active'));
 
         return back();
     }
@@ -244,5 +370,22 @@ class ConciergeSettingsController extends Controller
             : ['type' => 'error', 'message' => __('The property no longer offers this amenity. Reload the page.')]);
 
         return back();
+    }
+
+    /**
+     * Every tab gets the lobby address and QR for the header and the printed sheet, then its own data.
+     *
+     * @param  'index'|'guest-guidelines'|'getting-here'|'policies'|'faqs'|'amenities'|'nearby-places'|'wifi'|'contacts'  $page
+     * @param  array<string, mixed>  $tabProps
+     */
+    private function renderTab(Property $property, string $page, array $tabProps): Response
+    {
+        $url = route('concierge.lobby', ['property' => $property->code]);
+
+        return Inertia::render("settings/concierge/{$page}", [
+            'lobbyUrl' => $url,
+            'lobbyQr' => $this->qr->dataUri($url),
+            ...$tabProps,
+        ]);
     }
 }

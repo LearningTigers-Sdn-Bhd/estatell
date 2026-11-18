@@ -46,11 +46,11 @@ class ConciergeGuide
             mapsUrl: $this->mapsUrl($property),
             checkInTime: $this->time($property->settings->check_in_time),
             checkOutTime: $this->time($property->settings->check_out_time),
-            about: $property->settings->about,
+            about: $property->about,
             arrivalInstructions: $property->settings->arrival_instructions,
             departureInstructions: $property->settings->departure_instructions,
             transport: $this->transport($property),
-            topics: array_values($property->infoTopics()->get()->map(ConciergeTopicData::fromModel(...))->all()),
+            topics: array_values($property->infoTopics()->where('active', true)->get()->map(ConciergeTopicData::fromModel(...))->all()),
         );
     }
 
@@ -221,7 +221,7 @@ class ConciergeGuide
             $text = $policy === null ? '' : trim($malay && filled(trim($policy->text_ms)) ? $policy->text_ms : $policy->text_en);
 
             if ($text !== '') {
-                $terms[] = new ConciergePolicyTermData($tab->label(), $text);
+                $terms[] = new ConciergePolicyTermData($tab, $tab->label(), $text);
             }
         }
 
@@ -233,7 +233,7 @@ class ConciergeGuide
      */
     public function faqs(Property $property): array
     {
-        return $property->faqs()->get()->map(fn (PropertyFaq $faq): ConciergeFaqData => ConciergeFaqData::fromModel($faq))->all();
+        return $property->faqs()->where('active', true)->get()->map(fn (PropertyFaq $faq): ConciergeFaqData => ConciergeFaqData::fromModel($faq))->all();
     }
 
     /**

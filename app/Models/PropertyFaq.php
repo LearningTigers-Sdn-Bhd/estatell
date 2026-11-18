@@ -18,14 +18,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $answer
  * @property string|null $topic The heading the question is listed under. Null: no heading.
  * @property int $position
+ * @property bool $active Off: staff see it, guests do not.
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'question', 'answer', 'topic', 'position'])]
+#[Fillable(['property_id', 'question', 'answer', 'topic', 'position', 'active'])]
 class PropertyFaq extends Model
 {
     /** @use HasFactory<PropertyFaqFactory> */
     use HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return ['active' => 'boolean'];
+    }
 
     /**
      * @return BelongsTo<Property, $this>

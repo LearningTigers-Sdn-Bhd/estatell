@@ -9,7 +9,7 @@ A property is the tenant. Every domain record belongs to exactly one property. w
 ```
 properties    id, code (varchar 12, unique), partner_id (nullable), document_prefix (unique, nullable), name, type (PropertyType, nullable), status (PropertyStatus),
               address_line1, address_line2, city, state_code, postal_code, country_code (char 2, nullable),
-              contact_email, contact_phone, legal_name (nullable), registration_number, tin,
+              contact_email, contact_phone, legal_name (nullable), registration_number, tin, about (text, nullable),
               onboarding_started_at, went_live_at, suspended_at, suspended_from_status, timestamps
 property_licences  id, property_id, issuer, number, expires_on (nullable), show_on_documents (default false),
               position, timestamps
@@ -21,6 +21,7 @@ property_licences  id, property_id, issuer, number, expires_on (nullable), show_
 - CHECK constraints keep `type` and `status` to enum values.
 - `legal_name` is the registered business name (for example "Seaview Hospitality Sdn Bhd") when it differs from the trading `name`. Empty text is stored as null.
 - `property_licences` holds licences such as a local council business licence (for example Dewan Bandaraya Kota Kinabalu), MOTAC registration or a fire certificate. `issuer` and `number` are free text (at most 150 and 50 characters). `expires_on` is optional and can drive an expiry reminder later. Rows are ordered by `position` and can be deleted.
+- `about` is the About text guests read on the booking website and in the Concierge guide. One text for both, edited on the [Profile](#profile) tab. It replaced `property_booking_sites.about_text` and `property_settings.about` (the migration kept the Concierge text when both were filled).
 - The labels of `registration_number` and `tin` come from the [country profile](03-seed-property-defaults.md#country-profiles): "SSM registration no." and "TIN (LHDN)" for Malaysia, "Business registration no." and "Tax ID (TIN)" otherwise.
 
 ## Property code
@@ -68,12 +69,13 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 │ Address     [ Lot 12, Jalan Pantai… ] [ line 2 ]     │
 │             [ Postcode ] [ City ] [ State ▾ ]        │
 │ Phone       [ +60 88 123 456 ]  Email [ stay@… ]     │
+│ About       [ A quiet beach resort in Pangkor…    ]  │
 │                                          [ Save ]    │
 └──────────────────────────────────────────────────────┘
 ```
 
-- Fields: name, address and contact phone and email. The registered name, numbers and licences are on the [Business licence](#business-licence) tab. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
-- The logo sits above the form. Fields are grouped into Property, Address and Contact. On desktop, postcode, city and state share one row; phone and email share another. Fields stack on mobile. One **Save profile** button saves all three groups.
+- Fields: name, address, contact phone and email, and the About text (up to 3000 characters, empty clears it). The registered name, numbers and licences are on the [Business licence](#business-licence) tab. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
+- The logo sits above the form. Fields are grouped into Property, Address and Contact, with About last. On desktop, postcode, city and state share one row; phone and email share another. Fields stack on mobile. One **Save profile** button saves everything.
 - Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.

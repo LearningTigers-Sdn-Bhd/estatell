@@ -6,14 +6,11 @@ use App\Models\Property;
 use Spatie\LaravelData\Data;
 
 /**
- * What staff edit on the Hotel Info tab: the raw values, as stored.
+ * What staff edit on the Getting here tab: directions, travel times, transfers and parking, as stored.
  */
-class ConciergeHotelInfoSettingsData extends Data
+class ConciergeGettingHereData extends Data
 {
     public function __construct(
-        public ?string $about,
-        public ?string $arrivalInstructions,
-        public ?string $departureInstructions,
         public ?string $directions,
         public ?int $airportDistanceKm,
         public ?int $airportTravelMinutes,
@@ -41,13 +38,9 @@ class ConciergeHotelInfoSettingsData extends Data
 
     public static function fromProperty(Property $property): self
     {
-        $settings = $property->settings;
         $transport = $property->transportDetail;
 
         return new self(
-            $settings?->about,
-            $settings?->arrival_instructions,
-            $settings?->departure_instructions,
             $transport?->directions,
             $transport?->airport_distance_km,
             $transport?->airport_travel_minutes,

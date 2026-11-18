@@ -49,6 +49,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $google_maps_url
  * @property string|null $msic_code
  * @property string|null $business_description
+ * @property string|null $about
  * @property CarbonImmutable|null $onboarding_started_at
  * @property CarbonImmutable|null $onboarding_last_activity_at
  * @property int $onboarding_reminder_stage
@@ -64,7 +65,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 #[Fillable([
     'name', 'type', 'status',
     'address_line1', 'address_line2', 'city', 'state_code', 'postal_code', 'country_code',
-    'contact_email', 'contact_phone', 'legal_name', 'registration_number', 'tin', 'msic_code', 'business_description',
+    'contact_email', 'contact_phone', 'legal_name', 'registration_number', 'tin', 'msic_code', 'business_description', 'about',
     'onboarding_started_at', 'went_live_at', 'suspended_at', 'suspended_from_status',
 ])]
 class Property extends Model implements FeatureScopeSerializeable, HasMedia

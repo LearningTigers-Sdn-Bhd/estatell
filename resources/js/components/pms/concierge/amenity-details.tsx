@@ -177,7 +177,6 @@ export function AmenityDetailSheet({
                     <SheetFooter>
                         <Button
                             type="submit"
-                            className="min-h-11"
                             disabled={form.processing}
                             focusableWhenDisabled
                         >

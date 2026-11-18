@@ -87,7 +87,7 @@ class BookingWebsiteController extends Controller
             }
         }
 
-        $saveBookingWebsiteGeneral($property, $request->user(), $request->string('slug')->toString(), $googleMapsUrl, $request->aboutText(), $place);
+        $saveBookingWebsiteGeneral($property, $request->user(), $request->string('slug')->toString(), $googleMapsUrl, $place);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Booking website saved.')]);
 

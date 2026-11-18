@@ -58,7 +58,7 @@ test('the seeder sets up the booking site with About, location and amenities, bu
     expect(Feature::for($property)->active(BookingEngine::class))->toBeTrue()
         ->and($site->mode)->toBe(BookingEngineMode::Microsite)
         ->and($site->isPublished())->toBeFalse()
-        ->and($site->about_text)->toContain('Kinabatangan River')
+        ->and($property->about)->toContain('Kinabatangan River')
         ->and($property->latitude)->not->toBeNull()
         ->and(RatePlan::query()->where('property_id', $property->id)->bookableOnline()->exists())->toBeTrue()
         ->and($property->amenities()->count())->toBe(36);

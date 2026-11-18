@@ -5,15 +5,14 @@ import {
     AmenityDetailSheet,
     hasAmenityDetails,
 } from '@/components/pms/concierge/amenity-details';
+import { PanelSection } from '@/components/pms/concierge/guide-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toggle } from '@/routes/settings/concierge/amenities';
 
 type Details = App.Data.Concierge.ConciergeAmenitySettingsData;
@@ -39,49 +38,50 @@ export function AmenitiesTab({
     const detailsById = new Map(details.map((item) => [item.id, item]));
 
     return (
-        <Card className="print:hidden">
-            <CardHeader>
-                <CardTitle>Amenities</CardTitle>
-                <CardDescription>
-                    Turn on what your property offers, then add what guests need
-                    to know: where it is, when it opens, what it costs, and
-                    whether they must reserve. Switches save at once and also
-                    update the booking website, if you use it.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <AmenityPicker
-                    picker={picker}
-                    saveUrl={toggle.url()}
-                    description="Room amenities are set on each room type."
-                    readOnly={false}
-                    page={page}
-                    listUrl={listUrl}
-                    rowAction={(amenity, on) => {
-                        const item = on ? detailsById.get(amenity.id) : null;
+        <PanelSection
+            title="Amenities"
+            description="Turn on what your property offers, then add what guests need to know: where it is, when it opens, what it costs, and whether they must reserve. Switches save at once and also update the booking website, if you use it."
+        >
+            <AmenityPicker
+                headerClassName="ps-3"
+                picker={picker}
+                saveUrl={toggle.url()}
+                description="Room amenities are set on each room type."
+                readOnly={false}
+                page={page}
+                listUrl={listUrl}
+                rowAction={(amenity, on) => {
+                    const item = on ? detailsById.get(amenity.id) : null;
 
-                        return (
-                            item && (
-                                <span className="flex items-center justify-end gap-2">
-                                    {hasAmenityDetails(item) && (
-                                        <Badge variant="secondary">Added</Badge>
-                                    )}
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-lg"
-                                        className="size-11 shrink-0"
-                                        aria-label={`Edit details of ${amenity.name}`}
-                                        onClick={() => setEditing(item)}
+                    return (
+                        item && (
+                            <span className="flex items-center justify-end gap-2">
+                                {hasAmenityDetails(item) && (
+                                    <Badge variant="secondary">Added</Badge>
+                                )}
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={`Edit details of ${amenity.name}`}
+                                                onClick={() => setEditing(item)}
+                                            />
+                                        }
                                     >
                                         <Pencil />
-                                    </Button>
-                                </span>
-                            )
-                        );
-                    }}
-                />
-            </CardContent>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Edit details
+                                    </TooltipContent>
+                                </Tooltip>
+                            </span>
+                        )
+                    );
+                }}
+            />
             {editing && (
                 <AmenityDetailSheet
                     key={editing.id}
@@ -89,6 +89,6 @@ export function AmenitiesTab({
                     onClose={() => setEditing(null)}
                 />
             )}
-        </Card>
+        </PanelSection>
     );
 }

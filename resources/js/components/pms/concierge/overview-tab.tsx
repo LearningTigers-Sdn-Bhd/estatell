@@ -1,173 +1,111 @@
-import { ChevronRight, ExternalLink } from 'lucide-react';
-import { GuestActionsCard } from '@/components/pms/concierge/guest-actions-card';
-import { ContentGrid, Status } from '@/components/pms/concierge/guide-layout';
+import { Link } from '@inertiajs/react';
+import { ChevronRight, ListChecks } from 'lucide-react';
+import { conciergeTabUrl } from '@/components/pms/concierge/concierge-shell';
+import { PanelSection, Status } from '@/components/pms/concierge/guide-layout';
 import type { GuideSectionStatus } from '@/components/pms/concierge/guide-sections';
 import { CopyLinkButton, LobbyQr } from '@/components/pms/concierge/lobby-qr';
-import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
-import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 
-/** How complete the guest guide is, a row per section to jump to, and the lobby QR code. */
-export function OverviewTab({
-    items,
-    lobbyUrl,
-    lobbyQr,
-    houseRules,
-    walkInEnabled,
-    refundRequestsEnabled,
-    locationCheckEnabled,
-    hasLocation,
-    onOpen,
-}: {
-    items: GuideSectionStatus[];
-    lobbyUrl: string;
-    lobbyQr: string;
-    houseRules: string | null;
-    walkInEnabled: boolean;
-    refundRequestsEnabled: boolean;
-    locationCheckEnabled: boolean;
-    hasLocation: boolean;
-    onOpen: (tab: string) => void;
-}) {
+/** How many guest guide sections are ready, as a progress bar in an alert at the top of the rail. */
+export function GuideProgress({ items }: { items: GuideSectionStatus[] }) {
     const ready = items.filter((item) => item.ready).length;
-    const remaining = items.length - ready;
-    const next = items.find((item) => !item.ready);
 
     return (
-        <ContentGrid
-            aside={
-                <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Lobby check-in</CardTitle>
-                            <CardDescription>
-                                Display this code where guests arrive. It opens
-                                the lobby page on their phone.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center gap-4">
-                            <LobbyQr
-                                url={lobbyUrl}
-                                qr={lobbyQr}
-                                className="size-40"
-                            />
-                        </CardContent>
-                        <CardFooter className="flex-wrap justify-center gap-2">
-                            <a
-                                href={lobbyUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={buttonVariants({
-                                    variant: 'outline',
-                                    className: 'min-h-11',
-                                })}
-                            >
-                                <ExternalLink data-icon="inline-start" />
-                                Open lobby page
-                            </a>
-                            <CopyLinkButton url={lobbyUrl} />
-                        </CardFooter>
-                    </Card>
-                    <GuestActionsCard
-                        houseRules={houseRules}
-                        walkInEnabled={walkInEnabled}
-                        refundRequestsEnabled={refundRequestsEnabled}
-                        locationCheckEnabled={locationCheckEnabled}
-                        hasLocation={hasLocation}
-                    />
-                </>
-            }
+        <Alert role="status">
+            <ListChecks />
+            <AlertTitle>
+                {ready} of {items.length} ready
+            </AlertTitle>
+            <AlertDescription>
+                <Progress
+                    value={(ready / items.length) * 100}
+                    aria-label="Guest guide readiness"
+                    className="mt-1.5"
+                />
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+/** A table row per guest guide section that opens its tab. */
+export function GuideReadiness({ items }: { items: GuideSectionStatus[] }) {
+    return (
+        <PanelSection
+            title="Guest guide"
+            description="Complete each section so guests can find the property information they need."
         >
-            <Card>
-                <CardHeader>
-                    <CardTitle>Guest guide</CardTitle>
-                    <CardDescription>
-                        Complete each section so guests can find the property
-                        information they need.
-                    </CardDescription>
-                    <CardAction>
-                        <Badge
-                            variant={remaining === 0 ? 'secondary' : 'outline'}
-                        >
-                            {ready} of {items.length} ready
-                        </Badge>
-                    </CardAction>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                    <Progress
-                        value={(ready / items.length) * 100}
-                        aria-label="Guest guide readiness"
-                    />
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm text-muted-foreground">
-                            {remaining === 0
-                                ? 'Every section is ready for guests.'
-                                : `${remaining} ${remaining === 1 ? 'section needs' : 'sections need'} details.`}
-                        </p>
-                        {next && (
-                            <Button
-                                type="button"
-                                variant="link"
-                                className="min-h-11 text-foreground"
-                                onClick={() => onOpen(next.key)}
-                            >
-                                Continue with {next.label}
-                                <ChevronRight data-icon="inline-end" />
-                            </Button>
-                        )}
-                    </div>
-                </CardContent>
-                <CardContent className="p-0">
-                    <ul className="flex flex-col border-t">
+            <div className="overflow-x-auto rounded-xl border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-32">Status</TableHead>
+                            <TableHead>Section</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {items.map((item) => (
-                            <li
-                                key={item.key}
-                                className="border-b last:border-b-0"
-                            >
-                                <button
-                                    type="button"
-                                    onClick={() => onOpen(item.key)}
-                                    className="flex min-h-20 w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-muted focus-visible:bg-muted active:bg-muted"
-                                >
-                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+                            <TableRow key={item.key} className="relative">
+                                <TableCell>
+                                    <Status ready={item.ready} />
+                                </TableCell>
+                                <TableCell className="whitespace-normal">
+                                    <div className="flex min-w-0 items-start gap-2">
                                         <item.icon
                                             aria-hidden
-                                            className="size-4"
+                                            className="mt-0.5 size-4 shrink-0 text-muted-foreground"
                                         />
-                                    </span>
-                                    <span className="flex min-w-0 flex-1 flex-col gap-1">
-                                        <span className="font-medium">
-                                            {item.label}
-                                        </span>
-                                        <span className="text-pretty text-muted-foreground">
-                                            {item.detail}
-                                        </span>
-                                        <span className="pt-1 sm:hidden">
-                                            <Status ready={item.ready} />
-                                        </span>
-                                    </span>
-                                    <span className="hidden sm:block">
-                                        <Status ready={item.ready} />
-                                    </span>
-                                    <ChevronRight
-                                        aria-hidden
-                                        className="size-4 shrink-0 text-muted-foreground"
-                                    />
-                                </button>
-                            </li>
+                                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                            <Link
+                                                href={conciergeTabUrl(item.key)}
+                                                className="rounded-sm font-medium outline-none after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring"
+                                            >
+                                                {item.label}
+                                            </Link>
+                                            <span className="text-xs text-muted-foreground">
+                                                {item.detail}
+                                            </span>
+                                        </div>
+                                        <ChevronRight
+                                            aria-hidden
+                                            className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                        />
+                                    </div>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </ul>
-                </CardContent>
-            </Card>
-        </ContentGrid>
+                    </TableBody>
+                </Table>
+            </div>
+        </PanelSection>
+    );
+}
+
+/** The lobby QR code to display where guests arrive, with its link. */
+export function LobbyCheckIn({
+    lobbyUrl,
+    lobbyQr,
+}: {
+    lobbyUrl: string;
+    lobbyQr: string;
+}) {
+    return (
+        <PanelSection
+            title="Lobby check-in"
+            description="Display this code where guests arrive. It opens the lobby page on their phone."
+        >
+            <div className="flex flex-col items-center gap-4">
+                <LobbyQr url={lobbyUrl} qr={lobbyQr} className="size-40" />
+                <CopyLinkButton url={lobbyUrl} />
+            </div>
+        </PanelSection>
     );
 }

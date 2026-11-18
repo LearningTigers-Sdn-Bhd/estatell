@@ -48,7 +48,7 @@ class BookingPropertyResource extends JsonResource
                 'url' => $photo->getUrl('web'),
                 'thumb_url' => $photo->getUrl('thumb'),
             ])->values()->all(),
-            'about_text' => $property->bookingSite?->about_text,
+            'about_text' => $property->about,
             'amenities' => $property->amenities->map(fn (Amenity $amenity): array => [
                 'name' => $amenity->name,
                 'category' => $amenity->category->name,

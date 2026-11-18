@@ -34,7 +34,16 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { FieldGroup, FieldLegend, FieldSet } from '@/components/ui/field';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
+import { Textarea } from '@/components/ui/textarea';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { edit as basicsEdit } from '@/routes/onboarding/basics';
 import {
@@ -288,6 +297,30 @@ export default function PropertySettings({
                                                 />
                                             </FieldGroup>
                                         </FieldSet>
+                                        <Field data-invalid={!!errors.about}>
+                                            <FieldLabel htmlFor="about">
+                                                About the property (optional)
+                                            </FieldLabel>
+                                            <Textarea
+                                                id="about"
+                                                name="about"
+                                                rows={5}
+                                                maxLength={3000}
+                                                defaultValue={
+                                                    profile.about ?? ''
+                                                }
+                                                placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
+                                                aria-invalid={!!errors.about}
+                                            />
+                                            <FieldDescription>
+                                                Guests read this on your booking
+                                                website and in the Concierge
+                                                guide. Up to 3000 characters.
+                                            </FieldDescription>
+                                            <FieldError>
+                                                {errors.about}
+                                            </FieldError>
+                                        </Field>
                                     </>
                                 )}
                             </SettingsSection>

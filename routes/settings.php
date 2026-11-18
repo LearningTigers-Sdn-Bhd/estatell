@@ -327,13 +327,24 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
     Route::prefix('concierge')->name('concierge.')->middleware(['concierge', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [ConciergeSettingsController::class, 'index'])->name('index');
+        Route::get('guest-guidelines', [ConciergeSettingsController::class, 'guestGuidelines'])->name('guest-guidelines');
+        Route::get('getting-here', [ConciergeSettingsController::class, 'gettingHere'])->name('getting-here');
+        Route::get('policies', [ConciergeSettingsController::class, 'policies'])->name('policies');
+        Route::get('faqs', [ConciergeSettingsController::class, 'faqs'])->name('faqs');
+        Route::get('amenities', [ConciergeSettingsController::class, 'amenities'])->name('amenities');
+        Route::get('nearby-places', [ConciergeSettingsController::class, 'nearbyPlaces'])->name('nearby-places');
+        Route::get('wifi', [ConciergeSettingsController::class, 'wifi'])->name('wifi');
+        Route::get('contacts', [ConciergeSettingsController::class, 'contacts'])->name('contacts');
         Route::put('/', [ConciergeSettingsController::class, 'update'])->name('update');
         Route::post('hero', [ConciergeSettingsController::class, 'storeHero'])->name('hero.store');
         Route::delete('hero', [ConciergeSettingsController::class, 'destroyHero'])->name('hero.destroy');
         Route::post('wifi', [ConciergeSettingsController::class, 'storeWifi'])->name('wifi.store');
         Route::put('wifi/{wifiNetwork}', [ConciergeSettingsController::class, 'updateWifi'])->name('wifi.update');
+        Route::put('wifi/{wifiNetwork}/active', [ConciergeSettingsController::class, 'wifiActive'])->name('wifi.active.update');
         Route::delete('wifi/{wifiNetwork}', [ConciergeSettingsController::class, 'destroyWifi'])->name('wifi.destroy');
         Route::post('faqs', [ConciergeSettingsController::class, 'storeFaq'])->name('faqs.store');
+        Route::put('faqs/{faq}', [ConciergeSettingsController::class, 'updateFaq'])->name('faqs.update');
+        Route::put('faqs/{faq}/active', [ConciergeSettingsController::class, 'faqActive'])->name('faqs.active.update');
         Route::delete('faqs/{faq}', [ConciergeSettingsController::class, 'destroyFaq'])->name('faqs.destroy');
         Route::put('amenities', [ConciergeSettingsController::class, 'toggleAmenity'])->name('amenities.toggle');
         Route::put('amenities/{amenity}', [ConciergeSettingsController::class, 'updateAmenity'])->whereNumber('amenity')->name('amenities.update');
@@ -345,9 +356,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('{nearbyPlace}/active', [NearbyPlaceController::class, 'active'])->whereNumber('nearbyPlace')->name('active.update');
             Route::delete('{nearbyPlace}', [NearbyPlaceController::class, 'destroy'])->whereNumber('nearbyPlace')->name('destroy');
         });
-        Route::put('hotel-info', [ConciergeSettingsController::class, 'updateHotelInfo'])->name('hotel-info.update');
+        Route::put('guest-guidelines', [ConciergeSettingsController::class, 'updateGuestGuidelines'])->name('guest-guidelines.update');
+        Route::put('getting-here', [ConciergeSettingsController::class, 'updateGettingHere'])->name('getting-here.update');
         Route::put('contacts', [ConciergeSettingsController::class, 'updateContacts'])->name('contacts.update');
         Route::post('topics', [ConciergeSettingsController::class, 'storeTopic'])->name('topics.store');
+        Route::put('topics/{infoTopic}', [ConciergeSettingsController::class, 'updateTopic'])->name('topics.update');
+        Route::put('topics/{infoTopic}/active', [ConciergeSettingsController::class, 'topicActive'])->name('topics.active.update');
         Route::delete('topics/{infoTopic}', [ConciergeSettingsController::class, 'destroyTopic'])->name('topics.destroy');
     });
 
