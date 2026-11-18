@@ -5,13 +5,13 @@ import {
 } from '@/components/pms/concierge/concierge-shell';
 import { ContactsForm } from '@/components/pms/concierge/contacts-form';
 import { LinkedSection } from '@/components/pms/concierge/guide-layout';
-import { profile } from '@/routes/settings';
+import { profile as profileRoute } from '@/routes/settings';
 
 export default function ConciergeContacts({
-    hasContact,
+    profile,
     contacts,
 }: {
-    hasContact: boolean;
+    profile: App.Data.Concierge.ConciergeProfileData;
     contacts: App.Data.Concierge.ConciergeContactSettingsData;
 }) {
     return (
@@ -23,9 +23,13 @@ export default function ConciergeContacts({
                 aside={
                     <LinkedSection
                         title="Phone and email"
-                        body="The main phone number and email on the Contact page come from the property profile."
-                        ready={hasContact}
-                        href={profile.url()}
+                        body="The main phone number and email on the Contact page. Change them on the property profile."
+                        ready={Boolean(profile.phone || profile.email)}
+                        fields={[
+                            { label: 'Phone', value: profile.phone },
+                            { label: 'Email', value: profile.email },
+                        ]}
+                        href={profileRoute.url()}
                         action="Edit property profile"
                     />
                 }

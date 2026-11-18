@@ -120,3 +120,29 @@ test('other settings sections retain their existing save behavior', () => {
     expect(mocks.guard).toHaveBeenLastCalledWith(false);
     expect(mocks.dialog).not.toHaveBeenCalled();
 });
+
+test('the save bar shows Discard and Save only while the form has changes', () => {
+    const renderWithBar = () =>
+        renderToStaticMarkup(
+            <SettingsSection
+                form={{ action: '/settings/concierge', method: 'post' }}
+                title="Getting here"
+                description="How guests reach the property."
+                guardUnsavedChanges
+                saveBar
+            >
+                {() => <input name="directions" defaultValue="" />}
+            </SettingsSection>,
+        );
+
+    const clean = renderWithBar();
+    expect(clean).not.toContain('Unsaved changes');
+    expect(clean).not.toContain('type="submit"');
+
+    mocks.isDirty = true;
+
+    const dirty = renderWithBar();
+    expect(dirty).toContain('Unsaved changes');
+    expect(dirty).toContain('Discard');
+    expect(dirty).toContain('type="submit"');
+});

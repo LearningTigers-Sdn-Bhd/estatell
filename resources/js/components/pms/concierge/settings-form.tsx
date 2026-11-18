@@ -6,7 +6,7 @@ import { update } from '@/routes/settings/concierge';
 
 /**
  * One Concierge form inside a Workspace panel, saved on its own: the `SettingsSection` used by the other settings
- * pages, with Save in the header and the unsaved changes guard.
+ * pages, with Discard and Save in a floating bar while it has changes, and the unsaved changes guard.
  */
 export function ConciergeFormSection({
     form,
@@ -30,7 +30,7 @@ export function ConciergeFormSection({
             contentClassName={contentClassName}
             submitLabel="Save"
             submitIcon={Save}
-            submitInHeader
+            saveBar
             guardUnsavedChanges
         >
             {children}

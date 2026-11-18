@@ -27,6 +27,7 @@ use App\Data\Concierge\ConciergeContactSettingsData;
 use App\Data\Concierge\ConciergeFaqData;
 use App\Data\Concierge\ConciergeGettingHereData;
 use App\Data\Concierge\ConciergeGuestGuidelinesData;
+use App\Data\Concierge\ConciergeProfileData;
 use App\Data\Concierge\ConciergeTopicData;
 use App\Data\Concierge\ConciergeWifiData;
 use App\Enums\AmenityType;
@@ -107,12 +108,12 @@ class ConciergeSettingsController extends Controller
     }
 
     /**
-     * Getting here tab: directions, travel times, transfers and parking, with whether the address is set.
+     * Getting here tab: directions, travel times, transfers and parking, with the profile address shown read-only.
      */
     public function gettingHere(Property $property): Response
     {
         return $this->renderTab($property, 'getting-here', [
-            'hasAddress' => filled($property->address_line1),
+            'profile' => ConciergeProfileData::fromProperty($property),
             'gettingHere' => ConciergeGettingHereData::fromProperty($property->loadMissing('transportDetail')),
             'parkingOptions' => [
                 'availability' => ParkingAvailability::options(),
@@ -174,7 +175,7 @@ class ConciergeSettingsController extends Controller
     public function contacts(Property $property): Response
     {
         return $this->renderTab($property, 'contacts', [
-            'hasContact' => filled($property->contact_phone) || filled($property->contact_email),
+            'profile' => ConciergeProfileData::fromProperty($property),
             'contacts' => ConciergeContactSettingsData::fromProperty($property),
         ]);
     }

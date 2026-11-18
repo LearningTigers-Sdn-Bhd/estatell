@@ -1,8 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { Circle, CircleCheck } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Circle, CircleCheck, Pencil } from 'lucide-react';
+import { useId, type ReactNode } from 'react';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { buttonVariants } from '@/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 /**
@@ -24,16 +26,16 @@ export function PanelSection({
 }) {
     return (
         <section className={cn('flex flex-col gap-4', className)}>
-            <header className="flex flex-wrap items-start justify-between gap-3 ps-3 pt-2">
+            <header className="flex items-start justify-between gap-3 ps-3 pt-2">
                 <div className="flex min-w-0 flex-col gap-1">
                     <h2 className="text-base font-medium">{title}</h2>
                     {description && (
-                        <p className="text-sm text-pretty text-muted-foreground">
+                        <p className="text-sm text-balance text-muted-foreground">
                             {description}
                         </p>
                     )}
                 </div>
-                {action}
+                {action && <div className="shrink-0">{action}</div>}
             </header>
             {children}
         </section>
@@ -68,33 +70,56 @@ export function Status({ ready }: { ready: boolean }) {
     );
 }
 
-/** A section edited on another settings page: what guests see now, and a link to change it. */
+/**
+ * A section edited on another settings page: what guests see now as read-only fields, and a link to change it.
+ * Empty fields show "Not set".
+ */
 export function LinkedSection({
     title,
     body,
     ready,
+    fields,
     href,
     action,
 }: {
     title: string;
     body: string;
     ready: boolean;
+    fields: { label: string; value: string | null }[];
     href: string;
     action: string;
 }) {
+    const id = useId();
+
     return (
         <PanelSection
             title={title}
             description={body}
             action={<Status ready={ready} />}
         >
+            <FieldGroup className="gap-4">
+                {fields.map((field, index) => (
+                    <Field key={field.label}>
+                        <FieldLabel htmlFor={`${id}-${index}`}>
+                            {field.label}
+                        </FieldLabel>
+                        <Input
+                            id={`${id}-${index}`}
+                            readOnly
+                            value={field.value ?? ''}
+                            placeholder="Not set"
+                        />
+                    </Field>
+                ))}
+            </FieldGroup>
             <Link
                 href={href}
                 className={buttonVariants({
                     variant: 'outline',
-                    className: 'self-start',
+                    className: 'w-full',
                 })}
             >
+                <Pencil data-icon="inline-start" />
                 {action}
             </Link>
         </PanelSection>

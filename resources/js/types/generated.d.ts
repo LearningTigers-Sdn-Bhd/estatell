@@ -1223,6 +1223,15 @@ export type ConciergePolicyTermData = {
 label: string,
 text: string,
 };
+export type ConciergeProfileData = {
+addressLine1: string | null,
+addressLine2: string | null,
+postalCode: string | null,
+city: string | null,
+googleMapsUrl: string | null,
+phone: string | null,
+email: string | null,
+};
 export type ConciergePropertyData = {
 name: string,
 addressLines: string[],

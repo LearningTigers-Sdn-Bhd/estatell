@@ -153,9 +153,10 @@ export function SubmitButton({
     );
 }
 
-/** A title and an on/off switch, with an optional line of explanation. */
+/** A title and an on/off switch, with an optional icon and line of explanation. */
 export function SwitchRow({
     id,
+    icon: Icon,
     title,
     body,
     checked,
@@ -163,6 +164,7 @@ export function SwitchRow({
     className,
 }: {
     id: string;
+    icon?: LucideIcon;
     title: string;
     body?: string;
     checked: boolean;
@@ -173,13 +175,21 @@ export function SwitchRow({
         <div
             className={cn('flex items-start justify-between gap-4', className)}
         >
-            <div className="flex flex-col gap-1">
-                <Label htmlFor={id}>{title}</Label>
-                {body && (
-                    <p className="text-sm text-pretty text-muted-foreground">
-                        {body}
-                    </p>
+            <div className="flex min-w-0 items-start gap-2">
+                {Icon && (
+                    <Icon
+                        aria-hidden
+                        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                    />
                 )}
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor={id}>{title}</Label>
+                    {body && (
+                        <p className="text-sm text-pretty text-muted-foreground">
+                            {body}
+                        </p>
+                    )}
+                </div>
             </div>
             <Switch id={id} checked={checked} onCheckedChange={onChange} />
         </div>

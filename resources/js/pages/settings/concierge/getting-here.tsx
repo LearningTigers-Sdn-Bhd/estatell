@@ -8,15 +8,15 @@ import {
     type ParkingOptions,
 } from '@/components/pms/concierge/getting-here-form';
 import { LinkedSection } from '@/components/pms/concierge/guide-layout';
-import { profile } from '@/routes/settings';
+import { profile as profileRoute } from '@/routes/settings';
 
-/** Concierge › Getting here: directions, travel times, transfers and parking, with the property profile link in the rail. */
+/** Concierge › Getting here: directions, travel times, transfers and parking, with the profile address read-only in the rail. */
 export default function ConciergeGettingHere({
-    hasAddress,
+    profile,
     gettingHere,
     parkingOptions,
 }: {
-    hasAddress: boolean;
+    profile: App.Data.Concierge.ConciergeProfileData;
     gettingHere: App.Data.Concierge.ConciergeGettingHereData;
     parkingOptions: ParkingOptions;
 }) {
@@ -29,9 +29,25 @@ export default function ConciergeGettingHere({
                 aside={
                     <LinkedSection
                         title="Property profile"
-                        body="Directions start from the address on the property profile."
-                        ready={hasAddress}
-                        href={profile.url()}
+                        body="Directions start from this address. Change it on the property profile."
+                        ready={Boolean(profile.addressLine1)}
+                        fields={[
+                            {
+                                label: 'Address line 1',
+                                value: profile.addressLine1,
+                            },
+                            {
+                                label: 'Address line 2',
+                                value: profile.addressLine2,
+                            },
+                            { label: 'Postcode', value: profile.postalCode },
+                            { label: 'City', value: profile.city },
+                            {
+                                label: 'Google Maps link',
+                                value: profile.googleMapsUrl,
+                            },
+                        ]}
+                        href={profileRoute.url()}
                         action="Edit property profile"
                     />
                 }

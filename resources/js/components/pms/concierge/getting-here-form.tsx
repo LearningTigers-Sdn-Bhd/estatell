@@ -1,3 +1,4 @@
+import { CalendarCheck, Plane, PlugZap } from 'lucide-react';
 import { useState } from 'react';
 import {
     SelectField,
@@ -150,6 +151,7 @@ function TransportSection({
         >
             <SwitchRow
                 id="airport_transfer_switch"
+                icon={Plane}
                 title="Airport transfer available"
                 body="Include the price, booking notice, and pickup point."
                 checked={transfer}
@@ -304,6 +306,7 @@ function ParkingSection({
             />
             <SwitchRow
                 id="parking_ev_charging_switch"
+                icon={PlugZap}
                 title="EV charging available"
                 body="Guests with electric cars will see this."
                 checked={evCharging}
@@ -312,6 +315,7 @@ function ParkingSection({
             />
             <SwitchRow
                 id="parking_booking_required_switch"
+                icon={CalendarCheck}
                 title="Parking must be booked"
                 body="Guests are told to book a space before they arrive."
                 checked={bookingRequired}

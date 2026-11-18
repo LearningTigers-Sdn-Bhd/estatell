@@ -102,13 +102,13 @@ it('opens each tab on its own URL with only that tab\'s data', function (string 
 })->with([
     'overview' => ['settings.concierge.index', 'settings/concierge/index', ['sections', 'houseRules', 'walkInEnabled', 'heroUrl'], ['faqs', 'wifiNetworks', 'gettingHere', 'suggestions']],
     'guest guidelines' => ['settings.concierge.guest-guidelines', 'settings/concierge/guest-guidelines', ['guidelines', 'topics'], ['gettingHere', 'parkingOptions', 'heroUrl', 'faqs']],
-    'getting here' => ['settings.concierge.getting-here', 'settings/concierge/getting-here', ['gettingHere', 'parkingOptions', 'hasAddress'], ['guidelines', 'topics', 'heroUrl']],
+    'getting here' => ['settings.concierge.getting-here', 'settings/concierge/getting-here', ['gettingHere', 'parkingOptions', 'profile'], ['guidelines', 'topics', 'heroUrl']],
     'policies' => ['settings.concierge.policies', 'settings/concierge/policies', ['houseRules', 'policyTexts', 'policyTerms'], ['faqs', 'gettingHere']],
     'FAQs' => ['settings.concierge.faqs', 'settings/concierge/faqs', ['faqs'], ['wifiNetworks', 'gettingHere']],
     'amenities' => ['settings.concierge.amenities', 'settings/concierge/amenities', ['amenities', 'amenityDetails', 'page', 'listUrl'], ['faqs', 'suggestions']],
     'nearby places' => ['settings.concierge.nearby-places', 'settings/concierge/nearby-places', ['nearbyPlaces', 'suggestions'], ['faqs', 'amenities']],
     'Wi-Fi' => ['settings.concierge.wifi', 'settings/concierge/wifi', ['wifiNetworks'], ['faqs', 'gettingHere']],
-    'contacts' => ['settings.concierge.contacts', 'settings/concierge/contacts', ['contacts', 'hasContact'], ['faqs', 'gettingHere']],
+    'contacts' => ['settings.concierge.contacts', 'settings/concierge/contacts', ['contacts', 'profile'], ['faqs', 'gettingHere']],
 ]);
 
 it('answers 404 while the feature is off', function () {
@@ -165,4 +165,29 @@ it('refuses a hero photo that is not a JPEG, PNG or WebP image', function () {
     $this->actingAs($owner)->post(route('settings.concierge.hero.store', $property), ['hero' => UploadedFile::fake()->create('lobby.pdf', 100, 'application/pdf')])
         ->assertSessionHasErrors('hero');
     expect($property->refresh()->hasMedia(Property::HERO))->toBeFalse();
+});
+
+it('shows the profile address and contact read-only on the Getting here and Contact tabs', function () {
+    ['owner' => $owner, 'property' => $property] = conciergeSettingsSetup();
+    $property->update([
+        'address_line1' => '12 Jalan Pasar',
+        'postal_code' => '50050',
+        'city' => 'Kuala Lumpur',
+        'contact_phone' => '+60312345678',
+        'contact_email' => 'stay@example.test',
+    ]);
+
+    $this->actingAs($owner)->get(route('settings.concierge.getting-here', $property))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('profile.addressLine1', '12 Jalan Pasar')
+            ->where('profile.addressLine2', null)
+            ->where('profile.postalCode', '50050')
+            ->where('profile.city', 'Kuala Lumpur')
+            ->etc());
+
+    $this->actingAs($owner)->get(route('settings.concierge.contacts', $property))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('profile.phone', '+60312345678')
+            ->where('profile.email', 'stay@example.test')
+            ->etc());
 });
