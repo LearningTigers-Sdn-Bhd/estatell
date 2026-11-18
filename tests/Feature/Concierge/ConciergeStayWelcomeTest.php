@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Concierge\SendConciergeStayLink;
+use App\Data\Webhooks\WebhookDeliveryData;
 use App\Enums\PasscodeStatus;
 use App\Enums\WebhookEvent;
 use App\Events\StayCheckedIn;
@@ -10,9 +11,11 @@ use App\Jobs\SendStayWelcomeJob;
 use App\Models\DoorPasscode;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
 use App\Notifications\ConciergeStayLink;
 use App\Services\Kiosk\KioskPin;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Pennant\Feature;
@@ -139,6 +142,7 @@ it('sends stay.welcome_ready with the PIN, the link and the guest phone to an en
 
         return $job->event === WebhookEvent::StayWelcomeReady
             && $stay['pin']['code'] === '482913'
+            && $stay['pin']['valid_until_text'] === now()->addDays(2)->setTimezone('Asia/Kuala_Lumpur')->isoFormat('D MMM YYYY, h:mm A')
             && $stay['room'] === '101'
             && str_starts_with($stay['url'], url('/c/'))
             && array_key_exists('phone', $stay['guest']);
@@ -148,6 +152,20 @@ it('sends stay.welcome_ready with the PIN, the link and the guest phone to an en
     $data = app($job->event->payloadBuilder())->build($job->event, $unit, $job->context);
 
     expect($data['unit_id'])->toBe($unit->id)->and($data['stay']['pin']['code'])->toBe('482913');
+});
+
+it('hides the door PIN and the link token in the delivery Sheet, and keeps them in the stored body', function () {
+    $stay = ['url' => url('/c/secret-token-123'), 'room' => '101', 'guest' => null, 'pin' => ['code' => '482913', 'valid_until' => '2026-10-16T12:00:00+08:00', 'valid_until_text' => '16 Oct 2026, 12:00 PM']];
+    $delivery = WebhookDelivery::factory()->create(['event' => WebhookEvent::StayWelcomeReady, 'payload' => ['data' => ['stay' => $stay]]]);
+
+    $shown = WebhookDeliveryData::fromModel($delivery->load(WebhookDeliveryData::RELATIONS))->payload;
+
+    expect($shown)->not->toContain('482913')->not->toContain('secret-token-123')->toContain('/c/••••••••')
+        ->and($delivery->fresh()->payload['data']['stay']['pin']['code'])->toBe('482913');
+});
+
+it('queues the webhook broadcast encrypted, as it can hold a door PIN', function () {
+    expect(BroadcastWebhookJob::class)->toImplement(ShouldBeEncrypted::class);
 });
 
 it('still sends the webhook when the guest has no email, and sends no email', function () {

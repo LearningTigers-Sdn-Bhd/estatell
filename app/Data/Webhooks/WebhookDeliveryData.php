@@ -41,7 +41,29 @@ class WebhookDeliveryData extends Data
                 'durationMs' => $try->duration_ms,
                 'attemptedAt' => $try->attempted_at->format('Y-m-d H:i:s'),
             ])->all()),
-            payload: (string) json_encode($delivery->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            payload: (string) json_encode(self::masked($delivery->payload), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         );
+    }
+
+    /**
+     * The body as the Sheet shows it. The door PIN and the stay link token of `stay.welcome_ready` are secrets, so they are hidden here;
+     * the stored body, which is sent and retried, is not changed.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private static function masked(array $payload): array
+    {
+        if (data_get($payload, 'data.stay.pin.code') !== null) {
+            data_set($payload, 'data.stay.pin.code', '••••••');
+        }
+
+        $url = data_get($payload, 'data.stay.url');
+
+        if (is_string($url)) {
+            data_set($payload, 'data.stay.url', preg_replace('#(/c/).+$#', '$1••••••••', $url));
+        }
+
+        return $payload;
     }
 }

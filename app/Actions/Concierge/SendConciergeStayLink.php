@@ -21,6 +21,9 @@ use Laravel\Pennant\Feature;
 
 class SendConciergeStayLink
 {
+    /** How the end of the PIN reads to a guest, in the email and in `valid_until_text`. */
+    private const string PIN_TIME_FORMAT = 'D MMM YYYY, h:mm A';
+
     public function __construct(
         private IssueBookingPreCheckInToken $issueToken,
         private KioskStays $stays,
@@ -65,7 +68,7 @@ class SendConciergeStayLink
                 $url,
                 $room,
                 $pin?->code,
-                $pin?->validUntil?->setTimezone($timeZone)->isoFormat('D MMM YYYY, h:mm A'),
+                $pin?->validUntil?->setTimezone($timeZone)->isoFormat(self::PIN_TIME_FORMAT),
                 $pin === null && $this->pins->canRetry($stay),
             )), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $stay->property_id]);
         }
@@ -75,7 +78,11 @@ class SendConciergeStayLink
                 'url' => $url,
                 'room' => $room,
                 'guest' => $guest === null ? null : $this->guests->contact($guest),
-                'pin' => $pin === null ? null : ['code' => $pin->code, 'valid_until' => $pin->validUntil?->setTimezone($timeZone)->toIso8601String()],
+                'pin' => $pin === null ? null : [
+                    'code' => $pin->code,
+                    'valid_until' => $pin->validUntil?->setTimezone($timeZone)->toIso8601String(),
+                    'valid_until_text' => $pin->validUntil?->setTimezone($timeZone)->isoFormat(self::PIN_TIME_FORMAT),
+                ],
             ]]);
         }
     }
