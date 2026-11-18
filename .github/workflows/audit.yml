@@ -41,6 +41,25 @@ jobs:
       - name: Composer audit
         run: composer audit --locked --no-interaction
 
+      # Fails on any high or critical advisory except those in IGNORED_ADVISORIES. Keep that list short, with a reason
+      # and the condition to remove each one.
+      # - GHSA-fc5q-39xc-vjpf (picomatch ReDoS, every version up to 4.0.7): no fixed version yet. picomatch runs only
+      #   at build time on our own file patterns, never on guest input. Remove once picomatch ships a fix.
       - name: npm audit (production, high and above)
         if: ${{ !cancelled() }}
-        run: npm audit --omit=dev --audit-level=high
+        env:
+          IGNORED_ADVISORIES: GHSA-fc5q-39xc-vjpf
+        run: |
+          npm audit --omit=dev --json > npm-audit.json || true
+          jq -r --arg ignored "$IGNORED_ADVISORIES" '
+            ($ignored | split(" ")) as $skip
+            | [.vulnerabilities[].via[] | objects
+               | select(.severity == "high" or .severity == "critical")
+               | select((.url | split("/") | last) as $id | $skip | index($id) | not)
+               | "\(.severity) \(.name): \(.title) \(.url)"]
+            | unique | .[]' npm-audit.json > npm-audit-failures.txt
+          if [ -s npm-audit-failures.txt ]; then
+            cat npm-audit-failures.txt
+            exit 1
+          fi
+          echo "No high or critical npm advisories (ignored: $IGNORED_ADVISORIES)."
