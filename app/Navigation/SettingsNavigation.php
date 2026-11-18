@@ -54,12 +54,6 @@ class SettingsNavigation
                     icon: 'calculator',
                     active: request()->routeIs('settings.accounting.*'),
                 ) : null,
-                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(EInvoicing::class) ? new NavItemData(
-                    title: __('E-Invoice'),
-                    href: route('settings.e-invoice.edit', ['property' => $property->code], absolute: false),
-                    icon: 'file-text',
-                    active: request()->routeIs('settings.e-invoice.*'),
-                ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(DoorLocks::class) ? new NavItemData(
                     title: __('Door locks'),
                     href: route('settings.door-locks.edit', ['property' => $property->code], absolute: false),
@@ -161,6 +155,12 @@ class SettingsNavigation
                     href: route('settings.bank-accounts.index', ['property' => $property->code], absolute: false),
                     icon: 'banknote',
                     active: request()->routeIs('settings.bank-accounts.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(EInvoicing::class) ? new NavItemData(
+                    title: __('E-Invoice'),
+                    href: route('settings.e-invoice.edit', ['property' => $property->code], absolute: false),
+                    icon: 'file-text',
+                    active: request()->routeIs('settings.e-invoice.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
