@@ -4,6 +4,7 @@ namespace App\Actions\FrontDesk;
 
 use App\Actions\Folio\ReopenFolio;
 use App\Actions\Reservations\SyncReservationStatus;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -84,6 +85,10 @@ class UndoCheckOut
         $locked->status = UnitStatus::CheckedIn;
         $locked->checked_out_at = null;
         $locked->save();
+
+        if ($locked->stay_type === StayType::DayUse) {
+            $locked->dayUse()->update(['vacated_at' => null]);
+        }
 
         foreach ($folios as $folio) {
             $reopened = ($this->reopenFolio)($actor, $folio);

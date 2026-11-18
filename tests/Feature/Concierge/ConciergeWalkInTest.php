@@ -2,6 +2,7 @@
 
 use App\Actions\Kiosk\IssueBookingPreCheckInToken;
 use App\Enums\BookingSourceType;
+use App\Enums\HousekeepingStatus;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
@@ -17,6 +18,7 @@ use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
@@ -367,4 +369,20 @@ it('holds the room that has a door lock for a day use walk-in', function () {
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect($stay->dayUse->room_id)->toBe($locked->id);
+});
+
+it('never offers or holds a Dirty room for a day use walk-in', function () {
+    ['property' => $property, 'type' => $type, 'room' => $room] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
+    DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $locked->id]);
+    RoomStatus::query()->where('room_id', $locked->id)->update(['status' => HousekeepingStatus::Dirty]);
+    $body = ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id];
+
+    $this->post("/stay/{$property->code}/walk-in", $body)->assertRedirect();
+
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    expect($stay->dayUse->room_id)->toBe($room->id);
+
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:30&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
 });
