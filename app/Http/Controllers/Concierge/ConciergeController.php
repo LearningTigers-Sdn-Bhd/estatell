@@ -56,7 +56,7 @@ class ConciergeController extends Controller
         $property->loadMissing('settings');
 
         return Inertia::render('concierge/lobby', [
-            'property' => PropertySummaryData::fromModel($property),
+            'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'heroUrl' => $property->heroUrl(),
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'bookingUrl' => $guide->bookingUrl($property),
@@ -74,7 +74,7 @@ class ConciergeController extends Controller
         $offers = $search === null ? [] : array_filter($walkIn->available($property, $search), fn (KioskWalkInOffer $offer): bool => $offer->available);
 
         return Inertia::render('concierge/walk-in', [
-            'property' => PropertySummaryData::fromModel($property),
+            'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'adults' => $request->integer('adults'),
             'nights' => $request->integer('nights'),
             'stayType' => $request->isDayUse() ? 'day_use' : 'overnight',

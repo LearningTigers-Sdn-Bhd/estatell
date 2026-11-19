@@ -42,7 +42,7 @@ export function GuestFrame({
                     className: 'min-h-11',
                 })}
             >
-                <ArrowLeft className="size-4" aria-hidden />
+                <ArrowLeft className="size-5" aria-hidden />
                 {back.label}
             </Link>
             <div className="flex min-w-0 items-center gap-3">
@@ -89,7 +89,7 @@ export function GuestFrame({
                         >
                             <div className="flex items-center gap-3">
                                 <Phone
-                                    className="size-5 shrink-0 text-primary"
+                                    className="size-6 shrink-0 text-primary"
                                     aria-hidden
                                 />
                                 <div className="flex flex-col gap-1">

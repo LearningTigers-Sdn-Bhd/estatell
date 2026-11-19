@@ -54,7 +54,7 @@ export default function ConciergeNearby({
                                     <div className="flex items-center justify-between gap-3">
                                         <span className="flex size-12 items-center justify-center rounded-full bg-muted/60 text-primary">
                                             <MapPin
-                                                className="size-6"
+                                                className="size-7"
                                                 strokeWidth={1.5}
                                                 aria-hidden
                                             />
@@ -78,13 +78,13 @@ export default function ConciergeNearby({
                                     <span className="flex items-center justify-between gap-3 border-t border-border/40 pt-4 text-sm font-medium text-primary">
                                         <span className="flex items-center gap-2">
                                             <Navigation
-                                                className="size-4"
+                                                className="size-5"
                                                 aria-hidden
                                             />
                                             Get directions
                                         </span>
                                         <ArrowUpRight
-                                            className="size-4"
+                                            className="size-5"
                                             aria-hidden
                                         />
                                         <span className="sr-only">

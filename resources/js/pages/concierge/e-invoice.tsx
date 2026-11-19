@@ -48,12 +48,12 @@ export default function ConciergeEInvoice({
                     <h2 className="flex items-center gap-2 text-lg font-semibold">
                         {eInvoice.state === 'valid' ? (
                             <CircleCheck
-                                className="size-5 text-primary"
+                                className="size-6 text-primary"
                                 aria-hidden
                             />
                         ) : eInvoice.state === 'processing' ? (
                             <Clock
-                                className="size-5 text-primary"
+                                className="size-6 text-primary"
                                 aria-hidden
                             />
                         ) : null}
@@ -78,7 +78,7 @@ export default function ConciergeEInvoice({
                             className="inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                             Open the e-invoice
-                            <ExternalLink className="size-4" aria-hidden />
+                            <ExternalLink className="size-5" aria-hidden />
                             <span className="sr-only">Opens in a new tab</span>
                         </a>
                     )}

@@ -103,7 +103,7 @@ function conciergeStep(string $token, string $step): TestResponse
  */
 function conciergeIdentityBody(array $with = []): array
 {
-    return ['kind' => 'passport', 'number' => 'A1234567', 'full_name' => 'Aisha Rahman', 'nationality' => 'MY', ...$with];
+    return ['kind' => 'passport', 'number' => 'A1234567', 'full_name' => 'Aisha Rahman', 'nationality' => 'MY', 'email' => 'aisha.rahman@example.com', 'phone' => '+60123456789', ...$with];
 }
 
 /** Gives the stay's guest an ID document and a nationality, so the ID step is done. */

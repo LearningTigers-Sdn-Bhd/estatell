@@ -16,15 +16,17 @@ class PropertySummaryData extends Data
         public ?string $countryCode,
     ) {}
 
-    public static function fromModel(Property $property): self
+    public static function fromModel(Property $property, bool $forGuest = false): self
     {
         $logo = $property->getFirstMedia(Property::LOGO);
+        // A guest has no login, so the Concierge pages point at the logo route that needs none.
+        $logoRoute = $forGuest ? 'concierge.logo' : 'property.logo';
 
         return new self(
             code: $property->code,
             name: $property->name,
             status: $property->status,
-            logoUrl: $logo === null ? null : route('property.logo', ['property' => $property->code, 'v' => $logo->id], absolute: false),
+            logoUrl: $logo === null ? null : route($logoRoute, ['property' => $property->code, 'v' => $logo->id], absolute: false),
             countryCode: $property->country_code,
         );
     }

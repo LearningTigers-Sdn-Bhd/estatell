@@ -72,7 +72,7 @@ export default function ConciergeFind({
                         </div>
                     )}
                 </Form>
-                <div className="concierge-editorial-image relative h-48 overflow-hidden rounded-xl bg-muted sm:h-64 lg:h-auto lg:min-h-80 lg:rounded-none">
+                <div className="concierge-editorial-image relative h-48 overflow-hidden rounded-xl bg-muted sm:h-64 lg:h-auto lg:min-h-112! lg:rounded-none">
                     <img
                         src={heroUrl ?? '/images/concierge-editorial-coast.jpg'}
                         alt=""

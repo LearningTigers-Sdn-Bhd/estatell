@@ -136,7 +136,7 @@ export function CheckInStep({
             >
                 <KeyRound className="size-12 text-primary" strokeWidth={1.5} />
                 <span className="absolute right-0 bottom-0 flex size-9 items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground">
-                    <Check className="size-4" strokeWidth={2.5} />
+                    <Check className="size-5" strokeWidth={2.5} />
                 </span>
             </div>
             <div className="flex flex-col gap-3">
@@ -154,7 +154,7 @@ export function CheckInStep({
             <div className="grid w-full grid-cols-2 divide-x divide-border/40 border-y border-border/40 py-6 text-sm">
                 <div className="flex flex-col items-center gap-2 px-3">
                     <BedDouble
-                        className="size-5 text-primary"
+                        className="size-6 text-primary"
                         strokeWidth={1.5}
                         aria-hidden
                     />
@@ -162,7 +162,7 @@ export function CheckInStep({
                 </div>
                 <div className="flex flex-col items-center gap-2 px-3">
                     <KeyRound
-                        className="size-5 text-primary"
+                        className="size-6 text-primary"
                         strokeWidth={1.5}
                         aria-hidden
                     />

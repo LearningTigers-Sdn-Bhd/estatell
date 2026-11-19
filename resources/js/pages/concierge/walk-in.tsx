@@ -124,7 +124,7 @@ export default function ConciergeWalkIn({
                                 <Field data-invalid={!!errors.adults}>
                                     <FieldLabel htmlFor="adults">
                                         <UsersRound
-                                            className="size-4 text-primary"
+                                            className="size-5 text-primary"
                                             aria-hidden
                                         />
                                         Adults
@@ -148,7 +148,7 @@ export default function ConciergeWalkIn({
                                         >
                                             <FieldLabel htmlFor="start_time">
                                                 <Clock
-                                                    className="size-4 text-primary"
+                                                    className="size-5 text-primary"
                                                     aria-hidden
                                                 />
                                                 Start time
@@ -171,7 +171,7 @@ export default function ConciergeWalkIn({
                                         <Field data-invalid={!!errors.hours}>
                                             <FieldLabel htmlFor="hours">
                                                 <Hourglass
-                                                    className="size-4 text-primary"
+                                                    className="size-5 text-primary"
                                                     aria-hidden
                                                 />
                                                 Hours
@@ -195,7 +195,7 @@ export default function ConciergeWalkIn({
                                     <Field data-invalid={!!errors.nights}>
                                         <FieldLabel htmlFor="nights">
                                             <Moon
-                                                className="size-4 text-primary"
+                                                className="size-5 text-primary"
                                                 aria-hidden
                                             />
                                             Nights
@@ -310,7 +310,7 @@ export default function ConciergeWalkIn({
                                             )}
                                             <span className="flex size-12 items-center justify-center rounded-full bg-muted/60 text-primary">
                                                 <BedDouble
-                                                    className="size-6"
+                                                    className="size-7"
                                                     strokeWidth={1.5}
                                                     aria-hidden
                                                 />

@@ -39,7 +39,7 @@ export function DocumentList({
                             className="flex h-full min-h-20 items-center gap-4 rounded-2xl border border-border/40 bg-card p-4 text-sm transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted/50 text-primary">
-                                <FileText className="size-5" aria-hidden />
+                                <FileText className="size-6" aria-hidden />
                             </span>
                             <span className="flex min-w-0 flex-1 flex-col gap-1">
                                 <span className="font-medium text-pretty">
@@ -50,7 +50,7 @@ export function DocumentList({
                                 </span>
                             </span>
                             <ArrowUpRight
-                                className="size-4 shrink-0 text-muted-foreground"
+                                className="size-5 shrink-0 text-muted-foreground"
                                 aria-hidden
                             />
                             <span className="sr-only">Opens in a new tab</span>
@@ -93,7 +93,7 @@ export function CheckedOutStep({
                 <section className="flex max-w-2xl flex-col gap-3 rounded-2xl border border-border/40 bg-card p-6">
                     <h2 className="flex items-center gap-2 text-lg font-semibold">
                         <ReceiptText
-                            className="size-5 text-primary"
+                            className="size-6 text-primary"
                             aria-hidden
                         />
                         E-invoice
@@ -119,7 +119,7 @@ export function CheckedOutStep({
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-4">
                         <h2 className="flex items-center gap-2 text-lg font-semibold">
                             <MessageSquare
-                                className="size-5 text-primary"
+                                className="size-6 text-primary"
                                 aria-hidden
                             />
                             Your refund request
@@ -148,7 +148,7 @@ export function CheckedOutStep({
                 <section className="flex max-w-2xl flex-col gap-5 rounded-2xl border border-border/40 bg-card p-6">
                     <h2 className="flex items-center gap-2 text-lg font-semibold">
                         <MessageSquare
-                            className="size-5 text-primary"
+                            className="size-6 text-primary"
                             aria-hidden
                         />
                         Request a refund

@@ -190,7 +190,7 @@ class ConciergeStayController extends Controller
 
         return [
             'token' => $token,
-            'property' => PropertySummaryData::fromModel($stay->property),
+            'property' => PropertySummaryData::fromModel($stay->property, forGuest: true),
             'back' => ['href' => route('concierge.show', ['token' => $token], absolute: false), 'label' => __('Your stay')],
         ];
     }

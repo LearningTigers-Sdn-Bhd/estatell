@@ -2,7 +2,7 @@ import { usePage } from '@inertiajs/react';
 import { ExternalLink, LayoutDashboard, Printer } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { GUIDE_SECTIONS } from '@/components/pms/concierge/guide-sections';
-import { LobbyPrintCard } from '@/components/pms/concierge/lobby-qr';
+import { printLobbyPoster } from '@/components/pms/concierge/lobby-qr';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
@@ -89,14 +89,15 @@ export function ConciergeShell({
     asideLabel?: string;
     children: ReactNode;
 }) {
-    const { lobbyUrl, lobbyQr } = usePage<{
+    const { lobbyUrl, lobbyQr, property } = usePage<{
         lobbyUrl: string;
         lobbyQr: string;
+        property: App.Data.Property.PropertySummaryData | null;
     }>().props;
 
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 lg:overflow-hidden">
-            <div className="flex min-h-0 flex-1 flex-col gap-6 print:hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-6">
                 <PageHeader
                     title="Concierge"
                     description="Set up the guide guests read before and during their stay, and the QR code they scan in the lobby."
@@ -116,7 +117,14 @@ export function ConciergeShell({
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => window.print()}
+                                onClick={() =>
+                                    printLobbyPoster({
+                                        name: property?.name ?? '',
+                                        logoUrl: property?.logoUrl ?? null,
+                                        url: lobbyUrl,
+                                        qr: lobbyQr,
+                                    })
+                                }
                             >
                                 <Printer data-icon="inline-start" />
                                 Print lobby QR
@@ -142,8 +150,6 @@ export function ConciergeShell({
                     </Workspace>
                 </TabLinks>
             </div>
-
-            <LobbyPrintCard url={lobbyUrl} qr={lobbyQr} />
         </div>
     );
 }
