@@ -66,7 +66,7 @@ class ConciergeController extends Controller
     /**
      * A guest with no booking: two adults for one night is shown first, with the server's price for each room that is free.
      */
-    public function walkIn(WalkInRequest $request, Property $property, KioskWalkIn $walkIn, CurrentBusinessDate $businessDate, ConciergeDayUse $dayUse): Response
+    public function walkIn(WalkInRequest $request, Property $property, KioskWalkIn $walkIn, CurrentBusinessDate $businessDate, ConciergeDayUse $dayUse, ConciergeGuide $guide): Response
     {
         abort_unless($property->settings?->concierge_walk_in_enabled, 404);
 
@@ -81,6 +81,7 @@ class ConciergeController extends Controller
             'startTime' => $request->isDayUse() ? $request->string('start_time')->toString() : '10:00',
             'hours' => $request->isDayUse() ? $request->integer('hours') : 4,
             'canDayUse' => $dayUse->isSold($property),
+            'bookingUrl' => $guide->bookingUrl($property),
             'offers' => array_values(array_map(ConciergeOfferData::fromOffer(...), $offers)),
         ]);
     }

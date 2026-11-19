@@ -1,7 +1,9 @@
 import { Form, Link } from '@inertiajs/react';
 import {
     ArrowRight,
+    ArrowUpRight,
     BedDouble,
+    CalendarDays,
     Clock,
     Hourglass,
     Moon,
@@ -39,6 +41,7 @@ export default function ConciergeWalkIn({
     hours,
     canDayUse,
     offers,
+    bookingUrl,
 }: {
     property: App.Data.Property.PropertySummaryData;
     adults: number;
@@ -48,6 +51,7 @@ export default function ConciergeWalkIn({
     hours: number;
     canDayUse: boolean;
     offers: App.Data.Concierge.ConciergeOfferData[];
+    bookingUrl: string | null;
 }) {
     const dayUse = stayType === 'day_use';
     const length = dayUse
@@ -71,6 +75,30 @@ export default function ConciergeWalkIn({
                     : 'Choose your guests and number of nights, then select a room. Payment and check-in follow.'
             }
         >
+            {bookingUrl && (
+                <div className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="flex items-center gap-3 text-sm">
+                        <CalendarDays
+                            className="size-6 shrink-0 text-primary"
+                            aria-hidden
+                        />
+                        Booking for another date?
+                    </p>
+                    <a
+                        href={bookingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonVariants({
+                            variant: 'outline',
+                            className: 'min-h-11 w-full sm:w-fit',
+                        })}
+                    >
+                        See rooms and prices
+                        <ArrowUpRight aria-hidden />
+                        <span className="sr-only">Opens in a new tab</span>
+                    </a>
+                </div>
+            )}
             <section
                 className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card p-5 sm:p-6"
                 aria-labelledby="walk-in-search-title"
