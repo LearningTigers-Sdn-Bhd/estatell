@@ -27,6 +27,9 @@ class DoorPasscodeData extends Data
         public bool $canRevoke,
         public bool $canRetry,
         public bool $canReplace,
+        public ?string $guestName = null,
+        public ?string $reference = null,
+        public ?string $room = null,
     ) {}
 
     /**
@@ -35,6 +38,7 @@ class DoorPasscodeData extends Data
     public static function fromModel(DoorPasscode $passcode): self
     {
         return new self(
+            ...CredentialStay::of($passcode),
             id: $passcode->id,
             lockName: $passcode->doorLock->name,
             label: $passcode->label,

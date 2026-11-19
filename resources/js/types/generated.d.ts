@@ -1496,6 +1496,20 @@ endsAt: string,
 error: string | null,
 canRemove: boolean,
 };
+export type DoorCardRowData = {
+id: number,
+label: string,
+lockName: string,
+cardNumber: string,
+status: App.Data.Shared.BadgeData,
+startsAt: string,
+endsAt: string,
+error: string | null,
+canRemove: boolean,
+guestName: string | null,
+reference: string | null,
+room: string | null,
+};
 export type DoorLockConnectionData = {
 ttlockUsername: string,
 signedIn: boolean,
@@ -1534,6 +1548,9 @@ revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
 canReplace: boolean,
+guestName: string | null,
+reference: string | null,
+room: string | null,
 };
 export type KeyportJobData = {
 id: string,

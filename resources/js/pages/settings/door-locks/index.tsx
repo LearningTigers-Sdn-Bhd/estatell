@@ -15,6 +15,7 @@ import {
     PaginationFooter,
     toPaginationData,
 } from '@/components/pms/pagination-footer';
+import { DoorCardsSection } from '@/components/pms/settings/door-cards-section';
 import { KeyportSection } from '@/components/pms/settings/keyport-section';
 import DoorLockSettingsController from '@/actions/App/Http/Controllers/DoorLocks/DoorLockSettingsController';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -163,6 +164,8 @@ export default function DoorLocksIndex({
     lockSearch,
     lockOptions,
     passcodes,
+    cards,
+    waitingStay,
     keyport,
 }: {
     connection: App.Data.DoorLocks.DoorLockConnectionData | null;
@@ -181,6 +184,11 @@ export default function DoorLocksIndex({
         number,
         App.Data.DoorLocks.DoorPasscodeData
     >;
+    cards: Illuminate.LengthAwarePaginator<
+        number,
+        App.Data.DoorLocks.DoorCardRowData
+    >;
+    waitingStay: { unitId: number; label: string } | null;
     keyport: {
         devices: App.Data.Keyport.KeyportDeviceData[];
         lockTotal: number;
@@ -731,6 +739,7 @@ export default function DoorLocksIndex({
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead>For</TableHead>
+                                                    <TableHead>Room</TableHead>
                                                     <TableHead>Lock</TableHead>
                                                     <TableHead>PIN</TableHead>
                                                     <TableHead>Valid</TableHead>
@@ -751,19 +760,33 @@ export default function DoorLocksIndex({
                                                             key={passcode.id}
                                                         >
                                                             <TableCell>
-                                                                {passcode.label}
+                                                                {passcode.guestName ??
+                                                                    passcode.reference ??
+                                                                    passcode.label}
+                                                                {passcode.guestName &&
+                                                                    passcode.reference && (
+                                                                        <span className="block text-xs text-muted-foreground">
+                                                                            {
+                                                                                passcode.reference
+                                                                            }
+                                                                        </span>
+                                                                    )}
+                                                            </TableCell>
+                                                            <TableCell className="tabular-nums">
+                                                                {passcode.room ??
+                                                                    '—'}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {
+                                                                    passcode.lockName
+                                                                }
                                                                 <span className="block text-xs text-muted-foreground">
                                                                     {
                                                                         passcode.kindLabel
                                                                     }
                                                                 </span>
                                                             </TableCell>
-                                                            <TableCell>
-                                                                {
-                                                                    passcode.lockName
-                                                                }
-                                                            </TableCell>
-                                                            <TableCell className="font-mono tabular-nums">
+                                                            <TableCell className="font-mono text-base font-medium tabular-nums">
                                                                 {passcode.code ??
                                                                     '—'}
                                                             </TableCell>
@@ -872,6 +895,11 @@ export default function DoorLocksIndex({
                                 </>
                             )}
                         </section>
+
+                        <DoorCardsSection
+                            cards={cards}
+                            waitingStay={waitingStay}
+                        />
                     </>
                 )}
             </div>
