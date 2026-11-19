@@ -7,6 +7,8 @@ use App\Enums\PaymentMode;
 use App\Enums\PaymentPurpose;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
+use App\Jobs\BroadcastWebhookJob;
 use App\Models\Amenity;
 use App\Models\AmenityCategory;
 use App\Models\FolioLine;
@@ -15,8 +17,12 @@ use App\Models\GuestRequest;
 use App\Models\NearbyPlace;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
+use App\Models\WebhookDelivery;
+use App\Models\WebhookEndpoint;
 use App\Services\Payments\CurlecGateway;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -181,6 +187,30 @@ it('does not check out a guest who still owes money', function () {
 
     expect($unit->refresh()->status)->toBe(UnitStatus::CheckedIn)
         ->and(Activity::query()->where('event', 'concierge.checked_out')->count())->toBe(0);
+});
+
+it('fires stay.checked_out when the guest checks out on the concierge page, like a front desk check-out', function () {
+    Queue::fake();
+    ['token' => $token, 'unit' => $unit, 'property' => $property] = conciergeInStaySetup();
+    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::StayCheckedOut])->create();
+
+    $this->post("/c/{$token}/check-out")->assertRedirect("/c/{$token}");
+
+    Queue::assertPushed(BroadcastWebhookJob::class, 1);
+    Queue::assertPushed(BroadcastWebhookJob::class, fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::StayCheckedOut && $job->propertyId === $property->id && $job->subjectType === ReservationUnit::class && $job->subjectId === $unit->id);
+    Queue::pushed(BroadcastWebhookJob::class)->each(fn (BroadcastWebhookJob $job) => app()->call([$job, 'handle']));
+    expect(WebhookDelivery::query()->sole()->event)->toBe(WebhookEvent::StayCheckedOut);
+});
+
+it('fires no webhook when the concierge check-out is refused', function () {
+    Queue::fake();
+    ['token' => $token, 'property' => $property, 'folio' => $folio] = conciergeInStaySetup();
+    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::StayCheckedOut])->create();
+    FolioLine::factory()->for($folio)->create(['amount' => '20.00', 'unit_amount' => '20.00']);
+
+    $this->post("/c/{$token}/check-out")->assertRedirect("/c/{$token}/bill");
+
+    Queue::assertNotPushed(BroadcastWebhookJob::class);
 });
 
 it('lets a checked-out guest read the thank-you page and nothing else', function () {

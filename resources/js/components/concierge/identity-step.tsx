@@ -252,20 +252,33 @@ export function IdentityStep({
                                             </FieldError>
                                         </Field>
                                         <Field data-invalid={!!errors.gender}>
-                                            <FieldLabel htmlFor="gender">
+                                            <FieldLabel id="gender-label">
                                                 Gender (optional)
                                             </FieldLabel>
-                                            <EnumSelect
-                                                id="gender"
-                                                name="gender"
-                                                options={genders}
-                                                defaultValue={
-                                                    saved?.gender ?? undefined
-                                                }
-                                                placeholder="Choose"
-                                                className="min-h-12 w-full text-base"
-                                                aria-invalid={!!errors.gender}
-                                            />
+                                            <div
+                                                role="radiogroup"
+                                                aria-labelledby="gender-label"
+                                                className="grid grid-cols-2 gap-3"
+                                            >
+                                                {genders.map((option) => (
+                                                    <label
+                                                        key={option.value}
+                                                        className="flex h-12 cursor-pointer items-center justify-center rounded-lg border border-input bg-background px-3 text-base transition-colors has-checked:border-primary has-checked:bg-primary has-checked:text-primary-foreground has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name="gender"
+                                                            value={option.value}
+                                                            defaultChecked={
+                                                                saved?.gender ===
+                                                                option.value
+                                                            }
+                                                            className="sr-only"
+                                                        />
+                                                        {option.label}
+                                                    </label>
+                                                ))}
+                                            </div>
                                             <FieldError>
                                                 {errors.gender}
                                             </FieldError>
@@ -317,9 +330,7 @@ export function IdentityStep({
                                             className="size-6"
                                             aria-hidden
                                         />
-                                        {passport
-                                            ? 'Passport photo'
-                                            : 'MyKad photos'}
+                                        Identification Document Photo
                                         <Badge variant="secondary" size="lg">
                                             Optional
                                         </Badge>
@@ -336,8 +347,8 @@ export function IdentityStep({
                                     <Field data-invalid={!!errors.scan}>
                                         <FieldLabel htmlFor="scan">
                                             {passport
-                                                ? 'Photo page of your passport'
-                                                : 'Front of MyKad'}
+                                                ? 'Document Photo'
+                                                : 'Front Document Photo'}
                                         </FieldLabel>
                                         <Input
                                             id="scan"
@@ -355,7 +366,7 @@ export function IdentityStep({
                                             data-invalid={!!errors.scan_back}
                                         >
                                             <FieldLabel htmlFor="scan_back">
-                                                Back of MyKad
+                                                Back Document Photo
                                             </FieldLabel>
                                             <Input
                                                 id="scan_back"
