@@ -55,6 +55,8 @@ export function IdentityStep({
             : kindFor(nationality),
     );
 
+    const passport = kind === 'passport';
+
     // A walk-in is first asked to be recognised as a returning guest; what it types carries into the full form.
     const [showFull, setShowFull] = useState(!stay.walkIn);
     const [typed, setTyped] = useState({ number: '', dob: '' });
@@ -315,22 +317,27 @@ export function IdentityStep({
                                             className="size-6"
                                             aria-hidden
                                         />
-                                        MyKad / passport photos
+                                        {passport
+                                            ? 'Passport photo'
+                                            : 'MyKad photos'}
                                         <Badge variant="secondary" size="lg">
                                             Optional
                                         </Badge>
                                     </h2>
                                 </CardTitle>
                                 <CardDescription>
-                                    You can add photos of your document. You can
-                                    also continue without them.
+                                    {passport
+                                        ? 'You can add a photo of your passport. You can also continue without it.'
+                                        : 'You can add photos of your MyKad. You can also continue without them.'}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <FieldGroup>
                                     <Field data-invalid={!!errors.scan}>
                                         <FieldLabel htmlFor="scan">
-                                            Front of document
+                                            {passport
+                                                ? 'Photo page of your passport'
+                                                : 'Front of MyKad'}
                                         </FieldLabel>
                                         <Input
                                             id="scan"
@@ -343,26 +350,33 @@ export function IdentityStep({
                                         />
                                         <FieldError>{errors.scan}</FieldError>
                                     </Field>
-                                    <Field data-invalid={!!errors.scan_back}>
-                                        <FieldLabel htmlFor="scan_back">
-                                            Back of document
-                                        </FieldLabel>
-                                        <Input
-                                            id="scan_back"
-                                            name="scan_back"
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            className="h-auto min-h-12 py-2 file:mr-3 file:h-8 file:rounded-md file:bg-muted file:px-3"
-                                            aria-invalid={!!errors.scan_back}
-                                        />
-                                        <FieldError>
-                                            {errors.scan_back}
-                                        </FieldError>
-                                    </Field>
+                                    {!passport && (
+                                        <Field
+                                            data-invalid={!!errors.scan_back}
+                                        >
+                                            <FieldLabel htmlFor="scan_back">
+                                                Back of MyKad
+                                            </FieldLabel>
+                                            <Input
+                                                id="scan_back"
+                                                name="scan_back"
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                className="h-auto min-h-12 py-2 file:mr-3 file:h-8 file:rounded-md file:bg-muted file:px-3"
+                                                aria-invalid={
+                                                    !!errors.scan_back
+                                                }
+                                            />
+                                            <FieldError>
+                                                {errors.scan_back}
+                                            </FieldError>
+                                        </Field>
+                                    )}
                                     <FieldDescription>
-                                        Keep the text clear and all four corners
-                                        visible.
+                                        {passport
+                                            ? 'Open the passport to the page with your photo. Keep the text clear and all four corners visible.'
+                                            : 'Keep the text clear and all four corners visible.'}
                                     </FieldDescription>
                                 </FieldGroup>
                             </CardContent>
