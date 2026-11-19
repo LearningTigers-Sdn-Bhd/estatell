@@ -4,7 +4,9 @@ use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\FolioStatusResult;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\CheckOutUnit;
+use App\Actions\FrontDesk\SendStayCheckOutEmail;
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\HousekeepingStatus;
@@ -12,6 +14,8 @@ use App\Enums\PermissionEnum;
 use App\Enums\RegistrationCardStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
+use App\Features\Concierge;
+use App\Jobs\SendStayCheckOutEmailJob;
 use App\Models\Bed;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
@@ -31,6 +35,10 @@ use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\User;
+use App\Notifications\StayCheckedOutThanks;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -506,3 +514,59 @@ test('a stay settled across its group may check out with a balance that stays op
         ->and($replay['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
         ->and(Folio::query()->where('reservation_unit_id', $replay['unit']->id)->first()->status)->toBe(FolioStatus::Open);
 })->with(['owes' => ['80.00'], 'credit' => ['-100.00']]);
+
+test('a check-out queues one thank-you email, and a refused one, a muted one or a back-dated one queue none', function () {
+    Queue::fake();
+    $setup = stayDeskInHouse();
+    $owing = stayDeskInHouse();
+    FolioLine::factory()->for(stayDeskFolio($owing, '0.00'))->create(['amount' => '20.00', 'unit_amount' => '20.00']);
+
+    expect(stayDeskCheckOut($owing)->isRefused())->toBeTrue();
+    Queue::assertNotPushed(SendStayCheckOutEmailJob::class);
+
+    TriggerWebhook::muted(fn () => stayDeskCheckOut(stayDeskInHouse()));
+    Queue::assertNotPushed(SendStayCheckOutEmailJob::class);
+
+    app(CheckOutUnit::class)($setup['actor'], $setup['unit'], now()->subDay()->toImmutable(), skipBalanceCheck: true);
+    Queue::assertNotPushed(SendStayCheckOutEmailJob::class);
+});
+
+test('a front desk check-out queues the thank-you email for that stay', function () {
+    Queue::fake();
+    $setup = stayDeskInHouse();
+
+    expect(stayDeskCheckOut($setup)->isRefused())->toBeFalse();
+
+    Queue::assertPushed(SendStayCheckOutEmailJob::class, 1);
+    Queue::assertPushed(SendStayCheckOutEmailJob::class, fn (SendStayCheckOutEmailJob $job): bool => $job->propertyId === $setup['property']->id && $job->reservationUnitId === $setup['unit']->id);
+});
+
+test('the thank-you email goes to the guest with the dates, and with the stay page link only while the Concierge page is on', function (bool $concierge) {
+    Queue::fake();
+    Notification::fake();
+    $setup = stayDeskInHouse();
+    $setup['reservation']->booker->forceFill(['full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.test'])->save();
+    $concierge ? Feature::for($setup['property'])->activate(Concierge::class) : Feature::for($setup['property'])->deactivate(Concierge::class);
+    stayDeskCheckOut($setup);
+
+    app(SendStayCheckOutEmail::class)($setup['property']->id, $setup['unit']->id);
+
+    Notification::assertSentOnDemandTimes(StayCheckedOutThanks::class, 1);
+    Notification::assertSentOnDemand(StayCheckedOutThanks::class, fn (StayCheckedOutThanks $mail, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === 'aisha@example.test'
+        && $mail->guestName === 'Aisha'
+        && $mail->reference === $setup['reservation']->reference
+        && $mail->checkedOutDate === today()->toDateString()
+        && ($mail->stayUrl !== null) === $concierge);
+})->with([true, false]);
+
+test('the thank-you email is not sent for a stay that is not checked out, or a guest with no email', function (string $case) {
+    Queue::fake();
+    Notification::fake();
+    $setup = stayDeskInHouse();
+    $setup['reservation']->booker->forceFill(['email' => $case === 'no email' ? null : 'aisha@example.test'])->save();
+    $case === 'no email' && stayDeskCheckOut($setup);
+
+    app(SendStayCheckOutEmail::class)($setup['property']->id, $setup['unit']->id);
+
+    Notification::assertNothingSent();
+})->with(['not checked out', 'no email']);

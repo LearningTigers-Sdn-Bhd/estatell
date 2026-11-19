@@ -251,7 +251,7 @@ class DoorLockSettingsController extends Controller
     {
         $data = $request->validate(['uid' => ['required', 'string', 'max:32'], 'reservation_unit_id' => ['required', 'integer']]);
         $unit = ReservationUnit::query()->where('property_id', $property->id)->findOrFail((int) $data['reservation_unit_id']);
-        $result = $registerStayCard($unit->load('property.settings', 'property.doorLockConnection'), $data['uid']);
+        $result = $registerStayCard($unit->load('property.settings', 'property.doorLockConnection'), $data['uid'], patient: true);
 
         Inertia::flash('toast', match (true) {
             $result->refusal === null => ['type' => 'success', 'message' => __('Card added. It opens the door until :time.', ['time' => $result->validUntil->setTimezone($property->settings->time_zone ?? 'Asia/Kuala_Lumpur')->format('d M H:i')])],

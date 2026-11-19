@@ -39,6 +39,5 @@ class ConciergeStayData extends Data
         public ?string $eInvoiceUrl = null,
         public ?string $checkInTime = null,
         public bool $checkInOpensLater = false,
-        public bool $walkIn = false,
     ) {}
 }

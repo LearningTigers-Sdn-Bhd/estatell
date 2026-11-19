@@ -13,6 +13,7 @@ use App\Services\DoorLocks\StayByCard;
 use App\Services\DoorLocks\TtlockApi;
 use App\Services\DoorLocks\TtlockException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 
 require_once __DIR__.'/../Support/DoorLockSetup.php';
 
@@ -147,6 +148,34 @@ it('saves a TTLock failure on the row as Failed and tries again on repeat', func
 
     expect($retry->card->is($failed->card))->toBeTrue()->and($retry->card->status)->toBe(PasscodeStatus::Active)->and($retry->card->ttlock_card_id)->toBe(7002)->and($retry->card->error)->toBeNull();
 });
+
+it('tries a busy gateway again when a person is waiting, and gives up after three tries', function (int $failures, string $status, int $calls) {
+    Sleep::fake();
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    $sequence = Http::sequence();
+    foreach (range(1, $failures) as $ignored) {
+        $sequence->push(['errcode' => -2012, 'errmsg' => 'gateway busy']);
+    }
+    Http::fake(['*/v3/identityCard/add' => $sequence->push(['cardId' => 7003])]);
+    fakeTtlock();
+
+    $result = app(RegisterDoorCard::class)($lock, '0DD25CE7', 'Stay 1', now(), now()->addDays(2), 'card:1', patient: true);
+
+    expect($result->card->status->value)->toBe($status)->and(ttlockCalls('identityCard/add'))->toBe($calls);
+    Sleep::assertSleptTimes($calls - 1);
+})->with([[1, 'active', 2], [2, 'active', 3], [3, 'failed', 3]]);
+
+it('does not try again for a full lock, or when nobody is waiting', function (bool $patient, int $code) {
+    Sleep::fake();
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    Http::fake(['*/v3/identityCard/add' => Http::response(['errcode' => $code, 'errmsg' => 'no'])]);
+    fakeTtlock();
+
+    $result = app(RegisterDoorCard::class)($lock, '0DD25CE7', 'Stay 1', now(), now()->addDays(2), 'card:1', patient: $patient);
+
+    expect($result->card->status)->toBe(PasscodeStatus::Failed)->and(ttlockCalls('identityCard/add'))->toBe(1);
+    Sleep::assertNeverSlept();
+})->with([[true, -3009], [false, -2012]]);
 
 it('deletes a card through the gateway and marks it Revoked', function () {
     ['lock' => $lock] = doorLockSetup(gateway: true);

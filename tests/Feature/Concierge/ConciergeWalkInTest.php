@@ -24,6 +24,7 @@ use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
+use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomStatus;
@@ -40,6 +41,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -77,6 +79,52 @@ function conciergeWalkInSetup(): array
     return ['property' => $property, 'type' => $type, 'room' => $room, 'unit' => $setup['unit']];
 }
 
+/**
+ * The room a walk-in picks: one adult and one night of the room type, unless said otherwise.
+ *
+ * @param  array<string, mixed>  $with
+ * @return array<string, mixed>
+ */
+function conciergeWalkInRoom(RoomType $type, array $with = []): array
+{
+    return ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id, ...$with];
+}
+
+/**
+ * Books a walk-in the way the page does: the room and the guest's details, sent together. Nothing is booked before this.
+ *
+ * @param  array<string, mixed>  $room
+ * @param  array<string, mixed>  $identity
+ */
+function conciergeWalkInBook(TestCase $test, Property $property, array $room, array $identity = []): TestResponse
+{
+    return $test->post("/stay/{$property->code}/walk-in", [...$room, ...conciergeIdentityBody($identity)]);
+}
+
+/**
+ * Books a walk-in and returns the stay page link and the stay.
+ *
+ * @param  array<string, mixed>  $identity
+ * @return array{location: string, stay: ReservationUnit}
+ */
+function conciergeWalkInBooked(TestCase $test, Property $property, RoomType $type, array $identity = [], array $room = []): array
+{
+    $location = conciergeWalkInBook($test, $property, conciergeWalkInRoom($type, $room), $identity)->assertSessionHasNoErrors()->headers->get('Location');
+
+    return ['location' => $location, 'stay' => ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->latest('id')->firstOrFail()->reservation_unit_id)];
+}
+
+/**
+ * The room choice of a walk-in as the returning-guest check carries it, with the email or phone typed.
+ *
+ * @param  array<string, mixed>  $room
+ * @return array<string, mixed>
+ */
+function conciergeReturningBody(string $contact, array $room): array
+{
+    return [...$room, 'contact' => $contact];
+}
+
 it('offers the walk-in link on the lobby only while the switch is on', function () {
     ['property' => $property] = conciergeWalkInSetup();
 
@@ -85,7 +133,9 @@ it('offers the walk-in link on the lobby only while the switch is on', function 
     $property->settings->forceFill(['concierge_walk_in_enabled' => false])->save();
     $this->get("/stay/{$property->code}")->assertInertia(fn (Assert $page) => $page->where('walkInEnabled', false));
     $this->get("/stay/{$property->code}/walk-in")->assertNotFound();
-    $this->post("/stay/{$property->code}/walk-in", ['adults' => 2, 'nights' => 1, 'room_type_id' => 1])->assertNotFound();
+    $this->get("/stay/{$property->code}/walk-in/details?adults=2&nights=1&room_type_id=1")->assertNotFound();
+    conciergeWalkInBook($this, $property, ['adults' => 2, 'nights' => 1, 'room_type_id' => 1])->assertNotFound();
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('aisha@example.com', ['adults' => 2, 'nights' => 1, 'room_type_id' => 1]))->assertNotFound();
 });
 
 it('shows the free rooms with the server price, for two adults and one night to begin with', function () {
@@ -108,10 +158,27 @@ it('refuses a search outside the limits', function (array $query) {
     $this->get("/stay/{$property->code}/walk-in?".http_build_query($query))->assertSessionHasErrors();
 })->with([[['adults' => 0, 'nights' => 1]], [['adults' => 2, 'nights' => 15]], [['adults' => 9, 'nights' => 1]]]);
 
-it('books and holds the room, then sends the guest to the stay page to give an ID', function () {
+it('books nothing while the guest looks at rooms or types their details, and books the room with their name when they send it', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $room = conciergeWalkInRoom($type, ['adults' => 2, 'nights' => 2]);
 
-    $response = $this->post("/stay/{$property->code}/walk-in", ['adults' => 2, 'nights' => 2, 'room_type_id' => $type->id, 'total' => 1, 'property_id' => 999999])->assertRedirect();
+    $this->get("/stay/{$property->code}/walk-in?adults=2&nights=2")->assertOk();
+    $this->get("/stay/{$property->code}/walk-in/details?".http_build_query($room))->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('concierge/walk-in-details')
+        ->where('offer.roomTypeId', $type->id)
+        ->where('offer.name', 'Deluxe Double')
+        ->where('offer.total', '200.00')
+        ->where('booking.adults', 2)
+        ->where('booking.nights', 2)
+        ->where('booking.room_type_id', $type->id)
+        ->has('countries')
+        ->has('genders')
+        ->has('identityKinds'));
+    $before = ['holds' => KioskWalkInHold::query()->count(), 'guests' => Guest::query()->count(), 'reservations' => Reservation::query()->count()];
+
+    expect(KioskWalkInHold::query()->count())->toBe($before['holds']);
+
+    $response = conciergeWalkInBook($this, $property, [...$room, 'total' => 1, 'property_id' => 999999], ['full_name' => 'Aisha Rahman'])->assertSessionHasNoErrors()->assertRedirect();
 
     $hold = KioskWalkInHold::query()->sole();
     $stay = ReservationUnit::query()->findOrFail($hold->reservation_unit_id);
@@ -120,42 +187,71 @@ it('books and holds the room, then sends the guest to the stay page to give an I
         ->and($stay->status)->toBe(UnitStatus::Confirmed)
         ->and($stay->property_id)->toBe($property->id)
         ->and($stay->nights()->sum('amount'))->toBe('200.00')
-        ->and($stay->reservation->booker->full_name)->toBe('')
+        ->and($stay->reservation->booker->full_name)->toBe('Aisha Rahman')
+        ->and(Guest::query()->count())->toBe($before['guests'] + 1)
+        ->and(Reservation::query()->count())->toBe($before['reservations'] + 1)
         ->and(Folio::query()->where('reservation_unit_id', $stay->id)->exists())->toBeTrue()
         ->and(Activity::query()->where('event', 'concierge.walk_in_booked')->sole()->properties->all())->toBe(['property_id' => $property->id])
         ->and(Activity::query()->where('event', 'kiosk.walk_in_booked')->count())->toBe(0);
 
     $this->get($response->headers->get('Location'))->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->where('stay.step', 'identity')
-        ->where('stay.guestFirstName', ''));
+        ->where('stay.step', 'check_in')
+        ->where('stay.guestFirstName', 'Aisha'));
+});
+
+it('never makes a booking without a name: a details form that is refused books nothing', function (array $identity) {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $counts = fn (): array => [KioskWalkInHold::query()->count(), Reservation::query()->count(), Guest::query()->count()];
+    $before = $counts();
+
+    conciergeWalkInBook($this, $property, conciergeWalkInRoom($type), $identity)->assertSessionHasErrors();
+
+    expect($counts())->toBe($before);
+})->with([
+    'no name' => [['full_name' => '']],
+    'no email' => [['email' => '']],
+    'no phone' => [['phone' => '']],
+    'a MyKad that is not 12 digits' => [['kind' => 'my_kad', 'number' => '12345']],
+]);
+
+it('asks for the nationality, and books nothing, when the property needs it and the guest left it empty', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $this->mock(RegistrationCardFieldRules::class, fn ($mock) => $mock->shouldReceive('nationalityIsNeededForTax')->andReturn(true));
+
+    conciergeWalkInBook($this, $property, conciergeWalkInRoom($type), ['nationality' => ''])->assertSessionHasErrors('nationality');
+
+    expect(KioskWalkInHold::query()->count())->toBe(0);
+    $this->get("/stay/{$property->code}/walk-in/details?".http_build_query(conciergeWalkInRoom($type)))->assertInertia(fn (Assert $page) => $page->where('nationalityRequired', true));
 });
 
 it('tells the guest when the room is gone, and books nothing', function () {
     ['property' => $property, 'type' => $type, 'room' => $room, 'unit' => $unit] = conciergeWalkInSetup();
     UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-14', 'room_id' => $room->id]);
+    $guests = Guest::query()->count();
 
-    $this->post("/stay/{$property->code}/walk-in", ['adults' => 2, 'nights' => 1, 'room_type_id' => $type->id])->assertSessionHasErrors('room_type_id');
+    $this->get("/stay/{$property->code}/walk-in/details?".http_build_query(conciergeWalkInRoom($type)))->assertRedirect()->assertSessionHasErrors('room_type_id');
+    conciergeWalkInBook($this, $property, conciergeWalkInRoom($type))->assertRedirectContains("/stay/{$property->code}/walk-in?")->assertSessionHasErrors('room_type_id');
 
-    expect(KioskWalkInHold::query()->count())->toBe(0);
+    expect(KioskWalkInHold::query()->count())->toBe(0)->and(Guest::query()->count())->toBe($guests);
 });
 
-it('stops taking walk-ins while too many holds are open', function () {
+it('stops taking walk-ins while too many holds are open, and leaves no guest behind', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
 
     foreach (range(1, 10) as $number) {
         $other = kioskStayFor($property, "R-5{$number}");
         KioskWalkInHold::factory()->create(['property_id' => $property->id, 'reservation_unit_id' => $other['unit']->id, 'kiosk_id' => null, 'expires_at' => now()->addMinutes(5)]);
     }
+    $guests = Guest::query()->count();
 
-    $this->post("/stay/{$property->code}/walk-in", ['adults' => 2, 'nights' => 1, 'room_type_id' => $type->id])->assertSessionHasErrors('room_type_id');
+    conciergeWalkInBook($this, $property, conciergeWalkInRoom($type))->assertSessionHasErrors('room_type_id');
 
-    expect(KioskWalkInHold::query()->count())->toBe(10);
+    expect(KioskWalkInHold::query()->count())->toBe(10)->and(Guest::query()->count())->toBe($guests);
 });
 
 it('releases an unpaid hold and tells the guest the hold ended, without letting the link write', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 2, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    ['location' => $location, 'stay' => $stay] = conciergeWalkInBooked($this, $property, $type, room: ['adults' => 2]);
 
     $this->travelTo(now()->addMinutes(11));
     ReleaseExpiredKioskHolds::dispatchSync();
@@ -169,9 +265,8 @@ it('releases an unpaid hold and tells the guest the hold ended, without letting 
 it('asks the walk-in for the deposit after the ID, the same as a guest with a booking', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     $property->settings->forceFill(['security_deposit_amount' => '100.00'])->save();
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 2, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
 
-    $this->post($location.'/identity', conciergeIdentityBody())->assertRedirect($location);
+    ['location' => $location] = conciergeWalkInBooked($this, $property, $type, room: ['adults' => 2]);
 
     $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.step', 'payment')->where('stay.shortfall', '100.00'));
 });
@@ -222,7 +317,7 @@ it('books and holds a day use room, which the same hours then cannot book again'
     conciergeDayUsePlan($property, $type);
     $body = ['stay_type' => 'day_use', 'adults' => 2, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id];
 
-    $this->post("/stay/{$property->code}/walk-in", $body)->assertRedirect();
+    conciergeWalkInBook($this, $property, $body)->assertSessionHasNoErrors()->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect($stay->stay_type)->toBe(StayType::DayUse)
@@ -231,7 +326,7 @@ it('books and holds a day use room, which the same hours then cannot book again'
         ->and($stay->dayUse->hours)->toBe(2)
         ->and($stay->dayUse->amount)->toBe('60.00');
 
-    $this->post("/stay/{$property->code}/walk-in", $body)->assertSessionHasErrors('room_type_id');
+    conciergeWalkInBook($this, $property, $body, ['email' => 'second@example.com'])->assertSessionHasErrors('room_type_id');
     expect(KioskWalkInHold::query()->count())->toBe(1);
 });
 
@@ -252,7 +347,7 @@ it('opens a day use search on the half hour running now for two hours, and refus
 function conciergeDayUseHeldAt(TestCase $test, Property $property, RoomType $type, string $now, string $start, int $hours): ReservationUnit
 {
     $test->travelTo(CarbonImmutable::parse("2026-10-14 {$now}", $property->settings->time_zone));
-    $test->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => $start, 'hours' => $hours, 'room_type_id' => $type->id])->assertSessionHasNoErrors();
+    conciergeWalkInBook($test, $property, ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => $start, 'hours' => $hours, 'room_type_id' => $type->id])->assertSessionHasNoErrors();
 
     return ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->latest('id')->firstOrFail()->reservation_unit_id);
 }
@@ -305,14 +400,22 @@ it('sells a room freed by an early day use check-out once housekeeping marks it 
  */
 function conciergeWalkInGivesIdentity(TestCase $test, Property $property, RoomType $type, array $identity): array
 {
-    $location = $test->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
-    $test->post($location.'/identity', conciergeIdentityBody($identity))->assertSessionHasNoErrors();
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->latest('id')->firstOrFail()->reservation_unit_id);
+    $stay = conciergeWalkInBooked($test, $property, $type, $identity)['stay'];
 
     return ['stay' => $stay, 'guest' => app(KioskStays::class)->guest($stay)];
 }
 
-it('never joins a guest from the full ID form, because only the throttled returning check may', function () {
+/**
+ * Counts what a booking leaves behind, to show a refusal or a miss left nothing.
+ *
+ * @return array{holds: int, reservations: int, guests: int}
+ */
+function conciergeWalkInCounts(): array
+{
+    return ['holds' => KioskWalkInHold::query()->count(), 'reservations' => Reservation::query()->count(), 'guests' => Guest::query()->count()];
+}
+
+it('never joins a guest from the full details form, because only the throttled returning check may', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => null, 'date_of_birth' => '1990-05-17']);
     GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
@@ -322,63 +425,93 @@ it('never joins a guest from the full ID form, because only the throttled return
     expect($guest->id)->not->toBe($returning->id)->and($returning->refresh()->email)->toBeNull()->and($returning->merged_into_id)->toBeNull();
 });
 
-it('does not join on the ID number when the date of birth differs, is missing, or the profile has none', function (?string $profileDob, ?string $typedDob) {
+it('recognises a returning walk-in from the email or phone alone, books the room for that guest, and skips the details form', function (string $typed) {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'date_of_birth' => $profileDob]);
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'nationality_code' => 'MY', 'date_of_birth' => '1990-05-17', 'email' => 'aisha@example.com', 'phone' => '+60123456789']);
     GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
+    $before = conciergeWalkInCounts();
 
-    $guest = conciergeWalkInGivesIdentity($this, $property, $type, ['full_name' => 'Aisha R', 'date_of_birth' => $typedDob])['guest'];
+    $response = $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody($typed, conciergeWalkInRoom($type)))->assertSessionHasNoErrors()->assertRedirect();
 
-    expect($guest->id)->not->toBe($returning->id)->and($returning->refresh()->merged_into_id)->toBeNull();
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    expect(app(KioskStays::class)->guest($stay)->id)->toBe($returning->id)
+        ->and($stay->reservation->booker->id)->toBe($returning->id)
+        ->and(conciergeWalkInCounts())->toBe([...$before, 'holds' => $before['holds'] + 1, 'reservations' => $before['reservations'] + 1])
+        ->and(Activity::query()->where('event', 'concierge.returning_guest_joined')->sole()->subject_id)->toBe($returning->id);
+    $this->get($response->headers->get('Location'))->assertInertia(fn (Assert $page) => $page->where('stay.guestFirstName', 'Aisha')->whereNot('stay.step', 'identity'));
 })->with([
-    'different date' => ['1990-05-17', '1991-05-17'],
-    'none typed' => ['1990-05-17', null],
-    'none on profile' => [null, '1990-05-17'],
+    'email, other case and spaces' => [' AISHA@Example.com '],
+    'phone as typed locally' => ['012-345 6789'],
+    'phone with the country code' => ['+60 12-345 6789'],
 ]);
 
-it('recognises a returning walk-in from the ID number and date of birth alone, and skips the ID form', function () {
+it('joins a profile that has no ID saved yet, and still asks for the ID form', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'nationality_code' => 'MY', 'date_of_birth' => '1990-05-17']);
-    GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'date_of_birth' => null]);
 
-    $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.step', 'identity')->where('stay.walkIn', true)->where('stay.identity', null));
-    $this->post($location.'/identity/returning', ['number' => 'a 1234567', 'date_of_birth' => '1990-05-17'])->assertRedirect($location);
+    $response = $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('aisha@example.com', conciergeWalkInRoom($type)))->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect(app(KioskStays::class)->guest($stay)->id)->toBe($returning->id);
-    $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.walkIn', false)->whereNot('stay.step', 'identity'));
+    $this->get($response->headers->get('Location'))->assertInertia(fn (Assert $page) => $page->where('stay.step', 'identity')->where('stay.identity', null));
 });
 
-it('never joins a MyKad number, because the number already holds the date of birth', function () {
+it('books nothing when no profile has the email or phone', function (string $typed) {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'nationality_code' => 'MY', 'date_of_birth' => '1990-05-17']);
-    GuestIdentityDocument::factory()->create(['guest_id' => $returning->id, 'number' => '900517141234']);
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'phone' => '+60123456789']);
+    $before = conciergeWalkInCounts();
 
-    $this->post($location.'/identity/returning', ['number' => '900517-14-1234', 'date_of_birth' => '1990-05-17'])->assertRedirect($location);
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody($typed, conciergeWalkInRoom($type)))->assertRedirect()->assertSessionHasNoErrors();
 
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    expect(app(KioskStays::class)->guest($stay)->id)->not->toBe($returning->id)->and($returning->refresh()->merged_into_id)->toBeNull();
-});
+    expect(conciergeWalkInCounts())->toBe($before)->and($returning->refresh()->merged_into_id)->toBeNull();
+})->with(['unknown email' => ['nobody@example.com'], 'unknown phone' => ['011-999 8888'], 'not a phone' => ['hello']]);
 
-it('changes nothing when the date of birth does not match, and limits the tries', function () {
+it('books nothing when two profiles share the phone, or the profile has no name', function (string $case) {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'date_of_birth' => '1990-05-17']);
-    GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    $before = app(KioskStays::class)->guest($stay)->id;
+    $first = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'phone' => '+60123456789']);
+    $second = $case === 'shared'
+        ? Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Rahman Bin Ali', 'phone' => '+60123456789'])
+        : null;
+    $case === 'unnamed' && $first->forceFill(['full_name' => ''])->save();
+    $before = conciergeWalkInCounts();
+
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('012-345 6789', conciergeWalkInRoom($type)))->assertRedirect();
+
+    expect(conciergeWalkInCounts())->toBe($before)->and($first->refresh()->merged_into_id)->toBeNull()->and($second?->refresh()->merged_into_id)->toBeNull();
+})->with(['shared', 'unnamed']);
+
+it('limits the tries to recognise a returning walk-in', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com']);
+    $before = conciergeWalkInCounts();
 
     foreach (range(1, 5) as $try) {
-        $this->post($location.'/identity/returning', ['number' => 'A1234567', 'date_of_birth' => '1991-0'.$try.'-17'])->assertRedirect($location);
+        $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody("guess{$try}@example.com", conciergeWalkInRoom($type)))->assertRedirect();
     }
-    $this->post($location.'/identity/returning', ['number' => 'A1234567', 'date_of_birth' => '1990-05-17'])->assertStatus(429);
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('aisha@example.com', conciergeWalkInRoom($type)))->assertStatus(429);
 
-    expect(app(KioskStays::class)->guest($stay)->id)->toBe($before)->and($returning->refresh()->merged_into_id)->toBeNull();
+    expect(conciergeWalkInCounts())->toBe($before)->and($returning->refresh()->merged_into_id)->toBeNull();
 });
 
-it('never joins a walk-in to a guest by a typed email, phone or name', function () {
+it('tells a returning walk-in when the room is gone, and books nothing', function () {
+    ['property' => $property, 'type' => $type, 'room' => $room, 'unit' => $unit] = conciergeWalkInSetup();
+    Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com']);
+    UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-14', 'room_id' => $room->id]);
+    $before = conciergeWalkInCounts();
+
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('aisha@example.com', conciergeWalkInRoom($type)))->assertSessionHasErrors('room_type_id');
+
+    expect(conciergeWalkInCounts())->toBe($before);
+});
+
+it('asks for the contact and the room, and nothing else, to recognise a returning walk-in', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeWalkInRoom($type))->assertSessionHasErrors(['contact']);
+    $this->post("/stay/{$property->code}/walk-in/returning", ['contact' => 'aisha@example.com'])->assertSessionHasErrors(['adults', 'room_type_id']);
+});
+
+it('never joins a walk-in to a guest from an email, phone or name typed on the full details form', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     $byEmail = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Mei Ling', 'email' => 'mei@example.com', 'phone' => '+60123456789']);
     $sameName = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Lim Wei', 'email' => null, 'phone' => null]);
@@ -388,18 +521,6 @@ it('never joins a walk-in to a guest by a typed email, phone or name', function 
     expect($guest->id)->not->toBe($byEmail->id)->and($guest->id)->not->toBe($sameName->id)
         ->and($guest->email)->toBe('mei@example.com')
         ->and($byEmail->refresh()->merged_into_id)->toBeNull();
-});
-
-it('does not show a returning guest\'s details back to the walk-in', function () {
-    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'nationality_code' => null, 'date_of_birth' => '1990-05-17']);
-    GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
-    $this->mock(RegistrationCardFieldRules::class, fn ($mock) => $mock->shouldReceive('nationalityIsNeededForTax')->andReturn(true));
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
-
-    $this->post($location.'/identity', conciergeIdentityBody(['nationality' => '', 'date_of_birth' => '1990-05-17']))->assertSessionHasNoErrors();
-
-    $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.step', 'identity')->where('stay.identity', null));
 });
 
 it('leaves a booking made earlier with its own guest', function () {
@@ -427,7 +548,7 @@ it('gives a walk-in the room that has a door lock linked, before the first free 
     $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
     DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $locked->id]);
 
-    $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->assertRedirect();
+    conciergeWalkInBook($this, $property, conciergeWalkInRoom($type))->assertSessionHasNoErrors()->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect($stay->nights()->sole()->room_id)->toBe($locked->id);
@@ -439,7 +560,7 @@ it('holds the room that has a door lock for a day use walk-in', function () {
     $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);
     DoorLock::factory()->create(['property_id' => $property->id, 'room_id' => $locked->id]);
 
-    $this->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertRedirect();
+    conciergeWalkInBook($this, $property, ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id])->assertSessionHasNoErrors()->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect($stay->dayUse->room_id)->toBe($locked->id);
@@ -453,7 +574,7 @@ it('never offers or holds a Dirty room for a day use walk-in', function () {
     RoomStatus::query()->where('room_id', $locked->id)->update(['status' => HousekeepingStatus::Dirty]);
     $body = ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => '20:30', 'hours' => 2, 'room_type_id' => $type->id];
 
-    $this->post("/stay/{$property->code}/walk-in", $body)->assertRedirect();
+    conciergeWalkInBook($this, $property, $body)->assertSessionHasNoErrors()->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect($stay->dayUse->room_id)->toBe($room->id);
@@ -468,9 +589,7 @@ it('sends booking.created for a walk-in that owes nothing once the ID step is sa
     $cash = PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => TransactionCode::factory()->for($property)->create(['kind' => TransactionKind::Payment])->id, 'name' => 'Cash', 'type' => PaymentMethodType::Cash, 'requires_reference' => false]);
     $created = fn (): Collection => Queue::pushed(BroadcastWebhookJob::class)->filter(fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::BookingCreated);
 
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    $this->post($location.'/identity', conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
+    ['stay' => $stay] = conciergeWalkInBooked($this, $property, $type, ['email' => 'aisha@example.com']);
 
     expect($created())->toHaveCount(1);
 
@@ -493,9 +612,7 @@ it('emails a walk-in that owes nothing the booking number and the check-in link 
     Notification::fake();
     $cash = PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => TransactionCode::factory()->for($property)->create(['kind' => TransactionKind::Payment])->id, 'name' => 'Cash', 'type' => PaymentMethodType::Cash, 'requires_reference' => false]);
 
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
-    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    $this->post($location.'/identity', conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
+    ['stay' => $stay] = conciergeWalkInBooked($this, $property, $type, ['email' => 'aisha@example.com']);
 
     Notification::assertSentOnDemandTimes(ConciergeWalkInConfirmed::class, 1);
 
@@ -512,10 +629,11 @@ it('emails a walk-in that owes nothing the booking number and the check-in link 
 
 it('sends no booking.created for a walk-in hold that nobody pays', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $property->settings->forceFill(['security_deposit_amount' => '100.00'])->save();
     Queue::fake();
     WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingCreated, WebhookEvent::BookingCancelled])->create();
 
-    $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->assertRedirect();
+    conciergeWalkInBooked($this, $property, $type);
     $this->travelTo(now()->addMinutes(11));
     ReleaseExpiredKioskHolds::dispatchSync();
 

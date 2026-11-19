@@ -39,9 +39,9 @@ class CountryOptions
      *
      * @return list<array{value: string, label: string}>
      */
-    public function optionsWithMalaysiaFirst(): array
+    public function optionsWithMalaysiaFirst(?string $locale = null): array
     {
-        $options = $this->options();
+        $options = $this->options($locale);
 
         return [
             ...array_values(array_filter($options, fn (array $option): bool => $option['value'] === 'MY')),

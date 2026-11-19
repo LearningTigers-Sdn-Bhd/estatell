@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Concierge;
 
-use App\Actions\Concierge\BookConciergeWalkIn;
 use App\Actions\Concierge\CheckInConciergeStay;
 use App\Actions\Concierge\ConfirmStayPayment;
 use App\Actions\Concierge\OpenConciergeStay;
@@ -10,10 +9,7 @@ use App\Actions\Concierge\SaveConciergeIdentity;
 use App\Actions\Concierge\StartStayPayment;
 use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Actions\Kiosk\AnnounceWalkInBooking;
-use App\Actions\Kiosk\IssueBookingPreCheckInToken;
-use App\Actions\Kiosk\KioskWalkInResult;
 use App\Actions\Kiosk\SignStayRegistrationCard;
-use App\Data\Concierge\ConciergeOfferData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\Gender;
 use App\Enums\Locale;
@@ -21,22 +17,15 @@ use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concierge\ConfirmPaymentRequest;
 use App\Http\Requests\Concierge\FindStayRequest;
-use App\Http\Requests\Concierge\ReturningGuestRequest;
 use App\Http\Requests\Concierge\SaveIdentityRequest;
 use App\Http\Requests\Concierge\SignCardRequest;
-use App\Http\Requests\Concierge\WalkInRequest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
-use App\Services\Concierge\ConciergeDayUse;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergePageBuilder;
-use App\Services\Concierge\ReturningGuest;
 use App\Services\FrontDesk\SelfCheckInPayment;
 use App\Services\Guests\CountryOptions;
 use App\Services\Kiosk\KioskPin;
-use App\Services\Kiosk\KioskWalkIn;
-use App\Services\Kiosk\KioskWalkInOffer;
-use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\CurlecGateway;
 use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
@@ -66,46 +55,6 @@ class ConciergeController extends Controller
         ]);
     }
 
-    /**
-     * A guest with no booking: two adults for one night is shown first, with the server's price for each room that is free.
-     */
-    public function walkIn(WalkInRequest $request, Property $property, KioskWalkIn $walkIn, CurrentBusinessDate $businessDate, ConciergeDayUse $dayUse, ConciergeGuide $guide): Response
-    {
-        abort_unless($property->settings?->concierge_walk_in_enabled, 404);
-
-        $search = $request->search($property, $businessDate);
-        $offers = $search === null ? [] : array_filter($walkIn->available($property, $search), fn (KioskWalkInOffer $offer): bool => $offer->available);
-
-        return Inertia::render('concierge/walk-in', [
-            'property' => PropertySummaryData::fromModel($property, forGuest: true),
-            'adults' => $request->integer('adults'),
-            'nights' => $request->integer('nights'),
-            'stayType' => $request->isDayUse() ? 'day_use' : 'overnight',
-            'startTime' => $request->isDayUse() ? $request->string('start_time')->toString() : '10:00',
-            'hours' => $request->isDayUse() ? $request->integer('hours') : 4,
-            'canDayUse' => $dayUse->isSold($property),
-            'bookingUrl' => $guide->bookingUrl($property),
-            'offers' => array_values(array_map(ConciergeOfferData::fromOffer(...), $offers)),
-        ]);
-    }
-
-    public function bookWalkIn(WalkInRequest $request, Property $property, BookConciergeWalkIn $bookWalkIn, IssueBookingPreCheckInToken $issueToken, CurrentBusinessDate $businessDate): RedirectResponse
-    {
-        abort_unless($property->settings?->concierge_walk_in_enabled, 404);
-
-        $search = $request->search($property, $businessDate);
-        $result = $search === null ? new KioskWalkInResult(refusal: 'no_room_available') : $bookWalkIn($property, $search, $request->integer('room_type_id'));
-
-        if ($result->hold === null) {
-            return back()->withErrors(['room_type_id' => match ($result->refusal) {
-                'busy' => __('Many rooms are being booked right now. Try again in a few minutes, or ask the front desk.'),
-                default => __('That room is no longer available. Pick another room or change the number of nights.'),
-            }]);
-        }
-
-        return to_route('concierge.show', ['token' => basename($issueToken($result->hold->stay()->firstOrFail()))]);
-    }
-
     public function find(FindStayRequest $request, Property $property, OpenConciergeStay $openStay): RedirectResponse
     {
         $result = $openStay($property, $request->string('reference')->toString(), (string) $request->ip());
@@ -128,7 +77,7 @@ class ConciergeController extends Controller
             'stay' => $stay,
             'identityKinds' => [['value' => 'my_kad', 'label' => __('MyKad')], ['value' => 'passport', 'label' => __('Passport')]],
             'genders' => Gender::options(),
-            'countries' => $countries->options($locale?->value),
+            'countries' => $countries->optionsWithMalaysiaFirst($locale?->value),
         ]);
     }
 
@@ -146,22 +95,6 @@ class ConciergeController extends Controller
             $result->nationalityRequired => ['type' => 'error', 'message' => __('Choose your nationality to continue.')],
             default => ['type' => 'success', 'message' => __('Your details are saved.')],
         });
-
-        return to_route('concierge.show', ['token' => $token]);
-    }
-
-    /**
-     * A walk-in gives the ID number and date of birth to be recognised as a returning guest. A match moves the stay to
-     * that guest, so the ID step is already done; no match changes nothing, and the page shows the full ID form.
-     */
-    public function returning(ReturningGuestRequest $request, string $token, ReturningGuest $returning): RedirectResponse
-    {
-        $joined = $returning->join($this->stay($request), $request->string('number')->toString(), $request->dateOfBirth());
-
-        if ($joined !== null) {
-            $this->announceUnpaidFree($this->stay($request));
-            Inertia::flash('toast', ['type' => 'success', 'message' => __('Welcome back. We have your details.')]);
-        }
 
         return to_route('concierge.show', ['token' => $token]);
     }

@@ -13,6 +13,7 @@ use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Enums\WebhookEvent;
 use App\Events\StayCheckedOut;
+use App\Jobs\SendStayCheckOutEmailJob;
 use App\Models\Bed;
 use App\Models\Folio;
 use App\Models\ReservationUnit;
@@ -26,6 +27,7 @@ use App\Services\Payments\OnlineRefundLedger;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\DB;
 
 class CheckOutUnit
@@ -165,6 +167,11 @@ class CheckOutUnit
             StayCheckedOut::dispatch($locked->property_id, $locked->id);
 
             app(TriggerWebhook::class)(WebhookEvent::StayCheckedOut, $locked->property_id, ReservationUnit::class, $locked->id);
+
+            // The guest's thank-you email: for a stay checked out now, never an import or a stay entered after it ended, which also send no webhook.
+            if (! $skipBalanceCheck && $asOf === null && Context::getHidden(TriggerWebhook::MUTED) !== true) {
+                SendStayCheckOutEmailJob::dispatch($locked->property_id, $locked->id);
+            }
 
             return UnitStayResult::done($locked);
         });

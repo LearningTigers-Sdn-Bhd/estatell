@@ -38,7 +38,7 @@ class RegisterStayCard
      * on that lock for another stay, and too many cards all answer `lock_unavailable`, so the machine never ejects
      * a card that may not open the door. A UID that is not a valid card number answers `card_unknown`.
      */
-    public function __invoke(ReservationUnit $stay, string $uid): KioskCardResult
+    public function __invoke(ReservationUnit $stay, string $uid, bool $patient = false): KioskCardResult
     {
         $number = $this->cardNumber->fromUid($uid);
 
@@ -46,11 +46,11 @@ class RegisterStayCard
             return KioskCardResult::refused('card_unknown');
         }
 
-        return Cache::lock('kiosk-register-card:'.$stay->id, 120)->get(fn () => $this->register($stay, $uid, $number))
+        return Cache::lock('kiosk-register-card:'.$stay->id, 120)->get(fn () => $this->register($stay, $uid, $number, $patient))
             ?: KioskCardResult::refused('lock_unavailable');
     }
 
-    private function register(ReservationUnit $stay, string $uid, int $number): KioskCardResult
+    private function register(ReservationUnit $stay, string $uid, int $number, bool $patient): KioskCardResult
     {
         $stay->refresh();
 
@@ -77,7 +77,7 @@ class RegisterStayCard
                 return KioskCardResult::refused('card_limit');
             }
 
-            $result = ($this->registerDoorCard)($lock, $uid, $label, $startsAt, $endsAt, $key, $stay);
+            $result = ($this->registerDoorCard)($lock, $uid, $label, $startsAt, $endsAt, $key, $stay, patient: $patient);
 
             if ($result->isRefused() || $result->card?->status !== PasscodeStatus::Active) {
                 return KioskCardResult::refused(match ($result->refusal) {

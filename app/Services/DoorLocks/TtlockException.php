@@ -24,6 +24,16 @@ class TtlockException extends RuntimeException
     /** TTLock `errcode` of a refusal, or 0 for any other failure. */
     public int $ttlockCode = 0;
 
+    /**
+     * Whether asking again can change the answer. TTLock sends back nothing it can be asked again about (`unreachable`, a timeout, a gateway
+     * that did not answer) as a code of 0 or as a code that is not listed here, so these are worth another try. A full lock, or a sign-in
+     * that has expired, needs a person first.
+     */
+    public function isPermanent(): bool
+    {
+        return in_array($this->ttlockCode, [-3009, 10004], true);
+    }
+
     public static function refused(int $code, string $message): self
     {
         $exception = new self(match ($code) {

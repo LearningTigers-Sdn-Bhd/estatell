@@ -2,14 +2,10 @@
 
 namespace App\Http\Requests\Concierge;
 
-use App\Data\Kiosk\KioskWalkInData;
-use App\Enums\StayType;
 use App\Models\Property;
-use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * A walk-in's search (adults and nights, from tonight) and, when booking, the room type picked. The arrival is always
@@ -17,11 +13,7 @@ use Illuminate\Validation\Rule;
  */
 class WalkInRequest extends FormRequest
 {
-    public const int MAX_NIGHTS = 14;
-
-    public const int MAX_ADULTS = 8;
-
-    public const int MAX_HOURS = 12;
+    use ReadsWalkInSearch;
 
     public function authorize(): bool
     {
@@ -49,14 +41,7 @@ class WalkInRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'adults' => ['required', 'integer', 'min:1', 'max:'.self::MAX_ADULTS],
-            'stay_type' => ['sometimes', Rule::enum(StayType::class)],
-            'nights' => [Rule::requiredIf(! $this->isDayUse()), 'nullable', 'integer', 'min:1', 'max:'.self::MAX_NIGHTS],
-            'start_time' => [Rule::requiredIf($this->isDayUse()), 'nullable', 'date_format:H:i'],
-            'hours' => [Rule::requiredIf($this->isDayUse()), 'nullable', 'integer', 'min:1', 'max:'.self::MAX_HOURS],
-            'room_type_id' => [Rule::requiredIf($this->isMethod('post')), 'integer'],
-        ];
+        return $this->searchRules(roomTypeRequired: $this->isMethod('post'));
     }
 
     /**
@@ -68,23 +53,5 @@ class WalkInRequest extends FormRequest
         $minutes = intdiv($now->hour * 60 + $now->minute, 30) * 30;
 
         return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
-    }
-
-    public function isDayUse(): bool
-    {
-        return $this->input('stay_type') === StayType::DayUse->value;
-    }
-
-    public function search(Property $property, CurrentBusinessDate $businessDate): ?KioskWalkInData
-    {
-        $date = $businessDate->date($property);
-
-        if ($date === null) {
-            return null;
-        }
-
-        return $this->isDayUse()
-            ? new KioskWalkInData($date->toImmutable(), 0, $this->integer('adults'), startTime: $this->string('start_time')->toString(), hours: $this->integer('hours'))
-            : new KioskWalkInData($date->toImmutable(), $this->integer('nights'), $this->integer('adults'));
     }
 }
