@@ -446,15 +446,19 @@ test('an early day use check-out never frees the room before the block starts', 
         ->and(app(DayUseAvailability::class)->isFree($setup['roomType'], $setup['rooms'][0]->id, $setup['date'], '14:00', '16:00'))->toBeTrue();
 });
 
-test('an early day use check-out frees the room for an overnight guest arriving after it', function () {
-    $setup = dayUseCheckedOutAt('15:00');
-    $free = fn (string $arrivalTime) => array_map(
+test('an early day use check-out frees the room for an overnight guest whatever the arrival time', function () {
+    $free = fn (array $setup, ?string $arrivalTime) => array_map(
         fn ($room) => $room->id,
         app(FreeUnits::class)->forStay($setup['roomType'], $setup['date'], $setup['date']->addDay(), null, $arrivalTime, '11:00'),
     );
+    $live = dayUseDesk(['startTime' => '14:00', 'hours' => 3]);
 
-    expect($free('15:00'))->toContain($setup['rooms'][0]->id)
-        ->and($free('14:30'))->not->toContain($setup['rooms'][0]->id);
+    expect($free($live, '14:00'))->not->toContain($live['rooms'][0]->id);
+
+    $setup = dayUseCheckedOutAt('15:10');
+
+    expect($free($setup, '14:00'))->toContain($setup['rooms'][0]->id)
+        ->and($free($setup, null))->toContain($setup['rooms'][0]->id);
 });
 
 test('a day use checked out at or after its end, or on a later date, keeps the whole block', function (string $time, int $daysLater) {

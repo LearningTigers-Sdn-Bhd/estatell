@@ -22,8 +22,9 @@ use Spatie\Period\Precision;
 /**
  * The rooms or beds of a room type that are free on every night of a stay, for the Room / Bed picker and for the
  * check inside `AssignRoom` and `AssignBed`. A unit is not free on a night when a room block covers it, or when a
- * unit that holds inventory already has it. A live day use also takes its room (see `takenNights()`). It reads only and
- * stores nothing.
+ * unit that holds inventory already has it. A live day use also takes its room (see `takenNights()`), until its guest
+ * checks out early (`vacated_at`): the room is empty, so any overnight booked from then on arrives after. It reads only
+ * and stores nothing.
  *
  * `$arrivalTime` and `$departureTime` (`H:i` or `H:i:s`) are the unit's own times, which decide whether a day use on
  * the arrival or departure date overlaps the stay. Without them the property check-in and check-out times count, as
@@ -231,7 +232,7 @@ class FreeUnits
 
     /**
      * @param  array<int, list<int>>  $unitsByRoom
-     * @return array<int, list<string>> The nights taken by live day use blocks, by room id.
+     * @return array<int, list<string>> The nights taken by live day use blocks not vacated early, by room id.
      */
     private function takenByDayUse(RoomType $roomType, array $unitsByRoom, Period $stay, ?int $exceptUnitId, ?string $arrivalTime, ?string $departureTime): array
     {
@@ -251,16 +252,17 @@ class FreeUnits
             ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
             ->whereIn('unit_day_uses.room_id', array_keys($unitsByRoom))
             ->whereNull('unit_day_uses.released_at')
+            ->whereNull('unit_day_uses.vacated_at')
             ->whereBetween('unit_day_uses.date', [$first, $departureDate])
             ->when($exceptUnitId !== null, fn ($query) => $query->where('reservation_units.id', '!=', $exceptUnitId))
-            ->get(['unit_day_uses.room_id', 'unit_day_uses.date', 'unit_day_uses.starts_at', 'unit_day_uses.ends_at', 'unit_day_uses.vacated_at']);
+            ->get(['unit_day_uses.room_id', 'unit_day_uses.date', 'unit_day_uses.starts_at', 'unit_day_uses.ends_at']);
         $taken = [];
 
         foreach ($blocks as $block) {
             $date = $block->date->toDateString();
 
             if ($date === $first) {
-                $overlaps = ($block->vacated_at ?? $block->ends_at) > $arrives;
+                $overlaps = $block->ends_at > $arrives;
                 $night = $date;
             } elseif ($date === $departureDate) {
                 $overlaps = $block->starts_at < $departs;
