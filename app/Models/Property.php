@@ -513,6 +513,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(DoorPasscode::class);
     }
 
+    /** @return HasMany<DoorCard, $this> */
+    public function doorCards(): HasMany
+    {
+        return $this->hasMany(DoorCard::class);
+    }
+
     /** @return HasMany<KeyportDevice, $this> */
     public function keyportDevices(): HasMany
     {
