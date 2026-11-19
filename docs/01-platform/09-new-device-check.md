@@ -35,17 +35,17 @@ The check runs inside Fortify's login pipeline. `RedirectIfTwoFactorOrNewDevice`
 
 ## Security
 
-| Concern          | Rule                                                                                                      |
-| ---------------- | --------------------------------------------------------------------------------------------------------- |
-| Code             | 6 digits from `random_int`, stored as a password hash (`Hash::make`), never in plain text                 |
-| Expiry           | 15 minutes (`SendNewDeviceCode::VALID_MINUTES`)                                                           |
-| Wrong codes      | 5 per code (`ConfirmNewDeviceSignIn::MAX_ATTEMPTS`), then a new code is needed. Route limit 10 per minute |
-| Resend           | Once a minute. A new code replaces the old one                                                            |
-| Email            | Sent at once, not queued, so a stopped queue never blocks sign-in. The mail log never keeps the body      |
-| Device cookie    | `estatell_device`: a random 40-character token, encrypted, HTTP-only, SameSite Lax, 90 days               |
-| Stored token     | Only its SHA-256 hash, per user, in `user_trusted_devices`                                                |
-| Shared PCs       | One token per browser. Each user who verifies on it gets their own row, so a front desk PC serves a team  |
-| Deactivated user | A user deactivated while the code is pending is not signed in                                             |
+| Concern          | Rule                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| Code             | 6 digits from `random_int`, stored as a password hash (`Hash::make`), never in plain text                |
+| Expiry           | 15 minutes (`NewDeviceCodes::VALID_MINUTES`)                                                             |
+| Wrong codes      | 5 per code (`NewDeviceCodes::MAX_ATTEMPTS`), then a new code is needed. Route limit 10 per minute        |
+| Resend           | Once a minute. A new code replaces the old one                                                           |
+| Email            | Sent at once, not queued, so a stopped queue never blocks sign-in. The mail log never keeps the body     |
+| Device cookie    | `estatell_device`: a random 40-character token, encrypted, HTTP-only, SameSite Lax, 90 days              |
+| Stored token     | Only its SHA-256 hash, per user, in `user_trusted_devices`                                               |
+| Shared PCs       | One token per browser. Each user who verifies on it gets their own row, so a front desk PC serves a team |
+| Deactivated user | A user deactivated while the code is pending is not signed in                                            |
 
 ## Data
 
@@ -81,7 +81,7 @@ All are `guest`. Without a pending sign-in in the session they go back to `/logi
 | ------------ | -------------------------------------------------------------------------------------------- |
 | Login step   | `app/Actions/Fortify/RedirectIfTwoFactorOrNewDevice.php`                                     |
 | Actions      | `app/Actions/Account/SendNewDeviceCode.php`, `ConfirmNewDeviceSignIn.php`, `TrustDevice.php` |
-| Service      | `app/Services/Account/TrustedDevices.php`                                                    |
+| Services     | `app/Services/Account/TrustedDevices.php`, `NewDeviceCodes.php`, `VisitorLocation.php`       |
 | Controller   | `app/Http/Controllers/Auth/DeviceVerificationController.php`                                 |
 | Page         | `resources/js/pages/auth/verify-device.tsx`                                                  |
 | Notification | `app/Notifications/NewDeviceCodeNotification.php`                                            |

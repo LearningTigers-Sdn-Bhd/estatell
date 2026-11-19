@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
-use App\Actions\Account\SendNewDeviceCode;
 use App\Models\User;
+use App\Services\Account\NewDeviceCodes;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -48,7 +48,7 @@ class NewDeviceCodeNotification extends Notification
             ->subject(__(':code is your :app sign-in code', ['code' => $this->code, 'app' => config('app.name')]))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
             ->line(__('Someone signed in to your account on a new device or browser. Enter this code to finish signing in.'))
-            ->line(__('The code expires in :minutes minutes.', ['minutes' => SendNewDeviceCode::VALID_MINUTES]))
+            ->line(__('The code expires in :minutes minutes.', ['minutes' => NewDeviceCodes::VALID_MINUTES]))
             ->line(__('If this was not you, do not share the code and change your password.'));
     }
 }

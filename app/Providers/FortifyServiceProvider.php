@@ -133,7 +133,7 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
 
-        // A pending code also stops working after five wrong tries (ConfirmNewDeviceSignIn::MAX_ATTEMPTS).
+        // A pending code also stops working after five wrong tries (NewDeviceCodes::MAX_ATTEMPTS).
         RateLimiter::for('login-otp', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('login-otp:'.$request->session()->get(RedirectIfTwoFactorOrNewDevice::SESSION_USER_KEY, $request->ip())));
 

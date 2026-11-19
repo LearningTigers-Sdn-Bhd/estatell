@@ -2,11 +2,8 @@
 
 namespace App\Services\Account;
 
-use App\Actions\Account\SendNewDeviceCode;
-use App\Models\EmailOtp;
 use App\Models\User;
 use App\Models\UserTrustedDevice;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 /**
@@ -50,20 +47,6 @@ class TrustedDevices
             ->where('token_hash', hash('sha256', $token))
             ->active()
             ->first();
-    }
-
-    /**
-     * Seconds until another code can be sent to the user. Zero when one can be sent now.
-     */
-    public function secondsUntilResend(User $user): int
-    {
-        $sentAt = EmailOtp::query()->whereBelongsTo($user)->value('created_at');
-
-        if ($sentAt === null) {
-            return 0;
-        }
-
-        return max(0, (int) ceil(now()->diffInSeconds(CarbonImmutable::parse($sentAt)->addSeconds(SendNewDeviceCode::RESEND_SECONDS), false)));
     }
 
     /**

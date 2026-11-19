@@ -8,7 +8,7 @@ use App\Actions\Fortify\RedirectIfTwoFactorOrNewDevice;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\VerifyDeviceRequest;
 use App\Models\User;
-use App\Services\Account\TrustedDevices;
+use App\Services\Account\NewDeviceCodes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
  */
 class DeviceVerificationController extends Controller
 {
-    public function show(Request $request, TrustedDevices $trustedDevices): Response|RedirectResponse
+    public function show(Request $request, NewDeviceCodes $codes): Response|RedirectResponse
     {
         $user = $this->pendingUser($request);
 
@@ -34,7 +34,7 @@ class DeviceVerificationController extends Controller
 
         return Inertia::render('auth/verify-device', [
             'email' => $this->maskedEmail($user->email),
-            'resendInSeconds' => $trustedDevices->secondsUntilResend($user),
+            'resendInSeconds' => $codes->secondsUntilResend($user),
         ]);
     }
 

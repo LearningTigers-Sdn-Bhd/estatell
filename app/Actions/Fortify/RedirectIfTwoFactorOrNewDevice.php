@@ -54,8 +54,10 @@ class RedirectIfTwoFactorOrNewDevice extends RedirectIfTwoFactorAuthenticatable
             return $next($request);
         }
 
-        if ($this->trustedDevices->find($user, $request) !== null) {
-            ($this->trustDevice)($user, $request);
+        $trusted = $this->trustedDevices->find($user, $request);
+
+        if ($trusted !== null) {
+            ($this->trustDevice)($user, $request, $trusted);
 
             return $next($request);
         }
