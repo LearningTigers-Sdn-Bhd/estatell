@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/../Support/DoorLockSetup.php';
 
-function conciergeCheckedIn($unit, string $event = 'concierge.checked_in'): void
+function logStayCheckIn($unit, string $event = 'concierge.checked_in'): void
 {
     activity()->performedOn($unit)->event($event)->withProperties(['property_id' => $unit->property_id])->log('Checked in');
 }
@@ -19,7 +19,7 @@ function conciergeCheckedIn($unit, string $event = 'concierge.checked_in'): void
 it('offers the stay the concierge just checked in, until it has a card', function () {
     ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true);
     $unit = doorLockStay($property, $room);
-    conciergeCheckedIn($unit);
+    logStayCheckIn($unit);
     fakeTtlock();
 
     $this->actingAs($owner)->get(route('settings.door-locks.edit', $property))
@@ -73,8 +73,8 @@ it('offers no stay that is not a recent concierge check-in on a lock with a gate
     ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true);
     $second = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
     DoorLock::factory()->for($property)->create(['room_id' => $second->id, 'has_gateway' => true]);
-    conciergeCheckedIn(doorLockStay($property, $room), 'kiosk.checked_in');
-    conciergeCheckedIn(doorLockStay($property, $second));
+    logStayCheckIn(doorLockStay($property, $room), 'kiosk.checked_in');
+    logStayCheckIn(doorLockStay($property, $second));
     $this->travel(31)->minutes();
 
     $this->actingAs($owner)->get(route('settings.door-locks.edit', $property))
@@ -82,7 +82,7 @@ it('offers no stay that is not a recent concierge check-in on a lock with a gate
 
     $this->travelBack();
     ['owner' => $other, 'property' => $noGateway, 'room' => $noGatewayRoom] = doorLockSetup();
-    conciergeCheckedIn(doorLockStay($noGateway, $noGatewayRoom));
+    logStayCheckIn(doorLockStay($noGateway, $noGatewayRoom));
 
     $this->actingAs($other)->get(route('settings.door-locks.edit', $noGateway))
         ->assertInertia(fn (Assert $page) => $page->where('waitingStay', null));

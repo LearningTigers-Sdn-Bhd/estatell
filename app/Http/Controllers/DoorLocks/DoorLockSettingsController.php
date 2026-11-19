@@ -250,7 +250,7 @@ class DoorLockSettingsController extends Controller
     public function storeCard(Request $request, Property $property, RegisterStayCard $registerStayCard): RedirectResponse
     {
         $data = $request->validate(['uid' => ['required', 'string', 'max:32'], 'reservation_unit_id' => ['required', 'integer']]);
-        $unit = ReservationUnit::query()->where('property_id', $property->id)->findOrFail($data['reservation_unit_id']);
+        $unit = ReservationUnit::query()->where('property_id', $property->id)->findOrFail((int) $data['reservation_unit_id']);
         $result = $registerStayCard($unit->load('property.settings', 'property.doorLockConnection'), $data['uid']);
 
         Inertia::flash('toast', match (true) {
