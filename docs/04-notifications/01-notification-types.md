@@ -123,3 +123,5 @@ Production sends through MillionSend, a Resend-compatible email API. Set `MAIL_M
 - Tests are not affected: Laravel's test environment uses the `array` mailer.
 
 `ConciergeStayLink` is a plain notification class like `OnlineBookingConfirmed`, not a `NotificationType` case. `SendConciergeStayLink` sends it by mail to the guest's address once the stay's door PIN is ready after check-in (or after 2 minutes without it), when the property has the Concierge feature on. It shows the dates, the room, the door PIN and an **Open my stay** button. See [Welcome email and webhook](../30-concierge/01-overview.md#welcome-email-and-webhook).
+
+`ConciergeWalkInConfirmed` is another plain notification class. `AnnounceWalkInBooking` sends it by mail to the address typed on the Concierge ID step, once the walk-in's hold is kept (the first payment or the check-in), and only once. It shows the reference, the booking code, the room, the date (for a day use stay, the date and start time) and a **Check in** button with the stay link.

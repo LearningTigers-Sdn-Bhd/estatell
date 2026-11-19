@@ -204,6 +204,7 @@ The wastays Guest Concierge was the reference for what a guest needs. This table
 | Booking receipt, invoice and summary PDFs                           | Built                                                                                         |
 | E-invoice request                                                   | Built: the guest types the buyer details and `SubmitFolioEInvoice` sends the stay's e-invoice |
 | Ask for a refund, and its status                                    | Built: a refund request, and the guest sees its status after check-out                        |
+| Walk-in booking confirmation emailed after payment                  | Built: `AnnounceWalkInBooking` emails the booking number and check-in link with `ConciergeWalkInConfirmed` |
 | Stay link emailed after check-in                                    | Built: `SendConciergeStayLink` emails the guest the stay link when any channel checks them in |
 | Device check with the confirmation code, lockout and email recovery | Different: the stay link is the secret, and the lobby code lookup has its own lockout         |
 | 7 days of access after check-out                                    | Built: the link works until 7 days after the departure date                                   |
