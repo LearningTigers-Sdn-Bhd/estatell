@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
     ArrowRight,
     ArrowUpRight,
@@ -65,7 +65,7 @@ export default function ConciergeLobby({
         ...(savedStays.length > 0
             ? [
                   {
-                      title: 'Continue your stay',
+                      title: 'About your stay',
                       body: 'Requests, your bill, documents and check-out.',
                       icon: Undo2,
                       href: show.url({ token: savedStays[0].token }),
@@ -92,7 +92,7 @@ export default function ConciergeLobby({
                   },
               ]
             : []),
-        ...(bookingUrl
+        ...(bookingUrl && !walkInEnabled
             ? [
                   {
                       title: 'Book a room',
@@ -124,9 +124,10 @@ export default function ConciergeLobby({
     ];
 
     const primaryTile = tiles[0];
-    // A hairline in the middle of the gap above every tile after the first row, so the rows read as one grid.
-    const rowDivider =
-        'lg:before:absolute lg:before:-top-3 lg:before:-inset-x-1.5 lg:before:h-px lg:before:bg-border';
+    // Every service tile after the first shares one soft fill; the first is the solid primary one.
+    const tileFill = 'bg-warning/15';
+    // Seven tiles would make three tall square rows on desktop, so they go four to a row (two rows).
+    const desktopColumns = tiles.length > 6 ? 4 : 3;
     const focusStyles =
         'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground';
 
@@ -227,7 +228,7 @@ export default function ConciergeLobby({
                             </p>
                             <nav
                                 aria-labelledby="guest-services"
-                                className="grid flex-1 grid-cols-3 gap-2 sm:gap-3 lg:flex-none lg:gap-y-6"
+                                className={`grid flex-1 grid-cols-3 gap-2 sm:gap-3 lg:flex-none lg:gap-y-3 ${desktopColumns === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
                             >
                                 {tiles.map(
                                     (
@@ -243,7 +244,7 @@ export default function ConciergeLobby({
                                     ) => {
                                         const content = (
                                             <>
-                                                <span className="flex flex-col items-start gap-2 lg:gap-6">
+                                                <span className="flex flex-col items-center gap-2 text-center lg:gap-6">
                                                     <Icon
                                                         className={`size-6 shrink-0 lg:size-8 ${index === 0 ? 'hidden lg:block' : ''}`}
                                                         strokeWidth={1.5}
@@ -275,10 +276,10 @@ export default function ConciergeLobby({
                                         );
                                         const className =
                                             index === 0
-                                                ? `concierge-editorial-serif hidden min-h-13 items-center justify-center gap-2 bg-primary px-5 py-3 text-xl text-primary-foreground hover:opacity-90 motion-safe:transition-opacity lg:relative lg:flex lg:aspect-square lg:items-end lg:justify-start lg:p-5 lg:text-2xl ${focusStyles}`
-                                                : `concierge-editorial-serif group relative flex aspect-square items-end justify-start border border-border/60 p-3 text-base leading-tight hover:bg-muted/50 motion-safe:transition-colors lg:p-5 lg:text-xl ${index >= 3 ? rowDivider : ''} ${focusStyles}`;
+                                                ? `concierge-editorial-serif hidden min-h-13 items-center justify-center gap-2 bg-primary px-5 py-3 text-xl text-primary-foreground hover:opacity-90 motion-safe:transition-opacity lg:relative lg:flex lg:aspect-square lg:items-center lg:justify-center lg:p-5 lg:text-center lg:text-2xl ${focusStyles}`
+                                                : `concierge-editorial-serif group relative flex aspect-square items-center justify-center border border-border/60 p-3 text-base leading-tight hover:opacity-80 motion-safe:transition-opacity ${tileFill} lg:p-5 lg:text-xl ${focusStyles}`;
 
-                                        return onSelect ? (
+                                        const tile = onSelect ? (
                                             <button
                                                 key={title}
                                                 type="button"
@@ -305,6 +306,20 @@ export default function ConciergeLobby({
                                             >
                                                 {content}
                                             </Link>
+                                        );
+
+                                        return (
+                                            <Fragment key={title}>
+                                                {index > 0 &&
+                                                    index % desktopColumns ===
+                                                        0 && (
+                                                        <span
+                                                            className="col-span-full hidden h-px bg-border lg:block"
+                                                            aria-hidden
+                                                        />
+                                                    )}
+                                                {tile}
+                                            </Fragment>
                                         );
                                     },
                                 )}

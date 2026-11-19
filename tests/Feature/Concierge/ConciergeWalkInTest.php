@@ -31,11 +31,13 @@ use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Models\WebhookEndpoint;
+use App\Notifications\ConciergeWalkInConfirmed;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
 use Carbon\CarbonImmutable;
 use Database\Factories\BookingSourceFactory;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -484,6 +486,28 @@ it('sends booking.created for a walk-in only once its hold is paid, with the boo
         ->and($booker['name'])->toBe('Aisha Rahman')
         ->and($booker['email'])->toBe('aisha@example.com')
         ->and(KioskWalkInHold::query()->sole()->announced_at)->not->toBeNull();
+});
+
+it('emails a walk-in the booking number and the check-in link once its hold is paid, and only once', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    Notification::fake();
+    $cash = PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => TransactionCode::factory()->for($property)->create(['kind' => TransactionKind::Payment])->id, 'name' => 'Cash', 'type' => PaymentMethodType::Cash, 'requires_reference' => false]);
+
+    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    $this->post($location.'/identity', conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
+
+    Notification::assertNothingSent();
+
+    foreach (['60.00', '40.00'] as $amount) {
+        app(RecordPayment::class)(null, $stay->reservation, null, $stay, new NewPaymentData($cash->id, PaymentPurpose::Advance, $amount, null, (string) Str::uuid()));
+    }
+
+    Notification::assertSentOnDemandTimes(ConciergeWalkInConfirmed::class, 1);
+    Notification::assertSentOnDemand(ConciergeWalkInConfirmed::class, fn (ConciergeWalkInConfirmed $mail, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === 'aisha@example.com'
+        && $mail->reference === $stay->reservation->reference
+        && $mail->shortCode === $stay->reservation->short_code
+        && str_contains($mail->stayUrl, '/c/'));
 });
 
 it('sends no booking.created for a walk-in hold that nobody pays', function () {

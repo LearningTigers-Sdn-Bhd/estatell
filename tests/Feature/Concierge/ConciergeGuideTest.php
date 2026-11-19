@@ -44,6 +44,17 @@ it('shows the lobby as a hub of services, with the booking site only when it is 
     $this->get("/stay/{$property->code}")->assertInertia(fn (Assert $page) => $page->where('bookingUrl', rtrim((string) config('estatell.booking_site_url'), '/').'/palm-resort'));
 });
 
+it('offers the booking site on the walk-in page, and on the lobby only when walk-in is off', function () {
+    ['property' => $property] = conciergeSetup();
+    $property->forceFill(['slug' => 'palm-resort'])->save();
+    $property->settings()->update(['concierge_walk_in_enabled' => true]);
+    Feature::for($property)->activate(BookingEngine::class);
+    PropertyBookingSite::factory()->for($property)->published()->create(['mode' => BookingEngineMode::Microsite]);
+
+    $this->get("/stay/{$property->code}/walk-in")->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('bookingUrl', rtrim((string) config('estatell.booking_site_url'), '/').'/palm-resort'));
+});
+
 it('opens the booking code box from the hub', function () {
     ['property' => $property] = conciergeSetup();
 
