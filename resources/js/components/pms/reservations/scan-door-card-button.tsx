@@ -55,8 +55,10 @@ export function ScanDoorCardButton({
         setPhase((now) => (now === 'error' ? 'opening' : now));
 
         try {
-            const uid = await scanCardUid(current.signal, () =>
-                setPhase('scanning'),
+            const uid = await scanCardUid(
+                current.signal,
+                () => setPhase('scanning'),
+                () => setPhase('sending'),
             );
             if (current.signal.aborted) {
                 return;
@@ -153,7 +155,7 @@ export function ScanDoorCardButton({
                             <>
                                 <Spinner />
                                 <p className="font-medium">
-                                    Adding the card to the lock…
+                                    Card detected. Adding it to the lock…
                                 </p>
                                 <p className="text-muted-foreground">
                                     The gateway can take up to 30 seconds. Keep
