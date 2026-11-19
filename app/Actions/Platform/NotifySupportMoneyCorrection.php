@@ -16,14 +16,15 @@ class NotifySupportMoneyCorrection
     /**
      * Tell the property's owner, in the app, about a money correction support made while viewing the property as its
      * staff. Runs for every new activity log entry and does nothing unless the entry is a money event logged during a
-     * support session (it then carries `impersonated_user_id`). See docs/01-platform/04-impersonation.md#money-corrections.
+     * support session (it then carries `impersonated_user_id`). A platform admin's corrections send nothing: hotels
+     * see platform support only as "estatell Support" in their logs. See docs/01-platform/04-impersonation.md#money-corrections.
      */
     public function __invoke(Activity $activity): void
     {
         $correction = $this->moneyCorrections->fromActivity($activity);
         $supportUser = $activity->causer;
 
-        if ($correction === null || ! $activity->properties->has('impersonated_user_id') || ! $supportUser instanceof User) {
+        if ($correction === null || ! $activity->properties->has('impersonated_user_id') || ! $supportUser instanceof User || $supportUser->is_admin) {
             return;
         }
 

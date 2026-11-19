@@ -91,6 +91,16 @@ class UserFactory extends Factory
     }
 
     /**
+     * Sign in on a new device without the emailed code, like staff an owner creates with a temp password.
+     */
+    public function withoutDeviceCheck(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_device_check' => false,
+        ]);
+    }
+
+    /**
      * Indicate that the user is a platform admin.
      */
     public function admin(): static

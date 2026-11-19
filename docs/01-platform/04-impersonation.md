@@ -16,7 +16,9 @@ Two roles can view as:
 ## Principles
 
 - **Easy for the support user**: 2 clicks and Enter, or paste any staff URL and press Enter.
-- **Never silent**: every session is consented, reasoned and logged. The owner is told, in the app, about every money correction support makes.
+- **Always logged**: every session is reasoned and logged in the database, with the real support user as causer.
+- **Admins work quietly**: a platform admin can always view a property. The hotel never sees an admin's sessions and sees an admin's writes as "estatell Support", never by name. The owner gets no notice for an admin's money corrections.
+- **Partners stay visible**: a partner needs the owner's consent. The hotel sees the partner's name on their writes, and the owner is told, in the app, about every money correction a partner makes.
 - **One flow**: every entry point leads to the same view-as page and the same POST.
 
 ## Entry points
@@ -92,7 +94,7 @@ While impersonating, every page shows a banner that cannot be dismissed:
 | Already impersonating the **same** property        | Opens directly, in any tab                                                                                                                                                                                                                                               |
 | Impersonating **another** property                 | View-as page reads "Switch to Pulau Inn (ES1142)? This ends your session with KL Backpackers (ES1150)." Confirming stops the old session and starts the new one (two logged events, and the old owner is notified). Cancel returns to the dashboard of the open session. |
 | Requested page is blocked during support access    | Warning "This page isn't available during support access", with **Open dashboard instead**                                                                                                                                                                               |
-| Owner disabled support access                      | "Owner has disabled support access". Start button disabled.                                                                                                                                                                                                              |
+| Owner disabled partner access (partner only)       | "Owner has disabled support access". Start button disabled. A platform admin is never refused.                                                                                                                                                                           |
 | No confirmed 2FA while `SUPPORT_REQUIRE_2FA` is on | "Set up two-factor to view properties as their owner". Start button disabled                                                                                                                                                                                             |
 | Code does not exist                                | `404`. On the view-as page an admin is sent to the properties list with a toast "Property ES1142 not found." Partners and staff still get the plain `404`.                                                                                                               |
 | Non-GET request without a staff session            | `403`. Writes are never replayed after confirming.                                                                                                                                                                                                                       |
@@ -102,17 +104,17 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ## Guardrails
 
-| Guardrail         | Rule                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Consent           | `property_settings.allow_support_access`, default true. The owner can switch it off in Settings. Until the roles module exists, any staff member of the property can.                                                                                                                                                                                                                                                   |
-| Reason            | Required (chip). Stored in the log.                                                                                                                                                                                                                                                                                                                                                                                     |
-| Time limit        | None. A session ends on Stop, on a switch to another property, or on logout. A session left open in a closed tab ends with the Laravel session, and then no `impersonation.ended` entry is logged.                                                                                                                                                                                                                      |
-| Permission        | `PropertyPolicy::viewAs`: admins for any property, partner users for their partner's properties while the partner is Active. 2FA only when `SUPPORT_REQUIRE_2FA` is on (`support.2fa`).                                                                                                                                                                                                                                 |
-| Scope             | Only staff users of one property. Never an admin or a partner user. One property per session.                                                                                                                                                                                                                                                                                                                           |
-| Blocked actions   | See below. Hidden in the UI and denied on the server.                                                                                                                                                                                                                                                                                                                                                                   |
-| Money corrections | `property_settings.allow_support_money_corrections`, default true. Refunds, voids and credit notes follow the owner's switch. See [Money corrections](#money-corrections).                                                                                                                                                                                                                                              |
-| Audit             | Every write records the support user as the real causer and the impersonated user.                                                                                                                                                                                                                                                                                                                                      |
-| Notification      | In-app only, never email. The owner receives `SupportAccessUsed` once for each money correction support makes (refund, void, credit note, allocation reversal), right when it is logged: who (and the partner name for a partner), the action, the amount and the reference. Starting and ending a session sends nothing. Both are in the activity log. There is no bell yet to read in-app notices; see the checklist. |
+| Guardrail         | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consent           | `property_settings.allow_support_access`, default true. It governs partners only: a platform admin can always start. Settings → Support shows the switch only when the property has a partner, labelled "Allow {partner} to view the property as its staff". Until the roles module exists, any staff member of the property can change it.                                                                                                  |
+| Reason            | Required (chip). Stored in the log.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Time limit        | None. A session ends on Stop, on a switch to another property, or on logout. A session left open in a closed tab ends with the Laravel session, and then no `impersonation.ended` entry is logged.                                                                                                                                                                                                                                           |
+| Permission        | `PropertyPolicy::viewAs`: admins for any property, partner users for their partner's properties while the partner is Active. 2FA only when `SUPPORT_REQUIRE_2FA` is on (`support.2fa`).                                                                                                                                                                                                                                                      |
+| Scope             | Only staff users of one property. Never an admin or a partner user. One property per session.                                                                                                                                                                                                                                                                                                                                                |
+| Blocked actions   | See below. Hidden in the UI and denied on the server.                                                                                                                                                                                                                                                                                                                                                                                        |
+| Money corrections | `property_settings.allow_support_money_corrections`, default true. Refunds, voids and credit notes follow the owner's switch. See [Money corrections](#money-corrections).                                                                                                                                                                                                                                                                   |
+| Audit             | Every write records the support user as the real causer and the impersonated user. See [Audit](#audit) for what the hotel sees.                                                                                                                                                                                                                                                                                                              |
+| Notification      | In-app only, never email, and only for partners. The owner receives `SupportAccessUsed` once for each money correction a partner makes (refund, void, credit note, allocation reversal), right when it is logged: who, the partner name, the action, the amount and the reference. A platform admin's corrections send nothing. Starting and ending a session sends nothing. There is no bell yet to read in-app notices; see the checklist. |
 
 ### Blocked during impersonation
 
@@ -141,9 +143,11 @@ Owners in wastays asked support to make refunds and voids for them, and support 
 
 ```
 Support access
-  [●] Allow support to view the property as its staff        allow_support_access
+  [●] Allow Andaman Stays to view the property as its staff  allow_support_access (only with a partner)
   [●] Allow support to refund, void and issue credit notes   allow_support_money_corrections
 ```
+
+The money switch applies to platform admins and partners alike.
 
 | Money correction            | Route or place                                                                                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -154,7 +158,7 @@ Support access
 
 | Switch | During a session                                                                                                                                                                          |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| On     | The actions run. The activity log records the support user as causer, and the owner gets an in-app notice for each one.                                                                   |
+| On     | The actions run. The activity log records the support user as causer. For a partner, the owner gets an in-app notice for each one; for a platform admin, nothing is sent.                 |
 | Off    | The routes are denied with the toast "The owner has not allowed refunds and voids during support access". The check-out requests refuse a refund the same way. The UI hides the controls. |
 
 The list lives in `Impersonation::isMoneyCorrectionRoute()`, next to `isBlockedRoute()`, and the same middleware checks it. At check-out, the refusal is an error on the refund field rather than the toast, so the form says why. The check-out previews leave out the refund, so the forms never offer one, and the folio row's refund action is hidden. A group move of a folio that holds a deposit needs a refund too, so it is refused the same way. Folio line reversals (`reservations.folios.lines.reverse`) are not money corrections. They stay allowed, because fixing charges is setup work.
@@ -178,11 +182,26 @@ Stop:   Auth::login($supportUser); forget the session key; log impersonation.end
 | Support routes while impersonating | The `admin` and `partner` gates check the signed-in user only, so a support session never reaches `/admin` or `/partner`. `viewAs` checks `Impersonation::supportUser() ?? auth()->user()`, so the view-as flow still works |
 | Unfinished owner sign-up           | `verified` and `EnsurePasswordChanged` are skipped during a session, so support can help an owner who has not verified their email or still has a temp password                                                             |
 | Target                             | Must have `property_id` equal to the property (so never an admin or a partner user)                                                                                                                                         |
-| Audit                              | A `LogActivityAction::beforeLogging` callback in `AppServiceProvider` swaps the staff user for the real support user as causer and adds `impersonated_user_id` to the log properties on every entry                         |
+| Audit                              | A `LogActivityAction::beforeLogging` callback in `AppServiceProvider` swaps the staff user for the real support user as causer and adds `impersonated_user_id` to the log properties on every entry. See [Audit](#audit)    |
 | Staff 2FA                          | Skipped during impersonation (intended). Confirm-password routes are blocked                                                                                                                                                |
 | Logout while impersonating         | Ends the whole session. A `Logout` listener logs `impersonation.ended` and notifies the owner before the session is invalidated                                                                                             |
 | Session ID                         | `Auth::login` regenerates the ID and keeps the session data                                                                                                                                                                 |
 | Remember-me cookie                 | Stays the support user's. An expired session returns as the support user, never as the staff user                                                                                                                           |
+
+## Audit
+
+The database always keeps the truth: the support user is the causer, and `impersonated_user_id` names the staff user. What the hotel sees depends on who the support user is:
+
+| Hotel-facing place                         | Platform admin     | Partner user            |
+| ------------------------------------------ | ------------------ | ----------------------- |
+| `impersonation.started` / `.ended` entries | Hidden             | Hidden                  |
+| Writes in Reports → Activity log           | "estatell Support" | The partner user's name |
+| Writes in reservation history              | "estatell Support" | The partner user's name |
+| Money correction notice to the owner       | None               | `SupportAccessUsed`     |
+
+- `ActivityLog::HIDDEN_EVENTS` leaves out the session entries. The platform still reads them in the database.
+- `HotelFacingCauser` names the causer in both lists. It shows every platform admin as "estatell Support", also outside a session.
+- Writes are never shown as the impersonated staff member's, so staff are never blamed for what support did.
 
 ## `to` validation
 
@@ -218,7 +237,7 @@ Then set, from the resolved property:
 - `StartImpersonation`: checks `viewAs`, consent and that the target is active staff of the property (2FA is the route middleware), stores the session, calls `Auth::login($staff)` on the web guard, logs `impersonation.started`, returns the path to open. An open session is stopped first, which is how switching works. It returns null when refused. The return URL is the admin property page for an admin and the partner property page for a partner.
 - `StopImpersonation`: calls `Auth::login($supportUser)` with the stored support user id, forgets the session key, calls `RecordImpersonationEnd` (logs `impersonation.ended` with the duration), redirects to the stored return URL.
 - `RecordImpersonationEnd`: logs `impersonation.ended`. It does not end the session, so Stop and the logout listener share it.
-- `NotifySupportMoneyCorrection`: an `Activity::created` listener in `AppServiceProvider` calls it for every new log entry. When the entry is a money event that carries `impersonated_user_id`, it sends `SupportAccessUsed` to the property's first active Owner. `SupportMoneyCorrections::fromActivity()` reads the label, amount and reference from the entry.
+- `NotifySupportMoneyCorrection`: an `Activity::created` listener in `AppServiceProvider` calls it for every new log entry. When the entry is a money event that carries `impersonated_user_id` and its causer is not a platform admin, it sends `SupportAccessUsed` to the property's first active Owner. `SupportMoneyCorrections::fromActivity()` reads the label, amount and reference from the entry.
 
 ## Routes
 
@@ -264,12 +283,13 @@ Built in four commits: view as (start, stop, banner, entry points), then logging
 - A suspended partner cannot start a session.
 - Starting redirects to `to` and shows the banner prop.
 - Blocked routes return an error during impersonation.
-- Consent off prevents starting.
+- Consent off prevents a partner from starting. A platform admin starts anyway.
+- The hotel's activity log hides session entries and shows a platform admin as "estatell Support".
 - Switching properties ends the old session and starts a new one.
 - A non-GET request from a support user without a session returns 403.
 - An external `to` URL is ignored.
 - Writes during impersonation record the support user as causer.
 - A session has no time limit, and ending it sends no notice.
-- With the money switch on, a refund during a session runs and sends the owner one in-app notice, and no email. A refund outside a session sends nothing.
+- With the money switch on, a refund during a partner session runs and sends the owner one in-app notice, and no email. A platform admin's refund sends nothing. A refund outside a session sends nothing.
 - With the money switch off, a refund route and a check-out with a refund are refused; a check-out without a refund still works.
 - The money switch cannot be changed during a session.

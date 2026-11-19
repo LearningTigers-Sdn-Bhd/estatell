@@ -162,16 +162,31 @@ test('a partner who is not active cannot start a session', function () {
         ->assertNotFound();
 });
 
-test('consent off blocks starting', function () {
+test('consent off blocks the partner from starting', function () {
+    $partnerUser = User::factory()->partner()->create();
+    $this->property->forceFill(['partner_id' => $partnerUser->partner_id])->save();
     PropertySetting::factory()->for($this->property)->create(['allow_support_access' => false]);
 
-    $this->actingAs($this->admin)
+    $this->actingAs($partnerUser)
         ->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))
         ->assertRedirect();
 
     expect(session('impersonation'))->toBeNull();
     $this->get(route('view-as.show', 'ES10142'))
         ->assertInertia(fn (Assert $page) => $page->where('consent', false));
+});
+
+test('a platform admin can always start, even with consent off', function () {
+    PropertySetting::factory()->for($this->property)->create(['allow_support_access' => false]);
+
+    $this->actingAs($this->admin)
+        ->get(route('view-as.show', 'ES10142'))
+        ->assertInertia(fn (Assert $page) => $page->where('consent', true));
+
+    $this->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner))
+        ->assertRedirect(route('dashboard', 'ES10142'));
+
+    expect(session('impersonation.property_id'))->toBe($this->property->id);
 });
 
 test('a non-GET request from a support user without a session is a 403', function () {
@@ -438,10 +453,12 @@ test('confirming a switch ends the old session and starts the new one', function
 });
 
 test('a refused switch keeps the old session', function () {
-    $other = Property::factory()->create(['code' => 'ES10150']);
+    $partnerUser = User::factory()->partner()->create();
+    $this->property->forceFill(['partner_id' => $partnerUser->partner_id])->save();
+    $other = Property::factory()->create(['code' => 'ES10150', 'partner_id' => $partnerUser->partner_id]);
     PropertySetting::factory()->for($other)->create(['allow_support_access' => false]);
     $otherOwner = User::factory()->owner()->create(['property_id' => $other->id]);
-    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
+    $this->actingAs($partnerUser)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
 
     $this->post(route('view-as.store', 'ES10150'), viewAsInput($otherOwner));
 
@@ -567,10 +584,12 @@ function setMoneyCorrections(Property $property, bool $allowed): void
     PropertySetting::query()->where('property_id', $property->id)->update(['allow_support_money_corrections' => $allowed]);
 }
 
-test('with the money switch on, a refund during a session runs and tells the owner in the app at once', function () {
+test('with the money switch on, a refund during a partner session runs and tells the owner in the app at once', function () {
     Notification::fake();
     $fixture = moneyFixture();
-    $this->actingAs($this->admin)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
+    $partnerUser = User::factory()->partner()->create();
+    $fixture['property']->forceFill(['partner_id' => $partnerUser->partner_id])->save();
+    $this->actingAs($partnerUser)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
 
     $this->post(route('reservations.folios.payments.refunds.store', [
         'property' => $fixture['property']->code,
@@ -584,8 +603,7 @@ test('with the money switch on, a refund during a session runs and tells the own
     expect(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('30.00');
 
     Notification::assertSentToTimes($fixture['owner'], SupportAccessUsed::class, 1);
-    Notification::assertSentTo($fixture['owner'], SupportAccessUsed::class, fn (SupportAccessUsed $notification): bool => $notification->supportUserName === $this->admin->name
-        && $notification->partnerName === null
+    Notification::assertSentTo($fixture['owner'], SupportAccessUsed::class, fn (SupportAccessUsed $notification): bool => $notification->supportUserName === $partnerUser->name
         && $notification->label === 'Refund'
         && $notification->amount === '30.00'
         && $notification->via($fixture['owner']) === ['database']);
@@ -608,6 +626,25 @@ test('a refund during a partner session names the partner in the owner notice', 
 
     Notification::assertSentTo($fixture['owner'], SupportAccessUsed::class, fn (SupportAccessUsed $notification): bool => $notification->supportUserName === $partnerUser->name
         && $notification->partnerName === $partnerUser->partner->name);
+});
+
+test('a refund during a platform admin session runs and tells the owner nothing', function () {
+    Notification::fake();
+    $fixture = moneyFixture();
+    $this->actingAs($this->admin)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
+
+    $this->post(route('reservations.folios.payments.refunds.store', [
+        'property' => $fixture['property']->code,
+        'reservation' => $fixture['reservation']->id,
+        'folio' => $fixture['folio']->id,
+        'payment' => $fixture['payment']->id,
+    ]), ['amount' => '30.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast.type', 'success');
+
+    expect(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('30.00')
+        ->and(Activity::query()->where('properties->impersonated_user_id', $fixture['owner']->id)->where('causer_id', $this->admin->id)->exists())->toBeTrue();
+    Notification::assertNothingSentTo($fixture['owner']);
 });
 
 test('a refund by staff outside a session tells the owner nothing', function () {

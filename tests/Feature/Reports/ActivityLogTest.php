@@ -131,6 +131,27 @@ test('system and missing user entries remain readable without loading the subjec
         ->where('entries.data.1.subject', null));
 });
 
+test('support session entries are hidden and a platform admin shows as estatell Support', function () {
+    [$user, $property] = reportSetup();
+    $admin = User::factory()->admin()->create(['name' => 'Platform Person']);
+    $partnerUser = User::factory()->partner()->create(['name' => 'Partner Person']);
+    activity()->performedOn($property)->causedBy($admin)->event('impersonation.started')->log('Support session started');
+    $adminWrite = activity()->causedBy($admin)->event('tax.updated')->withProperties(['property_id' => $property->id, 'impersonated_user_id' => $user->id])->log('Tax updated');
+    $partnerWrite = activity()->causedBy($partnerUser)->event('tax.updated')->withProperties(['property_id' => $property->id, 'impersonated_user_id' => $user->id])->log('Tax updated');
+    activity()->performedOn($property)->causedBy($admin)->event('impersonation.ended')->log('Support session ended');
+
+    $this->actingAs($user)->get(route('reports.activity-log', $property))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('entries.data', 2)
+            ->where('entries.data.0.id', $partnerWrite->id)
+            ->where('entries.data.0.causerName', 'Partner Person')
+            ->where('entries.data.1.id', $adminWrite->id)
+            ->where('entries.data.1.causerName', 'estatell Support'))
+        ->assertDontSee('Platform Person');
+
+    expect(Activity::query()->where('event', 'like', 'impersonation.%')->count())->toBe(2);
+});
+
 test('invalid activity log filters are rejected', function (array $query, string $field) {
     [$user, $property] = reportSetup();
 

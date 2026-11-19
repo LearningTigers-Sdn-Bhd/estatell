@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\DeviceVerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Guests\MykadReaderDownloadController;
 use App\Http\Controllers\HomeRedirectController;
@@ -40,6 +41,13 @@ Route::get('_preview/errors/{status}', function (Request $request, int $status):
         'recoveryUrl' => $status === 503 ? $request->fullUrl() : route('home.redirect', absolute: false),
     ])->toResponse($request)->setStatusCode($status);
 })->whereIn('status', ['403', '404', '419', '500', '503'])->name('errors.preview');
+
+// After the password, a new device waits here for the emailed code. See docs/01-platform/09-new-device-check.md.
+Route::prefix('login/verify-device')->name('login.otp.')->middleware('guest')->group(function () {
+    Route::get('/', [DeviceVerificationController::class, 'show'])->name('show');
+    Route::post('/', [DeviceVerificationController::class, 'store'])->middleware('throttle:login-otp')->name('store');
+    Route::post('resend', [DeviceVerificationController::class, 'resend'])->middleware('throttle:6,1')->name('resend');
+});
 
 Route::get('dashboard', HomeRedirectController::class)->middleware('auth')->name('home.redirect');
 

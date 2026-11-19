@@ -15,8 +15,16 @@ class ActivityLog
     public const int PER_PAGE = 25;
 
     /**
+     * Support session start and end entries stay in the database for the platform, but never show to the hotel.
+     *
+     * @var list<string>
+     */
+    public const array HIDDEN_EVENTS = ['impersonation.started', 'impersonation.ended'];
+
+    /**
      * Only explicitly property-tagged entries and entries directly about this property belong in its log.
-     * Do not infer ownership through the causer: support users work across properties.
+     * Do not infer ownership through the causer: support users work across properties. Support session entries
+     * are left out (see HIDDEN_EVENTS).
      *
      * @return LengthAwarePaginator<int, Activity>
      */
@@ -28,7 +36,8 @@ class ActivityLog
             ->where('properties->property_id', $property->id)
             ->orWhere(fn (Builder $query) => $query
                 ->where('subject_type', $property->getMorphClass())
-                ->where('subject_id', $property->id)));
+                ->where('subject_id', $property->id)))
+            ->where(fn (Builder $query) => $query->whereNull('event')->orWhereNotIn('event', self::HIDDEN_EVENTS));
 
         return QueryBuilder::for($query, $request)
             ->allowedFilters(AllowedFilter::callback('search', fn (Builder $query) => $query

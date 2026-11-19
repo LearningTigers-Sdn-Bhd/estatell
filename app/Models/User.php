@@ -28,6 +28,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property CarbonImmutable|null $temporary_password_expires_at
  * @property CarbonImmutable|null $temporary_password_shared_at
  * @property bool $must_change_password
+ * @property bool $email_device_check
  * @property bool $is_admin
  * @property bool $is_company_user
  * @property CarbonImmutable|null $deactivated_at
@@ -60,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'temporary_password_expires_at' => 'datetime',
             'temporary_password_shared_at' => 'datetime',
             'must_change_password' => 'boolean',
+            'email_device_check' => 'boolean',
             'is_admin' => 'boolean',
             'is_company_user' => 'boolean',
             'deactivated_at' => 'datetime',

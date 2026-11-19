@@ -9,6 +9,7 @@ use App\Actions\Concierge\OpenConciergeStay;
 use App\Actions\Concierge\SaveConciergeIdentity;
 use App\Actions\Concierge\StartStayPayment;
 use App\Actions\DoorLocks\RetryStayPasscodes;
+use App\Actions\Kiosk\AnnounceWalkInBooking;
 use App\Actions\Kiosk\IssueBookingPreCheckInToken;
 use App\Actions\Kiosk\KioskWalkInResult;
 use App\Actions\Kiosk\SignStayRegistrationCard;
@@ -30,6 +31,7 @@ use App\Services\Concierge\ConciergeDayUse;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergePageBuilder;
 use App\Services\Concierge\ReturningGuest;
+use App\Services\FrontDesk\SelfCheckInPayment;
 use App\Services\Guests\CountryOptions;
 use App\Services\Kiosk\KioskPin;
 use App\Services\Kiosk\KioskWalkIn;
@@ -40,6 +42,7 @@ use Brick\Money\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -131,7 +134,12 @@ class ConciergeController extends Controller
 
     public function identity(SaveIdentityRequest $request, string $token, SaveConciergeIdentity $saveIdentity): RedirectResponse
     {
-        $result = $saveIdentity($this->stay($request), $request->toIdentityData(), $request->file('scan'), $request->file('scan_back'));
+        $stay = $this->stay($request);
+        $result = $saveIdentity($stay, $request->toIdentityData(), $request->file('scan'), $request->file('scan_back'));
+
+        if ($result->accepted) {
+            $this->announceUnpaidFree($stay);
+        }
 
         Inertia::flash('toast', match (true) {
             ! $result->accepted => ['type' => 'error', 'message' => __('We could not save your ID. Check the number and your name, then try again.')],
@@ -151,10 +159,22 @@ class ConciergeController extends Controller
         $joined = $returning->join($this->stay($request), $request->string('number')->toString(), $request->dateOfBirth());
 
         if ($joined !== null) {
+            $this->announceUnpaidFree($this->stay($request));
             Inertia::flash('toast', ['type' => 'success', 'message' => __('Welcome back. We have your details.')]);
         }
 
         return to_route('concierge.show', ['token' => $token]);
+    }
+
+    /**
+     * A walk-in that owes nothing up front never reaches a payment, so its booking email would wait for check-in. Send it
+     * once the ID step has the guest's email. `AnnounceWalkInBooking` sends once, so a later payment or check-in adds nothing.
+     */
+    private function announceUnpaidFree(ReservationUnit $stay): void
+    {
+        if (app(SelfCheckInPayment::class)->isPaidEnough($stay)) {
+            DB::transaction(fn () => app(AnnounceWalkInBooking::class)($stay->property_id, $stay->reservation_id));
+        }
     }
 
     public function sign(SignCardRequest $request, string $token, SignStayRegistrationCard $signCard): RedirectResponse
