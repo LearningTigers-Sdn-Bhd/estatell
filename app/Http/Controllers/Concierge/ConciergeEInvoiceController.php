@@ -28,7 +28,7 @@ class ConciergeEInvoiceController extends Controller
 
         return Inertia::render('concierge/e-invoice', [
             'token' => $token,
-            'property' => PropertySummaryData::fromModel($stay->property()->firstOrFail()),
+            'property' => PropertySummaryData::fromModel($stay->property()->firstOrFail(), forGuest: true),
             'eInvoice' => $eInvoice->for($stay),
             'countries' => $countries->optionsWithMalaysiaFirst(),
             'back' => ['href' => route('concierge.show', ['token' => $token], absolute: false), 'label' => __('Your stay')],

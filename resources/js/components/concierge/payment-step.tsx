@@ -155,10 +155,10 @@ export function PaymentStep({
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
                     <span className="flex items-center gap-2">
-                        <CreditCard className="size-4" aria-hidden /> Card
+                        <CreditCard className="size-5" aria-hidden /> Card
                     </span>
                     <span className="flex items-center gap-2">
-                        <Landmark className="size-4" aria-hidden /> Online
+                        <Landmark className="size-5" aria-hidden /> Online
                         banking
                     </span>
                 </div>
@@ -205,7 +205,7 @@ export function PaymentStep({
                     )
                 ) : (
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <LockKeyhole className="size-3.5" aria-hidden /> Secure
+                        <LockKeyhole className="size-4.5" aria-hidden /> Secure
                         payment
                     </p>
                 )}

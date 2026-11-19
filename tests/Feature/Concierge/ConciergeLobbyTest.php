@@ -4,6 +4,7 @@ use App\Features\Concierge;
 use App\Models\BookingPreCheckInToken;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
@@ -21,6 +22,15 @@ it('shows the lobby of a property that has the Concierge feature on', function (
     $this->get("/stay/{$property->code}")->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('concierge/lobby')
         ->where('property.code', $property->code));
+});
+
+it('serves the property logo to a guest who is not logged in', function () {
+    ['property' => $property] = conciergeSetup();
+    $property->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);
+
+    $this->get("/stay/{$property->code}")->assertInertia(fn (Assert $page) => $page
+        ->where('property.logoUrl', fn (string $url) => str_starts_with($url, "/stay/{$property->code}/logo")));
+    $this->get("/stay/{$property->code}/logo")->assertOk();
 });
 
 it('answers 404 for the lobby while the feature is off or the property is suspended', function () {

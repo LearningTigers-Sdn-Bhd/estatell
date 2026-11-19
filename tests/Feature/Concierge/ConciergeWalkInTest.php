@@ -412,6 +412,14 @@ it('leaves a booking made earlier with its own guest', function () {
     expect(app(KioskStays::class)->guest($unit)->id)->toBe($booked->id)->and($other->refresh()->merged_into_id)->toBeNull();
 });
 
+it('asks every guest for a phone and an email on the ID step', function () {
+    ['unit' => $unit] = conciergeWalkInSetup();
+    $token = basename(app(IssueBookingPreCheckInToken::class)($unit));
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['email' => '', 'phone' => '']))
+        ->assertSessionHasErrors(['email', 'phone']);
+});
+
 it('gives a walk-in the room that has a door lock linked, before the first free room', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     $locked = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '102']);

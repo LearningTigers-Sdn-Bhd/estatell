@@ -27,6 +27,14 @@ type HidDevice = {
     ): void;
 };
 type Hid = {
+    addEventListener(
+        type: 'connect' | 'disconnect',
+        listener: () => void,
+    ): void;
+    removeEventListener(
+        type: 'connect' | 'disconnect',
+        listener: () => void,
+    ): void;
     getDevices(): Promise<HidDevice[]>;
     requestDevice(options: {
         filters: { vendorId: number; productId: number; usagePage: number }[];
@@ -39,6 +47,9 @@ const USAGE_PAGE = 0xff00;
 const INVENTORY = { type: 0xfd, code: 0x01 };
 
 export const hidSupported = (): boolean => 'hid' in navigator;
+
+/** The error `scanCardUid` rejects with when no card came in time, so a caller that keeps waiting can tell it from a real failure. */
+export const NO_CARD = 'No card was held on the reader.';
 
 function crc16(bytes: number[]): number {
     let crc = 0xffff;
@@ -131,6 +142,30 @@ export async function readerGranted(): Promise<boolean> {
             (d) => d.vendorId === VENDOR_ID && d.productId === PRODUCT_ID,
         )
     );
+}
+
+/** Opens the browser's reader picker. Call it from a click. Once granted, the page finds the reader again with no click. */
+export async function connectReader(): Promise<void> {
+    const hid = (navigator as unknown as { hid?: Hid }).hid;
+
+    if (!hid) {
+        throw new Error('Reading cards needs Chrome or Edge.');
+    }
+
+    await pickReader(hid);
+}
+
+/** Calls `listener` when a reader is plugged in or out. Returns the function that stops listening. */
+export function watchReader(listener: () => void): () => void {
+    const hid = (navigator as unknown as { hid?: Hid }).hid;
+
+    hid?.addEventListener('connect', listener);
+    hid?.addEventListener('disconnect', listener);
+
+    return () => {
+        hid?.removeEventListener('connect', listener);
+        hid?.removeEventListener('disconnect', listener);
+    };
 }
 
 async function pickReader(hid: Hid): Promise<HidDevice> {
@@ -257,10 +292,7 @@ export async function scanCardUid(
                 );
         }, 400);
         const timeout = setTimeout(
-            () =>
-                finish(() =>
-                    reject(new Error('No card was held on the reader.')),
-                ),
+            () => finish(() => reject(new Error(NO_CARD))),
             timeoutMs,
         );
 

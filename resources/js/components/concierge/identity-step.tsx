@@ -86,7 +86,7 @@ export function IdentityStep({
                                     <CardTitle>
                                         <h2 className="flex items-center gap-2">
                                             <IdCard
-                                                className="size-5"
+                                                className="size-6"
                                                 aria-hidden
                                             />
                                             Identity document
@@ -154,7 +154,7 @@ export function IdentityStep({
                                     <CardTitle>
                                         <h2 className="flex items-center gap-2">
                                             <UserRound
-                                                className="size-5"
+                                                className="size-6"
                                                 aria-hidden
                                             />
                                             Personal details
@@ -270,7 +270,7 @@ export function IdentityStep({
                                         </Field>
                                         <Field data-invalid={!!errors.phone}>
                                             <FieldLabel htmlFor="phone">
-                                                Phone (optional)
+                                                Phone
                                             </FieldLabel>
                                             <Input
                                                 id="phone"
@@ -278,6 +278,7 @@ export function IdentityStep({
                                                 type="tel"
                                                 autoComplete="tel"
                                                 className="min-h-12 text-base"
+                                                required
                                                 aria-invalid={!!errors.phone}
                                             />
                                             <FieldError>
@@ -286,7 +287,7 @@ export function IdentityStep({
                                         </Field>
                                         <Field data-invalid={!!errors.email}>
                                             <FieldLabel htmlFor="email">
-                                                Email (optional)
+                                                Email
                                             </FieldLabel>
                                             <Input
                                                 id="email"
@@ -294,6 +295,7 @@ export function IdentityStep({
                                                 type="email"
                                                 autoComplete="email"
                                                 className="min-h-12 text-base"
+                                                required
                                                 aria-invalid={!!errors.email}
                                             />
                                             <FieldError>
@@ -310,7 +312,7 @@ export function IdentityStep({
                                 <CardTitle>
                                     <h2 className="flex flex-wrap items-center gap-2">
                                         <Camera
-                                            className="size-5"
+                                            className="size-6"
                                             aria-hidden
                                         />
                                         Document photos
@@ -414,7 +416,7 @@ function ReturningCheck({
                     <CardHeader>
                         <CardTitle>
                             <h2 className="flex items-center gap-2">
-                                <IdCard className="size-5" aria-hidden />
+                                <IdCard className="size-6" aria-hidden />
                                 Stayed with us before?
                             </h2>
                         </CardTitle>

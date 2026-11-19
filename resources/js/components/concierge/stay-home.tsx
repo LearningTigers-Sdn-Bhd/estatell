@@ -48,7 +48,7 @@ function Tile({
     const content = (
         <>
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-primary">
-                <Icon className="size-5" aria-hidden />
+                <Icon className="size-6" aria-hidden />
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="font-medium">{title}</span>
@@ -58,7 +58,7 @@ function Tile({
             </span>
             {href && !done && (
                 <ChevronRight
-                    className="size-4 shrink-0 text-muted-foreground"
+                    className="size-5 shrink-0 text-muted-foreground"
                     aria-hidden
                 />
             )}
@@ -193,13 +193,13 @@ export function StayHome({ stay }: { stay: Stay }) {
                 <summary className="flex cursor-pointer items-center justify-between gap-3 p-4 font-medium">
                     <span className="flex items-center gap-3">
                         <ListChecks
-                            className="size-5 text-muted-foreground"
+                            className="size-6 text-muted-foreground"
                             aria-hidden
                         />
                         Requests, bill &amp; documents
                     </span>
                     <ChevronDown
-                        className="size-4 transition-transform group-open:rotate-180"
+                        className="size-5 transition-transform group-open:rotate-180"
                         aria-hidden
                     />
                 </summary>
@@ -213,7 +213,7 @@ export function StayHome({ stay }: { stay: Stay }) {
                             className="flex min-h-20 items-center gap-3 rounded-xl bg-muted/40 p-4 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                             <ConciergeBell
-                                className="size-5 shrink-0 text-primary"
+                                className="size-6 shrink-0 text-primary"
                                 aria-hidden
                             />
                             <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -225,7 +225,7 @@ export function StayHome({ stay }: { stay: Stay }) {
                                 </span>
                             </span>
                             <ChevronRight
-                                className="size-4 shrink-0 text-muted-foreground"
+                                className="size-5 shrink-0 text-muted-foreground"
                                 aria-hidden
                             />
                         </Link>
@@ -234,7 +234,7 @@ export function StayHome({ stay }: { stay: Stay }) {
                             className="flex min-h-20 items-center gap-3 rounded-xl bg-muted/40 p-4 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                             <FileText
-                                className="size-5 shrink-0 text-primary"
+                                className="size-6 shrink-0 text-primary"
                                 aria-hidden
                             />
                             <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -246,7 +246,7 @@ export function StayHome({ stay }: { stay: Stay }) {
                                 </span>
                             </span>
                             <ChevronRight
-                                className="size-4 shrink-0 text-muted-foreground"
+                                className="size-5 shrink-0 text-muted-foreground"
                                 aria-hidden
                             />
                         </Link>

@@ -25,13 +25,13 @@ class ConciergeGuideController extends Controller
 
     public function findForm(Property $property): Response
     {
-        return Inertia::render('concierge/find', ['property' => PropertySummaryData::fromModel($property), 'heroUrl' => $property->heroUrl()]);
+        return Inertia::render('concierge/find', ['property' => PropertySummaryData::fromModel($property, forGuest: true), 'heroUrl' => $property->heroUrl()]);
     }
 
     public function contact(Property $property, ConciergeGuide $guide): Response
     {
         return Inertia::render('concierge/contact', [
-            'property' => PropertySummaryData::fromModel($property),
+            'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'details' => $guide->property($property),
             'contacts' => $guide->contacts($property),
             'back' => ['href' => route('concierge.lobby', ['property' => $property->code], absolute: false), 'label' => __('Home')],
@@ -41,7 +41,7 @@ class ConciergeGuideController extends Controller
     public function nearbyPlaces(Property $property, ConciergeContent $content): Response
     {
         return Inertia::render('concierge/nearby', [
-            'property' => PropertySummaryData::fromModel($property),
+            'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'places' => $content->places($property)->values(),
             'back' => ['href' => route('concierge.lobby', ['property' => $property->code], absolute: false), 'label' => __('Home')],
         ]);
@@ -79,7 +79,7 @@ class ConciergeGuideController extends Controller
         $property = $this->stay($request)->property()->firstOrFail();
 
         return Inertia::render('concierge/contact', [
-            'property' => PropertySummaryData::fromModel($property),
+            'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'details' => $guide->property($property),
             'contacts' => $guide->contacts($property),
             'back' => ['href' => route('concierge.show', ['token' => $token], absolute: false), 'label' => __('Your stay')],
@@ -93,7 +93,7 @@ class ConciergeGuideController extends Controller
     private function guidePage(Property $property, string $section, array $sections, array $back, bool $withWifi, ConciergeGuide $guide, ConciergeContent $content): Response
     {
         return Inertia::render('concierge/info', [
-            'property' => PropertySummaryData::fromModel($property),
+            'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'section' => $section,
             'sections' => $sections,
             'back' => $back,

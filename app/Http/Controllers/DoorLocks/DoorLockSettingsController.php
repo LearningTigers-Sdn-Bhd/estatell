@@ -7,11 +7,14 @@ use App\Actions\DoorLocks\CheckDoorLockHealth;
 use App\Actions\DoorLocks\DoorLockResult;
 use App\Actions\DoorLocks\IssueDoorPasscode;
 use App\Actions\DoorLocks\LinkDoorLock;
+use App\Actions\DoorLocks\RemoveDoorCard;
 use App\Actions\DoorLocks\RevokeDoorPasscode;
 use App\Actions\DoorLocks\SaveDoorLockConnection;
 use App\Actions\DoorLocks\SyncDoorLocks;
 use App\Actions\DoorLocks\TestDoorLockConnection;
 use App\Actions\DoorLocks\UnlockDoor;
+use App\Actions\Kiosk\RegisterStayCard;
+use App\Data\DoorLocks\DoorCardRowData;
 use App\Data\DoorLocks\DoorLockConnectionData;
 use App\Data\DoorLocks\DoorLockData;
 use App\Data\DoorLocks\DoorPasscodeData;
@@ -25,11 +28,15 @@ use App\Features\DoorLocks;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DoorLocks\IssuePasscodeRequest;
 use App\Http\Requests\DoorLocks\SaveDoorLockConnectionRequest;
+use App\Models\DoorCard;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\Property;
+use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Services\DoorLocks\StaysAwaitingCard;
 use App\Services\DoorLocks\TtlockException;
+use App\Services\Kiosk\KioskStays;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -42,7 +49,7 @@ class DoorLockSettingsController extends Controller
     /**
      * The one Door locks page: the connection, the locks with their rooms, and the PINs. Locks and PINs page on the server, each on its own query parameter.
      */
-    public function edit(Request $request, Property $property): Response
+    public function edit(Request $request, Property $property, StaysAwaitingCard $staysAwaitingCard, KioskStays $kioskStays): Response
     {
         $connection = $property->doorLockConnection;
         $search = trim($request->string('lock_search')->toString());
@@ -74,9 +81,18 @@ class DoorLockSettingsController extends Controller
             'rooms' => Room::query()->where('property_id', $property->id)->whereNull('archived_at')->orderBy('position')->orderBy('number')->get(['id', 'number'])
                 ->map(fn (Room $room): array => ['value' => (string) $room->id, 'label' => $room->number])->values(),
             'passcodes' => DoorPasscodeData::collect(
-                DoorPasscode::query()->where('property_id', $property->id)->with('doorLock')->latest('id')->paginate(10, ['*'], 'pins_page')->withQueryString(),
+                DoorPasscode::query()->where('property_id', $property->id)->with($this->stayRelations())->latest('id')->paginate(10, ['*'], 'pins_page')->withQueryString(),
                 PaginatedDataCollection::class,
             ),
+            'cards' => DoorCardRowData::collect(
+                $property->doorCards()->with($this->stayRelations())->latest('id')->paginate(10, ['*'], 'cards_page')->withQueryString(),
+                PaginatedDataCollection::class,
+            ),
+            // The oldest stay the Concierge page checked in that has no card yet. The page polls this prop alone while the desk reader is on.
+            'waitingStay' => fn (): ?array => $staysAwaitingCard->for($property)->map(fn (ReservationUnit $unit): array => [
+                'unitId' => $unit->id,
+                'label' => trim(__('Room :room', ['room' => $kioskStays->roomNumber($unit) ?? '?']).' · '.$unit->reservation->reference),
+            ])->first(),
             // eLock side: front-desk PCs, locks and card jobs. One prop so the page can poll it alone. Locks and jobs page on their own
             // query parameters, so paging one list never moves the other.
             'keyport' => [
@@ -226,6 +242,52 @@ class DoorLockSettingsController extends Controller
         );
 
         return $this->flash($property, $result, __('PIN issued.'));
+    }
+
+    /**
+     * Register the card on the desk reader with the locks of a checked-in stay of this property, until departure. Nothing is written to the card.
+     */
+    public function storeCard(Request $request, Property $property, RegisterStayCard $registerStayCard): RedirectResponse
+    {
+        $data = $request->validate(['uid' => ['required', 'string', 'max:32'], 'reservation_unit_id' => ['required', 'integer']]);
+        $unit = ReservationUnit::query()->where('property_id', $property->id)->findOrFail((int) $data['reservation_unit_id']);
+        $result = $registerStayCard($unit->load('property.settings', 'property.doorLockConnection'), $data['uid']);
+
+        Inertia::flash('toast', match (true) {
+            $result->refusal === null => ['type' => 'success', 'message' => __('Card added. It opens the door until :time.', ['time' => $result->validUntil->setTimezone($property->settings->time_zone ?? 'Asia/Kuala_Lumpur')->format('d M H:i')])],
+            $result->refusal === 'card_unknown' => ['type' => 'error', 'message' => __('The reader gave a card number the lock does not accept. Scan the card again.')],
+            $result->refusal === 'card_limit' => ['type' => 'error', 'message' => __('This stay already has 4 cards on a lock. Remove one first.')],
+            $result->refusal === 'card_in_use' => ['type' => 'error', 'message' => __('This card is already registered for another stay on the lock. Remove it there first.')],
+            $result->refusal === 'gateway_required' => ['type' => 'error', 'message' => __('The lock has no gateway, so cards cannot be added from here.')],
+            default => ['type' => 'error', 'message' => __('The lock did not take the card. Check the guest is checked in, the gateway is online, and the card is not on another stay.')],
+        });
+
+        return to_route('settings.door-locks.edit', $property);
+    }
+
+    public function destroyCard(Request $request, Property $property, DoorCard $doorCard, RemoveDoorCard $removeDoorCard): RedirectResponse
+    {
+        $result = $removeDoorCard($doorCard->load('doorLock.property.doorLockConnection'), $request->user());
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => $result->message ?? __('The card could not be removed.')]
+            : ['type' => $result->warning === null ? 'success' : 'warning', 'message' => trim(__('Card removed.').' '.$result->warning)]);
+
+        return to_route('settings.door-locks.edit', $property);
+    }
+
+    /**
+     * What the PIN and card lists load to show who a credential is for: the lock's room, the stay's booking reference and its primary guest.
+     *
+     * @return array<int|string, mixed>
+     */
+    private function stayRelations(): array
+    {
+        return [
+            'doorLock.room',
+            'reservationUnit.reservation.booker',
+            'reservationUnit.guests' => fn ($guests) => $guests->where('is_primary', true)->with('guest'),
+        ];
     }
 
     /**

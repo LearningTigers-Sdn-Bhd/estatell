@@ -42,7 +42,7 @@ export function KeyStep({
                         id="checked-in-title"
                         className="flex items-center gap-2 text-sm font-medium text-primary"
                     >
-                        <CircleCheck className="size-5" aria-hidden />
+                        <CircleCheck className="size-6" aria-hidden />
                         You’re checked in
                     </h2>
                     {stay.roomNumber && (
@@ -70,7 +70,7 @@ export function KeyStep({
                     role="status"
                     className="flex flex-col items-start gap-4 rounded-2xl bg-muted/50 p-6 sm:p-8"
                 >
-                    <Spinner className="size-6 text-primary" />
+                    <Spinner className="size-7 text-primary" />
                     <div className="flex flex-col gap-2">
                         <h3 className="text-lg font-semibold">
                             Preparing your door code
@@ -86,7 +86,7 @@ export function KeyStep({
             {pin?.status === 'ready' && (
                 <div className="flex min-w-0 flex-col gap-4 rounded-2xl bg-muted/50 p-6 sm:p-8">
                     <h3 className="flex items-center gap-2 text-sm font-medium">
-                        <KeyRound className="size-4 text-primary" aria-hidden />{' '}
+                        <KeyRound className="size-5 text-primary" aria-hidden />{' '}
                         Your door code
                     </h3>
                     <p className="font-mono text-4xl font-semibold tracking-widest break-all tabular-nums">
@@ -111,7 +111,7 @@ export function KeyStep({
                     className="flex flex-col items-start gap-5 rounded-2xl bg-muted/50 p-6 sm:p-8"
                 >
                     <div className="flex size-11 items-center justify-center rounded-full bg-background text-primary">
-                        <KeyRound className="size-5" aria-hidden />
+                        <KeyRound className="size-6" aria-hidden />
                     </div>
                     <div className="flex flex-col gap-2">
                         <h3 className="text-xl font-semibold text-balance">

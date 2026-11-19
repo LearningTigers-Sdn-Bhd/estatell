@@ -479,9 +479,19 @@
 }
 
 @media (min-width: 64rem) {
+    .concierge-editorial-layout {
+        height: 100%;
+        min-height: 0;
+    }
+
     .concierge-editorial-image {
         min-height: 20rem;
         clip-path: polygon(12% 0, 100% 0, 100% 100%, 0 100%);
+    }
+
+    /* The lobby image sits on the left of the screen, so its slant is on the right edge. */
+    .concierge-editorial-image.concierge-editorial-image-right {
+        clip-path: polygon(0 0, 88% 0, 100% 100%, 0 100%);
     }
 }
 

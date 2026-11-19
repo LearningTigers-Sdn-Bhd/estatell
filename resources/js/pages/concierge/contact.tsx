@@ -103,7 +103,7 @@ export default function ConciergeContact({
                     <div className="flex flex-col gap-5 rounded-2xl bg-muted/50 p-6 sm:p-8">
                         <div className="flex items-center gap-3">
                             <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-background text-primary">
-                                <Phone className="size-5" aria-hidden />
+                                <Phone className="size-6" aria-hidden />
                             </span>
                             <h2 className="text-xl font-semibold">
                                 Front desk
@@ -113,7 +113,7 @@ export default function ConciergeContact({
                             <div className="flex flex-col gap-3">
                                 <p className="flex items-center gap-2 text-sm font-medium">
                                     <Clock
-                                        className="size-4 text-primary"
+                                        className="size-5 text-primary"
                                         aria-hidden
                                     />
                                     {contacts.deskOpen
@@ -166,7 +166,7 @@ export default function ConciergeContact({
                             const body = (
                                 <>
                                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted/50 text-primary">
-                                        <Icon className="size-5" aria-hidden />
+                                        <Icon className="size-6" aria-hidden />
                                     </span>
                                     <span className="flex min-w-0 flex-1 flex-col gap-2">
                                         <span className="text-xs font-medium text-muted-foreground">
@@ -183,7 +183,7 @@ export default function ConciergeContact({
                                                       ? 'Send email'
                                                       : 'Open link'}
                                                 <ArrowUpRight
-                                                    className="size-3"
+                                                    className="size-4"
                                                     aria-hidden
                                                 />
                                             </span>
@@ -236,7 +236,7 @@ export default function ConciergeContact({
                 >
                     <div className="flex items-center gap-3">
                         <ShieldAlert
-                            className="size-5 text-destructive"
+                            className="size-6 text-destructive"
                             aria-hidden
                         />
                         <h2
@@ -259,7 +259,7 @@ export default function ConciergeContact({
                                     className="flex min-h-24 items-center gap-4 rounded-2xl border border-destructive/20 bg-card p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                                 >
                                     <Icon
-                                        className="size-5 shrink-0 text-destructive"
+                                        className="size-6 shrink-0 text-destructive"
                                         aria-hidden
                                     />
                                     <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -271,7 +271,7 @@ export default function ConciergeContact({
                                         </span>
                                     </span>
                                     <ArrowUpRight
-                                        className="size-4 shrink-0"
+                                        className="size-5 shrink-0"
                                         aria-hidden
                                     />
                                 </a>

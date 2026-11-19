@@ -42,7 +42,7 @@ export function CardStep({
             >
                 <div className="flex items-center gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-primary">
-                        <FileCheck2 className="size-5" aria-hidden />
+                        <FileCheck2 className="size-6" aria-hidden />
                     </span>
                     <div className="flex flex-col gap-1">
                         <h2
@@ -74,7 +74,7 @@ export function CardStep({
                         id="registration-signature-title"
                         className="flex items-center gap-2 text-xl font-semibold"
                     >
-                        <PenLine className="size-5 text-primary" aria-hidden />
+                        <PenLine className="size-6 text-primary" aria-hidden />
                         Sign your registration
                     </h2>
                     <p className="text-sm leading-relaxed text-muted-foreground">
