@@ -197,8 +197,9 @@ class CheckOutUnit
     }
 
     /**
-     * A day use guest who leaves before the block ends frees the room from the check-out time (`vacated_at`, to the
-     * minute, not before `starts_at`). `ends_at`, `hours` and `amount` keep what was sold. A check-out on a later date
+     * A day use guest who leaves before the block ends frees the room from the half hour the check-out falls in
+     * (`vacated_at`, not before `starts_at`), so the half-hour start the Concierge sells at once (15:00 at 15:20) fits
+     * a room vacated at 15:10. `ends_at`, `hours` and `amount` keep what was sold. A check-out on a later date
      * or at or after `ends_at` changes nothing.
      */
     private function vacateDayUse(ReservationUnit $unit): void
@@ -219,11 +220,13 @@ class CheckOutUnit
             return;
         }
 
-        $vacatedAt = max($leftAt->format('H:i:00'), $block->starts_at);
-
-        if ($vacatedAt < $block->ends_at) {
-            $block->forceFill(['vacated_at' => $vacatedAt])->save();
+        if ($leftAt->format('H:i:00') >= $block->ends_at) {
+            return;
         }
+
+        $halfHour = $leftAt->setTime($leftAt->hour, $leftAt->minute < 30 ? 0 : 30)->format('H:i:00');
+
+        $block->forceFill(['vacated_at' => max($halfHour, $block->starts_at)])->save();
     }
 
     /**
