@@ -60,6 +60,7 @@ class ConciergePageBuilder
         $opensLater = in_array($step, [ConciergeStep::Identity, ConciergeStep::Card, ConciergeStep::Payment, ConciergeStep::NotOpen], true)
             && ($this->stays->window($stay) !== KioskStays::OPEN || ! $this->concierge->checkInTimeReached($stay));
 
+        // A walk-in's ID step is never pre-filled from a profile, as the guest joined it by an email or phone alone.
         $walkIn = KioskWalkInHold::query()->where('reservation_unit_id', $stay->id)->exists();
 
         return new ConciergeStayData(
@@ -85,7 +86,6 @@ class ConciergePageBuilder
             eInvoiceUrl: $step === ConciergeStep::CheckedOut && $this->eInvoice->isOffered($stay) ? route('concierge.e-invoice', ['token' => $token], absolute: false) : null,
             checkInTime: $opensLater ? $this->concierge->checkInOpensAt($stay)?->format('H:i') : null,
             checkInOpensLater: $opensLater,
-            walkIn: $step === ConciergeStep::Identity && $walkIn,
         );
     }
 

@@ -39,7 +39,7 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 ```
  Lobby QR  ──►  /stay/{code}  ──►  booking code ───────────────────────┐
                     │                                                    ▼
-                    └──► no booking? ──► /stay/{code}/walk-in ──► room ──► /c/{token}
+                    └──► no booking? ──► /stay/{code}/walk-in ──► room ──► details ──► /c/{token}
                                                                            │
    ID  ──►  registration card (if required)  ──►  payment (if due)  ──►  check in  ──►  room + PIN
 ```
@@ -60,19 +60,21 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 
 ## Routes
 
-| Route                                  | Name                            | Purpose                                                     |
-| -------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
-| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`      | Lobby, and open a stay by booking code                      |
-| `GET/POST /stay/{code}/walk-in`        | `concierge.walk-in`, `.book`    | Offers for tonight, and book one                            |
-| `GET /c/{token}`                       | `concierge.show`                | The stay page                                               |
-| `POST /c/{token}/identity`             | `concierge.identity`            | Save the typed ID and optional photos                       |
-| `POST /c/{token}/sign`                 | `concierge.sign`                | Sign the primary guest's registration card                  |
-| `POST /c/{token}/payment`              | `concierge.payment`             | Start the Curlec order. JSON for the checkout               |
-| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`     | Confirm a finished checkout by its signature                |
-| `POST /c/{token}/identity/returning`   | `concierge.identity.returning`  | Recognise a returning walk-in (ID number and date of birth) |
-| `POST /c/{token}/check-in`             | `concierge.check-in`            | Check in with the front desk's rules                        |
-| `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice                        |
-| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch                      |
+| Route                                  | Name                            | Purpose                                                 |
+| -------------------------------------- | ------------------------------- | ------------------------------------------------------- |
+| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`      | Lobby, and open a stay by booking code                  |
+| `GET /stay/{code}/walk-in`             | `concierge.walk-in`             | Offers for tonight; nothing is booked                   |
+| `GET /stay/{code}/walk-in/details`     | `concierge.walk-in.details`     | The details form for the room picked; nothing is booked |
+| `POST /stay/{code}/walk-in`            | `concierge.walk-in.book`        | Book the room and save the details, together            |
+| `POST /stay/{code}/walk-in/returning`  | `concierge.walk-in.returning`   | Recognise a returning walk-in (email or phone) and book |
+| `GET /c/{token}`                       | `concierge.show`                | The stay page                                           |
+| `POST /c/{token}/identity`             | `concierge.identity`            | Save the typed ID and optional photos                   |
+| `POST /c/{token}/sign`                 | `concierge.sign`                | Sign the primary guest's registration card              |
+| `POST /c/{token}/payment`              | `concierge.payment`             | Start the Curlec order. JSON for the checkout           |
+| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`     | Confirm a finished checkout by its signature            |
+| `POST /c/{token}/check-in`             | `concierge.check-in`            | Check in with the front desk's rules                    |
+| `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice                    |
+| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch                  |
 
 ### Staff settings page
 
@@ -143,11 +145,13 @@ They open from the stay menu once the guest is checked in. Each works only for a
 
 ## Welcome email and webhook
 
-When a stay checks in, by the page, the front desk or the kiosk, a listener of `StayCheckedIn` queues `SendStayWelcomeJob`. The guest gets one welcome, so the PIN is in it:
+When a stay checks in, by the page, the front desk or the kiosk, a listener of `StayCheckedIn` (`QueueStayWelcome`) asks for the welcome and schedules the **deadline** of that check-in, 20 minutes later (`SendStayWelcomeJob::DEADLINE_SECONDS`). The guest gets one welcome, and it has the PIN in it whenever the PIN can be made. `WelcomeStay` decides when it goes:
 
-- While the stay's door PIN is still being made (`KioskPin` says `pending`), the job asks again every 5 seconds, up to 2 minutes after check-in (`SendStayWelcomeJob::HOLD_SECONDS`).
-- When the PIN is ready, `SendConciergeStayLink` sends the welcome with the PIN, the room and the time the PIN ends.
-- When the PIN failed, took longer than 2 minutes, or the stay has no lock, the welcome is sent without the PIN. If the stay could have a PIN, the email says it will show on the stay page.
+- **No PIN to wait for** (the stay has no lock, or TTLock is off for the property): the welcome goes at once, with no PIN line.
+- **A PIN is on its way** (`KioskPin::canRetry`): the welcome waits. It goes **as soon as the PIN is ready**, with the PIN, the room and the time the PIN ends. Every end of a PIN sync (`SyncStayPasscodesJob`) asks again, so there is no polling.
+- **The PIN could not be made**: the PIN sync tries again by itself when asking again could help (TTLock did not answer; see [TTLock integration](../27-door-locks/01-ttlock-integration.md)), so the welcome keeps waiting. At the **deadline** the welcome goes anyway, **without the PIN**, and says the PIN will show on the stay page. `door-locks.welcome-without-pin` is written to the log. The guest always gets their link.
+
+The welcome is claimed with an atomic update of `reservation_units.welcome_sent_at`, so the check-in, the PIN sync and the deadline can all ask and it is sent exactly once per check-in. A stay checked in again after an undo has a newer `checked_in_at` and is welcomed again. The deadline carries the check-in time, so the deadline of an undone check-in never cuts the wait of the next one short.
 
 The welcome is two messages from one moment: the `ConciergeStayLink` email (to the guest's address) and the `stay.welcome_ready` webhook, which a WhatsApp automation can listen to (see [Outgoing webhooks](../32-webhooks/01-outgoing-webhooks.md)). Each makes a new link; older links stay valid until they expire. Nothing is sent, and no link is made, while the property has the Concierge feature off. The email is skipped when the guest has no address, and the webhook when no endpoint hears it. The email is a plain notification, like the online booking confirmation, so it skips the preference matrix.
 
@@ -222,11 +226,11 @@ Browser errors under `/stay/*` and `/c/*` use the concierge theme. Unknown and e
 
 ## Walk-in
 
-A walk-in is a booking made through the kiosk's own rules: the server prices it from the property's rates, a Confirmed booking and a unit folio are made at once, and the room is held for 10 minutes (`BookWalkIn::book`, shared with the kiosk). The guest then follows the same steps as any other guest, including payment. An unpaid hold is released by `ReleaseExpiredKioskHolds`. The walk-in's `booking.created` webhook waits until the hold is paid or checked in (see [Outgoing webhooks](../32-webhooks/01-outgoing-webhooks.md#events)).
+A walk-in is a booking made through the kiosk's own rules (`BookWalkIn::book`, shared with the kiosk): the server prices it from the property's rates, a Confirmed booking and a unit folio are made, and the room is held for 10 minutes. **The Concierge page makes none of this until the guest has given who they are.** The guest picks a room (`GET /stay/{code}/walk-in`, nothing written), opens the details page for it (`GET /stay/{code}/walk-in/details`, which checks the room is still free and writes nothing), and sends the details (`POST /stay/{code}/walk-in`, with the room choice in the same request). `ConfirmConciergeWalkIn` then books and holds the room and saves the details (`SaveConciergeIdentity`) in **one transaction**, so a booking is born with the guest's name: no nameless booking ever exists, in the database or on any staff screen, and a guest who walks away leaves nothing behind. If any step refuses (the room just went, too many holds are open, the nationality a tax needs is missing, the ID is refused), nothing is written and the guest is told on the page. The cost is that the room is **not held while the guest types**: `BookConciergeWalkIn` checks it is still free at the moment they send the details, and a guest whose room has gone is sent back to the search with a message. A stay that owes nothing up front is announced at once (the booking email and `booking.created`); one that owes a deposit or the stay waits for its first payment. The guest then follows the same steps as any other guest, including payment. An unpaid hold is released by `ReleaseExpiredKioskHolds`. The walk-in's `booking.created` webhook waits until the hold is kept (see [Outgoing webhooks](../32-webhooks/01-outgoing-webhooks.md#events)). The kiosk keeps its own order (hold first, ID after).
 
 ### Returning guests
 
-A returning guest does not retype their details. A walk-in's guest starts with no name, and the walk-in's ID step first shows **Stayed with us before?**: the ID number and the date of birth. `ReturningGuest` looks for a guest of the property with that ID number **and** that date of birth (`GuestMatcher`). If one is found, `MergeGuests` moves the stay to that profile, so the guest's history and flags carry over and the ID step is already done; `concierge.returning_guest_joined` is logged with the guest ids, never the number or the date. With no match nothing changes and the page shows the full ID form with what was typed kept; it never says whether a profile exists. The page is open to anyone, so an ID number alone proves nothing, and an email, a phone or a name never joins a guest (staff see them as duplicate suggestions). The page never shows a profile back to the guest, and a walk-in's ID step is never pre-filled. A MyKad number (12 digits) is never joined, because it holds the date of birth so the date proves nothing; staff merge those guests. A profile with no date of birth is not joined: the guest fills the form this time and the date is saved for the next stay. Only that throttled check joins a guest: the full ID form never does. `POST /c/{token}/identity/returning` allows 5 tries an hour per stay link and address, and 20 an hour per address. The ID step also takes an optional phone (saved as E.164) and email. A booking made earlier already has a named guest, so it is never merged this way. The card signature is still asked each stay. A one-time code to the saved email or phone is a possible later step.
+A returning guest does not retype their details. The details page of a walk-in first shows **Stayed with us before?**: one box for the email or the phone number the guest used before (an `@` makes it an email, anything else is read as a phone number and normalised like the matcher does), sent to `POST /stay/{code}/walk-in/returning` with the room picked. `ReturningGuest::match` looks for a named guest of the property with that email or phone (`GuestMatcher`) **before anything is booked**. **Exactly one** profile must have it: a phone or an email shared by two profiles (a family phone) joins no one, and neither does a profile with no name. If one is found, `ConfirmConciergeWalkIn` books the room **for that profile** (`BookWalkIn::book` takes the guest), so the guest's history and flags carry over, no second guest is made and nothing is merged; `concierge.returning_guest_joined` is logged on the profile with the stay id, never the email or the number. The ID step is done only when that profile already has an ID document and a date of birth; otherwise the stay page shows the full ID form (never pre-filled from the profile), and the details are saved on that profile. With no match **nothing is booked** and the page shows the full details form with what was typed kept; it never says whether a profile exists. **Decided 2026-11-19:** an email or a phone is easy to know, so this check is weaker than the ID number with date of birth it replaced (and a guest can be matched without proving who they are). It is accepted for convenience, with the throttle below as the only guard. After a match the page greets the guest by the first name on that profile ("Welcome, Aisha"), so anyone who types a known email or phone learns that first name; nothing else of the profile is shown (decided 2026-11-19). Only that throttled check joins a guest: the full details form never does, and neither does a name. `POST /stay/{code}/walk-in/returning` allows 5 tries an hour per property and address, and 20 an hour per address. The details form also takes a phone (saved as E.164) and an email. A booking made earlier already has a named guest, so it is never merged this way. The card signature is still asked each stay. A one-time code to the saved email is a possible later step if guessing becomes a problem.
 
 ### Day use
 

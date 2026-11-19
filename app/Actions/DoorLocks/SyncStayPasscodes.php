@@ -12,7 +12,8 @@ use App\Services\DoorLocks\PasscodeWindow;
 use App\Services\DoorLocks\StayLocks;
 
 /**
- * Make a unit's PINs match its stay. A checked-in unit gets one PIN on the lock of each room it sleeps in; any PIN of the unit on
+ * Make a unit's PINs match its stay. It returns true when a PIN failed in a way that asking again could fix (TTLock did not answer), so the
+ * caller can try again later; a refusal that needs a person returns false. A checked-in unit gets one PIN on the lock of each room it sleeps in; any PIN of the unit on
  * another lock, and every PIN of a unit that is no longer checked in, is revoked. Safe to repeat: an issued PIN is kept (idempotency key
  * `stay:{unit}:{lock}`). When the departure moves later, a PIN that ends at the new departure is issued under `stay:{unit}:{lock}:{end}` and the old one is left to run out. Does nothing without an enabled connection. A custom mode falls back to a generated PIN on a lock without a gateway.
  */
@@ -26,13 +27,13 @@ class SyncStayPasscodes
         private StayLocks $stayLocks,
     ) {}
 
-    public function __invoke(ReservationUnit $unit): void
+    public function __invoke(ReservationUnit $unit): bool
     {
         $property = $unit->property;
         $connection = $property->doorLockConnection;
 
         if ($connection === null || ! $connection->enabled) {
-            return;
+            return false;
         }
 
         $locks = $unit->status === UnitStatus::CheckedIn ? $this->stayLocks->current($unit) : collect();
@@ -40,6 +41,8 @@ class SyncStayPasscodes
         $unit->loadMissing('reservation.booker');
         $label = $this->label($unit);
         $timeZone = $property->settings->time_zone ?? 'Asia/Kuala_Lumpur';
+
+        $retry = false;
 
         foreach ($locks as $lock) {
             $kind = $connection->passcode_mode === PasscodeMode::Custom && $lock->has_gateway ? PasscodeKind::Custom : PasscodeKind::Generated;
@@ -65,7 +68,8 @@ class SyncStayPasscodes
                 $key .= ':'.$endsAt->getTimestamp();
             }
 
-            ($this->issueDoorPasscode)($lock, $kind, $label, $startsAt, $endsAt, $key, unit: $unit, length: $connection->passcode_length);
+            $issued = ($this->issueDoorPasscode)($lock, $kind, $label, $startsAt, $endsAt, $key, unit: $unit, length: $connection->passcode_length);
+            $retry = $retry || $issued->retry;
         }
 
         DoorPasscode::query()
@@ -74,6 +78,8 @@ class SyncStayPasscodes
             ->whereNotIn('door_lock_id', $locks->pluck('id')->all())
             ->get()
             ->each(fn (DoorPasscode $passcode) => ($this->revokeDoorPasscode)($passcode));
+
+        return $retry;
     }
 
     private function label(ReservationUnit $unit): string

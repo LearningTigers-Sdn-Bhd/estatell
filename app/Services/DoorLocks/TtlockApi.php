@@ -4,12 +4,16 @@ namespace App\Services\DoorLocks;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Closure;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
  * Stateless calls to the TTLock Open Platform. Every call takes the token it needs and returns plain arrays, so it
- * never reads or writes the database. See docs/27-door-locks/01-ttlock-integration.md#ttlock-api.
+ * never reads or writes the database. The one thing it keeps is a short cache lock around a call through a gateway, so calls to
+ * one lock take turns (`oneAtATime`). See docs/27-door-locks/01-ttlock-integration.md#ttlock-api.
  */
 class TtlockApi
 {
@@ -272,12 +276,32 @@ class TtlockApi
      */
     private function post(string $path, string $accessToken, array $params, bool $remote = false): array
     {
-        return $this->send($path, [
+        $call = fn (): array => $this->send($path, [
             'clientId' => config('services.ttlock.client_id'),
             'accessToken' => $accessToken,
             ...$params,
             'date' => now()->getTimestampMs(),
         ], $remote ? self::REMOTE_TIMEOUT : self::TIMEOUT);
+
+        return $remote && isset($params['lockId']) ? $this->oneAtATime((int) $params['lockId'], $call) : $call();
+    }
+
+    /**
+     * A gateway talks to its lock over Bluetooth and answers one command at a time, and says it is busy to a second one. A guest's PIN and
+     * card are sent at the same moment after a check-in, so the calls through the gateway to one lock take turns: the second waits for the
+     * first, up to a little longer than a call can take, and is then sent. Locks on the same gateway are not held apart from each other.
+     * A call that waited too long is treated as TTLock not answering, which `RegisterDoorCard` and the PIN sync try again.
+     *
+     * @param  Closure(): array<string, mixed>  $call
+     * @return array<string, mixed>
+     */
+    private function oneAtATime(int $lockId, Closure $call): array
+    {
+        try {
+            return Cache::lock('ttlock-remote:'.$lockId, self::REMOTE_TIMEOUT + 10)->block(self::REMOTE_TIMEOUT + 5, $call);
+        } catch (LockTimeoutException) {
+            throw TtlockException::unreachable();
+        }
     }
 
     /**

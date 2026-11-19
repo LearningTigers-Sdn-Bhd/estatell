@@ -5,6 +5,7 @@ namespace App\Actions\Concierge;
 use App\Actions\Kiosk\BookWalkIn;
 use App\Actions\Kiosk\KioskWalkInResult;
 use App\Data\Kiosk\KioskWalkInData;
+use App\Models\Guest;
 use App\Models\KioskWalkInHold;
 use App\Models\Property;
 
@@ -21,7 +22,7 @@ class BookConciergeWalkIn
      * the guest's only after the payment step. Refused, writing nothing, with `walk_in_disabled` while the property
      * has the switch off, `busy` while `MAX_OPEN_HOLDS` holds are open, or `no_room_available`.
      */
-    public function __invoke(Property $property, KioskWalkInData $search, int $roomTypeId): KioskWalkInResult
+    public function __invoke(Property $property, KioskWalkInData $search, int $roomTypeId, ?Guest $guest = null): KioskWalkInResult
     {
         $property->loadMissing('settings');
 
@@ -35,6 +36,6 @@ class BookConciergeWalkIn
             return new KioskWalkInResult(refusal: 'busy');
         }
 
-        return $this->bookWalkIn->book($property, null, $search, $roomTypeId);
+        return $this->bookWalkIn->book($property, null, $search, $roomTypeId, $guest);
     }
 }

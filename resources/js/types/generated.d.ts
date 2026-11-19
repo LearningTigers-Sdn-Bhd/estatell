@@ -1279,7 +1279,6 @@ identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
 eInvoiceUrl: string | null,
 checkInTime: string | null,
 checkInOpensLater: boolean,
-walkIn: boolean,
 };
 export type ConciergeTermsData = {
 version: number,

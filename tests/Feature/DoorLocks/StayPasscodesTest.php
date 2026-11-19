@@ -2,6 +2,7 @@
 
 use App\Actions\DoorLocks\IssueDoorPasscode;
 use App\Actions\DoorLocks\RetryStayPasscodes;
+use App\Actions\DoorLocks\SyncStayCards;
 use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
@@ -19,6 +20,8 @@ use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Services\DoorLocks\PinStrength;
 use App\Services\DoorLocks\StayLocks;
+use App\Services\Kiosk\KioskPin;
+use App\Services\Kiosk\KioskPinStatus;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -167,6 +170,69 @@ it('queues a sync from the stay events only when the feature is on and a connect
     StayCheckedIn::dispatch($property->id, $unit->id + 2);
     Queue::assertPushed(SyncStayPasscodesJob::class, 2);
 });
+
+function runPasscodeSync(ReservationUnit $unit, int $retry = 0): void
+{
+    (new SyncStayPasscodesJob($unit->id, $retry))->handle(app(SyncStayPasscodes::class), app(SyncStayCards::class));
+}
+
+it('tries a PIN again after a wait when TTLock did not answer, with longer waits each time', function (int $retry, int $wait) {
+    Queue::fake();
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    Http::fake(['*/v3/keyboardPwd/get' => Http::response(['errcode' => -2012, 'errmsg' => 'gateway busy'])]);
+    fakeTtlock();
+
+    runPasscodeSync($unit, $retry);
+
+    expect(DoorPasscode::query()->sole()->status)->toBe(PasscodeStatus::Failed);
+    Queue::assertPushed(SyncStayPasscodesJob::class, fn (SyncStayPasscodesJob $job): bool => $job->reservationUnitId === $unit->id
+        && $job->retry === $retry + 1
+        && abs(now()->diffInSeconds($job->delay, false) - $wait) <= 1);
+    // The pages show "preparing", not "failed", while the retry waits.
+    expect(RetryStayPasscodes::underway($unit->id))->toBeTrue()
+        ->and(app(KioskPin::class)->for($unit->fresh())->status)->toBe(KioskPinStatus::PENDING);
+})->with([[0, 30], [1, 120], [2, 300], [3, 600]]);
+
+it('keeps the waiting retry from holding the lock of the unit\'s normal syncs', function () {
+    $sync = new SyncStayPasscodesJob(5);
+    $retry = new SyncStayPasscodesJob(5, 1);
+
+    expect($retry->uniqueId())->not->toBe($sync->uniqueId())
+        ->and((new SyncStayPasscodesJob(5, 2))->uniqueId())->toBe($retry->uniqueId())
+        ->and((new SyncStayPasscodesJob(6, 1))->uniqueId())->not->toBe($retry->uniqueId());
+});
+
+it('stops trying a PIN again after the last wait', function () {
+    Queue::fake();
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    Http::fake(['*/v3/keyboardPwd/get' => Http::response(['errcode' => -2012, 'errmsg' => 'gateway busy'])]);
+    fakeTtlock();
+
+    runPasscodeSync($unit, count(SyncStayPasscodesJob::RETRY_DELAYS));
+
+    Queue::assertNotPushed(SyncStayPasscodesJob::class);
+    // Nothing is on its way any more, so the pages offer "Try again".
+    expect(RetryStayPasscodes::underway($unit->id))->toBeFalse()
+        ->and(app(KioskPin::class)->for($unit->fresh())->status)->toBe(KioskPinStatus::FAILED);
+});
+
+it('does not try a PIN again when TTLock refused for a reason that needs a person, or when it was made', function (?array $answer) {
+    Queue::fake();
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    $answer === null || Http::fake(['*/v3/keyboardPwd/get' => Http::response($answer)]);
+    fakeTtlock();
+
+    runPasscodeSync($unit);
+
+    Queue::assertNotPushed(SyncStayPasscodesJob::class);
+})->with([
+    'the lock memory is full' => [['errcode' => -3009, 'errmsg' => 'full']],
+    'the sign-in has expired' => [['errcode' => 10004, 'errmsg' => 'expired']],
+    'the PIN was made' => [null],
+]);
 
 it('keeps a failed TTLock call off the stay: the PIN is saved as Failed', function () {
     ['property' => $property, 'room' => $room] = doorLockSetup();

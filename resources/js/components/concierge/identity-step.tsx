@@ -9,6 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { CountrySelect } from '@/components/pms/country-select';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { Button } from '@/components/ui/button';
@@ -21,8 +22,6 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { identity } from '@/routes/concierge';
-import { returning } from '@/routes/concierge/identity';
 
 /** A Malaysian guest has a MyKad; anyone else shows a passport. The guest can still change it. */
 const kindFor = (nationalityCode?: string | null) =>
@@ -31,28 +30,45 @@ const kindFor = (nationalityCode?: string | null) =>
 /** The saved document types this form offers, as the form names them. */
 const savedKinds = { mykad: 'my_kad', passport: 'passport' } as const;
 
-/** The ID step: the guest types the ID fields and may add a photo of each side. */
+/**
+ * The ID form: the guest types the ID fields and may add a photo of each side. It is used on the stay page, for a booking that
+ * needs the guest's ID, and on the walk-in details page, where the room the guest picked goes along in `fields` and the booking
+ * is made when the form is sent.
+ */
 export function IdentityStep({
-    stay,
+    action,
+    fields = {},
+    saved = null,
+    nationalityRequired,
+    contact = '',
     kinds,
     genders,
     countries,
 }: {
-    stay: App.Data.Concierge.ConciergeStayData;
+    /** Where the details are sent. */
+    action: string;
+    /** Extra values sent with the details, such as the room a walk-in picked. */
+    fields?: Record<string, string | number | null>;
+    /** The details already saved for the guest, when the page has any. */
+    saved?: App.Data.Concierge.ConciergeIdentityPrefillData | null;
+    nationalityRequired: boolean;
+    /** An email or phone the guest already typed, put in the matching box. */
+    contact?: string;
     kinds: EnumOption[];
     genders: EnumOption[];
     countries: EnumOption[];
 }) {
-    const saved = stay.identity;
+    // Malaysia is the usual guest, so it is picked until the guest changes it.
+    const [nationality, setNationality] = useState(
+        saved?.nationalityCode || 'MY',
+    );
     const [kind, setKind] = useState<string>(
         saved?.documentKind === 'mykad' || saved?.documentKind === 'passport'
             ? savedKinds[saved.documentKind]
-            : kindFor(saved?.nationalityCode),
+            : kindFor(nationality),
     );
 
-    // A walk-in is first asked to be recognised as a returning guest; what it types carries into the full form.
-    const [showFull, setShowFull] = useState(!stay.walkIn);
-    const [typed, setTyped] = useState({ number: '', dob: '' });
+    const passport = kind === 'passport';
 
     // The saved number never reaches the page; a blank field with this flag keeps it on the server.
     const keepNumber =
@@ -60,25 +76,11 @@ export function IdentityStep({
         saved.documentKind !== null &&
         savedKinds[saved.documentKind as keyof typeof savedKinds] === kind;
 
-    if (!showFull) {
-        return (
-            <ReturningCheck
-                token={stay.token}
-                typed={typed}
-                onTyped={setTyped}
-                onNew={() => setShowFull(true)}
-            />
-        );
-    }
-
     return (
-        <Form
-            action={identity.url({ token: stay.token })}
-            method="post"
-            className="concierge-identity-form"
-        >
+        <Form action={action} method="post" className="concierge-identity-form">
             {({ processing, errors }) => (
                 <div className="flex flex-col gap-6">
+                    <HiddenFields fields={fields} />
                     <div className="grid items-start gap-6 lg:grid-cols-3">
                         <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
                             <Card>
@@ -136,7 +138,6 @@ export function IdentityStep({
                                                         ? `Saved ${saved?.documentNumberHint}. Leave blank to keep`
                                                         : 'Enter document number'
                                                 }
-                                                defaultValue={typed.number}
                                                 className="h-12 px-3 text-base md:text-base"
                                                 required={!keepNumber}
                                                 aria-invalid={!!errors.number}
@@ -198,27 +199,24 @@ export function IdentityStep({
                                         >
                                             <FieldLabel htmlFor="nationality">
                                                 Nationality
-                                                {stay.nationalityRequired
+                                                {nationalityRequired
                                                     ? ''
                                                     : ' (optional)'}
                                             </FieldLabel>
-                                            <EnumSelect
+                                            <CountrySelect
                                                 id="nationality"
                                                 name="nationality"
                                                 options={countries}
-                                                onValueChange={(code) =>
-                                                    code &&
-                                                    setKind(kindFor(code))
-                                                }
-                                                defaultValue={
-                                                    saved?.nationalityCode ??
-                                                    undefined
-                                                }
-                                                placeholder="Choose a country"
-                                                className="min-h-12 w-full text-base"
-                                                aria-invalid={
-                                                    !!errors.nationality
-                                                }
+                                                value={nationality}
+                                                onValueChange={(code) => {
+                                                    setNationality(code);
+
+                                                    if (code) {
+                                                        setKind(kindFor(code));
+                                                    }
+                                                }}
+                                                invalid={!!errors.nationality}
+                                                className="h-12 text-base md:text-base [&_input]:h-full [&_input]:text-base md:[&_input]:text-base"
                                             />
                                             <FieldError>
                                                 {errors.nationality}
@@ -238,7 +236,6 @@ export function IdentityStep({
                                                 id="date_of_birth"
                                                 name="date_of_birth"
                                                 type="date"
-                                                defaultValue={typed.dob}
                                                 autoComplete="bday"
                                                 className="h-12 px-3 text-base md:text-base"
                                                 aria-invalid={
@@ -250,20 +247,33 @@ export function IdentityStep({
                                             </FieldError>
                                         </Field>
                                         <Field data-invalid={!!errors.gender}>
-                                            <FieldLabel htmlFor="gender">
+                                            <FieldLabel id="gender-label">
                                                 Gender (optional)
                                             </FieldLabel>
-                                            <EnumSelect
-                                                id="gender"
-                                                name="gender"
-                                                options={genders}
-                                                defaultValue={
-                                                    saved?.gender ?? undefined
-                                                }
-                                                placeholder="Choose"
-                                                className="min-h-12 w-full text-base"
-                                                aria-invalid={!!errors.gender}
-                                            />
+                                            <div
+                                                role="radiogroup"
+                                                aria-labelledby="gender-label"
+                                                className="grid grid-cols-2 gap-3"
+                                            >
+                                                {genders.map((option) => (
+                                                    <label
+                                                        key={option.value}
+                                                        className="flex h-12 cursor-pointer items-center justify-center rounded-lg border border-input bg-background px-3 text-base transition-colors has-checked:border-primary has-checked:bg-primary has-checked:text-primary-foreground has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name="gender"
+                                                            value={option.value}
+                                                            defaultChecked={
+                                                                saved?.gender ===
+                                                                option.value
+                                                            }
+                                                            className="sr-only"
+                                                        />
+                                                        {option.label}
+                                                    </label>
+                                                ))}
+                                            </div>
                                             <FieldError>
                                                 {errors.gender}
                                             </FieldError>
@@ -277,6 +287,11 @@ export function IdentityStep({
                                                 name="phone"
                                                 type="tel"
                                                 autoComplete="tel"
+                                                defaultValue={
+                                                    contact.includes('@')
+                                                        ? undefined
+                                                        : contact
+                                                }
                                                 className="min-h-12 text-base"
                                                 required
                                                 aria-invalid={!!errors.phone}
@@ -294,6 +309,11 @@ export function IdentityStep({
                                                 name="email"
                                                 type="email"
                                                 autoComplete="email"
+                                                defaultValue={
+                                                    contact.includes('@')
+                                                        ? contact
+                                                        : undefined
+                                                }
                                                 className="min-h-12 text-base"
                                                 required
                                                 aria-invalid={!!errors.email}
@@ -315,22 +335,25 @@ export function IdentityStep({
                                             className="size-6"
                                             aria-hidden
                                         />
-                                        Document photos
+                                        Identification Document Photo
                                         <Badge variant="secondary" size="lg">
                                             Optional
                                         </Badge>
                                     </h2>
                                 </CardTitle>
                                 <CardDescription>
-                                    You can add photos of your document. You can
-                                    also continue without them.
+                                    {passport
+                                        ? 'You can add a photo of your passport. You can also continue without it.'
+                                        : 'You can add photos of your MyKad. You can also continue without them.'}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <FieldGroup>
                                     <Field data-invalid={!!errors.scan}>
                                         <FieldLabel htmlFor="scan">
-                                            Front of document
+                                            {passport
+                                                ? 'Document Photo'
+                                                : 'Front Document Photo'}
                                         </FieldLabel>
                                         <Input
                                             id="scan"
@@ -343,26 +366,33 @@ export function IdentityStep({
                                         />
                                         <FieldError>{errors.scan}</FieldError>
                                     </Field>
-                                    <Field data-invalid={!!errors.scan_back}>
-                                        <FieldLabel htmlFor="scan_back">
-                                            Back of document
-                                        </FieldLabel>
-                                        <Input
-                                            id="scan_back"
-                                            name="scan_back"
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            className="h-auto min-h-12 py-2 file:mr-3 file:h-8 file:rounded-md file:bg-muted file:px-3"
-                                            aria-invalid={!!errors.scan_back}
-                                        />
-                                        <FieldError>
-                                            {errors.scan_back}
-                                        </FieldError>
-                                    </Field>
+                                    {!passport && (
+                                        <Field
+                                            data-invalid={!!errors.scan_back}
+                                        >
+                                            <FieldLabel htmlFor="scan_back">
+                                                Back Document Photo
+                                            </FieldLabel>
+                                            <Input
+                                                id="scan_back"
+                                                name="scan_back"
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                className="h-auto min-h-12 py-2 file:mr-3 file:h-8 file:rounded-md file:bg-muted file:px-3"
+                                                aria-invalid={
+                                                    !!errors.scan_back
+                                                }
+                                            />
+                                            <FieldError>
+                                                {errors.scan_back}
+                                            </FieldError>
+                                        </Field>
+                                    )}
                                     <FieldDescription>
-                                        Keep the text clear and all four corners
-                                        visible.
+                                        {passport
+                                            ? 'Open the passport to the page with your photo. Keep the text clear and all four corners visible.'
+                                            : 'Keep the text clear and all four corners visible.'}
                                     </FieldDescription>
                                 </FieldGroup>
                             </CardContent>
@@ -388,31 +418,49 @@ export function IdentityStep({
     );
 }
 
+/** The values a form sends along with what the guest types, such as the room a walk-in picked. */
+function HiddenFields({
+    fields,
+}: {
+    fields: Record<string, string | number | null>;
+}) {
+    return Object.entries(fields).map(([name, value]) =>
+        value === null ? null : (
+            <input key={name} type="hidden" name={name} value={value} />
+        ),
+    );
+}
+
 /**
- * The first ID screen of a walk-in: the ID number and date of birth recognise a returning guest, who then skips the
- * form. A match moves the page on. No match shows the full form, with what was typed kept. The page never says whether
- * a profile exists.
+ * The first ID screen of a walk-in: the email or phone number the guest used before recognises a returning guest, who
+ * then skips the form. A match moves the page on. No match shows the full form, with what was typed kept. The page never
+ * says whether a profile exists.
  */
-function ReturningCheck({
-    token,
-    typed,
-    onTyped,
+export function ReturningCheck({
+    action,
+    fields,
+    contact,
+    onContact,
     onNew,
 }: {
-    token: string;
-    typed: { number: string; dob: string };
-    onTyped: (value: { number: string; dob: string }) => void;
+    /** Where the email or phone is sent. */
+    action: string;
+    /** The room the walk-in picked, sent with it so a match can book that room. */
+    fields: Record<string, string | number | null>;
+    contact: string;
+    onContact: (value: string) => void;
     onNew: () => void;
 }) {
     return (
         <Form
-            action={returning.url({ token })}
+            action={action}
             method="post"
             onSuccess={onNew}
             className="concierge-identity-form"
         >
             {({ processing, errors }) => (
                 <Card>
+                    <HiddenFields fields={fields} />
                     <CardHeader>
                         <CardTitle>
                             <h2 className="flex items-center gap-2">
@@ -421,57 +469,33 @@ function ReturningCheck({
                             </h2>
                         </CardTitle>
                         <CardDescription>
-                            Enter your ID number and date of birth. If we know
-                            you, you can skip the rest of this step.
+                            Enter the email or phone number you used before. If
+                            we know you, you can skip the rest of this step.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-6">
-                        <FieldGroup className="grid gap-5 sm:grid-cols-2">
-                            <Field data-invalid={!!errors.number}>
-                                <FieldLabel htmlFor="returning-number">
-                                    MyKad or passport number
+                    <CardContent className="flex flex-col gap-6 sm:flex-row sm:items-end">
+                        <FieldGroup className="sm:flex-1">
+                            <Field data-invalid={!!errors.contact}>
+                                <FieldLabel htmlFor="returning-contact">
+                                    Email or phone number
                                 </FieldLabel>
                                 <Input
-                                    id="returning-number"
-                                    name="number"
-                                    autoComplete="off"
-                                    value={typed.number}
+                                    id="returning-contact"
+                                    name="contact"
+                                    autoComplete="email"
+                                    placeholder="name@example.com or 012-345 6789"
+                                    value={contact}
                                     onChange={(event) =>
-                                        onTyped({
-                                            ...typed,
-                                            number: event.target.value,
-                                        })
+                                        onContact(event.target.value)
                                     }
                                     className="h-12 px-3 text-base md:text-base"
                                     required
-                                    aria-invalid={!!errors.number}
+                                    aria-invalid={!!errors.contact}
                                 />
-                                <FieldError>{errors.number}</FieldError>
-                            </Field>
-                            <Field data-invalid={!!errors.date_of_birth}>
-                                <FieldLabel htmlFor="returning-dob">
-                                    Date of birth
-                                </FieldLabel>
-                                <Input
-                                    id="returning-dob"
-                                    name="date_of_birth"
-                                    type="date"
-                                    autoComplete="bday"
-                                    value={typed.dob}
-                                    onChange={(event) =>
-                                        onTyped({
-                                            ...typed,
-                                            dob: event.target.value,
-                                        })
-                                    }
-                                    className="h-12 px-3 text-base md:text-base"
-                                    required
-                                    aria-invalid={!!errors.date_of_birth}
-                                />
-                                <FieldError>{errors.date_of_birth}</FieldError>
+                                <FieldError>{errors.contact}</FieldError>
                             </Field>
                         </FieldGroup>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                        <div className="flex flex-col gap-3 sm:shrink-0 sm:flex-row">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -479,7 +503,7 @@ function ReturningCheck({
                                 className="min-h-12"
                                 onClick={onNew}
                             >
-                                I am new here
+                                This is my first stay
                             </Button>
                             <Button
                                 type="submit"

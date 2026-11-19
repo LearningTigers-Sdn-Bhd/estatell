@@ -21,7 +21,7 @@ class ReservationDoorCardController extends Controller
     public function store(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, RegisterStayCard $register): RedirectResponse
     {
         $uid = $request->validate(['uid' => ['required', 'string', 'max:32']])['uid'];
-        $result = $register($unit->load('property.settings', 'property.doorLockConnection'), $uid);
+        $result = $register($unit->load('property.settings', 'property.doorLockConnection'), $uid, patient: true);
 
         Inertia::flash('toast', match (true) {
             $result->refusal === null => ['type' => 'success', 'message' => __('Card added. It opens the door until :time.', ['time' => $result->validUntil->setTimezone($unit->property->settings->time_zone ?? 'Asia/Kuala_Lumpur')->format('d M H:i')])],
