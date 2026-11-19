@@ -128,7 +128,7 @@ class ConciergeController extends Controller
             'stay' => $stay,
             'identityKinds' => [['value' => 'my_kad', 'label' => __('MyKad')], ['value' => 'passport', 'label' => __('Passport')]],
             'genders' => Gender::options(),
-            'countries' => $countries->options($locale?->value),
+            'countries' => $countries->optionsWithMalaysiaFirst($locale?->value),
         ]);
     }
 

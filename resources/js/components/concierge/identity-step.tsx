@@ -9,6 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { CountrySelect } from '@/components/pms/country-select';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { Button } from '@/components/ui/button';
@@ -44,10 +45,14 @@ export function IdentityStep({
     countries: EnumOption[];
 }) {
     const saved = stay.identity;
+    // Malaysia is the usual guest, so it is picked until the guest changes it.
+    const [nationality, setNationality] = useState(
+        saved?.nationalityCode ?? 'MY',
+    );
     const [kind, setKind] = useState<string>(
         saved?.documentKind === 'mykad' || saved?.documentKind === 'passport'
             ? savedKinds[saved.documentKind]
-            : kindFor(saved?.nationalityCode),
+            : kindFor(nationality),
     );
 
     // A walk-in is first asked to be recognised as a returning guest; what it types carries into the full form.
@@ -202,23 +207,17 @@ export function IdentityStep({
                                                     ? ''
                                                     : ' (optional)'}
                                             </FieldLabel>
-                                            <EnumSelect
+                                            <CountrySelect
                                                 id="nationality"
                                                 name="nationality"
                                                 options={countries}
-                                                onValueChange={(code) =>
+                                                value={nationality}
+                                                onValueChange={(code) => {
+                                                    setNationality(code);
                                                     code &&
-                                                    setKind(kindFor(code))
-                                                }
-                                                defaultValue={
-                                                    saved?.nationalityCode ??
-                                                    undefined
-                                                }
-                                                placeholder="Choose a country"
-                                                className="min-h-12 w-full text-base"
-                                                aria-invalid={
-                                                    !!errors.nationality
-                                                }
+                                                        setKind(kindFor(code));
+                                                }}
+                                                invalid={!!errors.nationality}
                                             />
                                             <FieldError>
                                                 {errors.nationality}
@@ -315,7 +314,7 @@ export function IdentityStep({
                                             className="size-6"
                                             aria-hidden
                                         />
-                                        Document photos
+                                        MyKad / passport photos
                                         <Badge variant="secondary" size="lg">
                                             Optional
                                         </Badge>
@@ -479,7 +478,7 @@ function ReturningCheck({
                                 className="min-h-12"
                                 onClick={onNew}
                             >
-                                I am new here
+                                This is my first stay
                             </Button>
                             <Button
                                 type="submit"
