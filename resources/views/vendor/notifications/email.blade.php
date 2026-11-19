@@ -9,6 +9,12 @@
 {{ $greeting }}
 
 @endif
+@isset($mailCode)
+<x-mail::panel>
+<p style="margin: 0; text-align: center; font-size: 28px; font-weight: 700; letter-spacing: 8px;">{{ $mailCode }}</p>
+</x-mail::panel>
+
+@endisset
 @if (isset($auditSummary))
 @if ($auditFailed)
 <x-mail::panel tone="error">

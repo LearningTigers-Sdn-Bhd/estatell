@@ -13,7 +13,7 @@ use Laravel\Fortify\Features;
 const SIGN_IN_LOG_CHROME_ON_WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 it('records a sign-in with the country and device, and keeps the IP address encrypted', function () {
-    $user = User::factory()->for(Property::factory())->create();
+    $user = User::factory()->for(Property::factory())->withoutDeviceCheck()->create();
 
     $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.7'])
         ->withHeaders(['User-Agent' => SIGN_IN_LOG_CHROME_ON_WINDOWS, 'CF-IPCountry' => 'MY'])
@@ -31,7 +31,7 @@ it('records a sign-in with the country and device, and keeps the IP address encr
 });
 
 it('records city, region and network from Cloudflare, and ignores a bad network number', function (string $asn, ?int $stored) {
-    $user = User::factory()->for(Property::factory())->create();
+    $user = User::factory()->for(Property::factory())->withoutDeviceCheck()->create();
 
     $this->withHeaders(['cf-ipcity' => 'Kota Kinabalu', 'cf-region' => 'Sabah', 'X-Client-ASN' => $asn])
         ->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
@@ -47,7 +47,7 @@ it('records city, region and network from Cloudflare, and ignores a bad network 
 ]);
 
 it('tracks the session from sign-in to sign-out', function () {
-    $user = User::factory()->for(Property::factory())->create();
+    $user = User::factory()->for(Property::factory())->withoutDeviceCheck()->create();
 
     $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
     $event = SignInEvent::query()->sole();
@@ -87,7 +87,7 @@ it('works out the session status from the last active and sign-out times', funct
 ]);
 
 it('links a wrong password to the account and stores no email for an unknown one', function () {
-    $user = User::factory()->for(Property::factory())->create(['email' => 'staff@example.test']);
+    $user = User::factory()->for(Property::factory())->withoutDeviceCheck()->create(['email' => 'staff@example.test']);
 
     $this->post(route('login.store'), ['email' => 'Staff@Example.test', 'password' => 'wrong-password']);
     $this->post(route('login.store'), ['email' => 'nobody@example.test', 'password' => 'wrong-password']);
@@ -100,7 +100,7 @@ it('links a wrong password to the account and stores no email for an unknown one
 });
 
 it('records a lockout once the login throttle is hit', function () {
-    $user = User::factory()->for(Property::factory())->create();
+    $user = User::factory()->for(Property::factory())->withoutDeviceCheck()->create();
 
     foreach (range(1, 5) as $attempt) {
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'wrong-password']);
@@ -125,7 +125,7 @@ it('records a wrong two-factor code', function () {
 });
 
 it('ignores unknown and Tor countries from Cloudflare', function (string $header) {
-    $user = User::factory()->for(Property::factory())->create();
+    $user = User::factory()->for(Property::factory())->withoutDeviceCheck()->create();
 
     $this->withHeaders(['CF-IPCountry' => $header])
         ->post(route('login.store'), ['email' => $user->email, 'password' => 'password']);
@@ -160,7 +160,7 @@ it('lists the sign-in log for admins with search, result, property and date filt
     $admin = User::factory()->admin()->create();
     $property = Property::factory()->create();
     $amir = User::factory()->for($property)->create(['name' => 'Amir Hamzah', 'email' => 'amir@example.test']);
-    $other = User::factory()->for(Property::factory())->create(['name' => 'Siti']);
+    $other = User::factory()->for(Property::factory())->withoutDeviceCheck()->create(['name' => 'Siti']);
     SignInEvent::factory()->for($amir)->create(['ip_address' => '198.51.100.4']);
     SignInEvent::factory()->for($other)->failed()->create(['ip_address' => '198.51.100.9', 'occurred_at' => now()->subHour()]);
     SignInEvent::factory()->failed()->create(['occurred_at' => now()->subDays(30)]);

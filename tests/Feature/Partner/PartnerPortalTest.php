@@ -6,8 +6,11 @@ use App\Models\Property;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
+require_once __DIR__.'/../Support/DeviceCheck.php';
+
 test('a partner signs in to the portal and /dashboard sends them there', function () {
     $partner = User::factory()->partner()->create();
+    trustTestBrowserFor($partner);
 
     $this->post(route('login.store'), ['email' => $partner->email, 'password' => 'password'])
         ->assertRedirect(route('partner.properties.index'));
@@ -78,6 +81,7 @@ test('a partner with a temp password is sent to set a password first', function 
 test('a suspended partner cannot sign in, and a reactivated one can', function () {
     $partner = Partner::factory()->suspended()->create();
     $user = User::factory()->partner($partner)->create();
+    trustTestBrowserFor($user);
 
     $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
         ->assertSessionHasErrors(['email' => 'Your partner account is suspended. Contact estatell support.']);

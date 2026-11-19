@@ -49,6 +49,16 @@ class DeviceDescriber
     }
 
     /**
+     * A short name such as "Chrome on macOS", or null when neither part is known.
+     */
+    public function label(?string $userAgent): ?string
+    {
+        $device = $this->describe($userAgent);
+
+        return collect([$device['browser'], $device['os']])->filter()->implode(' on ') ?: null;
+    }
+
+    /**
      * @param  array<string, string>  $patterns
      */
     private function firstMatch(array $patterns, string $userAgent): ?string

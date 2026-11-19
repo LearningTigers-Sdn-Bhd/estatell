@@ -37,6 +37,7 @@ class ViewAsController extends Controller
         $to = $request->query('to');
         $to = is_string($to) ? $to : null;
         $staff = $viewAsStaff->for($property);
+        $supportUser = $impersonation->supportUser();
 
         return Inertia::render('view-as/show', [
             'staff' => $staff,
@@ -47,11 +48,11 @@ class ViewAsController extends Controller
             'to' => $to !== null && $impersonation->accepts($property, $to) ? $to : null,
             'blockedTo' => $to !== null && $impersonation->isBlockedPath($property, $to),
             'opens' => $impersonation->destination($property, $to),
-            'consent' => $property->settings->allow_support_access ?? true,
+            'consent' => ($supportUser ?? $request->user())->is_admin || ($property->settings->allow_support_access ?? true),
             'moneyCorrections' => $property->settings->allow_support_money_corrections ?? true,
             'cancelUrl' => $this->cancelUrl($request, $property, $impersonation),
             'switchFrom' => $this->switchFrom($request, $impersonation),
-            ...$this->supportNavigation($impersonation),
+            ...$this->supportNavigation($supportUser),
         ]);
     }
 
@@ -112,10 +113,8 @@ class ViewAsController extends Controller
      *
      * @return array<string, list<NavItemData>>
      */
-    private function supportNavigation(Impersonation $impersonation): array
+    private function supportNavigation(?User $supportUser): array
     {
-        $supportUser = $impersonation->supportUser();
-
         return match (true) {
             $supportUser === null => [],
             $supportUser->is_admin => ['adminNavigation' => app(AdminNavigation::class)->items()],

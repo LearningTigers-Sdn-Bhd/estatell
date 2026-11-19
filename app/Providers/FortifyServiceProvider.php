@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
+use App\Actions\Fortify\RedirectIfTwoFactorOrNewDevice;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Enums\PartnerStatus;
 use App\Http\Controllers\Partner\JoinController;
@@ -53,6 +54,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+        Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorOrNewDevice::class);
 
         Fortify::authenticateUsing(function (Request $request): ?User {
             $user = User::query()->where(Fortify::username(), $request->input(Fortify::username()))->first();
@@ -130,6 +132,10 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
+
+        // A pending code also stops working after five wrong tries (NewDeviceCodes::MAX_ATTEMPTS).
+        RateLimiter::for('login-otp', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('login-otp:'.$request->session()->get(RedirectIfTwoFactorOrNewDevice::SESSION_USER_KEY, $request->ip())));
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());

@@ -11,7 +11,7 @@ use App\Models\ChargeItem;
 use App\Models\Guest;
 use App\Models\Reservation;
 use App\Models\RoomType;
-use App\Models\User;
+use App\Services\Platform\HotelFacingCauser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -24,6 +24,8 @@ use Spatie\Activitylog\Models\Activity;
 class ReservationActivityLog
 {
     public const int PER_PAGE = 25;
+
+    public function __construct(private HotelFacingCauser $causers) {}
 
     /**
      * @return LengthAwarePaginator<int, ReservationActivityData>
@@ -242,10 +244,10 @@ class ReservationActivityLog
     }
 
     /**
-     * The name of the staff user who caused the entry. Any other causer has no name here.
+     * The name of the user who caused the entry, as the hotel sees it. Any other causer has no name here.
      */
     private function causerName(?Model $causer): ?string
     {
-        return $causer instanceof User ? $causer->name : null;
+        return $this->causers->name($causer);
     }
 }

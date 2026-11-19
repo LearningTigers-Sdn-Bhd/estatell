@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
+require_once __DIR__.'/../Support/DeviceCheck.php';
+
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
     $this->input = [
@@ -62,8 +64,10 @@ test('add with a temp password creates the partner, its counter and its login', 
 
 test('the new partner can sign in with the temp password', function () {
     $this->actingAs($this->admin)->post(route('admin.partners.store'), $this->input);
-    $temporaryPassword = User::query()->where('email', 'ops@andaman.test')->sole()->temporary_password;
+    $partnerUser = User::query()->where('email', 'ops@andaman.test')->sole();
+    $temporaryPassword = $partnerUser->temporary_password;
     auth()->logout();
+    trustTestBrowserFor($partnerUser);
 
     $this->post(route('login.store'), ['email' => 'ops@andaman.test', 'password' => $temporaryPassword])
         ->assertRedirect(route('partner.properties.index'));

@@ -122,7 +122,8 @@ class PropertySettingsController extends Controller
      */
     public function support(Property $property, SettingsLock $settingsLock): Response
     {
-        return $this->renderTab($property, $settingsLock, 'support');
+        // Platform admins can always view a property, so the access switch only governs the property's partner.
+        return $this->renderTab($property, $settingsLock, 'support', ['partnerName' => $property->partner?->name]);
     }
 
     /**
