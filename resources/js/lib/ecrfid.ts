@@ -67,8 +67,9 @@ function frame(type: number, code: number, data: number[]): number[] {
  */
 export function parseInventoryReport(raw: number[]): number[] | null {
     // Unnumbered reports (Windows, and the vendor's own hidapi code) arrive as [length, frame..., padding].
-    const f =
-        raw[0] !== 0xec && raw[1] === 0xec ? raw.slice(1, 1 + raw[0]) : raw;
+    // Windows pads every input report to the largest report size (51 bytes), so cut the frame to its own length.
+    const start = raw[0] !== 0xec && raw[1] === 0xec ? 1 : 0;
+    const f = raw.slice(start, start + raw[start + 1] + 1);
 
     if (f.length < 8 || f[0] !== 0xec || f[1] !== f.length - 1) {
         return null;
