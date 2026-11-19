@@ -461,7 +461,7 @@ it('never offers or holds a Dirty room for a day use walk-in', function () {
     $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:30&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
 });
 
-it('sends booking.created for a walk-in only once its hold is paid, with the booker details, and only once', function () {
+it('sends booking.created for a walk-in that owes nothing once the ID step is saved, with the booker details, and only once', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     Queue::fake();
     WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingCreated])->create();
@@ -472,7 +472,7 @@ it('sends booking.created for a walk-in only once its hold is paid, with the boo
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     $this->post($location.'/identity', conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
 
-    expect($created())->toHaveCount(0);
+    expect($created())->toHaveCount(1);
 
     foreach (['60.00', '40.00'] as $amount) {
         $result = app(RecordPayment::class)(null, $stay->reservation, null, $stay, new NewPaymentData($cash->id, PaymentPurpose::Advance, $amount, null, (string) Str::uuid()));
@@ -488,7 +488,7 @@ it('sends booking.created for a walk-in only once its hold is paid, with the boo
         ->and(KioskWalkInHold::query()->sole()->announced_at)->not->toBeNull();
 });
 
-it('emails a walk-in the booking number and the check-in link once its hold is paid, and only once', function () {
+it('emails a walk-in that owes nothing the booking number and the check-in link once the ID step is saved, and only once', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     Notification::fake();
     $cash = PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => TransactionCode::factory()->for($property)->create(['kind' => TransactionKind::Payment])->id, 'name' => 'Cash', 'type' => PaymentMethodType::Cash, 'requires_reference' => false]);
@@ -497,7 +497,7 @@ it('emails a walk-in the booking number and the check-in link once its hold is p
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     $this->post($location.'/identity', conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
 
-    Notification::assertNothingSent();
+    Notification::assertSentOnDemandTimes(ConciergeWalkInConfirmed::class, 1);
 
     foreach (['60.00', '40.00'] as $amount) {
         app(RecordPayment::class)(null, $stay->reservation, null, $stay, new NewPaymentData($cash->id, PaymentPurpose::Advance, $amount, null, (string) Str::uuid()));
