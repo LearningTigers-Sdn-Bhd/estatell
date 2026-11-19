@@ -167,7 +167,7 @@ class HandleInertiaRequests extends Middleware
     {
         $property = $this->resolveProperty($request);
 
-        return $property === null ? null : PropertySummaryData::fromModel($property);
+        return $property === null ? null : PropertySummaryData::fromModel($property, forGuest: $request->routeIs('concierge.*'));
     }
 
     /**

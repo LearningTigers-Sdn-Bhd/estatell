@@ -65,7 +65,7 @@ class ConciergePageBuilder
         return new ConciergeStayData(
             token: $token,
             step: $step,
-            property: PropertySummaryData::fromModel($stay->property),
+            property: PropertySummaryData::fromModel($stay->property, forGuest: true),
             guestFirstName: $guest === null ? '' : Str::of($guest->full_name)->trim()->before(' ')->toString(),
             arrivalDate: $stay->arrival_date->toDateString(),
             departureDate: $stay->departure_date->toDateString(),

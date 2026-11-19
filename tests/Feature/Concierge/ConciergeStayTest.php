@@ -12,6 +12,7 @@ use App\Models\Payment;
 use App\Models\Property;
 use App\Models\RegistrationCard;
 use App\Services\Registration\RegistrationCardFieldRules;
+use Illuminate\Http\UploadedFile;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -39,9 +40,11 @@ it('answers 404 for an unknown or expired link, a feature that is off and a susp
 });
 
 it('starts at the ID and sends only the first name', function () {
-    ['token' => $token] = conciergeSetup();
+    ['property' => $property, 'token' => $token] = conciergeSetup();
 
+    $property->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);
     conciergeStep($token, 'identity')->assertInertia(fn (Assert $page) => $page
+        ->where('stay.property.logoUrl', fn (string $url) => str_starts_with($url, "/stay/{$property->code}/logo"))
         ->where('stay.guestFirstName', 'Aisha')
         ->where('stay.roomNumber', null)
         ->where('stay.pin', null)
