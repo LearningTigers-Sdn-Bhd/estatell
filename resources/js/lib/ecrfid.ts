@@ -4,8 +4,13 @@
  * it never authenticates or writes a card. Needs Chrome or Edge over HTTPS (localhost counts).
  */
 
+type HidReportInfo = {
+    reportId?: number;
+    items?: { reportSize?: number; reportCount?: number }[];
+};
 type HidDevice = {
     opened: boolean;
+    collections?: { outputReports?: HidReportInfo[] }[];
     vendorId: number;
     productId: number;
     open(): Promise<void>;
@@ -60,7 +65,11 @@ function frame(type: number, code: number, data: number[]): number[] {
  * The UID bytes of an inventory reply, `null` for "no card yet" or a frame that is not an inventory answer. The reader uses
  * numbered reports where report ID n carries n bytes, so the browser hands over the bare frame (the ID is its length).
  */
-export function parseInventoryReport(f: number[]): number[] | null {
+export function parseInventoryReport(raw: number[]): number[] | null {
+    // Unnumbered reports (Windows, and the vendor's own hidapi code) arrive as [length, frame..., padding].
+    const f =
+        raw[0] !== 0xec && raw[1] === 0xec ? raw.slice(1, 1 + raw[0]) : raw;
+
     if (f.length < 8 || f[0] !== 0xec || f[1] !== f.length - 1) {
         return null;
     }
@@ -80,6 +89,35 @@ export function parseInventoryReport(f: number[]): number[] | null {
         data.length === 4
         ? data
         : null;
+}
+
+/**
+ * How to write the request. The reader's own descriptor decides: an unnumbered output report (ID 0, fixed size, the
+ * layout the vendor's hidapi code uses) must be [length, frame..., zero padding]; otherwise a numbered report whose ID is
+ * the frame length. Windows rejects or ignores the wrong one, macOS is forgiving.
+ */
+export function buildOutputReport(
+    device: Pick<HidDevice, 'collections'>,
+    request: number[],
+): { id: number; data: Uint8Array<ArrayBuffer> } {
+    const reports = (device.collections ?? []).flatMap(
+        (c) => c.outputReports ?? [],
+    );
+    const unnumbered = reports.find((r) => !r.reportId);
+
+    if (unnumbered || reports.length === 0) {
+        const size =
+            unnumbered?.items?.reduce(
+                (sum, i) => sum + (i.reportSize ?? 0) * (i.reportCount ?? 0),
+                0,
+            ) ?? 0;
+        const data = new Uint8Array(Math.max(size / 8, request.length + 1));
+        data.set([request.length, ...request]);
+
+        return { id: 0, data };
+    }
+
+    return { id: request.length, data: Uint8Array.from(request) };
 }
 
 /** Whether the browser already lets this site use the reader, so scanning needs no picker. */
@@ -127,6 +165,7 @@ async function pickReader(hid: Hid): Promise<HidDevice> {
 export async function scanCardUid(
     signal?: AbortSignal,
     onReady?: () => void,
+    onDetected?: () => void,
     timeoutMs = 30_000,
 ): Promise<string> {
     const hid = (navigator as unknown as { hid?: Hid }).hid;
@@ -162,7 +201,7 @@ export async function scanCardUid(
     onReady?.();
 
     const request = frame(INVENTORY.type, INVENTORY.code, [0]);
-    const report = new Uint8Array(request);
+    const report = buildOutputReport(device, request);
 
     return new Promise<string>((resolve, reject) => {
         let done = false;
@@ -192,6 +231,7 @@ export async function scanCardUid(
             );
 
             if (uid) {
+                onDetected?.();
                 finish(() =>
                     resolve(
                         uid
@@ -204,7 +244,7 @@ export async function scanCardUid(
         };
         const poll = setInterval(() => {
             device
-                .sendReport(report.length, report)
+                .sendReport(report.id, report.data)
                 .catch((error: unknown) =>
                     finish(() =>
                         reject(
