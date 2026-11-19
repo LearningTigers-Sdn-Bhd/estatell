@@ -25,8 +25,8 @@ class SaveIdentityRequest extends StoreStayIdentityRequest
             // Blank is allowed with `keep_saved_document`: the action then keeps the guest's saved document of that kind.
             'number' => ['required_without:keep_saved_document', 'nullable', 'string', 'min:4', 'max:40', Rule::when($this->input('kind') === 'my_kad', ['digits:12'])],
             'keep_saved_document' => ['nullable', 'boolean'],
-            'email' => ['nullable', 'email:rfc', 'max:254'],
-            'phone' => ['nullable', 'string', 'regex:/^[0-9+()\s-]{6,30}$/'],
+            'email' => ['required', 'email:rfc', 'max:254'],
+            'phone' => ['required', 'string', 'regex:/^[0-9+()\s-]{6,30}$/'],
             'scan' => ['nullable', 'image', 'max:8192'],
             'scan_back' => ['nullable', 'image', 'max:8192'],
         ];

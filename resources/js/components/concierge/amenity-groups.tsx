@@ -43,7 +43,7 @@ export function AmenityGroups({ amenities }: { amenities: Amenity[] }) {
                     <section key={category} className="flex flex-col gap-4">
                         <div className="flex items-center gap-3 border-b border-border/40 pb-4">
                             <span className="flex size-10 items-center justify-center rounded-xl bg-muted/60 text-primary">
-                                <Sparkles className="size-5" aria-hidden />
+                                <Sparkles className="size-6" aria-hidden />
                             </span>
                             <h2 className="text-xl font-semibold">
                                 {category}
@@ -61,7 +61,7 @@ export function AmenityGroups({ amenities }: { amenities: Amenity[] }) {
                                         className="flex items-center gap-3 border-b border-border/30 py-4 text-sm"
                                     >
                                         <Check
-                                            className="size-4 shrink-0 text-primary"
+                                            className="size-5 shrink-0 text-primary"
                                             aria-hidden
                                         />
                                         {amenity.name}

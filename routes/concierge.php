@@ -5,6 +5,7 @@ use App\Http\Controllers\Concierge\ConciergeDocumentController;
 use App\Http\Controllers\Concierge\ConciergeEInvoiceController;
 use App\Http\Controllers\Concierge\ConciergeGuideController;
 use App\Http\Controllers\Concierge\ConciergeStayController;
+use App\Http\Controllers\Property\PropertyLogoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,6 +16,8 @@ Route::middleware(['concierge', 'throttle:concierge'])->group(function () {
     Route::get('stay/{property:code}', [ConciergeController::class, 'lobby'])->name('concierge.lobby');
     Route::post('stay/{property:code}', [ConciergeController::class, 'find'])->middleware('throttle:concierge-lookup')->name('concierge.find');
 
+    // The logo is on the private disk and the staff route needs a login, so guests get it from here.
+    Route::get('stay/{property:code}/logo', [PropertyLogoController::class, 'show'])->name('concierge.logo');
     Route::get('stay/{property:code}/find', [ConciergeGuideController::class, 'findForm'])->name('concierge.enter-code');
     Route::get('stay/{property:code}/contact', [ConciergeGuideController::class, 'contact'])->name('concierge.contact');
     Route::get('stay/{property:code}/info/{section?}', [ConciergeGuideController::class, 'info'])->where('section', 'property|amenities|policies|faqs')->name('concierge.info');

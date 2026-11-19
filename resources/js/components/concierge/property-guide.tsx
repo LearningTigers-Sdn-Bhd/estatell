@@ -46,13 +46,13 @@ function Times({ checkIn, checkOut }: { checkIn: string; checkOut: string }) {
             aria-label="Arrival and departure times"
         >
             <h2 className="flex items-center gap-2 text-lg font-semibold">
-                <Clock className="size-5 text-primary" aria-hidden />
+                <Clock className="size-6 text-primary" aria-hidden />
                 Arrival & departure
             </h2>
             <dl className="grid grid-cols-2 divide-x divide-border/40">
                 <div className="flex flex-col gap-3 pr-4">
                     <dt className="flex min-h-8 items-center gap-2 text-xs text-muted-foreground sm:min-h-0">
-                        <LogIn className="size-4" aria-hidden />
+                        <LogIn className="size-5" aria-hidden />
                         Check-in from
                     </dt>
                     <dd className="text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
@@ -61,7 +61,7 @@ function Times({ checkIn, checkOut }: { checkIn: string; checkOut: string }) {
                 </div>
                 <div className="flex flex-col gap-3 pl-4">
                     <dt className="flex min-h-8 items-center gap-2 text-xs text-muted-foreground sm:min-h-0">
-                        <LogOut className="size-4" aria-hidden />
+                        <LogOut className="size-5" aria-hidden />
                         Check-out by
                     </dt>
                     <dd className="text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
@@ -194,7 +194,7 @@ export function PropertyOverview({ details }: { details: Property }) {
                             <CardTitle>
                                 <h2 className="flex items-center gap-2">
                                     <MapPin
-                                        className="size-5 text-primary"
+                                        className="size-6 text-primary"
                                         aria-hidden
                                     />
                                     Find us
@@ -359,7 +359,7 @@ export function PropertyFaqs({
         <div className="flex max-w-3xl flex-col gap-6">
             <div className="flex items-center gap-3">
                 <MessageCircleQuestion
-                    className="size-6 text-primary"
+                    className="size-7 text-primary"
                     aria-hidden
                 />
                 <h2 className="text-xl font-semibold">
@@ -400,13 +400,13 @@ export function PropertyFaqs({
                                 <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                                     <span className="flex items-start gap-3">
                                         <MessageCircleQuestion
-                                            className="mt-0.5 size-4 shrink-0 text-primary"
+                                            className="mt-0.5 size-5 shrink-0 text-primary"
                                             aria-hidden
                                         />
                                         {faq.question}
                                     </span>
                                     <ChevronDown
-                                        className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                                        className="size-5 shrink-0 transition-transform group-open:rotate-180"
                                         aria-hidden
                                     />
                                 </summary>
@@ -434,7 +434,7 @@ function WifiNetwork({
                 <CardTitle>
                     <h2 className="flex flex-wrap items-center gap-2">
                         <span className="flex size-11 items-center justify-center rounded-full bg-muted/60 text-primary">
-                            <Wifi className="size-5" aria-hidden />
+                            <Wifi className="size-6" aria-hidden />
                         </span>
                         <span className="text-lg font-semibold break-all">
                             {network.name}

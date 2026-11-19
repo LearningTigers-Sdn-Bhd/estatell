@@ -49,7 +49,7 @@ export default function ConciergeRequests({
                     >
                         <div className="flex items-center gap-3">
                             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-primary">
-                                <ConciergeBell className="size-5" aria-hidden />
+                                <ConciergeBell className="size-6" aria-hidden />
                             </span>
                             <div className="flex flex-col gap-1">
                                 <h2
@@ -182,7 +182,7 @@ export default function ConciergeRequests({
                                 {request.note && (
                                     <div className="flex items-start gap-2 rounded-xl bg-muted/50 p-3">
                                         <MessageSquare
-                                            className="mt-0.5 size-4 shrink-0 text-primary"
+                                            className="mt-0.5 size-5 shrink-0 text-primary"
                                             aria-hidden
                                         />
                                         <div className="flex flex-col gap-1">

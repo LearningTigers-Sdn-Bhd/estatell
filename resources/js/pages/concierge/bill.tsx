@@ -53,7 +53,7 @@ export default function ConciergeBill({
                 <div className="flex items-center gap-4">
                     <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-background text-primary">
                         <Wallet
-                            className="size-6"
+                            className="size-7"
                             strokeWidth={1.5}
                             aria-hidden
                         />
@@ -87,7 +87,7 @@ export default function ConciergeBill({
                 )}
                 {bill.canPay && (
                     <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CreditCard className="size-4 shrink-0" aria-hidden />
+                        <CreditCard className="size-5 shrink-0" aria-hidden />
                         Online payment available below
                     </p>
                 )}
@@ -106,7 +106,7 @@ export default function ConciergeBill({
                     >
                         <div className="flex items-center gap-3 border-b border-border/40 p-5 sm:p-6">
                             <ReceiptText
-                                className="size-5 text-primary"
+                                className="size-6 text-primary"
                                 aria-hidden
                             />
                             <h2
@@ -152,7 +152,7 @@ export default function ConciergeBill({
                     >
                         <div className="flex items-center gap-3">
                             <LogOut
-                                className="size-5 text-primary"
+                                className="size-6 text-primary"
                                 aria-hidden
                             />
                             <h2
@@ -201,7 +201,7 @@ export default function ConciergeBill({
                                 className="flex items-start gap-3 rounded-xl bg-muted/50 p-4"
                             >
                                 <CircleCheck
-                                    className="mt-0.5 size-5 shrink-0 text-primary"
+                                    className="mt-0.5 size-6 shrink-0 text-primary"
                                     aria-hidden
                                 />
                                 <div className="flex flex-col gap-1">
@@ -218,7 +218,7 @@ export default function ConciergeBill({
                         {!bill.canCheckOut && bill.checkOutOpensOn && (
                             <p className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
                                 <Clock
-                                    className="mt-0.5 size-4 shrink-0"
+                                    className="mt-0.5 size-5 shrink-0"
                                     aria-hidden
                                 />
                                 <span>
