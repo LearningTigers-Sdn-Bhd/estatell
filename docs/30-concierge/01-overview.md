@@ -145,11 +145,13 @@ They open from the stay menu once the guest is checked in. Each works only for a
 
 ## Welcome email and webhook
 
-When a stay checks in, by the page, the front desk or the kiosk, a listener of `StayCheckedIn` queues `SendStayWelcomeJob`. The guest gets one welcome, so the PIN is in it:
+When a stay checks in, by the page, the front desk or the kiosk, a listener of `StayCheckedIn` (`QueueStayWelcome`) asks for the welcome and schedules the **deadline** of that check-in, 20 minutes later (`SendStayWelcomeJob::DEADLINE_SECONDS`). The guest gets one welcome, and it has the PIN in it whenever the PIN can be made. `WelcomeStay` decides when it goes:
 
-- While the stay's door PIN is still being made (`KioskPin` says `pending`), the job asks again every 5 seconds, up to 2 minutes after check-in (`SendStayWelcomeJob::HOLD_SECONDS`).
-- When the PIN is ready, `SendConciergeStayLink` sends the welcome with the PIN, the room and the time the PIN ends.
-- When the PIN failed, took longer than 2 minutes, or the stay has no lock, the welcome is sent without the PIN. If the stay could have a PIN, the email says it will show on the stay page.
+- **No PIN to wait for** (the stay has no lock, or TTLock is off for the property): the welcome goes at once, with no PIN line.
+- **A PIN is on its way** (`KioskPin::canRetry`): the welcome waits. It goes **as soon as the PIN is ready**, with the PIN, the room and the time the PIN ends. Every end of a PIN sync (`SyncStayPasscodesJob`) asks again, so there is no polling.
+- **The PIN could not be made**: the PIN sync tries again by itself when asking again could help (TTLock did not answer; see [TTLock integration](../27-door-locks/01-ttlock-integration.md)), so the welcome keeps waiting. At the **deadline** the welcome goes anyway, **without the PIN**, and says the PIN will show on the stay page. `door-locks.welcome-without-pin` is written to the log. The guest always gets their link.
+
+The welcome is claimed with an atomic update of `reservation_units.welcome_sent_at`, so the check-in, the PIN sync and the deadline can all ask and it is sent exactly once per check-in. A stay checked in again after an undo has a newer `checked_in_at` and is welcomed again. The deadline carries the check-in time, so the deadline of an undone check-in never cuts the wait of the next one short.
 
 The welcome is two messages from one moment: the `ConciergeStayLink` email (to the guest's address) and the `stay.welcome_ready` webhook, which a WhatsApp automation can listen to (see [Outgoing webhooks](../32-webhooks/01-outgoing-webhooks.md)). Each makes a new link; older links stay valid until they expire. Nothing is sent, and no link is made, while the property has the Concierge feature off. The email is skipped when the guest has no address, and the webhook when no endpoint hears it. The email is a plain notification, like the online booking confirmation, so it skips the preference matrix.
 

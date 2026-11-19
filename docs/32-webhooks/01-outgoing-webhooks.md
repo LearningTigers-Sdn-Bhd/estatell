@@ -95,7 +95,7 @@ An Action that causes an event calls `TriggerWebhook` with the event, the proper
 |              | `booking.no_show`          | One or more units are marked no-show. One event per booking.              |
 | Stay         | `stay.checked_in`          | A unit is checked in.                                                     |
 |              | `stay.checked_out`         | A unit is checked out.                                                    |
-|              | `stay.welcome_ready`       | A checked-in guest's welcome is ready, with the door PIN when it is made. |
+|              | `stay.welcome_ready`       | A checked-in guest's welcome is ready: sent once the door PIN is ready, or after 20 minutes without it (`pin` is then null). |
 | Payment      | `payment.received`         | A payment is recorded, at the counter or online.                          |
 |              | `payment.refunded`         | A refund is recorded or an online refund completes. A void sends nothing. |
 |              | `folio.closed`             | A folio is closed.                                                        |

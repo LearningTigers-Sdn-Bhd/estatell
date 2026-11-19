@@ -110,7 +110,7 @@ class IssueDoorPasscode
         } catch (TtlockException $exception) {
             $passcode->forceFill(['status' => PasscodeStatus::Failed, 'error' => $exception->getMessage()])->save();
 
-            return DoorLockResult::refused(DoorLockResult::REFUSAL_TTLOCK, $exception->getMessage(), $passcode);
+            return DoorLockResult::refused(DoorLockResult::REFUSAL_TTLOCK, $exception->getMessage(), $passcode, retry: ! $exception->isPermanent());
         }
 
         activity()

@@ -35,6 +35,7 @@ final class DoorLockResult
         public readonly ?DoorPasscode $passcode,
         public readonly ?string $warning,
         public readonly ?DoorCard $card = null,
+        public readonly bool $retry = false,
     ) {}
 
     public static function done(?DoorPasscode $passcode = null, ?string $warning = null, ?DoorCard $card = null): self
@@ -42,9 +43,12 @@ final class DoorLockResult
         return new self(null, null, $passcode, $warning, $card);
     }
 
-    public static function refused(string $refusal, ?string $message = null, ?DoorPasscode $passcode = null, ?DoorCard $card = null): self
+    /**
+     * `$retry` is true when asking again could work, such as a gateway that did not answer, as opposed to a refusal that needs a person.
+     */
+    public static function refused(string $refusal, ?string $message = null, ?DoorPasscode $passcode = null, ?DoorCard $card = null, bool $retry = false): self
     {
-        return new self($refusal, $message ?? self::messageFor($refusal), $passcode, null, $card);
+        return new self($refusal, $message ?? self::messageFor($refusal), $passcode, null, $card, $retry);
     }
 
     public function isRefused(): bool

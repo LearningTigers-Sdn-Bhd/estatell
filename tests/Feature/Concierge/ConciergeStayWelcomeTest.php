@@ -1,13 +1,17 @@
 <?php
 
 use App\Actions\Concierge\SendConciergeStayLink;
+use App\Actions\DoorLocks\SyncStayCards;
+use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Data\Webhooks\WebhookDeliveryData;
 use App\Enums\PasscodeStatus;
+use App\Enums\UnitStatus;
 use App\Enums\WebhookEvent;
 use App\Events\StayCheckedIn;
 use App\Features\Concierge;
 use App\Jobs\BroadcastWebhookJob;
 use App\Jobs\SendStayWelcomeJob;
+use App\Jobs\SyncStayPasscodesJob;
 use App\Models\DoorPasscode;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -19,6 +23,7 @@ use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Pennant\Feature;
+use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/DoorLockSetup.php';
 
@@ -90,42 +95,148 @@ it('sends a stay with no lock at once and without a PIN line', function () {
     Notification::assertSentOnDemand(ConciergeStayLink::class, fn (ConciergeStayLink $mail) => $mail->pinCode === null && $mail->pinOnStayPage === false);
 });
 
-it('holds the welcome while the PIN is pending, then sends it with the PIN', function () {
+/** Asks for the welcome the way the check-in and every end of a PIN sync do. */
+function askWelcome(ReservationUnit $unit): void
+{
+    SendStayWelcomeJob::dispatchSync($unit->property_id, $unit->id);
+}
+
+/** Asks for the welcome the way the deadline of the stay's check-in does. */
+function askWelcomeAtDeadline(ReservationUnit $unit, ?int $checkedInAt = null): void
+{
+    SendStayWelcomeJob::dispatchSync($unit->property_id, $unit->id, $checkedInAt ?? $unit->fresh()->checked_in_at->getTimestamp());
+}
+
+it('holds the welcome while the PIN is pending, then sends it once with the PIN', function () {
     Notification::fake();
     ['unit' => $unit] = welcomeStay();
     $pin = welcomePin($unit, PasscodeStatus::Pending);
 
-    $job = (new SendStayWelcomeJob($unit->property_id, $unit->id))->withFakeQueueInteractions();
-    $job->handle(app(KioskPin::class), app(SendConciergeStayLink::class));
+    askWelcome($unit);
 
-    $job->assertReleased(5);
     Notification::assertNothingSent();
+    expect($unit->fresh()->welcome_sent_at)->toBeNull();
 
     $pin->forceFill(['status' => PasscodeStatus::Active, 'code' => '482913'])->save();
-    $job->handle(app(KioskPin::class), app(SendConciergeStayLink::class));
+    askWelcome($unit);
+    askWelcome($unit);
 
-    Notification::assertSentOnDemand(ConciergeStayLink::class, fn (ConciergeStayLink $mail) => $mail->pinCode === '482913');
+    Notification::assertSentOnDemandTimes(ConciergeStayLink::class, 1);
+    Notification::assertSentOnDemand(ConciergeStayLink::class, fn (ConciergeStayLink $mail) => $mail->pinCode === '482913' && $mail->pinOnStayPage === false);
+    expect($unit->fresh()->welcome_sent_at)->not->toBeNull();
 });
 
-it('stops waiting after the hold and sends without the PIN', function () {
+it('holds the welcome while the PIN failed and is being tried again, and does not send it without the PIN', function () {
+    Notification::fake();
+    ['unit' => $unit] = welcomeStay();
+    welcomePin($unit, PasscodeStatus::Failed);
+
+    askWelcome($unit);
+
+    Notification::assertNothingSent();
+});
+
+it('sends the welcome without the PIN at the deadline, says so in the log, and sends nothing more when the PIN comes later', function () {
+    Notification::fake();
+    ['unit' => $unit] = welcomeStay();
+    $pin = welcomePin($unit, PasscodeStatus::Failed);
+
+    askWelcomeAtDeadline($unit);
+
+    Notification::assertSentOnDemandTimes(ConciergeStayLink::class, 1);
+    Notification::assertSentOnDemand(ConciergeStayLink::class, fn (ConciergeStayLink $mail) => $mail->pinCode === null && $mail->pinOnStayPage === true);
+    expect(Activity::query()->where('event', 'door-locks.welcome-without-pin')->sole()->subject_id)->toBe($unit->id);
+
+    $pin->forceFill(['status' => PasscodeStatus::Active, 'code' => '482913'])->save();
+    askWelcome($unit);
+    askWelcomeAtDeadline($unit);
+
+    Notification::assertSentOnDemandTimes(ConciergeStayLink::class, 1);
+});
+
+it('sends the welcome at the deadline with the PIN when the PIN is ready, and logs nothing', function () {
+    Notification::fake();
+    ['unit' => $unit] = welcomeStay();
+    welcomePin($unit, PasscodeStatus::Active);
+
+    askWelcomeAtDeadline($unit);
+
+    Notification::assertSentOnDemand(ConciergeStayLink::class, fn (ConciergeStayLink $mail) => $mail->pinCode === '482913');
+    expect(Activity::query()->where('event', 'door-locks.welcome-without-pin')->count())->toBe(0);
+});
+
+it('does not let the deadline of an earlier check-in cut the wait of a later one short', function () {
     Notification::fake();
     ['unit' => $unit] = welcomeStay();
     welcomePin($unit, PasscodeStatus::Pending);
+    $first = $unit->fresh()->checked_in_at->getTimestamp();
+    $unit->forceFill(['checked_in_at' => now()->addMinutes(5)])->save();
 
-    $job = (new SendStayWelcomeJob($unit->property_id, $unit->id))->withFakeQueueInteractions();
-    $this->travel(SendStayWelcomeJob::HOLD_SECONDS + 1)->seconds();
-    $job->handle(app(KioskPin::class), app(SendConciergeStayLink::class));
+    askWelcomeAtDeadline($unit, $first);
 
-    Notification::assertSentOnDemand(ConciergeStayLink::class, fn (ConciergeStayLink $mail) => $mail->pinCode === null && $mail->pinOnStayPage === true);
+    Notification::assertNothingSent();
 });
 
-it('queues the welcome job when a unit checks in', function () {
+it('sends a stay with no PIN to wait for at once, once', function () {
+    Notification::fake();
+    ['unit' => $unit] = welcomeStay();
+    $unit->nights()->update(['room_id' => null]);
+
+    askWelcome($unit);
+    askWelcome($unit);
+    askWelcomeAtDeadline($unit);
+
+    Notification::assertSentOnDemandTimes(ConciergeStayLink::class, 1);
+    Notification::assertSentOnDemand(ConciergeStayLink::class, fn (ConciergeStayLink $mail) => $mail->pinCode === null && $mail->pinOnStayPage === false);
+    expect(Activity::query()->where('event', 'door-locks.welcome-without-pin')->count())->toBe(0);
+});
+
+it('welcomes a stay that is checked in again after an undo, and not twice for the same check-in', function () {
+    Notification::fake();
+    ['unit' => $unit] = welcomeStay();
+    $unit->nights()->update(['room_id' => null]);
+
+    askWelcome($unit);
+    $this->travel(1)->minute();
+    $unit->forceFill(['checked_in_at' => now()])->save();
+    askWelcome($unit);
+    askWelcome($unit);
+
+    Notification::assertSentOnDemandTimes(ConciergeStayLink::class, 2);
+});
+
+it('sends nothing for a stay that is not checked in any more', function () {
+    Notification::fake();
+    ['unit' => $unit] = welcomeStay();
+    $unit->nights()->update(['room_id' => null]);
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+
+    askWelcome($unit);
+
+    Notification::assertNothingSent();
+});
+
+it('queues the welcome when a unit checks in, and its deadline for that check-in', function () {
     Queue::fake();
     ['property' => $property, 'unit' => $unit] = welcomeStay();
 
     StayCheckedIn::dispatch($property->id, $unit->id);
 
-    Queue::assertPushed(SendStayWelcomeJob::class, fn (SendStayWelcomeJob $job) => $job->reservationUnitId === $unit->id);
+    $checkedInAt = $unit->fresh()->checked_in_at->getTimestamp();
+    Queue::assertPushed(SendStayWelcomeJob::class, 2);
+    Queue::assertPushed(SendStayWelcomeJob::class, fn (SendStayWelcomeJob $job) => $job->reservationUnitId === $unit->id && $job->deadlineFor === null);
+    Queue::assertPushed(SendStayWelcomeJob::class, fn (SendStayWelcomeJob $job) => $job->deadlineFor === $checkedInAt
+        && $job->delay !== null && now()->diffInSeconds($job->delay, true) >= SendStayWelcomeJob::DEADLINE_SECONDS - 5);
+});
+
+it('asks for the welcome again when a PIN sync ends, so a PIN that is ready is sent at once', function () {
+    Queue::fake();
+    ['unit' => $unit] = welcomeStay();
+    fakeTtlock();
+
+    (new SyncStayPasscodesJob($unit->id))->handle(app(SyncStayPasscodes::class), app(SyncStayCards::class));
+
+    Queue::assertPushed(SendStayWelcomeJob::class, fn (SendStayWelcomeJob $job) => $job->reservationUnitId === $unit->id && $job->deadlineFor === null);
 });
 
 it('sends stay.welcome_ready with the PIN, the link and the guest phone to an endpoint that hears it', function () {

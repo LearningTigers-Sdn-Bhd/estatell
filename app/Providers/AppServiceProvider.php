@@ -6,6 +6,7 @@ use App\Actions\Account\RecordSignIn;
 use App\Actions\Account\RecordSignOut;
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
+use App\Actions\Concierge\QueueStayWelcome;
 use App\Actions\DoorLocks\QueueStayKeyCards;
 use App\Actions\DoorLocks\QueueStayPasscodeSync;
 use App\Actions\EInvoice\QueueFolioEInvoiceOnClose;
@@ -25,7 +26,6 @@ use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
-use App\Jobs\SendStayWelcomeJob;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
 use App\Models\Property;
@@ -182,7 +182,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen([RatesChanged::class, InventoryChanged::class, ReservationChanged::class], fn (RatesChanged|InventoryChanged|ReservationChanged $event) => app(RecordChannelAriChange::class)($event));
         Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayKeyCards::class)($event));
-        Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => SendStayWelcomeJob::dispatch($event->propertyId, $event->reservationUnitId));
+        Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayWelcome::class)($event));
         Event::listen(FolioClosed::class, fn (FolioClosed $event) => app(QueueFolioEInvoiceOnClose::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 

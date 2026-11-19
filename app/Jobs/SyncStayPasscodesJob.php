@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Actions\DoorLocks\SyncStayCards;
 use App\Actions\DoorLocks\SyncStayPasscodes;
+use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -34,7 +35,19 @@ class SyncStayPasscodesJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
     /**
      * Waits for the stay's transaction, so the job never reads a unit that is rolled back.
      */
-    public function __construct(public int $reservationUnitId)
+    /**
+     * Seconds to wait before asking TTLock again, after a PIN failed in a way that asking again could fix (the gateway did not answer). A retry
+     * is a new job, not a release, so it does not use up this job's attempts. The waits add up to about 17 minutes, inside the 20 minutes the
+     * welcome waits for the PIN (`SendStayWelcomeJob::DEADLINE_SECONDS`).
+     *
+     * @var list<int>
+     */
+    public const array RETRY_DELAYS = [30, 120, 300, 600];
+
+    /**
+     * `$retry` counts the retries before this one; 0 is the sync a check-in or a change asked for.
+     */
+    public function __construct(public int $reservationUnitId, public int $retry = 0)
     {
         $this->afterCommit();
     }
@@ -50,9 +63,13 @@ class SyncStayPasscodesJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return [(new WithoutOverlapping((string) $this->reservationUnitId))->releaseAfter(10)->expireAfter(120)];
     }
 
+    /**
+     * A retry has its own id, so the retry waiting for its turn does not hold the lock of the unit's normal syncs: a check-out, a room move, the
+     * guest's "Try again" or staff's "Reissue" in that time are still queued. It also means a unit has at most one retry waiting.
+     */
     public function uniqueId(): string
     {
-        return (string) $this->reservationUnitId;
+        return $this->retry === 0 ? (string) $this->reservationUnitId : $this->reservationUnitId.':retry';
     }
 
     /**
@@ -67,10 +84,22 @@ class SyncStayPasscodesJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         try {
-            $syncStayPasscodes($unit);
+            $again = $syncStayPasscodes($unit);
             $syncStayCards($unit);
         } finally {
             RetryStayPasscodes::finished($unit->id);
+        }
+
+        if ($again && isset(self::RETRY_DELAYS[$this->retry])) {
+            $wait = self::RETRY_DELAYS[$this->retry];
+            self::dispatch($unit->id, $this->retry + 1)->delay(now()->addSeconds($wait));
+            // The pages show "preparing" while the retry waits, as they do for a retry the guest asked for, not "failed".
+            RetryStayPasscodes::expectRetry($unit->id, $wait);
+        }
+
+        // A PIN that is ready, or no PIN to wait for, is what the welcome of a checked-in stay waits on; the welcome decides.
+        if ($unit->status === UnitStatus::CheckedIn) {
+            SendStayWelcomeJob::dispatch($unit->property_id, $unit->id);
         }
     }
 }

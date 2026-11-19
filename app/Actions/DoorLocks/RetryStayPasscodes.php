@@ -30,6 +30,15 @@ class RetryStayPasscodes
         return true;
     }
 
+    /**
+     * A retry of the sync itself is waiting for its turn (`SyncStayPasscodesJob::RETRY_DELAYS`): the pages show "preparing" until it ran, with
+     * the same room to run as a retry that was asked for.
+     */
+    public static function expectRetry(int $unitId, int $waitSeconds): void
+    {
+        Cache::put(self::key($unitId), true, $waitSeconds + self::SECONDS);
+    }
+
     public static function underway(int $unitId): bool
     {
         return Cache::has(self::key($unitId));
