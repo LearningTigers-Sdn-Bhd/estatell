@@ -18,8 +18,9 @@ class StartImpersonation
 
     /**
      * Sign the support user in as one staff user of the property and return the path to open. Returns null, and
-     * changes nothing, when the support user may not view the property, the owner switched support access off, or
-     * the user is not active staff of that property. Two-factor is checked by the `support.2fa` route middleware.
+     * changes nothing, when the support user may not view the property, the owner switched partner support access
+     * off (platform admins are always allowed), or the user is not active staff of that property. Two-factor is
+     * checked by the `support.2fa` route middleware.
      *
      * `$actor` is the signed-in user. During a session that is the staff user, so the support user behind it is kept.
      * An open session is ended first (logged, owner told), so switching property logs two events.
@@ -36,7 +37,7 @@ class StartImpersonation
             return null;
         }
 
-        if (! ($property->settings->allow_support_access ?? true)) {
+        if (! $supportUser->is_admin && ! ($property->settings->allow_support_access ?? true)) {
             return null;
         }
 

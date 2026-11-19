@@ -133,6 +133,7 @@ export default function PropertySettings({
     maxAge = 17,
     mealPeriods = [],
     maxMealPeriods = 12,
+    partnerName = null,
 }: {
     settings: App.Data.Property.PropertySettingsData | null;
     tab: Section;
@@ -151,6 +152,8 @@ export default function PropertySettings({
     maxAge?: number;
     mealPeriods?: App.Data.Meals.MealPeriodData[];
     maxMealPeriods?: number;
+    /** The property's partner, on the Support tab. The access switch only governs the partner. */
+    partnerName?: string | null;
 }) {
     const impersonating = useIsImpersonating();
     if (!settings) {
@@ -468,20 +471,34 @@ export default function PropertySettings({
                                 guardUnsavedChanges
                                 form={form('support')}
                                 title="Support access"
-                                description="Control whether platform support may view this property when that feature is available."
+                                description="estatell Support can always view this property as its staff to help you."
                                 contentClassName=""
                             >
                                 {(errors) => (
                                     <>
-                                        <SettingsSwitch
-                                            name="allow_support_access"
-                                            label="Allow platform support access"
-                                            description="On: platform support can view this property as its owner to help you. Off: support cannot open this property."
-                                            checked={
-                                                settings.allowSupportAccess
-                                            }
-                                            error={errors.allow_support_access}
-                                        />
+                                        {partnerName ? (
+                                            <SettingsSwitch
+                                                name="allow_support_access"
+                                                label={`Allow ${partnerName} to view the property as its staff`}
+                                                description="On: your partner can view this property as its staff to help you. Off: your partner cannot open this property."
+                                                checked={
+                                                    settings.allowSupportAccess
+                                                }
+                                                error={
+                                                    errors.allow_support_access
+                                                }
+                                            />
+                                        ) : (
+                                            <input
+                                                type="hidden"
+                                                name="allow_support_access"
+                                                value={
+                                                    settings.allowSupportAccess
+                                                        ? '1'
+                                                        : '0'
+                                                }
+                                            />
+                                        )}
                                         <SettingsSwitch
                                             name="allow_support_money_corrections"
                                             label="Allow support to refund, void and issue credit notes"

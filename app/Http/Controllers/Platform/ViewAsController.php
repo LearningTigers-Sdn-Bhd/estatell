@@ -47,7 +47,7 @@ class ViewAsController extends Controller
             'to' => $to !== null && $impersonation->accepts($property, $to) ? $to : null,
             'blockedTo' => $to !== null && $impersonation->isBlockedPath($property, $to),
             'opens' => $impersonation->destination($property, $to),
-            'consent' => $property->settings->allow_support_access ?? true,
+            'consent' => ($impersonation->supportUser() ?? $request->user())->is_admin || ($property->settings->allow_support_access ?? true),
             'moneyCorrections' => $property->settings->allow_support_money_corrections ?? true,
             'cancelUrl' => $this->cancelUrl($request, $property, $impersonation),
             'switchFrom' => $this->switchFrom($request, $impersonation),
