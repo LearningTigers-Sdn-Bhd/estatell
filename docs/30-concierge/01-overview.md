@@ -190,24 +190,25 @@ A guest asks for their own LHDN e-invoice for the stay at `/c/{token}/e-invoice`
 
 The wastays Guest Concierge was the reference for what a guest needs. This table says where each part stands in estatell. Estatell does not copy its screens or its security model.
 
-| wastays supplies                                                    | Estatell                                                                                      |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Public hub from the hotel QR                                        | Built: the lobby hub                                                                          |
-| Pre-check-in (lookup, details, ID)                                  | Built, and further: the guest checks in and gets a door PIN on the page                       |
-| Book a room                                                         | Built: a link to the booking website when it is published                                     |
-| Contact: phone, email, map                                          | Built, with front desk hours, WhatsApp, duty manager and emergency contacts                   |
-| Property guide: property, amenities, policies, FAQs                 | Built, with About, arrival and departure, getting here, extra topics, and the policy wording  |
-| Wi-Fi for an in-house guest                                         | Built                                                                                         |
-| Recommendations: places                                             | Built as nearby places                                                                        |
-| Stay page: housekeeping and report an issue                         | Built as requests                                                                             |
-| Check out                                                           | Built                                                                                         |
-| Booking receipt, invoice and summary PDFs                           | Built                                                                                         |
-| E-invoice request                                                   | Built: the guest types the buyer details and `SubmitFolioEInvoice` sends the stay's e-invoice |
-| Ask for a refund, and its status                                    | Built: a refund request, and the guest sees its status after check-out                        |
-| Stay link emailed after check-in                                    | Built: `SendConciergeStayLink` emails the guest the stay link when any channel checks them in |
-| Device check with the confirmation code, lockout and email recovery | Different: the stay link is the secret, and the lobby code lookup has its own lockout         |
-| 7 days of access after check-out                                    | Built: the link works until 7 days after the departure date                                   |
-| Hotel photo hero and menu style                                     | Built as a hero photo. The menu style is a design choice, so it is not built                  |
+| wastays supplies                                                    | Estatell                                                                                                   |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Public hub from the hotel QR                                        | Built: the lobby hub                                                                                       |
+| Pre-check-in (lookup, details, ID)                                  | Built, and further: the guest checks in and gets a door PIN on the page                                    |
+| Book a room                                                         | Built: a link to the booking website when it is published                                                  |
+| Contact: phone, email, map                                          | Built, with front desk hours, WhatsApp, duty manager and emergency contacts                                |
+| Property guide: property, amenities, policies, FAQs                 | Built, with About, arrival and departure, getting here, extra topics, and the policy wording               |
+| Wi-Fi for an in-house guest                                         | Built                                                                                                      |
+| Recommendations: places                                             | Built as nearby places                                                                                     |
+| Stay page: housekeeping and report an issue                         | Built as requests                                                                                          |
+| Check out                                                           | Built                                                                                                      |
+| Booking receipt, invoice and summary PDFs                           | Built                                                                                                      |
+| E-invoice request                                                   | Built: the guest types the buyer details and `SubmitFolioEInvoice` sends the stay's e-invoice              |
+| Ask for a refund, and its status                                    | Built: a refund request, and the guest sees its status after check-out                                     |
+| Walk-in booking confirmation emailed after payment                  | Built: `AnnounceWalkInBooking` emails the booking number and check-in link with `ConciergeWalkInConfirmed` |
+| Stay link emailed after check-in                                    | Built: `SendConciergeStayLink` emails the guest the stay link when any channel checks them in              |
+| Device check with the confirmation code, lockout and email recovery | Different: the stay link is the secret, and the lobby code lookup has its own lockout                      |
+| 7 days of access after check-out                                    | Built: the link works until 7 days after the departure date                                                |
+| Hotel photo hero and menu style                                     | Built as a hero photo. The menu style is a design choice, so it is not built                               |
 
 ## Lobby hero photo
 
