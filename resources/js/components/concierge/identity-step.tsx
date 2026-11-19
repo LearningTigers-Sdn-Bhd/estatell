@@ -59,7 +59,7 @@ export function IdentityStep({
 
     // A walk-in is first asked to be recognised as a returning guest; what it types carries into the full form.
     const [showFull, setShowFull] = useState(!stay.walkIn);
-    const [typed, setTyped] = useState({ number: '', dob: '' });
+    const [typed, setTyped] = useState('');
 
     // The saved number never reaches the page; a blank field with this flag keeps it on the server.
     const keepNumber =
@@ -143,7 +143,6 @@ export function IdentityStep({
                                                         ? `Saved ${saved?.documentNumberHint}. Leave blank to keep`
                                                         : 'Enter document number'
                                                 }
-                                                defaultValue={typed.number}
                                                 className="h-12 px-3 text-base md:text-base"
                                                 required={!keepNumber}
                                                 aria-invalid={!!errors.number}
@@ -240,7 +239,6 @@ export function IdentityStep({
                                                 id="date_of_birth"
                                                 name="date_of_birth"
                                                 type="date"
-                                                defaultValue={typed.dob}
                                                 autoComplete="bday"
                                                 className="h-12 px-3 text-base md:text-base"
                                                 aria-invalid={
@@ -292,6 +290,11 @@ export function IdentityStep({
                                                 name="phone"
                                                 type="tel"
                                                 autoComplete="tel"
+                                                defaultValue={
+                                                    typed.includes('@')
+                                                        ? undefined
+                                                        : typed
+                                                }
                                                 className="min-h-12 text-base"
                                                 required
                                                 aria-invalid={!!errors.phone}
@@ -309,6 +312,11 @@ export function IdentityStep({
                                                 name="email"
                                                 type="email"
                                                 autoComplete="email"
+                                                defaultValue={
+                                                    typed.includes('@')
+                                                        ? typed
+                                                        : undefined
+                                                }
                                                 className="min-h-12 text-base"
                                                 required
                                                 aria-invalid={!!errors.email}
@@ -414,9 +422,9 @@ export function IdentityStep({
 }
 
 /**
- * The first ID screen of a walk-in: the ID number and date of birth recognise a returning guest, who then skips the
- * form. A match moves the page on. No match shows the full form, with what was typed kept. The page never says whether
- * a profile exists.
+ * The first ID screen of a walk-in: the email or phone number the guest used before recognises a returning guest, who
+ * then skips the form. A match moves the page on. No match shows the full form, with what was typed kept. The page never
+ * says whether a profile exists.
  */
 function ReturningCheck({
     token,
@@ -425,8 +433,8 @@ function ReturningCheck({
     onNew,
 }: {
     token: string;
-    typed: { number: string; dob: string };
-    onTyped: (value: { number: string; dob: string }) => void;
+    typed: string;
+    onTyped: (value: string) => void;
     onNew: () => void;
 }) {
     return (
@@ -446,57 +454,33 @@ function ReturningCheck({
                             </h2>
                         </CardTitle>
                         <CardDescription>
-                            Enter your ID number and date of birth. If we know
-                            you, you can skip the rest of this step.
+                            Enter the email or phone number you used before. If
+                            we know you, you can skip the rest of this step.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-6">
-                        <FieldGroup className="grid gap-5 sm:grid-cols-2">
-                            <Field data-invalid={!!errors.number}>
-                                <FieldLabel htmlFor="returning-number">
-                                    MyKad or passport number
+                    <CardContent className="flex flex-col gap-6 sm:flex-row sm:items-end">
+                        <FieldGroup className="sm:flex-1">
+                            <Field data-invalid={!!errors.contact}>
+                                <FieldLabel htmlFor="returning-contact">
+                                    Email or phone number
                                 </FieldLabel>
                                 <Input
-                                    id="returning-number"
-                                    name="number"
-                                    autoComplete="off"
-                                    value={typed.number}
+                                    id="returning-contact"
+                                    name="contact"
+                                    autoComplete="email"
+                                    placeholder="name@example.com or 012-345 6789"
+                                    value={typed}
                                     onChange={(event) =>
-                                        onTyped({
-                                            ...typed,
-                                            number: event.target.value,
-                                        })
+                                        onTyped(event.target.value)
                                     }
                                     className="h-12 px-3 text-base md:text-base"
                                     required
-                                    aria-invalid={!!errors.number}
+                                    aria-invalid={!!errors.contact}
                                 />
-                                <FieldError>{errors.number}</FieldError>
-                            </Field>
-                            <Field data-invalid={!!errors.date_of_birth}>
-                                <FieldLabel htmlFor="returning-dob">
-                                    Date of birth
-                                </FieldLabel>
-                                <Input
-                                    id="returning-dob"
-                                    name="date_of_birth"
-                                    type="date"
-                                    autoComplete="bday"
-                                    value={typed.dob}
-                                    onChange={(event) =>
-                                        onTyped({
-                                            ...typed,
-                                            dob: event.target.value,
-                                        })
-                                    }
-                                    className="h-12 px-3 text-base md:text-base"
-                                    required
-                                    aria-invalid={!!errors.date_of_birth}
-                                />
-                                <FieldError>{errors.date_of_birth}</FieldError>
+                                <FieldError>{errors.contact}</FieldError>
                             </Field>
                         </FieldGroup>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                        <div className="flex flex-col gap-3 sm:shrink-0 sm:flex-row">
                             <Button
                                 type="button"
                                 variant="outline"

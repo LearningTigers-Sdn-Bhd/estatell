@@ -322,63 +322,92 @@ it('never joins a guest from the full ID form, because only the throttled return
     expect($guest->id)->not->toBe($returning->id)->and($returning->refresh()->email)->toBeNull()->and($returning->merged_into_id)->toBeNull();
 });
 
-it('does not join on the ID number when the date of birth differs, is missing, or the profile has none', function (?string $profileDob, ?string $typedDob) {
+function conciergeWalkInLocation(TestCase $test, Property $property, RoomType $type): string
+{
+    return $test->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+}
+
+it('recognises a returning walk-in from the email or phone alone, and skips the ID form', function (string $typed) {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'date_of_birth' => $profileDob]);
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'nationality_code' => 'MY', 'date_of_birth' => '1990-05-17', 'email' => 'aisha@example.com', 'phone' => '+60123456789']);
     GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
-
-    $guest = conciergeWalkInGivesIdentity($this, $property, $type, ['full_name' => 'Aisha R', 'date_of_birth' => $typedDob])['guest'];
-
-    expect($guest->id)->not->toBe($returning->id)->and($returning->refresh()->merged_into_id)->toBeNull();
-})->with([
-    'different date' => ['1990-05-17', '1991-05-17'],
-    'none typed' => ['1990-05-17', null],
-    'none on profile' => [null, '1990-05-17'],
-]);
-
-it('recognises a returning walk-in from the ID number and date of birth alone, and skips the ID form', function () {
-    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'nationality_code' => 'MY', 'date_of_birth' => '1990-05-17']);
-    GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $location = conciergeWalkInLocation($this, $property, $type);
 
     $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.step', 'identity')->where('stay.walkIn', true)->where('stay.identity', null));
-    $this->post($location.'/identity/returning', ['number' => 'a 1234567', 'date_of_birth' => '1990-05-17'])->assertRedirect($location);
+    $this->post($location.'/identity/returning', ['contact' => $typed])->assertRedirect($location);
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect(app(KioskStays::class)->guest($stay)->id)->toBe($returning->id);
     $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.walkIn', false)->whereNot('stay.step', 'identity'));
-});
+})->with([
+    'email, other case and spaces' => [' AISHA@Example.com '],
+    'phone as typed locally' => ['012-345 6789'],
+    'phone with the country code' => ['+60 12-345 6789'],
+]);
 
-it('never joins a MyKad number, because the number already holds the date of birth', function () {
+it('joins a profile that has no ID saved yet, and still asks for the ID form', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'nationality_code' => 'MY', 'date_of_birth' => '1990-05-17']);
-    GuestIdentityDocument::factory()->create(['guest_id' => $returning->id, 'number' => '900517141234']);
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'date_of_birth' => null]);
+    $location = conciergeWalkInLocation($this, $property, $type);
 
-    $this->post($location.'/identity/returning', ['number' => '900517-14-1234', 'date_of_birth' => '1990-05-17'])->assertRedirect($location);
+    $this->post($location.'/identity/returning', ['contact' => 'aisha@example.com'])->assertRedirect($location);
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
-    expect(app(KioskStays::class)->guest($stay)->id)->not->toBe($returning->id)->and($returning->refresh()->merged_into_id)->toBeNull();
+    expect(app(KioskStays::class)->guest($stay)->id)->toBe($returning->id);
+    $this->get($location)->assertInertia(fn (Assert $page) => $page->where('stay.step', 'identity')->where('stay.identity', null));
 });
 
-it('changes nothing when the date of birth does not match, and limits the tries', function () {
+it('changes nothing when no profile has the email or phone', function (string $typed) {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'date_of_birth' => '1990-05-17']);
-    GuestIdentityDocument::factory()->passport()->create(['guest_id' => $returning->id, 'number' => 'A1234567']);
-    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'phone' => '+60123456789']);
+    $location = conciergeWalkInLocation($this, $property, $type);
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    $before = app(KioskStays::class)->guest($stay)->id;
+
+    $this->post($location.'/identity/returning', ['contact' => $typed])->assertRedirect($location);
+
+    expect(app(KioskStays::class)->guest($stay)->id)->toBe($before)->and($returning->refresh()->merged_into_id)->toBeNull();
+})->with(['unknown email' => ['nobody@example.com'], 'unknown phone' => ['011-999 8888'], 'not a phone' => ['hello']]);
+
+it('does not join when two profiles share the phone, or the profile has no name', function (string $case) {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $first = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'phone' => '+60123456789']);
+    $second = $case === 'shared'
+        ? Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Rahman Bin Ali', 'phone' => '+60123456789'])
+        : null;
+    $case === 'unnamed' && $first->forceFill(['full_name' => ''])->save();
+    $location = conciergeWalkInLocation($this, $property, $type);
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    $before = app(KioskStays::class)->guest($stay)->id;
+
+    $this->post($location.'/identity/returning', ['contact' => '012-345 6789'])->assertRedirect($location);
+
+    expect(app(KioskStays::class)->guest($stay)->id)->toBe($before)->and($first->refresh()->merged_into_id)->toBeNull()->and($second?->refresh()->merged_into_id)->toBeNull();
+})->with(['shared', 'unnamed']);
+
+it('limits the tries to recognise a returning walk-in', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com']);
+    $location = conciergeWalkInLocation($this, $property, $type);
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     $before = app(KioskStays::class)->guest($stay)->id;
 
     foreach (range(1, 5) as $try) {
-        $this->post($location.'/identity/returning', ['number' => 'A1234567', 'date_of_birth' => '1991-0'.$try.'-17'])->assertRedirect($location);
+        $this->post($location.'/identity/returning', ['contact' => "guess{$try}@example.com"])->assertRedirect($location);
     }
-    $this->post($location.'/identity/returning', ['number' => 'A1234567', 'date_of_birth' => '1990-05-17'])->assertStatus(429);
+    $this->post($location.'/identity/returning', ['contact' => 'aisha@example.com'])->assertStatus(429);
 
     expect(app(KioskStays::class)->guest($stay)->id)->toBe($before)->and($returning->refresh()->merged_into_id)->toBeNull();
 });
 
-it('never joins a walk-in to a guest by a typed email, phone or name', function () {
+it('asks for the contact and nothing else to recognise a returning walk-in', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $location = conciergeWalkInLocation($this, $property, $type);
+
+    $this->post($location.'/identity/returning', [])->assertSessionHasErrors(['contact']);
+});
+
+it('never joins a walk-in to a guest from an email, phone or name typed on the full ID form', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     $byEmail = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Mei Ling', 'email' => 'mei@example.com', 'phone' => '+60123456789']);
     $sameName = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Lim Wei', 'email' => null, 'phone' => null]);

@@ -151,12 +151,12 @@ class ConciergeController extends Controller
     }
 
     /**
-     * A walk-in gives the ID number and date of birth to be recognised as a returning guest. A match moves the stay to
-     * that guest, so the ID step is already done; no match changes nothing, and the page shows the full ID form.
+     * A walk-in gives the email or phone number to be recognised as a returning guest. A match moves the stay to that
+     * guest, so the ID step is already done; no match changes nothing, and the page shows the full ID form.
      */
     public function returning(ReturningGuestRequest $request, string $token, ReturningGuest $returning): RedirectResponse
     {
-        $joined = $returning->join($this->stay($request), $request->string('number')->toString(), $request->dateOfBirth());
+        $joined = $returning->join($this->stay($request), $request->string('contact')->toString());
 
         if ($joined !== null) {
             $this->announceUnpaidFree($this->stay($request));

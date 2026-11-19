@@ -3,21 +3,20 @@
 namespace App\Services\Concierge;
 
 use App\Actions\Guests\MergeGuests;
-use App\Enums\GuestMatchReason;
 use App\Models\Guest;
 use App\Models\KioskWalkInHold;
 use App\Models\ReservationUnit;
 use App\Services\Guests\GuestMatcher;
 use App\Services\Kiosk\KioskStays;
-use Carbon\CarbonInterface;
 
 /**
  * Joins the guest of a Concierge walk-in to a returning guest of the property, so the guest does not type their details
- * again. The page is open to anyone, so an ID number alone proves nothing: the guest must also give the date of birth
- * saved on that profile. Nothing from the profile is shown back to the guest. A guest whose profile has no date of birth
- * is not joined (the ID form is filled this time and saves one for the next stay). A MyKad number (12 digits) is never
- * joined: it holds the date of birth, so the date proves nothing, and staff merge those guests. A booking made earlier already has a
- * named guest, so only a walk-in's nameless guest is ever merged. See docs/30-concierge/01-overview.md#returning-guests.
+ * again. The guest gives the email or the phone number they used before (an `@` makes it an email). It joins only when
+ * exactly one named profile of the property has it: a number or address shared by two profiles (a family phone) joins no one,
+ * and staff merge those guests. Nothing from the profile is shown back to the guest. A booking made earlier already has a
+ * named guest, so only a walk-in's nameless guest is ever merged. An email or a phone is easy to know, so this trusts it more
+ * than an ID number with a date of birth did; the throttle on the route limits guessing. See
+ * docs/30-concierge/01-overview.md#returning-guests.
  */
 class ReturningGuest
 {
@@ -29,32 +28,35 @@ class ReturningGuest
     }
 
     /**
-     * Move the stay to the returning guest with this ID number and date of birth. Null, changing nothing, when the stay
-     * is not a walk-in with a nameless guest, no date of birth was given, nobody matches both, or the merge did not happen.
-     * The match is logged with the guest ids, never the number or the date.
+     * Move the stay to the returning guest with this email or phone. Null, changing nothing, when the stay is not a
+     * walk-in with a nameless guest, nothing was given, not exactly one named profile has it, or the merge did not happen.
+     * The match is logged with the guest ids, never the email or the number.
      */
-    public function join(ReservationUnit $stay, string $idNumber, ?CarbonInterface $dateOfBirth): ?Guest
+    public function join(ReservationUnit $stay, string $contact): ?Guest
     {
+        $contact = trim($contact);
         $placeholder = $this->stays->guest($stay);
 
-        if ($idNumber === '' || preg_match('/^\d{12}$/', $idNumber) === 1 || $dateOfBirth === null || $placeholder === null || filled($placeholder->full_name) || ! $this->isWalkIn($stay)) {
+        if ($contact === '' || $placeholder === null || filled($placeholder->full_name) || ! $this->isWalkIn($stay)) {
             return null;
         }
 
         $stay->loadMissing('property');
-        $matches = $this->matcher->find($stay->property, idNumbers: [$idNumber], includeIdNumbers: true, excludeGuestId: $placeholder->id);
-        $found = array_find($matches, fn (array $match): bool => in_array(GuestMatchReason::IdNumber, $match['reasons'], true)
-            && $match['guest']->date_of_birth?->toDateString() === $dateOfBirth->toDateString());
+        $isEmail = str_contains($contact, '@');
+        $matches = array_values(array_filter(
+            $this->matcher->find($stay->property, email: $isEmail ? $contact : null, phone: $isEmail ? null : $contact, excludeGuestId: $placeholder->id),
+            fn (array $match): bool => filled($match['guest']->full_name),
+        ));
 
-        if ($found === null || ! ($this->mergeGuests)(null, $found['guest'], $placeholder)) {
+        if (count($matches) !== 1 || ! ($this->mergeGuests)(null, $matches[0]['guest'], $placeholder)) {
             return null;
         }
 
         activity()
-            ->performedOn($found['guest'])
+            ->performedOn($matches[0]['guest'])
             ->event('concierge.returning_guest_joined')
             ->withProperties(['property_id' => $stay->property_id, 'reservation_unit_id' => $stay->id, 'merged_guest_id' => $placeholder->id])
-            ->log('Walk-in joined a returning guest by ID number and date of birth');
+            ->log('Walk-in joined a returning guest by email or phone');
 
         return $this->stays->guest($stay);
     }

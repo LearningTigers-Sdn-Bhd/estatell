@@ -595,7 +595,11 @@
 }
 
 .concierge-identity-form
-    :is([data-slot='input'], [data-slot='select-trigger']) {
+    :is(
+        [data-slot='input'],
+        [data-slot='select-trigger'],
+        [data-slot='input-group']
+    ) {
     background-color: var(--card);
 }
 
