@@ -12,20 +12,22 @@ use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Kiosk\KioskWalkInOffer;
+use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Rates\RestrictionCheck;
 use Brick\Money\Money;
 
 /**
  * The day use rooms a guest can book from the Concierge lobby page: a room sold per room, a Day use plan that prices the
- * hours on the date, no stop sell, and a room free for the block. A guest may not start a block that has begun, so the
- * plan's window and hour limits always apply. The cheapest plan wins per room type, and the offer holds the first free
+ * hours on the date, no stop sell, and a room free for the block. A guest may start in the half hour that is running
+ * now (at 15:02, a 15:00 start), so a room freed at 15:00 sells at once; an earlier start is refused. The plan's window
+ * and hour limits always apply. The cheapest plan wins per room type, and the offer holds the first free
  * room, one with a door lock linked first. A Dirty room is never offered: no staff member is there to check it, and an
  * early day use check-out frees its room at once. See docs/12-reservations/10-day-use.md and docs/30-concierge/01-overview.md#day-use.
  */
 class ConciergeDayUse
 {
-    public function __construct(private DayUseOffers $offers, private DayUseAvailability $availability, private RestrictionCheck $restrictions) {}
+    public function __construct(private DayUseOffers $offers, private DayUseAvailability $availability, private RestrictionCheck $restrictions, private PropertyToday $propertyToday) {}
 
     /**
      * Whether the property sells day use to guests at all: an active room type sold per room and an active Day use plan for it.
@@ -38,11 +40,22 @@ class ConciergeDayUse
     }
 
     /**
-     * Whether a start time on the date is still ahead in the property's time zone.
+     * Whether a start time on the date is still ahead in the property's time zone, or is in the half hour running now.
      */
     public function isFuture(Property $property, KioskWalkInData $search): bool
     {
-        return $search->startTime !== null && ! $this->offers->isLate($property, $search->arrival, $search->startTime);
+        if ($search->startTime === null) {
+            return false;
+        }
+
+        if (! $this->offers->isLate($property, $search->arrival, $search->startTime)) {
+            return true;
+        }
+
+        $now = $this->propertyToday->now($property);
+
+        return $search->arrival->toDateString() === $now->toDateString()
+            && DayUseOffers::minutes($search->startTime) > $now->hour * 60 + $now->minute - 30;
     }
 
     /**
@@ -71,7 +84,7 @@ class ConciergeDayUse
             foreach ($type->ratePlans as $plan) {
                 $hour = array_find($this->offers->forStart($plan, $type, $search->arrival, (string) $search->startTime), fn ($offer): bool => $offer->hours === $search->hours);
 
-                if ($hour === null || $this->restrictions->dayUseViolations($plan->id, $type->id, $search->arrival) !== []) {
+                if ($hour === null || $this->offers->refusal($plan, (string) $search->startTime, (int) $search->hours) !== null || $this->restrictions->dayUseViolations($plan->id, $type->id, $search->arrival) !== []) {
                     continue;
                 }
 

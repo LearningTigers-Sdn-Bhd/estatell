@@ -1,18 +1,26 @@
 <?php
 
 use App\Actions\Kiosk\IssueBookingPreCheckInToken;
+use App\Actions\Payments\RecordPayment;
+use App\Data\Payments\NewPaymentData;
 use App\Enums\BookingSourceType;
 use App\Enums\HousekeepingStatus;
+use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Enums\WebhookEvent;
 use App\Features\Concierge;
+use App\Jobs\BroadcastWebhookJob;
 use App\Jobs\ReleaseExpiredKioskHolds;
 use App\Models\DoorLock;
 use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\KioskWalkInHold;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -22,9 +30,14 @@ use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
+use App\Models\WebhookEndpoint;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
+use Carbon\CarbonImmutable;
 use Database\Factories\BookingSourceFactory;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -220,15 +233,66 @@ it('books and holds a day use room, which the same hours then cannot book again'
     expect(KioskWalkInHold::query()->count())->toBe(1);
 });
 
-it('opens a day use search on the next half hour for two hours, and refuses one that already started', function () {
+it('opens a day use search on the half hour running now for two hours, and refuses one that already started', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
     conciergeDayUsePlan($property, $type);
 
     $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2")->assertSessionHasNoErrors()->assertInertia(fn (Assert $page) => $page
-        ->where('startTime', '20:30')
+        ->where('startTime', '20:00')
         ->where('hours', 2)
         ->where('offers.0.total', '60.00'));
     $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=2&start_time=00:00&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+});
+
+/**
+ * Hold a day use walk-in at a local time today and return the stay.
+ */
+function conciergeDayUseHeldAt(TestCase $test, Property $property, RoomType $type, string $now, string $start, int $hours): ReservationUnit
+{
+    $test->travelTo(CarbonImmutable::parse("2026-10-14 {$now}", $property->settings->time_zone));
+    $test->post("/stay/{$property->code}/walk-in", ['stay_type' => 'day_use', 'adults' => 1, 'start_time' => $start, 'hours' => $hours, 'room_type_id' => $type->id])->assertSessionHasNoErrors();
+
+    return ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->latest('id')->firstOrFail()->reservation_unit_id);
+}
+
+it('sells a day use room at the exact time the last block ends, in the half hour running now', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $first = conciergeDayUseHeldAt($this, $property, $type, '18:00', '18:00', 2);
+
+    $next = conciergeDayUseHeldAt($this, $property, $type, '20:02', '20:00', 2);
+
+    expect($next->dayUse->room_id)->toBe($first->dayUse->room_id)
+        ->and($next->dayUse->starts_at)->toBe('20:00:00')
+        ->and($next->dayUse->ends_at)->toBe('22:00:00');
+});
+
+it('refuses a day use start before the half hour running now', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $this->travelTo(CarbonImmutable::parse('2026-10-14 20:02', $property->settings->time_zone));
+
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=19:30&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+    $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:00&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 1));
+});
+
+it('sells a room freed by an early day use check-out once housekeeping marks it Clean', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    conciergeDayUsePlan($property, $type);
+    $first = conciergeDayUseHeldAt($this, $property, $type, '18:00', '18:00', 4);
+    $first->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now(), 'checked_out_at' => now()->addMinutes(100)])->save();
+    $first->dayUse->forceFill(['vacated_at' => '19:40:00'])->save();
+    Room::query()->whereKeyNot($first->dayUse->room_id)->where('room_type_id', $type->id)->update(['archived_at' => now()]);
+    RoomStatus::query()->where('room_id', $first->dayUse->room_id)->update(['status' => HousekeepingStatus::Dirty]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-14 20:02', $property->settings->time_zone));
+    $search = "/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:00&hours=2";
+
+    $this->get($search)->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+
+    RoomStatus::query()->where('room_id', $first->dayUse->room_id)->update(['status' => HousekeepingStatus::Clean]);
+
+    $this->get($search)->assertInertia(fn (Assert $page) => $page->has('offers', 1));
+    expect(conciergeDayUseHeldAt($this, $property, $type, '20:02', '20:00', 2)->dayUse->room_id)->toBe($first->dayUse->room_id);
 });
 
 /**
@@ -385,4 +449,43 @@ it('never offers or holds a Dirty room for a day use walk-in', function () {
     expect($stay->dayUse->room_id)->toBe($room->id);
 
     $this->get("/stay/{$property->code}/walk-in?stay_type=day_use&adults=1&start_time=20:30&hours=2")->assertInertia(fn (Assert $page) => $page->has('offers', 0));
+});
+
+it('sends booking.created for a walk-in only once its hold is paid, with the booker details, and only once', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    Queue::fake();
+    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingCreated])->create();
+    $cash = PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => TransactionCode::factory()->for($property)->create(['kind' => TransactionKind::Payment])->id, 'name' => 'Cash', 'type' => PaymentMethodType::Cash, 'requires_reference' => false]);
+    $created = fn (): Collection => Queue::pushed(BroadcastWebhookJob::class)->filter(fn (BroadcastWebhookJob $job): bool => $job->event === WebhookEvent::BookingCreated);
+
+    $location = $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->headers->get('Location');
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    $this->post($location.'/identity', conciergeIdentityBody(['email' => 'aisha@example.com']))->assertSessionHasNoErrors();
+
+    expect($created())->toHaveCount(0);
+
+    foreach (['60.00', '40.00'] as $amount) {
+        $result = app(RecordPayment::class)(null, $stay->reservation, null, $stay, new NewPaymentData($cash->id, PaymentPurpose::Advance, $amount, null, (string) Str::uuid()));
+        expect($result->refusal ?? null)->toBeNull();
+    }
+
+    expect($created())->toHaveCount(1);
+    $job = $created()->first();
+    $booker = app($job->event->payloadBuilder())->build($job->event, $stay->reservation->refresh(), $job->context)['booking']['booker'];
+    expect($job->subjectId)->toBe($stay->reservation_id)
+        ->and($booker['name'])->toBe('Aisha Rahman')
+        ->and($booker['email'])->toBe('aisha@example.com')
+        ->and(KioskWalkInHold::query()->sole()->announced_at)->not->toBeNull();
+});
+
+it('sends no booking.created for a walk-in hold that nobody pays', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    Queue::fake();
+    WebhookEndpoint::factory()->forProperty($property)->hearing([WebhookEvent::BookingCreated, WebhookEvent::BookingCancelled])->create();
+
+    $this->post("/stay/{$property->code}/walk-in", ['adults' => 1, 'nights' => 1, 'room_type_id' => $type->id])->assertRedirect();
+    $this->travelTo(now()->addMinutes(11));
+    ReleaseExpiredKioskHolds::dispatchSync();
+
+    Queue::assertNotPushed(BroadcastWebhookJob::class);
 });

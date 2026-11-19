@@ -5,6 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\CityLedger\RecordCreditOverride;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\PostDayUseBlock;
+use App\Actions\Kiosk\AnnounceWalkInBooking;
 use App\Actions\NightAudit\PostMissedNights;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Actions\Webhooks\TriggerWebhook;
@@ -170,6 +171,7 @@ class CheckInUnit
 
                 StayCheckedIn::dispatch($locked->property_id, $locked->id);
 
+                app(AnnounceWalkInBooking::class)($locked->property_id, $locked->reservation_id);
                 app(TriggerWebhook::class)(WebhookEvent::StayCheckedIn, $locked->property_id, ReservationUnit::class, $locked->id);
 
                 return UnitStayResult::done($locked);
