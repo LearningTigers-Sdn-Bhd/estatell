@@ -210,8 +210,10 @@ export function IdentityStep({
                                                 value={nationality}
                                                 onValueChange={(code) => {
                                                     setNationality(code);
-                                                    code &&
+
+                                                    if (code) {
                                                         setKind(kindFor(code));
+                                                    }
                                                 }}
                                                 invalid={!!errors.nationality}
                                                 className="h-12 text-base md:text-base [&_input]:h-full [&_input]:text-base md:[&_input]:text-base"

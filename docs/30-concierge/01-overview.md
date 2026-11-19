@@ -60,21 +60,21 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 
 ## Routes
 
-| Route                                  | Name                            | Purpose                                                     |
-| -------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
-| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`      | Lobby, and open a stay by booking code                      |
-| `GET /stay/{code}/walk-in`             | `concierge.walk-in`             | Offers for tonight; nothing is booked                       |
-| `GET /stay/{code}/walk-in/details`     | `concierge.walk-in.details`     | The details form for the room picked; nothing is booked    |
-| `POST /stay/{code}/walk-in`            | `concierge.walk-in.book`        | Book the room and save the details, together                |
-| `POST /stay/{code}/walk-in/returning`  | `concierge.walk-in.returning`   | Recognise a returning walk-in (email or phone) and book     |
-| `GET /c/{token}`                       | `concierge.show`                | The stay page                                               |
-| `POST /c/{token}/identity`             | `concierge.identity`            | Save the typed ID and optional photos                       |
-| `POST /c/{token}/sign`                 | `concierge.sign`                | Sign the primary guest's registration card                  |
-| `POST /c/{token}/payment`              | `concierge.payment`             | Start the Curlec order. JSON for the checkout               |
-| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`     | Confirm a finished checkout by its signature                |
-| `POST /c/{token}/check-in`             | `concierge.check-in`            | Check in with the front desk's rules                        |
-| `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice                        |
-| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch                      |
+| Route                                  | Name                            | Purpose                                                 |
+| -------------------------------------- | ------------------------------- | ------------------------------------------------------- |
+| `GET/POST /stay/{code}`                | `concierge.lobby`, `.find`      | Lobby, and open a stay by booking code                  |
+| `GET /stay/{code}/walk-in`             | `concierge.walk-in`             | Offers for tonight; nothing is booked                   |
+| `GET /stay/{code}/walk-in/details`     | `concierge.walk-in.details`     | The details form for the room picked; nothing is booked |
+| `POST /stay/{code}/walk-in`            | `concierge.walk-in.book`        | Book the room and save the details, together            |
+| `POST /stay/{code}/walk-in/returning`  | `concierge.walk-in.returning`   | Recognise a returning walk-in (email or phone) and book |
+| `GET /c/{token}`                       | `concierge.show`                | The stay page                                           |
+| `POST /c/{token}/identity`             | `concierge.identity`            | Save the typed ID and optional photos                   |
+| `POST /c/{token}/sign`                 | `concierge.sign`                | Sign the primary guest's registration card              |
+| `POST /c/{token}/payment`              | `concierge.payment`             | Start the Curlec order. JSON for the checkout           |
+| `POST /c/{token}/payment/confirm`      | `concierge.payment.confirm`     | Confirm a finished checkout by its signature            |
+| `POST /c/{token}/check-in`             | `concierge.check-in`            | Check in with the front desk's rules                    |
+| `GET/POST /c/{token}/e-invoice`        | `concierge.e-invoice`, `.store` | See and request the stay's e-invoice                    |
+| `GET/PUT /p/{code}/settings/concierge` | `settings.concierge.*`          | Staff: lobby QR and the walk-in switch                  |
 
 ### Staff settings page
 

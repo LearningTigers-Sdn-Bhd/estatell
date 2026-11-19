@@ -87,26 +87,26 @@ An Action that causes an event calls `TriggerWebhook` with the event, the proper
 - Queues `BroadcastWebhookJob` after the transaction commits. A rolled-back change sends nothing, and the job builds the payload from the saved state.
 - Does nothing inside `TriggerWebhook::muted()`. Old stays (`CreateOldStay`), migrated stays (`CreateMigratedStay`) and every `wastays:*` command run muted, also for the jobs they queue, so a receiver never messages a guest about an imported stay.
 
-| Group        | Event                      | When                                                                      |
-| ------------ | -------------------------- | ------------------------------------------------------------------------- |
-| Booking      | `booking.created`          | A booking is made: by staff, from a channel or from the booking engine.   |
-|              | `booking.updated`          | Dates, rooms, party or prices of a booking change. One event per save.    |
-|              | `booking.cancelled`        | One or more units are cancelled. One event per booking.                   |
-|              | `booking.no_show`          | One or more units are marked no-show. One event per booking.              |
-| Stay         | `stay.checked_in`          | A unit is checked in.                                                     |
-|              | `stay.checked_out`         | A unit is checked out.                                                    |
+| Group        | Event                      | When                                                                                                                         |
+| ------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Booking      | `booking.created`          | A booking is made: by staff, from a channel or from the booking engine.                                                      |
+|              | `booking.updated`          | Dates, rooms, party or prices of a booking change. One event per save.                                                       |
+|              | `booking.cancelled`        | One or more units are cancelled. One event per booking.                                                                      |
+|              | `booking.no_show`          | One or more units are marked no-show. One event per booking.                                                                 |
+| Stay         | `stay.checked_in`          | A unit is checked in.                                                                                                        |
+|              | `stay.checked_out`         | A unit is checked out.                                                                                                       |
 |              | `stay.welcome_ready`       | A checked-in guest's welcome is ready: sent once the door PIN is ready, or after 20 minutes without it (`pin` is then null). |
-| Payment      | `payment.received`         | A payment is recorded, at the counter or online.                          |
-|              | `payment.refunded`         | A refund is recorded or an online refund completes. A void sends nothing. |
-|              | `folio.closed`             | A folio is closed.                                                        |
-| Guest        | `guest.created`            | A guest is created.                                                       |
-|              | `guest.updated`            | A guest's details change. VIP and blacklist changes send nothing.         |
-|              | `guest.merged`             | Two guests are merged. Sends the kept id and the removed id.              |
-|              | `guest.anonymized`         | A guest is anonymized, also in bulk (one per guest). Sends the id only.   |
-| Housekeeping | `room.cleaned`             | A room cleaning is finished.                                              |
-|              | `room.maintenance_flagged` | A room is marked as needing maintenance.                                  |
-| Operations   | `night_audit.completed`    | A night audit completes.                                                  |
-|              | `channel.alert`            | The channel manager reports a problem.                                    |
+| Payment      | `payment.received`         | A payment is recorded, at the counter or online.                                                                             |
+|              | `payment.refunded`         | A refund is recorded or an online refund completes. A void sends nothing.                                                    |
+|              | `folio.closed`             | A folio is closed.                                                                                                           |
+| Guest        | `guest.created`            | A guest is created.                                                                                                          |
+|              | `guest.updated`            | A guest's details change. VIP and blacklist changes send nothing.                                                            |
+|              | `guest.merged`             | Two guests are merged. Sends the kept id and the removed id.                                                                 |
+|              | `guest.anonymized`         | A guest is anonymized, also in bulk (one per guest). Sends the id only.                                                      |
+| Housekeeping | `room.cleaned`             | A room cleaning is finished.                                                                                                 |
+|              | `room.maintenance_flagged` | A room is marked as needing maintenance.                                                                                     |
+| Operations   | `night_audit.completed`    | A night audit completes.                                                                                                     |
+|              | `channel.alert`            | The channel manager reports a problem.                                                                                       |
 
 A walk-in from the kiosk is held with an empty booker before the ID step, so `BookWalkIn` sends no `booking.created`. A walk-in from the Concierge page is booked together with the guest's details (`ConfirmConciergeWalkIn`), so it is never nameless, but it is announced by the same rule. `AnnounceWalkInBooking` sends it once the hold is kept: at the first payment (`RecordPayment`) or the check-in (`CheckInUnit`), whichever comes first. By then the ID step has filled the booker's name, email and phone. `kiosk_walk_in_holds.announced_at` makes sure it is sent once. A hold nobody pays is released and sends nothing (decided 2026-11-18).
 
