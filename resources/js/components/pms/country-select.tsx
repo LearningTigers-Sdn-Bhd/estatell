@@ -9,6 +9,7 @@ import {
     ComboboxList,
 } from '@/components/ui/combobox';
 import { InputGroupAddon } from '@/components/ui/input-group';
+import { cn } from '@/lib/utils';
 
 type Props = {
     id: string;
@@ -25,6 +26,8 @@ type Props = {
     emptyText?: string;
     /** Shows country flags. Turn this off for a list that is not countries, such as currencies. */
     showFlags?: boolean;
+    /** Extra classes for the box, for example `h-12` to match a taller form. */
+    className?: string;
 };
 
 /**
@@ -41,6 +44,7 @@ export function CountrySelect({
     placeholder = 'Search countries',
     emptyText = 'No matching countries.',
     showFlags = true,
+    className,
 }: Props) {
     const selected = options.find((option) => option.value === value) ?? null;
 
@@ -61,7 +65,7 @@ export function CountrySelect({
                 placeholder={placeholder}
                 showClear
                 aria-invalid={invalid}
-                className="w-full"
+                className={cn('w-full', className)}
                 onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                         event.preventDefault();

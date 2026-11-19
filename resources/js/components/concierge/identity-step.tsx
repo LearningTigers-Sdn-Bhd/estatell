@@ -47,7 +47,7 @@ export function IdentityStep({
     const saved = stay.identity;
     // Malaysia is the usual guest, so it is picked until the guest changes it.
     const [nationality, setNationality] = useState(
-        saved?.nationalityCode ?? 'MY',
+        saved?.nationalityCode || 'MY',
     );
     const [kind, setKind] = useState<string>(
         saved?.documentKind === 'mykad' || saved?.documentKind === 'passport'
@@ -218,6 +218,7 @@ export function IdentityStep({
                                                         setKind(kindFor(code));
                                                 }}
                                                 invalid={!!errors.nationality}
+                                                className="h-12 text-base md:text-base [&_input]:h-full [&_input]:text-base md:[&_input]:text-base"
                                             />
                                             <FieldError>
                                                 {errors.nationality}
