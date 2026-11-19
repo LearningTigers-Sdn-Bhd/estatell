@@ -22,8 +22,6 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { identity } from '@/routes/concierge';
-import { returning } from '@/routes/concierge/identity';
 
 /** A Malaysian guest has a MyKad; anyone else shows a passport. The guest can still change it. */
 const kindFor = (nationalityCode?: string | null) =>
@@ -32,19 +30,34 @@ const kindFor = (nationalityCode?: string | null) =>
 /** The saved document types this form offers, as the form names them. */
 const savedKinds = { mykad: 'my_kad', passport: 'passport' } as const;
 
-/** The ID step: the guest types the ID fields and may add a photo of each side. */
+/**
+ * The ID form: the guest types the ID fields and may add a photo of each side. It is used on the stay page, for a booking that
+ * needs the guest's ID, and on the walk-in details page, where the room the guest picked goes along in `fields` and the booking
+ * is made when the form is sent.
+ */
 export function IdentityStep({
-    stay,
+    action,
+    fields = {},
+    saved = null,
+    nationalityRequired,
+    contact = '',
     kinds,
     genders,
     countries,
 }: {
-    stay: App.Data.Concierge.ConciergeStayData;
+    /** Where the details are sent. */
+    action: string;
+    /** Extra values sent with the details, such as the room a walk-in picked. */
+    fields?: Record<string, string | number | null>;
+    /** The details already saved for the guest, when the page has any. */
+    saved?: App.Data.Concierge.ConciergeIdentityPrefillData | null;
+    nationalityRequired: boolean;
+    /** An email or phone the guest already typed, put in the matching box. */
+    contact?: string;
     kinds: EnumOption[];
     genders: EnumOption[];
     countries: EnumOption[];
 }) {
-    const saved = stay.identity;
     // Malaysia is the usual guest, so it is picked until the guest changes it.
     const [nationality, setNationality] = useState(
         saved?.nationalityCode || 'MY',
@@ -57,35 +70,17 @@ export function IdentityStep({
 
     const passport = kind === 'passport';
 
-    // A walk-in is first asked to be recognised as a returning guest; what it types carries into the full form.
-    const [showFull, setShowFull] = useState(!stay.walkIn);
-    const [typed, setTyped] = useState('');
-
     // The saved number never reaches the page; a blank field with this flag keeps it on the server.
     const keepNumber =
         !!saved?.documentNumberHint &&
         saved.documentKind !== null &&
         savedKinds[saved.documentKind as keyof typeof savedKinds] === kind;
 
-    if (!showFull) {
-        return (
-            <ReturningCheck
-                token={stay.token}
-                typed={typed}
-                onTyped={setTyped}
-                onNew={() => setShowFull(true)}
-            />
-        );
-    }
-
     return (
-        <Form
-            action={identity.url({ token: stay.token })}
-            method="post"
-            className="concierge-identity-form"
-        >
+        <Form action={action} method="post" className="concierge-identity-form">
             {({ processing, errors }) => (
                 <div className="flex flex-col gap-6">
+                    <HiddenFields fields={fields} />
                     <div className="grid items-start gap-6 lg:grid-cols-3">
                         <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
                             <Card>
@@ -204,7 +199,7 @@ export function IdentityStep({
                                         >
                                             <FieldLabel htmlFor="nationality">
                                                 Nationality
-                                                {stay.nationalityRequired
+                                                {nationalityRequired
                                                     ? ''
                                                     : ' (optional)'}
                                             </FieldLabel>
@@ -291,9 +286,9 @@ export function IdentityStep({
                                                 type="tel"
                                                 autoComplete="tel"
                                                 defaultValue={
-                                                    typed.includes('@')
+                                                    contact.includes('@')
                                                         ? undefined
-                                                        : typed
+                                                        : contact
                                                 }
                                                 className="min-h-12 text-base"
                                                 required
@@ -313,8 +308,8 @@ export function IdentityStep({
                                                 type="email"
                                                 autoComplete="email"
                                                 defaultValue={
-                                                    typed.includes('@')
-                                                        ? typed
+                                                    contact.includes('@')
+                                                        ? contact
                                                         : undefined
                                                 }
                                                 className="min-h-12 text-base"
@@ -421,31 +416,49 @@ export function IdentityStep({
     );
 }
 
+/** The values a form sends along with what the guest types, such as the room a walk-in picked. */
+function HiddenFields({
+    fields,
+}: {
+    fields: Record<string, string | number | null>;
+}) {
+    return Object.entries(fields).map(([name, value]) =>
+        value === null ? null : (
+            <input key={name} type="hidden" name={name} value={value} />
+        ),
+    );
+}
+
 /**
  * The first ID screen of a walk-in: the email or phone number the guest used before recognises a returning guest, who
  * then skips the form. A match moves the page on. No match shows the full form, with what was typed kept. The page never
  * says whether a profile exists.
  */
-function ReturningCheck({
-    token,
-    typed,
-    onTyped,
+export function ReturningCheck({
+    action,
+    fields,
+    contact,
+    onContact,
     onNew,
 }: {
-    token: string;
-    typed: string;
-    onTyped: (value: string) => void;
+    /** Where the email or phone is sent. */
+    action: string;
+    /** The room the walk-in picked, sent with it so a match can book that room. */
+    fields: Record<string, string | number | null>;
+    contact: string;
+    onContact: (value: string) => void;
     onNew: () => void;
 }) {
     return (
         <Form
-            action={returning.url({ token })}
+            action={action}
             method="post"
             onSuccess={onNew}
             className="concierge-identity-form"
         >
             {({ processing, errors }) => (
                 <Card>
+                    <HiddenFields fields={fields} />
                     <CardHeader>
                         <CardTitle>
                             <h2 className="flex items-center gap-2">
@@ -469,9 +482,9 @@ function ReturningCheck({
                                     name="contact"
                                     autoComplete="email"
                                     placeholder="name@example.com or 012-345 6789"
-                                    value={typed}
+                                    value={contact}
                                     onChange={(event) =>
-                                        onTyped(event.target.value)
+                                        onContact(event.target.value)
                                     }
                                     className="h-12 px-3 text-base md:text-base"
                                     required

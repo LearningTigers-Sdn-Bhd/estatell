@@ -14,6 +14,7 @@ use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
 use App\Enums\StayType;
+use App\Models\Guest;
 use App\Models\Kiosk;
 use App\Models\KioskWalkInHold;
 use App\Models\Property;
@@ -41,12 +42,13 @@ class BookWalkIn
 
     /**
      * Book and hold the room for any channel. `$kiosk` is the machine that asked, or null for the Concierge page; each
-     * channel checks its own walk-in switch before it calls this.
+     * channel checks its own walk-in switch before it calls this. `$guest` is a guest of the property who is booking, such as a
+     * returning guest the Concierge page recognised; without one the booking gets a guest with no name for the ID step to fill.
      */
-    public function book(Property $property, ?Kiosk $kiosk, KioskWalkInData $search, int $roomTypeId): KioskWalkInResult
+    public function book(Property $property, ?Kiosk $kiosk, KioskWalkInData $search, int $roomTypeId, ?Guest $guest = null): KioskWalkInResult
     {
         try {
-            return DB::transaction(function () use ($property, $kiosk, $search, $roomTypeId): KioskWalkInResult {
+            return DB::transaction(function () use ($property, $kiosk, $search, $roomTypeId, $guest): KioskWalkInResult {
                 $type = RoomType::query()->where('property_id', $property->id)->lockForUpdate()->find($roomTypeId);
                 $offer = $type === null ? null : ($this->walkIn->available($property, $search, $roomTypeId)[0] ?? null);
                 if ($offer === null || ! $offer->available) {
@@ -58,7 +60,7 @@ class BookWalkIn
                 }
 
                 // Identity is collected after the hold. An empty name lets the ID step fill it without inventing guest data.
-                $guest = ($this->createGuest)(null, $property, ['full_name' => '']);
+                $guest ??= ($this->createGuest)(null, $property, ['full_name' => '']);
                 // `booking.created` waits until the hold is kept (`AnnounceWalkInBooking`), when the booker has a name.
                 $booking = TriggerWebhook::muted(fn (): BookingResult => ($this->createBooking)(null, $property, new NewBookingData(
                     bookingSource: $source,

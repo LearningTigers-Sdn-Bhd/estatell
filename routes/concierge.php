@@ -5,6 +5,7 @@ use App\Http\Controllers\Concierge\ConciergeDocumentController;
 use App\Http\Controllers\Concierge\ConciergeEInvoiceController;
 use App\Http\Controllers\Concierge\ConciergeGuideController;
 use App\Http\Controllers\Concierge\ConciergeStayController;
+use App\Http\Controllers\Concierge\ConciergeWalkInController;
 use App\Http\Controllers\Property\PropertyLogoController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,13 +23,14 @@ Route::middleware(['concierge', 'throttle:concierge'])->group(function () {
     Route::get('stay/{property:code}/contact', [ConciergeGuideController::class, 'contact'])->name('concierge.contact');
     Route::get('stay/{property:code}/info/{section?}', [ConciergeGuideController::class, 'info'])->where('section', 'property|amenities|policies|faqs')->name('concierge.info');
     Route::get('stay/{property:code}/nearby', [ConciergeGuideController::class, 'nearbyPlaces'])->name('concierge.nearby-places');
-    Route::get('stay/{property:code}/walk-in', [ConciergeController::class, 'walkIn'])->name('concierge.walk-in');
-    Route::post('stay/{property:code}/walk-in', [ConciergeController::class, 'bookWalkIn'])->middleware('throttle:concierge-walk-in')->name('concierge.walk-in.book');
+    Route::get('stay/{property:code}/walk-in', [ConciergeWalkInController::class, 'search'])->name('concierge.walk-in');
+    Route::get('stay/{property:code}/walk-in/details', [ConciergeWalkInController::class, 'details'])->name('concierge.walk-in.details');
+    Route::post('stay/{property:code}/walk-in', [ConciergeWalkInController::class, 'book'])->middleware('throttle:concierge-walk-in')->name('concierge.walk-in.book');
+    Route::post('stay/{property:code}/walk-in/returning', [ConciergeWalkInController::class, 'returning'])->middleware('throttle:concierge-returning')->name('concierge.walk-in.returning');
 
     Route::prefix('c/{token}')->name('concierge.')->group(function () {
         Route::get('/', [ConciergeController::class, 'show'])->name('show');
         Route::post('identity', [ConciergeController::class, 'identity'])->middleware('throttle:concierge-write')->name('identity');
-        Route::post('identity/returning', [ConciergeController::class, 'returning'])->middleware('throttle:concierge-returning')->name('identity.returning');
         Route::post('sign', [ConciergeController::class, 'sign'])->middleware('throttle:concierge-write')->name('sign');
         Route::post('check-in', [ConciergeController::class, 'checkIn'])->middleware('throttle:concierge-write')->name('check-in');
         Route::get('requests', [ConciergeStayController::class, 'requests'])->name('requests');

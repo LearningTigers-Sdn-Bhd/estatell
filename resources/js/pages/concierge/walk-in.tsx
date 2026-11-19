@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { enterCode, lobby, walkIn } from '@/routes/concierge';
-import { book } from '@/routes/concierge/walk-in';
+import { details } from '@/routes/concierge/walk-in';
 
 function money(amount: string, currency: string): string {
     return new Intl.NumberFormat(undefined, {
@@ -31,7 +31,7 @@ function money(amount: string, currency: string): string {
     }).format(Number(amount));
 }
 
-/** A guest with no booking picks a room for tonight. The server prices every room; the guest pays on the next page. */
+/** A guest with no booking picks a room for tonight. The server prices every room. Nothing is booked yet: the guest gives their details next, then pays. */
 export default function ConciergeWalkIn({
     property,
     adults,
@@ -298,10 +298,10 @@ export default function ConciergeWalkIn({
                         {offers.map((offer) => (
                             <li key={offer.roomTypeId}>
                                 <Form
-                                    action={book.url({
+                                    action={details.url({
                                         property: property.code,
                                     })}
-                                    method="post"
+                                    method="get"
                                     className="flex h-full flex-col rounded-2xl border border-border/40 bg-card p-6"
                                 >
                                     {({ processing, errors }) => (
@@ -375,7 +375,7 @@ export default function ConciergeWalkIn({
                                                 {processing && (
                                                     <Spinner data-icon="inline-start" />
                                                 )}
-                                                Book this room
+                                                Select this room
                                                 <ArrowRight
                                                     data-icon="inline-end"
                                                     aria-hidden

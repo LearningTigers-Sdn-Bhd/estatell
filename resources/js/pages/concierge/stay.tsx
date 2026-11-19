@@ -9,7 +9,7 @@ import { PaymentStep } from '@/components/concierge/payment-step';
 import { StayHome } from '@/components/concierge/stay-home';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { SAVED_STAY_DAYS, removeStay, saveStay } from '@/lib/concierge-stays';
-import { lobby } from '@/routes/concierge';
+import { identity, lobby } from '@/routes/concierge';
 import {
     CheckInStep,
     FrontDeskStep,
@@ -94,7 +94,9 @@ export default function ConciergeStay({
             )}
             {stay.step === 'identity' && (
                 <IdentityStep
-                    stay={stay}
+                    action={identity.url({ token: stay.token })}
+                    saved={stay.identity}
+                    nationalityRequired={stay.nationalityRequired}
                     kinds={identityKinds}
                     genders={genders}
                     countries={countries}
