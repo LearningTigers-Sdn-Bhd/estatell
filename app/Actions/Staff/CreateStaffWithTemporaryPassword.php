@@ -36,6 +36,8 @@ class CreateStaffWithTemporaryPassword
                 'temporary_password' => $temporaryPassword,
                 'temporary_password_expires_at' => now()->addDays(self::VALID_DAYS),
                 'must_change_password' => true,
+                // The owner may have made the email up, so a new device never waits for a code from it.
+                'email_device_check' => false,
             ])->save();
 
             $previousTeamId = getPermissionsTeamId();

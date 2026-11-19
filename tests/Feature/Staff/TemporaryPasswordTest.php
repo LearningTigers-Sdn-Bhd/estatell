@@ -81,7 +81,7 @@ test('only staff.manage adds staff, and only in their own property', function ()
 });
 
 test('a temp password signs in and every page goes to set password until it is changed', function () {
-    $staff = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->withTemporaryPassword()->create();
+    $staff = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->withTemporaryPassword()->withoutDeviceCheck()->create();
 
     $this->post(route('login.store'), ['email' => $staff->email, 'password' => 'Kopi-7342-Meja']);
     $this->assertAuthenticatedAs($staff);

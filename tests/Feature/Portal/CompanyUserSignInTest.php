@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 
+require_once __DIR__.'/../Support/DeviceCheck.php';
+
 beforeEach(function () {
     $this->owner = User::factory()->owner()->create();
     $this->property = $this->owner->property;
@@ -16,6 +18,8 @@ beforeEach(function () {
 });
 
 test('a company user signs in with the temp password and lands on the portal page', function () {
+    trustTestBrowserFor($this->companyUser);
+
     $this->post(route('login.store'), ['email' => $this->companyUser->email, 'password' => $this->companyUser->temporary_password])
         ->assertSessionHasNoErrors();
 

@@ -22,6 +22,7 @@ users   + temporary_password             text, nullable, encrypted cast
 - `password` holds the hash of the temp password, so the normal login works.
 - `temporary_password` is a readable copy for export and copy only. It is encrypted with `APP_KEY` (not hashed), so it is wiped as soon as it is not needed: on first password change, on reset and when expired.
 - `email_verified_at` is set at creation. The owner vouches for the person, so made-up emails (training accounts) work.
+- `email_device_check` is false, so a new device never waits for a code sent to that email. See [New-device check](../01-platform/09-new-device-check.md).
 - A temp password expires 14 days after it is created (`CreateStaffWithTemporaryPassword::VALID_DAYS`).
 
 ## Temp password format
