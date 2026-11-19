@@ -426,6 +426,26 @@ test('an early day use check-out frees the room from the check-out time', functi
     expect($next->dayUse()->sole()->room_id)->toBe($setup['rooms'][0]->id);
 });
 
+test('an early day use check-out frees the room from the half hour it falls in, so that half hour sells again', function (string $time, string $vacatedAt) {
+    $setup = dayUseCheckedOutAt($time);
+
+    expect($setup['unit']->dayUse()->sole()->vacated_at)->toBe($vacatedAt);
+
+    $next = otherDayUse($setup, ['startTime' => '15:00', 'hours' => 2]);
+
+    expect($next->dayUse()->sole()->room_id)->toBe($setup['rooms'][0]->id);
+})->with([
+    'ten past' => ['15:10', '15:00:00'],
+    'just before the half hour' => ['15:29:59', '15:00:00'],
+]);
+
+test('an early day use check-out never frees the room before the block starts', function () {
+    $setup = dayUseCheckedOutAt('14:10');
+
+    expect($setup['unit']->dayUse()->sole()->vacated_at)->toBe('14:00:00')
+        ->and(app(DayUseAvailability::class)->isFree($setup['roomType'], $setup['rooms'][0]->id, $setup['date'], '14:00', '16:00'))->toBeTrue();
+});
+
 test('an early day use check-out frees the room for an overnight guest arriving after it', function () {
     $setup = dayUseCheckedOutAt('15:00');
     $free = fn (string $arrivalTime) => array_map(
