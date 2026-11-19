@@ -65,7 +65,7 @@ export default function ConciergeLobby({
         ...(savedStays.length > 0
             ? [
                   {
-                      title: 'Continue your stay',
+                      title: 'About your stay',
                       body: 'Requests, your bill, documents and check-out.',
                       icon: Undo2,
                       href: show.url({ token: savedStays[0].token }),
@@ -124,6 +124,8 @@ export default function ConciergeLobby({
     ];
 
     const primaryTile = tiles[0];
+    // Every service tile after the first shares one soft fill; the first is the solid primary one.
+    const tileFill = 'bg-warning/15';
     // Seven tiles would make three tall square rows on desktop, so they go four to a row (two rows).
     const desktopColumns = tiles.length > 6 ? 4 : 3;
     const focusStyles =
@@ -275,7 +277,7 @@ export default function ConciergeLobby({
                                         const className =
                                             index === 0
                                                 ? `concierge-editorial-serif hidden min-h-13 items-center justify-center gap-2 bg-primary px-5 py-3 text-xl text-primary-foreground hover:opacity-90 motion-safe:transition-opacity lg:relative lg:flex lg:aspect-square lg:items-center lg:justify-center lg:p-5 lg:text-center lg:text-2xl ${focusStyles}`
-                                                : `concierge-editorial-serif group relative flex aspect-square items-center justify-center border border-border/60 p-3 text-base leading-tight hover:bg-muted/50 motion-safe:transition-colors lg:p-5 lg:text-xl ${focusStyles}`;
+                                                : `concierge-editorial-serif group relative flex aspect-square items-center justify-center border border-border/60 p-3 text-base leading-tight hover:opacity-80 motion-safe:transition-opacity ${tileFill} lg:p-5 lg:text-xl ${focusStyles}`;
 
                                         const tile = onSelect ? (
                                             <button
