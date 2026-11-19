@@ -147,9 +147,14 @@ export default function ConciergeWalkIn({
                                 value={stayType}
                             />
                             <FieldGroup
-                                className={`grid flex-1 gap-4 ${dayUse ? 'grid-cols-3' : 'grid-cols-2'}`}
+                                className={`grid flex-1 gap-4 ${dayUse ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}
                             >
-                                <Field data-invalid={!!errors.adults}>
+                                <Field
+                                    data-invalid={!!errors.adults}
+                                    className={
+                                        dayUse ? 'col-span-2 sm:col-span-1' : ''
+                                    }
+                                >
                                     <FieldLabel htmlFor="adults">
                                         <UsersRound
                                             className="size-5 text-primary"

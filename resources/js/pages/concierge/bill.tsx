@@ -88,7 +88,7 @@ export default function ConciergeBill({
                 {bill.canPay && (
                     <p className="flex items-center gap-2 text-sm text-muted-foreground">
                         <CreditCard className="size-5 shrink-0" aria-hidden />
-                        Online payment available below
+                        Pay online on this page
                     </p>
                 )}
             </section>
@@ -98,196 +98,209 @@ export default function ConciergeBill({
                 includes booked charges that have not been posted yet, so its
                 balance may differ.
             </p>
-            <div className="grid items-start gap-8 lg:grid-cols-5 lg:gap-10">
-                <div className="flex min-w-0 flex-col gap-8 lg:col-span-3">
-                    <section
-                        className="overflow-hidden rounded-2xl border border-border/40 bg-card"
+            <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+                {bill.canPay && (
+                    <div className="flex flex-col justify-center rounded-2xl border border-border/40 bg-card p-4 sm:p-6 lg:order-2">
+                        <PaymentStep
+                            token={token}
+                            amount={bill.due}
+                            description="Pay the outstanding amount on your bill online."
+                        />
+                    </div>
+                )}
+                <section
+                    className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card p-6"
+                    aria-labelledby="checkout-title"
+                >
+                    <div className="flex items-center gap-3">
+                        <LogOut className="size-6 text-primary" aria-hidden />
+                        <h2
+                            id="checkout-title"
+                            className="text-lg font-semibold"
+                        >
+                            Check-out
+                        </h2>
+                    </div>
+                    {bill.canPay && (
+                        <div
+                            role="status"
+                            className="flex items-start gap-3 rounded-xl bg-muted/50 p-4"
+                        >
+                            <CreditCard
+                                className="mt-0.5 size-6 shrink-0 text-primary"
+                                aria-hidden
+                            />
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-sm font-medium">
+                                    Pay {money(bill.due, bill.currency)} first
+                                </h3>
+                                <p className="text-sm leading-relaxed text-muted-foreground">
+                                    Your bill must be settled before you can
+                                    check out here. Use the payment box to pay
+                                    it.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    {bill.canCheckOut && (
+                        <>
+                            <p className="text-sm leading-relaxed text-muted-foreground">
+                                Ready to leave? Check out here to complete your
+                                stay.
+                            </p>
+                            <Button
+                                size="lg"
+                                className="min-h-12 w-full"
+                                disabled={busy}
+                                focusableWhenDisabled
+                                onClick={() =>
+                                    router.post(
+                                        checkOut.url({ token }),
+                                        {},
+                                        {
+                                            onStart: () => setBusy(true),
+                                            onFinish: () => setBusy(false),
+                                        },
+                                    )
+                                }
+                            >
+                                {busy && <Spinner data-icon="inline-start" />}
+                                Check out now
+                                <ArrowRight
+                                    data-icon="inline-end"
+                                    aria-hidden
+                                />
+                            </Button>
+                        </>
+                    )}
+                    {bill.checkOutAsked && (
+                        <div
+                            role="status"
+                            className="flex items-start gap-3 rounded-xl bg-muted/50 p-4"
+                        >
+                            <CircleCheck
+                                className="mt-0.5 size-6 shrink-0 text-primary"
+                                aria-hidden
+                            />
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-sm font-medium">
+                                    Check-out requested
+                                </h3>
+                                <p className="text-sm leading-relaxed text-muted-foreground">
+                                    The front desk has your request and will
+                                    prepare your bill.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    {!bill.canCheckOut && bill.checkOutOpensOn && (
+                        <p className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+                            <Clock
+                                className="mt-0.5 size-5 shrink-0"
+                                aria-hidden
+                            />
+                            <span>
+                                Online check-out opens on {bill.checkOutOpensOn}
+                                . For an earlier departure, ask the front desk.
+                            </span>
+                        </p>
+                    )}
+                    {!bill.canCheckOut && !bill.checkOutAsked && (
+                        <>
+                            <p className="text-sm leading-relaxed text-muted-foreground">
+                                Ask the front desk to arrange check-out if
+                                you’re leaving early or need help settling your
+                                bill.
+                            </p>
+                            <Form
+                                action={ask.url({ token })}
+                                method="post"
+                                resetOnSuccess
+                                className="flex flex-1 flex-col"
+                            >
+                                {({ processing, errors }) => (
+                                    <div className="flex flex-1 flex-col gap-4">
+                                        <Field
+                                            data-invalid={!!errors.note}
+                                            className="flex-1"
+                                        >
+                                            <FieldLabel htmlFor="note">
+                                                Note for the team (optional)
+                                            </FieldLabel>
+                                            <Textarea
+                                                id="note"
+                                                name="note"
+                                                maxLength={900}
+                                                placeholder="e.g. We plan to leave at 10 am"
+                                                className="min-h-28 flex-1 text-base"
+                                                aria-invalid={!!errors.note}
+                                            />
+                                            <FieldError>
+                                                {errors.note}
+                                            </FieldError>
+                                        </Field>
+                                        <Button
+                                            type="submit"
+                                            size="lg"
+                                            variant="outline"
+                                            className="min-h-12 w-full"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && (
+                                                <Spinner data-icon="inline-start" />
+                                            )}
+                                            Request check-out
+                                        </Button>
+                                    </div>
+                                )}
+                            </Form>
+                        </>
+                    )}
+                </section>
+            </div>
+            <section
+                className="overflow-hidden rounded-2xl border border-border/40 bg-card"
+                aria-labelledby="bill-lines-title"
+            >
+                <div className="flex items-center gap-3 border-b border-border/40 p-5 sm:p-6">
+                    <ReceiptText className="size-6 text-primary" aria-hidden />
+                    <h2 id="bill-lines-title" className="text-lg font-semibold">
+                        Your bill
+                    </h2>
+                </div>
+                {bill.lines.length === 0 ? (
+                    <p className="p-6 text-sm text-muted-foreground">
+                        There are no charges or payments to show yet.
+                    </p>
+                ) : (
+                    <ul
+                        className="flex max-h-96 flex-col divide-y divide-border/30 overflow-y-auto px-5 sm:px-6"
+                        tabIndex={0}
                         aria-labelledby="bill-lines-title"
                     >
-                        <div className="flex items-center gap-3 border-b border-border/40 p-5 sm:p-6">
-                            <ReceiptText
-                                className="size-6 text-primary"
-                                aria-hidden
-                            />
-                            <h2
-                                id="bill-lines-title"
-                                className="text-lg font-semibold"
+                        {bill.lines.map((line, index) => (
+                            <li
+                                key={index}
+                                className="flex items-start justify-between gap-4 py-5"
                             >
-                                Your bill
-                            </h2>
-                        </div>
-                        {bill.lines.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">
-                                There are no charges or payments to show yet.
-                            </p>
-                        ) : (
-                            <ul className="flex flex-col divide-y divide-border/30 px-5 sm:px-6">
-                                {bill.lines.map((line, index) => (
-                                    <li
-                                        key={index}
-                                        className="flex items-start justify-between gap-4 py-5"
-                                    >
-                                        <span className="flex min-w-0 flex-col gap-1">
-                                            <span className="text-sm font-medium text-pretty">
-                                                {line.description}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground tabular-nums">
-                                                {line.date}
-                                            </span>
-                                        </span>
-                                        <span className="shrink-0 text-sm font-medium tabular-nums">
-                                            {money(line.amount, bill.currency)}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </section>
-                    <DocumentList documents={documents} />
-                </div>
-                <aside className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-                    <section
-                        className="flex flex-col gap-5 rounded-2xl border border-border/40 bg-card p-6"
-                        aria-labelledby="checkout-title"
-                    >
-                        <div className="flex items-center gap-3">
-                            <LogOut
-                                className="size-6 text-primary"
-                                aria-hidden
-                            />
-                            <h2
-                                id="checkout-title"
-                                className="text-lg font-semibold"
-                            >
-                                Check-out
-                            </h2>
-                        </div>
-                        {bill.canCheckOut && (
-                            <>
-                                <p className="text-sm leading-relaxed text-muted-foreground">
-                                    Ready to leave? Check out here to complete
-                                    your stay.
-                                </p>
-                                <Button
-                                    size="lg"
-                                    className="min-h-12 w-full"
-                                    disabled={busy}
-                                    focusableWhenDisabled
-                                    onClick={() =>
-                                        router.post(
-                                            checkOut.url({ token }),
-                                            {},
-                                            {
-                                                onStart: () => setBusy(true),
-                                                onFinish: () => setBusy(false),
-                                            },
-                                        )
-                                    }
-                                >
-                                    {busy && (
-                                        <Spinner data-icon="inline-start" />
-                                    )}
-                                    Check out now
-                                    <ArrowRight
-                                        data-icon="inline-end"
-                                        aria-hidden
-                                    />
-                                </Button>
-                            </>
-                        )}
-                        {bill.checkOutAsked && (
-                            <div
-                                role="status"
-                                className="flex items-start gap-3 rounded-xl bg-muted/50 p-4"
-                            >
-                                <CircleCheck
-                                    className="mt-0.5 size-6 shrink-0 text-primary"
-                                    aria-hidden
-                                />
-                                <div className="flex flex-col gap-1">
-                                    <h3 className="text-sm font-medium">
-                                        Check-out requested
-                                    </h3>
-                                    <p className="text-sm leading-relaxed text-muted-foreground">
-                                        The front desk has your request and will
-                                        prepare your bill.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                        {!bill.canCheckOut && bill.checkOutOpensOn && (
-                            <p className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
-                                <Clock
-                                    className="mt-0.5 size-5 shrink-0"
-                                    aria-hidden
-                                />
-                                <span>
-                                    Online check-out opens on{' '}
-                                    {bill.checkOutOpensOn}. For an earlier
-                                    departure, ask the front desk.
+                                <span className="flex min-w-0 flex-col gap-1">
+                                    <span className="text-sm font-medium text-pretty">
+                                        {line.description}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground tabular-nums">
+                                        {line.date}
+                                    </span>
                                 </span>
-                            </p>
-                        )}
-                        {!bill.canCheckOut && !bill.checkOutAsked && (
-                            <>
-                                <p className="text-sm leading-relaxed text-muted-foreground">
-                                    Ask the front desk to arrange check-out if
-                                    you’re leaving early or need help settling
-                                    your bill.
-                                </p>
-                                <Form
-                                    action={ask.url({ token })}
-                                    method="post"
-                                    resetOnSuccess
-                                >
-                                    {({ processing, errors }) => (
-                                        <div className="flex flex-col gap-4">
-                                            <Field data-invalid={!!errors.note}>
-                                                <FieldLabel htmlFor="note">
-                                                    Note for the team (optional)
-                                                </FieldLabel>
-                                                <Textarea
-                                                    id="note"
-                                                    name="note"
-                                                    maxLength={900}
-                                                    placeholder="e.g. We plan to leave at 10 am"
-                                                    className="min-h-28 text-base"
-                                                    aria-invalid={!!errors.note}
-                                                />
-                                                <FieldError>
-                                                    {errors.note}
-                                                </FieldError>
-                                            </Field>
-                                            <Button
-                                                type="submit"
-                                                size="lg"
-                                                variant="outline"
-                                                className="min-h-12 w-full"
-                                                disabled={processing}
-                                                focusableWhenDisabled
-                                            >
-                                                {processing && (
-                                                    <Spinner data-icon="inline-start" />
-                                                )}
-                                                Request check-out
-                                            </Button>
-                                        </div>
-                                    )}
-                                </Form>
-                            </>
-                        )}
-                    </section>
-                </aside>
-            </div>
-            {bill.canPay && (
-                <div className="border-t border-border/40 pt-8">
-                    <PaymentStep
-                        token={token}
-                        amount={bill.due}
-                        description="Pay the outstanding amount on your bill online."
-                    />
-                </div>
-            )}
+                                <span className="shrink-0 text-sm font-medium tabular-nums">
+                                    {money(line.amount, bill.currency)}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+            <DocumentList documents={documents} />
         </GuestFrame>
     );
 }
