@@ -208,7 +208,10 @@ export default function ConciergeWalkIn({
                                                 id="start_time"
                                                 name="start_time"
                                                 options={startTimeOptions}
-                                                defaultValue={startTime.slice(0, 5)}
+                                                defaultValue={startTime.slice(
+                                                    0,
+                                                    5,
+                                                )}
                                                 className="min-h-12 w-full text-base"
                                                 aria-invalid={
                                                     !!errors.start_time

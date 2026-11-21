@@ -30,6 +30,7 @@ use App\Models\Room;
 use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
+use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\WebhookEndpoint;
 use App\Notifications\ConciergeWalkInConfirmed;
@@ -479,6 +480,47 @@ it('books nothing when two profiles share the phone, or the profile has no name'
 
     expect(conciergeWalkInCounts())->toBe($before)->and($first->refresh()->merged_into_id)->toBeNull()->and($second?->refresh()->merged_into_id)->toBeNull();
 })->with(['shared', 'unnamed']);
+
+it('joins the duplicate with the most stays when profiles of one guest share the contact', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $stays = fn (Guest $guest, int $count) => collect(range(1, $count))->each(fn () => UnitGuest::factory()->create([
+        'guest_id' => $guest->id,
+        'reservation_unit_id' => ReservationUnit::factory()->create([
+            'reservation_id' => Reservation::factory()->create(['property_id' => $property->id])->id,
+            'status' => UnitStatus::CheckedOut,
+            'checked_in_at' => now()->subDay(),
+            'checked_out_at' => now(),
+        ])->id,
+    ]));
+    $one = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Andy Yap', 'email' => 'andy@example.com']);
+    $two = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Andy Yap', 'email' => 'andy@example.com']);
+    Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Andy test', 'email' => 'andy@example.com']);
+    $stays($one, 1);
+    $stays($two, 2);
+
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('andy@example.com', conciergeWalkInRoom($type)))->assertRedirect();
+
+    $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
+    expect(app(KioskStays::class)->guest($stay)->id)->toBe($two->id);
+});
+
+it('books nothing when profiles with stays and different names share the contact', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    foreach (['Aisha Binti Rahman', 'Rahman Bin Ali'] as $name) {
+        $guest = Guest::factory()->create(['property_id' => $property->id, 'full_name' => $name, 'phone' => '+60123456789']);
+        UnitGuest::factory()->create(['guest_id' => $guest->id, 'reservation_unit_id' => ReservationUnit::factory()->create([
+            'reservation_id' => Reservation::factory()->create(['property_id' => $property->id])->id,
+            'status' => UnitStatus::CheckedOut,
+            'checked_in_at' => now()->subDay(),
+            'checked_out_at' => now(),
+        ])->id]);
+    }
+    $before = conciergeWalkInCounts();
+
+    $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('012-345 6789', conciergeWalkInRoom($type)))->assertRedirect();
+
+    expect(conciergeWalkInCounts())->toBe($before);
+});
 
 it('limits the tries to recognise a returning walk-in', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
