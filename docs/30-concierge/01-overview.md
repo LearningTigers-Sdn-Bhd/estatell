@@ -27,7 +27,7 @@ Inner concierge pages share a front desk help footer at the end of the page. The
 | Lobby QR        | One per property. It opens `/stay/{code}`, a hub of services (check in, book a room, property guide, nearby places, contact) that is public and carries no booking. Staff print it from Settings, Concierge |
 | Stay link life  | The stay's link (`/c/{token}`) works until 7 days after the departure date, so a guest can still open their documents, ask for a refund and request an e-invoice                                            |
 | Who can use it  | Guests with a booking, and walk-ins when the property turns the walk-in switch on                                                                                                                           |
-| Proof of a stay | The booking code alone, or the stay's own link `/c/{token}`. The link is the stay's pre-check-in token. Codes run in order, so a code can be guessed: the lockout slows guessing and does not stop it       |
+| Proof of a stay | The booking code (`reservations.short_code`, the 6-character code the guest is given, not the staff `reference`) alone, or the stay's own link `/c/{token}`. The link is the stay's pre-check-in token. The lockout slows guessing       |
 | Payment         | Online through Razorpay Curlec. It pays what the kiosk's paid-enough rule wants: the Collect now taxes and the security deposit                                                                             |
 | Key             | A smart-lock PIN shown on the page after check-in. No key card                                                                                                                                              |
 | Actor           | The page is its own channel. Its log events are `concierge.*`, never `kiosk.*`                                                                                                                              |
@@ -245,7 +245,7 @@ A property that sells day use (an active room type sold per room and an active D
 
 The page can issue a door PIN to someone who holds a QR code, so it is stricter than the kiosk, which stands in the lobby.
 
-- The QR proves only the property. The stay is proved by the booking code alone, or by the stay's own link. A code is easy to guess because codes run in order, so anyone with the lobby address can try codes; a stay they open gives them its ID step, and after check-in the room and PIN. The lockout is the only guard: raise it, or add a second factor, if this becomes a worry.
+- The QR proves only the property. The stay is proved by the booking code alone, or by the stay's own link. The code is random (about 887 million per property) but anyone with the lobby address can try codes; a stay they open gives them its ID step, and after check-in the room and PIN. The lockout is the only guard: raise it, or add a second factor, if this becomes a worry.
 - A lookup takes one attempt from two counters: one per address and property (8 in 5 minutes), one per booking code (5 in 15 minutes). A lookup that finds its stay gives both back. An address may also open at most 15 stays in 10 minutes, because a scan down the booking codes finds a stay almost every time and the refund would never slow it. Once a counter is passed the answer is the same whatever was typed.
 - Every code that opens nothing gets the same message, so it never says whether a code exists.
 - The page shows the room and the PIN only for 30 minutes after it checked the guest in. It never shows them for a stay another channel checked in.
