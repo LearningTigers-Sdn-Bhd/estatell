@@ -468,6 +468,13 @@ export default function PropertySettings({
                                         checked={settings.autoAuditEnabled}
                                         error={errors.auto_audit_enabled}
                                     />
+                                    <SettingsSwitch
+                                        name="auto_clean_on_check_out"
+                                        label="Mark rooms clean at check-out"
+                                        description="On: a room turns Clean when its last guest checks out, so it can be sold at once. Off: it turns Dirty and housekeeping marks it clean."
+                                        checked={settings.autoCleanOnCheckOut}
+                                        error={errors.auto_clean_on_check_out}
+                                    />
                                 </>
                             )}
                         </SettingsSection>

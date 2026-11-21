@@ -364,6 +364,28 @@ test('check-out sets the status and time, marks the room Dirty, syncs the reserv
         ->and($log->properties['room_id'])->toBe($setup['room']->id);
 });
 
+test('check-out marks the room Clean when the property turns on auto clean', function () {
+    $setup = stayDeskInHouse();
+    $setup['property']->settings->update(['auto_clean_on_check_out' => true]);
+
+    stayDeskCheckOut($setup);
+
+    expect(RoomStatus::query()->where('room_id', $setup['room']->id)->sole()->status)->toBe(HousekeepingStatus::Clean);
+});
+
+test('auto clean leaves the room Dirty while another guest still sleeps in a bed of it', function () {
+    $setup = stayDeskInHouse();
+    $setup['property']->settings->update(['auto_clean_on_check_out' => true]);
+    [$bedA, $bedB] = Bed::factory()->count(2)->create(['room_id' => $setup['room']->id]);
+    $setup['unit']->nights()->update(['room_id' => null, 'bed_id' => $bedA->id]);
+    $other = ReservationUnit::factory()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id, 'status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
+    $other->nights()->save($setup['unit']->nights()->first()->replicate(['reservation_unit_id'])->forceFill(['reservation_unit_id' => $other->id, 'bed_id' => $bedB->id, 'date' => now()->toDateString()]));
+
+    stayDeskCheckOut($setup);
+
+    expect(RoomStatus::query()->where('room_id', $setup['room']->id)->sole()->status)->toBe(HousekeepingStatus::Dirty);
+});
+
 test('a bed unit marks the room of its bed Dirty on check-out', function () {
     $setup = stayDeskInHouse();
     $bed = Bed::factory()->create(['room_id' => $setup['room']->id]);

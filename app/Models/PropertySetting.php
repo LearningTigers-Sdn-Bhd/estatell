@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $auto_assign_rooms
  * @property string $audit_time
  * @property bool $auto_audit_enabled
+ * @property bool $auto_clean_on_check_out A room goes Clean, not Dirty, when its last guest checks out.
  * @property MissedArrivalPolicy $missed_arrival_policy
  * @property OverdueDeparturePolicy $overdue_departure_policy
  * @property RegistrationCardScope $registration_card_scope
@@ -70,7 +71,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
-    'arrival_grace_minutes', 'auto_assign_rooms', 'audit_time', 'auto_audit_enabled',
+    'arrival_grace_minutes', 'auto_assign_rooms', 'audit_time', 'auto_audit_enabled', 'auto_clean_on_check_out',
     'missed_arrival_policy', 'overdue_departure_policy',
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
     'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
@@ -94,6 +95,7 @@ class PropertySetting extends Model
             'arrival_grace_minutes' => 'integer',
             'auto_assign_rooms' => 'boolean',
             'auto_audit_enabled' => 'boolean',
+            'auto_clean_on_check_out' => 'boolean',
             'missed_arrival_policy' => MissedArrivalPolicy::class,
             'overdue_departure_policy' => OverdueDeparturePolicy::class,
             'registration_card_scope' => RegistrationCardScope::class,
