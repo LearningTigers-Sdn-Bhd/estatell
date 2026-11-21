@@ -1,6 +1,6 @@
 import { router, usePoll } from '@inertiajs/react';
 import { CreditCard, Usb } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import DoorLockSettingsController from '@/actions/App/Http/Controllers/DoorLocks/DoorLockSettingsController';
 import {
     PaginationFooter,
@@ -18,20 +18,15 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { AUTO_KEY, useDoorCardScan } from '@/hooks/use-door-card-scan';
 import {
     connectReader,
     hidSupported,
-    NO_CARD,
     readerGranted,
-    scanCardUid,
     watchReader,
 } from '@/lib/ecrfid';
 
-const AUTO_KEY = 'estatell:auto-door-cards';
 const POLL_MS = 3000;
-const SCAN_MS = 8000;
-
-type Phase = 'reading' | 'adding' | 'again';
 
 const connected: App.Data.Shared.BadgeData = {
     value: 'connected',
@@ -53,21 +48,6 @@ function when(iso: string): string {
     });
 }
 
-function sleep(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve) => {
-        const timer = setTimeout(resolve, ms);
-
-        signal.addEventListener(
-            'abort',
-            () => {
-                clearTimeout(timer);
-                resolve();
-            },
-            { once: true },
-        );
-    });
-}
-
 /**
  * Cards on the Door locks page, under the PINs. The desk reader is connected here once (the browser asks once per computer). With
  * "Add cards automatically" on, a guest who checks in on the Concierge page gets the card lying on the reader: the page reads it and
@@ -86,10 +66,7 @@ export function DoorCardsSection({
     const [supported, setSupported] = useState(false);
     const [ready, setReady] = useState(false);
     const [auto, setAuto] = useState(false);
-    const [phase, setPhase] = useState<Phase>('reading');
-    const [error, setError] = useState<string | null>(null);
-    const [attempt, setAttempt] = useState(0);
-    const tried = useRef(new Set<string>());
+    const [connectError, setConnectError] = useState<string | null>(null);
     const { start, stop } = usePoll(
         POLL_MS,
         { only: ['waitingStay', 'cards'] },
@@ -129,82 +106,17 @@ export function DoorCardsSection({
 
     const stayId = waitingStay?.unitId;
 
-    useEffect(() => {
-        if (!active || stayId === undefined) {
-            return;
-        }
-
-        const controller = new AbortController();
-
-        void (async () => {
-            setError(null);
-
-            while (!controller.signal.aborted) {
-                setPhase('reading');
-
-                try {
-                    const uid = await scanCardUid(
-                        controller.signal,
-                        undefined,
-                        undefined,
-                        SCAN_MS,
-                    );
-
-                    if (controller.signal.aborted) {
-                        return;
-                    }
-
-                    // A card that was already tried for this stay (it failed) waits to be swapped, not retried in a loop.
-                    if (tried.current.has(`${stayId}:${uid}`)) {
-                        setPhase('again');
-                        await sleep(2000, controller.signal);
-
-                        continue;
-                    }
-
-                    tried.current.add(`${stayId}:${uid}`);
-                    setPhase('adding');
-                    router.post(
-                        DoorLockSettingsController.storeCard.url(),
-                        { uid, reservation_unit_id: stayId },
-                        {
-                            preserveScroll: true,
-                            onFinish: () => setAttempt((n) => n + 1),
-                        },
-                    );
-
-                    return;
-                } catch (caught) {
-                    if (controller.signal.aborted) {
-                        return;
-                    }
-
-                    if (
-                        !(caught instanceof Error) ||
-                        caught.message !== NO_CARD
-                    ) {
-                        setError(
-                            caught instanceof Error
-                                ? caught.message
-                                : 'The reader could not be read.',
-                        );
-                        await sleep(3000, controller.signal);
-                    }
-                }
-            }
-        })();
-
-        return () => controller.abort();
-    }, [active, stayId, attempt]);
+    const { phase, error: scanError } = useDoorCardScan(active, stayId);
+    const error = connectError ?? scanError;
 
     const connect = async () => {
-        setError(null);
+        setConnectError(null);
 
         try {
             await connectReader();
             setReady(await readerGranted());
         } catch (caught) {
-            setError(
+            setConnectError(
                 caught instanceof Error
                     ? caught.message
                     : 'The reader could not be connected.',

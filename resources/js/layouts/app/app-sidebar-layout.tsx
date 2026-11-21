@@ -3,6 +3,7 @@ import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { AppNavbar } from '@/components/app-navbar';
 import { AppShell } from '@/components/app-shell';
 import { DemoBanner } from '@/components/demo-banner';
+import { DoorCardWatcher } from '@/components/pms/door-card-watcher';
 import { AppSidebar } from '@/components/app-sidebar';
 import { StaffWorkspaceHeader } from '@/components/staff-workspace-header';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ export default function AppSidebarLayout({
             >
                 <ImpersonationBanner />
                 <DemoBanner />
+                <DoorCardWatcher />
                 <AppNavbar surface="sidebar" />
                 <StaffWorkspaceHeader breadcrumbs={breadcrumbs} />
                 <div className="flex min-h-0 flex-1">
