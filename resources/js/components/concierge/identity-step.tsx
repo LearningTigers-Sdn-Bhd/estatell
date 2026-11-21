@@ -70,6 +70,15 @@ export function IdentityStep({
 
     const passport = kind === 'passport';
 
+    // A walk-in joined to a returning guest is asked only for what the profile lacks, usually just the ID.
+    const known = saved?.hideKnown === true;
+    const showName = !(known && saved?.hasName);
+    const showPhone = !(known && saved?.hasPhone);
+    const showEmail = !(known && saved?.hasEmail);
+    const showNationality = !known || nationalityRequired;
+    const showPersonal =
+        showName || showPhone || showEmail || showNationality || !known;
+
     // The saved number never reaches the page; a blank field with this flag keeps it on the server.
     const keepNumber =
         !!saved?.documentNumberHint &&
@@ -150,181 +159,238 @@ export function IdentityStep({
                                 </CardContent>
                             </Card>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>
-                                        <h2 className="flex items-center gap-2">
-                                            <UserRound
-                                                className="size-6"
-                                                aria-hidden
-                                            />
-                                            Personal details
-                                        </h2>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Use your name as it appears on your
-                                        identity document.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <FieldGroup className="grid gap-5 sm:grid-cols-2">
-                                        <Field
-                                            className="sm:col-span-2"
-                                            data-invalid={!!errors.full_name}
-                                        >
-                                            <FieldLabel htmlFor="full_name">
-                                                Full name
-                                            </FieldLabel>
-                                            <Input
-                                                id="full_name"
-                                                name="full_name"
-                                                autoComplete="name"
-                                                defaultValue={
-                                                    saved?.fullName ?? ''
-                                                }
-                                                placeholder="Enter full name"
-                                                className="h-12 px-3 text-base md:text-base"
-                                                required
-                                                aria-invalid={
-                                                    !!errors.full_name
-                                                }
-                                            />
-                                            <FieldError>
-                                                {errors.full_name}
-                                            </FieldError>
-                                        </Field>
-                                        <Field
-                                            className="sm:col-span-2"
-                                            data-invalid={!!errors.nationality}
-                                        >
-                                            <FieldLabel htmlFor="nationality">
-                                                Nationality
-                                                {nationalityRequired
-                                                    ? ''
-                                                    : ' (optional)'}
-                                            </FieldLabel>
-                                            <CountrySelect
-                                                id="nationality"
-                                                name="nationality"
-                                                options={countries}
-                                                value={nationality}
-                                                onValueChange={(code) => {
-                                                    setNationality(code);
-
-                                                    if (code) {
-                                                        setKind(kindFor(code));
+                            {showPersonal && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>
+                                            <h2 className="flex items-center gap-2">
+                                                <UserRound
+                                                    className="size-6"
+                                                    aria-hidden
+                                                />
+                                                Personal details
+                                            </h2>
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Use your name as it appears on your
+                                            identity document.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <FieldGroup className="grid gap-5 sm:grid-cols-2">
+                                            {showName && (
+                                                <Field
+                                                    className="sm:col-span-2"
+                                                    data-invalid={
+                                                        !!errors.full_name
                                                     }
-                                                }}
-                                                invalid={!!errors.nationality}
-                                                className="h-12 text-base md:text-base [&_input]:h-full [&_input]:text-base md:[&_input]:text-base"
-                                            />
-                                            <FieldError>
-                                                {errors.nationality}
-                                            </FieldError>
-                                        </Field>
-                                        <Field
-                                            data-invalid={
-                                                !!errors.date_of_birth
-                                            }
-                                        >
-                                            <FieldLabel htmlFor="date_of_birth">
-                                                {saved?.hasDateOfBirth
-                                                    ? 'Date of birth (saved, leave blank to keep)'
-                                                    : 'Date of birth (optional)'}
-                                            </FieldLabel>
-                                            <Input
-                                                id="date_of_birth"
-                                                name="date_of_birth"
-                                                type="date"
-                                                autoComplete="bday"
-                                                className="h-12 px-3 text-base md:text-base"
-                                                aria-invalid={
-                                                    !!errors.date_of_birth
-                                                }
-                                            />
-                                            <FieldError>
-                                                {errors.date_of_birth}
-                                            </FieldError>
-                                        </Field>
-                                        <Field data-invalid={!!errors.gender}>
-                                            <FieldLabel id="gender-label">
-                                                Gender (optional)
-                                            </FieldLabel>
-                                            <div
-                                                role="radiogroup"
-                                                aria-labelledby="gender-label"
-                                                className="grid grid-cols-2 gap-3"
-                                            >
-                                                {genders.map((option) => (
-                                                    <label
-                                                        key={option.value}
-                                                        className="flex h-12 cursor-pointer items-center justify-center rounded-lg border border-input bg-background px-3 text-base transition-colors has-checked:border-primary has-checked:bg-primary has-checked:text-primary-foreground has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
-                                                    >
-                                                        <input
-                                                            type="radio"
-                                                            name="gender"
-                                                            value={option.value}
-                                                            defaultChecked={
-                                                                saved?.gender ===
-                                                                option.value
+                                                >
+                                                    <FieldLabel htmlFor="full_name">
+                                                        Full name
+                                                    </FieldLabel>
+                                                    <Input
+                                                        id="full_name"
+                                                        name="full_name"
+                                                        autoComplete="name"
+                                                        defaultValue={
+                                                            saved?.fullName ??
+                                                            ''
+                                                        }
+                                                        placeholder="Enter full name"
+                                                        className="h-12 px-3 text-base md:text-base"
+                                                        required
+                                                        aria-invalid={
+                                                            !!errors.full_name
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.full_name}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                            {showNationality && (
+                                                <Field
+                                                    className="sm:col-span-2"
+                                                    data-invalid={
+                                                        !!errors.nationality
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="nationality">
+                                                        Nationality
+                                                        {nationalityRequired
+                                                            ? ''
+                                                            : ' (optional)'}
+                                                    </FieldLabel>
+                                                    <CountrySelect
+                                                        id="nationality"
+                                                        name="nationality"
+                                                        options={countries}
+                                                        value={nationality}
+                                                        onValueChange={(
+                                                            code,
+                                                        ) => {
+                                                            setNationality(
+                                                                code,
+                                                            );
+
+                                                            if (code) {
+                                                                setKind(
+                                                                    kindFor(
+                                                                        code,
+                                                                    ),
+                                                                );
                                                             }
-                                                            className="sr-only"
-                                                        />
-                                                        {option.label}
-                                                    </label>
-                                                ))}
-                                            </div>
-                                            <FieldError>
-                                                {errors.gender}
-                                            </FieldError>
-                                        </Field>
-                                        <Field data-invalid={!!errors.phone}>
-                                            <FieldLabel htmlFor="phone">
-                                                Phone
-                                            </FieldLabel>
-                                            <Input
-                                                id="phone"
-                                                name="phone"
-                                                type="tel"
-                                                autoComplete="tel"
-                                                defaultValue={
-                                                    contact.includes('@')
-                                                        ? undefined
-                                                        : contact
-                                                }
-                                                className="min-h-12 text-base"
-                                                required
-                                                aria-invalid={!!errors.phone}
-                                            />
-                                            <FieldError>
-                                                {errors.phone}
-                                            </FieldError>
-                                        </Field>
-                                        <Field data-invalid={!!errors.email}>
-                                            <FieldLabel htmlFor="email">
-                                                Email
-                                            </FieldLabel>
-                                            <Input
-                                                id="email"
-                                                name="email"
-                                                type="email"
-                                                autoComplete="email"
-                                                defaultValue={
-                                                    contact.includes('@')
-                                                        ? contact
-                                                        : undefined
-                                                }
-                                                className="min-h-12 text-base"
-                                                required
-                                                aria-invalid={!!errors.email}
-                                            />
-                                            <FieldError>
-                                                {errors.email}
-                                            </FieldError>
-                                        </Field>
-                                    </FieldGroup>
-                                </CardContent>
-                            </Card>
+                                                        }}
+                                                        invalid={
+                                                            !!errors.nationality
+                                                        }
+                                                        className="h-12 text-base md:text-base [&_input]:h-full [&_input]:text-base md:[&_input]:text-base"
+                                                    />
+                                                    <FieldError>
+                                                        {errors.nationality}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                            {!known && (
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.date_of_birth
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="date_of_birth">
+                                                        {saved?.hasDateOfBirth
+                                                            ? 'Date of birth (saved, leave blank to keep)'
+                                                            : 'Date of birth (optional)'}
+                                                    </FieldLabel>
+                                                    <Input
+                                                        id="date_of_birth"
+                                                        name="date_of_birth"
+                                                        type="date"
+                                                        autoComplete="bday"
+                                                        className="h-12 px-3 text-base md:text-base"
+                                                        aria-invalid={
+                                                            !!errors.date_of_birth
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.date_of_birth}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                            {!known && (
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.gender
+                                                    }
+                                                >
+                                                    <FieldLabel id="gender-label">
+                                                        Gender (optional)
+                                                    </FieldLabel>
+                                                    <div
+                                                        role="radiogroup"
+                                                        aria-labelledby="gender-label"
+                                                        className="grid grid-cols-2 gap-3"
+                                                    >
+                                                        {genders.map(
+                                                            (option) => (
+                                                                <label
+                                                                    key={
+                                                                        option.value
+                                                                    }
+                                                                    className="flex h-12 cursor-pointer items-center justify-center rounded-lg border border-input bg-background px-3 text-base transition-colors has-checked:border-primary has-checked:bg-primary has-checked:text-primary-foreground has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="gender"
+                                                                        value={
+                                                                            option.value
+                                                                        }
+                                                                        defaultChecked={
+                                                                            saved?.gender ===
+                                                                            option.value
+                                                                        }
+                                                                        className="sr-only"
+                                                                    />
+                                                                    {
+                                                                        option.label
+                                                                    }
+                                                                </label>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                    <FieldError>
+                                                        {errors.gender}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                            {showPhone && (
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.phone
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="phone">
+                                                        Phone
+                                                    </FieldLabel>
+                                                    <Input
+                                                        id="phone"
+                                                        name="phone"
+                                                        type="tel"
+                                                        autoComplete="tel"
+                                                        defaultValue={
+                                                            contact.includes(
+                                                                '@',
+                                                            )
+                                                                ? undefined
+                                                                : contact
+                                                        }
+                                                        className="min-h-12 text-base"
+                                                        required
+                                                        aria-invalid={
+                                                            !!errors.phone
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.phone}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                            {showEmail && (
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.email
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="email">
+                                                        Email
+                                                    </FieldLabel>
+                                                    <Input
+                                                        id="email"
+                                                        name="email"
+                                                        type="email"
+                                                        autoComplete="email"
+                                                        defaultValue={
+                                                            contact.includes(
+                                                                '@',
+                                                            )
+                                                                ? contact
+                                                                : undefined
+                                                        }
+                                                        className="min-h-12 text-base"
+                                                        required
+                                                        aria-invalid={
+                                                            !!errors.email
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.email}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                        </FieldGroup>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
 
                         <Card>

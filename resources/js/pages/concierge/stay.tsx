@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { CalendarClock, Sun, TimerOff } from 'lucide-react';
+import { CalendarClock, CircleCheck, Sun, TimerOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CardStep } from '@/components/concierge/card-step';
 import { CheckedOutStep } from '@/components/concierge/checked-out-step';
@@ -89,6 +89,15 @@ export default function ConciergeStay({
                     <AlertTitle>You're early, and that's lovely</AlertTitle>
                     <AlertDescription>
                         {`Fill in your details now and you'll be ready to go. Check-in opens on ${friendlyDate(stay.arrivalDate)}${stay.checkInTime ? ` from ${stay.checkInTime}` : ''}, and your room will be waiting.`}
+                    </AlertDescription>
+                </Alert>
+            )}
+            {stay.step === 'identity' && stay.identity?.hideKnown && (
+                <Alert className="mb-6 gap-y-1 p-4">
+                    <CircleCheck />
+                    <AlertTitle>Your room is booked</AlertTitle>
+                    <AlertDescription>
+                        {`Booking ${stay.reference}. We already have your details. Add your ID to finish.`}
                     </AlertDescription>
                 </Alert>
             )}

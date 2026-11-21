@@ -4,6 +4,7 @@ namespace App\Http\Requests\Concierge;
 
 use App\Data\Kiosk\KioskIdentityData;
 use App\Http\Requests\Kiosk\StoreStayIdentityRequest;
+use App\Services\Kiosk\KioskStays;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
@@ -20,13 +21,19 @@ class SaveIdentityRequest extends StoreStayIdentityRequest
      */
     public function rules(): array
     {
+        // The walk-in booking form extends this request and has no stay yet.
+        $stay = $this->attributes->get('concierge.stay');
+        $guest = $stay === null ? null : app(KioskStays::class)->guest($stay);
+
         return [
             ...parent::rules(),
+            // A detail the profile already holds is not asked again, and the action keeps the saved one.
+            'full_name' => filled($guest?->full_name) ? ['nullable', 'string', 'max:150'] : parent::rules()['full_name'],
             // Blank is allowed with `keep_saved_document`: the action then keeps the guest's saved document of that kind.
             'number' => ['required_without:keep_saved_document', 'nullable', 'string', 'min:4', 'max:40', Rule::when($this->input('kind') === 'my_kad', ['digits:12'])],
             'keep_saved_document' => ['nullable', 'boolean'],
-            'email' => ['required', 'email:rfc', 'max:254'],
-            'phone' => ['required', 'string', 'regex:/^[0-9+()\s-]{6,30}$/'],
+            'email' => [filled($guest?->email) ? 'nullable' : 'required', 'email:rfc', 'max:254'],
+            'phone' => [filled($guest?->phone) ? 'nullable' : 'required', 'string', 'regex:/^[0-9+()\s-]{6,30}$/'],
             'scan' => ['nullable', 'image', 'max:8192'],
             'scan_back' => ['nullable', 'image', 'max:8192'],
         ];
