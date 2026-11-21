@@ -82,6 +82,10 @@ type Props = {
     canViewCompany: boolean;
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
+    salesPeople?: App.Data.Reservations.SalesPersonOptionData[];
+    marketSegments?: App.Data.Reservations.MarketSegmentData[];
+    hasMarketSegments: boolean;
+    remarkKinds: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
@@ -211,6 +215,10 @@ export default function ReservationShow({
     canViewCompany,
     canOverrideCredit,
     companies,
+    salesPeople,
+    marketSegments,
+    hasMarketSegments,
+    remarkKinds,
     addUnitOptions,
     chargeItems,
     chargeCodes,
@@ -424,6 +432,10 @@ export default function ReservationShow({
                             receiptPaymentIds={receiptPaymentIds}
                             canOverrideCredit={canOverrideCredit}
                             companies={companies}
+                            salesPeople={salesPeople}
+                            marketSegments={marketSegments}
+                            hasMarketSegments={hasMarketSegments}
+                            remarkKinds={remarkKinds}
                             currency={currency}
                         />
                     }

@@ -67,6 +67,9 @@ class CreateBooking
                     creditOverrideReason: $data->creditOverrideReason,
                     groupName: $data->groupName,
                     notes: $data->notes,
+                    salesPersonId: $data->salesPersonId,
+                    marketSegmentId: $data->marketSegmentId,
+                    remarks: $data->remarks,
                 ), $fromChannel, $allowPastArrival);
 
                 if ($result->isRefused()) {

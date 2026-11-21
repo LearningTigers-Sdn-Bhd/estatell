@@ -17,6 +17,7 @@ use App\Enums\IdentityDocumentType;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
+use App\Http\Requests\Concerns\ValidatesRemarks;
 use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\BookingSource;
 use App\Models\Guest;
@@ -33,6 +34,8 @@ use LogicException;
 
 class StoreBookingRequest extends FormRequest
 {
+    use ValidatesRemarks;
+
     /**
      * The `can:reservations.manage` route middleware authorizes this request.
      */
@@ -90,6 +93,9 @@ class StoreBookingRequest extends FormRequest
             'boat_out.note' => ['nullable', 'string', 'max:255'],
             'group_name' => ['nullable', 'string', 'max:150'],
             'company_id' => ['nullable', 'integer'],
+            'sales_person_id' => ['nullable', 'integer'],
+            'market_segment_id' => ['nullable', 'integer'],
+            ...$this->remarkRules(),
             'credit_override_reason' => ['nullable', 'string', 'max:500'],
             'billing_mode' => ['nullable', Rule::enum(BillingMode::class)],
             'collected_taxes_payer' => ['nullable', Rule::enum(CollectedTaxesPayer::class)],
@@ -265,6 +271,9 @@ class StoreBookingRequest extends FormRequest
             companyId: $this->user()->can(PermissionEnum::CompanyView->value) && $this->filled('company_id') ? $this->integer('company_id') : null,
             creditOverrideReason: $this->user()->can(PermissionEnum::CompanyCreditOverride->value) ? $this->validated('credit_override_reason') : null,
             notes: $this->validated('notes'),
+            salesPersonId: $this->filled('sales_person_id') ? $this->integer('sales_person_id') : null,
+            marketSegmentId: $this->filled('market_segment_id') ? $this->integer('market_segment_id') : null,
+            remarks: $this->remarks(),
         );
     }
 

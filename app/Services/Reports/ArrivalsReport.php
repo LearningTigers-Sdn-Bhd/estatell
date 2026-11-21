@@ -57,6 +57,12 @@ class ArrivalsReport implements HasTotals, Report
                 ->orderBy('arrival_date')
                 ->orderBy('arrival_time')
                 ->when($boats, fn ($query) => $query->with('boatTrips'))
+                ->with([
+                    'reservation.creator', 'reservation.salesPerson', 'reservation.marketSegment', 'reservation.remarks',
+                    'ratePlan.inclusions' => fn ($inclusions) => $inclusions->whereNotNull('meal_period_id')->with('mealPeriod'),
+                ])
+                ->withCount('nights')
+                ->withSum('nights', 'amount')
                 ->orderBy('id'),
             $rowKeys,
             fn (array $unitIds): array => $this->roomBox->assignmentsForUnits($unitIds),
@@ -84,6 +90,19 @@ class ArrivalsReport implements HasTotals, Report
             'guests' => null,
             'company' => null,
             'status' => null,
+            'departure' => null,
+            'departure_time' => null,
+            'rate' => null,
+            'rate_plan' => null,
+            'meal_plan' => null,
+            'source' => null,
+            'market_segment' => null,
+            'sales_person' => null,
+            'booked_by' => null,
+            'housekeeping_remarks' => null,
+            'dietary_remarks' => null,
+            'package_remarks' => null,
+            'payment_remarks' => null,
             ...$this->unitRows->totalFigures($rows),
         ]);
     }

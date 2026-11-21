@@ -20,11 +20,14 @@ use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationKeyCardController;
+use App\Http\Controllers\Reservations\ReservationMarketSegmentController;
 use App\Http\Controllers\Reservations\ReservationNightPriceController;
 use App\Http\Controllers\Reservations\ReservationOldFolioController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationPaymentProofController;
+use App\Http\Controllers\Reservations\ReservationRemarksController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
+use App\Http\Controllers\Reservations\ReservationSalesPersonController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
 use App\Http\Controllers\Reservations\ReservationUnitPartyController;
@@ -198,6 +201,9 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
 
     Route::middleware('can:'.PermissionEnum::ReservationsManage->value)->prefix('{reservation}')->group(function () {
         Route::put('group', [ReservationGroupController::class, 'update'])->name('group.update');
+        Route::put('sales-person', [ReservationSalesPersonController::class, 'update'])->name('sales-person.update');
+        Route::put('market-segment', [ReservationMarketSegmentController::class, 'update'])->name('market-segment.update');
+        Route::put('remarks', [ReservationRemarksController::class, 'update'])->name('remarks.update');
         Route::put('booker', [ReservationBookerController::class, 'update'])->middleware('can:'.PermissionEnum::GuestsManage->value)->name('booker.update');
         Route::put('company', [ReservationCompanyController::class, 'update'])->middleware('can:'.PermissionEnum::CompanyView->value)->name('company.update');
         Route::middleware('boats')->put('boat-trips', [ReservationBoatTripController::class, 'setMany'])->name('boat-trips.set-many');

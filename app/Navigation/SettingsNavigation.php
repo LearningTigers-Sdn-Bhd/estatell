@@ -86,6 +86,12 @@ class SettingsNavigation
                     icon: 'ticket',
                     active: request()->routeIs('settings.booking-sources.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Market segments'),
+                    href: route('settings.market-segments.index', ['property' => $property->code], absolute: false),
+                    icon: 'chart-pie',
+                    active: request()->routeIs('settings.market-segments.*'),
+                ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
                     title: __('Boats'),
                     href: route('settings.boats', ['property' => $property->code], absolute: false),

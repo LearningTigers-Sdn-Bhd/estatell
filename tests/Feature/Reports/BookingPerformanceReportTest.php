@@ -3,11 +3,13 @@
 require_once __DIR__.'/../Support/ReportSetup.php';
 
 use App\Enums\DefaultRoleEnum;
+use App\Models\MarketSegment;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomType;
+use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -73,7 +75,7 @@ test('the page needs reports.view and is scoped to the property', function () {
         ->where('maxRangeDays', 366)
         ->where('group', 'room_type')
         ->where('sort', '-revenue')
-        ->has('groupOptions', 5)
+        ->has('groupOptions', 7)
         ->has('layout.columns', 6));
 });
 
@@ -173,4 +175,36 @@ test('the PDF and the spreadsheet export the grouped rows', function () {
 
     $csv->assertOk();
     expect($csv->streamedContent())->toContain('Booking.com')->toContain('200');
+});
+
+test('grouped by sales person, bookings without one share a row', function () {
+    [$user, $property] = reportSetup();
+    $roomType = RoomType::factory()->for($property)->create();
+    $jane = User::factory()->for($property)->create(['name' => 'Jane']);
+
+    bookingPerformanceUnit(bookingPerformanceReservation($property, '2026-10-05 04:00:00', attributes: ['sales_person_id' => $jane->id]), $roomType, '2026-10-20', '2026-10-22');
+    bookingPerformanceUnit(bookingPerformanceReservation($property, '2026-10-06 04:00:00', attributes: ['sales_person_id' => $jane->id]), $roomType, '2026-10-20', '2026-10-21');
+    bookingPerformanceUnit(bookingPerformanceReservation($property, '2026-10-06 04:00:00'), $roomType, '2026-10-20', '2026-10-21');
+
+    $this->actingAs($user)->get(bookingPerformanceUrl($property, '?from=2026-10-01&to=2026-10-10&group=sales_person'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => bookingPerformanceRows($rows) === [
+            'Jane' => [2, 3, '300.00', '100.00', 15],
+            'No sales person' => [1, 1, '100.00', '100.00', 14],
+        ])
+        ->where('totals.figures.bookings', 3));
+});
+
+test('grouped by market segment, bookings without one share a row', function () {
+    [$user, $property] = reportSetup();
+    $roomType = RoomType::factory()->for($property)->create();
+    $leisure = MarketSegment::factory()->for($property)->inactive()->create(['name' => 'Leisure']);
+
+    bookingPerformanceUnit(bookingPerformanceReservation($property, '2026-10-05 04:00:00', attributes: ['market_segment_id' => $leisure->id]), $roomType, '2026-10-20', '2026-10-22');
+    bookingPerformanceUnit(bookingPerformanceReservation($property, '2026-10-06 04:00:00'), $roomType, '2026-10-20', '2026-10-21');
+
+    $this->actingAs($user)->get(bookingPerformanceUrl($property, '?from=2026-10-01&to=2026-10-10&group=market_segment'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => bookingPerformanceRows($rows) === [
+            'Leisure' => [1, 2, '200.00', '100.00', 15],
+            'No market segment' => [1, 1, '100.00', '100.00', 14],
+        ]));
 });

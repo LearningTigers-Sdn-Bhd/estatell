@@ -5,16 +5,12 @@ namespace App\Services\Reports;
 use App\Data\Reports\BookingPerformanceRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportTotals;
-use App\Data\Reservations\BookingSourceBadgeData;
-use App\Data\Shared\BadgeData;
 use App\Enums\BookingSourceType;
 use App\Enums\ReportGroup;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
-use App\Models\BookingSource;
 use App\Models\Property;
-use App\Models\RatePlan;
-use App\Models\RoomType;
+use App\Services\Reports\BookingPerformance\GroupLabel;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
@@ -23,10 +19,11 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Bookings made in the dates (by `reservations.created_at` in the property time zone), with their room nights, room
- * revenue (`unit_nights.amount`), ADR and lead time, grouped by room type, source, rate plan, status or booking date.
+ * revenue (`unit_nights.amount`), ADR and lead time, grouped by room type, source, rate plan, sales person, market segment, status or booking date.
  * Only overnight units count. A booking with units in two groups counts in both, and once in the total. Cancelled and
  * no-show units count only when grouped by status. Walk-ins have no lead time. See
- * docs/22-reports/02-guest-list-and-daily-report.md#5-booking-performance.
+ * docs/22-reports/02-guest-list-and-daily-report.md#5-booking-performance. Each group tab is a `BookingPerformanceGrouping`
+ * strategy chosen by `ReportGroup::bookingPerformanceGrouping()`.
  */
 class BookingPerformanceReport implements HasTotals, Report
 {
@@ -37,19 +34,14 @@ class BookingPerformanceReport implements HasTotals, Report
     public function rows(Property $property, ReportFilters $filters, ?array $rowKeys = null): array
     {
         $grouping = $filters->group ?? ReportGroup::RoomType;
+        $strategy = app($grouping->bookingPerformanceGrouping());
         $units = $this->units($property, $filters, $grouping);
 
         /** @var array<string, array{id: int|string|null, reservationIds: array<int, true>, nights: int, revenue: BigDecimal, leadDays: int, leadUnits: int}> $buckets */
         $buckets = [];
 
         foreach ($units as $unit) {
-            $id = match ($grouping) {
-                ReportGroup::Source => (int) $unit->booking_source_id,
-                ReportGroup::RatePlan => $unit->rate_plan_id === null ? null : (int) $unit->rate_plan_id,
-                ReportGroup::Status => (string) $unit->status,
-                ReportGroup::Day => (string) $unit->booked_on,
-                default => (int) $unit->room_type_id,
-            };
+            $id = $strategy->idOf($unit);
             $key = $grouping->value.':'.($id ?? 'none');
             $bucket = $buckets[$key] ?? ['id' => $id, 'reservationIds' => [], 'nights' => 0, 'revenue' => BigDecimal::zero(), 'leadDays' => 0, 'leadUnits' => 0];
             $bucket['reservationIds'][(int) $unit->reservation_id] = true;
@@ -68,32 +60,25 @@ class BookingPerformanceReport implements HasTotals, Report
             $buckets = array_intersect_key($buckets, array_flip(array_map('strval', $rowKeys)));
         }
 
-        $names = $this->names($property, $grouping, array_column($buckets, 'id'));
+        $labels = $strategy->labels($property, array_values(array_filter(array_column($buckets, 'id'), fn (int|string|null $id): bool => $id !== null)));
         $rows = [];
 
         foreach ($buckets as $key => $bucket) {
             $id = $bucket['id'];
             $reservationIds = array_keys($bucket['reservationIds']);
-            $source = $grouping === ReportGroup::Source ? $names->get($id) : null;
-            $status = $grouping === ReportGroup::Status ? UnitStatus::from((string) $id) : null;
+            $label = $id === null ? new GroupLabel($strategy->noneLabel()) : ($labels[$id] ?? new GroupLabel(''));
 
             $rows[] = new BookingPerformanceRow(
                 key: $key,
                 grouping: $grouping,
-                group: match (true) {
-                    $source instanceof BookingSource => $source->name,
-                    $status !== null => $status->label(),
-                    $grouping === ReportGroup::Day => (string) $id,
-                    $id === null => __('No rate plan'),
-                    default => (string) $names->get($id, ''),
-                },
+                group: $label->name,
                 bookings: count($reservationIds),
                 room_nights: $bucket['nights'],
                 revenue: (string) $bucket['revenue']->toScale(2, RoundingMode::HalfUp),
                 adr: $this->adr($bucket['revenue'], $bucket['nights']),
                 lead_time: $this->leadTime($bucket['leadDays'], $bucket['leadUnits']),
-                source: $source instanceof BookingSource ? BookingSourceBadgeData::fromModel($source) : null,
-                status: $status === null ? null : BadgeData::fromUnitStatus($status),
+                source: $label->source,
+                status: $label->status,
                 reservationIds: $reservationIds,
                 leadDays: $bucket['leadDays'],
                 leadUnits: $bucket['leadUnits'],
@@ -131,7 +116,7 @@ class BookingPerformanceReport implements HasTotals, Report
      * One row per overnight unit of the bookings made in the dates, with its room nights and room revenue. The dates
      * are turned into the stored (app time zone) bounds, so the `created_at` index is used.
      *
-     * @return Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}>
+     * @return Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}>
      */
     private function units(Property $property, ReportFilters $filters, ReportGroup $grouping): Collection
     {
@@ -146,7 +131,7 @@ class BookingPerformanceReport implements HasTotals, Report
 
         $bookedOn = '((reservations.created_at AT TIME ZONE ?) AT TIME ZONE ?)::date';
 
-        /** @var Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}> */
+        /** @var Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}> */
         return DB::table('reservation_units')
             ->join('reservations', 'reservations.id', '=', 'reservation_units.reservation_id')
             ->join('booking_sources', 'booking_sources.id', '=', 'reservations.booking_source_id')
@@ -158,28 +143,10 @@ class BookingPerformanceReport implements HasTotals, Report
             ->where('reservations.created_at', '<', $end->toDateTimeString())
             ->when($grouping !== ReportGroup::Status, fn ($query) => $query->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory())))
             ->selectRaw(
-                "reservation_units.reservation_id, reservation_units.room_type_id, reservation_units.rate_plan_id, reservation_units.status, reservations.booking_source_id, {$bookedOn} as booked_on, GREATEST(0, reservation_units.arrival_date - {$bookedOn}) as lead_days, (booking_sources.type = ?) as is_walk_in, COALESCE(nights.nights, 0) as nights, COALESCE(nights.amount, 0) as amount",
+                "reservation_units.reservation_id, reservation_units.room_type_id, reservation_units.rate_plan_id, reservation_units.status, reservations.booking_source_id, reservations.sales_person_id, reservations.market_segment_id, {$bookedOn} as booked_on, GREATEST(0, reservation_units.arrival_date - {$bookedOn}) as lead_days, (booking_sources.type = ?) as is_walk_in, COALESCE(nights.nights, 0) as nights, COALESCE(nights.amount, 0) as amount",
                 [$appTimeZone, $timeZone, $appTimeZone, $timeZone, BookingSourceType::WalkIn->value],
             )
             ->get();
-    }
-
-    /**
-     * The names of the room types or rate plans, or the booking sources for their badges, by id.
-     *
-     * @param  list<int|string|null>  $ids
-     * @return Collection<int|string, mixed>
-     */
-    private function names(Property $property, ReportGroup $grouping, array $ids): Collection
-    {
-        $ids = array_values(array_filter($ids, fn (int|string|null $id): bool => is_int($id)));
-
-        return match ($grouping) {
-            ReportGroup::RoomType => RoomType::query()->where('property_id', $property->id)->whereIn('id', $ids)->pluck('name', 'id'),
-            ReportGroup::RatePlan => RatePlan::query()->where('property_id', $property->id)->whereIn('id', $ids)->pluck('name', 'id'),
-            ReportGroup::Source => BookingSource::query()->where('property_id', $property->id)->whereIn('id', $ids)->get()->keyBy('id'),
-            default => collect(),
-        };
     }
 
     private function adr(BigDecimal $revenue, int $nights): ?string

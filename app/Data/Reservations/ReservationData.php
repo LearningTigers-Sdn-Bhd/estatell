@@ -3,13 +3,15 @@
 namespace App\Data\Reservations;
 
 use App\Data\Shared\BadgeData;
+use App\Enums\RemarkKind;
 use App\Enums\ReservationStatus;
 use App\Enums\StayType;
 use App\Models\Reservation;
+use App\Models\ReservationRemark;
 use Spatie\LaravelData\Data;
 
 /**
- * The header and summary card of the reservation page. Expects `booker`, `creator` and `company` to be loaded. The figures come
+ * The header and summary card of the reservation page. Expects `booker`, `creator`, `salesPerson`, `marketSegment`, `remarks` and `company` to be loaded. The figures come
  * from the units that hold inventory, and the dates fall back to all units when none does.
  */
 class ReservationData extends Data
@@ -41,6 +43,12 @@ class ReservationData extends Data
         public ?string $companyName,
         public string $createdOn,
         public ?string $createdBy,
+        public ?int $salesPersonId,
+        public ?string $salesPersonName,
+        public ?int $marketSegmentId,
+        public ?string $marketSegmentName,
+        /** @var list<ReservationRemarkData> */
+        public array $remarks,
         public ReservationBookerData $booker,
         public ?CollectedTaxesData $collectedTaxes = null,
     ) {}
@@ -85,8 +93,34 @@ class ReservationData extends Data
             companyName: $reservation->company?->name,
             createdOn: $reservation->created_at->toDateString(),
             createdBy: $reservation->creator?->name,
+            salesPersonId: $reservation->sales_person_id,
+            salesPersonName: $reservation->salesPerson?->name,
+            marketSegmentId: $reservation->market_segment_id,
+            marketSegmentName: $reservation->marketSegment?->name,
+            remarks: self::remarksInOrder($reservation),
             booker: ReservationBookerData::fromModel($reservation->booker, $canViewGuest),
             collectedTaxes: $collectedTaxes,
         );
+    }
+
+    /**
+     * The remarks of the booking in `RemarkKind` order.
+     *
+     * @return list<ReservationRemarkData>
+     */
+    private static function remarksInOrder(Reservation $reservation): array
+    {
+        $byKind = $reservation->remarks->keyBy(fn (ReservationRemark $remark): string => $remark->kind->value);
+        $remarks = [];
+
+        foreach (RemarkKind::cases() as $kind) {
+            $remark = $byKind->get($kind->value);
+
+            if ($remark !== null) {
+                $remarks[] = ReservationRemarkData::fromModel($remark);
+            }
+        }
+
+        return $remarks;
     }
 }

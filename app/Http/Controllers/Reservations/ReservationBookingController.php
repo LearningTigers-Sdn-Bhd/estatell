@@ -18,6 +18,7 @@ use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\OldFolioMode;
 use App\Enums\PermissionEnum;
+use App\Enums\RemarkKind;
 use App\Enums\SellUnit;
 use App\Features\Boats;
 use App\Http\Controllers\Controller;
@@ -49,8 +50,10 @@ use App\Services\Reservations\BookingFormBack;
 use App\Services\Reservations\BookingPrefill;
 use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\BookingSourceOptions;
+use App\Services\Reservations\MarketSegments;
 use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationRefusals;
+use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\WalkInOutcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -412,6 +415,9 @@ class ReservationBookingController extends Controller
             'collectedTaxNames' => $companies === [] ? [] : app(CollectedTaxPayer::class)->taxNames($property->id),
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $companies,
+            'salesPeople' => app(SalesPeople::class)->options($property),
+            'marketSegments' => app(MarketSegments::class)->options($property),
+            'remarkKinds' => RemarkKind::options(),
             'hasDayUse' => $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->exists(),
             'hasBoats' => Feature::for($property)->active(Boats::class),
             'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],

@@ -74,28 +74,42 @@ Reports → Audit → Activity log opens `GET /p/{code}/reports/activity-log` (`
 
 Arrivals lists the reservation units that arrive in the range. The row `key` is the reservation unit id.
 
-| Key            | Label             | Align | Default visible |
-| -------------- | ----------------- | ----- | --------------- |
-| `reservation`  | Reservation no.   | left  | ✓               |
-| `guest`        | Guest             | left  | ✓               |
-| `phone`        | Phone             | left  |                 |
-| `arrival`      | Arrival           | left  | ✓               |
-| `arrival_time` | Arrival time      | left  | ✓               |
-| `boat`         | Boat              | left  | ✓               |
-| `nights`       | Nights            | right | ✓               |
-| `unit`         | Room type / room  | left  | ✓               |
-| `room_type`    | Room type         | left  |                 |
-| `room`         | Room              | left  |                 |
-| `guests`       | Adults / children | right |                 |
-| `adults`       | Adults            | right |                 |
-| `children`     | Children          | right |                 |
-| `company`      | Company           | left  |                 |
-| `status`       | Status            | left  | ✓               |
-| `total`        | Total             | right | ✓               |
-| `paid`         | Paid              | right | ✓               |
-| `balance`      | Balance           | right | ✓               |
+| Key                    | Label                | Align | Default visible |
+| ---------------------- | -------------------- | ----- | --------------- |
+| `reservation`          | Reservation no.      | left  | ✓               |
+| `guest`                | Guest                | left  | ✓               |
+| `phone`                | Phone                | left  |                 |
+| `arrival`              | Arrival              | left  | ✓               |
+| `arrival_time`         | Arrival time         | left  | ✓               |
+| `departure`            | Departure            | left  |                 |
+| `departure_time`       | Departure time       | left  |                 |
+| `boat`                 | Boat                 | left  | ✓               |
+| `nights`               | Nights               | right | ✓               |
+| `unit`                 | Room type / room     | left  | ✓               |
+| `room_type`            | Room type            | left  |                 |
+| `room`                 | Room                 | left  |                 |
+| `rate`                 | Rate                 | right |                 |
+| `rate_plan`            | Rate plan            | left  |                 |
+| `meal_plan`            | Meal plan            | left  |                 |
+| `guests`               | Adults / children    | right |                 |
+| `adults`               | Adults               | right |                 |
+| `children`             | Children             | right |                 |
+| `company`              | Company              | left  |                 |
+| `source`               | Booking source       | left  |                 |
+| `market_segment`       | Market segment       | left  |                 |
+| `sales_person`         | Sales person         | left  |                 |
+| `booked_by`            | Booked by            | left  |                 |
+| `status`               | Status               | left  | ✓               |
+| `total`                | Total                | right | ✓               |
+| `paid`                 | Paid                 | right | ✓               |
+| `balance`              | Balance              | right | ✓               |
+| `housekeeping_remarks` | Housekeeping remarks | left  |                 |
+| `dietary_remarks`      | Dietary remarks      | left  |                 |
+| `package_remarks`      | Package remarks      | left  |                 |
+| `payment_remarks`      | Payment remarks      | left  |                 |
 
 - Units that hold inventory count (Confirmed, Checked in, Checked out). Cancelled and no-show units are left out, because nobody arrives. **Guest** and **Phone** are the primary guest of the unit, or the booker when the unit has none. **Room type / room** shows the room or bed of the first night when one is assigned. **Total**, **Paid** and **Balance** are the figures of the reservation (its folios that are not Voided), from `FolioBalance::figuresForReservations()`. Total is the Charge, Tax and Adjustment lines of the whole stay, not the revenue earned in the date range (use Revenue for that). Paid is the Payment lines shown positive, so refunds reduce it and a city ledger settlement counts as paid. `Total - Paid = Balance`.
+- **Tanini columns** (hidden by default, added 2026-11-22 for requirement 7.1; a property turns them on in the Layout Sheet): **Departure** and **Departure time** of the unit. **Rate** is the average room price per night of the unit (`unit_nights.amount`, before tax; a money column, not summed). **Rate plan** is the unit's plan name (Tanini's "Rate type"). **Meal plan** lists the meal periods the plan includes, in meal time order ("Breakfast, Lunch, Dinner"), from the same inclusions as Meal counts (`MealPlanLabel`); empty when it includes none. **Booking source**, [Market segment](../12-reservations/15-market-segments.md), [Sales person](../12-reservations/12-sales-person.md) and **Booked by** (`created_by`, empty for channel and online bookings) are the reservation's. The four [remark](../12-reservations/16-remarks.md) columns go after Balance. Tanini's Deposit and Balance Due are **Paid** and **Balance**; Res. Type is **Status**. Pick Up and Drop Off wait for land transfers (requirement 5.1); the **Boat** column covers boats.
 - **Split columns** (hidden by default): `room_type` and `room` split **Room type / room**; `room` is empty when no room is assigned. `adults` and `children` split **Adults / children** and are whole numbers. **Arrival time** is `reservation_units.arrival_time` as `H:i`. It is visible by default. Arrivals has a total row that sums `nights`, `adults` and `children` and counts the total, paid and balance of each reservation once (see **Money totals** below).
 
 ## Other report columns

@@ -3,9 +3,11 @@ import {
     Activity,
     Bed,
     CalendarDays,
+    ChartPie,
     CircleDot,
     Globe,
     Tag,
+    UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
@@ -88,6 +90,8 @@ const icons: Partial<Record<App.Enums.ReportGroup, LucideIcon>> = {
     room_type: Bed,
     source: Globe,
     rate_plan: Tag,
+    sales_person: UserRound,
+    market_segment: ChartPie,
     status: CircleDot,
     day: CalendarDays,
 };

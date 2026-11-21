@@ -77,6 +77,10 @@ class ReservationResult
 
     public const REFUSAL_ROOM_REQUIRED = 'room_required';
 
+    public const REFUSAL_SALES_PERSON_NOT_AVAILABLE = 'sales_person_not_available';
+
+    public const REFUSAL_MARKET_SEGMENT_NOT_AVAILABLE = 'market_segment_not_available';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,

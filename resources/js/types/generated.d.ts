@@ -4534,6 +4534,19 @@ status: App.Data.Shared.BadgeData,
 total: string,
 paid: string,
 balance: string,
+departure: string,
+departure_time: string,
+rate: string,
+rate_plan: string,
+meal_plan: string | null,
+source: string,
+market_segment: string | null,
+sales_person: string | null,
+booked_by: string | null,
+housekeeping_remarks: string | null,
+dietary_remarks: string | null,
+package_remarks: string | null,
+payment_remarks: string | null,
 };
 export type BoatManifestRow = {
 key: number,
@@ -5412,6 +5425,11 @@ charged: number,
 difference: string | null,
 error: string | null,
 };
+export type MarketSegmentData = {
+id: number,
+name: string,
+active: boolean,
+};
 export type MoveTargetData = {
 rowKey: string,
 roomTypeId: number,
@@ -5435,6 +5453,9 @@ groupName: string | null,
 notes: string | null,
 companyId: number | null,
 creditOverrideReason: string | null,
+salesPersonId: number | null,
+marketSegmentId: number | null,
+remarks: Partial<Record<App.Enums.RemarkKind, string>>,
 };
 export type NewBookingGuestData = {
 guestId: number | null,
@@ -5454,6 +5475,9 @@ companyId: number | null,
 groupName: string | null,
 notes: string | null,
 creditOverrideReason: string | null,
+salesPersonId: number | null,
+marketSegmentId: number | null,
+remarks: Partial<Record<App.Enums.RemarkKind, string>>,
 };
 export type NewUnitData = {
 roomTypeId: number,
@@ -5582,6 +5606,11 @@ companyId: number | null,
 companyName: string | null,
 createdOn: string,
 createdBy: string | null,
+salesPersonId: number | null,
+salesPersonName: string | null,
+marketSegmentId: number | null,
+marketSegmentName: string | null,
+remarks: App.Data.Reservations.ReservationRemarkData[],
 booker: App.Data.Reservations.ReservationBookerData,
 collectedTaxes: App.Data.Reservations.CollectedTaxesData | null,
 };
@@ -5647,6 +5676,11 @@ ratePlan: string,
 amount: string,
 isOverridden: boolean,
 isCharged: boolean,
+};
+export type ReservationRemarkData = {
+kind: App.Enums.RemarkKind,
+label: string,
+body: string,
 };
 export type ReservationRoomBoxData = {
 state: App.Enums.ReservationRoomBoxState,
@@ -5742,6 +5776,10 @@ isBed: boolean,
 maxAdults: number,
 maxChildren: number,
 enteredPlanId: number | null,
+};
+export type SalesPersonOptionData = {
+id: number,
+name: string,
 };
 export type UnitActionData = {
 key: App.Enums.UnitAction,
@@ -6467,9 +6505,10 @@ export type RegistrationCardField = 'full_name' | 'nationality' | 'identity_docu
 export type RegistrationCardFieldGroup = 'guest' | 'stay' | 'prices';
 export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
+export type RemarkKind = 'housekeeping' | 'dietary' | 'package' | 'payment';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
-export type ReportGroup = 'day' | 'month' | 'method' | 'staff' | 'room_type' | 'source' | 'rate_plan' | 'status';
+export type ReportGroup = 'day' | 'month' | 'method' | 'staff' | 'room_type' | 'source' | 'rate_plan' | 'status' | 'sales_person' | 'market_segment';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'housekeeping-log' | 'house-status' | 'agent-payments' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges' | 'guests' | 'booking-performance' | 'facility-bookings';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';

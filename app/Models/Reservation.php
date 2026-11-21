@@ -30,6 +30,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property BillingMode $billing_mode
  * @property CollectedTaxesPayer|null $collected_taxes_payer Who pays the taxes collected at check-in on this booking. Null follows the company.
  * @property int $booking_source_id
+ * @property int|null $sales_person_id The staff member who sold the booking. See docs/12-reservations/12-sales-person.md.
+ * @property int|null $market_segment_id See docs/12-reservations/15-market-segments.md.
  * @property string|null $external_reference
  * @property string|null $notes
  * @property int|null $created_by
@@ -119,6 +121,30 @@ class Reservation extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function salesPerson(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sales_person_id');
+    }
+
+    /**
+     * @return BelongsTo<MarketSegment, $this>
+     */
+    public function marketSegment(): BelongsTo
+    {
+        return $this->belongsTo(MarketSegment::class);
+    }
+
+    /**
+     * @return HasMany<ReservationRemark, $this>
+     */
+    public function remarks(): HasMany
+    {
+        return $this->hasMany(ReservationRemark::class);
     }
 
     /**

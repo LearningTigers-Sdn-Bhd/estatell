@@ -40,6 +40,7 @@ use App\Http\Controllers\Rates\RatePlanController;
 use App\Http\Controllers\Registration\RegistrationCardController;
 use App\Http\Controllers\Registration\RegistrationTermsController;
 use App\Http\Controllers\Reservations\BookingSourceController;
+use App\Http\Controllers\Reservations\MarketSegmentController;
 use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
@@ -404,6 +405,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('order', [BookingSourceController::class, 'reorder'])->name('reorder');
         Route::put('{bookingSource}', [BookingSourceController::class, 'update'])->name('update');
         Route::delete('{bookingSource}', [BookingSourceController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('market-segments')->name('market-segments.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [MarketSegmentController::class, 'index'])->name('index');
+        Route::post('/', [MarketSegmentController::class, 'store'])->name('store');
+        Route::put('{marketSegment}', [MarketSegmentController::class, 'update'])->name('update');
     });
 
     Route::prefix('discounts')->name('discounts.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

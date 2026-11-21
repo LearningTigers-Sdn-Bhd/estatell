@@ -30,6 +30,7 @@ use App\Enums\PaymentMode;
 use App\Enums\PaymentProofStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\PosQrSessionKind;
+use App\Enums\RemarkKind;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
@@ -80,6 +81,7 @@ use App\Services\Property\MigrationWindow;
 use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\BookingSummary;
+use App\Services\Reservations\MarketSegments;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationBoatSetup;
 use App\Services\Reservations\ReservationDirectory;
@@ -88,6 +90,7 @@ use App\Services\Reservations\ReservationGuestRows;
 use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRoomBox;
 use App\Services\Reservations\ReservationUnitRows;
+use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\UnitActionMenu;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
@@ -499,7 +502,7 @@ class ReservationController extends Controller
     private function renderTab(User $user, Property $property, Reservation $reservation, string $tab, callable $tabProps): Response
     {
         $canViewGuest = $user->can(PermissionEnum::GuestsView->value);
-        $reservation->load(['booker', 'creator', 'company', 'bookingSource']);
+        $reservation->load(['booker', 'creator', 'salesPerson', 'marketSegment', 'remarks', 'company', 'bookingSource']);
         $overview = app(ReservationOverview::class)->build($reservation, $canViewGuest);
         $options = app(ReservationFormOptions::class);
         $hasBoats = Feature::for($property)->active(Boats::class);
@@ -540,6 +543,10 @@ class ReservationController extends Controller
             'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),
             'canOverrideCredit' => $user->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => Inertia::optional(fn () => $user->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : []),
+            'salesPeople' => Inertia::optional(fn () => $canManage ? app(SalesPeople::class)->options($property) : []),
+            'marketSegments' => Inertia::optional(fn () => $canManage ? app(MarketSegments::class)->options($property) : []),
+            'hasMarketSegments' => $property->marketSegments()->exists(),
+            'remarkKinds' => RemarkKind::options(),
             'addUnitOptions' => Inertia::optional(fn () => $options->addUnit($property)),
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
             'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),

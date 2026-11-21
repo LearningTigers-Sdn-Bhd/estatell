@@ -9,6 +9,7 @@ use App\Data\Reservations\NewReservationData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\CompanyStatus;
 use App\Enums\DocumentType;
+use App\Enums\RemarkKind;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
@@ -17,11 +18,14 @@ use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\ReservationRemark;
 use App\Models\RoomType;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\Reservations\MarketSegments;
 use App\Services\Reservations\ReservationShortCode;
+use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\StayChargeTotal;
 use Illuminate\Support\Facades\DB;
 
@@ -36,13 +40,15 @@ class CreateReservation
         private RecordCreditOverride $recordCreditOverride,
         private StayChargeTotal $stayChargeTotal,
         private SetReservationPaymentSchedule $setPaymentSchedule,
+        private SalesPeople $salesPeople,
+        private MarketSegments $marketSegments,
     ) {}
 
     /**
      * Create a reservation and its units in one transaction.
      *
      * A Bed room type line adds one unit for each bed. A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
-     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. A company that pays per booking gives the reservation its payment deadlines (`SetReservationPaymentSchedule`, not for channel bookings). `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
+     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. A sales person must be an active staff user of the property (`sales_person_not_available`), and a market segment an active segment of the property (`market_segment_not_available`). Each remark of `$data->remarks` becomes one `reservation_remarks` row (docs/12-reservations/16-remarks.md). A company that pays per booking gives the reservation its payment deadlines (`SetReservationPaymentSchedule`, not for channel bookings). `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(?User $actor, Property $property, NewReservationData $data, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
     {
@@ -60,6 +66,14 @@ class CreateReservation
 
         if ($data->bookingSource->property_id !== $property->id) {
             return ReservationResult::refused(ReservationResult::REFUSAL_BOOKING_SOURCE_NOT_AVAILABLE);
+        }
+
+        if ($data->salesPersonId !== null && ! $this->salesPeople->isAvailable($property, $data->salesPersonId)) {
+            return ReservationResult::refused(ReservationResult::REFUSAL_SALES_PERSON_NOT_AVAILABLE);
+        }
+
+        if ($data->marketSegmentId !== null && ! $this->marketSegments->isAvailable($property, $data->marketSegmentId)) {
+            return ReservationResult::refused(ReservationResult::REFUSAL_MARKET_SEGMENT_NOT_AVAILABLE);
         }
 
         $stayTypes = array_unique(array_map(fn (NewUnitData $line): string => $line->stayType->value, $data->units));
@@ -94,11 +108,18 @@ class CreateReservation
                 $reservation->forceFill([
                     'property_id' => $property->id,
                     'booking_source_id' => $data->bookingSource->id,
+                    'sales_person_id' => $data->salesPersonId,
+                    'market_segment_id' => $data->marketSegmentId,
                     'reference' => ($this->nextDocumentNumber)($property, DocumentType::Reservation)->reference,
                     'short_code' => $this->reservationShortCode->generate($property),
                     'status' => ReservationStatus::Confirmed,
                     'created_by' => $actor?->id,
                 ])->save();
+
+                foreach ($data->remarks as $kind => $body) {
+                    $remark = new ReservationRemark(['kind' => RemarkKind::from($kind), 'body' => $body]);
+                    $remark->forceFill(['property_id' => $property->id, 'reservation_id' => $reservation->id])->save();
+                }
 
                 $roomCount = count(array_filter($data->units, fn (NewUnitData $line): bool => $line->stayType === StayType::Overnight && $roomTypes->get($line->roomTypeId)?->sell_unit === SellUnit::Room));
 
@@ -129,6 +150,9 @@ class CreateReservation
                         'reference' => $reservation->reference,
                         'booking_source_id' => $data->bookingSource->id,
                         'booking_source' => $data->bookingSource->name,
+                        'sales_person_id' => $data->salesPersonId,
+                        'market_segment_id' => $data->marketSegmentId,
+                        'remarks' => array_keys($data->remarks),
                         'units' => $reservation->units()->count(),
                         'has_notes' => $reservation->notes !== null,
                     ])

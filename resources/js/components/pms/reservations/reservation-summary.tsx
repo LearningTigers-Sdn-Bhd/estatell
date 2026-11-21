@@ -14,8 +14,11 @@ import {
     Receipt,
     Scale,
     StickyNote,
+    MessageSquareText,
+    ChartPie,
     User,
     UserRound,
+    UserCheck,
     Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -304,6 +307,16 @@ export function ReservationSummary({
                         reservation.companyName
                     )}
                 </Row>
+                <Row icon={UserCheck} label="Sales person">
+                    {reservation.salesPersonName ?? (
+                        <span className="text-muted-foreground">None</span>
+                    )}
+                </Row>
+                {reservation.marketSegmentName && (
+                    <Row icon={ChartPie} label="Market segment">
+                        {reservation.marketSegmentName}
+                    </Row>
+                )}
                 <Row icon={CalendarPlus} label="Created at">
                     <DateText date={reservation.createdOn} />
                 </Row>
@@ -320,6 +333,26 @@ export function ReservationSummary({
                     <p className="min-h-0 flex-1 overflow-y-auto text-sm whitespace-pre-line">
                         {reservation.notes}
                     </p>
+                </section>
+            )}
+            {reservation.remarks.length > 0 && (
+                <section className="flex flex-col gap-2 rounded-xl border p-3">
+                    <h2 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        <MessageSquareText aria-hidden className="size-4" />
+                        Remarks
+                    </h2>
+                    <dl className="flex flex-col gap-2 text-sm">
+                        {reservation.remarks.map((remark) => (
+                            <div key={remark.kind} className="flex flex-col">
+                                <dt className="text-muted-foreground">
+                                    {remark.label}
+                                </dt>
+                                <dd className="whitespace-pre-line">
+                                    {remark.body}
+                                </dd>
+                            </div>
+                        ))}
+                    </dl>
                 </section>
             )}
         </div>

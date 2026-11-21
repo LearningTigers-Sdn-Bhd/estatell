@@ -22,7 +22,7 @@ export function errorTabs(errors: Errors): Record<BookingTab, boolean> {
             tabs.discounts = true;
         } else if (/^lines\.\d+\.add_ons/.test(key)) {
             tabs['add-ons'] = true;
-        } else if (key === 'notes') {
+        } else if (key === 'notes' || key.startsWith('remarks')) {
             tabs.notes = true;
         } else if (key.startsWith('lines.') || key.startsWith('guests.')) {
             tabs.rooms = true;

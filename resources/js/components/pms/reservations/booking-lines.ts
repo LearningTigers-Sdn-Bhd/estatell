@@ -56,6 +56,12 @@ export type BookingForm = {
     departure_time: string;
     group_name: string;
     company_id: string;
+    /** The staff member who sold the booking, as text, or "" for none. */
+    sales_person_id?: string;
+    /** The market segment, as text, or "" for none. */
+    market_segment_id?: string;
+    /** The text of each remark kind; empty ones are not saved. */
+    remarks?: Partial<Record<App.Enums.RemarkKind, string>>;
     credit_override_reason: string;
     billing_mode: string;
     /** A `CollectedTaxesPayer` value, or "" for the company's default. */

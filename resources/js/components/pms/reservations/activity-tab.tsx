@@ -5,9 +5,12 @@ import {
     Circle,
     CreditCard,
     History,
+    ChartPie,
+    MessageSquareText,
     Pencil,
     Receipt,
     Ship,
+    UserCheck,
     UserPlus,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -29,6 +32,9 @@ const kindIcons: Record<string, LucideIcon> = {
     'reservation.add_on_added': Receipt,
     'reservation.add_on_removed': Receipt,
     'reservation.group_updated': Pencil,
+    'reservation.sales_person_updated': UserCheck,
+    'reservation.market_segment_updated': ChartPie,
+    'reservation.remarks_updated': MessageSquareText,
     'reservation.boat_trip_set': Ship,
     'reservation.boat_trip_cleared': Ship,
     'reservation.boat_trip_ticked': Ship,

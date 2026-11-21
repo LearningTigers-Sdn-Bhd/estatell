@@ -117,6 +117,8 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { cn } from '@/lib/utils';
 import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
 import { CompanySelect } from '@/components/pms/company-select';
+import { RemarksFields } from '@/components/pms/reservations/remarks-fields';
+import { RecordSelectField } from '@/components/pms/reservations/record-select-field';
 import {
     index,
     migrated,
@@ -196,6 +198,10 @@ type Props = {
     /** The names of the property's taxes with Collect at check-in on. */
     collectedTaxNames: string[];
     companies: App.Data.CityLedger.CompanyOptionData[];
+    salesPeople: App.Data.Reservations.SalesPersonOptionData[];
+    /** The active segments; empty hides the field. */
+    marketSegments: App.Data.Reservations.MarketSegmentData[];
+    remarkKinds: EnumOption[];
     canOverrideCredit: boolean;
     autoAssignRooms: boolean;
     currency: App.Data.Property.CurrencyData | null;
@@ -275,6 +281,9 @@ export default function ReservationCreate({
     collectedTaxesPayers,
     collectedTaxNames,
     companies,
+    salesPeople,
+    marketSegments,
+    remarkKinds,
     canOverrideCredit,
     autoAssignRooms,
     currency,
@@ -339,6 +348,9 @@ export default function ReservationCreate({
         departure_time: checkOutTime,
         group_name: '',
         company_id: '',
+        sales_person_id: '',
+        market_segment_id: '',
+        remarks: {},
         credit_override_reason: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         collected_taxes_payer: '',
@@ -1728,6 +1740,36 @@ export default function ReservationCreate({
                                                 </FieldError>
                                             </Field>
                                         )}
+                                        <RecordSelectField
+                                            id="booking-sales_person_id"
+                                            label="Sales person"
+                                            value={data.sales_person_id ?? ''}
+                                            onValueChange={(value) =>
+                                                form.setData(
+                                                    'sales_person_id',
+                                                    value,
+                                                )
+                                            }
+                                            records={salesPeople}
+                                            error={errors.sales_person_id}
+                                        />
+                                        {marketSegments.length > 0 && (
+                                            <RecordSelectField
+                                                id="booking-market_segment_id"
+                                                label="Market segment"
+                                                value={
+                                                    data.market_segment_id ?? ''
+                                                }
+                                                onValueChange={(value) =>
+                                                    form.setData(
+                                                        'market_segment_id',
+                                                        value,
+                                                    )
+                                                }
+                                                records={marketSegments}
+                                                error={errors.market_segment_id}
+                                            />
+                                        )}
                                     </div>
                                 </FieldGroup>
                             </Section>
@@ -2167,7 +2209,7 @@ export default function ReservationCreate({
                                 <TabsContent
                                     value="notes"
                                     keepMounted
-                                    className="pt-4"
+                                    className="flex flex-col gap-6 pt-4"
                                 >
                                     <Field data-invalid={!!errors.notes}>
                                         <FieldLabel
@@ -2213,6 +2255,15 @@ export default function ReservationCreate({
                                         </InputGroup>
                                         <FieldError>{errors.notes}</FieldError>
                                     </Field>
+                                    <RemarksFields
+                                        idPrefix="booking-remarks"
+                                        kinds={remarkKinds}
+                                        value={data.remarks ?? {}}
+                                        onChange={(remarks) =>
+                                            form.setData('remarks', remarks)
+                                        }
+                                        errors={errors}
+                                    />
                                 </TabsContent>
                             </Tabs>
                         </div>

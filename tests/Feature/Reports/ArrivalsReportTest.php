@@ -6,6 +6,7 @@ use App\Data\Reports\ArrivalRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PermissionEnum;
+use App\Enums\RemarkKind;
 use App\Enums\ReportKey;
 use App\Enums\StayType;
 use App\Enums\TransactionKind;
@@ -14,14 +15,21 @@ use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
+use App\Models\MarketSegment;
+use App\Models\MealPeriod;
 use App\Models\Property;
+use App\Models\RatePlanInclusion;
 use App\Models\Reservation;
+use App\Models\ReservationRemark;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\UnitDayUse;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
+use App\Models\User;
 use App\Services\Reports\ArrivalsReport;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -72,7 +80,7 @@ test('the page opens on the business date and lists the units that arrive', func
         ->has('businessDate.timeZone')
         ->where('maxRangeDays', 31)
         ->where('sort', 'arrival')
-        ->has('layout.columns', 17)
+        ->has('layout.columns', 30)
         ->where('layout.orientation', 'portrait')
         ->where('canEditLayout', true)
         ->has('rows.data', 1)
@@ -261,7 +269,7 @@ test('the arrivals report is in the registry with its columns', function () {
     $keys = array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns());
     $visible = array_map(fn ($column): string => $column->key, array_filter(ReportKey::Arrivals->columns(), fn ($column): bool => $column->defaultVisible));
 
-    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'room_type', 'room', 'guests', 'adults', 'children', 'company', 'status', 'total', 'paid', 'balance'])
+    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'departure', 'departure_time', 'boat', 'nights', 'unit', 'room_type', 'room', 'rate', 'rate_plan', 'meal_plan', 'guests', 'adults', 'children', 'company', 'source', 'market_segment', 'sales_person', 'booked_by', 'status', 'total', 'paid', 'balance', 'housekeeping_remarks', 'dietary_remarks', 'package_remarks', 'payment_remarks'])
         ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'status', 'total', 'paid', 'balance'])
         ->and(ReportKey::Arrivals->maxRangeDays())->toBe(31)
         ->and(ReportKey::Arrivals->report())->toBeInstanceOf(ArrivalsReport::class);
@@ -360,4 +368,93 @@ test('the split columns hold the room type, the room, the guest counts and the a
         ->and($defaults['arrival_time'])->toBeTrue()
         ->and($defaults['unit'])->toBeTrue()
         ->and($defaults['guests'])->toBeFalse();
+});
+
+test('the Tanini columns show the stay, rate, meals, attribution and remarks of the booking', function () {
+    [$user, $property] = reportSetup();
+    $segment = MarketSegment::factory()->for($property)->create(['name' => 'Leisure']);
+    $seller = User::factory()->for($property)->create(['name' => 'Jane']);
+    $unit = arrivingUnit($property, attributes: ['departure_time' => '11:00'], reservation: [
+        'market_segment_id' => $segment->id,
+        'sales_person_id' => $seller->id,
+        'created_by' => $user->id,
+    ]);
+    $unit->ratePlan->forceFill(['name' => 'Full Board'])->save();
+    UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-10', 'amount' => '100.00']);
+    UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-11', 'base_amount' => '100.75', 'amount' => '100.75']);
+    foreach ([['Dinner', '19:00', '21:00'], ['Breakfast', '07:00', '10:00']] as [$meal, $startsAt, $endsAt]) {
+        RatePlanInclusion::factory()->for($unit->ratePlan)->create([
+            'meal_period_id' => MealPeriod::factory()->for($property)->create(['name' => $meal, 'starts_at' => $startsAt, 'ends_at' => $endsAt])->id,
+        ]);
+    }
+    ReservationRemark::factory()->for($unit->reservation)->create(['kind' => RemarkKind::Dietary, 'body' => 'Allergic to prawn']);
+
+    $row = app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'))[0];
+
+    expect($row->cells())->toMatchArray([
+        'departure' => '12 Oct 2026',
+        'departure_time' => '11:00',
+        'rate' => '100.38',
+        'rate_plan' => 'Full Board',
+        'meal_plan' => 'Breakfast, Dinner',
+        'source' => $unit->reservation->bookingSource->name,
+        'market_segment' => 'Leisure',
+        'sales_person' => 'Jane',
+        'booked_by' => $user->name,
+        'housekeeping_remarks' => '',
+        'dietary_remarks' => 'Allergic to prawn',
+    ]);
+});
+
+test('a booking without the new fields leaves those cells empty', function () {
+    [, $property] = reportSetup();
+    arrivingUnit($property);
+
+    $row = app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'))[0];
+
+    expect($row->cells())->toMatchArray([
+        'rate' => '0.00',
+        'meal_plan' => '',
+        'market_segment' => '',
+        'sales_person' => '',
+        'payment_remarks' => '',
+    ]);
+});
+
+test('the arrivals rows cost the same number of queries however many bookings fill the new columns', function () {
+    [$user, $property] = reportSetup();
+    $segment = MarketSegment::factory()->for($property)->create();
+    $meal = MealPeriod::factory()->for($property)->create(['starts_at' => '07:00', 'ends_at' => '10:00']);
+    $booking = function () use ($property, $segment, $user, $meal): void {
+        $unit = arrivingUnit($property, reservation: ['market_segment_id' => $segment->id, 'sales_person_id' => $user->id, 'created_by' => $user->id]);
+        UnitNight::factory()->create(['reservation_unit_id' => $unit->id, 'date' => '2026-10-10']);
+        RatePlanInclusion::factory()->for($unit->ratePlan)->create(['meal_period_id' => $meal->id]);
+        ReservationRemark::factory()->for($unit->reservation)->create();
+    };
+    $count = function () use ($property): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'));
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+
+    $booking();
+    Model::preventLazyLoading();
+
+    try {
+        $count();
+        $few = $count();
+
+        foreach (range(1, 3) as $ignored) {
+            $booking();
+        }
+
+        $many = $count();
+    } finally {
+        Model::preventLazyLoading(false);
+    }
+
+    expect($many)->toBe($few)->and($few)->toBeLessThanOrEqual(16);
 });
