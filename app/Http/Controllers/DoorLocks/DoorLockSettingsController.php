@@ -37,6 +37,7 @@ use App\Models\Room;
 use App\Services\DoorLocks\StaysAwaitingCard;
 use App\Services\DoorLocks\TtlockException;
 use App\Services\Kiosk\KioskStays;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -89,10 +90,7 @@ class DoorLockSettingsController extends Controller
                 PaginatedDataCollection::class,
             ),
             // The oldest stay the Concierge page checked in that has no card yet. The page polls this prop alone while the desk reader is on.
-            'waitingStay' => fn (): ?array => $staysAwaitingCard->for($property)->map(fn (ReservationUnit $unit): array => [
-                'unitId' => $unit->id,
-                'label' => trim(__('Room :room', ['room' => $kioskStays->roomNumber($unit) ?? '?']).' · '.$unit->reservation->reference),
-            ])->first(),
+            'waitingStay' => fn (): ?array => $this->waitingStay($property, $staysAwaitingCard, $kioskStays),
             // eLock side: front-desk PCs, locks and card jobs. One prop so the page can poll it alone. Locks and jobs page on their own
             // query parameters, so paging one list never moves the other.
             'keyport' => [
@@ -245,6 +243,25 @@ class DoorLockSettingsController extends Controller
     }
 
     /**
+     * The stay the desk reader should read a card for, as JSON. The desk PC polls this from any page while "Add cards automatically" is on.
+     */
+    public function waiting(Property $property, StaysAwaitingCard $staysAwaitingCard, KioskStays $kioskStays): JsonResponse
+    {
+        return response()->json(['waitingStay' => $this->waitingStay($property, $staysAwaitingCard, $kioskStays)]);
+    }
+
+    /**
+     * @return array{unitId: int, label: string}|null
+     */
+    private function waitingStay(Property $property, StaysAwaitingCard $staysAwaitingCard, KioskStays $kioskStays): ?array
+    {
+        return $staysAwaitingCard->for($property)->map(fn (ReservationUnit $unit): array => [
+            'unitId' => $unit->id,
+            'label' => trim(__('Room :room', ['room' => $kioskStays->roomNumber($unit) ?? '?']).' · '.$unit->reservation->reference),
+        ])->first();
+    }
+
+    /**
      * Register the card on the desk reader with the locks of a checked-in stay of this property, until departure. Nothing is written to the card.
      */
     public function storeCard(Request $request, Property $property, RegisterStayCard $registerStayCard): RedirectResponse
@@ -262,7 +279,8 @@ class DoorLockSettingsController extends Controller
             default => ['type' => 'error', 'message' => __('The lock did not take the card. Check the guest is checked in, the gateway is online, and the card is not on another stay.')],
         });
 
-        return to_route('settings.door-locks.edit', $property);
+        // Back to the page the desk PC is on: the card is also added from the watcher on any page, which must not jump to Door locks.
+        return redirect()->back(fallback: route('settings.door-locks.edit', $property));
     }
 
     public function destroyCard(Request $request, Property $property, DoorCard $doorCard, RemoveDoorCard $removeDoorCard): RedirectResponse

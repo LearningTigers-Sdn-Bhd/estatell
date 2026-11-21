@@ -18,6 +18,7 @@ use App\Models\Bed;
 use App\Models\Folio;
 use App\Models\ReservationUnit;
 use App\Models\RoomStatus;
+use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\FrontDesk\CheckOutSettlement;
@@ -147,7 +148,7 @@ class CheckOutUnit
             $roomId = $this->roomOf($locked, $today);
 
             if (! $skipBalanceCheck) {
-                $this->markRoomDirty($actor, $roomId);
+                $this->markRoomAfterCheckOut($actor, $roomId, $today, $locked->property->settings?->auto_clean_on_check_out === true);
             }
 
             activity()
@@ -190,14 +191,24 @@ class CheckOutUnit
             ->get();
     }
 
-    private function markRoomDirty(?User $actor, ?int $roomId): void
+    /**
+     * Dirty after a check-out, or Clean when the property turned on `auto_clean_on_check_out` and no other guest still sleeps in the
+     * room tonight (a shared room or a dorm bed). The unit is already CheckedOut here, so it does not count as that other guest.
+     */
+    private function markRoomAfterCheckOut(?User $actor, ?int $roomId, string $today, bool $autoClean): void
     {
         if ($roomId === null) {
             return;
         }
 
+        $clean = $autoClean && ! UnitNight::query()
+            ->whereDate('date', $today)
+            ->where(fn ($nights) => $nights->where('room_id', $roomId)->orWhereIn('bed_id', Bed::query()->where('room_id', $roomId)->select('id')))
+            ->whereHas('reservationUnit', fn ($units) => $units->where('status', UnitStatus::CheckedIn->value))
+            ->exists();
+
         RoomStatus::query()->where('room_id', $roomId)->update([
-            'status' => HousekeepingStatus::Dirty,
+            'status' => $clean ? HousekeepingStatus::Clean : HousekeepingStatus::Dirty,
             'last_changed_by' => $actor?->id,
             'last_changed_at' => now(),
         ]);

@@ -35,6 +35,19 @@ it('offers the stay the concierge just checked in, until it has a card', functio
         ->assertInertia(fn (Assert $page) => $page->where('waitingStay', null)->where('cards.meta.total', 1)->where('cards.data.0.cardNumber', '231890151'));
 });
 
+it('answers the desk PC watcher with the waiting stay as JSON, and adds the card back on the page it came from', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true);
+    $unit = doorLockStay($property, $room);
+    $this->actingAs($owner)->getJson(route('settings.door-locks.waiting', $property))->assertOk()->assertJsonPath('waitingStay', null);
+
+    logStayCheckIn($unit);
+    fakeTtlock();
+    $this->actingAs($owner)->getJson(route('settings.door-locks.waiting', $property))->assertOk()->assertJsonPath('waitingStay.unitId', $unit->id);
+
+    $this->actingAs($owner)->from('/somewhere')->post(route('settings.door-locks.cards.store', $property), ['uid' => '0DD25CE7', 'reservation_unit_id' => $unit->id])
+        ->assertRedirect('/somewhere');
+});
+
 it('shows the primary guest, booking reference and room of a card and a PIN', function () {
     ['owner' => $owner, 'property' => $property, 'room' => $room, 'lock' => $lock] = doorLockSetup(gateway: true);
     $unit = doorLockStay($property, $room);

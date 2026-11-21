@@ -245,6 +245,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store')->middleware('door-locks:ttlock');
         Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke')->middleware('door-locks:ttlock');
         Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry')->middleware('door-locks:ttlock');
+        Route::get('waiting', [DoorLockSettingsController::class, 'waiting'])->name('waiting')->middleware('door-locks:ttlock');
         Route::post('cards', [DoorLockSettingsController::class, 'storeCard'])->name('cards.store')->middleware('door-locks:ttlock');
         Route::delete('cards/{doorCard}', [DoorLockSettingsController::class, 'destroyCard'])->name('cards.destroy')->middleware('door-locks:ttlock');
     });

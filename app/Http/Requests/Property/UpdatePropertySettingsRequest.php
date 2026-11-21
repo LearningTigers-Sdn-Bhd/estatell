@@ -29,7 +29,7 @@ class UpdatePropertySettingsRequest extends FormRequest
     {
         $booleanFields = match ($this->route('section')) {
             'general' => ['auto_assign_rooms'],
-            'operations' => ['auto_audit_enabled'],
+            'operations' => ['auto_audit_enabled', 'auto_clean_on_check_out'],
             'support' => ['allow_support_access', 'allow_support_money_corrections'],
             default => [],
         };
@@ -63,6 +63,7 @@ class UpdatePropertySettingsRequest extends FormRequest
             'operations' => [
                 'audit_time' => ['required', 'date_format:H:i'],
                 'auto_audit_enabled' => ['required', 'boolean'],
+                'auto_clean_on_check_out' => ['required', 'boolean'],
                 'missed_arrival_policy' => ['required', Rule::enum(MissedArrivalPolicy::class)],
                 'overdue_departure_policy' => ['required', Rule::enum(OverdueDeparturePolicy::class)],
                 'weekend_nights' => ['required', Rule::enum(WeekendNights::class)],
