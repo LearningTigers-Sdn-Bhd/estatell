@@ -426,6 +426,10 @@
 }
 
 /* The guest's editorial identity stays independent of the staff app theme. */
+html:has(.concierge-editorial-shell) {
+    background-color: oklch(0.966 0.023 82);
+}
+
 .concierge-editorial,
 :root:has(.concierge-editorial-shell) {
     --background: oklch(0.966 0.023 82);
@@ -499,7 +503,7 @@
     display: flex;
     width: 100%;
     max-width: 76rem;
-    min-height: 100%;
+    flex: 1 0 auto;
     margin-inline: auto;
     flex-direction: column;
     gap: clamp(1.5rem, 3vw, 3rem);

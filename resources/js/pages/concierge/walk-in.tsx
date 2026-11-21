@@ -147,7 +147,7 @@ export default function ConciergeWalkIn({
                                 value={stayType}
                             />
                             <FieldGroup
-                                className={`grid flex-1 gap-4 ${dayUse ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}
+                                className={`grid flex-1 gap-4 ${dayUse ? 'grid-cols-[minmax(0,3fr)_minmax(0,2fr)] sm:grid-cols-3' : 'grid-cols-2'}`}
                             >
                                 <Field
                                     data-invalid={!!errors.adults}
@@ -178,6 +178,7 @@ export default function ConciergeWalkIn({
                                     <>
                                         <Field
                                             data-invalid={!!errors.start_time}
+                                            className="min-w-0"
                                         >
                                             <FieldLabel htmlFor="start_time">
                                                 <Clock
@@ -192,7 +193,7 @@ export default function ConciergeWalkIn({
                                                 type="time"
                                                 step={1800}
                                                 defaultValue={startTime}
-                                                className="h-12 text-base"
+                                                className="h-12 min-w-0 appearance-none text-base"
                                                 aria-invalid={
                                                     !!errors.start_time
                                                 }
@@ -201,7 +202,10 @@ export default function ConciergeWalkIn({
                                                 {errors.start_time}
                                             </FieldError>
                                         </Field>
-                                        <Field data-invalid={!!errors.hours}>
+                                        <Field
+                                            data-invalid={!!errors.hours}
+                                            className="min-w-0"
+                                        >
                                             <FieldLabel htmlFor="hours">
                                                 <Hourglass
                                                     className="size-5 text-primary"
@@ -216,7 +220,7 @@ export default function ConciergeWalkIn({
                                                 min={1}
                                                 max={12}
                                                 defaultValue={hours}
-                                                className="h-12 text-base"
+                                                className="h-12 min-w-0 text-base"
                                                 aria-invalid={!!errors.hours}
                                             />
                                             <FieldError>

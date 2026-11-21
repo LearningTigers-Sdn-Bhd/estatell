@@ -12,10 +12,12 @@ export default function GuestLayout({ children }: { children: ReactNode }) {
     }>();
     const { property } = props;
     const isConcierge = component.startsWith('concierge/');
+    // The lobby is a fixed one-screen design; every other guest page scrolls with the document.
+    const fixedHeight = !isConcierge || component === 'concierge/lobby';
 
     return (
         <div
-            className={`flex h-svh flex-col overflow-hidden bg-background ${isConcierge ? 'concierge-editorial concierge-editorial-shell' : ''}`}
+            className={`flex flex-col bg-background ${fixedHeight ? 'h-dvh overflow-hidden' : 'min-h-dvh'} ${isConcierge ? 'concierge-editorial concierge-editorial-shell' : ''}`}
         >
             {!isConcierge && (
                 <header className="flex h-14 shrink-0 items-center border-b px-4">
