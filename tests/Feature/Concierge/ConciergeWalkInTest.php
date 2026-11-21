@@ -446,15 +446,45 @@ it('recognises a returning walk-in from the email or phone alone, books the room
     'phone with the country code' => ['+60 12-345 6789'],
 ]);
 
-it('joins a profile that has no ID saved yet, and still asks for the ID form', function () {
+it('joins a profile that has no ID saved yet, and asks for the ID alone without showing the profile', function () {
     ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
-    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'date_of_birth' => null]);
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'phone' => null, 'date_of_birth' => '1990-05-17']);
 
     $response = $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('aisha@example.com', conciergeWalkInRoom($type)))->assertRedirect();
 
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);
     expect(app(KioskStays::class)->guest($stay)->id)->toBe($returning->id);
-    $this->get($response->headers->get('Location'))->assertInertia(fn (Assert $page) => $page->where('stay.step', 'identity')->where('stay.identity', null));
+    $this->get($response->headers->get('Location'))->assertInertia(fn (Assert $page) => $page->where('stay.step', 'identity')
+        ->where('stay.identity.hideKnown', true)
+        ->where('stay.identity.hasName', true)
+        ->where('stay.identity.hasEmail', true)
+        ->where('stay.identity.hasPhone', false)
+        ->where('stay.identity.fullName', null)
+        ->where('stay.identity.hasDateOfBirth', false)
+        ->where('stay.identity.documentNumberHint', null));
+});
+
+it('saves the ID of a returning walk-in without asking for the name, phone or email it already holds', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    $returning = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'phone' => '+60123456789']);
+    $location = $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('aisha@example.com', conciergeWalkInRoom($type)))->headers->get('Location');
+
+    $this->post("{$location}/identity", ['kind' => 'passport', 'number' => 'A1234567'])->assertSessionHasNoErrors()->assertRedirect($location);
+
+    $returning->refresh();
+    expect($returning->documents()->count())->toBe(1)
+        ->and($returning->full_name)->toBe('Aisha Binti Rahman')
+        ->and($returning->email)->toBe('aisha@example.com')
+        ->and($returning->phone)->toBe('+60123456789');
+    $this->get($location)->assertInertia(fn (Assert $page) => $page->whereNot('stay.step', 'identity'));
+});
+
+it('still asks a returning walk-in for the phone and email its profile lacks', function () {
+    ['property' => $property, 'type' => $type] = conciergeWalkInSetup();
+    Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Aisha Binti Rahman', 'email' => 'aisha@example.com', 'phone' => null]);
+    $location = $this->post("/stay/{$property->code}/walk-in/returning", conciergeReturningBody('aisha@example.com', conciergeWalkInRoom($type)))->headers->get('Location');
+
+    $this->post("{$location}/identity", ['kind' => 'passport', 'number' => 'A1234567'])->assertSessionHasErrors('phone')->assertSessionDoesntHaveErrors(['email', 'full_name']);
 });
 
 it('books nothing when no profile has the email or phone', function (string $typed) {
@@ -577,8 +607,9 @@ it('leaves a booking made earlier with its own guest', function () {
     expect(app(KioskStays::class)->guest($unit)->id)->toBe($booked->id)->and($other->refresh()->merged_into_id)->toBeNull();
 });
 
-it('asks every guest for a phone and an email on the ID step', function () {
+it('asks for the phone and email on the ID step when the profile has neither', function () {
     ['unit' => $unit] = conciergeWalkInSetup();
+    app(KioskStays::class)->guest($unit)->forceFill(['email' => null, 'phone' => null])->save();
     $token = basename(app(IssueBookingPreCheckInToken::class)($unit));
 
     $this->post("/c/{$token}/identity", conciergeIdentityBody(['email' => '', 'phone' => '']))

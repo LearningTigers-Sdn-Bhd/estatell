@@ -1189,6 +1189,10 @@ hasDateOfBirth: boolean,
 gender: string | null,
 documentKind: string | null,
 documentNumberHint: string | null,
+hideKnown: boolean,
+hasName: boolean,
+hasPhone: boolean,
+hasEmail: boolean,
 };
 export type ConciergeOfferData = {
 roomTypeId: number,

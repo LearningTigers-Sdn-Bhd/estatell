@@ -60,7 +60,7 @@ class ConciergePageBuilder
         $opensLater = in_array($step, [ConciergeStep::Identity, ConciergeStep::Card, ConciergeStep::Payment, ConciergeStep::NotOpen], true)
             && ($this->stays->window($stay) !== KioskStays::OPEN || ! $this->concierge->checkInTimeReached($stay));
 
-        // A walk-in's ID step is never pre-filled from a profile, as the guest joined it by an email or phone alone.
+        // A walk-in's ID step never shows a profile's values, as the guest joined it by an email or phone alone.
         $walkIn = KioskWalkInHold::query()->where('reservation_unit_id', $stay->id)->exists();
 
         return new ConciergeStayData(
@@ -82,7 +82,7 @@ class ConciergePageBuilder
             checkOutAsked: in_array($step, [ConciergeStep::Key, ConciergeStep::Home], true) && $this->checkOut->open($stay) !== null,
             refundRequest: $step === ConciergeStep::CheckedOut ? $this->refundRequest($stay) : null,
             locationRequired: $stay->property->settings->concierge_location_check_enabled && filled($stay->property->latitude) && filled($stay->property->longitude),
-            identity: $step === ConciergeStep::Identity && $guest !== null && ! $walkIn ? $this->identity($guest) : null,
+            identity: $step === ConciergeStep::Identity && $guest !== null ? $this->identity($guest, $walkIn) : null,
             eInvoiceUrl: $step === ConciergeStep::CheckedOut && $this->eInvoice->isOffered($stay) ? route('concierge.e-invoice', ['token' => $token], absolute: false) : null,
             checkInTime: $opensLater ? $this->concierge->checkInOpensAt($stay)?->format('H:i') : null,
             checkInOpensLater: $opensLater,
@@ -91,20 +91,25 @@ class ConciergePageBuilder
 
     /**
      * The guest's saved details and their latest identity document, so the ID step starts filled. A walk-in never gets
-     * it: its guest may have been joined to a returning guest by the ID number, and an anonymous page must not show that
-     * guest's saved details.
+     * the values: its guest may have been joined to a returning guest by an email or phone, and an anonymous page must not
+     * show that guest's saved details. It gets only which of the name, phone and email are already held, so the page does not
+     * ask for them again.
      */
-    private function identity(Guest $guest): ConciergeIdentityPrefillData
+    private function identity(Guest $guest, bool $walkIn): ConciergeIdentityPrefillData
     {
-        $document = $guest->documents()->latest('id')->first();
+        $document = $walkIn ? null : $guest->documents()->latest('id')->first();
 
         return new ConciergeIdentityPrefillData(
-            fullName: $guest->full_name,
-            nationalityCode: $guest->nationality_code,
-            hasDateOfBirth: $guest->date_of_birth !== null,
-            gender: $guest->gender?->value,
+            fullName: $walkIn ? null : $guest->full_name,
+            nationalityCode: $walkIn ? null : $guest->nationality_code,
+            hasDateOfBirth: ! $walkIn && $guest->date_of_birth !== null,
+            gender: $walkIn ? null : $guest->gender?->value,
             documentKind: $document?->type->value,
             documentNumberHint: $document === null ? null : '•••••'.substr($document->number, -3),
+            hideKnown: $walkIn,
+            hasName: filled($guest->full_name),
+            hasPhone: filled($guest->phone),
+            hasEmail: filled($guest->email),
         );
     }
 

@@ -87,6 +87,14 @@ it('does not add the same document twice', function () {
     expect(GuestIdentityDocument::query()->where('guest_id', $guest->id)->count())->toBe(1);
 });
 
+it('asks for the name on the ID step when the profile has none', function () {
+    ['token' => $token, 'guest' => $guest] = conciergeSetup(guest: ['full_name' => '']);
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['full_name' => '']))->assertSessionHasErrors('full_name');
+
+    expect($guest->documents()->count())->toBe(0);
+});
+
 it('refuses an ID with a bad form and saves nothing', function (array $body, string $field) {
     ['token' => $token, 'guest' => $guest] = conciergeSetup();
 
@@ -94,7 +102,6 @@ it('refuses an ID with a bad form and saves nothing', function (array $body, str
 
     expect($guest->documents()->count())->toBe(0);
 })->with([
-    'no name' => [['full_name' => ''], 'full_name'],
     'short number' => [['number' => 'A1'], 'number'],
     'MyKad that is not 12 digits' => [['kind' => 'my_kad', 'number' => '12345'], 'number'],
     'unknown kind' => [['kind' => 'licence'], 'kind'],
