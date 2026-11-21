@@ -35,14 +35,14 @@ class ConciergeStays
             ->find($row->reservation_unit_id);
     }
 
-    public function byReference(Property $property, string $reference): ?ReservationUnit
+    public function byShortCode(Property $property, string $code): ?ReservationUnit
     {
         $matches = ReservationUnit::query()
             ->where('property_id', $property->id)
             ->whereIn('status', [UnitStatus::Confirmed, UnitStatus::CheckedIn])
             ->whereHas('reservation', fn ($query) => $query
                 ->where('property_id', $property->id)
-                ->whereRaw('lower(reference) = ?', [mb_strtolower(trim($reference))]))
+                ->where('short_code', mb_strtoupper(trim($code))))
             ->orderBy('arrival_date')->orderBy('id')->limit(2)->get();
 
         return $matches->count() === 1 ? $matches->first() : null;

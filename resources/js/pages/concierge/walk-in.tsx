@@ -11,6 +11,8 @@ import {
     UsersRound,
 } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -23,6 +25,21 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { enterCode, lobby, walkIn } from '@/routes/concierge';
 import { details } from '@/routes/concierge/walk-in';
+
+const startTimeOptions: EnumOption[] = Array.from({ length: 48 }, (_, slot) => {
+    const hour = Math.floor(slot / 2);
+    const minute = slot % 2 ? '30' : '00';
+
+    return {
+        value: `${String(hour).padStart(2, '0')}:${minute}`,
+        label: `${hour % 12 || 12}:${minute} ${hour < 12 ? 'AM' : 'PM'}`,
+    };
+});
+
+const hourOptions: EnumOption[] = Array.from({ length: 12 }, (_, index) => ({
+    value: String(index + 1),
+    label: `${index + 1} ${index === 0 ? 'hour' : 'hours'}`,
+}));
 
 function money(amount: string, currency: string): string {
     return new Intl.NumberFormat(undefined, {
@@ -147,7 +164,7 @@ export default function ConciergeWalkIn({
                                 value={stayType}
                             />
                             <FieldGroup
-                                className={`grid flex-1 gap-4 ${dayUse ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}
+                                className={`grid flex-1 gap-4 ${dayUse ? 'grid-cols-[minmax(0,3fr)_minmax(0,2fr)] sm:grid-cols-3' : 'grid-cols-2'}`}
                             >
                                 <Field
                                     data-invalid={!!errors.adults}
@@ -178,6 +195,7 @@ export default function ConciergeWalkIn({
                                     <>
                                         <Field
                                             data-invalid={!!errors.start_time}
+                                            className="min-w-0"
                                         >
                                             <FieldLabel htmlFor="start_time">
                                                 <Clock
@@ -186,13 +204,12 @@ export default function ConciergeWalkIn({
                                                 />
                                                 Start time
                                             </FieldLabel>
-                                            <Input
+                                            <EnumSelect
                                                 id="start_time"
                                                 name="start_time"
-                                                type="time"
-                                                step={1800}
-                                                defaultValue={startTime}
-                                                className="h-12 text-base"
+                                                options={startTimeOptions}
+                                                defaultValue={startTime.slice(0, 5)}
+                                                className="min-h-12 w-full text-base"
                                                 aria-invalid={
                                                     !!errors.start_time
                                                 }
@@ -201,7 +218,10 @@ export default function ConciergeWalkIn({
                                                 {errors.start_time}
                                             </FieldError>
                                         </Field>
-                                        <Field data-invalid={!!errors.hours}>
+                                        <Field
+                                            data-invalid={!!errors.hours}
+                                            className="min-w-0"
+                                        >
                                             <FieldLabel htmlFor="hours">
                                                 <Hourglass
                                                     className="size-5 text-primary"
@@ -209,14 +229,12 @@ export default function ConciergeWalkIn({
                                                 />
                                                 Hours
                                             </FieldLabel>
-                                            <Input
+                                            <EnumSelect
                                                 id="hours"
                                                 name="hours"
-                                                type="number"
-                                                min={1}
-                                                max={12}
-                                                defaultValue={hours}
-                                                className="h-12 text-base"
+                                                options={hourOptions}
+                                                defaultValue={String(hours)}
+                                                className="min-h-12 w-full text-base"
                                                 aria-invalid={!!errors.hours}
                                             />
                                             <FieldError>

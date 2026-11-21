@@ -52,13 +52,13 @@ it('opens the stay by booking code, ignoring case and spaces', function (string 
 
     $token = BookingPreCheckInToken::query()->where('reservation_unit_id', $unit->id)->sole();
     expect(hash('sha256', basename($response->headers->get('Location'))))->toBe($token->token_hash);
-})->with([['R-100'], ['r-100'], [' R-100 ']]);
+})->with([['R100'], ['r100'], [' R100 ']]);
 
 it('gives the same answer for any code that opens nothing, and issues no link', function () {
     ['property' => $property] = conciergeSetup();
     $before = BookingPreCheckInToken::query()->count();
 
-    $response = conciergeFind($property->code, 'R-999')->assertSessionHasErrors('reference');
+    $response = conciergeFind($property->code, 'R999')->assertSessionHasErrors('reference');
 
     expect($response->getSession()->get('errors')->first('reference'))->toContain('could not find')
         ->and(BookingPreCheckInToken::query()->count())->toBe($before);
@@ -66,9 +66,9 @@ it('gives the same answer for any code that opens nothing, and issues no link', 
 
 it('does not open a stay of another property', function () {
     ['property' => $property] = conciergeSetup();
-    kioskStayFor(Property::factory()->create(), 'R-200');
+    kioskStayFor(Property::factory()->create(), 'R-200')['reservation']->forceFill(['short_code' => 'R200'])->save();
 
-    conciergeFind($property->code, 'R-200')->assertSessionHasErrors('reference');
+    conciergeFind($property->code, 'R200')->assertSessionHasErrors('reference');
 });
 
 it('opens nothing when the code matches more than one room', function () {
@@ -76,17 +76,17 @@ it('opens nothing when the code matches more than one room', function () {
     $second = ReservationUnit::factory()->create(['reservation_id' => $unit->reservation_id, 'room_type_id' => $unit->room_type_id, 'arrival_date' => '2026-10-14', 'departure_date' => '2026-10-16']);
     $unit->guests()->first()->replicate(['id'])->forceFill(['reservation_unit_id' => $second->id])->save();
 
-    conciergeFind($property->code, 'R-100')->assertSessionHasErrors('reference');
+    conciergeFind($property->code, 'R100')->assertSessionHasErrors('reference');
 });
 
 it('locks a booking code after repeated wrong tries from the same address, even for the right code', function () {
     ['property' => $property] = conciergeSetup();
 
     foreach (range(1, 8) as $number) {
-        conciergeFind($property->code, "R-9{$number}");
+        conciergeFind($property->code, "R9{$number}");
     }
 
-    $response = conciergeFind($property->code, 'R-100')->assertSessionHasErrors('reference');
+    $response = conciergeFind($property->code, 'R100')->assertSessionHasErrors('reference');
     expect($response->getSession()->get('errors')->first('reference'))->toContain('Too many tries');
 });
 
@@ -94,10 +94,10 @@ it('locks one booking code against guesses spread over many addresses', function
     ['property' => $property] = conciergeSetup();
 
     foreach (range(1, 5) as $number) {
-        $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$number}"])->post("/stay/{$property->code}", ['reference' => 'R-100x']);
+        $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$number}"])->post("/stay/{$property->code}", ['reference' => 'R100x']);
     }
 
-    $response = $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])->post("/stay/{$property->code}", ['reference' => 'R-100x'])->assertSessionHasErrors('reference');
+    $response = $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])->post("/stay/{$property->code}", ['reference' => 'R100x'])->assertSessionHasErrors('reference');
     expect($response->getSession()->get('errors')->first('reference'))->toContain('Too many tries');
 });
 
@@ -105,17 +105,17 @@ it('slows a scan down the booking codes from one address, even though every code
     ['property' => $property, 'unit' => $unit] = conciergeSetup();
 
     foreach (range(1, 10) as $ignored) {
-        conciergeFind($property->code, 'R-100')->assertSessionHasNoErrors();
+        conciergeFind($property->code, 'R100')->assertSessionHasNoErrors();
     }
 
     $this->travelTo(now()->addSeconds(61));
 
     foreach (range(1, 5) as $ignored) {
-        conciergeFind($property->code, 'R-100')->assertSessionHasNoErrors();
+        conciergeFind($property->code, 'R100')->assertSessionHasNoErrors();
     }
 
     $tokens = BookingPreCheckInToken::query()->where('reservation_unit_id', $unit->id)->count();
-    $response = conciergeFind($property->code, 'R-100')->assertSessionHasErrors('reference');
+    $response = conciergeFind($property->code, 'R100')->assertSessionHasErrors('reference');
 
     expect($response->getSession()->get('errors')->first('reference'))->toContain('Too many tries')
         ->and(BookingPreCheckInToken::query()->where('reservation_unit_id', $unit->id)->count())->toBe($tokens);
@@ -125,6 +125,12 @@ it('gives the attempt back when the stay is found, so a guest who typed it right
     ['property' => $property] = conciergeSetup();
 
     foreach (range(1, 10) as $ignored) {
-        conciergeFind($property->code, 'R-100')->assertSessionHasNoErrors();
+        conciergeFind($property->code, 'R100')->assertSessionHasNoErrors();
     }
+});
+
+it('does not open a stay from the staff reference, only from the booking code', function () {
+    ['property' => $property, 'unit' => $unit] = conciergeSetup();
+
+    conciergeFind($property->code, $unit->reservation->reference)->assertSessionHasErrors('reference');
 });

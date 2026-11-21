@@ -65,7 +65,7 @@ export function GuestFrame({
     return (
         <>
             <Head title={title} />
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex flex-1 flex-col">
                 <div className="concierge-page">
                     <div className="flex flex-col gap-5 border-b pb-5">
                         {navigation}

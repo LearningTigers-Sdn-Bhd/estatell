@@ -35,6 +35,7 @@ const CONCIERGE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42
 function conciergeSetup(array $unit = [], array $guest = []): array
 {
     $setup = kioskStaySetup($unit, $guest);
+    $setup['unit']->reservation->forceFill(['short_code' => 'R100'])->save();
     Feature::for($setup['property'])->activate(Concierge::class);
     $setup['property']->settings->forceFill(['card_required_for_check_in' => false, 'security_deposit_amount' => '0.00'])->save();
 
