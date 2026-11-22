@@ -2326,14 +2326,42 @@ amount: string,
 };
 }
 namespace Group {
+export type GroupBookingChangeRowData = {
+propertyCode: string,
+propertyName: string,
+change: App.Data.Reports.BookingChangeRow,
+};
 export type GroupDashboardData = {
 totals: App.Data.Group.GroupTotalsData,
 properties: App.Data.Group.GroupPropertyTilesData[],
+};
+export type GroupFiguresRowData = {
+label: string,
+code: string | null,
+available: number,
+sold: number,
+complimentary: number,
+occupancy: string,
+adr: string | null,
+revpar: string | null,
+pax: number,
+roomCharges: string | null,
+extraCharges: string | null,
+tax: string | null,
+receipts: string | null,
 };
 export type GroupPropertyTilesData = {
 property: App.Data.Property.PropertySummaryData,
 businessDate: string | null,
 tiles: App.Data.Dashboard.DashboardTilesData | null,
+};
+export type GroupReportsData = {
+properties: App.Data.Property.PropertySummaryData[],
+currency: App.Data.Property.CurrencyData | null,
+figures: App.Data.Group.GroupFiguresRowData[],
+total: App.Data.Group.GroupFiguresRowData | null,
+bookings: App.Data.Group.GroupBookingChangeRowData[],
+leftOut: string[],
 };
 export type GroupTimelinePropertyData = {
 property: App.Data.Property.PropertySummaryData,
@@ -6542,6 +6570,7 @@ export type GatewayPaymentStatus = 'created' | 'paid' | 'failed';
 export type GatewayRefundStatus = 'pending' | 'processed' | 'failed';
 export type Gender = 'male' | 'female';
 export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
+export type GroupReportTab = 'by-property' | 'by-date' | 'bookings';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
 export type GuestEmail = 'e_invoice';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';

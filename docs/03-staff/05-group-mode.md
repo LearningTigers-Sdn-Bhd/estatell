@@ -4,7 +4,7 @@
 
 A manager of more than one property of a group (Tanini: Sepilok and Kinabatangan) sees them together, without signing in again: one dashboard with today at every property, then a group timeline and consolidated reports. Plan items 1.2 and 7.4. It builds on [Property groups and multi-property access](04-property-groups.md).
 
-**Status:** group mode, the group dashboard and the group timeline built 2026-11-22. Next: consolidated reports.
+**Status:** built 2026-11-22: group mode, the group dashboard, the group timeline and group reports.
 
 ## Who sees it
 
@@ -39,6 +39,20 @@ Each property counts on its own business date, as its own dashboard does. Querie
 - Clicking a stay opens its booking in its property (`/p/{code}/reservations/{id}`), when the role there may view reservations.
 - Earlier and later move the whole window. Queries grow with the number of properties, never with stays (tested).
 
+## Group reports
+
+`GET /g/{group}/reports` (`group.reports`), Group › Reports, with three tabs (`?tab=`). It covers the properties whose role shows reports (`reports.view`); the others are named under the dates ("Not included: …"). Dates take `from` and `to`, 366 days at most. With no dates, By property and By date open on this month, Bookings on today.
+
+| Tab         | Rows                                                                                                                                                                                                                    | Built from                                                                                                  |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| By property | One row per property, then **All properties**: available, sold, complimentary, occupancy, ADR, RevPAR, pax, room charges, extra charges, tax, receipts. A property name opens its own History & forecast for the dates. | Each property's `HistoryForecastReport` for the dates, added up                                             |
+| By date     | One row per date, the properties added together, then the total                                                                                                                                                         | The same rows, grouped by date. Each property counts a date as actual or forecast by its own business date. |
+| Bookings    | Every change of every property in the dates, by time, with the property. A reservation opens in its property.                                                                                                           | Each property's `BookingChangesReport` (Rooms on books › Changes)                                           |
+
+- Counts and money are summed; occupancy, ADR and RevPAR are worked out again from the sums, never averaged. Money is summed only when the properties use one currency (else "—").
+- **Export CSV** (`group.reports.export`) gives the open tab's rows, the total last.
+- Queries grow with the number of properties, never with bookings (tested).
+
 ## Code
 
 | Part                                                            | Role                                                                                 |
@@ -51,13 +65,14 @@ Each property counts on its own business date, as its own dashboard does. Querie
 
 ## Tests
 
-`tests/Feature/Group/GroupDashboardTest.php` and `GroupTimelineTest.php`:
+`tests/Feature/Group/GroupDashboardTest.php`, `GroupTimelineTest.php` and `GroupReportsTest.php`:
 
 - who may open group mode, and when suspending a property closes it
 - the menu entries
 - figures per role with the totals
 - support sessions refused
 - the timeline's properties by role, and its date limit
-- a constant query count for the dashboard and the timeline
+- the reports' sums and rates, left-out properties, the date limit and the CSV
+- a constant query count for the dashboard, the timeline and the reports
 
 The shared setup is `tests/Feature/Support/GroupSetup.php`.

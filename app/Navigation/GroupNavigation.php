@@ -30,6 +30,12 @@ class GroupNavigation
                 icon: 'chart-gantt',
                 active: request()->routeIs('group.timeline'),
             ),
+            new NavItemData(
+                title: __('Reports'),
+                href: route('group.reports', ['propertyGroup' => $group->id], absolute: false),
+                icon: 'chart-column',
+                active: request()->routeIs('group.reports*'),
+            ),
         ];
 
         return new StaffNavigationData(
