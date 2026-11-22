@@ -206,49 +206,56 @@ function BookingsTable({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {rows.map(({ propertyCode, propertyName, change }) => (
-                        <TableRow key={`${propertyCode}-${change.key}`}>
-                            <TableCell className="font-medium">
-                                {propertyName}
-                            </TableCell>
-                            <TableCell>
-                                <StatusBadge status={change.kind} />
-                            </TableCell>
-                            <TableCell className="tabular-nums">
-                                {formatDate(change.changed_at.slice(0, 10))}{' '}
-                                {change.changed_at.slice(11)}
-                            </TableCell>
-                            <TableCell>
-                                <Link
-                                    href={show.url({
-                                        property: propertyCode,
-                                        reservation: change.reservation_id,
-                                    })}
-                                    className="underline-offset-2 hover:underline"
-                                >
-                                    {change.reservation}
-                                </Link>
-                            </TableCell>
-                            <TableCell>{change.guest}</TableCell>
-                            <TableCell>{change.room}</TableCell>
-                            <TableCell>
-                                <DateText date={change.arrival} />
-                            </TableCell>
-                            <TableCell>
-                                <DateText date={change.departure} />
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {signed(change.nights_change, 0)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {signed(change.revenue_change, 2)}
-                            </TableCell>
-                            <TableCell>{change.source}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                                {change.reason ?? ''}
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                    {rows.map(
+                        ({ propertyCode, propertyName, change, canOpen }) => (
+                            <TableRow key={`${propertyCode}-${change.key}`}>
+                                <TableCell className="font-medium">
+                                    {propertyName}
+                                </TableCell>
+                                <TableCell>
+                                    <StatusBadge status={change.kind} />
+                                </TableCell>
+                                <TableCell className="tabular-nums">
+                                    {formatDate(change.changed_at.slice(0, 10))}{' '}
+                                    {change.changed_at.slice(11)}
+                                </TableCell>
+                                <TableCell>
+                                    {canOpen ? (
+                                        <Link
+                                            href={show.url({
+                                                property: propertyCode,
+                                                reservation:
+                                                    change.reservation_id,
+                                            })}
+                                            className="underline-offset-2 hover:underline"
+                                        >
+                                            {change.reservation}
+                                        </Link>
+                                    ) : (
+                                        change.reservation
+                                    )}
+                                </TableCell>
+                                <TableCell>{change.guest}</TableCell>
+                                <TableCell>{change.room}</TableCell>
+                                <TableCell>
+                                    <DateText date={change.arrival} />
+                                </TableCell>
+                                <TableCell>
+                                    <DateText date={change.departure} />
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                    {signed(change.nights_change, 0)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                    {signed(change.revenue_change, 2)}
+                                </TableCell>
+                                <TableCell>{change.source}</TableCell>
+                                <TableCell className="text-muted-foreground">
+                                    {change.reason ?? ''}
+                                </TableCell>
+                            </TableRow>
+                        ),
+                    )}
                 </TableBody>
             </Table>
         </div>

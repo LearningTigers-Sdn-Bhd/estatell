@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Group;
 
 use App\Data\Group\GroupBookingChangeRowData;
 use App\Data\Group\GroupFiguresRowData;
+use App\Data\Group\GroupReportsData;
+use App\Data\Reports\ReportFilters;
 use App\Enums\GroupReportTab;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EnsureGroupAccess;
@@ -16,6 +18,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -27,9 +30,7 @@ class GroupReportsController extends Controller
 
     public function show(GroupReportsRequest $request, PropertyGroup $propertyGroup): Response
     {
-        $properties = $this->properties($request);
-        $tab = $request->tab();
-        $filters = $request->filters($this->propertyToday->date($properties->firstOrFail()));
+        [$tab, $filters, $report] = $this->open($request);
 
         return Inertia::render('group/reports', [
             'group' => ['id' => $propertyGroup->id, 'name' => $propertyGroup->name],
@@ -38,49 +39,53 @@ class GroupReportsController extends Controller
             'from' => $filters->from,
             'to' => $filters->to,
             'maxRangeDays' => GroupReportsRequest::MAX_DAYS,
-            'report' => $this->reports->for($request->user(), $properties, $tab, $filters),
+            'report' => $report,
         ]);
     }
 
     /**
-     * The open tab as a CSV file, the same rows as the screen; By property and By date end with the total row.
+     * The open tab as a CSV file with the screen's rows; By property and By date end with the total row.
      */
     public function export(GroupReportsRequest $request, PropertyGroup $propertyGroup): StreamedResponse
     {
-        $properties = $this->properties($request);
-        $tab = $request->tab();
-        $filters = $request->filters($this->propertyToday->date($properties->firstOrFail()));
-        $report = $this->reports->for($request->user(), $properties, $tab, $filters);
-        $rows = $tab === GroupReportTab::Bookings
-            ? array_map(fn (GroupBookingChangeRowData $row): array => $row->csv(), $report->bookings)
-            : array_map(fn (GroupFiguresRowData $row): array => $row->csv(), $report->total === null ? $report->figures : [...$report->figures, $report->total]);
-        $name = Str::slug("{$propertyGroup->name} {$tab->label()} {$filters->from} {$filters->to}").'.csv';
+        [$tab, $filters, $report] = $this->open($request);
+        [$headings, $rows] = match ($tab) {
+            GroupReportTab::Bookings => [GroupBookingChangeRowData::csvHeadings(), array_map(fn (GroupBookingChangeRowData $row): array => $row->csv(), $report->bookings)],
+            default => [
+                GroupFiguresRowData::csvHeadings($tab === GroupReportTab::ByDate ? __('Date') : __('Property')),
+                array_map(fn (GroupFiguresRowData $row): array => $row->csv(), $report->total === null ? $report->figures : [...$report->figures, $report->total]),
+            ],
+        };
 
-        return response()->streamDownload(function () use ($rows): void {
+        return response()->streamDownload(function () use ($headings, $rows): void {
             $out = fopen('php://output', 'w');
 
             if ($out === false) {
-                return;
+                throw new RuntimeException('The CSV output stream could not be opened.');
             }
 
-            if ($rows !== []) {
-                fputcsv($out, array_keys($rows[0]));
-            }
+            fputcsv($out, $headings);
 
             foreach ($rows as $row) {
-                fputcsv($out, array_values($row));
+                fputcsv($out, $row);
             }
 
             fclose($out);
-        }, $name, ['Content-Type' => 'text/csv', 'Cache-Control' => 'no-store, private']);
+        }, Str::slug("{$propertyGroup->name} {$tab->label()} {$filters->from} {$filters->to}").'.csv', ['Content-Type' => 'text/csv', 'Cache-Control' => 'no-store, private']);
     }
 
     /**
-     * @return Collection<int, Property>
+     * The tab, the dates and the report for them, over the properties `EnsureGroupAccess` let the user see.
+     *
+     * @return array{0: GroupReportTab, 1: ReportFilters, 2: GroupReportsData}
      */
-    private function properties(GroupReportsRequest $request): Collection
+    private function open(GroupReportsRequest $request): array
     {
-        /** @var Collection<int, Property> */
-        return $request->attributes->get(EnsureGroupAccess::PROPERTIES);
+        /** @var Collection<int, Property> $properties */
+        $properties = $request->attributes->get(EnsureGroupAccess::PROPERTIES);
+        $tab = $request->tab();
+        $filters = $request->filters($this->propertyToday->date($properties->firstOrFail()));
+
+        return [$tab, $filters, $this->reports->for($request->user(), $properties, $tab, $filters)];
     }
 }

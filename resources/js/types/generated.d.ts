@@ -2330,6 +2330,7 @@ export type GroupBookingChangeRowData = {
 propertyCode: string,
 propertyName: string,
 change: App.Data.Reports.BookingChangeRow,
+canOpen: boolean,
 };
 export type GroupDashboardData = {
 totals: App.Data.Group.GroupTotalsData,

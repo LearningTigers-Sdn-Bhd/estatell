@@ -2,12 +2,15 @@
 
 require_once __DIR__.'/../Support/GroupSetup.php';
 
+use App\Actions\Staff\GrantPropertyAccess;
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\GroupReportTab;
+use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Models\DailyStatistic;
 use App\Models\Property;
+use App\Models\Role;
 use App\Models\TransactionCode;
 use App\Services\Group\GroupReports;
 use App\Services\Staff\GroupProperties;
@@ -85,13 +88,14 @@ test('bookings lists the changes of every property with the property, and export
         ->assertInertia(fn (Assert $page) => $page
             ->where('from', '2026-10-14')
             ->has('report.bookings', 2)
-            ->where('report.bookings', fn ($rows) => collect($rows)->pluck('propertyName')->sort()->values()->all() === ['Tanini Kinabatangan', 'Tanini Sepilok']));
+            ->where('report.bookings', fn ($rows) => collect($rows)->pluck('propertyName')->sort()->values()->all() === ['Tanini Kinabatangan', 'Tanini Sepilok'])
+            ->where('report.bookings.0.canOpen', true));
 
     $csv = $this->get(route('group.reports.export', $setup['sepilok']->property_group_id).'?tab=by-property&from=2026-10-14&to=2026-10-14')
         ->assertOk()
         ->streamedContent();
 
-    expect($csv)->toStartWith('label,available,sold')
+    expect($csv)->toStartWith('Property,Available,Sold')
         ->toContain('Tanini Sepilok')
         ->toContain('"All properties",6,2');
 
@@ -129,4 +133,17 @@ test('group reports cost the same queries however many bookings the properties h
     }
 
     expect($many)->toBe($few);
+});
+
+test('a booking opens only where the role may view reservations', function () {
+    $setup = liveGroupSetup();
+    $reportsOnly = Role::query()->create(['property_id' => $setup['kinabatangan']->id, 'name' => 'Reports only']);
+    $reportsOnly->givePermissionTo(PermissionEnum::ReportsView->value);
+    app(GrantPropertyAccess::class)($setup['kinabatanganOwner'], $setup['kinabatangan'], $setup['manager'], $reportsOnly);
+    groupArrival($setup['kinabatangan'], $setup['roomTypes']['kinabatangan']);
+    groupArrival($setup['sepilok'], $setup['roomTypes']['sepilok']);
+
+    $this->actingAs($setup['manager'])->get(groupReportsUrl($setup['sepilok'], '?tab=bookings'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('report.bookings', fn ($rows) => collect($rows)->mapWithKeys(fn ($row) => [$row['propertyName'] => $row['canOpen']])->all() === ['Tanini Kinabatangan' => false, 'Tanini Sepilok' => true]));
 });

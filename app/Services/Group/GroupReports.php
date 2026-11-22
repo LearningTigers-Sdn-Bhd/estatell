@@ -41,16 +41,17 @@ class GroupReports
      */
     public function for(User $user, Collection $properties, GroupReportTab $tab, ReportFilters $filters): GroupReportsData
     {
-        $permissions = $this->groupProperties->permissionsFor($user, $properties, [PermissionEnum::ReportsView]);
-        $visible = $properties->filter(fn (Property $property): bool => ($permissions[$property->id] ?? []) !== [])->values();
+        $permissions = $this->groupProperties->permissionsFor($user, $properties, [PermissionEnum::ReportsView, PermissionEnum::ReservationsView]);
+        $holds = fn (Property $property, PermissionEnum $permission): bool => in_array($permission->value, $permissions[$property->id] ?? [], true);
+        $visible = $properties->filter(fn (Property $property): bool => $holds($property, PermissionEnum::ReportsView))->values();
         $currencies = $visible->map(fn (Property $property): string => $property->settings->currency->getCurrencyCode())->unique();
         $oneCurrency = $currencies->count() === 1;
         $summaries = array_values($visible->map(fn (Property $property): PropertySummaryData => PropertySummaryData::fromModel($property))->all());
         $currency = $oneCurrency ? CurrencyData::forProperty($visible->first()) : null;
-        $leftOut = array_values($properties->reject(fn (Property $property): bool => ($permissions[$property->id] ?? []) !== [])->map(fn (Property $property): string => $property->name)->all());
+        $leftOut = array_values($properties->reject(fn (Property $property): bool => $holds($property, PermissionEnum::ReportsView))->map(fn (Property $property): string => $property->name)->all());
 
         if ($tab === GroupReportTab::Bookings) {
-            return new GroupReportsData($summaries, $currency, [], null, $this->bookings($visible, $filters), $leftOut);
+            return new GroupReportsData($summaries, $currency, [], null, $this->bookings($visible, $filters, fn (Property $property): bool => $holds($property, PermissionEnum::ReservationsView)), $leftOut);
         }
 
         $rowsByProperty = [];
@@ -129,15 +130,18 @@ class GroupReports
 
     /**
      * @param  Collection<int, Property>  $properties
+     * @param  \Closure(Property): bool  $canOpen  Whether the role at the property may view its reservations.
      * @return list<GroupBookingChangeRowData>
      */
-    private function bookings(Collection $properties, ReportFilters $filters): array
+    private function bookings(Collection $properties, ReportFilters $filters, \Closure $canOpen): array
     {
         $rows = [];
 
         foreach ($properties as $property) {
+            $opens = $canOpen($property);
+
             foreach ($this->bookingChanges->rows($property, $filters) as $change) {
-                $rows[] = new GroupBookingChangeRowData($property->code, $property->name, $change);
+                $rows[] = new GroupBookingChangeRowData($property->code, $property->name, $change, $opens);
             }
         }
 

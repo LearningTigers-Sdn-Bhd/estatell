@@ -50,7 +50,7 @@ Each property counts on its own business date, as its own dashboard does. Querie
 | Bookings    | Every change of every property in the dates, by time, with the property. A reservation opens in its property.                                                                                                           | Each property's `BookingChangesReport` (Rooms on books › Changes)                                           |
 
 - Counts and money are summed; occupancy, ADR and RevPAR are worked out again from the sums, never averaged. Money is summed only when the properties use one currency (else "—").
-- **Export CSV** (`group.reports.export`) gives the open tab's rows, the total last.
+- **Export CSV** (`group.reports.export`) gives the open tab's rows with the screen's headings, the total last.
 - Queries grow with the number of properties, never with bookings (tested).
 
 ## Code

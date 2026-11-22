@@ -28,23 +28,20 @@ class GroupFiguresRowData extends Data
     ) {}
 
     /**
-     * @return array<string, string|int|float|null>
+     * The CSV headings, the first being the tab's row label (Property or Date).
+     *
+     * @return list<string>
+     */
+    public static function csvHeadings(string $first): array
+    {
+        return [$first, __('Available'), __('Sold'), __('Complimentary'), __('Occupancy %'), __('ADR'), __('RevPAR'), __('Pax'), __('Room charges'), __('Extra charges'), __('Tax'), __('Receipts')];
+    }
+
+    /**
+     * @return list<string|int|null>
      */
     public function csv(): array
     {
-        return [
-            'label' => $this->label,
-            'available' => $this->available,
-            'sold' => $this->sold,
-            'complimentary' => $this->complimentary,
-            'occupancy' => $this->occupancy,
-            'adr' => $this->adr,
-            'revpar' => $this->revpar,
-            'pax' => $this->pax,
-            'room_charges' => $this->roomCharges,
-            'extra_charges' => $this->extraCharges,
-            'tax' => $this->tax,
-            'receipts' => $this->receipts,
-        ];
+        return [$this->label, $this->available, $this->sold, $this->complimentary, $this->occupancy, $this->adr, $this->revpar, $this->pax, $this->roomCharges, $this->extraCharges, $this->tax, $this->receipts];
     }
 }
