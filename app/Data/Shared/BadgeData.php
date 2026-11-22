@@ -11,6 +11,7 @@ use App\Enums\AiThreadStatus;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArrivalImportOutcome;
 use App\Enums\AuditStatus;
+use App\Enums\BookingChangeKind;
 use App\Enums\BookingEngineMode;
 use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelConnectionStatus;
@@ -102,6 +103,11 @@ class BadgeData extends Data
     public static function fromForecastBasis(ForecastBasis $basis): self
     {
         return new self($basis->value, $basis->label(), $basis->tone());
+    }
+
+    public static function fromBookingChangeKind(BookingChangeKind $kind): self
+    {
+        return new self($kind->value, $kind->label(), $kind->tone());
     }
 
     public static function fromAuditStatus(AuditStatus $status): self

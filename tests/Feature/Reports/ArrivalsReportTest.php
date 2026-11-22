@@ -307,6 +307,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                     'label' => 'Revenue',
                     'items' => [
                         ['title' => 'Daily report', 'href' => "/p/{$property->code}/reports/daily-report", 'icon' => 'calculator', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Rooms on books', 'href' => "/p/{$property->code}/reports/rooms-on-books", 'icon' => 'calendar-range', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Occupancy', 'href' => "/p/{$property->code}/reports/occupancy", 'icon' => 'percent', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'History & forecast', 'href' => "/p/{$property->code}/reports/history-forecast", 'icon' => 'chart-gantt', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],

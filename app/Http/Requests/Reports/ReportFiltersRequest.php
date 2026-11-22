@@ -25,7 +25,7 @@ use LogicException;
 /**
  * The dates of a report page: `from` and `to` in the URL, both included. A missing date falls back to the other
  * date, and with none the report opens on the open business date, or on the days up to it that `ReportKey::defaultDays()` gives
- * (the month with `opensOnMonth()`). The range may not be longer than the report allows.
+ * (the month with `opensOnMonth()`, the days from it with `opensForwardDays()`). The range may not be longer than the report allows.
  * A report of one date (`maxRangeDays()` is null) takes a single `date` instead and uses it as both ends.
  * A report that groups its rows (`ReportKey::groups()`) also takes `group`, which must be one of its groups and falls
  * back to the first. Other reports ignore `group`.
@@ -171,6 +171,13 @@ class ReportFiltersRequest extends FormRequest
         if ($this->reportKey()->opensOnMonth() && $from === null && $to === null) {
             $defaultFrom = Date::parse($default)->startOfMonth()->toDateString();
             $default = Date::parse($default)->endOfMonth()->toDateString();
+        }
+
+        $forwardDays = $this->reportKey()->opensForwardDays();
+
+        if ($forwardDays !== null && $from === null && $to === null) {
+            $defaultFrom = $default;
+            $default = Date::parse($default)->addDays($forwardDays - 1)->toDateString();
         }
 
         return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup(), facilityIds: $this->facilityIds(), facilityStatuses: $this->facilityStatuses());

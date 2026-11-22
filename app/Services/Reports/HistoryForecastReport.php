@@ -10,8 +10,6 @@ use App\Enums\ForecastBasis;
 use App\Enums\UnitStatus;
 use App\Models\DailyStatistic;
 use App\Models\Property;
-use App\Models\RoomType;
-use App\Services\Availability\AvailabilityService;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -25,7 +23,7 @@ use Carbon\CarbonImmutable;
  *   nights of the units that stayed, and the ledger posted on the date. A closed date with no snapshot (before
  *   go-live) is left out, as on Occupancy.
  * - **Today** (the open business date) and **Forecast** (later dates): the books. Supply is the rooms and beds on sale
- *   (`AvailabilityService`), sold and pax are the nights of the units that hold inventory, and the charges are what is
+ *   (`RoomSupply`), sold and pax are the nights of the units that hold inventory, and the charges are what is
  *   posted so far plus `ChargeForecast` for what is not. A forecast date has no receipts.
  *
  * Room charges are the room revenue net of its discounts, extra charges every other charge, tax the tax lines.
@@ -39,7 +37,7 @@ class HistoryForecastReport implements HasTotals, Report
         private DailyRevenueQuery $ledger,
         private BookedNightCounts $nightCounts,
         private ChargeForecast $chargeForecast,
-        private AvailabilityService $availability,
+        private RoomSupply $roomSupply,
     ) {}
 
     /**
@@ -133,7 +131,7 @@ class HistoryForecastReport implements HasTotals, Report
      */
     private function forwardRows(Property $property, CarbonImmutable $from, CarbonImmutable $to, ?CarbonImmutable $open): array
     {
-        $supply = $this->supply($property, $from, $to);
+        $supply = $this->roomSupply->between($property, $from, $to);
         $counts = $this->nightCounts->between($property, $from, $to, UnitStatus::holdingInventory());
         $forecast = $this->chargeForecast->between($property, $from, $to);
         $posted = $open !== null && $open->betweenIncluded($from, $to) ? $this->ledgerBetween($property, $open, $open) : [];
@@ -158,25 +156,6 @@ class HistoryForecastReport implements HasTotals, Report
         }
 
         return $rows;
-    }
-
-    /**
-     * The rooms and beds on sale on each date: active units that no open block takes off the night.
-     *
-     * @return array<string, int>
-     */
-    private function supply(Property $property, CarbonImmutable $from, CarbonImmutable $to): array
-    {
-        $supply = [];
-
-        foreach ($this->availability->nightsForRoomTypes(RoomType::query()->where('property_id', $property->id)->get(), $from, $to->addDay()) as $nights) {
-            foreach ($nights as $night) {
-                $date = $night->date->toDateString();
-                $supply[$date] = ($supply[$date] ?? 0) + max(0, $night->total - $night->blocked);
-            }
-        }
-
-        return $supply;
     }
 
     /**

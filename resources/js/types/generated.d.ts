@@ -4575,6 +4575,30 @@ reservation_id: number | null,
 reservation_unit_id: number | null,
 unit_time: string | null,
 };
+export type BookingChangeRow = {
+key: string,
+kind: App.Data.Shared.BadgeData,
+changed_at: string,
+reservation: string,
+reservation_id: number,
+guest: string,
+room: string,
+previous_arrival: string | null,
+previous_departure: string | null,
+arrival: string,
+departure: string,
+nights: number,
+rate: string,
+revenue: string,
+nights_change: number,
+revenue_change: string,
+rate_plan: string,
+complimentary: boolean,
+group: string | null,
+source: string,
+booked_by: string | null,
+reason: string | null,
+};
 export type BookingPerformanceRow = {
 key: string,
 grouping: App.Enums.ReportGroup,
@@ -5002,6 +5026,55 @@ lines: number,
 amount: string,
 from: string,
 to: string,
+};
+export type RoomsOnBooksImpactData = {
+kind: string | null,
+label: string,
+rooms: number,
+nights: number,
+revenue: string,
+arr: string,
+};
+export type RoomsOnBooksLengthOfStayData = {
+label: string,
+rooms: number,
+nights: number,
+rate: string,
+revenue: string,
+};
+export type RoomsOnBooksOverviewData = {
+asOf: string,
+impact: App.Data.Reports.RoomsOnBooksImpactData[],
+pace: App.Data.Reports.RoomsOnBooksPaceData[],
+recent: App.Data.Reports.RoomsOnBooksRecentDayData[],
+lengthOfStay: App.Data.Reports.RoomsOnBooksLengthOfStayData[],
+};
+export type RoomsOnBooksPaceData = {
+label: string,
+from: string,
+to: string,
+nights: number,
+rpd: string,
+occupancy: string,
+};
+export type RoomsOnBooksRecentDayData = {
+date: string,
+sold: number,
+occupancy: string,
+};
+export type RoomsOnBooksRow = {
+key: string,
+date: string,
+in_house: number,
+arrivals: number,
+departures: number,
+group_arrivals: number,
+rooms_on_books: number,
+complimentary: number,
+available: number,
+occupancy: string,
+arr: string,
+room_revenue: string,
 };
 export type TaxRow = {
 key: string,
@@ -6353,6 +6426,7 @@ export type BoatDirection = 'in' | 'out';
 export type BoatJobType = 'diesel' | 'linen' | 'supplies' | 'staff' | 'maintenance' | 'other';
 export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookableOnlineResult = 'saved' | 'not-available' | 'last-plan';
+export type BookingChangeKind = 'new' | 'cancellation' | 'amendment' | 'no-show';
 export type BookingClientType = 'microsite' | 'api-only' | 'demo';
 export type BookingEngineMode = 'microsite' | 'api-only';
 export type BookingHoldStatus = 'held' | 'paid' | 'confirmed' | 'expired';
@@ -6527,7 +6601,7 @@ export type RemarkKind = 'housekeeping' | 'dietary' | 'package' | 'payment';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff' | 'room_type' | 'source' | 'rate_plan' | 'status' | 'sales_person' | 'market_segment';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'history-forecast' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'housekeeping-log' | 'house-status' | 'agent-payments' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges' | 'guests' | 'booking-performance' | 'facility-bookings';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'history-forecast' | 'on-the-books' | 'booking-changes' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'housekeeping-log' | 'house-status' | 'agent-payments' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges' | 'guests' | 'booking-performance' | 'facility-bookings';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';
@@ -6549,7 +6623,7 @@ export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'nee
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment' | 'folio_transfer';
-export type TabbedReport = 'guest-list' | 'daily-report' | 'housekeeping';
+export type TabbedReport = 'guest-list' | 'daily-report' | 'housekeeping' | 'rooms-on-books';
 export type TaxRateType = 'percent' | 'flat';
 export type TaxWaiverReason = 'paid_elsewhere' | 'guest_receipt';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';

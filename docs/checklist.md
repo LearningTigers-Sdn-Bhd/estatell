@@ -41,6 +41,7 @@ Plan: `docs/estatell/tanini/2026-11-18-tanini-system-requirements-plan.md` (outs
     - Remarks: `reservation_remarks` with `RemarkKind`, the booking form Notes tab, More → Edit remarks. Docs: [Remarks](12-reservations/16-remarks.md).
     - Reports: Booking performance Sales person and Market segment tabs, each tab now a `BookingPerformanceGrouping` strategy; 13 hidden Arrivals columns (departure, rate, rate plan, meal plan, source, segment, sales person, booked by, four remarks). Docs: [Arrivals columns](22-reports/01-core-reports.md#arrivals-columns).
 - [x] `feat(reports): add the History & forecast report` — Tanini requirement 7.3: `ReportKey::HistoryForecast`, `HistoryForecastReport`, `BookedNightCounts`, `ChargeForecast`, `DailyRevenueQuery::receiptsBetween()`, `ForecastBasis`, the `rate_plans.is_complimentary` flag and its switch on the rate plan form. Docs: [History & forecast](22-reports/04-history-and-forecast.md).
+- [x] `feat(reports): add the Rooms on books report` — Tanini requirements 7.7 and 7.8: `TabbedReport::RoomsOnBooks` with Overview, On the books (`ReportKey::OnTheBooks`, `RoomsOnBooksReport`) and Changes (`ReportKey::BookingChanges`, `BookingChangesReport`, `BookingChangeKind`, read from the activity log), `RoomsOnBooksOverview`, `RoomSupply` shared with History & forecast, an `activity_log (event, created_at)` index. Docs: [Rooms on books](22-reports/05-rooms-on-books.md).
 
 ## Next
 

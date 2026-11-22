@@ -28,6 +28,7 @@ use App\Http\Controllers\Reports\PoliceReportController;
 use App\Http\Controllers\Reports\ReportExportController;
 use App\Http\Controllers\Reports\ReportLayoutController;
 use App\Http\Controllers\Reports\RevenueReportController;
+use App\Http\Controllers\Reports\RoomsOnBooksController;
 use App\Http\Controllers\Reports\TaxReportController;
 use App\Http\Middleware\EnsureReportIsAvailable;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,7 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('activity-log', ActivityLogController::class)->name('activity-log');
     Route::get('guest-list', GuestListController::class)->name('guest-list');
     Route::get('daily-report', DailyReportController::class)->name('daily-report');
+    Route::get('rooms-on-books', RoomsOnBooksController::class)->name('rooms-on-books');
     Route::get('arrivals', ArrivalsReportController::class)->name('arrivals');
     Route::get('departures', DeparturesReportController::class)->name('departures');
     Route::get('checked-out', CheckedOutReportController::class)->name('checked-out');

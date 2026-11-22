@@ -13,6 +13,8 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                                               | One date | Portrait            | –             |
 | Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                                               | Range    | Portrait            | 366 days      |
 | History & forecast            | `HistoryForecast`    | `daily_statistics`, the ledger, the books (see [04](04-history-and-forecast.md)) | Range    | Landscape           | 366 days      |
+| Rooms on books › On the books | `OnTheBooks`         | The books (see [05](05-rooms-on-books.md))                                       | Range    | Landscape           | 366 days      |
+| Rooms on books › Changes      | `BookingChanges`     | New units and the activity log (see [05](05-rooms-on-books.md))                  | Range    | Landscape           | 366 days      |
 | Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                                                       | Range    | Portrait            | 366 days      |
 | Payments by method            | `Payments`           | `payments`, `ar_payments`                                                        | Range    | Landscape           | 366 days      |
 | Folio ledger                  | `FolioLedger`        | `folio_lines`                                                                    | Range    | Landscape           | 31 days       |
