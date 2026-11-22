@@ -24,6 +24,12 @@ class GroupNavigation
                 icon: 'layout-grid',
                 active: request()->routeIs('group.dashboard'),
             ),
+            new NavItemData(
+                title: __('Timeline View'),
+                href: route('group.timeline', ['propertyGroup' => $group->id], absolute: false),
+                icon: 'chart-gantt',
+                active: request()->routeIs('group.timeline'),
+            ),
         ];
 
         return new StaffNavigationData(

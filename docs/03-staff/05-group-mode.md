@@ -4,7 +4,7 @@
 
 A manager of more than one property of a group (Tanini: Sepilok and Kinabatangan) sees them together, without signing in again: one dashboard with today at every property, then a group timeline and consolidated reports. Plan items 1.2 and 7.4. It builds on [Property groups and multi-property access](04-property-groups.md).
 
-**Status:** step 1 (group mode, the group dashboard) built 2026-11-22. Next: the group timeline, then consolidated reports.
+**Status:** group mode, the group dashboard and the group timeline built 2026-11-22. Next: consolidated reports.
 
 ## Who sees it
 
@@ -31,6 +31,14 @@ A manager of more than one property of a group (Tanini: Sepilok and Kinabatangan
 
 Each property counts on its own business date, as its own dashboard does. Queries grow with the number of properties shown, never with bookings (tested).
 
+## Group timeline
+
+`GET /g/{group}/timeline` (`group.timeline`), Group › Timeline View. It takes the same `from` and `to` as a property's Timeline View (`StayViewTimelineRequest`: 14 nights from today by default, 30 at most) and shows those dates for every property whose role shows the front desk (`front-desk.view`), one card each, by name.
+
+- Each card is the property's own Timeline View grid (`StayViewQuery` without rates, grouped by room type), read only: no dragging, resizing, blocking or new bookings. **Open Timeline View** opens the property's own view for the same dates, where every change happens.
+- Clicking a stay opens its booking in its property (`/p/{code}/reservations/{id}`), when the role there may view reservations.
+- Earlier and later move the whole window. Queries grow with the number of properties, never with stays (tested).
+
 ## Code
 
 | Part                                                            | Role                                                                                 |
@@ -43,12 +51,13 @@ Each property counts on its own business date, as its own dashboard does. Querie
 
 ## Tests
 
-`tests/Feature/Group/GroupDashboardTest.php`:
+`tests/Feature/Group/GroupDashboardTest.php` and `GroupTimelineTest.php`:
 
 - who may open group mode, and when suspending a property closes it
 - the menu entries
 - figures per role with the totals
 - support sessions refused
-- a constant query count
+- the timeline's properties by role, and its date limit
+- a constant query count for the dashboard and the timeline
 
 The shared setup is `tests/Feature/Support/GroupSetup.php`.

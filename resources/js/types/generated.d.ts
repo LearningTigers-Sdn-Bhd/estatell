@@ -2335,6 +2335,16 @@ property: App.Data.Property.PropertySummaryData,
 businessDate: string | null,
 tiles: App.Data.Dashboard.DashboardTilesData | null,
 };
+export type GroupTimelinePropertyData = {
+property: App.Data.Property.PropertySummaryData,
+window: App.Data.StayView.StayViewWindowData,
+rooms: App.Data.StayView.RoomRowData[],
+stays: App.Data.StayView.StayData[],
+dayUses: App.Data.StayView.DayUseData[],
+blocks: App.Data.StayView.BlockData[],
+weekendDays: number[],
+canViewReservations: boolean,
+};
 export type GroupTotalsData = {
 arrivalsRemaining: number | null,
 arrivalsTotal: number | null,
