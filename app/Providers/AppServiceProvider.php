@@ -37,6 +37,7 @@ use App\Models\BookingClient;
 use App\Models\EInvoiceSubmission;
 use App\Models\Kiosk;
 use App\Models\Property;
+use App\Models\PropertyGroup;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Models\User;
@@ -364,7 +365,8 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bind `{property}` by its public code on every route, including `Route::inertia` routes that
      * have no typed controller parameter for implicit binding. An unknown code is a 404, except on the view-as page,
-     * where an admin is told the code was not found (anyone else must not be able to probe codes).
+     * where an admin is told the code was not found (anyone else must not be able to probe codes). `{propertyGroup}`
+     * binds by id on every route, for group mode and the admin pages.
      */
     protected function configureRouteBindings(): void
     {
@@ -383,6 +385,8 @@ class AppServiceProvider extends ServiceProvider
 
             throw (new ModelNotFoundException)->setModel(Property::class);
         });
+
+        Route::model('propertyGroup', PropertyGroup::class);
     }
 
     /**

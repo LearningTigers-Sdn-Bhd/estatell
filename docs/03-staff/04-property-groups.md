@@ -82,5 +82,5 @@ Every "staff of this property" read goes through memberships, so staff given acc
 
 ## Not built yet
 
-- The group dashboard and combined reports for users with access to several properties (plan 1.2, 7.4).
+- Combined timeline and reports for users with access to several properties (plan 1.2, 7.4): see [Group mode](05-group-mode.md); the group dashboard is built.
 - Shared companies across a group: companies stay per property by decision.

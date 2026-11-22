@@ -5,7 +5,8 @@ namespace App\Enums;
 use Illuminate\Support\Str;
 
 /**
- * The staff areas (sidebar contexts). The active context comes from the current route name.
+ * The staff areas (sidebar contexts). The active context comes from the current route name. Group is the only
+ * context of group mode (`GroupNavigation`) and never shows inside a property.
  */
 enum NavigationContext: string
 {
@@ -14,6 +15,7 @@ enum NavigationContext: string
     case Finance = 'finance';
     case Reports = 'reports';
     case Settings = 'settings';
+    case Group = 'group';
 
     public function label(): string
     {
@@ -23,6 +25,7 @@ enum NavigationContext: string
             self::Finance => __('Finance'),
             self::Reports => __('Reports'),
             self::Settings => __('Settings'),
+            self::Group => __('Group'),
         };
     }
 
@@ -37,6 +40,7 @@ enum NavigationContext: string
             self::Finance => 'wallet',
             self::Reports => 'chart-column',
             self::Settings => 'settings',
+            self::Group => 'network',
         };
     }
 
@@ -70,6 +74,7 @@ enum NavigationContext: string
             self::Finance => ['finance.*'],
             self::Reports => ['reports.*'],
             self::Settings => ['settings.*', 'channels.*'],
+            self::Group => ['group.*'],
         };
     }
 

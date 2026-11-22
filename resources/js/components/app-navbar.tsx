@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ChevronsUpDown, CircleHelp } from 'lucide-react';
+import { ChevronsUpDown, CircleHelp, Network } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { AppearanceToggle } from '@/components/appearance-toggle';
 import { NavUser } from '@/components/nav-user';
@@ -12,6 +12,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -23,6 +24,7 @@ import {
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { dashboard as groupDashboard } from '@/routes/group';
 import { redirect as homeRedirect } from '@/routes/home';
 
 /** The property logo (or its initials), name and code. */
@@ -58,6 +60,25 @@ function PropertyIdentity({
     );
 }
 
+/** A group of properties: its name, and that it covers all of them. */
+function GroupIdentity({ name }: { name: string }) {
+    return (
+        <>
+            <Avatar className="overflow-hidden rounded-md after:rounded-md">
+                <AvatarFallback className="rounded-md bg-primary text-primary-foreground">
+                    <Network className="size-4" />
+                </AvatarFallback>
+            </Avatar>
+            <div className="grid min-w-0 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{name}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                    All properties
+                </span>
+            </div>
+        </>
+    );
+}
+
 /**
  * Navbar: sidebar toggle, property identity (or the app logo) and the user menu.
  * Staff with access to more than one property switch between them from the identity (docs/03-staff/04-property-groups.md).
@@ -79,9 +100,12 @@ export function AppNavbar({
     const {
         property: currentProperty,
         propertySwitcher,
+        groupSwitcher,
+        propertyGroup,
         docsUrl,
     } = usePage().props;
     const property = identity === 'property' ? currentProperty : null;
+    const group = identity === 'property' ? propertyGroup : null;
 
     return (
         <header
@@ -93,13 +117,18 @@ export function AppNavbar({
             )}
         >
             <SidebarTrigger className="-ml-1" />
-            {property && propertySwitcher.length > 0 ? (
+            {(property || group) &&
+            (propertySwitcher.length > 0 || groupSwitcher.length > 0) ? (
                 <DropdownMenu>
                     <DropdownMenuTrigger
                         className="flex min-w-0 shrink-0 items-center gap-2 rounded-md p-1 outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-                        aria-label={`Switch property, now ${property.name}`}
+                        aria-label={`Switch property, now ${group?.name ?? property?.name}`}
                     >
-                        <PropertyIdentity property={property} />
+                        {group ? (
+                            <GroupIdentity name={group.name} />
+                        ) : (
+                            property && <PropertyIdentity property={property} />
+                        )}
                         <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -107,25 +136,55 @@ export function AppNavbar({
                         align="start"
                         side="bottom"
                     >
-                        <DropdownMenuGroup>
-                            <DropdownMenuLabel>
-                                Switch property
-                            </DropdownMenuLabel>
-                            {propertySwitcher.map((item) => (
-                                <DropdownMenuItem
-                                    key={item.code}
-                                    render={
-                                        <Link
-                                            href={dashboard({
-                                                property: item.code,
-                                            })}
-                                        />
-                                    }
-                                >
-                                    <PropertyIdentity property={item} />
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuGroup>
+                        {groupSwitcher.length > 0 && (
+                            <>
+                                <DropdownMenuGroup>
+                                    <DropdownMenuLabel>
+                                        All properties
+                                    </DropdownMenuLabel>
+                                    {groupSwitcher.map((item) => (
+                                        <DropdownMenuItem
+                                            key={item.id}
+                                            render={
+                                                <Link
+                                                    href={groupDashboard({
+                                                        propertyGroup: item.id,
+                                                    })}
+                                                />
+                                            }
+                                        >
+                                            <GroupIdentity name={item.name} />
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuGroup>
+                                {propertySwitcher.length > 0 && (
+                                    <DropdownMenuSeparator />
+                                )}
+                            </>
+                        )}
+                        {propertySwitcher.length > 0 && (
+                            <DropdownMenuGroup>
+                                <DropdownMenuLabel>
+                                    {group
+                                        ? 'Open a property'
+                                        : 'Switch property'}
+                                </DropdownMenuLabel>
+                                {propertySwitcher.map((item) => (
+                                    <DropdownMenuItem
+                                        key={item.code}
+                                        render={
+                                            <Link
+                                                href={dashboard({
+                                                    property: item.code,
+                                                })}
+                                            />
+                                        }
+                                    >
+                                        <PropertyIdentity property={item} />
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuGroup>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             ) : (

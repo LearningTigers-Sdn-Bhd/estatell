@@ -30,6 +30,10 @@ declare module '@inertiajs/core' {
             portalSwitcher: App.Data.Portal.PortalSwitcherData[] | null;
             /** The other properties a staff user may open, for the navbar switcher. Empty with one property. */
             propertySwitcher: App.Data.Property.PropertySummaryData[];
+            /** The groups the staff user may open in group mode, for the top of the switcher. */
+            groupSwitcher: { id: number; name: string }[];
+            /** The group of a group-mode page (`/g/{group}`), null elsewhere. */
+            propertyGroup: { id: number; name: string } | null;
             accountNavigation: App.Data.Navigation.NavItemData[] | null;
             navigation: App.Data.Navigation.StaffNavigationData | null;
             channelRemovals: App.Data.Channels.ChannelRemovalData[];

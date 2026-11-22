@@ -17,6 +17,7 @@ use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEInvoicingIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureFacilitiesAreActive;
+use App\Http\Middleware\EnsureGroupAccess;
 use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
 use App\Http\Middleware\EnsureOnboarding;
@@ -107,6 +108,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->prependToPriorityList([ThrottleRequests::class, ThrottleRequestsWithRedis::class], AuthenticateApiToken::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
+        $middleware->appendToPriorityList(SubstituteBindings::class, EnsureGroupAccess::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePortalAccess::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsureConciergeIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);

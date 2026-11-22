@@ -13,8 +13,10 @@ use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
 use App\Models\CompanyUser;
 use App\Models\Property;
+use App\Models\PropertyGroup;
 use App\Navigation\AccountNavigation;
 use App\Navigation\AdminNavigation;
+use App\Navigation\GroupNavigation;
 use App\Navigation\PartnerNavigation;
 use App\Navigation\PortalNavigation;
 use App\Navigation\StaffNavigation;
@@ -24,7 +26,9 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingProgress;
 use App\Services\Platform\Impersonation;
+use App\Services\Staff\GroupProperties;
 use App\Services\Staff\StaffProperties;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -84,6 +88,8 @@ class HandleInertiaRequests extends Middleware
             'accountNavigation' => fn () => $request->user() !== null && $request->routeIs('account.*') ? app(AccountNavigation::class)->items($request) : null,
             'navigation' => fn () => $this->staffNavigation($request),
             'propertySwitcher' => fn () => $this->propertySwitcher($request),
+            'groupSwitcher' => fn () => $this->groupSwitcher($request),
+            'propertyGroup' => fn () => $this->currentGroup($request),
             'channelRemovals' => fn () => app(ChannelRemovalProgress::class)->forUser($request->user()),
             'commandShortcuts' => fn () => $this->commandShortcuts($request),
             'csrfToken' => fn () => csrf_token(),
@@ -151,6 +157,12 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
+        $group = $this->resolveGroup($request);
+
+        if ($group !== null) {
+            return app(GroupNavigation::class)->build($group);
+        }
+
         $property = $this->resolveProperty($request);
 
         if ($property === null || $property->status === PropertyStatus::Suspended) {
@@ -166,23 +178,95 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The other properties the staff user may open, for the switcher on the navbar. Empty with one property.
-     * See docs/03-staff/04-property-groups.md.
+     * The other properties the staff user may open, for the switcher on the navbar. Empty with one property. In group
+     * mode, the group's properties the user may open. See docs/03-staff/04-property-groups.md.
      *
      * @return list<PropertySummaryData>
      */
     private function propertySwitcher(Request $request): array
     {
         $user = $request->user();
-        $property = $this->resolveProperty($request);
 
-        if ($user === null || $property === null || $user->property_id === null || app(Impersonation::class)->isActive()) {
+        if ($user === null || $user->property_id === null || app(Impersonation::class)->isActive()) {
             return [];
         }
 
+        $groupProperties = $request->attributes->get(EnsureGroupAccess::PROPERTIES);
+
+        if ($groupProperties instanceof Collection) {
+            return array_values(array_map(
+                fn (Property $property): PropertySummaryData => PropertySummaryData::fromModel($property),
+                array_filter($groupProperties->all(), fn ($property): bool => $property instanceof Property),
+            ));
+        }
+
+        $property = $this->resolveProperty($request);
+
+        if ($property === null) {
+            return [];
+        }
+
+        return app(StaffProperties::class)->switcherFor($user, $property, $this->activePropertyIds($request));
+    }
+
+    /**
+     * The groups the staff user may open in group mode (two or more of their properties in one group), for the top of
+     * the switcher. No query for a user with one property. See docs/03-staff/05-group-mode.md.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    private function groupSwitcher(Request $request): array
+    {
+        $user = $request->user();
+
+        if ($user === null || $user->property_id === null || app(Impersonation::class)->isActive()) {
+            return [];
+        }
+
+        $ids = $this->activePropertyIds($request);
+
+        if ($ids !== null && count($ids) < 2) {
+            return [];
+        }
+
+        return array_values(app(GroupProperties::class)->groupsFor($user)
+            ->map(fn (PropertyGroup $group): array => ['id' => $group->id, 'name' => $group->name])
+            ->all());
+    }
+
+    /**
+     * The group of the page in group mode, for the navbar identity.
+     *
+     * @return array{id: int, name: string}|null
+     */
+    private function currentGroup(Request $request): ?array
+    {
+        $group = $this->resolveGroup($request);
+
+        return $group === null ? null : ['id' => $group->id, 'name' => $group->name];
+    }
+
+    /**
+     * The ids of the properties the user may open, as `EnsurePropertyAccess` read them for this request, or null on a
+     * page it did not run on.
+     *
+     * @return list<int>|null
+     */
+    private function activePropertyIds(Request $request): ?array
+    {
         $ids = $request->attributes->get(EnsurePropertyAccess::ACTIVE_PROPERTY_IDS);
 
-        return app(StaffProperties::class)->switcherFor($user, $property, is_array($ids) ? array_values(array_filter($ids, is_int(...))) : null);
+        return is_array($ids) ? array_values(array_filter($ids, is_int(...))) : null;
+    }
+
+    /**
+     * The group of a group-mode page (`EnsureGroupAccess` has let the user in), or null.
+     */
+    private function resolveGroup(Request $request): ?PropertyGroup
+    {
+        $group = $request->route('propertyGroup');
+
+        return $group instanceof PropertyGroup && $request->attributes->has(EnsureGroupAccess::PROPERTIES) ? $group : null;
     }
 
     /**
@@ -213,7 +297,7 @@ class HandleInertiaRequests extends Middleware
 
     private function resolveProperty(Request $request): ?Property
     {
-        if ($request->user()?->is_company_user) {
+        if ($request->user()?->is_company_user || $this->resolveGroup($request) !== null) {
             return null;
         }
 

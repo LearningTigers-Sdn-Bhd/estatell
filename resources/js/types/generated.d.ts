@@ -2325,6 +2325,33 @@ folioId: number,
 amount: string,
 };
 }
+namespace Group {
+export type GroupDashboardData = {
+totals: App.Data.Group.GroupTotalsData,
+properties: App.Data.Group.GroupPropertyTilesData[],
+};
+export type GroupPropertyTilesData = {
+property: App.Data.Property.PropertySummaryData,
+businessDate: string | null,
+tiles: App.Data.Dashboard.DashboardTilesData | null,
+};
+export type GroupTotalsData = {
+arrivalsRemaining: number | null,
+arrivalsTotal: number | null,
+departuresRemaining: number | null,
+departuresTotal: number | null,
+occupancy: number | null,
+unitsSold: number | null,
+unitsOnSale: number | null,
+newBookings: number | null,
+newRooms: number | null,
+monthPosted: string | null,
+monthBookedAmount: string | null,
+currency: App.Data.Property.CurrencyData | null,
+revenueProperties: number,
+properties: number,
+};
+}
 namespace GuestRequests {
 export type GuestRequestRowData = {
 id: number,
@@ -6535,7 +6562,7 @@ export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_paymen
 export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
-export type NavigationContext = 'front-desk' | 'pos' | 'finance' | 'reports' | 'settings';
+export type NavigationContext = 'front-desk' | 'pos' | 'finance' | 'reports' | 'settings' | 'group';
 export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled' | 'ai_thread_escalated' | 'ai_cap_nearly_reached';
