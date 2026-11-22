@@ -43,6 +43,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $company_at_desk
  * @property bool $company_in_portal
  * @property bool $bookable_online
+ * @property bool $is_complimentary The room is given free; see docs/22-reports/04-history-and-forecast.md.
  * @property CompanyRateMarket $company_market
  * @property int|null $min_rooms The fewest rooms a booking needs to use this plan (FIT/GROUP rates). Null: no limit.
  * @property int|null $max_rooms The most rooms a booking can have to use this plan. Null: no limit.
@@ -55,7 +56,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read RatePlan|null $parent
  */
 #[Fillable([
-    'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours', 'day_use_from', 'day_use_until', 'extra_adult_amount', 'extra_child_amount', 'single_supplement', 'min_rooms', 'max_rooms', 'group_rate_plan_id',
+    'name', 'description', 'is_complimentary', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours', 'day_use_from', 'day_use_until', 'extra_adult_amount', 'extra_child_amount', 'single_supplement', 'min_rooms', 'max_rooms', 'group_rate_plan_id',
     'parent_rate_plan_id', 'derivation', 'derivation_value', 'early_departure_policy', 'needs_child_price_review', 'position', 'archived_at',
 ])]
 class RatePlan extends Model
@@ -81,6 +82,7 @@ class RatePlan extends Model
             'company_at_desk' => 'boolean',
             'company_in_portal' => 'boolean',
             'bookable_online' => 'boolean',
+            'is_complimentary' => 'boolean',
             'company_market' => CompanyRateMarket::class,
             'min_rooms' => 'integer',
             'max_rooms' => 'integer',

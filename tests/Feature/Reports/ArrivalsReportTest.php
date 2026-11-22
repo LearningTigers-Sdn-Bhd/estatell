@@ -308,6 +308,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                     'items' => [
                         ['title' => 'Daily report', 'href' => "/p/{$property->code}/reports/daily-report", 'icon' => 'calculator', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Occupancy', 'href' => "/p/{$property->code}/reports/occupancy", 'icon' => 'percent', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'History & forecast', 'href' => "/p/{$property->code}/reports/history-forecast", 'icon' => 'chart-gantt', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Tax', 'href' => "/p/{$property->code}/reports/tax", 'icon' => 'landmark', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Non-national guests', 'href' => "/p/{$property->code}/reports/non-national-guests", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],

@@ -24,6 +24,7 @@ use App\Enums\EventStatus;
 use App\Enums\FacilityBookingStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
+use App\Enums\ForecastBasis;
 use App\Enums\GatewayRefundStatus;
 use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
@@ -96,6 +97,11 @@ class BadgeData extends Data
     public static function fromWebhookDeliveryStatus(WebhookDeliveryStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromForecastBasis(ForecastBasis $basis): self
+    {
+        return new self($basis->value, $basis->label(), $basis->tone());
     }
 
     public static function fromAuditStatus(AuditStatus $status): self

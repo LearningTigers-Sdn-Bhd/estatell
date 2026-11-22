@@ -13,6 +13,7 @@ use App\Http\Controllers\Reports\DepositLiabilityReportController;
 use App\Http\Controllers\Reports\FacilityBookingsReportController;
 use App\Http\Controllers\Reports\FolioLedgerReportController;
 use App\Http\Controllers\Reports\GuestListController;
+use App\Http\Controllers\Reports\HistoryForecastReportController;
 use App\Http\Controllers\Reports\HousekeepingReportController;
 use App\Http\Controllers\Reports\HouseStatusReportController;
 use App\Http\Controllers\Reports\InHouseReportController;
@@ -40,6 +41,7 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('checked-out', CheckedOutReportController::class)->name('checked-out');
     Route::get('in-house', InHouseReportController::class)->name('in-house');
     Route::get('occupancy', OccupancyReportController::class)->name('occupancy');
+    Route::get('history-forecast', HistoryForecastReportController::class)->name('history-forecast');
     Route::get('revenue', RevenueReportController::class)->name('revenue');
     Route::get('booking-performance', BookingPerformanceReportController::class)->name('booking-performance');
     Route::get('payments', PaymentsReportController::class)->name('payments');

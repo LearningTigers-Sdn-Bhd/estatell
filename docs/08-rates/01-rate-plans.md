@@ -17,6 +17,8 @@ rate_plans              id, property_id, name, description, pricing_basis (Prici
                         early_departure_policy (EarlyDeparturePolicy),
                         company_access (CompanyAccess, default Everyone),
                         bookable_online (bool, default false),
+                        is_complimentary (bool, default false; the room is given free, see
+                        History & forecast: ../22-reports/04-history-and-forecast.md),
                         company_at_desk, company_in_portal (booleans, default true),
                         min_rooms, max_rooms (nullable, 1–200),
                         position, archived_at, timestamps

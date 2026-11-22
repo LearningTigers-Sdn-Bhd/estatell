@@ -27,6 +27,7 @@ use App\Services\Reports\HasBreakdown;
 use App\Services\Reports\HasNote;
 use App\Services\Reports\HasSections;
 use App\Services\Reports\HasTotals;
+use App\Services\Reports\HistoryForecastReport;
 use App\Services\Reports\HousekeepingItemsReport;
 use App\Services\Reports\HousekeepingLogReport;
 use App\Services\Reports\HousekeepingTasksReport;
@@ -55,6 +56,7 @@ enum ReportKey: string
     case Departures = 'departures';
     case InHouse = 'in-house';
     case Occupancy = 'occupancy';
+    case HistoryForecast = 'history-forecast';
     case Revenue = 'revenue';
     case Payments = 'payments';
     case FolioLedger = 'folio-ledger';
@@ -110,6 +112,7 @@ enum ReportKey: string
             self::Guests => __('Guests'),
             self::BookingPerformance => __('Booking performance'),
             self::FacilityBookings => __('Facility bookings'),
+            self::HistoryForecast => __('History & forecast'),
         };
     }
 
@@ -117,7 +120,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::HousekeepingItems, self::HousekeepingLog, self::HouseStatus, self::BoatManifest, self::CheckedOut, self::Guests, self::FacilityBookings => ReportCategory::FrontDesk,
-            self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests, self::DailyRevenue, self::DailyCharges, self::BookingPerformance => ReportCategory::Revenue,
+            self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests, self::DailyRevenue, self::DailyCharges, self::BookingPerformance, self::HistoryForecast => ReportCategory::Revenue,
             self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability, self::AgentPayments => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
             self::NightAuditHistory => ReportCategory::Audit,
@@ -128,7 +131,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::MealCounts, self::HousekeepingItems, self::HousekeepingLog, self::CheckedOut, self::Guests => PageOrientation::Portrait,
-            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::HouseStatus, self::BoatManifest, self::Payments, self::AgentPayments, self::DailyRevenue, self::DailyCharges, self::BookingPerformance, self::FacilityBookings => PageOrientation::Landscape,
+            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::HouseStatus, self::BoatManifest, self::Payments, self::AgentPayments, self::DailyRevenue, self::DailyCharges, self::BookingPerformance, self::FacilityBookings, self::HistoryForecast => PageOrientation::Landscape,
         };
     }
 
@@ -143,7 +146,7 @@ enum ReportKey: string
             self::Arrivals => 'arrival',
             self::Departures => 'departure',
             self::InHouse => 'room',
-            self::Occupancy, self::DailyCharges => 'date',
+            self::Occupancy, self::DailyCharges, self::HistoryForecast => 'date',
             self::Revenue, self::Tax, self::DailyRevenue => 'period',
             self::FolioLedger, self::MealCounts, self::FacilityBookings => 'date',
             self::NightAuditHistory => '-date',
@@ -170,7 +173,7 @@ enum ReportKey: string
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport, self::CheckedOut, self::DailyCharges, self::HousekeepingLog, self::FacilityBookings => 31,
             self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::HousekeepingItems, self::HouseStatus, self::AgentPayments, self::BoatManifest, self::Guests => null,
-            self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory, self::DailyRevenue, self::BookingPerformance => 366,
+            self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory, self::DailyRevenue, self::BookingPerformance, self::HistoryForecast => 366,
         };
     }
 
@@ -201,6 +204,7 @@ enum ReportKey: string
         return match ($this) {
             self::MealCounts, self::FacilityBookings => [ReportDatePreset::Today, ReportDatePreset::Tomorrow, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek],
             self::BoatManifest, self::HousekeepingItems, self::HouseStatus => [ReportDatePreset::Today, ReportDatePreset::Tomorrow],
+            self::HistoryForecast => [ReportDatePreset::ThisMonth, ReportDatePreset::LastMonth, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek, ReportDatePreset::ThisYear],
             default => null,
         };
     }
@@ -215,6 +219,15 @@ enum ReportKey: string
             self::NightAuditHistory => 30,
             default => 1,
         };
+    }
+
+    /**
+     * Whether the report opens on the whole month of the business date (past and future days) when the URL has no
+     * dates, in place of `defaultDays()`.
+     */
+    public function opensOnMonth(): bool
+    {
+        return $this === self::HistoryForecast;
     }
 
     /**
@@ -738,6 +751,21 @@ enum ReportKey: string
                 new ReportColumn('spend', __('Spend'), ColumnAlign::Right, true, money: true),
                 new ReportColumn('created_at', __('Added'), ColumnAlign::Left, true),
             ],
+            self::HistoryForecast => [
+                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('basis', __('Basis'), ColumnAlign::Left, true),
+                new ReportColumn('available', __('Available rooms'), ColumnAlign::Right, true),
+                new ReportColumn('sold', __('Nights sold'), ColumnAlign::Right, true),
+                new ReportColumn('complimentary', __('Complimentary'), ColumnAlign::Right, true),
+                new ReportColumn('occupancy', __('Occupancy %'), ColumnAlign::Right, true),
+                new ReportColumn('adr', __('ADR'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('revpar', __('RevPAR'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('pax', __('Pax'), ColumnAlign::Right, true),
+                new ReportColumn('room_charges', __('Room charges'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('extra_charges', __('Extra charges'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('tax', __('Tax'), ColumnAlign::Right, true, money: true),
+                new ReportColumn('receipts', __('Receipts'), ColumnAlign::Right, true, money: true),
+            ],
             self::BookingPerformance => [
                 new ReportColumn('group', __('Group'), ColumnAlign::Left, true),
                 new ReportColumn('bookings', __('Bookings'), ColumnAlign::Right, true),
@@ -815,6 +843,7 @@ enum ReportKey: string
             self::Guests => 'users',
             self::BookingPerformance => 'activity',
             self::FacilityBookings => 'tent',
+            self::HistoryForecast => 'chart-gantt',
         };
     }
 
@@ -846,6 +875,7 @@ enum ReportKey: string
             self::DailyCharges => app(DailyChargesReport::class),
             self::BookingPerformance => app(BookingPerformanceReport::class),
             self::FacilityBookings => app(FacilityBookingsReport::class),
+            self::HistoryForecast => app(HistoryForecastReport::class),
             self::Guests => throw new LogicException('Guests has no report rows: it holds only the guest list column layout.'),
         };
     }

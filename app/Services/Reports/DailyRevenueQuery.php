@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Models\FolioLine;
 use App\Models\Property;
@@ -195,6 +196,26 @@ class DailyRevenueQuery
         }
 
         return $byDate;
+    }
+
+    /**
+     * The money received on each date of the range, keyed by `Y-m-d`: the payment lines shown positive, so a refund
+     * reduces it. A City ledger settlement is left out: it moves the debt to a company and receives no money. Same line
+     * filter as the revenue. A date with no payment is not in the list.
+     *
+     * @return array<string, string>
+     */
+    public function receiptsBetween(Property $property, CarbonInterface $from, CarbonInterface $to): array
+    {
+        return $this->ledgerLinesBetween($property, $from, $to)
+            ->join('transaction_codes', 'transaction_codes.id', '=', 'folio_lines.transaction_code_id')
+            ->where('folio_lines.kind', TransactionKind::Payment->value)
+            ->where('transaction_codes.category', '!=', TransactionCategory::DirectBill->value)
+            ->groupBy('folio_lines.posting_date')
+            ->selectRaw('folio_lines.posting_date as date, -SUM(folio_lines.amount) as amount')
+            ->get()
+            ->mapWithKeys(fn (FolioLine $row): array => [CarbonImmutable::parse((string) $row->getAttribute('date'))->toDateString() => (string) $row->getAttribute('amount')])
+            ->all();
     }
 
     /**

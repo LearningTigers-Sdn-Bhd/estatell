@@ -40,6 +40,7 @@ Plan: `docs/estatell/tanini/2026-11-18-tanini-system-requirements-plan.md` (outs
     - Market segments: `market_segments` (Settings › Market segments), `reservations.market_segment_id`, More → Change market segment. Docs: [Market segments](12-reservations/15-market-segments.md).
     - Remarks: `reservation_remarks` with `RemarkKind`, the booking form Notes tab, More → Edit remarks. Docs: [Remarks](12-reservations/16-remarks.md).
     - Reports: Booking performance Sales person and Market segment tabs, each tab now a `BookingPerformanceGrouping` strategy; 13 hidden Arrivals columns (departure, rate, rate plan, meal plan, source, segment, sales person, booked by, four remarks). Docs: [Arrivals columns](22-reports/01-core-reports.md#arrivals-columns).
+- [x] `feat(reports): add the History & forecast report` — Tanini requirement 7.3: `ReportKey::HistoryForecast`, `HistoryForecastReport`, `BookedNightCounts`, `ChargeForecast`, `DailyRevenueQuery::receiptsBetween()`, `ForecastBasis`, the `rate_plans.is_complimentary` flag and its switch on the rate plan form. Docs: [History & forecast](22-reports/04-history-and-forecast.md).
 
 ## Next
 
