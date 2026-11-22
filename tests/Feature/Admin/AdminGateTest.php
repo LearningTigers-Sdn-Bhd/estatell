@@ -16,7 +16,7 @@ test('only admins can view horizon', function () {
 });
 
 test('is_admin cannot be mass assigned', function () {
-    $user = Property::factory()->create()->users()->create([
+    $user = Property::factory()->create()->homeStaff()->create([
         'name' => 'Aisha',
         'email' => 'aisha@example.com',
         'password' => 'password',

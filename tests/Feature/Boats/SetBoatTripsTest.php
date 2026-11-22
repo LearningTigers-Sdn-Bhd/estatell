@@ -202,6 +202,7 @@ test('the set boats route checks the shape of a scheduled trip and needs the man
 
     $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
     $housekeeper->forceFill(['property_id' => $fixture['property']->id])->save();
+    $housekeeper->memberships()->create(['property_id' => $fixture['property']->id]);
 
     $this->actingAs($housekeeper)
         ->put($url, ['units' => [['unit_id' => $fixture['first']->id, 'in' => ['mode' => 'charter', 'time' => '10:30']]]])

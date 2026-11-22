@@ -145,7 +145,9 @@ test('the booking page query count stays the same however much the property has'
         MarketSegment::factory()->for($setup['property'])->create();
     }
 
-    expect($count())->toBe($few)->and($few)->toBeLessThanOrEqual(22);
+    // Property access adds 3: the user's active memberships (`EnsurePropertyAccess`) and their roles and permissions at
+    // this property, loaded fresh each request.
+    expect($count())->toBe($few)->and($few)->toBeLessThanOrEqual(25);
 });
 
 test('a booking is saved and the user lands on the reservation page', function () {

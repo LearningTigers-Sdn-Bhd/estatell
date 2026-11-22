@@ -24,11 +24,17 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingProgress;
 use App\Services\Platform\Impersonation;
+use App\Services\Staff\StaffProperties;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    /** The property a staff user works in on pages with none in the URL, found once per request. */
+    private ?Property $defaultProperty = null;
+
+    private bool $defaultPropertyResolved = false;
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -77,6 +83,7 @@ class HandleInertiaRequests extends Middleware
             'partnerNavigation' => fn () => $request->user()?->partner_id !== null ? app(PartnerNavigation::class)->items() : null,
             'accountNavigation' => fn () => $request->user() !== null && $request->routeIs('account.*') ? app(AccountNavigation::class)->items($request) : null,
             'navigation' => fn () => $this->staffNavigation($request),
+            'propertySwitcher' => fn () => $this->propertySwitcher($request),
             'channelRemovals' => fn () => app(ChannelRemovalProgress::class)->forUser($request->user()),
             'commandShortcuts' => fn () => $this->commandShortcuts($request),
             'csrfToken' => fn () => csrf_token(),
@@ -109,12 +116,14 @@ class HandleInertiaRequests extends Middleware
         $supportUser = $impersonation->supportUser();
         $user = $request->user();
 
-        if ($supportUser === null || $user === null || $user->property === null) {
+        $property = $this->resolveProperty($request);
+
+        if ($supportUser === null || $user === null || $property === null) {
             return null;
         }
 
         if (getPermissionsTeamId() === null) {
-            setPermissionsTeamId($user->property_id);
+            setPermissionsTeamId($property->id);
         }
 
         return new ImpersonationData(
@@ -122,8 +131,8 @@ class HandleInertiaRequests extends Middleware
             partnerName: $supportUser->partner?->name,
             userName: $user->name,
             userRole: $user->getRoleNames()->first(),
-            propertyName: $user->property->name,
-            propertyCode: $user->property->code,
+            propertyName: $property->name,
+            propertyCode: $property->code,
             minutes: $impersonation->elapsedMinutes(),
             stopUrl: route('impersonation.stop', absolute: false),
             canCorrectMoney: $impersonation->canCorrectMoney(),
@@ -131,7 +140,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The staff sidebar for the property in the URL, or for the staff user's own property on pages without one.
+     * The staff sidebar for the property in the URL, or for the property the staff user works in on pages without one.
      * Null for admins and for suspended properties.
      */
     private function staffNavigation(Request $request): ?StaffNavigationData
@@ -142,17 +151,13 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
-        $property = $request->route('property');
+        $property = $this->resolveProperty($request);
 
-        if (! $property instanceof Property) {
-            $property = $user->property;
-        }
-
-        if (! $property instanceof Property || $property->status === PropertyStatus::Suspended) {
+        if ($property === null || $property->status === PropertyStatus::Suspended) {
             return null;
         }
 
-        // Pages outside /p (account pages) have no permission team yet; staff belong to one property, so use it.
+        // Pages outside /p (account pages) have no permission team yet: use the property the user works in.
         if (getPermissionsTeamId() === null) {
             setPermissionsTeamId($property->id);
         }
@@ -161,7 +166,27 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * The property in the URL, or the signed-in staff user's own property on pages without one.
+     * The other properties the staff user may open, for the switcher on the navbar. Empty with one property.
+     * See docs/03-staff/04-property-groups.md.
+     *
+     * @return list<PropertySummaryData>
+     */
+    private function propertySwitcher(Request $request): array
+    {
+        $user = $request->user();
+        $property = $this->resolveProperty($request);
+
+        if ($user === null || $property === null || $user->property_id === null || app(Impersonation::class)->isActive()) {
+            return [];
+        }
+
+        $ids = $request->attributes->get(EnsurePropertyAccess::ACTIVE_PROPERTY_IDS);
+
+        return app(StaffProperties::class)->switcherFor($user, $property, is_array($ids) ? array_values(array_filter($ids, is_int(...))) : null);
+    }
+
+    /**
+     * The property in the URL, or the property the signed-in staff user works in on pages without one.
      */
     private function currentProperty(Request $request): ?PropertySummaryData
     {
@@ -194,11 +219,22 @@ class HandleInertiaRequests extends Middleware
 
         $property = $request->route('property');
 
-        if (! $property instanceof Property) {
-            $property = $request->user()?->property;
+        if ($property instanceof Property) {
+            return $property;
         }
 
-        return $property instanceof Property ? $property : null;
+        $user = $request->user();
+
+        if ($user === null || $user->property_id === null) {
+            return null;
+        }
+
+        if (! $this->defaultPropertyResolved) {
+            $this->defaultProperty = app(StaffProperties::class)->defaultFor($user);
+            $this->defaultPropertyResolved = true;
+        }
+
+        return $this->defaultProperty;
     }
 
     /**
@@ -219,9 +255,9 @@ class HandleInertiaRequests extends Middleware
     private function commandShortcuts(Request $request): array
     {
         $user = $request->user();
-        $property = $user?->property;
+        $property = $user?->is_company_user ? null : $this->resolveProperty($request);
 
-        if ($property === null || $property->status !== PropertyStatus::Live) {
+        if ($user === null || $property === null || $property->status !== PropertyStatus::Live) {
             return [];
         }
 

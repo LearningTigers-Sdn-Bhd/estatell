@@ -43,6 +43,7 @@ use App\Models\User;
 use App\Services\Notifications\MailActorResolver;
 use App\Services\Notifications\MillionSendTransport;
 use App\Services\Platform\Impersonation;
+use App\Services\Staff\StaffProperties;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Auth\Events\Failed;
@@ -340,8 +341,8 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Features are checked per property: the `{property}` in the URL, or the signed-in staff user's own
-     * property. Admins outside a property have no scope. See docs/01-platform/03-feature-flags.md.
+     * Features are checked per property: the `{property}` in the URL, or the property the signed-in staff user works
+     * in (`StaffProperties::defaultFor()`). Admins outside a property have no scope. See docs/01-platform/03-feature-flags.md.
      */
     protected function configureFeatures(): void
     {
@@ -350,7 +351,13 @@ class AppServiceProvider extends ServiceProvider
         Feature::resolveScopeUsing(function (): ?Property {
             $property = request()->route('property');
 
-            return $property instanceof Property ? $property : Auth::user()?->property;
+            if ($property instanceof Property) {
+                return $property;
+            }
+
+            $user = Auth::user();
+
+            return $user instanceof User && $user->property_id !== null ? app(StaffProperties::class)->defaultFor($user) : null;
         });
     }
 

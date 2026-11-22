@@ -1,5 +1,6 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import {
+    Building2,
     ChevronDown,
     Copy,
     Ellipsis,
@@ -21,6 +22,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { AddFromGroupDialog } from '@/components/pms/staff/add-from-group-dialog';
 import { AddStaffDialog } from '@/components/pms/staff/add-staff-dialog';
 import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwords/export-temporary-passwords-menu';
 import { ResetTemporaryPassword } from '@/components/pms/temporary-passwords/reset-temporary-password';
@@ -91,6 +93,7 @@ import {
 type StaffMember = App.Data.Staff.StaffMemberData;
 type Invitation = App.Data.Staff.StaffInvitationData;
 type RoleOption = App.Data.Staff.RoleOptionData;
+type Colleague = App.Data.Staff.GroupColleagueData;
 type Tab = 'active' | 'invited' | 'deactivated';
 
 function InviteStaffDialog({
@@ -177,13 +180,16 @@ function InviteStaffDialog({
 
 function AddStaffMenu({
     roles,
+    colleagues,
     onShowMessage,
 }: {
     roles: RoleOption[];
+    colleagues: Colleague[];
     onShowMessage: (userIds: number[]) => void;
 }) {
     const [inviting, setInviting] = useState(false);
     const [adding, setAdding] = useState(false);
+    const [fromGroup, setFromGroup] = useState(false);
 
     return (
         <>
@@ -205,8 +211,20 @@ function AddStaffMenu({
                         <ListPlus />
                         Bulk add
                     </DropdownMenuItem>
+                    {colleagues.length > 0 && (
+                        <DropdownMenuItem onClick={() => setFromGroup(true)}>
+                            <Building2 />
+                            Add from another property
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
+            <AddFromGroupDialog
+                colleagues={colleagues}
+                roles={roles}
+                open={fromGroup}
+                onOpenChange={setFromGroup}
+            />
             <InviteStaffDialog
                 roles={roles}
                 open={inviting}
@@ -423,7 +441,7 @@ function ActiveStaffActions({
                             Copy message
                         </DropdownMenuItem>
                     )}
-                    {!member.isOwner && (
+                    {!member.isOwner && member.homeProperty === null && (
                         <DropdownMenuItem onClick={() => setDialog('reset')}>
                             <KeyRound />
                             Reset password
@@ -663,6 +681,11 @@ function ActiveStaff({
                                         {member.name}
                                         {member.isYou && (
                                             <Badge variant="outline">You</Badge>
+                                        )}
+                                        {member.homeProperty !== null && (
+                                            <Badge variant="secondary">
+                                                From {member.homeProperty}
+                                            </Badge>
                                         )}
                                     </span>
                                 </TableCell>
@@ -932,6 +955,7 @@ export default function StaffIndex({
     counts,
     canManage,
     roles,
+    colleagues,
     exportFormats,
     staff = [],
     invitations = [],
@@ -940,6 +964,7 @@ export default function StaffIndex({
     counts: { active: number; invited: number; deactivated: number };
     canManage: boolean;
     roles: RoleOption[];
+    colleagues: Colleague[];
     exportFormats: EnumOption[];
     staff?: StaffMember[];
     invitations?: Invitation[];
@@ -961,6 +986,7 @@ export default function StaffIndex({
                         canManageStaff && (
                             <AddStaffMenu
                                 roles={roles}
+                                colleagues={colleagues}
                                 onShowMessage={setMessageUserIds}
                             />
                         )

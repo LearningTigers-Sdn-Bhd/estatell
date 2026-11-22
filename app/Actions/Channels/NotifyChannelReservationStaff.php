@@ -7,11 +7,14 @@ use App\Models\User;
 use App\Notifications\ChannelBookingCancelled;
 use App\Notifications\ChannelBookingReceived;
 use App\Notifications\ChannelReservationNotification;
+use App\Services\Staff\PropertyStaff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 
 class NotifyChannelReservationStaff
 {
+    public function __construct(private PropertyStaff $propertyStaff) {}
+
     /**
      * Tell the property's reservation staff about a channel booking. The recipients are the active staff of the
      * property who hold the permission of the notification type, and the notification applies the property and user
@@ -40,18 +43,6 @@ class NotifyChannelReservationStaff
      */
     private function recipients(Reservation $reservation, ChannelReservationNotification $message): Collection
     {
-        $previousTeamId = getPermissionsTeamId();
-        setPermissionsTeamId($reservation->property_id);
-
-        try {
-            return User::query()
-                ->where('property_id', $reservation->property_id)
-                ->where('is_admin', false)
-                ->whereNull('deactivated_at')
-                ->permission((string) $message->type->recipientPermission())
-                ->get();
-        } finally {
-            setPermissionsTeamId($previousTeamId);
-        }
+        return $this->propertyStaff->withPermission($reservation->property_id, (string) $message->type->recipientPermission());
     }
 }

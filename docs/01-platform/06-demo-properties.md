@@ -58,7 +58,7 @@ Later: 14 days of history with closed night audits, room charges, overdue AR inv
 
 ## Logins
 
-A user belongs to one property (`users.property_id`), so each demo property has its own logins. Every demo staff account uses `DEMO_PASSWORD`. `DemoSeeder` refuses to run without it (at least 8 characters).
+Each demo staff user has one home property (`users.property_id`) and a membership there, so each demo property has its own logins. Every demo staff account uses `DEMO_PASSWORD`. `DemoSeeder` refuses to run without it (at least 8 characters).
 
 | Property              | Owner (the demo login)        | Other staff                                                                              |
 | --------------------- | ----------------------------- | ---------------------------------------------------------------------------------------- |

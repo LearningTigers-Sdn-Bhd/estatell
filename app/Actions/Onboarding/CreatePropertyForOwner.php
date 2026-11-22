@@ -52,13 +52,14 @@ class CreatePropertyForOwner
 
             ($this->generateDocumentPrefix)($property);
 
-            $owner = $property->users()->create([
+            $owner = $property->homeStaff()->create([
                 'name' => $data->ownerName,
                 'email' => Str::lower(trim($data->ownerEmail)),
                 'password' => $setupMethod === OwnerSetupMethod::InitialPassword
                     ? $data->password
                     : Str::random(64),
             ]);
+            $owner->memberships()->create(['property_id' => $property->id]);
 
             if ($verifyOwnerEmail) {
                 $owner->markEmailAsVerified();

@@ -3395,6 +3395,14 @@ value: string,
 label: string,
 }[] | null,
 };
+export type PropertyGroupData = {
+id: number,
+name: string,
+properties: {
+code: string,
+name: string,
+}[],
+};
 export type ViewAsStaffData = {
 id: number,
 name: string,
@@ -6189,6 +6197,12 @@ export type AcceptStaffInvitationData = {
 name: string,
 password: string,
 };
+export type GroupColleagueData = {
+id: number,
+name: string,
+email: string,
+homeProperty: string,
+};
 export type InvitationPreviewData = {
 email: string,
 propertyName: string,
@@ -6231,6 +6245,7 @@ isYou: boolean,
 joinedAt: string,
 deactivatedAt: string | null,
 temporaryPasswordExpiresAt: string | null,
+homeProperty: string | null,
 };
 export type TemporaryPasswordMessageData = {
 text: string,

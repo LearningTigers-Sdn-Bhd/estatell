@@ -39,8 +39,7 @@ class SalesPeople
     private function query(Property|int $property): Builder
     {
         return User::query()
-            ->where('property_id', $property instanceof Property ? $property->id : $property)
-            ->where('is_company_user', false)
-            ->whereNull('deactivated_at');
+            ->activeMemberOf($property)
+            ->where('is_company_user', false);
     }
 }

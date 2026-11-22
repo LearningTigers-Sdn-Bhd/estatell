@@ -30,6 +30,7 @@ class AcceptStaffInvitation
 
             $user = new User(['name' => $data->name, 'email' => $invitation->email, 'password' => $data->password]);
             $user->forceFill(['property_id' => $invitation->property_id, 'email_verified_at' => now()])->save();
+            $user->memberships()->create(['property_id' => $invitation->property_id]);
 
             $previousTeamId = getPermissionsTeamId();
             setPermissionsTeamId($invitation->property_id);

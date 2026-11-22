@@ -16,12 +16,14 @@ class TeamCheck implements StepCheck
     public function state(Property $property): StepState
     {
         $hasStaff = $property->users()
-            ->whereNull('deactivated_at')
+            ->wherePivotNull('deactivated_at')
+            ->whereNull('users.deactivated_at')
             ->whereNotExists(fn ($query) => $query->selectRaw('1')
                 ->from('model_has_roles')
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->whereColumn('model_has_roles.model_id', 'users.id')
                 ->where('model_has_roles.model_type', (new User)->getMorphClass())
+                ->where('roles.property_id', $property->id)
                 ->where('roles.default_role', DefaultRoleEnum::Owner->value))
             ->exists();
 

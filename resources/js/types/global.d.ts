@@ -28,6 +28,8 @@ declare module '@inertiajs/core' {
                 logoUrl: string | null;
             } | null;
             portalSwitcher: App.Data.Portal.PortalSwitcherData[] | null;
+            /** The other properties a staff user may open, for the navbar switcher. Empty with one property. */
+            propertySwitcher: App.Data.Property.PropertySummaryData[];
             accountNavigation: App.Data.Navigation.NavItemData[] | null;
             navigation: App.Data.Navigation.StaffNavigationData | null;
             channelRemovals: App.Data.Channels.ChannelRemovalData[];

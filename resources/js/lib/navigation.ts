@@ -1,5 +1,6 @@
 import {
     Inbox,
+    Network,
     LayoutTemplate,
     MapPin,
     Printer,
@@ -67,6 +68,7 @@ import type { NavItem } from '@/types';
 const icons: Record<string, LucideIcon> = {
     'layout-grid': LayoutGrid,
     building: Building2,
+    network: Network,
     handshake: Handshake,
     waypoints: Waypoints,
     webhook: Webhook,

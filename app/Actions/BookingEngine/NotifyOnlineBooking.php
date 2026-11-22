@@ -10,6 +10,7 @@ use App\Notifications\OnlineBookingConfirmed;
 use App\Notifications\OnlineBookingReceived;
 use App\Services\BookingEngine\BookingManageLink;
 use App\Services\Notifications\MailActorResolver;
+use App\Services\Staff\PropertyStaff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Notification;
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\Notification;
  */
 class NotifyOnlineBooking
 {
-    public function __construct(private BookingManageLink $manageLink) {}
+    public function __construct(private BookingManageLink $manageLink, private PropertyStaff $propertyStaff) {}
 
     public function __invoke(BookingHold $hold, Reservation $reservation): void
     {
@@ -54,18 +55,6 @@ class NotifyOnlineBooking
      */
     private function staff(Reservation $reservation, OnlineBookingReceived $message): Collection
     {
-        $previousTeamId = getPermissionsTeamId();
-        setPermissionsTeamId($reservation->property_id);
-
-        try {
-            return User::query()
-                ->where('property_id', $reservation->property_id)
-                ->where('is_admin', false)
-                ->whereNull('deactivated_at')
-                ->permission((string) $message->type->recipientPermission())
-                ->get();
-        } finally {
-            setPermissionsTeamId($previousTeamId);
-        }
+        return $this->propertyStaff->withPermission($reservation->property_id, (string) $message->type->recipientPermission());
     }
 }

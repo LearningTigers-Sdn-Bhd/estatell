@@ -67,7 +67,7 @@ class ReportFiltersRequest extends FormRequest
                 : ['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]),
             ...($this->reportKey()->hasCodeFilter() ? ['code' => ['nullable', 'string', Rule::exists('transaction_codes', 'code')->where('property_id', $this->property()->id)]] : []),
             ...($this->reportKey()->hasPaymentFilters() ? [
-                'staff' => ['nullable', 'integer', Rule::exists('users', 'id')->where('property_id', $this->property()->id)],
+                'staff' => ['nullable', 'integer', Rule::exists('property_memberships', 'user_id')->where('property_id', $this->property()->id)],
                 'refunds' => ['nullable', 'boolean'],
                 'dates' => ['nullable', Rule::enum(PaymentDateBasis::class)],
             ] : []),

@@ -48,6 +48,7 @@ use App\Http\Controllers\Rooms\RoomTypeAmenityController;
 use App\Http\Controllers\Rooms\RoomTypeController;
 use App\Http\Controllers\Rooms\RoomTypePhotoController;
 use App\Http\Controllers\Staff\RoleController;
+use App\Http\Controllers\Staff\StaffAccessController;
 use App\Http\Controllers\Staff\StaffBulkAddController;
 use App\Http\Controllers\Staff\StaffController;
 use App\Http\Controllers\Staff\StaffInvitationController;
@@ -478,6 +479,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('temp-passwords/reset', [StaffTemporaryPasswordController::class, 'reset'])->name('temp-passwords.reset');
             Route::post('temp-passwords/message', [StaffTemporaryPasswordController::class, 'message'])->name('temp-passwords.message');
             Route::post('temp-passwords/export', [StaffTemporaryPasswordController::class, 'export'])->name('temp-passwords.export');
+            Route::post('access', [StaffAccessController::class, 'store'])->name('access.store');
             Route::post('invitations', [StaffInvitationController::class, 'store'])->name('invitations.store');
             Route::post('invitations/{staffInvitation}/resend', [StaffInvitationController::class, 'resend'])->name('invitations.resend');
             Route::delete('invitations/{staffInvitation}', [StaffInvitationController::class, 'destroy'])->name('invitations.destroy');

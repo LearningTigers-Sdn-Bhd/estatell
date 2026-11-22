@@ -27,6 +27,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  *
  * @property int $id
  * @property int|null $partner_id
+ * @property int|null $property_group_id The group whose staff may be given access here. See docs/03-staff/04-property-groups.md.
  * @property string $code
  * @property string|null $slug
  * @property string|null $document_prefix
@@ -139,6 +140,24 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     }
 
     /**
+     * @return BelongsTo<PropertyGroup, $this>
+     */
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(PropertyGroup::class, 'property_group_id');
+    }
+
+    /**
+     * Who may open the property, active or deactivated here.
+     *
+     * @return HasMany<PropertyMembership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(PropertyMembership::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -158,9 +177,24 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     }
 
     /**
+     * The staff who may open the property or were turned off here: its members, through `property_memberships`. Staff
+     * given access from another property of the group are members too. The pivot holds `deactivated_at` (null while
+     * active). Route bindings scoped to the property (`staff/{user}`) resolve through this.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'property_memberships')->withPivot('deactivated_at')->withTimestamps();
+    }
+
+    /**
+     * The staff whose home property this is (`users.property_id`, where they were invited or created). Only the home
+     * property resets their temp password, as a password works at every property.
+     *
      * @return HasMany<User, $this>
      */
-    public function users(): HasMany
+    public function homeStaff(): HasMany
     {
         return $this->hasMany(User::class);
     }

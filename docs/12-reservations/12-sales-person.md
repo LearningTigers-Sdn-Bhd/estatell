@@ -8,15 +8,15 @@ Record the staff member who sold a booking, for example "Jane" from the sales te
 
 ## Decisions
 
-| Decision     | Rule                                                                                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Who          | An active staff user of the property (`users.property_id`, not deactivated, not a company portal user). A sales person needs a staff login. Decided 2026-11-21. |
-| Optional     | Every booking may have none. Channel, booking engine, portal and kiosk bookings have none.                                                                      |
-| Where set    | The booking form (all modes: booking, walk-in, past, migrated and old stay), and **More → Change sales person** on the reservation page.                        |
-| Closed       | It can change on a Completed or Cancelled reservation too, because it changes no money.                                                                         |
-| Deactivated  | A deactivated sales person stays on the bookings they sold. They cannot be picked again.                                                                        |
-| Deleted user | `nullOnDelete`: the booking keeps no sales person.                                                                                                              |
-| Permission   | `reservations.manage`, like the booking form.                                                                                                                   |
+| Decision     | Rule                                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who          | An active member of the property (`User::activeMemberOf()`: an active membership there, staff given access from the group included; not a company portal user). A sales person needs a staff login. Decided 2026-11-21. |
+| Optional     | Every booking may have none. Channel, booking engine, portal and kiosk bookings have none.                                                                                                                              |
+| Where set    | The booking form (all modes: booking, walk-in, past, migrated and old stay), and **More → Change sales person** on the reservation page.                                                                                |
+| Closed       | It can change on a Completed or Cancelled reservation too, because it changes no money.                                                                                                                                 |
+| Deactivated  | A deactivated sales person stays on the bookings they sold. They cannot be picked again.                                                                                                                                |
+| Deleted user | `nullOnDelete`: the booking keeps no sales person.                                                                                                                                                                      |
+| Permission   | `reservations.manage`, like the booking form.                                                                                                                                                                           |
 
 ## Data model
 

@@ -16,6 +16,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\StatementBuilder;
+use App\Services\Staff\PropertyStaff;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -32,7 +33,7 @@ class PortalStatements
 
     public const string PAYMENTS_PAGE = 'payments_page';
 
-    public function __construct(private StatementBuilder $statementBuilder, private ArInvoiceDirectory $directory) {}
+    public function __construct(private StatementBuilder $statementBuilder, private ArInvoiceDirectory $directory, private PropertyStaff $propertyStaff) {}
 
     /**
      * The statement of account between two dates, with the aging as at the end date.
@@ -59,19 +60,7 @@ class PortalStatements
      */
     public function slipReviewers(Company $company): Collection
     {
-        $previousTeamId = getPermissionsTeamId();
-        setPermissionsTeamId($company->property_id);
-
-        try {
-            return User::query()
-                ->where('property_id', $company->property_id)
-                ->where('is_admin', false)
-                ->whereNull('deactivated_at')
-                ->permission('city-ledger.payment')
-                ->get();
-        } finally {
-            setPermissionsTeamId($previousTeamId);
-        }
+        return $this->propertyStaff->withPermission($company->property_id, 'city-ledger.payment');
     }
 
     /**

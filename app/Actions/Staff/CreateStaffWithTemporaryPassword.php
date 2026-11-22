@@ -39,6 +39,7 @@ class CreateStaffWithTemporaryPassword
                 // The owner may have made the email up, so a new device never waits for a code from it.
                 'email_device_check' => false,
             ])->save();
+            $user->memberships()->create(['property_id' => $property->id]);
 
             $previousTeamId = getPermissionsTeamId();
             setPermissionsTeamId($property->id);

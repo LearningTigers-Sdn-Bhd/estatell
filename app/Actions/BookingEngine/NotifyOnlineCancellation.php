@@ -8,12 +8,15 @@ use App\Notifications\OnlineBookingCancelled;
 use App\Notifications\OnlineBookingCancelledByGuest;
 use App\Services\BookingEngine\OnlineCancellationQuote;
 use App\Services\Notifications\MailActorResolver;
+use App\Services\Staff\PropertyStaff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Notification;
 
 class NotifyOnlineCancellation
 {
+    public function __construct(private PropertyStaff $propertyStaff) {}
+
     /**
      * Tell the guest and the reservation staff that a guest cancelled online, with the refund. The guest email goes to the
      * reservation's booker, because a hold empties its guest details after 30 days and a guest can book 6 months ahead. With
@@ -51,18 +54,6 @@ class NotifyOnlineCancellation
      */
     private function staff(Reservation $reservation, OnlineBookingCancelledByGuest $message): Collection
     {
-        $previousTeamId = getPermissionsTeamId();
-        setPermissionsTeamId($reservation->property_id);
-
-        try {
-            return User::query()
-                ->where('property_id', $reservation->property_id)
-                ->where('is_admin', false)
-                ->whereNull('deactivated_at')
-                ->permission((string) $message->type->recipientPermission())
-                ->get();
-        } finally {
-            setPermissionsTeamId($previousTeamId);
-        }
+        return $this->propertyStaff->withPermission($reservation->property_id, (string) $message->type->recipientPermission());
     }
 }

@@ -176,8 +176,9 @@ class GoLiveReview
                 )),
             OnboardingStep::Team => $this->count(
                 $property->users()
-                    ->whereNull('deactivated_at')
-                    ->whereDoesntHave('roles', fn ($query) => $query->where('default_role', DefaultRoleEnum::Owner->value))
+                    ->wherePivotNull('deactivated_at')
+                    ->whereNull('users.deactivated_at')
+                    ->whereDoesntHave('roles', fn ($query) => $query->where('roles.property_id', $property->id)->where('default_role', DefaultRoleEnum::Owner->value))
                     ->count(),
                 'staff member',
             ),

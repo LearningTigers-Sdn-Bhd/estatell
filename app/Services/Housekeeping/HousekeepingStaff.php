@@ -24,8 +24,7 @@ class HousekeepingStaff
             ->pluck('id');
 
         return array_values(User::query()
-            ->where('property_id', $property->id)
-            ->whereNull('deactivated_at')
+            ->activeMemberOf($property)
             ->whereHas('roles', fn ($query) => $query->whereIn('roles.id', $roleIds))
             ->orderBy('name')
             ->get()
