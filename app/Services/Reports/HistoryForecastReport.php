@@ -12,7 +12,6 @@ use App\Models\DailyStatistic;
 use App\Models\Property;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
-use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
 
 /**
@@ -84,14 +83,14 @@ class HistoryForecastReport implements HasTotals, Report
             'available' => $available,
             'sold' => $sold,
             'complimentary' => $complimentary,
-            'occupancy' => $this->occupancy($sold, $available),
-            'adr' => $this->divide($room, $sold - $complimentary),
-            'revpar' => $this->divide($room, $available),
+            'occupancy' => ReportFigures::percent($sold, $available),
+            'adr' => ReportFigures::perUnit($room, $sold - $complimentary),
+            'revpar' => ReportFigures::perUnit($room, $available),
             'pax' => array_sum(array_map(fn (HistoryForecastRow $row): int => $row->pax, $rows)),
-            'room_charges' => $this->money($room),
-            'extra_charges' => $this->money($sum('extra_charges')),
-            'tax' => $this->money($sum('tax')),
-            'receipts' => $this->money($sum('receipts')),
+            'room_charges' => ReportFigures::money($room),
+            'extra_charges' => ReportFigures::money($sum('extra_charges')),
+            'tax' => ReportFigures::money($sum('tax')),
+            'receipts' => ReportFigures::money($sum('receipts')),
         ]);
     }
 
@@ -216,29 +215,14 @@ class HistoryForecastReport implements HasTotals, Report
             available: $available,
             sold: $sold,
             complimentary: $complimentary,
-            occupancy: $this->occupancy($sold, $available),
-            adr: $this->divide($room, $sold - $complimentary),
-            revpar: $this->divide($room, $available),
+            occupancy: ReportFigures::percent($sold, $available),
+            adr: ReportFigures::perUnit($room, $sold - $complimentary),
+            revpar: ReportFigures::perUnit($room, $available),
             pax: $pax,
-            room_charges: $this->money($room),
-            extra_charges: $this->money($charges['extra'] ?? BigDecimal::zero()),
-            tax: $this->money($charges['tax'] ?? BigDecimal::zero()),
-            receipts: $receipts === null ? null : $this->money(BigDecimal::of($receipts)),
+            room_charges: ReportFigures::money($room),
+            extra_charges: ReportFigures::money($charges['extra'] ?? BigDecimal::zero()),
+            tax: ReportFigures::money($charges['tax'] ?? BigDecimal::zero()),
+            receipts: $receipts === null ? null : ReportFigures::money(BigDecimal::of($receipts)),
         );
-    }
-
-    private function occupancy(int $sold, int $available): string
-    {
-        return $available === 0 ? '0.00' : (string) BigDecimal::of($sold)->multipliedBy(100)->dividedBy($available, 2, RoundingMode::HalfUp);
-    }
-
-    private function divide(BigDecimal $amount, int $by): string
-    {
-        return $by <= 0 ? '0.00' : (string) $amount->dividedBy($by, 2, RoundingMode::HalfUp);
-    }
-
-    private function money(BigDecimal $amount): string
-    {
-        return (string) $amount->toScale(2, RoundingMode::HalfUp);
     }
 }

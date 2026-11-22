@@ -178,6 +178,7 @@ test('changes list the bookings made, cancelled, moved and missed in the dates, 
         ->and($rows[0]->changed_at)->toStartWith('2026-10-10 ')
         ->and([$rows[2]->previous_departure, $rows[2]->departure, $rows[2]->nights, $rows[2]->revenue])->toBe(['2026-10-18', '2026-10-17', 2, '200.00'])
         ->and(array_map(fn ($section): string => $section->title, $report->sections($rows, $filters)))->toBe(['New bookings', 'Cancellations', 'Amendments', 'No-shows'])
+        ->and($report->sections($rows, $filters)[3]->subtotal)->toBe('1 room · -1 room night · -100.00')
         ->and($report->totals($rows)->figures)->toMatchArray(['nights_change' => -1, 'revenue_change' => '-100.00'])
         ->and($report->rows($property, $filters, [$rows[1]->key]))->toHaveCount(1);
 });
@@ -207,7 +208,7 @@ test('the overview sums the changes, the pace from the business date, the last c
     ]);
 });
 
-test('the grid and the changes cost the same number of queries however many bookings the dates hold', function () {
+test('the grid, the changes and the overview cost the same number of queries however many bookings the dates hold', function () {
     [, $property] = reportSetup();
     $setup = roomsOnBooksSetup($property);
     $actor = User::factory()->create(['property_id' => $property->id]);
@@ -216,6 +217,7 @@ test('the grid and the changes cost the same number of queries however many book
         DB::enableQueryLog();
         app(RoomsOnBooksReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-24'));
         app(BookingChangesReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'));
+        app(RoomsOnBooksOverview::class)->forDates($property, new ReportFilters('2026-10-10', '2026-10-10'), CarbonImmutable::parse('2026-10-10'));
         DB::disableQueryLog();
 
         return count(DB::getQueryLog());

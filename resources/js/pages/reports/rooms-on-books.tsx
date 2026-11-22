@@ -127,8 +127,10 @@ function OverviewTable({
     title,
     headings,
     rows,
+    emptyText = 'Nothing to show.',
 }: {
     title: string;
+    emptyText?: string;
     headings: string[];
     rows: { key: string; cells: React.ReactNode[]; strong?: boolean }[];
 }) {
@@ -139,10 +141,7 @@ function OverviewTable({
             </CardHeader>
             <CardContent>
                 {rows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        No closed dates yet. They start on the first night
-                        audit.
-                    </p>
+                    <p className="text-sm text-muted-foreground">{emptyText}</p>
                 ) : (
                     <Table>
                         <TableHeader>
@@ -270,6 +269,7 @@ function OverviewTab({
                 />
                 <OverviewTable
                     title="Last 10 days"
+                    emptyText="No closed dates yet. They start on the first night audit."
                     headings={['Date', 'Rooms sold', 'Occupancy']}
                     rows={overview.recent.map((day) => ({
                         key: day.date,

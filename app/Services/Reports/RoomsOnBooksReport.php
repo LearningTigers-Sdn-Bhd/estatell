@@ -9,15 +9,14 @@ use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use Brick\Math\BigDecimal;
-use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Rooms on books › On the books (Tanini's "Rooms On Books" grid): one row for each date with the rooms full that
  * morning, the arrivals, departures and group arrivals, the rooms booked for the night, occupancy and the average
- * booked rate. It counts the overnight units that are booked (Confirmed, CheckedIn or CheckedOut), as they stand now,
- * so a past date shows what stayed and a future date what is on the books. Read in a fixed number of queries.
+ * booked rate. It counts the overnight units that hold inventory (Confirmed, CheckedIn or CheckedOut) as they stand
+ * now, so a past date shows what stayed and a future date what is on the books. Read in a fixed number of queries.
  * See docs/22-reports/05-rooms-on-books.md.
  */
 class RoomsOnBooksReport implements HasTotals, Report
@@ -28,16 +27,6 @@ class RoomsOnBooksReport implements HasTotals, Report
     ) {}
 
     /**
-     * The unit statuses that count as booked.
-     *
-     * @return list<UnitStatus>
-     */
-    public static function bookedStatuses(): array
-    {
-        return [UnitStatus::Confirmed, UnitStatus::CheckedIn, UnitStatus::CheckedOut];
-    }
-
-    /**
      * @param  list<int|string>|null  $rowKeys
      * @return list<RoomsOnBooksRow>
      */
@@ -45,7 +34,7 @@ class RoomsOnBooksReport implements HasTotals, Report
     {
         $from = CarbonImmutable::parse($filters->from);
         $to = CarbonImmutable::parse($filters->to);
-        $nights = $this->nightCounts->between($property, $from->subDay(), $to, self::bookedStatuses());
+        $nights = $this->nightCounts->between($property, $from->subDay(), $to, UnitStatus::holdingInventory());
         $supply = $this->roomSupply->between($property, $from, $to);
         $arrivals = $this->movements($property, 'arrival_date', $from, $to);
         $departures = $this->movements($property, 'departure_date', $from, $to);
@@ -74,9 +63,9 @@ class RoomsOnBooksReport implements HasTotals, Report
                 rooms_on_books: $sold,
                 complimentary: $complimentary,
                 available: $supply[$date] ?? 0,
-                occupancy: $this->percent($sold, $supply[$date] ?? 0),
-                arr: $this->divide($revenue, $sold - $complimentary),
-                room_revenue: (string) $revenue->toScale(2, RoundingMode::HalfUp),
+                occupancy: ReportFigures::percent($sold, $supply[$date] ?? 0),
+                arr: ReportFigures::perUnit($revenue, $sold - $complimentary),
+                room_revenue: ReportFigures::money($revenue),
             );
         }
 
@@ -104,9 +93,9 @@ class RoomsOnBooksReport implements HasTotals, Report
             'rooms_on_books' => $sold,
             'complimentary' => $sum('complimentary'),
             'available' => $sum('available'),
-            'occupancy' => $this->percent($sold, $sum('available')),
-            'arr' => $this->divide($revenue, $sold - $sum('complimentary')),
-            'room_revenue' => (string) $revenue->toScale(2, RoundingMode::HalfUp),
+            'occupancy' => ReportFigures::percent($sold, $sum('available')),
+            'arr' => ReportFigures::perUnit($revenue, $sold - $sum('complimentary')),
+            'room_revenue' => ReportFigures::money($revenue),
         ]);
     }
 
@@ -122,7 +111,7 @@ class RoomsOnBooksReport implements HasTotals, Report
             ->join('reservations', 'reservations.id', '=', 'reservation_units.reservation_id')
             ->where('reservation_units.property_id', $property->id)
             ->where('reservation_units.stay_type', StayType::Overnight->value)
-            ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, self::bookedStatuses()))
+            ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
             ->whereBetween("reservation_units.{$column}", [$from->toDateString(), $to->toDateString()])
             ->groupBy("reservation_units.{$column}")
             ->selectRaw("reservation_units.{$column} as date, COUNT(*) as units, COUNT(*) FILTER (WHERE reservations.group_name IS NOT NULL) as group_units")
@@ -132,15 +121,5 @@ class RoomsOnBooksReport implements HasTotals, Report
                 'group_units' => (int) $row->group_units,
             ]])
             ->all();
-    }
-
-    private function percent(int $part, int $whole): string
-    {
-        return $whole === 0 ? '0.00' : (string) BigDecimal::of($part)->multipliedBy(100)->dividedBy($whole, 2, RoundingMode::HalfUp);
-    }
-
-    private function divide(BigDecimal $amount, int $by): string
-    {
-        return $by <= 0 ? '0.00' : (string) $amount->dividedBy($by, 2, RoundingMode::HalfUp);
     }
 }

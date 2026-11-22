@@ -12,7 +12,6 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Reservations\ReservationRoomBox;
 use Brick\Math\BigDecimal;
-use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
@@ -121,7 +120,7 @@ class BookingChangesReport implements HasSections, HasTotals, Report
             $sections[] = new ReportSection(
                 title: $kind->pluralLabel(),
                 rowKeys: array_map(fn (BookingChangeRow $row): string => $row->key, $group),
-                subtotal: trans_choice(':count room|:count rooms', count($group)).' · '.trans_choice(':count room night|:count room nights', $nights, ['count' => ($nights > 0 ? '+' : '').$nights]).' · '.$this->revenueChange($group),
+                subtotal: trans_choice(':count room|:count rooms', count($group)).' · '.trans_choice(':count room night|:count room nights', abs($nights), ['count' => $this->signed((string) $nights, 0)]).' · '.$this->signed($this->revenueChange($group), 2),
             );
         }
 
@@ -288,10 +287,20 @@ class BookingChangesReport implements HasSections, HasTotals, Report
     }
 
     /**
+     * A change with its sign and thousands separators, as the screen shows it: `+1,250.00`, `-2`.
+     */
+    private function signed(string $value, int $decimals): string
+    {
+        $amount = BigDecimal::of($value);
+
+        return ($amount->isPositive() ? '+' : '').number_format((float) (string) $amount, $decimals);
+    }
+
+    /**
      * @param  list<BookingChangeRow>  $rows
      */
     private function revenueChange(array $rows): string
     {
-        return (string) array_reduce($rows, fn (BigDecimal $sum, BookingChangeRow $row): BigDecimal => $sum->plus($row->revenue_change), BigDecimal::zero())->toScale(2, RoundingMode::HalfUp);
+        return ReportFigures::money(array_reduce($rows, fn (BigDecimal $sum, BookingChangeRow $row): BigDecimal => $sum->plus($row->revenue_change), BigDecimal::zero()));
     }
 }

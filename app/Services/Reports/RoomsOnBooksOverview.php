@@ -14,7 +14,6 @@ use App\Enums\UnitStatus;
 use App\Models\DailyStatistic;
 use App\Models\Property;
 use Brick\Math\BigDecimal;
-use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
 
 /**
@@ -89,8 +88,8 @@ class RoomsOnBooksOverview
             label: $label,
             rooms: count($rows),
             nights: $nights,
-            revenue: $this->money($revenue),
-            arr: $nights === 0 ? '0.00' : (string) $revenue->abs()->dividedBy(abs($nights), 2, RoundingMode::HalfUp),
+            revenue: ReportFigures::money($revenue),
+            arr: ReportFigures::perUnit($revenue->abs(), abs($nights)),
         );
     }
 
@@ -121,8 +120,8 @@ class RoomsOnBooksOverview
                 from: $from->toDateString(),
                 to: $to->toDateString(),
                 nights: $sold,
-                rpd: (string) BigDecimal::of($sold)->dividedBy($window['days'], 2, RoundingMode::HalfUp),
-                occupancy: $this->percent($sold, $available),
+                rpd: ReportFigures::perUnit(BigDecimal::of($sold), $window['days']),
+                occupancy: ReportFigures::percent($sold, $available),
             );
         }, self::PACE_WINDOWS);
     }
@@ -140,7 +139,7 @@ class RoomsOnBooksOverview
             ->map(fn (DailyStatistic $statistic): RoomsOnBooksRecentDayData => new RoomsOnBooksRecentDayData(
                 date: $statistic->business_date->toDateString(),
                 sold: $statistic->rooms_sold + $statistic->beds_sold,
-                occupancy: $this->percent($statistic->rooms_sold + $statistic->beds_sold, $statistic->rooms_available + $statistic->beds_available),
+                occupancy: ReportFigures::percent($statistic->rooms_sold + $statistic->beds_sold, $statistic->rooms_available + $statistic->beds_available),
             ))
             ->all());
     }
@@ -162,19 +161,9 @@ class RoomsOnBooksOverview
                 label: __($band['label']),
                 rooms: count($inBand),
                 nights: $nights,
-                rate: $nights === 0 ? '0.00' : (string) $revenue->dividedBy($nights, 2, RoundingMode::HalfUp),
-                revenue: $this->money($revenue),
+                rate: ReportFigures::perUnit($revenue, $nights),
+                revenue: ReportFigures::money($revenue),
             );
         }, self::LENGTH_OF_STAY_BANDS);
-    }
-
-    private function percent(int $part, int $whole): string
-    {
-        return $whole === 0 ? '0.00' : (string) BigDecimal::of($part)->multipliedBy(100)->dividedBy($whole, 2, RoundingMode::HalfUp);
-    }
-
-    private function money(BigDecimal $amount): string
-    {
-        return (string) $amount->toScale(2, RoundingMode::HalfUp);
     }
 }
