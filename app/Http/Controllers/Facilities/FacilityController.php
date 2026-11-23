@@ -8,9 +8,8 @@ use App\Actions\Facilities\UpdateFacility;
 use App\Data\Catalogues\ChargeItemTaxData;
 use App\Data\Facilities\FacilityData;
 use App\Data\Property\CurrencyData;
-use App\Enums\FacilityCapacityUnit;
+use App\Enums\FacilityBookedBy;
 use App\Enums\FacilityRateBasis;
-use App\Enums\FacilitySharing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Facilities\FacilityRequest;
 use App\Http\Requests\Facilities\ReorderFacilitiesRequest;
@@ -39,9 +38,8 @@ class FacilityController extends Controller
                 ->get()
                 ->map(fn (Facility $facility): FacilityData => FacilityData::fromModel($facility))
                 ->all(),
-            'sharingOptions' => FacilitySharing::options(),
-            'capacityUnits' => FacilityCapacityUnit::options(),
-            'rateBases' => FacilityRateBasis::options(),
+            'bookedByOptions' => FacilityBookedBy::options(),
+            'rateBases' => FacilityRateBasis::optionsByBookedBy(),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }
@@ -55,9 +53,8 @@ class FacilityController extends Controller
 
         return Inertia::render('settings/facilities/show', [
             'facility' => FacilityData::fromModel($facility->load('chargeItem.transactionCode.applicableTaxes')->loadCount('sessions')),
-            'sharingOptions' => FacilitySharing::options(),
-            'capacityUnits' => FacilityCapacityUnit::options(),
-            'rateBases' => FacilityRateBasis::options(),
+            'bookedByOptions' => FacilityBookedBy::options(),
+            'rateBases' => FacilityRateBasis::optionsByBookedBy(),
             'taxes' => $property->taxes()
                 ->orderByDesc('enabled')
                 ->orderBy('name')
@@ -88,7 +85,15 @@ class FacilityController extends Controller
     {
         $wasActive = $facility->active;
 
-        $facility = $updateFacility($request->user(), $facility, $request->facilityAttributes());
+        $saved = $updateFacility($request->user(), $facility, $request->facilityAttributes());
+
+        if ($saved === null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Cancel or move its upcoming bookings first, then change Booked by.')]);
+
+            return back();
+        }
+
+        $facility = $saved;
 
         $message = match (true) {
             $facility->active && ! $wasActive => __(':name is on.', ['name' => $facility->name]),

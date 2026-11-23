@@ -41,7 +41,7 @@ facility_bookings  id, property_id, facility_id → facilities (restrict),
 
 `FacilityAvailability` (Service) answers for one facility, one date and one time range.
 
-One rule for Item and Person: at every moment of the range, the quantity of Confirmed bookings plus this one is at most `capacity` (How many). Otherwise it refuses with `facility_full`. For a facility with 1 item the message reads "Meeting room is taken 09:00–11:00."; otherwise "BBQ pit is full 18:00–22:00 (3 of 3 booked)."
+One rule for Item and Person: at every moment of the range, the quantity of Confirmed bookings plus this one is at most `capacity` (How many). Otherwise it refuses with `facility_full`: "Meeting room is fully booked at that time."
 
 | Booked by | Quantity is      | Default |
 | --------- | ---------------- | ------- |

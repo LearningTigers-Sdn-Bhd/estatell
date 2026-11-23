@@ -1,11 +1,14 @@
 <?php
 
-use App\Enums\FacilitySharing;
+use App\Enums\FacilityBookedBy;
+use App\Enums\FacilityBookingStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\TransactionCategory;
 use App\Features\Facilities;
 use App\Models\ChargeItem;
+use App\Models\Event;
 use App\Models\Facility;
+use App\Models\FacilityBooking;
 use App\Models\FacilitySession;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -38,9 +41,8 @@ function facilityPayload(array $overrides = []): array
 {
     return array_merge([
         'name' => 'Riverside Hall',
-        'sharing' => 'private',
-        'capacity' => '150',
-        'capacity_unit' => 'pax',
+        'booked_by' => 'item',
+        'capacity' => '1',
         'charge_by_hand' => false,
         'default_amount' => '1500',
         'rate_basis' => 'day',
@@ -58,8 +60,8 @@ test('owners add a facility with its own Facility charge item at the end of the 
     $response->assertRedirect(route('settings.facilities.show', [$property->code, $hall]));
     $chargeItem = $hall->chargeItem()->with('transactionCode')->sole();
 
-    expect($hall->sharing)->toBe(FacilitySharing::Private)
-        ->and($hall->capacity)->toBe(150)
+    expect($hall->booked_by)->toBe(FacilityBookedBy::Item)
+        ->and($hall->capacity)->toBe(1)
         ->and($hall->position)->toBe(5)
         ->and($chargeItem->name)->toBe('Riverside Hall')
         ->and($chargeItem->default_amount)->toBe('1500.00')
@@ -84,7 +86,7 @@ test('charge by hand clears the price of the same charge item and keeps its code
     $code = $hall->chargeItem->transactionCode->code;
 
     $this->actingAs($owner)
-        ->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['name' => 'River Hall', 'capacity' => '100', 'charge_by_hand' => true, 'default_amount' => '900']))
+        ->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['name' => 'River Hall', 'capacity' => '1', 'charge_by_hand' => true, 'default_amount' => '900']))
         ->assertSessionHasNoErrors();
 
     $chargeItem = ChargeItem::query()->with('transactionCode.applicableTaxes')->findOrFail($hall->charge_item_id);
@@ -125,8 +127,8 @@ test('a facility needs a free name and a rate unless it is charged by hand', fun
         ->assertSessionHasErrors(['name' => 'A charge item already uses this name. Choose another name.']);
     $this->post(route('settings.facilities.store', $property->code), facilityPayload(['default_amount' => '']))
         ->assertSessionHasErrors(['default_amount' => 'Enter a rate, or turn on Charge by hand.']);
-    $this->post(route('settings.facilities.store', $property->code), facilityPayload(['capacity' => '0', 'sharing' => 'whole']))
-        ->assertSessionHasErrors(['capacity', 'sharing']);
+    $this->post(route('settings.facilities.store', $property->code), facilityPayload(['capacity' => '0', 'booked_by' => 'whole']))
+        ->assertSessionHasErrors(['capacity', 'booked_by']);
 
     $this->post(route('settings.facilities.store', $property->code), facilityPayload(['default_amount' => '', 'charge_by_hand' => true]))
         ->assertSessionHasNoErrors();
@@ -148,9 +150,9 @@ test('reorder saves the order of all facilities and refuses a stale list', funct
     expect($second->refresh()->position)->toBe(3);
 });
 
-test('owners add, change and delete sessions of a Shared facility', function () {
+test('owners add, change and delete sessions of a facility', function () {
     ['owner' => $owner, 'property' => $property] = facilitySetup();
-    $walk = Facility::factory()->for($property)->shared()->create(['name' => 'Night Walk']);
+    $walk = Facility::factory()->for($property)->byPerson()->create(['name' => 'Night Walk']);
     $this->actingAs($owner);
 
     $this->post(route('settings.facilities.sessions.store', [$property->code, $walk]), ['starts_at' => '20:00', 'ends_at' => '22:00'])
@@ -178,21 +180,35 @@ test('owners add, change and delete sessions of a Shared facility', function () 
     expect(Activity::query()->whereIn('event', ['facility_session.created', 'facility_session.updated', 'facility_session.deleted'])->count())->toBe(3);
 });
 
-test('only a Shared facility has sessions, and saving one as Private deletes them', function () {
+test('a facility booked by item takes sessions too', function () {
     ['owner' => $owner, 'property' => $property] = facilitySetup();
-    $hall = Facility::factory()->for($property)->create();
-    $walk = Facility::factory()->for($property)->shared()->create(['name' => 'Night Walk']);
-    FacilitySession::factory()->for($walk)->create(['property_id' => $property->id]);
+    $onsen = Facility::factory()->for($property)->create(['name' => 'Private onsen']);
     $this->actingAs($owner);
 
-    $this->get(route('settings.facilities.sessions.index', [$property->code, $hall]))->assertNotFound();
-    $this->post(route('settings.facilities.sessions.store', [$property->code, $hall]), ['starts_at' => '20:00', 'ends_at' => '22:00'])
-        ->assertInertiaFlash('toast.type', 'error');
-    expect($hall->sessions()->count())->toBe(0);
-
-    $this->put(route('settings.facilities.update', [$property->code, $walk]), facilityPayload(['name' => 'Night Walk', 'sharing' => 'private']))
+    $this->get(route('settings.facilities.sessions.index', [$property->code, $onsen]))->assertOk();
+    $this->post(route('settings.facilities.sessions.store', [$property->code, $onsen]), ['starts_at' => '19:00', 'ends_at' => '20:00'])
         ->assertSessionHasNoErrors();
-    expect($walk->sessions()->count())->toBe(0);
+
+    expect($onsen->sessions()->count())->toBe(1);
+});
+
+test('Booked by cannot change while the facility has an upcoming booking', function () {
+    ['owner' => $owner, 'property' => $property] = facilitySetup();
+    $walk = Facility::factory()->for($property)->byPerson()->create(['name' => 'Night Walk']);
+    $event = Event::factory()->withFolio()->create(['property_id' => $property->id, 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20']);
+    $booking = FacilityBooking::factory()->create(['event_id' => $event->id, 'facility_id' => $walk->id, 'quantity' => 4]);
+    $this->actingAs($owner);
+
+    $this->put(route('settings.facilities.update', [$property->code, $walk]), facilityPayload(['name' => 'Night Walk', 'booked_by' => 'item', 'rate_basis' => 'each']))
+        ->assertInertiaFlash('toast.type', 'error');
+    expect($walk->refresh()->booked_by)->toBe(FacilityBookedBy::Person)
+        ->and(Activity::query()->where('event', 'facility.updated')->exists())->toBeFalse();
+
+    $booking->update(['status' => FacilityBookingStatus::Cancelled]);
+
+    $this->put(route('settings.facilities.update', [$property->code, $walk]), facilityPayload(['name' => 'Night Walk', 'booked_by' => 'item', 'rate_basis' => 'each']))
+        ->assertSessionHasNoErrors();
+    expect($walk->refresh()->booked_by)->toBe(FacilityBookedBy::Item);
 });
 
 test('facility settings need the feature, settings.manage and the same property', function () {
@@ -218,14 +234,14 @@ test('the facility page saves its taxes with the details, and the Available swit
     $otherPropertyTax = Tax::factory()->create();
     $this->actingAs($owner);
 
-    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'tax_ids' => [$otherPropertyTax->id]]))
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '1', 'tax_ids' => [$otherPropertyTax->id]]))
         ->assertSessionHasErrors('tax_ids.0');
 
-    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'tax_ids' => [$sst->id]]))
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '1', 'tax_ids' => [$sst->id]]))
         ->assertSessionHasNoErrors();
     expect(Activity::query()->where('event', 'facility.updated')->sole()->properties['changed'])->toBe(['tax_ids']);
 
-    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'active' => '0']));
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '1', 'active' => '0']));
     expect($hall->chargeItem->transactionCode->applicableTaxes()->pluck('taxes.id')->all())->toBe([$sst->id]);
 
     $this->get(route('settings.facilities.show', [$property->code, $hall]))
@@ -236,7 +252,7 @@ test('the facility page saves its taxes with the details, and the Available swit
             ->where('facility.active', false)
             ->has('taxes', 1));
 
-    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'tax_ids' => []]));
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '1', 'tax_ids' => []]));
     expect($hall->chargeItem->transactionCode->applicableTaxes()->count())->toBe(0);
 });
 

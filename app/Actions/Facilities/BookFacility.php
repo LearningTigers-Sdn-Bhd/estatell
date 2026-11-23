@@ -30,7 +30,7 @@ class BookFacility
     /**
      * Book a facility on an event, charged to the event folio. The event and the facility rows are locked, so two staff
      * cannot take the last slot together. Refuses `event_not_open`, `facility_inactive`, `booking_outside_event`,
-     * `facility_session_not_found`, `folio_not_open`, `facility_clash` and `facility_full`, writing and logging
+     * `facility_session_not_found`, `folio_not_open`, `facility_full`, writing and logging
      * nothing. The booking takes the event's status and copies the list price unless staff changed it (null for
      * "Charge by hand"). Logs `facility_bookings.booked` on the event, and `facility_bookings.price_changed` when the
      * price is not the list price. See docs/33-facilities/04-facility-bookings.md.
@@ -69,7 +69,7 @@ class BookFacility
     /**
      * Book a facility on a reservation, charged to the folio picked in Charge to (`$data->chargeTo`). The reservation
      * and the facility rows are locked. Refuses `reservation_not_live`, `facility_inactive`,
-     * `facility_session_not_found`, `folio_not_of_owner`, `folio_not_open`, `facility_clash` and `facility_full`,
+     * `facility_session_not_found`, `folio_not_of_owner`, `folio_not_open`, `facility_full`,
      * writing and logging nothing. A unit with no folio yet gets one, as `PostCharge` does. The booking is Confirmed.
      * Logs on the reservation, as `forEvent` does on the event. See docs/33-facilities/04-facility-bookings.md#charge-to.
      */

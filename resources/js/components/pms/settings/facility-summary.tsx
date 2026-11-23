@@ -54,12 +54,12 @@ export function FacilitySummary({
             </div>
             <Separator />
             <dl className="flex flex-col gap-2">
-                <SummaryRow icon={Waypoints} label="Sharing">
-                    {facility.sharingLabel}
+                <SummaryRow icon={Waypoints} label="Booked by">
+                    {facility.bookedByLabel}
                 </SummaryRow>
-                <SummaryRow icon={Users} label="Capacity">
+                <SummaryRow icon={Users} label="How many">
                     <span className="tabular-nums">
-                        {facility.capacity} {facility.capacityUnitLabel}
+                        {facility.capacity} {facility.unitLabel}
                     </span>
                 </SummaryRow>
                 <SummaryRow icon={Tag} label="Rate">
@@ -86,19 +86,15 @@ export function FacilitySummary({
                 <SummaryRow icon={Hash} label="Code">
                     <span className="font-mono text-xs">{facility.code}</span>
                 </SummaryRow>
-                {facility.sharing === 'shared' && (
-                    <SummaryRow icon={Clock} label="Sessions">
-                        {facility.sessionCount > 0 ? (
-                            <span className="tabular-nums">
-                                {facility.sessionCount}
-                            </span>
-                        ) : (
-                            <span className="text-muted-foreground">
-                                Any time
-                            </span>
-                        )}
-                    </SummaryRow>
-                )}
+                <SummaryRow icon={Clock} label="Sessions">
+                    {facility.sessionCount > 0 ? (
+                        <span className="tabular-nums">
+                            {facility.sessionCount}
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground">Any time</span>
+                    )}
+                </SummaryRow>
             </dl>
         </div>
     );

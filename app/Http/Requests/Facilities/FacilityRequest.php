@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests\Facilities;
 
-use App\Enums\FacilityCapacityUnit;
+use App\Enums\FacilityBookedBy;
 use App\Enums\FacilityRateBasis;
-use App\Enums\FacilitySharing;
 use App\Models\ChargeItem;
 use App\Models\Facility;
 use App\Models\Property;
@@ -84,9 +83,8 @@ class FacilityRequest extends FormRequest
                     }
                 },
             ],
-            'sharing' => ['required', Rule::enum(FacilitySharing::class)],
+            'booked_by' => ['required', Rule::enum(FacilityBookedBy::class)],
             'capacity' => ['required', 'integer', 'min:1', 'max:100000'],
-            'capacity_unit' => ['required', Rule::enum(FacilityCapacityUnit::class)],
             'charge_by_hand' => ['boolean'],
             'default_amount' => ['exclude_if:charge_by_hand,true', 'required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'rate_basis' => ['required', Rule::enum(FacilityRateBasis::class)],
@@ -109,7 +107,7 @@ class FacilityRequest extends FormRequest
     /**
      * `tax_ids` is null when the form sent none (the Available switch), so the charge item keeps its taxes.
      *
-     * @return array{name: string, sharing: string, capacity: int, capacity_unit: string, default_amount: ?string, rate_basis: string, active: bool, tax_ids: ?list<int>}
+     * @return array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids: ?list<int>}
      */
     public function facilityAttributes(): array
     {
@@ -117,9 +115,8 @@ class FacilityRequest extends FormRequest
 
         return [
             'name' => (string) $this->validated('name'),
-            'sharing' => (string) $this->validated('sharing'),
+            'booked_by' => (string) $this->validated('booked_by'),
             'capacity' => (int) $this->validated('capacity'),
-            'capacity_unit' => (string) $this->validated('capacity_unit'),
             'default_amount' => $amount === null ? null : (string) $amount,
             'rate_basis' => (string) $this->validated('rate_basis'),
             'active' => (bool) $this->validated('active'),

@@ -41,8 +41,7 @@ class FacilityBookingRefusals
         $name = $result->facilityName ?? __('The facility');
 
         return match ($result->refusal) {
-            FacilityBookingResult::REFUSAL_CLASH => __(':facility is already booked at that time.', ['facility' => $name]),
-            FacilityBookingResult::REFUSAL_FULL => __(':facility is full at that time.', ['facility' => $name]),
+            FacilityBookingResult::REFUSAL_FULL => __(':facility is fully booked at that time.', ['facility' => $name]),
             FacilityBookingResult::REFUSAL_INACTIVE => __('This facility is turned off. Turn it on in Settings, Facilities.'),
             FacilityBookingResult::REFUSAL_SESSION_NOT_FOUND => __('Choose one of the facility\'s sessions.'),
             FacilityBookingResult::REFUSAL_FOLIO_NOT_OPEN => __('The folio is closed. Reopen it on the Folio tab first.'),
@@ -77,7 +76,7 @@ class FacilityBookingRefusals
     private function field(string $code): string
     {
         return match ($code) {
-            FacilityBookingResult::REFUSAL_CLASH, FacilityBookingResult::REFUSAL_FULL, FacilityBookingResult::REFUSAL_SESSION_NOT_FOUND => 'starts_at',
+            FacilityBookingResult::REFUSAL_FULL, FacilityBookingResult::REFUSAL_SESSION_NOT_FOUND => 'starts_at',
             FacilityBookingResult::REFUSAL_INACTIVE => 'facility_id',
             FacilityBookingResult::REFUSAL_OUTSIDE_EVENT => 'booking_date',
             FacilityBookingResult::REFUSAL_FOLIO_NOT_OF_OWNER => 'charge_to',

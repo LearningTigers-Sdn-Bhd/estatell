@@ -17,7 +17,7 @@ class FacilitySessionFactory extends Factory
     public function definition(): array
     {
         return [
-            'facility_id' => Facility::factory()->shared(),
+            'facility_id' => Facility::factory(),
             'property_id' => fn (array $attributes) => Facility::query()->whereKey($attributes['facility_id'])->value('property_id'),
             'starts_at' => '20:00',
             'ends_at' => '22:00',

@@ -2,7 +2,6 @@
 
 namespace App\Actions\Facilities;
 
-use App\Enums\FacilitySharing;
 use App\Models\Facility;
 use App\Models\FacilitySession;
 use App\Models\User;
@@ -11,22 +10,15 @@ use Illuminate\Support\Facades\DB;
 class SaveFacilitySession
 {
     /**
-     * Add a session to a Shared facility, or change one (`$session`). Saved bookings keep their own times.
+     * Add a session to a facility, or change one (`$session`). Saved bookings keep their own times.
      * Logs `facility_session.created` or `facility_session.updated`.
-     *
-     * Returns null, and saves nothing, when the facility is not Shared (`facility_not_shared`), for example when it was
-     * saved as Private in another tab.
      *
      * @param  array{starts_at: string, ends_at: string}  $attributes  Times as `HH:MM`.
      */
-    public function __invoke(User $actor, Facility $facility, array $attributes, ?FacilitySession $session = null): ?FacilitySession
+    public function __invoke(User $actor, Facility $facility, array $attributes, ?FacilitySession $session = null): FacilitySession
     {
-        return DB::transaction(function () use ($actor, $facility, $attributes, $session): ?FacilitySession {
+        return DB::transaction(function () use ($actor, $facility, $attributes, $session): FacilitySession {
             $facility = Facility::query()->lockForUpdate()->findOrFail($facility->id);
-
-            if ($facility->sharing !== FacilitySharing::Shared) {
-                return null;
-            }
 
             $session ??= new FacilitySession;
             $session->fill($attributes);

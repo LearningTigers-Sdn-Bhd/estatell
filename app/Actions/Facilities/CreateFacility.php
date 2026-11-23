@@ -24,7 +24,7 @@ class CreateFacility
      * price, and it is never added to bookings on its own. A null `default_amount` is "Charge by hand". Logs
      * `facility.created`. See docs/33-facilities/02-facility-settings.md.
      *
-     * @param  array{name: string, sharing: string, capacity: int, capacity_unit: string, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>}  $attributes
+     * @param  array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>}  $attributes
      */
     public function __invoke(Property $property, User $actor, array $attributes): Facility
     {
@@ -43,9 +43,8 @@ class CreateFacility
 
             $facility = new Facility([
                 'name' => $attributes['name'],
-                'sharing' => $attributes['sharing'],
+                'booked_by' => $attributes['booked_by'],
                 'capacity' => $attributes['capacity'],
-                'capacity_unit' => $attributes['capacity_unit'],
                 'rate_basis' => $attributes['rate_basis'],
                 'active' => $attributes['active'],
             ]);

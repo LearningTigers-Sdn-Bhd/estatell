@@ -172,7 +172,7 @@ function BookFacilityForm({
     const facilityOptions: EnumOption[] = facilities.map((one) => ({
         value: String(one.id),
         label: one.name,
-        description: `${one.sharing === 'shared' ? 'Shared' : 'Private'} · ${one.capacity} ${one.capacityUnitLabel}`,
+        description: one.capacityLabel,
     }));
 
     const sessionOptions: EnumOption[] = (facility?.sessions ?? []).map(

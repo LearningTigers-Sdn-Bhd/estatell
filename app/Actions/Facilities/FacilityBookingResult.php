@@ -11,8 +11,6 @@ use App\Models\FacilityBooking;
  */
 final class FacilityBookingResult
 {
-    public const string REFUSAL_CLASH = 'facility_clash';
-
     public const string REFUSAL_FULL = 'facility_full';
 
     public const string REFUSAL_INACTIVE = 'facility_inactive';

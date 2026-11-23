@@ -102,7 +102,7 @@ export function EventFacilityLines({
     const facilityOptions: EnumOption[] = facilities.map((one) => ({
         value: String(one.id),
         label: one.name,
-        description: `${one.sharing === 'shared' ? 'Shared' : 'Private'} · ${one.capacity} ${one.capacityUnitLabel}`,
+        description: one.capacityLabel,
     }));
 
     const change = (index: number, changes: Partial<FacilityLine>) =>

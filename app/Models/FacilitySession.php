@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A fixed time of a Shared facility. A booking copies its times and keeps no link to it.
+ * A fixed time of a facility. A booking copies its times and keeps no link to it.
  *
  * @property int $id
  * @property int $property_id

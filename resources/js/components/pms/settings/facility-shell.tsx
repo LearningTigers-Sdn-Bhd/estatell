@@ -20,7 +20,7 @@ type Facility = App.Data.Facilities.FacilityData;
 export type FacilityTab = 'details' | 'sessions';
 
 /**
- * The tabs of the facility page, for the tab bar and the breadcrumbs. Only a Shared facility has Sessions.
+ * The tabs of the facility page, for the tab bar and the breadcrumbs.
  */
 export function facilityTabs(facility: Facility): TabLink[] {
     const key = { facility: facility.id };
@@ -33,18 +33,16 @@ export function facilityTabs(facility: Facility): TabLink[] {
         },
     ];
 
-    if (facility.sharing === 'shared') {
-        tabs.push({
-            value: 'sessions',
-            label:
-                facility.sessionCount > 0
-                    ? `Sessions (${facility.sessionCount})`
-                    : 'Sessions',
-            title: 'Sessions',
-            icon: Clock,
-            href: sessionsIndex.url(key),
-        });
-    }
+    tabs.push({
+        value: 'sessions',
+        label:
+            facility.sessionCount > 0
+                ? `Sessions (${facility.sessionCount})`
+                : 'Sessions',
+        title: 'Sessions',
+        icon: Clock,
+        href: sessionsIndex.url(key),
+    });
 
     return tabs;
 }

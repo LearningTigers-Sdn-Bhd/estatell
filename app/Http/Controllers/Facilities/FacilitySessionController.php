@@ -7,7 +7,6 @@ use App\Actions\Facilities\SaveFacilitySession;
 use App\Data\Facilities\FacilityData;
 use App\Data\Facilities\FacilitySessionData;
 use App\Data\Property\CurrencyData;
-use App\Enums\FacilitySharing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Facilities\FacilitySessionRequest;
 use App\Models\Facility;
@@ -19,18 +18,16 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Settings › Facilities › {facility} › Sessions: the fixed times of a Shared facility.
+ * Settings › Facilities › {facility} › Sessions: the fixed times of a facility.
  * See docs/33-facilities/02-facility-settings.md#sessions.
  */
 class FacilitySessionController extends Controller
 {
     /**
-     * The facility page's Sessions tab. Only a Shared facility has sessions, so a Private one answers 404.
+     * The facility page's Sessions tab.
      */
     public function index(Property $property, Facility $facility): Response
     {
-        abort_unless($facility->sharing === FacilitySharing::Shared, 404);
-
         return Inertia::render('settings/facilities/sessions', [
             'facility' => FacilityData::fromModel($facility->load('chargeItem.transactionCode.applicableTaxes')->loadCount('sessions')),
             'sessions' => $facility->sessions()
@@ -44,12 +41,16 @@ class FacilitySessionController extends Controller
 
     public function store(FacilitySessionRequest $request, Property $property, Facility $facility, SaveFacilitySession $saveSession): RedirectResponse
     {
-        return $this->saved($property, $facility, $saveSession($request->user(), $facility, $request->sessionAttributes()), __('Session added.'));
+        $saveSession($request->user(), $facility, $request->sessionAttributes());
+
+        return $this->saved($property, $facility, __('Session added.'));
     }
 
     public function update(FacilitySessionRequest $request, Property $property, Facility $facility, FacilitySession $session, SaveFacilitySession $saveSession): RedirectResponse
     {
-        return $this->saved($property, $facility, $saveSession($request->user(), $facility, $request->sessionAttributes(), $session), __('Session saved.'));
+        $saveSession($request->user(), $facility, $request->sessionAttributes(), $session);
+
+        return $this->saved($property, $facility, __('Session saved.'));
     }
 
     public function destroy(Request $request, Property $property, Facility $facility, FacilitySession $session, DeleteFacilitySession $deleteSession): RedirectResponse
@@ -61,17 +62,8 @@ class FacilitySessionController extends Controller
         return to_route('settings.facilities.sessions.index', [$property, $facility]);
     }
 
-    /**
-     * A null session is the `facility_not_shared` refusal: the facility became Private in the meantime.
-     */
-    private function saved(Property $property, Facility $facility, ?FacilitySession $session, string $message): RedirectResponse
+    private function saved(Property $property, Facility $facility, string $message): RedirectResponse
     {
-        if ($session === null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('Only a Shared facility has sessions.')]);
-
-            return to_route('settings.facilities.index', $property);
-        }
-
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('settings.facilities.sessions.index', [$property, $facility]);

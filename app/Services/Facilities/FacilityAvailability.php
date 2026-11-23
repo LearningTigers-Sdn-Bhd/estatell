@@ -4,22 +4,21 @@ namespace App\Services\Facilities;
 
 use App\Actions\Facilities\FacilityBookingResult;
 use App\Enums\FacilityBookingStatus;
-use App\Enums\FacilitySharing;
 use App\Models\Facility;
 use App\Models\FacilityBooking;
 use Illuminate\Support\Collection;
 
 /**
- * The clash check for one facility, one date and one time range. Only Confirmed bookings block: a Private facility
- * takes no overlapping booking, a Shared one takes bookings while their quantity at every moment stays within its
- * capacity. Times overlap when one starts before the other ends, so 09:00–18:00 and 18:00–23:00 do not. `$pending`
+ * The clash check for one facility, one date and one time range. Only Confirmed bookings block. One rule for items
+ * and people: bookings fit while their quantity at every moment stays within the facility's capacity (one hall takes
+ * one booking at a time). Times overlap when one starts before the other ends, so 09:00–18:00 and 18:00–23:00 do not. `$pending`
  * are unsaved bookings counted as if saved: the earlier lines of the New event page.
  * See docs/33-facilities/04-facility-bookings.md#clash-check.
  */
 class FacilityAvailability
 {
     /**
-     * `facility_clash` or `facility_full` when the booking does not fit, otherwise null. `$ignoreBookingId` leaves out
+     * `facility_full` when the booking does not fit, otherwise null. `$ignoreBookingId` leaves out
      * the booking being changed or confirmed.
      *
      * @param  iterable<FacilityBooking>  $pending
@@ -29,17 +28,13 @@ class FacilityAvailability
         $confirmed = $this->overlapping($facility, $date, $startsAt, $endsAt, $ignoreBookingId, $pending)
             ->where('status', FacilityBookingStatus::Confirmed);
 
-        if ($facility->sharing === FacilitySharing::Private) {
-            return $confirmed->isEmpty() ? null : FacilityBookingResult::REFUSAL_CLASH;
-        }
-
         return $this->peak($confirmed, $startsAt, $endsAt) + $quantity > $facility->capacity
             ? FacilityBookingResult::REFUSAL_FULL
             : null;
     }
 
     /**
-     * What is left of a Shared facility over the whole range: its capacity less the most Confirmed bookings take at
+     * What is left of a facility over the whole range: its capacity less the most Confirmed bookings take at
      * any moment of it. Never below 0.
      *
      * @param  iterable<FacilityBooking>  $pending

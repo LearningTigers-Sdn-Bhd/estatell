@@ -47,7 +47,7 @@ function hallFor(Property $property, array $attributes = []): Facility
     return Facility::factory()->create(['property_id' => $property->id, 'name' => 'Riverside Hall', ...$attributes]);
 }
 
-test('a Private facility takes no overlapping Confirmed booking, and touching times do not overlap', function () {
+test('a facility with one item takes no overlapping Confirmed booking, and touching times do not overlap', function () {
     ['property' => $property, 'owner' => $owner] = eventSetup();
     $hall = hallFor($property);
     [$wedding] = makeEvent($property, $owner);
@@ -59,16 +59,16 @@ test('a Private facility takes no overlapping Confirmed booking, and touching ti
 
     expect($first->booking->status)->toBe(FacilityBookingStatus::Confirmed)
         ->and($first->booking->unit_amount)->toBe('1500.00')
-        ->and($clash->refusal)->toBe('facility_clash')
+        ->and($clash->refusal)->toBe('facility_full')
         ->and($clash->facilityName)->toBe('Riverside Hall')
         ->and($before->isRefused())->toBeFalse()
         ->and(FacilityBooking::query()->count())->toBe(2)
         ->and(Activity::query()->where('event', 'facility_bookings.booked')->count())->toBe(2);
 });
 
-test('a Shared facility takes bookings while the quantity at every moment stays within its capacity', function () {
+test('a facility booked by person takes bookings while the quantity at every moment stays within its capacity', function () {
     ['property' => $property, 'owner' => $owner] = eventSetup();
-    $kayaks = Facility::factory()->shared()->create(['property_id' => $property->id, 'capacity' => 20]);
+    $kayaks = Facility::factory()->byPerson()->create(['property_id' => $property->id, 'capacity' => 20]);
     [$event] = makeEvent($property, $owner);
     $book = fn (string $from, string $to, int $quantity) => app(BookFacility::class)->forEvent($owner, $event, bookingInput($kayaks, ['startsAt' => $from, 'endsAt' => $to, 'quantity' => $quantity]));
 
@@ -91,7 +91,7 @@ test('Tentative bookings never block, and confirming their event runs the clash 
 
     expect($hold->booking->status)->toBe(FacilityBookingStatus::Tentative)
         ->and($taken->isRefused())->toBeFalse()
-        ->and($confirm->refusal)->toBe('facility_clash')
+        ->and($confirm->refusal)->toBe('facility_full')
         ->and($confirm->facilityName)->toBe('Riverside Hall')
         ->and($held->refresh()->status)->toBe(EventStatus::Tentative)
         ->and($hold->booking->refresh()->status)->toBe(FacilityBookingStatus::Tentative)
@@ -101,7 +101,7 @@ test('Tentative bookings never block, and confirming their event runs the clash 
 test('confirming an event confirms its bookings and catches two of its own that clash', function () {
     ['property' => $property, 'owner' => $owner] = eventSetup();
     $hall = hallFor($property);
-    $kayaks = Facility::factory()->shared()->create(['property_id' => $property->id, 'capacity' => 10]);
+    $kayaks = Facility::factory()->byPerson()->create(['property_id' => $property->id, 'capacity' => 10]);
     [$event] = makeEvent($property, $owner, ['status' => EventStatus::Tentative]);
     [$other] = makeEvent($property, $owner, ['status' => EventStatus::Tentative]);
 
@@ -118,7 +118,7 @@ test('booking refuses a turned off facility, a date outside the event, a closed 
     ['property' => $property, 'owner' => $owner] = eventSetup();
     $hall = hallFor($property);
     $off = hallFor($property, ['name' => 'Old hall', 'active' => false]);
-    $walk = Facility::factory()->shared()->create(['property_id' => $property->id]);
+    $walk = Facility::factory()->byPerson()->create(['property_id' => $property->id]);
     FacilitySession::factory()->create(['property_id' => $property->id, 'facility_id' => $walk->id, 'starts_at' => '20:00', 'ends_at' => '22:00']);
     [$event] = makeEvent($property, $owner);
     [$cancelled] = makeEvent($property, $owner);
@@ -164,7 +164,7 @@ test('editing a booking checks it again without counting itself, and a cancelled
 
     expect($moved->isRefused())->toBeFalse()
         ->and($booking->refresh()->starts_at)->toBe('17:00:00')
-        ->and($clash->refusal)->toBe('facility_clash')
+        ->and($clash->refusal)->toBe('facility_full')
         ->and(app(UpdateFacilityBooking::class)($owner, $booking, bookingInput($hall))->refusal)->toBe('facility_booking_cancelled')
         ->and(app(CancelFacilityBooking::class)($owner, $booking)->refusal)->toBe(FacilityBookingResult::REFUSAL_BOOKING_CANCELLED);
 });
@@ -188,7 +188,7 @@ test('cancelling an event cancels its bookings, and new event dates must keep it
 
 test('an hourly price counts the booked hours rounded up', function () {
     expect(FacilityRateBasis::Hour->quantity('09:00', '11:30', 4))->toBe(3)
-        ->and(FacilityRateBasis::Person->quantity('09:00', '11:30', 4))->toBe(4)
+        ->and(FacilityRateBasis::Each->quantity('09:00', '11:30', 4))->toBe(4)
         ->and(FacilityRateBasis::Day->quantity('09:00', '11:30', 4))->toBe(1);
 });
 
@@ -214,14 +214,14 @@ test('staff book from the Sheet, and a clash comes back on the time field', func
     ['property' => $property, 'owner' => $owner] = eventSetup();
     $hall = hallFor($property);
     [$event] = makeEvent($property, $owner);
-    $payload = ['event_id' => $event->id, 'facility_id' => $hall->id, 'booking_date' => '2026-10-20', 'starts_at' => '18:00', 'ends_at' => '23:00', 'quantity' => 150, 'unit_amount' => '1200.00', 'notes' => 'Round tables'];
+    $payload = ['event_id' => $event->id, 'facility_id' => $hall->id, 'booking_date' => '2026-10-20', 'starts_at' => '18:00', 'ends_at' => '23:00', 'quantity' => 1, 'unit_amount' => '1200.00', 'notes' => 'Round tables'];
 
     $this->actingAs($owner)->post(route('facility-bookings.store', $property->code), $payload)
         ->assertSessionHasNoErrors()
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Riverside Hall booked.']);
 
     $this->actingAs($owner)->post(route('facility-bookings.store', $property->code), $payload)
-        ->assertSessionHasErrors(['starts_at' => 'Riverside Hall is already booked at that time.']);
+        ->assertSessionHasErrors(['starts_at' => 'Riverside Hall is fully booked at that time.']);
 
     $this->actingAs($owner)->post(route('facility-bookings.store', $property->code), [...$payload, 'ends_at' => '17:00'])
         ->assertSessionHasErrors(['ends_at' => 'The end time must be after the start time. A booking cannot cross midnight.']);
@@ -234,7 +234,7 @@ test('the quote gives the price with tax, the clash, a Tentative hold and the pl
     $hall = hallFor($property);
     $tax = Tax::factory()->for($property)->create(['name' => 'SST', 'rate' => '8.00', 'is_inclusive' => false]);
     $tax->applicableTransactionCodes()->attach($hall->chargeItem->transaction_code_id);
-    $walk = Facility::factory()->shared()->create(['property_id' => $property->id, 'capacity' => 20]);
+    $walk = Facility::factory()->byPerson()->create(['property_id' => $property->id, 'capacity' => 20]);
     FacilitySession::factory()->create(['property_id' => $property->id, 'facility_id' => $walk->id, 'starts_at' => '20:00', 'ends_at' => '22:00']);
     [$held] = makeEvent($property, $owner, ['name' => 'Sabah Tourism meeting', 'status' => EventStatus::Tentative]);
     [$event] = makeEvent($property, $owner);
@@ -258,7 +258,7 @@ test('the quote gives the price with tax, the clash, a Tentative hold and the pl
         ->assertJsonPath('sessions.0.left', 8);
 
     $quote(['facility_id' => $walk->id, 'starts_at' => '20:00', 'ends_at' => '22:00', 'quantity' => 9])
-        ->assertJsonPath('refusal', $walk->name.' is full at that time.');
+        ->assertJsonPath('refusal', $walk->name.' is fully booked at that time.');
 });
 
 test('the Bookings tab lists the bookings with the facilities staff can book', function () {

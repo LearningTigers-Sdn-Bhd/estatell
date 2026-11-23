@@ -20,7 +20,7 @@ class ConfirmEvent
     /**
      * Move a Tentative event to Confirmed, with its Tentative facility bookings. Each booking runs the clash check in
      * turn, so two bookings of this event that clash with each other are caught too. Any other status is refused
-     * (`event_not_tentative`), and a booking that does not fit is refused (`facility_clash` or `facility_full`, with the
+     * (`event_not_tentative`), and a booking that does not fit is refused (`facility_full`, with the
      * facility's name): nothing is written or logged. Logs `events.confirmed`.
      * See docs/33-facilities/03-events-and-event-folios.md.
      */

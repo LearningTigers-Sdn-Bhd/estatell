@@ -89,7 +89,7 @@ function SessionForm({ open, onOpenChange, facilityId, session }: Props) {
 }
 
 /**
- * Adds or edits one session of a Shared facility. Keyed on each opening, so it always starts clean.
+ * Adds or edits one session of a facility. Keyed on each opening, so it always starts clean.
  */
 export function FacilitySessionDialog(props: Props) {
     return <SessionForm key={useFreshOnOpen(props.open)} {...props} />;

@@ -4,30 +4,40 @@ namespace App\Actions\Facilities;
 
 use App\Actions\Catalogues\UpdateChargeItem;
 use App\Enums\ChargingUnit;
-use App\Enums\FacilitySharing;
 use App\Enums\TransactionCategory;
 use App\Models\ChargeItem;
 use App\Models\Facility;
+use App\Models\FacilityBooking;
 use App\Models\User;
+use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
 
 class UpdateFacility
 {
-    public function __construct(private UpdateChargeItem $updateChargeItem) {}
+    public const string REFUSAL_BOOKED_BY_LOCKED = 'booked_by_locked';
+
+    public function __construct(private UpdateChargeItem $updateChargeItem, private CurrentBusinessDate $currentBusinessDate) {}
 
     /**
      * Save a facility and its charge item in one transaction. The charge item follows the name, the price (null is
      * "Charge by hand"), the taxes and whether the facility is on. Its code and description stay as they are. Without
-     * `tax_ids` (the Available switch) the taxes stay too. Saving a
-     * facility as Private deletes its sessions. Logs `facility.updated` with the changed fields, or nothing when
-     * nothing changed. See docs/33-facilities/02-facility-settings.md.
+     * `tax_ids` (the Available switch) the taxes stay too. Logs `facility.updated` with the changed fields, or nothing
+     * when nothing changed. See docs/33-facilities/02-facility-settings.md.
      *
-     * @param  array{name: string, sharing: string, capacity: int, capacity_unit: string, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>}  $attributes
+     * Returns null, and saves nothing, when `booked_by` changes while the facility has a booking from the business
+     * date on that is not Cancelled (`booked_by_locked`): its quantity would then count something else.
+     *
+     * @param  array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>}  $attributes
      */
-    public function __invoke(User $actor, Facility $facility, array $attributes): Facility
+    public function __invoke(User $actor, Facility $facility, array $attributes): ?Facility
     {
-        return DB::transaction(function () use ($actor, $facility, $attributes): Facility {
+        return DB::transaction(function () use ($actor, $facility, $attributes): ?Facility {
             $facility = Facility::query()->lockForUpdate()->findOrFail($facility->id);
+
+            if ($facility->booked_by->value !== $attributes['booked_by'] && $this->hasUpcomingBookings($facility)) {
+                return null;
+            }
+
             $chargeItem = ChargeItem::query()->with('transactionCode.applicableTaxes')->findOrFail($facility->charge_item_id);
             $amountBefore = $chargeItem->default_amount;
             $taxIdsBefore = collect($chargeItem->transactionCode->applicableTaxes->modelKeys())->map(fn (mixed $id): int => (int) $id)->sort()->values()->all();
@@ -35,9 +45,8 @@ class UpdateFacility
 
             $facility->fill([
                 'name' => $attributes['name'],
-                'sharing' => $attributes['sharing'],
+                'booked_by' => $attributes['booked_by'],
                 'capacity' => $attributes['capacity'],
-                'capacity_unit' => $attributes['capacity_unit'],
                 'rate_basis' => $attributes['rate_basis'],
                 'active' => $attributes['active'],
             ]);
@@ -66,10 +75,6 @@ class UpdateFacility
 
             $facility->save();
 
-            if ($facility->sharing === FacilitySharing::Private) {
-                $facility->sessions()->delete();
-            }
-
             if ($changes !== []) {
                 activity()
                     ->performedOn($facility)
@@ -81,5 +86,17 @@ class UpdateFacility
 
             return $facility;
         });
+    }
+
+    private function hasUpcomingBookings(Facility $facility): bool
+    {
+        $businessDate = $this->currentBusinessDate->date($facility->property) ?? now()->toImmutable();
+
+        return FacilityBooking::query()
+            ->where('property_id', $facility->property_id)
+            ->where('facility_id', $facility->id)
+            ->live()
+            ->whereDate('booking_date', '>=', $businessDate->toDateString())
+            ->exists();
     }
 }

@@ -1,13 +1,15 @@
 import { Head, router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import {
     FacilitySheet,
     facilityValues,
 } from '@/components/pms/settings/facility-sheet';
-import type { CapacityUnitOption } from '@/components/pms/settings/facility-details-form';
+import type {
+    BookedByOption,
+    RateBasesByBookedBy,
+} from '@/components/pms/settings/facility-details-form';
 import { FacilityTable } from '@/components/pms/settings/facility-table';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
@@ -17,15 +19,13 @@ type Facility = App.Data.Facilities.FacilityData;
 
 export default function FacilitiesIndex({
     facilities,
-    sharingOptions,
-    capacityUnits,
+    bookedByOptions,
     rateBases,
     currency,
 }: {
     facilities: Facility[];
-    sharingOptions: { value: string; label: string; description: string }[];
-    capacityUnits: CapacityUnitOption[];
-    rateBases: EnumOption[];
+    bookedByOptions: BookedByOption[];
+    rateBases: RateBasesByBookedBy;
     currency: App.Data.Property.CurrencyData | null;
 }) {
     const [adding, setAdding] = useState(false);
@@ -102,9 +102,6 @@ export default function FacilitiesIndex({
 
                 <FacilityTable
                     facilities={facilities}
-                    sharingOptions={sharingOptions}
-                    capacityUnits={capacityUnits}
-                    rateBases={rateBases}
                     currency={currency}
                     busyIds={busyIds}
                     onMove={move}
@@ -115,8 +112,7 @@ export default function FacilitiesIndex({
             <FacilitySheet
                 open={adding}
                 onOpenChange={setAdding}
-                sharingOptions={sharingOptions}
-                capacityUnits={capacityUnits}
+                bookedByOptions={bookedByOptions}
                 rateBases={rateBases}
                 currency={currency}
             />

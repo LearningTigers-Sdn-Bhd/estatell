@@ -1,9 +1,8 @@
 import { Head } from '@inertiajs/react';
-import type { EnumOption } from '@/components/pms/enum-select';
 import {
     FacilityDetailsForm,
-    type CapacityUnitOption,
-    type SharingOption,
+    type BookedByOption,
+    type RateBasesByBookedBy,
 } from '@/components/pms/settings/facility-details-form';
 import {
     FacilityShell,
@@ -14,16 +13,14 @@ type Facility = App.Data.Facilities.FacilityData;
 
 export default function FacilityShow({
     facility,
-    sharingOptions,
-    capacityUnits,
+    bookedByOptions,
     rateBases,
     taxes,
     currency,
 }: {
     facility: Facility;
-    sharingOptions: SharingOption[];
-    capacityUnits: CapacityUnitOption[];
-    rateBases: EnumOption[];
+    bookedByOptions: BookedByOption[];
+    rateBases: RateBasesByBookedBy;
     taxes: App.Data.Catalogues.ChargeItemTaxData[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -38,8 +35,7 @@ export default function FacilityShow({
                 <FacilityDetailsForm
                     key={facility.id}
                     facility={facility}
-                    sharingOptions={sharingOptions}
-                    capacityUnits={capacityUnits}
+                    bookedByOptions={bookedByOptions}
                     rateBases={rateBases}
                     taxes={taxes}
                     currency={currency}

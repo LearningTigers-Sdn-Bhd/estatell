@@ -4,7 +4,7 @@ namespace App\Data\Facilities;
 
 use Spatie\LaravelData\Data;
 
-/** A session of a Shared facility on one date, with the places left, for the Session select. Times are `HH:MM`. */
+/** A session of a facility on one date, with the places left, for the Session select. Times are `HH:MM`. */
 class FacilitySessionPlacesData extends Data
 {
     public function __construct(

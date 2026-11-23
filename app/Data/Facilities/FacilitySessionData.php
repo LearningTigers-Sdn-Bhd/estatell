@@ -5,7 +5,7 @@ namespace App\Data\Facilities;
 use App\Models\FacilitySession;
 use Spatie\LaravelData\Data;
 
-/** One fixed time of a Shared facility, as `HH:MM`. */
+/** One fixed time of a facility, as `HH:MM`. */
 class FacilitySessionData extends Data
 {
     public function __construct(

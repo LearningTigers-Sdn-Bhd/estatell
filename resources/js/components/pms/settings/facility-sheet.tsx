@@ -1,14 +1,11 @@
 import { useForm } from '@inertiajs/react';
-import { ChoiceCards } from '@/components/pms/choice-cards';
 import { EnumSelect } from '@/components/pms/enum-select';
-import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import {
-    CapacityFields,
-    sharingChoices,
-    type CapacityUnitOption,
-    type SharingOption,
+    BookedByFields,
+    type BookedByOption,
+    type RateBasesByBookedBy,
 } from '@/components/pms/settings/facility-details-form';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import {
@@ -28,17 +25,15 @@ type Facility = App.Data.Facilities.FacilityData;
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    sharingOptions: SharingOption[];
-    capacityUnits: CapacityUnitOption[];
-    rateBases: EnumOption[];
+    bookedByOptions: BookedByOption[];
+    rateBases: RateBasesByBookedBy;
     currency: App.Data.Property.CurrencyData | null;
 };
 
 type FormData = {
     name: string;
-    sharing: string;
+    booked_by: string;
     capacity: string;
-    capacity_unit: string;
     charge_by_hand: boolean;
     default_amount: string;
     rate_basis: string;
@@ -49,9 +44,8 @@ type FormData = {
 export function facilityValues(facility: Facility): FormData {
     return {
         name: facility.name,
-        sharing: facility.sharing,
+        booked_by: facility.bookedBy,
         capacity: String(facility.capacity),
-        capacity_unit: facility.capacityUnit,
         charge_by_hand: facility.amount === null,
         default_amount: facility.amount ?? '',
         rate_basis: facility.rateBasis,
@@ -62,16 +56,14 @@ export function facilityValues(facility: Facility): FormData {
 function FacilityForm({
     open,
     onOpenChange,
-    sharingOptions,
-    capacityUnits,
+    bookedByOptions,
     rateBases,
     currency,
 }: Props) {
     const form = useForm<FormData>({
         name: '',
-        sharing: 'private',
+        booked_by: 'item',
         capacity: '',
-        capacity_unit: 'pax',
         charge_by_hand: false,
         default_amount: '',
         rate_basis: '',
@@ -110,24 +102,12 @@ function FacilityForm({
                     <FieldError>{errors.name}</FieldError>
                 </Field>
 
-                <ChoiceCards
-                    id="facility-sharing"
-                    legend="Sharing"
-                    choices={sharingChoices(sharingOptions)}
-                    value={data.sharing}
-                    onValueChange={(value) => setData('sharing', value)}
-                    error={errors.sharing}
-                />
-
-                <CapacityFields
-                    capacityUnits={capacityUnits}
-                    sharing={data.sharing}
+                <BookedByFields
+                    bookedByOptions={bookedByOptions}
+                    bookedBy={data.booked_by}
                     capacity={data.capacity}
-                    capacityUnit={data.capacity_unit}
+                    onBookedByChange={(value) => setData('booked_by', value)}
                     onCapacityChange={(value) => setData('capacity', value)}
-                    onCapacityUnitChange={(value) =>
-                        setData('capacity_unit', value)
-                    }
                     errors={errors}
                 />
 
@@ -169,7 +149,7 @@ function FacilityForm({
                         id="facility-rate-basis"
                         name="rate_basis"
                         placeholder="Choose a rate basis"
-                        options={rateBases}
+                        options={rateBases[data.booked_by] ?? []}
                         value={data.rate_basis}
                         onValueChange={(value) => setData('rate_basis', value)}
                         aria-invalid={!!errors.rate_basis}

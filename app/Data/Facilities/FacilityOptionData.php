@@ -2,13 +2,14 @@
 
 namespace App\Data\Facilities;
 
-use App\Enums\FacilitySharing;
+use App\Enums\FacilityBookedBy;
 use App\Models\Facility;
 use Spatie\LaravelData\Data;
 
 /**
  * A facility in the Book facility Sheet's select. `listPrice` is null for "Charge by hand"; `sessions` are the fixed
- * times of a Shared facility, empty when it takes any time.
+ * times, empty when it takes any time. `capacityUnitLabel` is what a quantity counts ("items", "people");
+ * `capacityLabel` describes the facility in the select ("Item · 3 items").
  */
 class FacilityOptionData extends Data
 {
@@ -18,9 +19,10 @@ class FacilityOptionData extends Data
     public function __construct(
         public int $id,
         public string $name,
-        public FacilitySharing $sharing,
+        public FacilityBookedBy $bookedBy,
         public int $capacity,
         public string $capacityUnitLabel,
+        public string $capacityLabel,
         public string $rateBasisLabel,
         public ?string $listPrice,
         public array $sessions,
@@ -34,10 +36,11 @@ class FacilityOptionData extends Data
         return new self(
             id: $facility->id,
             name: $facility->name,
-            sharing: $facility->sharing,
+            bookedBy: $facility->booked_by,
             capacity: $facility->capacity,
-            capacityUnitLabel: $facility->capacity_unit->label(),
-            rateBasisLabel: $facility->rate_basis->label(),
+            capacityUnitLabel: $facility->booked_by->unit(),
+            capacityLabel: $facility->booked_by->label().' · '.$facility->capacity.' '.$facility->booked_by->unit($facility->capacity),
+            rateBasisLabel: $facility->rate_basis->label($facility->booked_by),
             listPrice: $facility->chargeItem->default_amount,
             sessions: array_values($facility->sessions->map(fn ($session): FacilitySessionData => FacilitySessionData::fromModel($session))->all()),
         );

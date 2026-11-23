@@ -132,7 +132,7 @@ test('a reservation booking is refused, writing nothing', function (Closure $arr
         ]);
 
         return 'f'.$setup['master']->id;
-    }, FacilityBookingResult::REFUSAL_CLASH],
+    }, FacilityBookingResult::REFUSAL_FULL],
 ]);
 
 test('editing a reservation booking can move it to another folio of the reservation', function () {

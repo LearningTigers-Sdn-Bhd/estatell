@@ -2,9 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Enums\FacilityCapacityUnit;
+use App\Enums\FacilityBookedBy;
 use App\Enums\FacilityRateBasis;
-use App\Enums\FacilitySharing;
 use App\Enums\TransactionCategory;
 use App\Models\ChargeItem;
 use App\Models\Facility;
@@ -18,7 +17,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class FacilityFactory extends Factory
 {
     /**
-     * A Private hall with its own Facility charge item of the same name.
+     * One hall (booked by item, 1 of it) with its own Facility charge item of the same name.
      *
      * @return array<string, mixed>
      */
@@ -28,9 +27,8 @@ class FacilityFactory extends Factory
             'property_id' => Property::factory(),
             'name' => 'Hall '.fake()->unique()->numberBetween(100, 99999),
             'description' => null,
-            'sharing' => FacilitySharing::Private,
-            'capacity' => 100,
-            'capacity_unit' => FacilityCapacityUnit::Pax,
+            'booked_by' => FacilityBookedBy::Item,
+            'capacity' => 1,
             'charge_item_id' => fn (array $attributes) => ChargeItem::factory()->create([
                 'property_id' => $attributes['property_id'],
                 'name' => $attributes['name'],
@@ -47,12 +45,13 @@ class FacilityFactory extends Factory
         ];
     }
 
-    public function shared(): static
+    /** An activity booked by person: 20 places, priced per person. */
+    public function byPerson(): static
     {
         return $this->state(fn (array $attributes) => [
-            'sharing' => FacilitySharing::Shared,
+            'booked_by' => FacilityBookedBy::Person,
             'capacity' => 20,
-            'rate_basis' => FacilityRateBasis::Person,
+            'rate_basis' => FacilityRateBasis::Each,
         ]);
     }
 }

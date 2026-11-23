@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\FacilityCapacityUnit;
+use App\Enums\FacilityBookedBy;
 use App\Enums\FacilityRateBasis;
-use App\Enums\FacilitySharing;
 use Carbon\CarbonImmutable;
 use Database\Factories\FacilityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -22,9 +21,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $property_id
  * @property string $name
  * @property string|null $description
- * @property FacilitySharing $sharing
- * @property int $capacity The size of a Private facility, the limit of a Shared one.
- * @property FacilityCapacityUnit $capacity_unit
+ * @property FacilityBookedBy $booked_by
+ * @property int $capacity How many items or people at one time. Always the limit.
  * @property int $charge_item_id
  * @property FacilityRateBasis $rate_basis
  * @property int $position
@@ -33,7 +31,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  * @property-read int|null $sessions_count
  */
-#[Fillable(['name', 'description', 'sharing', 'capacity', 'capacity_unit', 'rate_basis', 'active'])]
+#[Fillable(['name', 'description', 'booked_by', 'capacity', 'rate_basis', 'active'])]
 class Facility extends Model
 {
     /** @use HasFactory<FacilityFactory> */
@@ -43,9 +41,8 @@ class Facility extends Model
     protected function casts(): array
     {
         return [
-            'sharing' => FacilitySharing::class,
+            'booked_by' => FacilityBookedBy::class,
             'capacity' => 'integer',
-            'capacity_unit' => FacilityCapacityUnit::class,
             'rate_basis' => FacilityRateBasis::class,
             'position' => 'integer',
             'active' => 'boolean',

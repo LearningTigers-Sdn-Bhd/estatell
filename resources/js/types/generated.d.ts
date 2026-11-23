@@ -1666,9 +1666,8 @@ chargeToLabel: string | null,
 export type FacilityData = {
 id: number,
 name: string,
-sharing: App.Enums.FacilitySharing,
+bookedBy: App.Enums.FacilityBookedBy,
 capacity: number,
-capacityUnit: App.Enums.FacilityCapacityUnit,
 chargeItemId: number,
 amount: string | null,
 rateBasis: App.Enums.FacilityRateBasis,
@@ -1677,16 +1676,17 @@ sessionCount: number,
 code: string,
 taxIds: number[],
 taxNames: string[],
-sharingLabel: string,
-capacityUnitLabel: string,
+bookedByLabel: string,
+unitLabel: string,
 rateBasisLabel: string,
 };
 export type FacilityOptionData = {
 id: number,
 name: string,
-sharing: App.Enums.FacilitySharing,
+bookedBy: App.Enums.FacilityBookedBy,
 capacity: number,
 capacityUnitLabel: string,
+capacityLabel: string,
 rateBasisLabel: string,
 listPrice: string | null,
 sessions: App.Data.Facilities.FacilitySessionData[],
@@ -5872,10 +5872,9 @@ export type EInvoiceStatus = 'draft' | 'pending' | 'submitted' | 'valid' | 'inva
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type EndedStayChoice = 'arrived_last_night' | 'arriving_today';
 export type EventStatus = 'tentative' | 'confirmed' | 'completed' | 'cancelled';
+export type FacilityBookedBy = 'item' | 'person';
 export type FacilityBookingStatus = 'tentative' | 'confirmed' | 'cancelled';
-export type FacilityCapacityUnit = 'pax' | 'units';
-export type FacilityRateBasis = 'day' | 'session' | 'hour' | 'person';
-export type FacilitySharing = 'private' | 'shared';
+export type FacilityRateBasis = 'day' | 'session' | 'hour' | 'each';
 export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
 export type FolioStatus = 'open' | 'closed' | 'voided';

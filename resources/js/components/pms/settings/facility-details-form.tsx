@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Lock, Package, User, Users } from 'lucide-react';
+import { Package, User } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { ChargeItemTaxesField } from '@/components/pms/charge-item-taxes-field';
 import { ChoiceCards } from '@/components/pms/choice-cards';
@@ -30,87 +30,70 @@ import { update } from '@/routes/settings/facilities';
 
 type Facility = App.Data.Facilities.FacilityData;
 type Tax = App.Data.Catalogues.ChargeItemTaxData;
-export type SharingOption = {
+export type BookedByOption = {
     value: string;
     label: string;
     description: string;
+    unit: string;
 };
 
-const SHARING_ICONS: Record<string, Choice['icon']> = {
-    private: Lock,
-    shared: Users,
-};
+/** The Per select for each Booked by choice: Each reads "Per item" or "Per person". */
+export type RateBasesByBookedBy = Record<string, EnumOption[]>;
 
-/** Sharing as choice cards with an icon per case. */
-export function sharingChoices(options: SharingOption[]): Choice[] {
-    return options.map((option) => ({
-        ...option,
-        icon: SHARING_ICONS[option.value] ?? Lock,
-    }));
-}
-
-export type CapacityUnitOption = {
-    value: string;
-    label: string;
-    title: string;
-    description: string;
-};
-
-const CAPACITY_UNIT_ICONS: Record<string, Choice['icon']> = {
-    pax: User,
-    units: Package,
+const BOOKED_BY_ICONS: Record<string, Choice['icon']> = {
+    item: Package,
+    person: User,
 };
 
 /**
- * Count by (People or Items) as choice cards, then Capacity with the unit after the number. Shared by the Add
- * facility Sheet and the Details tab.
+ * Booked by (Item or Person) as choice cards, then How many with "items" or "people" after the number. Shared by the
+ * Add facility Sheet and the Details tab.
  */
-export function CapacityFields({
-    capacityUnits,
-    sharing,
+export function BookedByFields({
+    bookedByOptions,
+    bookedBy,
     capacity,
-    capacityUnit,
+    onBookedByChange,
     onCapacityChange,
-    onCapacityUnitChange,
     errors,
 }: {
-    capacityUnits: CapacityUnitOption[];
-    sharing: string;
+    bookedByOptions: BookedByOption[];
+    bookedBy: string;
     capacity: string;
-    capacityUnit: string;
+    onBookedByChange: (value: string) => void;
     onCapacityChange: (value: string) => void;
-    onCapacityUnitChange: (value: string) => void;
-    errors: { capacity?: string; capacity_unit?: string };
+    errors: { booked_by?: string; capacity?: string };
 }) {
-    const unitLabel =
-        capacityUnits.find((option) => option.value === capacityUnit)?.label ??
-        capacityUnit;
+    const unit =
+        bookedByOptions.find((option) => option.value === bookedBy)?.unit ?? '';
 
     return (
         <>
             <ChoiceCards
-                id="facility-capacity-unit"
-                legend="Count by"
-                choices={capacityUnits.map((option) => ({
+                id="facility-booked-by"
+                legend="Booked by"
+                choices={bookedByOptions.map((option) => ({
                     value: option.value,
-                    label: `${option.title} (${option.label})`,
+                    label: option.label,
                     description: option.description,
-                    icon: CAPACITY_UNIT_ICONS[option.value] ?? User,
+                    icon: BOOKED_BY_ICONS[option.value] ?? Package,
                 }))}
-                value={capacityUnit}
-                onValueChange={onCapacityUnitChange}
-                error={errors.capacity_unit}
+                value={bookedBy}
+                onValueChange={onBookedByChange}
+                error={errors.booked_by}
             />
 
             <Field data-invalid={!!errors.capacity}>
-                <FieldLabel htmlFor="facility-capacity">Capacity</FieldLabel>
+                <FieldLabel htmlFor="facility-capacity">How many</FieldLabel>
                 <InputGroup>
                     <InputGroupInput
                         id="facility-capacity"
                         type="number"
                         inputMode="numeric"
                         min={1}
-                        placeholder="e.g. 150"
+                        placeholder={
+                            bookedBy === 'person' ? 'e.g. 25' : 'e.g. 3'
+                        }
                         className="tabular-nums"
                         value={capacity}
                         onChange={(event) =>
@@ -119,13 +102,13 @@ export function CapacityFields({
                         aria-invalid={!!errors.capacity}
                     />
                     <InputGroupAddon align="inline-end">
-                        <InputGroupText>{unitLabel}</InputGroupText>
+                        <InputGroupText>{unit}</InputGroupText>
                     </InputGroupAddon>
                 </InputGroup>
                 <FieldDescription>
-                    {sharing === 'shared'
-                        ? 'Bookings stop when it is full.'
-                        : 'Shown to staff. One booking takes it all.'}
+                    {bookedBy === 'person'
+                        ? 'People at one time. Bookings stop when it is full.'
+                        : 'How many you have. 1 means one group at a time.'}
                 </FieldDescription>
                 <FieldError>{errors.capacity}</FieldError>
             </Field>
@@ -139,24 +122,21 @@ export function CapacityFields({
  */
 export function FacilityDetailsForm({
     facility,
-    sharingOptions,
-    capacityUnits,
+    bookedByOptions,
     rateBases,
     taxes,
     currency,
 }: {
     facility: Facility;
-    sharingOptions: SharingOption[];
-    capacityUnits: CapacityUnitOption[];
-    rateBases: EnumOption[];
+    bookedByOptions: BookedByOption[];
+    rateBases: RateBasesByBookedBy;
     taxes: Tax[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
     const form = useForm({
         name: facility.name,
-        sharing: facility.sharing as string,
+        booked_by: facility.bookedBy as string,
         capacity: String(facility.capacity),
-        capacity_unit: facility.capacityUnit as string,
         charge_by_hand: facility.amount === null,
         default_amount: facility.amount ?? '',
         rate_basis: facility.rateBasis as string,
@@ -164,8 +144,6 @@ export function FacilityDetailsForm({
     });
     const { data, errors, setData } = form;
     const guard = useUnsavedChanges(form.isDirty);
-    const losesSessions =
-        facility.sessionCount > 0 && data.sharing === 'private';
 
     const save = (onSaved?: () => void) => {
         form.put(update.url({ facility: facility.id }), {
@@ -208,37 +186,16 @@ export function FacilityDetailsForm({
                         <FieldError>{errors.name}</FieldError>
                     </Field>
 
-                    <div className="flex flex-col gap-2 md:col-span-2">
-                        <ChoiceCards
-                            id="facility-sharing"
-                            legend="Sharing"
-                            choices={sharingChoices(sharingOptions)}
-                            value={data.sharing}
-                            onValueChange={(value) => setData('sharing', value)}
-                            error={errors.sharing}
-                        />
-                        {losesSessions && (
-                            <FieldDescription>
-                                Saving as Private deletes its{' '}
-                                {facility.sessionCount === 1
-                                    ? 'session'
-                                    : `${facility.sessionCount} sessions`}
-                                .
-                            </FieldDescription>
-                        )}
-                    </div>
-
                     <div className="flex flex-col gap-5 md:col-span-2">
-                        <CapacityFields
-                            capacityUnits={capacityUnits}
-                            sharing={data.sharing}
+                        <BookedByFields
+                            bookedByOptions={bookedByOptions}
+                            bookedBy={data.booked_by}
                             capacity={data.capacity}
-                            capacityUnit={data.capacity_unit}
+                            onBookedByChange={(value) =>
+                                setData('booked_by', value)
+                            }
                             onCapacityChange={(value) =>
                                 setData('capacity', value)
-                            }
-                            onCapacityUnitChange={(value) =>
-                                setData('capacity_unit', value)
                             }
                             errors={errors}
                         />
@@ -270,7 +227,7 @@ export function FacilityDetailsForm({
                             id="facility-rate-basis"
                             name="rate_basis"
                             placeholder="Choose a rate basis"
-                            options={rateBases}
+                            options={rateBases[data.booked_by] ?? []}
                             value={data.rate_basis}
                             onValueChange={(value) =>
                                 setData('rate_basis', value)

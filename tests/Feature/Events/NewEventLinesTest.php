@@ -62,7 +62,7 @@ test('a refused line saves nothing, and a later line is checked against the earl
     ]);
 
     expect($result->line)->toBe(1)
-        ->and($result->refusal->refusal)->toBe('facility_clash')
+        ->and($result->refusal->refusal)->toBe('facility_full')
         ->and(Event::query()->count())->toBe(0)
         ->and(FacilityBooking::query()->count())->toBe(0)
         ->and(Activity::query()->where('event', 'events.created')->exists())->toBeFalse();
@@ -76,7 +76,7 @@ test('the page sends a refused line back as an error on that line', function () 
     $payload = ['name' => 'Wedding', 'payer_type' => 'guest', 'guest' => ['guest_id' => $guest->id], 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20', 'status' => 'confirmed'];
 
     $this->actingAs($owner)->post(route('events.store', $property->code), [...$payload, 'bookings' => [$line, [...$line, 'starts_at' => '22:00']]])
-        ->assertSessionHasErrors(['bookings.1.starts_at' => 'Riverside Hall is already booked at that time.']);
+        ->assertSessionHasErrors(['bookings.1.starts_at' => 'Riverside Hall is fully booked at that time.']);
 
     $this->actingAs($owner)->post(route('events.store', $property->code), [...$payload, 'bookings' => [[...$line, 'booking_date' => '2026-10-21']]])
         ->assertSessionHasErrors(['bookings.0.booking_date' => 'The date must be within the event\'s dates.']);
@@ -122,7 +122,7 @@ test('the quote checks each line against the earlier ones and totals the lines',
     $quote('confirmed')
         ->assertOk()
         ->assertJsonPath('lines.0.refusal', null)
-        ->assertJsonPath('lines.1.refusal', 'Riverside Hall is already booked at that time.')
+        ->assertJsonPath('lines.1.refusal', 'Riverside Hall is fully booked at that time.')
         ->assertJsonPath('lines.2.amount', null)
         ->assertJsonPath('amount', '2000.00')
         ->assertJsonPath('tax', '160.00')

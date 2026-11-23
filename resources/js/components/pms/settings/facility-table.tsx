@@ -21,30 +21,18 @@ import {
 import { show } from '@/routes/settings/facilities';
 
 type Facility = App.Data.Facilities.FacilityData;
-type Option = { value: string; label: string };
-
-function labelOf(options: Option[], value: string): string {
-    return options.find((option) => option.value === value)?.label ?? value;
-}
-
 /**
  * The Facilities settings list in its saved order. Facilities that are off stay in place and are muted. With no
  * facilities the table keeps its header and shows the empty state in one row.
  */
 export function FacilityTable({
     facilities,
-    sharingOptions,
-    capacityUnits,
-    rateBases,
     currency,
     busyIds,
     onMove,
     onToggleActive,
 }: {
     facilities: Facility[];
-    sharingOptions: Option[];
-    capacityUnits: Option[];
-    rateBases: Option[];
     currency: App.Data.Property.CurrencyData | null;
     busyIds: Set<number>;
     onMove: (from: number, to: number) => void;
@@ -57,8 +45,8 @@ export function FacilityTable({
                     <TableRow>
                         <TableHead className="w-28">Available</TableHead>
                         <TableHead>Name</TableHead>
-                        <TableHead>Sharing</TableHead>
-                        <TableHead className="text-right">Capacity</TableHead>
+                        <TableHead>Booked by</TableHead>
+                        <TableHead className="text-right">How many</TableHead>
                         <TableHead className="text-right">
                             Rate{currency ? ` (${currency.code})` : ''}
                         </TableHead>
@@ -107,12 +95,9 @@ export function FacilityTable({
                                     {facility.name}
                                 </Link>
                             </TableCell>
-                            <TableCell>
-                                {labelOf(sharingOptions, facility.sharing)}
-                            </TableCell>
+                            <TableCell>{facility.bookedByLabel}</TableCell>
                             <TableCell className="text-right tabular-nums">
-                                {facility.capacity}{' '}
-                                {labelOf(capacityUnits, facility.capacityUnit)}
+                                {facility.capacity} {facility.unitLabel}
                             </TableCell>
                             <TableCell className="text-right">
                                 {facility.amount === null ? (
@@ -127,10 +112,7 @@ export function FacilityTable({
                                             plain
                                         />{' '}
                                         <span className="text-muted-foreground">
-                                            {labelOf(
-                                                rateBases,
-                                                facility.rateBasis,
-                                            ).toLowerCase()}
+                                            {facility.rateBasisLabel.toLowerCase()}
                                         </span>
                                     </>
                                 )}

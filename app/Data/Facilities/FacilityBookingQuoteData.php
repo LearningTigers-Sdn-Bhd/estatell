@@ -6,7 +6,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * The server's answer for the Book facility Sheet: the price line, the refusal the booking would get, the Tentative
- * hold warning and, for a Shared facility with sessions, the places left in each session. `amount` is the price
+ * hold warning and, for a facility with sessions, the places left in each session. `amount` is the price
  * before tax (the unit price times the rate basis quantity); `amount`, `taxes` and `total` are empty when the
  * facility is charged by hand or the times are not chosen yet. See docs/33-facilities/04-facility-bookings.md.
  */
