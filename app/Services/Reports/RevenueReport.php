@@ -36,16 +36,17 @@ class RevenueReport implements HasTotals, Report
             ->get(['id', 'code', 'name'])
             ->keyBy('id');
 
-        /** @var array<string, array{period: string, codeId: int, lines: int, amount: BigDecimal}> $buckets */
+        /** @var array<string, array{period: string, codeId: int, lines: int, quantity: int, amount: BigDecimal}> $buckets */
         $buckets = [];
 
         foreach ($lines as $line) {
             $period = $line->date->format($group === ReportGroup::Month ? 'Y-m' : 'Y-m-d');
             $key = "{$period}:{$line->transactionCodeId}";
-            $bucket = $buckets[$key] ?? ['period' => $period, 'codeId' => $line->transactionCodeId, 'lines' => 0, 'amount' => BigDecimal::zero()];
+            $bucket = $buckets[$key] ?? ['period' => $period, 'codeId' => $line->transactionCodeId, 'lines' => 0, 'quantity' => 0, 'amount' => BigDecimal::zero()];
             $buckets[$key] = [
                 ...$bucket,
                 'lines' => $bucket['lines'] + $line->lineCount,
+                'quantity' => $bucket['quantity'] + $line->quantity,
                 'amount' => $bucket['amount']->plus($line->amount->getAmount()),
             ];
         }
@@ -66,6 +67,7 @@ class RevenueReport implements HasTotals, Report
                 code: $code->code ?? '',
                 description: $code->name ?? '',
                 lines: $bucket['lines'],
+                quantity: $bucket['quantity'],
                 amount: (string) $bucket['amount']->toScale(2, RoundingMode::HalfUp),
                 from: $group === ReportGroup::Month ? max($periodDate->startOfMonth()->toDateString(), $filters->from) : $bucket['period'],
                 to: $group === ReportGroup::Month ? min($periodDate->endOfMonth()->toDateString(), $filters->to) : $bucket['period'],
@@ -76,7 +78,7 @@ class RevenueReport implements HasTotals, Report
     }
 
     /**
-     * The number of lines and the amount of the rows.
+     * The number of lines, the quantity sold and the amount of the rows.
      *
      * @param  list<RevenueRow>  $rows
      */
@@ -89,6 +91,7 @@ class RevenueReport implements HasTotals, Report
             'code' => null,
             'description' => null,
             'lines' => array_sum(array_map(fn (RevenueRow $row): int => $row->lines, $rows)),
+            'quantity' => array_sum(array_map(fn (RevenueRow $row): int => $row->quantity, $rows)),
             'amount' => (string) $amount->toScale(2, RoundingMode::HalfUp),
         ]);
     }

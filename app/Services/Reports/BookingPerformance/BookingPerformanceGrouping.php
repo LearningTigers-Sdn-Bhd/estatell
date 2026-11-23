@@ -13,7 +13,7 @@ interface BookingPerformanceGrouping
     /**
      * The group of one unit row of `BookingPerformanceReport::units()`. Null puts the unit in the "none" row.
      *
-     * @param  object{room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, booked_on: string}  $unit
+     * @param  object{room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, company_id: int|null, booked_on: string}  $unit
      */
     public function idOf(object $unit): int|string|null;
 

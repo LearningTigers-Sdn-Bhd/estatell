@@ -3,6 +3,7 @@
 require_once __DIR__.'/../Support/ReportSetup.php';
 
 use App\Enums\DefaultRoleEnum;
+use App\Models\Company;
 use App\Models\MarketSegment;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -75,7 +76,7 @@ test('the page needs reports.view and is scoped to the property', function () {
         ->where('maxRangeDays', 366)
         ->where('group', 'room_type')
         ->where('sort', '-revenue')
-        ->has('groupOptions', 7)
+        ->has('groupOptions', 8)
         ->has('layout.columns', 6));
 });
 
@@ -206,5 +207,20 @@ test('grouped by market segment, bookings without one share a row', function () 
         ->where('rows.data', fn ($rows) => bookingPerformanceRows($rows) === [
             'Leisure' => [1, 2, '200.00', '100.00', 15],
             'No market segment' => [1, 1, '100.00', '100.00', 14],
+        ]));
+});
+
+test('grouped by company, bookings without one share a row', function () {
+    [$user, $property] = reportSetup();
+    $roomType = RoomType::factory()->for($property)->create();
+    $borneoTours = Company::factory()->for($property)->create(['name' => 'Borneo Tours']);
+
+    bookingPerformanceUnit(bookingPerformanceReservation($property, '2026-10-05 04:00:00', attributes: ['company_id' => $borneoTours->id]), $roomType, '2026-10-20', '2026-10-22');
+    bookingPerformanceUnit(bookingPerformanceReservation($property, '2026-10-06 04:00:00'), $roomType, '2026-10-20', '2026-10-21');
+
+    $this->actingAs($user)->get(bookingPerformanceUrl($property, '?from=2026-10-01&to=2026-10-10&group=company'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => bookingPerformanceRows($rows) === [
+            'Borneo Tours' => [1, 2, '200.00', '100.00', 15],
+            'No company' => [1, 1, '100.00', '100.00', 14],
         ]));
 });

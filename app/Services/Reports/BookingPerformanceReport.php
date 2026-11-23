@@ -116,7 +116,7 @@ class BookingPerformanceReport implements HasTotals, Report
      * One row per overnight unit of the bookings made in the dates, with its room nights and room revenue. The dates
      * are turned into the stored (app time zone) bounds, so the `created_at` index is used.
      *
-     * @return Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}>
+     * @return Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, company_id: int|null, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}>
      */
     private function units(Property $property, ReportFilters $filters, ReportGroup $grouping): Collection
     {
@@ -131,7 +131,7 @@ class BookingPerformanceReport implements HasTotals, Report
 
         $bookedOn = '((reservations.created_at AT TIME ZONE ?) AT TIME ZONE ?)::date';
 
-        /** @var Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}> */
+        /** @var Collection<int, object{reservation_id: int, room_type_id: int, rate_plan_id: int|null, status: string, booking_source_id: int, sales_person_id: int|null, market_segment_id: int|null, company_id: int|null, booked_on: string, lead_days: int, is_walk_in: bool, nights: int, amount: string}> */
         return DB::table('reservation_units')
             ->join('reservations', 'reservations.id', '=', 'reservation_units.reservation_id')
             ->join('booking_sources', 'booking_sources.id', '=', 'reservations.booking_source_id')
@@ -143,7 +143,7 @@ class BookingPerformanceReport implements HasTotals, Report
             ->where('reservations.created_at', '<', $end->toDateTimeString())
             ->when($grouping !== ReportGroup::Status, fn ($query) => $query->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory())))
             ->selectRaw(
-                "reservation_units.reservation_id, reservation_units.room_type_id, reservation_units.rate_plan_id, reservation_units.status, reservations.booking_source_id, reservations.sales_person_id, reservations.market_segment_id, {$bookedOn} as booked_on, GREATEST(0, reservation_units.arrival_date - {$bookedOn}) as lead_days, (booking_sources.type = ?) as is_walk_in, COALESCE(nights.nights, 0) as nights, COALESCE(nights.amount, 0) as amount",
+                "reservation_units.reservation_id, reservation_units.room_type_id, reservation_units.rate_plan_id, reservation_units.status, reservations.booking_source_id, reservations.sales_person_id, reservations.market_segment_id, reservations.company_id, {$bookedOn} as booked_on, GREATEST(0, reservation_units.arrival_date - {$bookedOn}) as lead_days, (booking_sources.type = ?) as is_walk_in, COALESCE(nights.nights, 0) as nights, COALESCE(nights.amount, 0) as amount",
                 [$appTimeZone, $timeZone, $appTimeZone, $timeZone, BookingSourceType::WalkIn->value],
             )
             ->get();

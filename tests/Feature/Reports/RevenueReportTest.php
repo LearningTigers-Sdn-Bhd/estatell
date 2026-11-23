@@ -18,7 +18,7 @@ beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
 
-function revenueLine(Property $property, TransactionCode $code, string $amount, string $date, TransactionKind $kind = TransactionKind::Charge, bool $migrated = false): FolioLine
+function revenueLine(Property $property, TransactionCode $code, string $amount, string $date, TransactionKind $kind = TransactionKind::Charge, bool $migrated = false, int $quantity = 1, ?FolioLine $reversalOf = null): FolioLine
 {
     $folio = Folio::factory()->create(['property_id' => $property->id]);
 
@@ -30,6 +30,8 @@ function revenueLine(Property $property, TransactionCode $code, string $amount, 
         'unit_amount' => $amount,
         'posting_date' => $date,
         'migrated' => $migrated,
+        'quantity' => $quantity,
+        'reversal_of_id' => $reversalOf?->id,
     ]);
 }
 
@@ -72,7 +74,7 @@ test('the page needs reports.view and is scoped to the property', function () {
         ->where('group', 'day')
         ->where('sort', 'period')
         ->has('groupOptions', 2)
-        ->has('layout.columns', 5)
+        ->has('layout.columns', 6)
         ->where('rows.meta.total', 3));
 });
 
@@ -89,6 +91,21 @@ test('days are listed by date and code, live for the open date, without payments
         ])
         ->where('totals.figures.lines', 4)
         ->where('totals.figures.amount', '400.00'));
+});
+
+test('quantity sold adds up the charged quantity, takes reversals back and leaves adjustments and tax out', function () {
+    [$user, $property] = reportSetup();
+    $tour = TransactionCode::factory()->for($property)->create(['code' => 'TOUR', 'name' => 'River cruise']);
+    $cruise = revenueLine($property, $tour, '120.00', '2026-10-09', quantity: 2);
+    revenueLine($property, $tour, '240.00', '2026-10-09', quantity: 4);
+    revenueLine($property, $tour, '-120.00', '2026-10-09', quantity: 2, reversalOf: $cruise);
+    revenueLine($property, $tour, '-20.00', '2026-10-09', TransactionKind::Adjustment);
+    revenueLine($property, $tour, '6.00', '2026-10-09', TransactionKind::Tax);
+
+    $this->actingAs($user)->get(revenueUrl($property, '?from=2026-10-09&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data.0.lines', 5)
+        ->where('rows.data.0.quantity', 4)
+        ->where('totals.figures.quantity', 4));
 });
 
 test('a month groups its days by code and keeps only the dates in the range', function () {
@@ -143,7 +160,7 @@ test('the PDF and CSV keep the group and end with the total row of the selected 
 
     expect($rows)->toHaveCount(4)
         ->and($rows[1][0])->toBe('2026-09')
-        ->and($rows[3])->toBe(['Total', '', '', '4', '470']);
+        ->and($rows[3])->toBe(['Total', '', '', '4', '4', '470']);
 });
 
 test('hidden columns stay hidden in the totals', function () {
@@ -151,7 +168,7 @@ test('hidden columns stay hidden in the totals', function () {
     revenueLines($property);
     $layout = ReportLayout::factory()->create(['property_id' => $property->id, 'report_key' => 'revenue']);
 
-    foreach ([['amount', true], ['lines', false], ['period', true], ['code', false], ['description', false]] as $position => [$key, $visible]) {
+    foreach ([['amount', true], ['lines', false], ['quantity', false], ['period', true], ['code', false], ['description', false]] as $position => [$key, $visible]) {
         ReportLayoutColumn::factory()->create(['report_layout_id' => $layout->id, 'column_key' => $key, 'position' => $position, 'is_visible' => $visible]);
     }
 

@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import {
     Activity,
     Bed,
+    Building2,
     CalendarDays,
     ChartPie,
     CircleDot,
@@ -92,6 +93,7 @@ const icons: Partial<Record<App.Enums.ReportGroup, LucideIcon>> = {
     rate_plan: Tag,
     sales_person: UserRound,
     market_segment: ChartPie,
+    company: Building2,
     status: CircleDot,
     day: CalendarDays,
 };

@@ -224,7 +224,7 @@ The Payments report inside the tab, with `group=staff` as the default. It uses t
 Booking performance
 Bookings made in these dates, with their room nights, room revenue, ADR and lead time.
 
-[🛏 Room type] [🌐 Source] [🏷 Rate plan] [👤 Sales person] [◔ Market segment] [◉ Status] [📅 Booking date]
+[🛏 Room type] [🌐 Source] [🏷 Rate plan] [👤 Sales person] [◔ Market segment] [🏢 Company] [◉ Status] [📅 Booking date]
 [ 1 Oct 2026 – 31 Oct 2026 ▾ ]                 [⚙ Layout]  [ Export ▾ ]
 ┌──────────────────┬──────────┬─────────────┬─────────────┬──────────┬──────────┐
 │ Room type        │ Bookings │ Room nights │ Revenue     │ ADR      │ Lead time│
@@ -236,10 +236,10 @@ Bookings made in these dates, with their room nights, room revenue, ADR and lead
 └──────────────────┴──────────┴─────────────┴─────────────┴──────────┴──────────┘
 ```
 
-- **Group tabs** (`group`): Room type (the default), Source, Rate plan, Sales person (see [Sales person](../12-reservations/12-sales-person.md)), Market segment (see [Market segments](../12-reservations/15-market-segments.md)), Status, Booking date (`ReportGroup::Day`). They are `TabLinks`, as on the Daily report, with the report screen embedded below them. Each tab is a link that keeps the dates and opens with its own default sort. The breadcrumb shows the open tab with the switch menu. The screen heading of the first column is the tab name. The PDF and spreadsheet heading stays **Group**, from the layout, and the PDF prints "By room type" and so on under the title. One layout serves every tab. Wastays also grouped by fund collector and currency. They are left out until the channel work needs them.
+- **Group tabs** (`group`): Room type (the default), Source, Rate plan, Sales person (see [Sales person](../12-reservations/12-sales-person.md)), Market segment (see [Market segments](../12-reservations/15-market-segments.md)), Company (the company the booking is billed to), Status, Booking date (`ReportGroup::Day`). They are `TabLinks`, as on the Daily report, with the report screen embedded below them. Each tab is a link that keeps the dates and opens with its own default sort. The breadcrumb shows the open tab with the switch menu. The screen heading of the first column is the tab name. The PDF and spreadsheet heading stays **Group**, from the layout, and the PDF prints "By room type" and so on under the title. One layout serves every tab. Wastays also grouped by fund collector and currency. They are left out until the channel work needs them.
 - **Booking date** is `reservations.created_at` read in the property time zone. A channel booking's date is the day estatell received it, which is the OTA booking day in practice.
 - **Only overnight units count.** Day use units have no room nights.
-- **Room type, rate plan and status count per unit.** A booking with two room types counts in both rows. Room nights and Revenue come from that row's units only. A unit with no rate plan goes in **No rate plan**, a booking with no sales person in **No sales person**, and one with no market segment in **No market segment**.
+- **Room type, rate plan and status count per unit.** A booking with two room types counts in both rows. Room nights and Revenue come from that row's units only. A unit with no rate plan goes in **No rate plan**, a booking with no sales person in **No sales person**, one with no market segment in **No market segment**, and one with no company in **No company**.
 - **Revenue** is the room revenue booked: the sum of `unit_nights.amount`. It leaves out add-ons and is not read from the folio, so it matches the dashboard ADR for the same stays.
 - **Cancelled and no-show units count only when grouped by Status.** Every other grouping counts Confirmed, Checked in and Checked out units.
 - The total row counts distinct bookings, so it can be less than the sum of the rows. ADR is worked out again from the totals.

@@ -195,7 +195,7 @@ enum ReportKey: string
         return match ($this) {
             self::Revenue, self::Tax, self::DailyRevenue => [ReportGroup::Day, ReportGroup::Month],
             self::Payments => [ReportGroup::Method, ReportGroup::Staff],
-            self::BookingPerformance => [ReportGroup::RoomType, ReportGroup::Source, ReportGroup::RatePlan, ReportGroup::SalesPerson, ReportGroup::MarketSegment, ReportGroup::Status, ReportGroup::Day],
+            self::BookingPerformance => [ReportGroup::RoomType, ReportGroup::Source, ReportGroup::RatePlan, ReportGroup::SalesPerson, ReportGroup::MarketSegment, ReportGroup::Company, ReportGroup::Status, ReportGroup::Day],
             default => [],
         };
     }
@@ -585,6 +585,7 @@ enum ReportKey: string
                 new ReportColumn('code', __('Code'), ColumnAlign::Left, true),
                 new ReportColumn('description', __('Description'), ColumnAlign::Left, true),
                 new ReportColumn('lines', __('Lines'), ColumnAlign::Right, true),
+                new ReportColumn('quantity', __('Quantity sold'), ColumnAlign::Right, true),
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true, money: true),
             ],
             self::Payments => [

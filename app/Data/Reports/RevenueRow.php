@@ -21,6 +21,7 @@ class RevenueRow extends Data implements ReportRow
         public string $code,
         public string $description,
         public int $lines,
+        public int $quantity,
         public string $amount,
         public string $from,
         public string $to,
@@ -37,6 +38,7 @@ class RevenueRow extends Data implements ReportRow
             'code' => $this->code,
             'description' => $this->description,
             'lines' => (string) $this->lines,
+            'quantity' => (string) $this->quantity,
             'amount' => number_format((float) $this->amount, 2),
         ];
     }
@@ -51,6 +53,7 @@ class RevenueRow extends Data implements ReportRow
             'code' => $this->code,
             'description' => $this->description,
             'lines' => $this->lines,
+            'quantity' => $this->quantity,
             'amount' => round((float) $this->amount, 2),
         ];
     }

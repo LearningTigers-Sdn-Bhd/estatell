@@ -38,13 +38,14 @@ class DailyRevenueQuery
             ->groupBy('folio_lines.posting_date', 'folio_lines.transaction_code_id')
             ->orderBy('folio_lines.posting_date')
             ->orderBy('folio_lines.transaction_code_id')
-            ->selectRaw('folio_lines.posting_date as date, folio_lines.transaction_code_id, SUM(folio_lines.amount) as amount, COUNT(*) as line_count')
+            ->selectRaw('folio_lines.posting_date as date, folio_lines.transaction_code_id, SUM(folio_lines.amount) as amount, COUNT(*) as line_count, SUM(CASE WHEN folio_lines.kind = ? THEN (CASE WHEN folio_lines.reversal_of_id IS NULL THEN folio_lines.quantity ELSE -folio_lines.quantity END) ELSE 0 END) as quantity', [TransactionKind::Charge->value])
             ->get()
             ->map(fn (FolioLine $row): DailyRevenueRow => new DailyRevenueRow(
                 CarbonImmutable::parse((string) $row->getAttribute('date')),
                 (int) $row->getAttribute('transaction_code_id'),
                 Money::of((string) $row->getAttribute('amount'), $currency),
                 (int) $row->getAttribute('line_count'),
+                (int) $row->getAttribute('quantity'),
             ))
             ->values();
     }
