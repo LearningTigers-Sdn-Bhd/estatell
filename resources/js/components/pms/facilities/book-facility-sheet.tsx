@@ -1,14 +1,22 @@
 import { useForm, useHttp } from '@inertiajs/react';
-import { TriangleAlert } from 'lucide-react';
+import { Building2, TriangleAlert, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ChoiceCards } from '@/components/pms/choice-cards';
+import { CompanySelect } from '@/components/pms/company-select';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { GuestPicker } from '@/components/pms/guest-picker';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
+import {
+    KEEP_OPTIONS,
+    useFormOptions,
+} from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
     Field,
     FieldDescription,
@@ -17,22 +25,46 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { quote as quoteRoute, store, update } from '@/routes/facility-bookings';
+import { store as storeFolio } from '@/routes/facility-bookings/folios';
 
 type Facility = App.Data.Facilities.FacilityOptionData;
 type Booking = App.Data.Facilities.FacilityBookingRowData;
 type Quote = App.Data.Facilities.FacilityBookingQuoteData;
+type Guest = App.Data.Guests.GuestOptionData;
+type Company = App.Data.CityLedger.CompanyOptionData;
+
+/** Who the booking belongs to. An event charges its own folio; a reservation picks one in Charge to. */
+export type BookingOwner =
+    | {
+          type: 'event';
+          id: number;
+          /** The event's first and last day, `Y-m-d`. Bookings must fall inside them. */
+          startsOn: string;
+          endsOn: string;
+          /** What Charge to shows, read only: the event folio. */
+          chargeTo: string;
+      }
+    | {
+          type: 'reservation';
+          id: number;
+          /** The business date when it is inside the stay, else the arrival date. Any date is allowed. */
+          defaultDate: string;
+          chargeToOptions: App.Data.Facilities.ChargeToOptionData[];
+          /** The routed folio of each facility, by facility id. */
+          defaultChargeTo: Record<string, string | null>;
+          /** Shows **+ New third-party folio…** (needs `folio.transfer`). */
+          canCreateFolio: boolean;
+          canViewCompany: boolean;
+          companies?: Company[];
+      };
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    eventId: number;
-    /** The event's first and last day, `Y-m-d`. Bookings must fall inside them. */
-    startsOn: string;
-    endsOn: string;
-    /** What Charge to shows, read only for an event: its folio. */
-    chargeTo: string;
+    owner: BookingOwner;
     facilities: Facility[];
     /** The booking to edit. Without it the Sheet books a new one. */
     booking?: Booking;
@@ -47,7 +79,11 @@ type FormData = {
     quantity: string;
     unit_amount: string;
     notes: string;
+    charge_to: string;
 };
+
+/** The Charge to choice that swaps the Sheet to the payer step. */
+const NEW_FOLIO = 'new';
 
 const sessionKey = (startsAt: string, endsAt: string) =>
     `${startsAt}-${endsAt}`;
@@ -55,24 +91,27 @@ const sessionKey = (startsAt: string, endsAt: string) =>
 function BookFacilityForm({
     open,
     onOpenChange,
-    eventId,
-    startsOn,
-    endsOn,
-    chargeTo,
+    owner,
     facilities,
     booking,
     currency,
 }: Props) {
+    const isReservation = owner.type === 'reservation';
     const form = useForm<FormData>({
         facility_id: booking ? String(booking.facilityId) : '',
-        booking_date: booking?.bookingDate ?? startsOn,
+        booking_date:
+            booking?.bookingDate ??
+            (owner.type === 'event' ? owner.startsOn : owner.defaultDate),
         starts_at: booking?.startsAt ?? '',
         ends_at: booking?.endsAt ?? '',
         quantity: booking ? String(booking.quantity) : '1',
         unit_amount: booking?.unitAmount ?? '',
         notes: booking?.notes ?? '',
+        charge_to: booking?.chargeTo ?? '',
     });
     const { data, setData } = form;
+    const [step, setStep] = useState<'booking' | 'payer'>('booking');
+    const [chargeToPicked, setChargeToPicked] = useState(booking !== undefined);
     const errors = form.errors as Partial<Record<string, string>>;
     const facility = facilities.find(
         (one) => String(one.id) === data.facility_id,
@@ -97,7 +136,9 @@ function BookFacilityForm({
         let current = true;
         const timer = window.setTimeout(() => {
             http.transform(() => ({
-                event_id: eventId,
+                ...(isReservation
+                    ? { reservation_id: owner.id, charge_to: data.charge_to }
+                    : { event_id: owner.id }),
                 facility_id: data.facility_id,
                 booking_id: booking?.id ?? null,
                 booking_date: data.booking_date,
@@ -125,6 +166,7 @@ function BookFacilityForm({
         data.ends_at,
         data.quantity,
         data.unit_amount,
+        data.charge_to,
     ]);
 
     const facilityOptions: EnumOption[] = facilities.map((one) => ({
@@ -160,7 +202,94 @@ function BookFacilityForm({
             starts_at: '',
             ends_at: '',
             unit_amount: picked?.listPrice ?? '',
+            charge_to:
+                owner.type === 'reservation' && !chargeToPicked
+                    ? (owner.defaultChargeTo[value] ??
+                      owner.chargeToOptions[0]?.value ??
+                      '')
+                    : current.charge_to,
         }));
+    };
+
+    const chargeToOptions: EnumOption[] =
+        owner.type === 'reservation'
+            ? [
+                  ...owner.chargeToOptions,
+                  ...(booking?.chargeTo &&
+                  !owner.chargeToOptions.some(
+                      (option) => option.value === booking.chargeTo,
+                  )
+                      ? [
+                            {
+                                value: booking.chargeTo,
+                                label: booking.chargeToLabel ?? 'Folio',
+                                disabled: true,
+                            },
+                        ]
+                      : []),
+                  ...(owner.canCreateFolio
+                      ? [
+                            {
+                                value: NEW_FOLIO,
+                                label: '+ New third-party folio…',
+                            },
+                        ]
+                      : []),
+              ]
+            : [];
+
+    const pickChargeTo = (value: string) => {
+        if (value === NEW_FOLIO) {
+            setStep('payer');
+
+            return;
+        }
+
+        setChargeToPicked(true);
+        setData('charge_to', value);
+    };
+
+    const payerForm = useForm<{
+        payerType: string;
+        payer: Guest | null;
+        company: string;
+    }>({ payerType: 'guest', payer: null, company: '' });
+    const payerErrors = payerForm.errors as Partial<Record<string, string>>;
+    const payerIsCompany = payerForm.data.payerType === 'company';
+
+    useFormOptions(
+        open &&
+            step === 'payer' &&
+            owner.type === 'reservation' &&
+            owner.canViewCompany,
+        owner.type === 'reservation' && owner.companies !== undefined,
+        'companies',
+    );
+
+    const createFolio = () => {
+        payerForm.transform((values) =>
+            values.payerType === 'company'
+                ? { payer_company_id: values.company || null }
+                : { payer_guest_id: values.payer?.id ?? null },
+        );
+        payerForm.post(storeFolio.url({ reservation: owner.id }), {
+            preserveScroll: true,
+            preserveState: true,
+            except: KEEP_OPTIONS,
+            onSuccess: (page) => {
+                const created = (
+                    page.flash as { chargeToFolioCreated?: string } | undefined
+                )?.chargeToFolioCreated;
+
+                if (created) {
+                    setChargeToPicked(true);
+                    setData('charge_to', created);
+                }
+
+                payerForm.reset();
+                setStep('booking');
+            },
+        });
     };
 
     const pickSession = (value: string) => {
@@ -182,7 +311,13 @@ function BookFacilityForm({
         form.transform((values) => ({
             ...(booking
                 ? {}
-                : { event_id: eventId, facility_id: values.facility_id }),
+                : {
+                      ...(isReservation
+                          ? { reservation_id: owner.id }
+                          : { event_id: owner.id }),
+                      facility_id: values.facility_id,
+                  }),
+            ...(isReservation ? { charge_to: values.charge_to } : {}),
             booking_date: values.booking_date,
             starts_at: values.starts_at,
             ends_at: values.ends_at,
@@ -203,6 +338,110 @@ function BookFacilityForm({
         }
     };
 
+    if (step === 'payer' && owner.type === 'reservation') {
+        return (
+            <FormOverlay
+                variant="sheet"
+                open={open}
+                onOpenChange={onOpenChange}
+                title="New third-party folio"
+                description="A folio with its own payer, for example a company that pays the hall. It is picked in Charge to."
+                errors={payerErrors}
+                dirty
+                discardTitle="Discard this booking?"
+                onSubmit={createFolio}
+                submitLabel="Create folio"
+                processing={payerForm.processing}
+                footer={
+                    <>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                payerForm.clearErrors();
+                                setStep('booking');
+                            }}
+                        >
+                            Back
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={
+                                payerForm.processing ||
+                                (payerIsCompany
+                                    ? payerForm.data.company === ''
+                                    : payerForm.data.payer === null)
+                            }
+                            focusableWhenDisabled
+                        >
+                            {payerForm.processing && (
+                                <Spinner data-icon="inline-start" />
+                            )}
+                            Create folio
+                        </Button>
+                    </>
+                }
+            >
+                {owner.canViewCompany && (
+                    <ChoiceCards
+                        id="booking-payer-type"
+                        legend="Payer"
+                        choices={[
+                            {
+                                value: 'guest',
+                                label: 'Guest',
+                                description: 'A guest of the property.',
+                                icon: User,
+                            },
+                            {
+                                value: 'company',
+                                label: 'Company',
+                                description: 'Settled to the city ledger.',
+                                icon: Building2,
+                            },
+                        ]}
+                        value={payerForm.data.payerType}
+                        onValueChange={(value) =>
+                            payerForm.setData('payerType', value)
+                        }
+                    />
+                )}
+                {payerIsCompany ? (
+                    <Field data-invalid={!!payerErrors.payer_company_id}>
+                        <FieldLabel htmlFor="booking-payer-company">
+                            Company
+                        </FieldLabel>
+                        <CompanySelect
+                            id="booking-payer-company"
+                            value={payerForm.data.company}
+                            onValueChange={(value) =>
+                                payerForm.setData('company', value)
+                            }
+                            companies={owner.companies ?? []}
+                            invalid={!!payerErrors.payer_company_id}
+                        />
+                        <FieldError>{payerErrors.payer_company_id}</FieldError>
+                    </Field>
+                ) : (
+                    <Field data-invalid={!!payerErrors.payer_guest_id}>
+                        <FieldLabel htmlFor="booking-payer-guest">
+                            Guest
+                        </FieldLabel>
+                        <GuestPicker
+                            id="booking-payer-guest"
+                            value={payerForm.data.payer}
+                            onChange={(guest) =>
+                                payerForm.setData('payer', guest)
+                            }
+                            invalid={!!payerErrors.payer_guest_id}
+                        />
+                        <FieldError>{payerErrors.payer_guest_id}</FieldError>
+                    </Field>
+                )}
+            </FormOverlay>
+        );
+    }
+
     return (
         <FormOverlay
             variant="sheet"
@@ -212,7 +451,7 @@ function BookFacilityForm({
             description={
                 booking
                     ? undefined
-                    : 'Book a hall, equipment or an activity for this event.'
+                    : `Book a hall, equipment or an activity for this ${isReservation ? 'reservation' : 'event'}.`
             }
             errors={errors}
             dirty={form.isDirty}
@@ -225,6 +464,7 @@ function BookFacilityForm({
                 data.starts_at === '' ||
                 data.ends_at === '' ||
                 data.quantity === '' ||
+                (isReservation && data.charge_to === '') ||
                 (quote?.refusal ?? null) !== null
             }
         >
@@ -250,8 +490,10 @@ function BookFacilityForm({
                         id="booking-date"
                         value={data.booking_date}
                         onChange={(value) => setData('booking_date', value)}
-                        min={startsOn}
-                        max={endsOn}
+                        min={
+                            owner.type === 'event' ? owner.startsOn : undefined
+                        }
+                        max={owner.type === 'event' ? owner.endsOn : undefined}
                         placeholder="e.g. 12/12/2026"
                         aria-invalid={!!errors.booking_date}
                     />
@@ -365,9 +607,29 @@ function BookFacilityForm({
                     </Field>
                 )}
 
-                <Field>
-                    <FieldLabel>Charge to</FieldLabel>
-                    <p className="text-sm">{chargeTo}</p>
+                <Field data-invalid={!!errors.charge_to}>
+                    {owner.type === 'reservation' ? (
+                        <>
+                            <FieldLabel htmlFor="booking-charge-to">
+                                Charge to
+                            </FieldLabel>
+                            <EnumSelect
+                                id="booking-charge-to"
+                                name="charge_to"
+                                options={chargeToOptions}
+                                value={data.charge_to}
+                                onValueChange={pickChargeTo}
+                                placeholder="Choose a folio"
+                                aria-invalid={!!errors.charge_to}
+                            />
+                            <FieldError>{errors.charge_to}</FieldError>
+                        </>
+                    ) : (
+                        <>
+                            <FieldLabel>Charge to</FieldLabel>
+                            <p className="text-sm">{owner.chargeTo}</p>
+                        </>
+                    )}
                     {chargedByHand && (
                         <FieldDescription>
                             Charged by hand: post the charge on the folio
@@ -432,7 +694,9 @@ function BookFacilityForm({
 }
 
 /**
- * Book facility and Edit booking on an event. The server sends the price line, the clash refusal, the Tentative hold
+ * Book facility and Edit booking on an event or a reservation. A reservation picks the folio in Charge to, and
+ * **+ New third-party folio…** swaps the Sheet body to a payer step that creates the folio and comes back with it
+ * picked (one overlay only). The server sends the price line, the clash refusal, the Tentative hold
  * warning and the places left in each session; the browser calculates none of them.
  * See docs/33-facilities/04-facility-bookings.md#book-facility-sheet.
  */

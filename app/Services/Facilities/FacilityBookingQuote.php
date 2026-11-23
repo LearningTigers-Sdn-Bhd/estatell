@@ -11,6 +11,7 @@ use App\Models\Event;
 use App\Models\Facility;
 use App\Models\FacilityBooking;
 use App\Models\FacilitySession;
+use App\Models\Reservation;
 use App\Services\Catalogues\CalculatedTax;
 use App\Services\Catalogues\TaxCalculator;
 use Brick\Money\Money;
@@ -27,6 +28,7 @@ class FacilityBookingQuote
         private FacilityBookingChecks $checks,
         private FacilityBookingRefusals $refusals,
         private TaxCalculator $taxCalculator,
+        private ReservationChargeTo $chargeTo,
     ) {}
 
     /**
@@ -36,6 +38,45 @@ class FacilityBookingQuote
      * @param  iterable<FacilityBooking>  $pending
      */
     public function forEvent(Event $event, Facility $facility, FacilityBookingInputData $data, ?FacilityBooking $booking = null, iterable $pending = []): FacilityBookingQuoteData
+    {
+        $event->loadMissing('payerGuest');
+
+        return $this->build(
+            $facility,
+            $data,
+            $booking,
+            fn (): ?string => $this->checks->forEvent($event, $facility, $data, $booking?->id, $pending),
+            $event->id,
+            $event->payerGuest?->nationality_code,
+            $pending,
+        );
+    }
+
+    /**
+     * A reservation's booking. Taxes use the nationality of the payer of the Charge to folio, else of the booker.
+     * Charge to itself is checked when saving.
+     */
+    public function forReservation(Reservation $reservation, Facility $facility, FacilityBookingInputData $data, ?FacilityBooking $booking = null): FacilityBookingQuoteData
+    {
+        $folio = $this->chargeTo->resolve($reservation, $data->chargeTo)['folio'] ?? null;
+        $folio?->loadMissing('payerGuest');
+        $reservation->loadMissing('booker');
+
+        return $this->build(
+            $facility,
+            $data,
+            $booking,
+            fn (): ?string => $this->checks->forReservation($reservation, $facility, $data, $booking?->id),
+            null,
+            $folio->payerGuest->nationality_code ?? $reservation->booker?->nationality_code,
+        );
+    }
+
+    /**
+     * @param  callable(): ?string  $refusalFor
+     * @param  iterable<FacilityBooking>  $pending
+     */
+    private function build(Facility $facility, FacilityBookingInputData $data, ?FacilityBooking $booking, callable $refusalFor, ?int $exceptEventId, ?string $nationality, iterable $pending = []): FacilityBookingQuoteData
     {
         $facility->loadMissing(['chargeItem.transactionCode', 'sessions' => fn ($query) => $query->ordered()]);
         $sessions = array_values($facility->sessions
@@ -50,8 +91,8 @@ class FacilityBookingQuote
             return new FacilityBookingQuoteData(null, [], null, null, null, $sessions);
         }
 
-        $refusal = $this->checks->forEvent($event, $facility, $data, $booking?->id, $pending);
-        $holds = $this->availability->tentativeHolds($facility, $data->bookingDate, $data->startsAt, $data->endsAt, $booking?->id, $event->id);
+        $refusal = $refusalFor();
+        $holds = $this->availability->tentativeHolds($facility, $data->bookingDate, $data->startsAt, $data->endsAt, $booking?->id, $exceptEventId);
         $warning = $holds->isEmpty() ? null : __(':facility is held :from–:to (:owner, Tentative).', [
             'facility' => $facility->name,
             'from' => substr($holds->first()->starts_at, 0, 5),
@@ -70,8 +111,7 @@ class FacilityBookingQuote
         $property = $facility->property()->with('settings')->firstOrFail();
         $units = $facility->rate_basis->quantity($data->startsAt, $data->endsAt, $data->quantity);
         $amount = Money::of($unitAmount, $property->settings->currency->getCurrencyCode())->multipliedBy($units);
-        $event->loadMissing('payerGuest');
-        $tax = $this->taxCalculator->calculate($property, $facility->chargeItem->transactionCode, $amount, (string) $units, $event->payerGuest?->nationality_code);
+        $tax = $this->taxCalculator->calculate($property, $facility->chargeItem->transactionCode, $amount, (string) $units, $nationality);
 
         if (! $tax->isCalculated()) {
             return new FacilityBookingQuoteData((string) $amount->getAmount(), [], null, $refusalMessage, $warning, $sessions);

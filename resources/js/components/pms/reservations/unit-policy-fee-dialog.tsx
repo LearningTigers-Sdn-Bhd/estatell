@@ -275,6 +275,15 @@ function UnitPolicyFeeForm({
                             </Field>
                         </FieldLabel>
                     )}
+                    {preview.facilityBookingsToCancel > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            {preview.facilityBookingsToCancel} facility booking
+                            {preview.facilityBookingsToCancel === 1
+                                ? ''
+                                : 's'}{' '}
+                            will also be cancelled.
+                        </p>
+                    )}
                     {Number(onlineRefund) > 0 && (
                         <div className="flex justify-between gap-4 text-sm">
                             <span className="text-muted-foreground">

@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Book facility and Edit booking. The `can:facilities.book` route middleware authorizes it. A new booking names its
- * event and facility; an edit keeps both. `BookFacility` and `UpdateFacilityBooking` run the state checks.
+ * event or reservation, and its facility; an edit keeps them. A reservation's booking sends Charge to (`charge_to`). `BookFacility` and `UpdateFacilityBooking` run the state checks.
  * See docs/33-facilities/04-facility-bookings.md#book-facility-sheet.
  */
 class FacilityBookingRequest extends FormRequest
@@ -30,7 +30,8 @@ class FacilityBookingRequest extends FormRequest
         $isNew = $this->route('facilityBooking') === null;
 
         return [
-            'event_id' => [Rule::excludeIf(! $isNew), 'required', 'integer', Rule::exists('events', 'id')->where('property_id', $propertyId)],
+            'event_id' => [Rule::excludeIf(! $isNew), 'required_without:reservation_id', 'prohibits:reservation_id', 'nullable', 'integer', Rule::exists('events', 'id')->where('property_id', $propertyId)],
+            'reservation_id' => [Rule::excludeIf(! $isNew), 'required_without:event_id', 'nullable', 'integer', Rule::exists('reservations', 'id')->where('property_id', $propertyId)],
             'facility_id' => [Rule::excludeIf(! $isNew), 'required', 'integer', Rule::exists('facilities', 'id')->where('property_id', $propertyId)],
             'booking_date' => ['required', 'date_format:Y-m-d'],
             'starts_at' => ['required', 'date_format:H:i'],
@@ -38,6 +39,7 @@ class FacilityBookingRequest extends FormRequest
             'quantity' => ['required', 'integer', 'min:1', 'max:9999'],
             'unit_amount' => ['nullable', 'decimal:0,2', 'min:0', 'max:9999999999'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'charge_to' => [Rule::requiredIf($isNew && $this->filled('reservation_id')), 'nullable', 'string', 'regex:/^[fu]\d+$/'],
         ];
     }
 
@@ -50,6 +52,7 @@ class FacilityBookingRequest extends FormRequest
             'facility_id.required' => __('Choose a facility.'),
             'starts_at.required' => __('Enter the start time, or choose a session.'),
             'ends_at.after' => __('The end time must be after the start time. A booking cannot cross midnight.'),
+            'charge_to.required' => __('Choose the folio to charge.'),
         ];
     }
 
@@ -63,6 +66,7 @@ class FacilityBookingRequest extends FormRequest
             quantity: $this->integer('quantity'),
             unitAmount: $this->filled('unit_amount') ? $this->string('unit_amount')->toString() : null,
             notes: $this->filled('notes') ? $this->string('notes')->toString() : null,
+            chargeTo: $this->filled('charge_to') ? $this->string('charge_to')->toString() : null,
         );
     }
 }

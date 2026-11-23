@@ -1614,6 +1614,10 @@ balance: string,
 };
 }
 namespace Facilities {
+export type ChargeToOptionData = {
+value: string,
+label: string,
+};
 export type EventLinesQuoteData = {
 lines: App.Data.Facilities.FacilityBookingQuoteData[],
 amount: string,
@@ -1628,6 +1632,7 @@ endsAt: string,
 quantity: number,
 unitAmount: string | null,
 notes: string | null,
+chargeTo: string | null,
 };
 export type FacilityBookingQuoteData = {
 amount: string | null,
@@ -1653,6 +1658,8 @@ notes: string | null,
 status: App.Data.Shared.BadgeData,
 canEdit: boolean,
 canCancel: boolean,
+chargeTo: string | null,
+chargeToLabel: string | null,
 };
 export type FacilityData = {
 id: number,
@@ -4636,6 +4643,8 @@ by: string,
 at: string,
 } | null,
 error: string | null,
+facilityBookings: number,
+liveUnitIds: number[],
 };
 export type ChargeCodeOptionData = {
 id: number,
@@ -5348,6 +5357,7 @@ unpostedAddOns: number,
 error: string | null,
 onlineRefund: string,
 onlineRefundWaived: string,
+facilityBookingsToCancel: number,
 };
 export type UnitLateCheckOutPreviewData = {
 fee: string | null,

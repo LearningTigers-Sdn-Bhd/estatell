@@ -29,6 +29,10 @@ final class FacilityBookingResult
 
     public const string REFUSAL_BOOKING_CANCELLED = 'facility_booking_cancelled';
 
+    public const string REFUSAL_RESERVATION_NOT_LIVE = 'reservation_not_live';
+
+    public const string REFUSAL_FOLIO_NOT_OF_OWNER = 'folio_not_of_owner';
+
     private function __construct(
         public readonly ?FacilityBooking $booking,
         public readonly ?string $refusal,

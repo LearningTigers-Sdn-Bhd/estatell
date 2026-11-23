@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * The Book facility Sheet's quote. Times may be empty until staff pick them. `booking_id` is the booking being
+ * The Book facility Sheet's quote, for an event or a reservation. Times may be empty until staff pick them. `booking_id` is the booking being
  * edited. The `can:facilities.book` route middleware authorizes it.
  */
 class QuoteFacilityBookingRequest extends FormRequest
@@ -28,7 +28,9 @@ class QuoteFacilityBookingRequest extends FormRequest
         $propertyId = $property instanceof Property ? $property->id : null;
 
         return [
-            'event_id' => ['required', 'integer', Rule::exists('events', 'id')->where('property_id', $propertyId)],
+            'event_id' => ['required_without:reservation_id', 'prohibits:reservation_id', 'nullable', 'integer', Rule::exists('events', 'id')->where('property_id', $propertyId)],
+            'reservation_id' => ['required_without:event_id', 'nullable', 'integer', Rule::exists('reservations', 'id')->where('property_id', $propertyId)],
+            'charge_to' => ['nullable', 'string', 'regex:/^[fu]\d+$/'],
             'facility_id' => ['required', 'integer', Rule::exists('facilities', 'id')->where('property_id', $propertyId)],
             'booking_id' => ['nullable', 'integer', Rule::exists('facility_bookings', 'id')->where('property_id', $propertyId)],
             'booking_date' => ['required', 'date_format:Y-m-d'],
@@ -49,6 +51,7 @@ class QuoteFacilityBookingRequest extends FormRequest
             quantity: $this->integer('quantity'),
             unitAmount: $this->filled('unit_amount') ? $this->string('unit_amount')->toString() : null,
             notes: null,
+            chargeTo: $this->filled('charge_to') ? $this->string('charge_to')->toString() : null,
         );
     }
 }

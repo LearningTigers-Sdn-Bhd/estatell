@@ -5,6 +5,7 @@ namespace App\Actions\Facilities;
 use App\Enums\FacilityBookingStatus;
 use App\Models\Event;
 use App\Models\FacilityBooking;
+use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -12,8 +13,8 @@ class CancelFacilityBooking
 {
     /**
      * Cancel one booking. A Cancelled booking is refused (false), and nothing is written or logged. Logs
-     * `facility_bookings.cancelled` on the event. Reversing a posted charge comes with the night audit item.
-     * See docs/33-facilities/04-facility-bookings.md#actions.
+     * `facility_bookings.cancelled` on its event or reservation. Reversing a posted charge comes with the night audit
+     * item. See docs/33-facilities/04-facility-bookings.md#actions.
      */
     public function __invoke(User $actor, FacilityBooking $booking): bool
     {
@@ -31,7 +32,9 @@ class CancelFacilityBooking
             ])->save();
 
             activity()
-                ->performedOn(Event::query()->findOrFail($current->event_id))
+                ->performedOn($current->event_id !== null
+                    ? Event::query()->findOrFail($current->event_id)
+                    : Reservation::query()->findOrFail($current->reservation_id))
                 ->causedBy($actor)
                 ->event('facility_bookings.cancelled')
                 ->withProperties(['property_id' => $current->property_id, 'facility_booking_ids' => [$current->id]])

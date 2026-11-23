@@ -11,7 +11,9 @@ use Spatie\LaravelData\Data;
 /**
  * One row of an event's Bookings tab, and what the Book facility Sheet needs to edit it. Times are `HH:MM`. `amount`
  * is the price before tax (the unit price times the rate basis quantity), or null when charged by hand. The `can*`
- * flags already combine the status and the user's `facilities.book`.
+ * flags already combine the status and the user's `facilities.book`. A reservation's booking also names its folio:
+ * `chargeTo` is its Charge to value (`f{folio id}`) and `chargeToLabel` the folio's name with its payer. An event's
+ * booking has neither (always the event folio).
  */
 class FacilityBookingRowData extends Data
 {
@@ -31,13 +33,15 @@ class FacilityBookingRowData extends Data
         public BadgeData $status,
         public bool $canEdit,
         public bool $canCancel,
+        public ?string $chargeTo = null,
+        public ?string $chargeToLabel = null,
     ) {}
 
     /**
      * Expects `facility` to be loaded. `$canChange` is false when the user lacks `facilities.book` or the owner takes
      * no bookings.
      */
-    public static function fromModel(FacilityBooking $booking, bool $canChange): self
+    public static function fromModel(FacilityBooking $booking, bool $canChange, ?string $chargeToLabel = null): self
     {
         $facility = $booking->facility;
         $live = $booking->status !== FacilityBookingStatus::Cancelled;
@@ -59,6 +63,8 @@ class FacilityBookingRowData extends Data
             status: BadgeData::fromFacilityBookingStatus($booking->status),
             canEdit: $canChange && $live,
             canCancel: $canChange && $live,
+            chargeTo: $booking->reservation_id === null ? null : 'f'.$booking->folio_id,
+            chargeToLabel: $chargeToLabel,
         );
     }
 }

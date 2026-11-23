@@ -1,9 +1,17 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { BedDouble, CreditCard, History, Receipt, Users } from 'lucide-react';
+import {
+    BedDouble,
+    CreditCard,
+    History,
+    LayoutGrid,
+    Receipt,
+    Users,
+} from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
+import { ReservationFacilitiesTab } from '@/components/pms/facilities/reservation-facilities-tab';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioTab } from '@/components/pms/folio/folio-tab';
 import { SettlePastStayDialog } from '@/components/pms/folio/settle-past-stay-dialog';
@@ -33,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import {
     activity as activityTab,
     addOns as addOnsTab,
+    facilities as facilitiesTab,
     folio as folioTab,
     guests as guestsTab,
     index,
@@ -40,7 +49,7 @@ import {
 } from '@/routes/reservations';
 import { reservationOwner } from '@/components/pms/folio/folio-owner';
 
-type Tab = 'units' | 'guests' | 'add-ons' | 'folio' | 'activity';
+type Tab = 'units' | 'guests' | 'add-ons' | 'facilities' | 'folio' | 'activity';
 
 type Props = {
     reservation: App.Data.Reservations.ReservationData;
@@ -78,6 +87,14 @@ type Props = {
     folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     hasBoats?: boolean;
+    hasFacilities?: boolean;
+    facilityBookings?: App.Data.Facilities.FacilityBookingRowData[];
+    canBookFacility?: boolean;
+    canCreateChargeToFolio?: boolean;
+    facilities?: App.Data.Facilities.FacilityOptionData[];
+    chargeToOptions?: App.Data.Facilities.ChargeToOptionData[];
+    defaultChargeTo?: Record<string, string | null>;
+    facilityDefaultDate?: string;
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
@@ -111,8 +128,11 @@ type Props = {
     >;
 };
 
-/** The tabs of the reservation page, for the tab bar and the breadcrumbs. */
-function reservationTabs(reservationId: number): TabLink[] {
+/** The tabs of the reservation page, for the tab bar and the breadcrumbs. Facilities shows when the feature is on. */
+function reservationTabs(
+    reservationId: number,
+    hasFacilities: boolean,
+): TabLink[] {
     const key = { reservation: reservationId };
 
     return [
@@ -134,6 +154,16 @@ function reservationTabs(reservationId: number): TabLink[] {
             icon: Receipt,
             href: addOnsTab.url(key),
         },
+        ...(hasFacilities
+            ? [
+                  {
+                      value: 'facilities',
+                      label: 'Facilities',
+                      icon: LayoutGrid,
+                      href: facilitiesTab.url(key),
+                  },
+              ]
+            : []),
         {
             value: 'folio',
             label: 'Folio',
@@ -185,6 +215,14 @@ export default function ReservationShow({
     folioDiscounts,
     paymentOptions,
     hasBoats = false,
+    hasFacilities = false,
+    facilityBookings = [],
+    canBookFacility = false,
+    canCreateChargeToFolio = false,
+    facilities = [],
+    chargeToOptions = [],
+    defaultChargeTo = {},
+    facilityDefaultDate = '',
     boatDepartures,
     boatSetup,
     unit = null,
@@ -214,7 +252,7 @@ export default function ReservationShow({
     voucher,
     activity,
 }: Props) {
-    const tabs = reservationTabs(reservation.id);
+    const tabs = reservationTabs(reservation.id, hasFacilities);
 
     const [summaryHidden, toggleSummary] = useSummaryHidden();
     const [guestsView, setGuestsView] = useGuestsView();
@@ -443,6 +481,20 @@ export default function ReservationShow({
                                 canManage={canManage}
                                 currency={currency}
                             />
+                        ) : tab === 'facilities' ? (
+                            <ReservationFacilitiesTab
+                                reservationId={reservation.id}
+                                bookings={facilityBookings}
+                                canBook={canBookFacility}
+                                canCreateFolio={canCreateChargeToFolio}
+                                facilities={facilities}
+                                chargeToOptions={chargeToOptions}
+                                defaultChargeTo={defaultChargeTo}
+                                defaultDate={facilityDefaultDate}
+                                canViewCompany={canViewCompany}
+                                companies={companies}
+                                currency={currency}
+                            />
                         ) : tab === 'folio' ? (
                             <div className="flex flex-col gap-6">
                                 <FolioTab
@@ -552,6 +604,7 @@ export default function ReservationShow({
 ReservationShow.layout = (props: {
     reservation: App.Data.Reservations.ReservationData;
     tab: Tab;
+    hasFacilities?: boolean;
 }) => ({
     variant: 'fixed',
     breadcrumbs: withTabCrumb(
@@ -562,7 +615,7 @@ ReservationShow.layout = (props: {
                 href: show({ reservation: props.reservation.id }),
             },
         ],
-        reservationTabs(props.reservation.id),
+        reservationTabs(props.reservation.id, props.hasFacilities ?? false),
         props.tab,
     ),
 });

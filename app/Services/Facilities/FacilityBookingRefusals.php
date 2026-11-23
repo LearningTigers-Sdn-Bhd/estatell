@@ -49,6 +49,8 @@ class FacilityBookingRefusals
             FacilityBookingResult::REFUSAL_EVENT_NOT_OPEN => __('A completed or cancelled event takes no bookings.'),
             FacilityBookingResult::REFUSAL_EVENT_NOT_TENTATIVE => __('Only a tentative event can be confirmed.'),
             FacilityBookingResult::REFUSAL_BOOKING_CANCELLED => __('This booking is cancelled.'),
+            FacilityBookingResult::REFUSAL_RESERVATION_NOT_LIVE => __('This reservation has no confirmed or in-house unit, so it takes no bookings.'),
+            FacilityBookingResult::REFUSAL_FOLIO_NOT_OF_OWNER => __('Choose a folio of this reservation.'),
             default => __('The booking could not be saved.'),
         };
     }
@@ -59,6 +61,7 @@ class FacilityBookingRefusals
             FacilityBookingResult::REFUSAL_CLASH, FacilityBookingResult::REFUSAL_FULL, FacilityBookingResult::REFUSAL_SESSION_NOT_FOUND => 'starts_at',
             FacilityBookingResult::REFUSAL_INACTIVE => 'facility_id',
             FacilityBookingResult::REFUSAL_OUTSIDE_EVENT => 'booking_date',
+            FacilityBookingResult::REFUSAL_FOLIO_NOT_OF_OWNER => 'charge_to',
             default => self::FORM,
         };
     }

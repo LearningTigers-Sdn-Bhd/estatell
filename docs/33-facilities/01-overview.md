@@ -1,6 +1,6 @@
 # Facilities and events
 
-> **In progress.** Facility settings, events and event bookings are built; reservation bookings, posting, the Timeline View and the report are planned. Planned on 2026-11-18 for a two-lodge client (Sepilok and Kinabatangan). The build items are in [checklist.md](../checklist.md#33-facilities). Assumptions to confirm with the client are at the end.
+> **In progress.** Facility settings, events, event bookings and reservation bookings are built; posting, the Timeline View and the report are planned. Planned on 2026-11-18 for a two-lodge client (Sepilok and Kinabatangan). The build items are in [checklist.md](../checklist.md#33-facilities). Assumptions to confirm with the client are at the end.
 
 ## Purpose
 

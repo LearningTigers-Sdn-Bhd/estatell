@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -7,19 +7,9 @@ import {
 } from '@/components/pms/events/event-shell';
 import type { EventShellProps } from '@/components/pms/events/event-shell';
 import { BookFacilitySheet } from '@/components/pms/facilities/book-facility-sheet';
+import { CancelFacilityBookingDialog } from '@/components/pms/facilities/cancel-facility-booking-dialog';
 import { FacilityBookingsTable } from '@/components/pms/facilities/facility-bookings-table';
-import {
-    AlertDialog,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
-import { cancel } from '@/routes/facility-bookings';
 
 type Booking = App.Data.Facilities.FacilityBookingRowData;
 
@@ -74,58 +64,23 @@ export default function EventBookings(props: Props) {
                             setEditing(null);
                         }
                     }}
-                    eventId={event.id}
-                    startsOn={event.startsOn}
-                    endsOn={event.endsOn}
-                    chargeTo={`Event folio · ${event.payerName}`}
+                    owner={{
+                        type: 'event',
+                        id: event.id,
+                        startsOn: event.startsOn,
+                        endsOn: event.endsOn,
+                        chargeTo: `Event folio · ${event.payerName}`,
+                    }}
                     facilities={facilities}
                     booking={editing ?? undefined}
                     currency={currency}
                 />
             )}
 
-            <AlertDialog
-                open={cancelling !== null}
-                onOpenChange={(open) => !open && setCancelling(null)}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            Cancel {cancelling?.facilityName} booking?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            The facility becomes free for others at that time.
-                            To book it again, make a new booking.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    {cancelling && (
-                        <Form
-                            {...cancel.form({ facilityBooking: cancelling.id })}
-                            options={{ preserveScroll: true }}
-                            onSuccess={() => setCancelling(null)}
-                        >
-                            {({ processing }) => (
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                        Keep booking
-                                    </AlertDialogCancel>
-                                    <Button
-                                        type="submit"
-                                        variant="destructive"
-                                        disabled={processing}
-                                        focusableWhenDisabled
-                                    >
-                                        {processing && (
-                                            <Spinner data-icon="inline-start" />
-                                        )}
-                                        Cancel booking
-                                    </Button>
-                                </AlertDialogFooter>
-                            )}
-                        </Form>
-                    )}
-                </AlertDialogContent>
-            </AlertDialog>
+            <CancelFacilityBookingDialog
+                booking={cancelling}
+                onClose={() => setCancelling(null)}
+            />
         </>
     );
 }
