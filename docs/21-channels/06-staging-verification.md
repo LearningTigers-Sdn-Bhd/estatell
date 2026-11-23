@@ -55,7 +55,13 @@ The structure sync of the Kopi Lane demo property (ES1107) on Channex staging, r
 | 4-Bed Dorm                           | 4                | 1 / 0 / 1                                           | room        | same                                           |
 | Private Double (not a dorm)          | 4                | 2 / 0 / 2                                           | room        | `per_room`, occupancy 2                        |
 
-Still to run: an ARI push and a test booking through Open Channel for a dorm room, and the OTA-side checks below (how each OTA shows a one-guest "room" of a dorm).
+**ARI push (2026-11-23).** A full run (`FlushChannelAri`, 500 days) sent everything with no error. Read back from `/availability` and `/restrictions` for 23–27 Nov, Channex matched estatell's free beds on every date (8-Bed Mixed Dorm 13, 10, 11, 11, 16; 6-Bed 4, 6, 5, 5, 6; 4-Bed 4, 4, 4, 2, 2) and the rate is the bed price (RM 38, 45, 50).
+
+**Dorm test booking (2026-11-23).** With the Booking CRS app (`booking_crs`) installed on the staging property, `POST /bookings` made booking `OFL-DORMTEST-093028`: three room entries on the 8-Bed Mixed Dorm, one adult each, 10–12 Dec, RM 38 a night. `PullChannelRevisions` stored and acknowledged the revision and made one reservation of three units, each one bed (A1, A2, A3), one adult, no children, RM 38 a night on the Dorm Bed plan. Free beds dropped from 16 to 13 on both nights, and the next flush sent 13 to Channex.
+
+**Booking.com.** Both shared test hotels (`6519420`, `5868189`) were leased to other Channex accounts, so the connection was refused. Their mapping details show a **Single Room** with rates at occupancy `[1]`, which is where a dorm (one guest per unit) maps. A booking on the test hotel needs a person at `secure.booking.com` with Booking.com's test card. It also needs rate plans in GBP, the test hotels' currency, while Kopi Lane sells in MYR.
+
+Still to check: how an OTA sends a multi-bed booking. The CRS booking above sent one room entry per bed by choice, so it does not show what an OTA sends.
 
 ### Confirmed in Channex docs
 
@@ -85,7 +91,7 @@ Checked again 2026-11-23 against the Channex documentation (Room Types, Rate Pla
 
 1. For `room_kind: dorm` (NativeDorm only): is availability counted in beds or rooms, and does `count_of_rooms` mean rooms or total beds? BedAsUnit does not depend on it.
 2. Do Agoda and Booking.com accept `room_kind: dorm`?
-3. Does a multi-bed booking arrive as one room entry with N guests, or N room entries?
+3. Does an OTA send a multi-bed booking as one room entry with N guests, or N room entries? N entries of one adult ingest correctly (CRS test above); one entry with N adults is not tested.
 
 ### Checks
 
