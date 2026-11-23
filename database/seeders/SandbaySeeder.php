@@ -292,6 +292,7 @@ class SandbaySeeder extends Seeder
         $user = new User(['name' => $name, 'email' => $email, 'password' => $this->staffPassword()]);
         $user->property_id = $property->id;
         $user->email_verified_at = now();
+        $user->email_device_check = false;
         $user->save();
         $this->credentials[] = [$role->label(), $name, $email, $this->printedPassword()];
 

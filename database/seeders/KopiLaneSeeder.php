@@ -196,6 +196,7 @@ class KopiLaneSeeder extends Seeder
             $user = new User(['name' => $names[$role->value], 'email' => DemoSeeder::loginEmail('kopilane', $role), 'password' => DemoSeeder::password()]);
             $user->property_id = $property->id;
             $user->email_verified_at = now();
+            $user->email_device_check = false;
             $user->save();
             $users[$role->value] = $user;
         }
