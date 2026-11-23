@@ -109,12 +109,13 @@ class FacilityBookingQuote
         }
 
         $property = $facility->property()->with('settings')->firstOrFail();
-        $units = $facility->rate_basis->quantity($data->startsAt, $data->endsAt, $data->quantity);
+        $units = $facility->rate_basis->quantity($data->startsAt, $data->endsAt, $data->quantity, $facility->booked_by);
+        $breakdown = $facility->rate_basis->breakdown($data->startsAt, $data->endsAt, $data->quantity, $facility->booked_by);
         $amount = Money::of($unitAmount, $property->settings->currency->getCurrencyCode())->multipliedBy($units);
         $tax = $this->taxCalculator->calculate($property, $facility->chargeItem->transactionCode, $amount, (string) $units, $nationality);
 
         if (! $tax->isCalculated()) {
-            return new FacilityBookingQuoteData((string) $amount->getAmount(), [], null, $refusalMessage, $warning, $sessions);
+            return new FacilityBookingQuoteData((string) $amount->getAmount(), [], null, $refusalMessage, $warning, $sessions, $breakdown);
         }
 
         return new FacilityBookingQuoteData(
@@ -124,6 +125,7 @@ class FacilityBookingQuote
             $refusalMessage,
             $warning,
             $sessions,
+            $breakdown,
         );
     }
 }

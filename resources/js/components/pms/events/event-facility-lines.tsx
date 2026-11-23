@@ -1,10 +1,16 @@
-import { Plus, Trash2, TriangleAlert } from 'lucide-react';
+import { Info, Plus, Trash2, TriangleAlert } from 'lucide-react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { Button } from '@/components/ui/button';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import {
     Field,
     FieldDescription,
@@ -52,11 +58,11 @@ const sessionKey = (startsAt: string, endsAt: string) =>
     `${startsAt}-${endsAt}`;
 
 /**
- * The columns of a line from `2xl`: facility, date, time or session, quantity, price and remove. The header row uses the
+ * The columns of a line from `2xl`: facility, date, time or session, quantity, price, amount and remove. The header row uses the
  * same template. Below `2xl` the cells stack and show their labels, like the booking form's lines.
  */
 const LINE_COLUMNS =
-    'sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1.6fr)_5rem_minmax(0,1.1fr)_2rem]';
+    'sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1.6fr)_5rem_minmax(0,1.1fr)_minmax(0,0.9fr)_2rem]';
 
 function FacilityLinesHeader() {
     return (
@@ -68,7 +74,114 @@ function FacilityLinesHeader() {
             <span>Time</span>
             <span>Qty</span>
             <span>Price</span>
+            <span className="text-right">Amount</span>
             <span />
+        </div>
+    );
+}
+
+/**
+ * The Amount cell of a line: the amount before tax, and an info button whose Popover shows how it adds up, the taxes
+ * and the total, like the room price on New reservation. All numbers come from the server quote.
+ */
+function LineAmount({
+    facilityName,
+    chargedByHand,
+    unitAmount,
+    quote,
+    currency,
+}: {
+    facilityName: string | null;
+    chargedByHand: boolean;
+    unitAmount: string;
+    quote: LineQuote | null;
+    currency: App.Data.Property.CurrencyData | null;
+}) {
+    return (
+        <div className="flex flex-col gap-1 2xl:items-end">
+            <span className="text-sm font-medium 2xl:sr-only">Amount</span>
+            {chargedByHand ? (
+                <p className="py-2 text-sm text-muted-foreground">
+                    Charge by hand
+                </p>
+            ) : quote?.amount ? (
+                <div className="flex items-center gap-1">
+                    <MoneyText
+                        amount={quote.amount}
+                        currency={currency}
+                        plain
+                    />
+                    <Popover>
+                        <PopoverTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label={`Show how the ${facilityName ?? 'line'} amount adds up`}
+                                />
+                            }
+                        >
+                            <Info />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72" align="end">
+                            <div className="flex flex-col gap-2 text-sm">
+                                {facilityName && (
+                                    <p className="font-medium">
+                                        {facilityName}
+                                    </p>
+                                )}
+                                <div className="flex justify-between gap-3">
+                                    <span className="text-muted-foreground">
+                                        {quote.breakdown} ×{' '}
+                                        <MoneyText
+                                            amount={unitAmount}
+                                            currency={currency}
+                                            plain
+                                        />
+                                    </span>
+                                    <MoneyText
+                                        amount={quote.amount}
+                                        currency={currency}
+                                        plain
+                                    />
+                                </div>
+                                {quote.taxes.map((tax) => (
+                                    <div
+                                        key={tax.name}
+                                        className="flex justify-between gap-3"
+                                    >
+                                        <span className="text-muted-foreground">
+                                            {tax.inclusive
+                                                ? `incl. ${tax.name}`
+                                                : tax.name}
+                                        </span>
+                                        <MoneyText
+                                            amount={tax.amount}
+                                            currency={currency}
+                                            plain
+                                        />
+                                    </div>
+                                ))}
+                                {quote.total && (
+                                    <>
+                                        <Separator />
+                                        <div className="flex justify-between gap-3 font-medium">
+                                            <span>Total</span>
+                                            <MoneyText
+                                                amount={quote.total}
+                                                currency={currency}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            ) : (
+                <p className="py-2 text-sm text-muted-foreground">–</p>
+            )}
         </div>
     );
 }
@@ -333,6 +446,16 @@ export function EventFacilityLines({
                                 )}
                                 <FieldError>{error('unit_amount')}</FieldError>
                             </Field>
+                            <LineAmount
+                                facilityName={facility?.name ?? null}
+                                chargedByHand={
+                                    facility !== undefined &&
+                                    facility.listPrice === null
+                                }
+                                unitAmount={line.unit_amount}
+                                quote={quote}
+                                currency={currency}
+                            />
                             <div className="flex items-start justify-end">
                                 <Button
                                     type="button"
@@ -350,9 +473,7 @@ export function EventFacilityLines({
                                     <Trash2 />
                                 </Button>
                             </div>
-                            {(quote?.amount ||
-                                quote?.refusal ||
-                                quote?.warning) && (
+                            {(quote?.refusal || quote?.warning) && (
                                 <div
                                     className="flex flex-col gap-1 text-sm sm:col-span-full"
                                     aria-live="polite"
@@ -367,28 +488,6 @@ export function EventFacilityLines({
                                         <p className="flex items-center gap-1.5 text-muted-foreground">
                                             <TriangleAlert className="size-4" />
                                             {quote.warning}
-                                        </p>
-                                    )}
-                                    {quote.amount && (
-                                        <p className="text-muted-foreground">
-                                            <MoneyText
-                                                amount={quote.amount}
-                                                currency={currency}
-                                                plain
-                                            />
-                                            {quote.taxes.map((tax) => (
-                                                <span key={tax.name}>
-                                                    {tax.inclusive
-                                                        ? ' incl. '
-                                                        : ' + '}
-                                                    {tax.name}{' '}
-                                                    <MoneyText
-                                                        amount={tax.amount}
-                                                        currency={currency}
-                                                        plain
-                                                    />
-                                                </span>
-                                            ))}
                                         </p>
                                     )}
                                 </div>

@@ -9,6 +9,7 @@ use App\Actions\Facilities\FacilityBookingResult;
 use App\Actions\Facilities\UpdateFacilityBooking;
 use App\Data\Facilities\FacilityBookingInputData;
 use App\Enums\EventStatus;
+use App\Enums\FacilityBookedBy;
 use App\Enums\FacilityBookingStatus;
 use App\Enums\FacilityRateBasis;
 use App\Enums\PermissionEnum;
@@ -187,9 +188,22 @@ test('cancelling an event cancels its bookings, and new event dates must keep it
 });
 
 test('an hourly price counts the booked hours rounded up', function () {
-    expect(FacilityRateBasis::Hour->quantity('09:00', '11:30', 4))->toBe(3)
-        ->and(FacilityRateBasis::Each->quantity('09:00', '11:30', 4))->toBe(4)
-        ->and(FacilityRateBasis::Day->quantity('09:00', '11:30', 4))->toBe(1);
+    $person = FacilityBookedBy::Person;
+
+    expect(FacilityRateBasis::Hour->quantity('09:00', '11:30', 4, $person))->toBe(3)
+        ->and(FacilityRateBasis::Each->quantity('09:00', '11:30', 4, $person))->toBe(4)
+        ->and(FacilityRateBasis::Day->quantity('09:00', '11:30', 4, $person))->toBe(1)
+        ->and(FacilityRateBasis::Hour->breakdown('09:00', '11:30', 4, $person))->toBe('3 hours');
+});
+
+test('a facility booked by item charges every item it takes', function () {
+    $item = FacilityBookedBy::Item;
+
+    expect(FacilityRateBasis::Hour->quantity('09:00', '11:00', 3, $item))->toBe(6)
+        ->and(FacilityRateBasis::Session->quantity('18:00', '22:00', 2, $item))->toBe(2)
+        ->and(FacilityRateBasis::Day->quantity('09:00', '17:00', 1, $item))->toBe(1)
+        ->and(FacilityRateBasis::Hour->breakdown('09:00', '11:00', 3, $item))->toBe('3 items × 2 hours')
+        ->and(FacilityRateBasis::Each->breakdown('09:00', '11:00', 1, $item))->toBe('1 item');
 });
 
 test('the booking routes need the feature and facilities.book, and stay inside the property', function () {

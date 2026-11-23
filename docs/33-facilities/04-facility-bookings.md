@@ -59,6 +59,7 @@ One rule for Item and Person: at every moment of the range, the quantity of Conf
 
 - A booking copies the charge item's amount into `unit_amount` when it is made. Staff can change it until the booking posts, for example a negotiated hall price.
 - The charge is `unit_amount` × `FacilityRateBasis::quantity()`, plus the charge item's taxes. The server calculates it when shown and when posted.
+- **Items count (decided 2026-11-23):** an Item facility charges every item it takes, for every rate basis. 3 kayaks for 2 hours at 25.00 per hour is 6 × 25.00 = 150.00; 2 BBQ pits per session is 2 sessions. A Person facility charges Per day, Per session and Per hour once for the group, and Per person for each person.
 - A later price change in Settings does not change saved bookings.
 - A price that differs from the list price is logged on the booking's event or reservation (`facility_bookings.price_changed`, with both prices).
 - "Charge by hand" (the charge item has no amount): `unit_amount` is null and the price field is hidden.

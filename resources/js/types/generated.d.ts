@@ -1641,6 +1641,7 @@ total: string | null,
 refusal: string | null,
 warning: string | null,
 sessions: App.Data.Facilities.FacilitySessionPlacesData[],
+breakdown: string | null,
 };
 export type FacilityBookingRowData = {
 id: number,

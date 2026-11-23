@@ -49,7 +49,7 @@ class FacilityBookingRowData extends Data
     {
         $facility = $booking->facility;
         $live = $booking->status !== FacilityBookingStatus::Cancelled;
-        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity);
+        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by);
 
         return new self(
             id: $booking->id,
