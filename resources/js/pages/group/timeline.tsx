@@ -130,11 +130,14 @@ function PropertyTimeline({ block }: { block: Block }) {
                         blocks={block.blocks}
                         dayUses={block.dayUses}
                         rates={[]}
+                        facilities={[]}
+                        facilityCells={[]}
                         filters={FILTERS}
                         showRates={false}
                         rateChoice={{ ratePlanId: null }}
                         currency={null}
                         canViewReservations={false}
+                        canViewEvents={false}
                         canManageReservations={false}
                         canOverrideRestrictions={false}
                         canWaiveFees={false}
