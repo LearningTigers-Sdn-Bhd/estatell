@@ -17,6 +17,9 @@ Route::prefix('facility-bookings')
         Route::post('/', [FacilityBookingController::class, 'store'])->name('store');
         Route::post('quote', [FacilityBookingController::class, 'quote'])->name('quote');
         Route::put('{facilityBooking}', [FacilityBookingController::class, 'update'])->name('update');
+        Route::post('{facilityBooking}/post', [FacilityBookingController::class, 'post'])
+            ->middleware('can:'.PermissionEnum::FolioPostCharge->value)
+            ->name('post');
         Route::post('{facilityBooking}/cancel', [FacilityBookingController::class, 'cancel'])->name('cancel');
         Route::post('reservations/{reservation}/folios', [FacilityBookingController::class, 'storeFolio'])
             ->middleware('can:'.PermissionEnum::FolioTransfer->value)

@@ -33,6 +33,12 @@ final class FacilityBookingResult
 
     public const string REFUSAL_FOLIO_NOT_OF_OWNER = 'folio_not_of_owner';
 
+    public const string REFUSAL_POSTED = 'facility_booking_posted';
+
+    public const string REFUSAL_TENTATIVE = 'facility_booking_tentative';
+
+    public const string REFUSAL_CHARGED_BY_HAND = 'facility_charged_by_hand';
+
     private function __construct(
         public readonly ?FacilityBooking $booking,
         public readonly ?string $refusal,

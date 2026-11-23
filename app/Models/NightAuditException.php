@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AuditExceptionType;
 use App\Enums\AuditStep;
+use App\Enums\FacilityBookingStatus;
 use App\Enums\UnitStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\NightAuditExceptionFactory;
@@ -14,13 +15,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One unit or add-on a night audit could not resolve. Open rows carry to the next day's readiness panel.
+ * One unit, add-on or facility booking a night audit could not resolve. A `Facility` exception has
+ * `facility_booking_id` and no unit. Open rows carry to the next day's readiness panel.
  *
  * @property int $id
  * @property int $property_id
  * @property int $night_audit_id
  * @property AuditStep $step
  * @property int|null $reservation_unit_id
+ * @property int|null $facility_booking_id
  * @property AuditExceptionType $type
  * @property string $message
  * @property CarbonImmutable|null $resolved_at
@@ -28,7 +31,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['step', 'reservation_unit_id', 'type', 'message', 'resolved_at', 'resolved_by'])]
+#[Fillable(['step', 'reservation_unit_id', 'facility_booking_id', 'type', 'message', 'resolved_at', 'resolved_by'])]
 class NightAuditException extends Model
 {
     /** @use HasFactory<NightAuditExceptionFactory> */
@@ -57,6 +60,7 @@ class NightAuditException extends Model
     /**
      * A missed arrival whose unit is no longer Confirmed, or an overdue departure whose unit is no longer CheckedIn:
      * the unit was checked in, checked out, cancelled or marked no-show since, so the exception has nothing left to say.
+     * A `Facility` exception is stale once its booking is Cancelled.
      *
      * @param  Builder<NightAuditException>  $query
      */
@@ -66,7 +70,9 @@ class NightAuditException extends Model
             ->where(fn (Builder $missed) => $missed->where('type', AuditExceptionType::MissedArrival->value)
                 ->whereHas('reservationUnit', fn (Builder $units) => $units->where('status', '!=', UnitStatus::Confirmed->value)))
             ->orWhere(fn (Builder $overdue) => $overdue->where('type', AuditExceptionType::OverdueDeparture->value)
-                ->whereHas('reservationUnit', fn (Builder $units) => $units->where('status', '!=', UnitStatus::CheckedIn->value))));
+                ->whereHas('reservationUnit', fn (Builder $units) => $units->where('status', '!=', UnitStatus::CheckedIn->value)))
+            ->orWhere(fn (Builder $facility) => $facility->where('type', AuditExceptionType::Facility->value)
+                ->whereHas('facilityBooking', fn (Builder $bookings) => $bookings->where('status', FacilityBookingStatus::Cancelled->value))));
     }
 
     /**
@@ -99,6 +105,14 @@ class NightAuditException extends Model
     public function reservationUnit(): BelongsTo
     {
         return $this->belongsTo(ReservationUnit::class);
+    }
+
+    /**
+     * @return BelongsTo<FacilityBooking, $this>
+     */
+    public function facilityBooking(): BelongsTo
+    {
+        return $this->belongsTo(FacilityBooking::class);
     }
 
     /**

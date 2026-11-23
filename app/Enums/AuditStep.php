@@ -4,6 +4,7 @@ namespace App\Enums;
 
 use App\Actions\NightAudit\Steps\AuditStepRunner;
 use App\Actions\NightAudit\Steps\CloseAndOpenNext;
+use App\Actions\NightAudit\Steps\PostFacilityChargesStep;
 use App\Actions\NightAudit\Steps\PostRoomChargesStep;
 use App\Actions\NightAudit\Steps\PostScheduledAddOnsStep;
 use App\Actions\NightAudit\Steps\ResolveMissedArrivals;
@@ -22,6 +23,7 @@ enum AuditStep: string
     case ResolveOverdueDepartures = 'resolve_overdue_departures';
     case PostRoomCharges = 'post_room_charges';
     case PostScheduledAddOns = 'post_scheduled_add_ons';
+    case PostFacilityCharges = 'post_facility_charges';
     case UpdateRoomStatuses = 'update_room_statuses';
     case SnapshotStatistics = 'snapshot_statistics';
     case CloseAndOpenNext = 'close_and_open_next';
@@ -34,6 +36,7 @@ enum AuditStep: string
             self::ResolveOverdueDepartures => __('Resolve overdue departures'),
             self::PostRoomCharges => __('Post room charges'),
             self::PostScheduledAddOns => __('Post scheduled add-ons'),
+            self::PostFacilityCharges => __('Post facility charges'),
             self::UpdateRoomStatuses => __('Update room statuses'),
             self::SnapshotStatistics => __('Snapshot statistics'),
             self::CloseAndOpenNext => __('Close the date and open the next'),
@@ -53,6 +56,7 @@ enum AuditStep: string
             self::ResolveOverdueDepartures => ResolveOverdueDepartures::class,
             self::PostRoomCharges => PostRoomChargesStep::class,
             self::PostScheduledAddOns => PostScheduledAddOnsStep::class,
+            self::PostFacilityCharges => PostFacilityChargesStep::class,
             self::UpdateRoomStatuses => UpdateRoomStatuses::class,
             self::SnapshotStatistics => SnapshotStatisticsStep::class,
             self::CloseAndOpenNext => CloseAndOpenNext::class,

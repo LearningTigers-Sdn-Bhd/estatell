@@ -9,6 +9,7 @@ use App\Enums\FolioStatus;
 use App\Models\Event;
 use App\Models\Facility;
 use App\Models\FacilityBooking;
+use App\Models\FolioLine;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\Facilities\FacilityBookingChecks;
@@ -29,8 +30,9 @@ class UpdateFacilityBooking
      * stays. Runs the same checks as `BookFacility`, leaving this booking out of the clash check. A Cancelled booking is
      * refused (`facility_booking_cancelled`). A null price keeps the booking's price, and a reservation booking with no
      * Charge to keeps its folio. Logs `facility_bookings.updated` on the owner, and `facility_bookings.price_changed`
-     * when the price changes to one that is not the list price. Posting comes with the night audit item, which adds the
-     * `facility_booking_posted` refusal. See docs/33-facilities/04-facility-bookings.md#actions.
+     * when the price changes to one that is not the list price. Once posted (a `facility:{id}` line exists), only the
+     * notes can change: any other change is refused (`facility_booking_posted`), and staff cancel and book again.
+     * See docs/33-facilities/04-facility-bookings.md#actions.
      */
     public function __invoke(User $actor, FacilityBooking $booking, FacilityBookingInputData $data): FacilityBookingResult
     {
@@ -43,6 +45,10 @@ class UpdateFacilityBooking
 
             if ($current->status === FacilityBookingStatus::Cancelled) {
                 return FacilityBookingResult::refused(FacilityBookingResult::REFUSAL_BOOKING_CANCELLED, $facility->name);
+            }
+
+            if (FolioLine::query()->where('idempotency_key', 'facility:'.$current->id)->exists()) {
+                return $this->updatePostedNotes($actor, $owner, $current, $facility, $data);
             }
 
             $refusal = $owner instanceof Event
@@ -103,5 +109,37 @@ class UpdateFacilityBooking
 
             return FacilityBookingResult::done($current);
         });
+    }
+
+    /**
+     * A posted booking keeps its date, time, quantity, price and folio. Only the notes are saved.
+     */
+    private function updatePostedNotes(User $actor, Event|Reservation $owner, FacilityBooking $current, Facility $facility, FacilityBookingInputData $data): FacilityBookingResult
+    {
+        $changesCharge = $data->bookingDate !== $current->booking_date->toDateString()
+            || substr($data->startsAt, 0, 5) !== substr($current->starts_at, 0, 5)
+            || substr($data->endsAt, 0, 5) !== substr($current->ends_at, 0, 5)
+            || $data->quantity !== $current->quantity
+            || ($data->unitAmount !== null && $current->unit_amount !== null && ! BigDecimal::of($data->unitAmount)->isEqualTo(BigDecimal::of($current->unit_amount)))
+            || ($owner instanceof Reservation && $data->chargeTo !== null && $data->chargeTo !== 'f'.$current->folio_id);
+
+        if ($changesCharge) {
+            return FacilityBookingResult::refused(FacilityBookingResult::REFUSAL_POSTED, $facility->name);
+        }
+
+        $current->notes = filled($data->notes) ? trim((string) $data->notes) : null;
+
+        if ($current->isDirty('notes')) {
+            $current->save();
+
+            activity()
+                ->performedOn($owner)
+                ->causedBy($actor)
+                ->event('facility_bookings.updated')
+                ->withProperties(['property_id' => $owner->property_id, 'facility_booking_id' => $current->id, 'changed' => ['notes']])
+                ->log('Facility booking updated');
+        }
+
+        return FacilityBookingResult::done($current);
     }
 }

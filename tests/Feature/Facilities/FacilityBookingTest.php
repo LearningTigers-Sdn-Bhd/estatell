@@ -5,6 +5,7 @@ use App\Actions\Events\ConfirmEvent;
 use App\Actions\Events\UpdateEvent;
 use App\Actions\Facilities\BookFacility;
 use App\Actions\Facilities\CancelFacilityBooking;
+use App\Actions\Facilities\FacilityBookingResult;
 use App\Actions\Facilities\UpdateFacilityBooking;
 use App\Data\Facilities\FacilityBookingInputData;
 use App\Enums\EventStatus;
@@ -165,7 +166,7 @@ test('editing a booking checks it again without counting itself, and a cancelled
         ->and($booking->refresh()->starts_at)->toBe('17:00:00')
         ->and($clash->refusal)->toBe('facility_clash')
         ->and(app(UpdateFacilityBooking::class)($owner, $booking, bookingInput($hall))->refusal)->toBe('facility_booking_cancelled')
-        ->and(app(CancelFacilityBooking::class)($owner, $booking))->toBeFalse();
+        ->and(app(CancelFacilityBooking::class)($owner, $booking)->refusal)->toBe(FacilityBookingResult::REFUSAL_BOOKING_CANCELLED);
 });
 
 test('cancelling an event cancels its bookings, and new event dates must keep its bookings inside', function () {

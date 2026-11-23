@@ -13,7 +13,9 @@ use Spatie\LaravelData\Data;
  * is the price before tax (the unit price times the rate basis quantity), or null when charged by hand. The `can*`
  * flags already combine the status and the user's `facilities.book`. A reservation's booking also names its folio:
  * `chargeTo` is its Charge to value (`f{folio id}`) and `chargeToLabel` the folio's name with its payer. An event's
- * booking has neither (always the event folio).
+ * booking has neither (always the event folio). `posted` is true once its charge is on the folio; a posted booking
+ * cannot be edited (cancel it and book again), and cancelling reverses the charge. `canPostNow` (Post now) needs a
+ * Confirmed booking with a price that is not posted, and `folio.post-charge`.
  */
 class FacilityBookingRowData extends Data
 {
@@ -33,15 +35,17 @@ class FacilityBookingRowData extends Data
         public BadgeData $status,
         public bool $canEdit,
         public bool $canCancel,
+        public bool $posted = false,
+        public bool $canPostNow = false,
         public ?string $chargeTo = null,
         public ?string $chargeToLabel = null,
     ) {}
 
     /**
      * Expects `facility` to be loaded. `$canChange` is false when the user lacks `facilities.book` or the owner takes
-     * no bookings.
+     * no bookings. `$canPost` is the user's `folio.post-charge`.
      */
-    public static function fromModel(FacilityBooking $booking, bool $canChange, ?string $chargeToLabel = null): self
+    public static function fromModel(FacilityBooking $booking, bool $canChange, ?string $chargeToLabel = null, bool $posted = false, bool $canPost = false): self
     {
         $facility = $booking->facility;
         $live = $booking->status !== FacilityBookingStatus::Cancelled;
@@ -61,8 +65,10 @@ class FacilityBookingRowData extends Data
             rateBasisLabel: $facility->rate_basis->label(),
             notes: $booking->notes,
             status: BadgeData::fromFacilityBookingStatus($booking->status),
-            canEdit: $canChange && $live,
+            canEdit: $canChange && $live && ! $posted,
             canCancel: $canChange && $live,
+            posted: $posted,
+            canPostNow: $canChange && $canPost && ! $posted && $booking->status === FacilityBookingStatus::Confirmed && $booking->unit_amount !== null,
             chargeTo: $booking->reservation_id === null ? null : 'f'.$booking->folio_id,
             chargeToLabel: $chargeToLabel,
         );

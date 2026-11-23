@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Why one unit or add-on needs a person after a night audit. The exception row holds the refusal code or the error.
+ * Why one unit, add-on or facility booking needs a person after a night audit. The exception row holds the refusal code or the error.
  */
 enum AuditExceptionType: string
 {
@@ -11,6 +11,7 @@ enum AuditExceptionType: string
     case OverdueDeparture = 'overdue_departure';
     case RoomCharge = 'room_charge';
     case AddOn = 'add_on';
+    case Facility = 'facility';
     case UnexpectedError = 'unexpected_error';
 
     public function label(): string
@@ -20,6 +21,7 @@ enum AuditExceptionType: string
             self::OverdueDeparture => __('Overdue departure not resolved'),
             self::RoomCharge => __('Room charge not posted'),
             self::AddOn => __('Add-on not posted'),
+            self::Facility => __('Facility charge not posted'),
             self::UnexpectedError => __('Unexpected error'),
         };
     }

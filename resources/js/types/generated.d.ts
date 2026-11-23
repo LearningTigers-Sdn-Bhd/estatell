@@ -1658,6 +1658,8 @@ notes: string | null,
 status: App.Data.Shared.BadgeData,
 canEdit: boolean,
 canCancel: boolean,
+posted: boolean,
+canPostNow: boolean,
 chargeTo: string | null,
 chargeToLabel: string | null,
 };
@@ -2580,9 +2582,10 @@ icon: string,
 exceptionId: number | null,
 };
 export type ReadinessGroupData = {
+key: string,
 check: App.Enums.AuditCheck,
 blocker: boolean,
-reservationId: number,
+reservationId: number | null,
 reference: string,
 guest: string,
 headline: string,
@@ -2593,6 +2596,7 @@ actions: App.Data.NightAudit.ReadinessActionData[],
 units: App.Data.NightAudit.ReadinessUnitData[],
 openUnits: boolean,
 flatUnits: boolean,
+eventId: number | null,
 };
 export type ReadinessUnitData = {
 unitId: number,
@@ -5807,10 +5811,10 @@ export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
 export type ArrivalImportOutcome = 'booking' | 'hold' | 'past_in_house' | 'past_checked_out' | 'skipped' | 'already_imported';
 export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'master_not_billed' | 'money_held_on_closed_booking' | 'carried_exception';
-export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'unexpected_error';
+export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'facility' | 'unexpected_error';
 export type AuditFix = 'assign' | 'no-show' | 'extend';
 export type AuditStatus = 'running' | 'completed' | 'failed';
-export type AuditStep = 'claim_business_date' | 'resolve_missed_arrivals' | 'resolve_overdue_departures' | 'post_room_charges' | 'post_scheduled_add_ons' | 'update_room_statuses' | 'snapshot_statistics' | 'close_and_open_next';
+export type AuditStep = 'claim_business_date' | 'resolve_missed_arrivals' | 'resolve_overdue_departures' | 'post_room_charges' | 'post_scheduled_add_ons' | 'post_facility_charges' | 'update_room_statuses' | 'snapshot_statistics' | 'close_and_open_next';
 export type AuditStepStatus = 'running' | 'completed' | 'failed';
 export type AuditTrigger = 'scheduled' | 'manual';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';

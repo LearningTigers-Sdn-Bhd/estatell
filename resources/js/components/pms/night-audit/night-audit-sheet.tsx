@@ -583,7 +583,7 @@ export function NightAuditSheet({
                             <ul className="flex flex-col gap-3">
                                 {sheet.blockers.map((group) => (
                                     <GroupRow
-                                        key={`${group.check}-${group.reservationId}`}
+                                        key={group.key}
                                         group={group}
                                         handlers={handlers}
                                     />
@@ -601,7 +601,7 @@ export function NightAuditSheet({
                             <ul className="flex flex-col gap-3">
                                 {sheet.warnings.map((group) => (
                                     <GroupRow
-                                        key={`${group.check}-${group.reservationId}`}
+                                        key={group.key}
                                         group={group}
                                         handlers={handlers}
                                     />

@@ -1,6 +1,6 @@
 # Facilities and events
 
-> **In progress.** Facility settings, events, event bookings and reservation bookings are built; posting, the Timeline View and the report are planned. Planned on 2026-11-18 for a two-lodge client (Sepilok and Kinabatangan). The build items are in [checklist.md](../checklist.md#33-facilities). Assumptions to confirm with the client are at the end.
+> **In progress.** Facility settings, events, event bookings, reservation bookings and posting are built; the Timeline View and the report are planned. Planned on 2026-11-18 for a two-lodge prospect (Sepilok and Kinabatangan). The build items are in [checklist.md](../checklist.md#33-facilities). Two assumptions we decided ourselves are at the end.
 
 ## Purpose
 
@@ -64,14 +64,14 @@ Pennant feature `Facilities` (`App\Features\Facilities`, `#[Name('facilities')]`
 
 Folio actions on an event folio use the existing folio permissions (`folio.post-charge`, `payment.record` and so on). New permissions are added with a syncing migration, as for other modules.
 
-## Assumptions to confirm with the client
+## Decided assumptions
 
-We recommend yes to both. Questions to ask:
+The client is a prospect, not a signed customer, so we decided these ourselves on 2026-11-23.
 
-| #   | Assumption                                                                                                                 | Question for the client                                                                                                                                         | If the answer is no                                                               |
-| --- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | Activities (River Safari, Night Walk) are Shared facilities. Assigning a guide or a boat to a session is not in this plan. | "Should River Safari and Night Walk work like a shared facility: sessions with a headcount limit and a participant list? Guide or boat assignment comes later." | Activities and sessions drop out. Facilities covers halls and equipment only.     |
-| 2   | Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.                   | "Do you hold the hall for a client before the deposit is paid?"                                                                                                 | Tentative goes away. Every booking blocks, and `EventStatus` starts at Confirmed. |
+| #   | Decision                                                                                                                   |
+| --- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Activities (River Safari, Night Walk) are Shared facilities. Assigning a guide or a boat to a session is not in this plan. |
+| 2   | Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.                   |
 
 ## Not in this plan
 

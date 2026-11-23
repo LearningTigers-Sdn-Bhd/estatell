@@ -28,6 +28,7 @@ class ReservationFacilityBookings
         private ReservationChargeTo $chargeTo,
         private FolioStatement $statement,
         private CurrentBusinessDate $currentBusinessDate,
+        private FacilityBookingCharge $charge,
     ) {}
 
     /**
@@ -49,6 +50,8 @@ class ReservationFacilityBookings
             ->ordered()
             ->get();
         $facilities = $canBook ? $this->facilities($property) : new Collection;
+        $posted = $this->charge->postedIds($bookings);
+        $canPost = $user->can(PermissionEnum::FolioPostCharge->value);
 
         return [
             'facilityBookings' => $bookings
@@ -56,6 +59,8 @@ class ReservationFacilityBookings
                     $booking,
                     $canBook,
                     $booking->folio instanceof Folio ? $this->statement->optionLabel($booking->folio, $unitLabels) : null,
+                    isset($posted[$booking->id]),
+                    $canPost,
                 ))
                 ->values()
                 ->all(),

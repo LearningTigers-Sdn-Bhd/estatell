@@ -10,13 +10,14 @@ use App\Enums\AuditExceptionType;
  * `exceptionId` is the carried exception. `canFixPrice` identifies a stuck package night. A folio check lists one reservation,
  * with no unit and the first folio it is about in `folioId`. `dayUse` is true for a day use unit, which the audit
  * never extends. `canExtend` is true for a unit the Extend fix can move one night: it departs on the business date.
- * `exceptionDate` is the business date of a carried exception's audit, as `Y-m-d`.
+ * `exceptionDate` is the business date of a carried exception's audit, as `Y-m-d`. A carried `Facility` exception
+ * names its booking in `facilityBookingId`, with no unit, and either its reservation or its event (`eventId`).
  */
 class ReadinessItem
 {
     public function __construct(
         public readonly AuditCheck $check,
-        public readonly int $reservationId,
+        public readonly ?int $reservationId,
         public readonly ?int $reservationUnitId,
         public readonly string $reference,
         public readonly ?string $guest,
@@ -29,5 +30,7 @@ class ReadinessItem
         public readonly bool $dayUse = false,
         public readonly bool $canExtend = false,
         public readonly ?string $exceptionDate = null,
+        public readonly ?int $eventId = null,
+        public readonly ?int $facilityBookingId = null,
     ) {}
 }

@@ -1,4 +1,5 @@
-import { Ban, Ellipsis, LayoutGrid, Pencil } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { Ban, Ellipsis, LayoutGrid, Pencil, Receipt } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { formatDate } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -20,6 +21,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { post as postNow } from '@/routes/facility-bookings';
 
 type Booking = App.Data.Facilities.FacilityBookingRowData;
 
@@ -41,8 +43,9 @@ function liveTotal(bookings: Booking[]): string {
 /**
  * The facility bookings of an event or a reservation, by date and time, Cancelled ones last and muted. Amount is the
  * price before tax; "Charge by hand" when the facility has no price. A reservation's table adds the Charge to column
- * and a total of the live bookings. With no bookings the table keeps its header and shows the empty state in one row.
- * See docs/33-facilities/04-facility-bookings.md#reservation-facilities-tab.
+ * and a total of the live bookings. A posted booking says "Posted" under its amount and can no longer be edited. Post
+ * now (row menu) posts a Confirmed booking to its folio before its date. With no bookings the table keeps its header
+ * and shows the empty state in one row. See docs/33-facilities/04-facility-bookings.md#posting and docs/33-facilities/04-facility-bookings.md#reservation-facilities-tab.
  */
 export function FacilityBookingsTable({
     bookings,
@@ -138,12 +141,19 @@ export function FacilityBookingsTable({
                                         plain
                                     />
                                 )}
+                                {booking.posted && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Posted
+                                    </p>
+                                )}
                             </TableCell>
                             <TableCell>
                                 <StatusBadge status={booking.status} />
                             </TableCell>
                             <TableCell>
-                                {(booking.canEdit || booking.canCancel) && (
+                                {(booking.canEdit ||
+                                    booking.canCancel ||
+                                    booking.canPostNow) && (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger
                                             render={
@@ -168,6 +178,24 @@ export function FacilityBookingsTable({
                                                 >
                                                     <Pencil />
                                                     Edit
+                                                </DropdownMenuItem>
+                                            )}
+                                            {booking.canPostNow && (
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        router.visit(
+                                                            postNow({
+                                                                facilityBooking:
+                                                                    booking.id,
+                                                            }),
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    <Receipt />
+                                                    Post now
                                                 </DropdownMenuItem>
                                             )}
                                             {booking.canCancel && (

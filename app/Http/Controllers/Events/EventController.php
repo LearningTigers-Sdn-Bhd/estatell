@@ -33,6 +33,7 @@ use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Events\EventDirectory;
 use App\Services\Facilities\EventLinesQuote;
+use App\Services\Facilities\FacilityBookingCharge;
 use App\Services\Facilities\FacilityBookingRefusals;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
@@ -178,7 +179,7 @@ class EventController extends Controller
      * Event page, Bookings tab: the event's facility bookings, Cancelled ones last, and the facilities the Book
      * facility Sheet offers. See docs/33-facilities/04-facility-bookings.md#event-bookings-tab.
      */
-    public function bookings(Request $request, Property $property, Event $event): Response
+    public function bookings(Request $request, Property $property, Event $event, FacilityBookingCharge $charge): Response
     {
         $user = $request->user();
         $canBook = $user->can(PermissionEnum::FacilitiesBook->value)
@@ -190,8 +191,11 @@ class EventController extends Controller
             ->ordered()
             ->get();
 
+        $posted = $charge->postedIds($bookings);
+        $canPost = $user->can(PermissionEnum::FolioPostCharge->value);
+
         return $this->renderTab($user, $property, $event, 'bookings', [
-            'bookings' => $bookings->map(fn (FacilityBooking $booking): FacilityBookingRowData => FacilityBookingRowData::fromModel($booking, $canBook))->values()->all(),
+            'bookings' => $bookings->map(fn (FacilityBooking $booking): FacilityBookingRowData => FacilityBookingRowData::fromModel($booking, $canBook, null, isset($posted[$booking->id]), $canPost))->values()->all(),
             'canBook' => $canBook,
             'facilities' => $canBook ? $this->facilityOptions($property) : [],
         ]);

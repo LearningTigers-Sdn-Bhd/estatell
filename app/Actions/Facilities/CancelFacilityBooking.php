@@ -11,18 +11,27 @@ use Illuminate\Support\Facades\DB;
 
 class CancelFacilityBooking
 {
+    public function __construct(private ReverseFacilityBookingCharge $reverseCharge) {}
+
     /**
-     * Cancel one booking. A Cancelled booking is refused (false), and nothing is written or logged. Logs
-     * `facility_bookings.cancelled` on its event or reservation. Reversing a posted charge comes with the night audit
-     * item. See docs/33-facilities/04-facility-bookings.md#actions.
+     * Cancel one booking. A posted booking has its charge reversed first (`ReverseFacilityBookingCharge`). Refuses a
+     * Cancelled booking (`facility_booking_cancelled`) and a posted one whose folio is not Open (`folio_not_open`); a
+     * refusal writes and logs nothing. Logs `facility_bookings.cancelled` on its event or reservation.
+     * See docs/33-facilities/04-facility-bookings.md#actions.
      */
-    public function __invoke(User $actor, FacilityBooking $booking): bool
+    public function __invoke(User $actor, FacilityBooking $booking): FacilityBookingResult
     {
-        return DB::transaction(function () use ($actor, $booking): bool {
+        return DB::transaction(function () use ($actor, $booking): FacilityBookingResult {
             $current = FacilityBooking::query()->lockForUpdate()->findOrFail($booking->id);
 
             if (! $current->status->canTransitionTo(FacilityBookingStatus::Cancelled)) {
-                return false;
+                return FacilityBookingResult::refused(FacilityBookingResult::REFUSAL_BOOKING_CANCELLED);
+            }
+
+            $refusal = ($this->reverseCharge)($actor, $current);
+
+            if ($refusal !== null) {
+                return FacilityBookingResult::refused($refusal);
             }
 
             $current->forceFill([
@@ -40,7 +49,7 @@ class CancelFacilityBooking
                 ->withProperties(['property_id' => $current->property_id, 'facility_booking_ids' => [$current->id]])
                 ->log('Facility booking cancelled');
 
-            return true;
+            return FacilityBookingResult::done($current);
         });
     }
 }

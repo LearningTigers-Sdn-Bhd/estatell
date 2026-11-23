@@ -12,9 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class CancelFacilityBookings
 {
+    public function __construct(private ReverseFacilityBookingCharge $reverseCharge) {}
+
     /**
-     * Cancel every live booking of an event, as `CancelEvent` does. Returns how many were cancelled. Logs one
-     * `facility_bookings.cancelled` on the event when there were any. See docs/33-facilities/04-facility-bookings.md#actions.
+     * Cancel every live booking of an event, as `CancelEvent` does. A posted booking has its charge reversed when its
+     * folio is Open; on a closed folio the charge stays, for staff to correct, and the cancel still goes ahead so the
+     * event or unit change is never blocked. Returns how many were cancelled. Logs one `facility_bookings.cancelled` on
+     * the event when there were any. See docs/33-facilities/04-facility-bookings.md#actions.
      */
     public function forEvent(User $actor, Event $event): int
     {
@@ -50,6 +54,10 @@ class CancelFacilityBookings
 
             if ($ids === []) {
                 return 0;
+            }
+
+            foreach (FacilityBooking::query()->whereKey($ids)->orderBy('id')->get() as $booking) {
+                ($this->reverseCharge)($actor, $booking);
             }
 
             FacilityBooking::query()->whereKey($ids)->update([

@@ -84,7 +84,8 @@ class ReverseLine
      * Write the reversal of a parent line and of its descendants, without any check. `TransferLines` and
      * `RemoveDiscount` call this after their own checks. Returns the reversal of the parent first, then the reversals
      * of its descendants, parents before children. A descendant that was reversed before is skipped, and its own
-     * descendants are still reversed when they are not. A `$manualBatchId` marks the first reversal only.
+     * descendants are still reversed when they are not. A `$manualBatchId` marks the first reversal only. A null actor
+     * is the system (a facility booking cancelled by a guest online or by the night audit's no-show).
      *
      * @return non-empty-list<FolioLine>
      */

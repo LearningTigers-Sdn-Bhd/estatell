@@ -38,6 +38,8 @@ export function CancelFacilityBookingDialog({
                     <AlertDialogDescription>
                         The facility becomes free for others at that time. To
                         book it again, make a new booking.
+                        {booking?.posted &&
+                            ' Its charge is already on the folio, so a reversal line takes it off.'}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 {booking && (

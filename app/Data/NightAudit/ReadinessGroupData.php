@@ -12,7 +12,9 @@ use Spatie\LaravelData\Data;
 
 /**
  * One row of the night audit sheet: every unit of one reservation that has the same problem, so a group booking is one
- * row, not one for each unit. A reservation with several units can be opened to see them one by one.
+ * row, not one for each unit. A reservation with several units can be opened to see them one by one. A facility
+ * booking the audit could not post is a row of its own, on its reservation or its event (`eventId`, no reservation).
+ * `key` names the row for the list.
  */
 class ReadinessGroupData extends Data
 {
@@ -26,9 +28,10 @@ class ReadinessGroupData extends Data
      * @param  bool  $flatUnits  Several carried exceptions on one unit show directly, without a toggle or group reasons.
      */
     public function __construct(
+        public string $key,
         public AuditCheck $check,
         public bool $blocker,
-        public int $reservationId,
+        public ?int $reservationId,
         public string $reference,
         public string $guest,
         public string $headline,
@@ -39,7 +42,16 @@ class ReadinessGroupData extends Data
         public array $units,
         public bool $openUnits = false,
         public bool $flatUnits = false,
+        public ?int $eventId = null,
     ) {}
+
+    /**
+     * The group an item belongs to: its check and reservation, or its own facility booking.
+     */
+    public static function keyFor(ReadinessItem $item): string
+    {
+        return $item->check->value.':'.($item->facilityBookingId !== null ? 'facility-'.$item->facilityBookingId : $item->reservationId);
+    }
 
     /**
      * @param  non-empty-list<ReadinessItem>  $items  Items of one check and one reservation.
@@ -48,6 +60,11 @@ class ReadinessGroupData extends Data
     {
         $first = $items[0];
         $check = $first->check;
+
+        if ($first->facilityBookingId !== null) {
+            return self::forFacility($first, $property, $advice);
+        }
+
         $count = count($items);
         $unitIds = array_values(array_filter(array_map(fn (ReadinessItem $item): int => (int) $item->reservationUnitId, $items)));
         $dates = array_values(array_unique(array_map(fn (ReadinessItem $item): string => $item->detail, $items)));
@@ -61,6 +78,7 @@ class ReadinessGroupData extends Data
         };
 
         return new self(
+            key: self::keyFor($first),
             check: $check,
             blocker: $check->isBlocker(),
             reservationId: $first->reservationId,
@@ -70,11 +88,11 @@ class ReadinessGroupData extends Data
             dates: count($dates) === 1 ? $dates[0] : '',
             consequence: $advice->consequence($check, $property, $first->dayUse),
             reasons: $check === AuditCheck::CarriedException && ! $flatUnits
-                ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->reason((string) $item->message), $items)))
+                ? array_values(array_unique(array_map(fn (ReadinessItem $item): string => $advice->exceptionReason($item->exceptionType ?? AuditExceptionType::UnexpectedError, (string) $item->message), $items)))
                 : [],
             actions: [
                 ...($count === 1 ? self::exceptionActions($first, $property) : []),
-                ...self::actions($check, $property, $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut, $first->folioId, array_any($items, fn (ReadinessItem $item): bool => $item->canExtend)),
+                ...self::actions($check, $property, (int) $first->reservationId, $count, $unitIds, $advice, null, true, $canCheckIn, $canCheckOut, $first->folioId, array_any($items, fn (ReadinessItem $item): bool => $item->canExtend)),
             ],
             units: $count === 1 ? [] : array_map(fn (ReadinessItem $item): ReadinessUnitData => new ReadinessUnitData(
                 unitId: (int) $item->reservationUnitId,
@@ -83,13 +101,43 @@ class ReadinessGroupData extends Data
                 reason: $item->message === null ? null : $advice->reason($item->message),
                 actions: [
                     ...self::exceptionActions($item, $property),
-                    ...self::actions($check, $property, $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false, $canCheckIn, $canCheckOut, null, $item->canExtend),
+                    ...self::actions($check, $property, (int) $item->reservationId, 1, [(int) $item->reservationUnitId], $advice, (int) $item->reservationUnitId, false, $canCheckIn, $canCheckOut, null, $item->canExtend),
                 ],
                 exceptionId: $item->exceptionId,
                 date: $item->exceptionDate,
             ), $items),
             openUnits: $check === AuditCheck::DepartureNotCheckedOut && $count > 1,
             flatUnits: $flatUnits,
+        );
+    }
+
+    /**
+     * One facility booking the audit could not post: Dismiss, and Open its event or the reservation's Facilities tab,
+     * where Post now is.
+     */
+    private static function forFacility(ReadinessItem $item, Property $property, ReadinessAdvice $advice): self
+    {
+        $open = $item->eventId !== null
+            ? route('events.bookings', ['property' => $property->code, 'event' => $item->eventId], absolute: false)
+            : route('reservations.facilities', ['property' => $property->code, 'reservation' => $item->reservationId], absolute: false);
+
+        return new self(
+            key: self::keyFor($item),
+            check: $item->check,
+            blocker: false,
+            reservationId: $item->reservationId,
+            reference: $item->reference,
+            guest: $item->guest ?? $item->reference,
+            headline: AuditExceptionType::Facility->label(),
+            dates: $item->detail,
+            consequence: null,
+            reasons: [$advice->exceptionReason(AuditExceptionType::Facility, (string) $item->message)],
+            actions: [
+                ...($item->exceptionId === null ? [] : [ReadinessActionData::dismiss($property, $item->exceptionId)]),
+                ReadinessActionData::link(__('Open'), $open),
+            ],
+            units: [],
+            eventId: $item->eventId,
         );
     }
 

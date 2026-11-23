@@ -103,7 +103,10 @@ class FolioStatement
         $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->assigned ?? $unit->roomType])->all();
         $folios = $this->folios($property, $reservation, array_keys($labels));
         $balances = $this->balances($folios);
-        $blocks = $this->scheduledRows->forReservation($property, $reservation, $labels);
+        $blocks = [
+            ...$this->scheduledRows->forReservation($property, $reservation, $labels),
+            ...$this->scheduledRows->forFacilityBookings($property, $folios->where('status', FolioStatus::Open)->pluck('id')->all()),
+        ];
 
         $entries = $folios->map(fn (Folio $folio): array => $this->entry((string) $folio->id, $folio, null, new FolioRailItemData(
             (string) $folio->id,
@@ -131,8 +134,8 @@ class FolioStatement
     }
 
     /**
-     * The Folio tab of an event: its one folio that is not Voided, with no units, no routing and no Scheduled rows
-     * (facility bookings add them later). Expects the property's `settings` to be loaded. `$can` takes the same keys
+     * The Folio tab of an event: its one folio that is not Voided, with no units and no routing. Its Scheduled rows are
+     * the facility bookings not posted yet. Expects the property's `settings` to be loaded. `$can` takes the same keys
      * as `build()`; moving charges, manual entry and price changes never apply. See
      * docs/33-facilities/03-events-and-event-folios.md.
      *
@@ -162,7 +165,7 @@ class FolioStatement
 
         return [
             'folios' => array_values($entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all()),
-            'folio' => $open === null ? null : $this->data($property, $event, $open, $entries, [], [], $balances, $can, [], $user),
+            'folio' => $open === null ? null : $this->data($property, $event, $open, $entries, [], $this->scheduledRows->forFacilityBookings($property, $folios->where('status', FolioStatus::Open)->pluck('id')->all()), $balances, $can, [], $user),
         ];
     }
 

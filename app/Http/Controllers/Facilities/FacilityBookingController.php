@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Facilities;
 
 use App\Actions\Facilities\BookFacility;
 use App\Actions\Facilities\CancelFacilityBooking;
+use App\Actions\Facilities\PostFacilityBooking;
 use App\Actions\Facilities\UpdateFacilityBooking;
 use App\Actions\Folio\CreateFolio;
 use App\Http\Controllers\Controller;
@@ -57,11 +58,29 @@ class FacilityBookingController extends Controller
         return back();
     }
 
-    public function cancel(Request $request, Property $property, FacilityBooking $facilityBooking, CancelFacilityBooking $cancelBooking): RedirectResponse
+    public function cancel(Request $request, Property $property, FacilityBooking $facilityBooking, CancelFacilityBooking $cancelBooking, FacilityBookingRefusals $refusals): RedirectResponse
     {
-        Inertia::flash('toast', $cancelBooking($request->user(), $facilityBooking)
-            ? ['type' => 'success', 'message' => __('Booking cancelled.')]
-            : ['type' => 'error', 'message' => __('This booking is already cancelled.')]);
+        $result = $cancelBooking($request->user(), $facilityBooking);
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => $refusals->message($result)]
+            : ['type' => 'success', 'message' => __('Booking cancelled.')]);
+
+        return back();
+    }
+
+    /**
+     * Post now: post a Confirmed booking to its folio before its date. The route also needs `folio.post-charge`.
+     */
+    public function post(Request $request, Property $property, FacilityBooking $facilityBooking, PostFacilityBooking $postBooking, FacilityBookingRefusals $refusals): RedirectResponse
+    {
+        $result = $postBooking($request->user(), $facilityBooking);
+
+        Inertia::flash('toast', match (true) {
+            $result->isRefused() => ['type' => 'error', 'message' => $refusals->postingMessage((string) $result->refusal)],
+            $result->replayed => ['type' => 'error', 'message' => __('This booking is already on the folio.')],
+            default => ['type' => 'success', 'message' => __('Charge posted to the folio.')],
+        });
 
         return back();
     }

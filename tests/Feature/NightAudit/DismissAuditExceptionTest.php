@@ -48,7 +48,7 @@ test('Dismiss resolves any carried exception with its actor and reason and posts
         ->and(FolioLine::query()->count())->toBe(0);
     $warnings = $this->getJson(route('night-audit.show', $setup['property']->code))->json('warnings');
     expect(array_column($warnings, 'check'))->not->toContain('carried_exception');
-})->with(AuditExceptionType::cases());
+})->with(array_values(array_filter(AuditExceptionType::cases(), fn (AuditExceptionType $type): bool => $type !== AuditExceptionType::Facility)));
 
 test('Dismiss resolves an exception with no unit and logs on the exception itself', function () {
     $setup = dismissSetup();

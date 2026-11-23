@@ -134,8 +134,8 @@ test('a run posts the night, marks the room dirty, closes the date and opens the
     expect($result->isCompleted())->toBeTrue()
         ->and($audit->status)->toBe(AuditStatus::Completed)
         ->and($audit->completed_at)->not->toBeNull()
-        ->and($audit->steps()->count())->toBe(8)
-        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(8)
+        ->and($audit->steps()->count())->toBe(9)
+        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(9)
         ->and($audit->steps()->where('step', AuditStep::PostRoomCharges->value)->sole()->processed_count)->toBe(1)
         ->and($dates->pluck('status')->all())->toBe([BusinessDateStatus::Closed, BusinessDateStatus::Open])
         ->and($dates->last()->date->toDateString())->toBe('2026-10-13')
@@ -202,7 +202,7 @@ test('a failed step stops the run and the next run resumes it without posting tw
         ->and(NightAudit::query()->count())->toBe(1)
         ->and(nightLineCount())->toBe(1)
         ->and($charges->fresh()->finished_at->equalTo($chargesFinishedAt))->toBeTrue()
-        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(8)
+        ->and($audit->steps()->where('status', AuditStepStatus::Completed->value)->count())->toBe(9)
         ->and($audit->businessDate->fresh()->status)->toBe(BusinessDateStatus::Closed);
 });
 
