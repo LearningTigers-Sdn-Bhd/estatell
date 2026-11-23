@@ -610,6 +610,23 @@ export function NightAuditSheet({
                         </section>
                     )}
 
+                    {sheet.posReview && (
+                        <Alert>
+                            <TriangleAlert />
+                            <AlertTitle>{sheet.posReview.message}</AlertTitle>
+                            {sheet.posReview.url && (
+                                <AlertDescription>
+                                    <Link
+                                        href={sheet.posReview.url}
+                                        className="underline"
+                                    >
+                                        Review POS postings
+                                    </Link>
+                                </AlertDescription>
+                            )}
+                        </Alert>
+                    )}
+
                     {!notEnded &&
                         sheet.blockers.length > 0 &&
                         !sheet.canForce && (

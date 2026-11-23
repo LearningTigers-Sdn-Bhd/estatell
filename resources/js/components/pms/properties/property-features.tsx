@@ -13,6 +13,7 @@ import {
     Globe,
     Lock,
     Ship,
+    Utensils,
     Tablet,
     ToggleRight,
 } from 'lucide-react';
@@ -62,6 +63,7 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     'e-invoicing': FileText,
     concierge: ConciergeBell,
     'bed-room-types': BedSingle,
+    'pos-integration': Utensils,
 };
 
 /** On and Off for the partner's read-only rows. */

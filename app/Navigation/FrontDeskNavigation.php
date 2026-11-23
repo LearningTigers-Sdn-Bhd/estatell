@@ -7,6 +7,7 @@ use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
 use App\Features\Boats;
+use App\Features\PosIntegration;
 use App\Models\Property;
 use App\Models\User;
 use Laravel\Pennant\Feature;
@@ -97,6 +98,12 @@ class FrontDeskNavigation
                     href: route('rates.calendar', ['property' => $property->code], absolute: false),
                     icon: 'calendar-range',
                     active: request()->routeIs('rates.*'),
+                ) : null,
+                $user->can(PermissionEnum::MealsRedeem->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
+                    title: __('Meal check-in'),
+                    href: route('restaurant.meal-check-in.index', ['property' => $property->code], absolute: false),
+                    icon: 'utensils',
+                    active: request()->routeIs('restaurant.meal-check-in.*'),
                 ) : null,
                 $property->status === PropertyStatus::Live && $user->can(PermissionEnum::NightAuditRun->value) ? new NavItemData(
                     title: __('Run Night Audit'),
