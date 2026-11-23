@@ -58,17 +58,17 @@ Facilities                                                    [+ Add facility]
 Halls, equipment and activities guests can book.
 ───────────────────────────────────────────────────────────────────────────────
 Available     Name             Booked by   How many    Rate (MYR)
-[on]          Riverside Hall   Item         1          1,500.00 per day       ⋯
-[on]          BBQ pit          Item         3            150.00 per session   ⋯
-[on]          Kayak            Item        10             40.00 per hour      ⋯
-[on]          Night Walk       Person      20             80.00 per person    ⋯
+[on]          Riverside Hall   Item         1          1,500.00 per day       ↑ ↓ Edit
+[on]          BBQ pit          Item         3            150.00 per session   ↑ ↓ Edit
+[on]          Kayak            Item        10             40.00 per hour      ↑ ↓ Edit
+[on]          Night Walk       Person      20             80.00 per person    ↑ ↓ Edit
 ```
 
 - The **Available** switch in the first column turns a facility on or off. Its charge item follows.
 - The name opens the [facility page](#facility-page).
-- Rows sort by `position`. **Move up** and **Move down** in the ⋯ menu change it, as on Rate plans. The Timeline View uses the same order.
+- Rows sort by `position`. The ↑ and ↓ buttons change it, as on Charge items. The Timeline View uses the same order.
 - **Rate** shows the charge item's amount and the rate basis, or "Charge by hand".
-- The **⋯** menu: **Open**, **Move up** and **Move down**.
+- **Edit** opens the facility page, as on Charge items. There is no ⋯ menu.
 
 ## Add facility (Sheet)
 

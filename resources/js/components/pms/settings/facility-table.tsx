@@ -1,15 +1,9 @@
 import { Link } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Ellipsis, ExternalLink, Tent } from 'lucide-react';
+import { ArrowDown, ArrowUp, Tent } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -22,7 +16,7 @@ import { show } from '@/routes/settings/facilities';
 
 type Facility = App.Data.Facilities.FacilityData;
 /**
- * The Facilities settings list in its saved order. Facilities that are off stay in place and are muted. With no
+ * The Facilities settings list in its saved order. Each row has Move up, Move down and Edit, like Charge items. Facilities that are off stay in place and are muted. With no
  * facilities the table keeps its header and shows the empty state in one row.
  */
 export function FacilityTable({
@@ -50,7 +44,7 @@ export function FacilityTable({
                         <TableHead className="text-right">
                             Rate{currency ? ` (${currency.code})` : ''}
                         </TableHead>
-                        <TableHead className="w-12">
+                        <TableHead>
                             <span className="sr-only">Actions</span>
                         </TableHead>
                     </TableRow>
@@ -118,58 +112,48 @@ export function FacilityTable({
                                 )}
                             </TableCell>
                             <TableCell>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger
-                                        render={
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                            />
+                                <div className="flex justify-end gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label={`Move ${facility.name} up`}
+                                        disabled={
+                                            position === 0 ||
+                                            busyIds.has(facility.id)
                                         }
-                                        aria-label={`Actions for ${facility.name}`}
-                                        disabled={busyIds.has(facility.id)}
+                                        onClick={() =>
+                                            onMove(position, position - 1)
+                                        }
                                     >
-                                        <Ellipsis />
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        align="end"
-                                        className="w-44"
+                                        <ArrowUp />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label={`Move ${facility.name} down`}
+                                        disabled={
+                                            position ===
+                                                facilities.length - 1 ||
+                                            busyIds.has(facility.id)
+                                        }
+                                        onClick={() =>
+                                            onMove(position, position + 1)
+                                        }
                                     >
-                                        <DropdownMenuItem
-                                            render={
-                                                <Link
-                                                    href={show.url({
-                                                        facility: facility.id,
-                                                    })}
-                                                />
-                                            }
-                                        >
-                                            <ExternalLink />
-                                            Open
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            disabled={position === 0}
-                                            onClick={() =>
-                                                onMove(position, position - 1)
-                                            }
-                                        >
-                                            <ArrowUp />
-                                            Move up
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            disabled={
-                                                position ===
-                                                facilities.length - 1
-                                            }
-                                            onClick={() =>
-                                                onMove(position, position + 1)
-                                            }
-                                        >
-                                            <ArrowDown />
-                                            Move down
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                        <ArrowDown />
+                                    </Button>
+                                    <Link
+                                        href={show.url({
+                                            facility: facility.id,
+                                        })}
+                                        className={buttonVariants({
+                                            variant: 'ghost',
+                                            size: 'sm',
+                                        })}
+                                    >
+                                        Edit
+                                    </Link>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))}
