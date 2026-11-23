@@ -59,9 +59,10 @@ class StaffProperties
      * saves the query for a user with one property, the usual case.
      *
      * @param  list<int>|null  $activePropertyIds
+     * @param  (\Closure(Property): bool)|null  $visible  Keeps only the properties it accepts (a support session's view-as check).
      * @return list<PropertySummaryData>
      */
-    public function switcherFor(User $user, Property $current, ?array $activePropertyIds = null): array
+    public function switcherFor(User $user, Property $current, ?array $activePropertyIds = null, ?\Closure $visible = null): array
     {
         $ids = array_values(array_diff($activePropertyIds ?? $this->activePropertyIds($user), [$current->id]));
 
@@ -75,6 +76,7 @@ class StaffProperties
             ->with('media')
             ->orderBy('name')
             ->get()
+            ->filter(fn (Property $property): bool => $visible === null || $visible($property))
             ->map(fn (Property $property): PropertySummaryData => PropertySummaryData::fromModel($property))
             ->all());
     }

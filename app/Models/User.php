@@ -21,6 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int $id
  * @property int|null $property_id The home property: where a staff user was invited. Null for admins, partner and company users.
  * @property int|null $last_property_id The property the staff user opened last, where sign-in lands.
+ * @property int|null $last_property_group_id The group the staff user last worked in (group mode); sign-in lands there while set.
  * @property int|null $partner_id
  * @property string $name
  * @property string $email

@@ -12,11 +12,14 @@ use App\Services\Staff\GroupProperties;
 use App\Services\Staff\StaffProperties;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The property menu on the navbar for a staff user with more than one property: the groups they may open in group
  * mode and the other properties they may open, and the group of a group-mode page. It reuses what the access
- * middleware already read for the request, so a user with one property costs no query. A support session sees none.
+ * middleware already read for the request, so a user with one property costs no query. In a support session (view as
+ * staff) it lists only what the support user may view as staff; picking another property goes through the view-as
+ * switch, which asks the reason again.
  * See docs/03-staff/04-property-groups.md and 05-group-mode.md.
  */
 class PropertySwitcher
@@ -36,7 +39,7 @@ class PropertySwitcher
     {
         $user = $request->user();
 
-        if ($user === null || $user->property_id === null || $this->impersonation->isActive()) {
+        if ($user === null || $user->property_id === null) {
             return [];
         }
 
@@ -49,7 +52,15 @@ class PropertySwitcher
             ));
         }
 
-        return $current === null ? [] : $this->staffProperties->switcherFor($user, $current, $this->activePropertyIds($request));
+        if ($current === null) {
+            return [];
+        }
+
+        if (! $this->impersonation->isActive()) {
+            return $this->staffProperties->switcherFor($user, $current, $this->activePropertyIds($request));
+        }
+
+        return $this->staffProperties->switcherFor($user, $current, null, fn (Property $property): bool => Gate::forUser($user)->allows('viewAs', $property));
     }
 
     /**
@@ -61,17 +72,19 @@ class PropertySwitcher
     {
         $user = $request->user();
 
-        if ($user === null || $user->property_id === null || $this->impersonation->isActive()) {
+        if ($user === null || $user->property_id === null) {
             return [];
         }
 
-        $ids = $this->activePropertyIds($request);
+        $impersonating = $this->impersonation->isActive();
+        $ids = $impersonating ? null : $this->activePropertyIds($request);
 
         if ($ids !== null && count($ids) < 2) {
             return [];
         }
 
         return array_values($this->groupProperties->groupsFor($user)
+            ->filter(fn (PropertyGroup $group): bool => ! $impersonating || $this->groupProperties->viewableAsStaff($user, $group))
             ->map(fn (PropertyGroup $group): array => ['id' => $group->id, 'name' => $group->name])
             ->all());
     }

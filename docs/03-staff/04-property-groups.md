@@ -39,7 +39,7 @@ The migration gave every existing staff user one membership at their home proper
 ## Switching
 
 - The property identity in the navbar becomes a menu when the user may open other properties (`propertySwitcher`, the other active memberships by name; suspended properties left out). Each item opens that property's dashboard.
-- Opening a property stores it in `users.last_property_id` (one write, only when it changes; not while a support user views as staff).
+- Opening a property stores it in `users.last_property_id` (one write, only when it changes; not while a support user views as staff; only on a page visit, not a hover prefetch or the logo image). It also clears the group of group mode (see 05-group-mode.md).
 - With no property in the URL (sign-in, account pages, the command palette, feature flags) the user works in `StaffProperties::defaultFor()`: the property opened last, else the home property, else the first by name, with an active membership. A user with none gets a 403 on the home redirect.
 
 ## Staff of a property

@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
  * that property (their home property, or one of its group they were given), a support user viewing it as staff (an
  * open impersonation session), or, for a GET by a user who may view the property as staff (an admin, or its partner),
  * a redirect to the view-as page. Staff who open another property have it remembered as `users.last_property_id`, where
- * sign-in lands next time. A non-GET request from such a user gets a 403,
+ * sign-in lands next time (clearing the group of group mode); only a page visit counts, not a prefetch or the logo image. A non-GET request from such a user gets a 403,
  * so a write is never replayed. Anyone else gets a 404, also staff deactivated at the property. See
  * docs/01-platform/04-impersonation.md#middleware and docs/03-staff/04-property-groups.md.
  */
@@ -60,9 +60,9 @@ class EnsurePropertyAccess
             return redirect()->route('view-as.show', ['property' => $property->code, 'to' => $request->getRequestUri()]);
         }
 
-        if (! $impersonating && $user->last_property_id !== $property->id) {
-            User::query()->whereKey($user->id)->toBase()->update(['last_property_id' => $property->id]);
-            $user->last_property_id = $property->id;
+        if (! $impersonating && $this->isPageVisit($request) && ($user->last_property_id !== $property->id || $user->last_property_group_id !== null)) {
+            User::query()->whereKey($user->id)->toBase()->update(['last_property_id' => $property->id, 'last_property_group_id' => null]);
+            $user->forceFill(['last_property_id' => $property->id, 'last_property_group_id' => null]);
         }
 
         setPermissionsTeamId($property->id);
@@ -79,5 +79,16 @@ class EnsurePropertyAccess
         }
 
         return $next($request);
+    }
+
+    /**
+     * A page the user opened: a GET that loads HTML or an Inertia page, not a hover prefetch nor an image (the property
+     * logo is served under the property's URL and shows on group pages).
+     */
+    private function isPageVisit(Request $request): bool
+    {
+        return $request->isMethod('GET')
+            && $request->header('Purpose') !== 'prefetch'
+            && ($request->hasHeader('X-Inertia') || str_contains((string) $request->header('Accept'), 'text/html'));
     }
 }

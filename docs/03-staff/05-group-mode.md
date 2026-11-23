@@ -10,7 +10,8 @@ A manager of more than one property of a group (Tanini: Sepilok and Kinabatangan
 
 - A staff user with an active membership at **two or more Live properties of one group**. Anyone else gets a 404 on `/g/{group}`, and the property menu offers no group.
 - What they see of each property follows **their role there** (`GroupProperties::permissionsFor()`, one query for all properties). A property where the role shows none of a page's figures says so instead.
-- A support session (view as staff) cannot open group mode: it covers one property.
+- A support session (view as staff) opens group mode only when the support user may view every property of the group as staff (an admin always may; a partner only for their own properties). The menu offers the staff member's other properties and groups the same way; opening another property goes through the view-as switch.
+- Opening group mode stores the group in `users.last_property_group_id`; sign-in lands back on the group dashboard while the user may still open two or more of its properties. Opening a property clears it. Only page visits count: a hover prefetch or the property logo image does not.
 - Single-property staff see no change anywhere.
 
 ## Navigation
@@ -55,13 +56,13 @@ Each property counts on its own business date, as its own dashboard does. Querie
 
 ## Code
 
-| Part                                                            | Role                                                                                 |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `GroupProperties`                                               | The groups a user may open, a group's properties for them, their permissions at each |
-| `EnsureGroupAccess`                                             | Lets in two or more Live properties, refuses support sessions                        |
-| `GroupNavigation`                                               | The group sidebar                                                                    |
-| `GroupDashboard`, `GroupDashboardController`, `group/dashboard` | The dashboard                                                                        |
-| `app-navbar.tsx`                                                | The group entries and identity                                                       |
+| Part                                                            | Role                                                                                   |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `GroupProperties`                                               | The groups a user may open, a group's properties for them, their permissions at each   |
+| `EnsureGroupAccess`                                             | Lets in two or more Live properties; a support session only where it may view them all |
+| `GroupNavigation`                                               | The group sidebar                                                                      |
+| `GroupDashboard`, `GroupDashboardController`, `group/dashboard` | The dashboard                                                                          |
+| `app-navbar.tsx`                                                | The group entries and identity                                                         |
 
 ## Tests
 
@@ -70,7 +71,8 @@ Each property counts on its own business date, as its own dashboard does. Querie
 - who may open group mode, and when suspending a property closes it
 - the menu entries
 - figures per role with the totals
-- support sessions refused
+- support sessions: admin allowed, partner of another property refused
+- sign-in lands back in group mode, not after a prefetch or the logo
 - the timeline's properties by role, and its date limit
 - the reports' sums and rates, left-out properties, the date limit and the CSV
 - a constant query count for the dashboard, the timeline and the reports

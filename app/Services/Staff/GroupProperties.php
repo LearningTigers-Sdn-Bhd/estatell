@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The properties of a group a staff user may see together in group mode (`/g/{group}`): Live properties of the group
@@ -47,6 +48,15 @@ class GroupProperties
         }
 
         return $this->openable($user)->where('property_group_id', $group->id)->with(['settings', 'media'])->orderBy('name')->get();
+    }
+
+    /**
+     * Whether a support user viewing this staff user may view every property of the group the staff user may open, so
+     * group mode can open in the support session (the view-as check asks the support user behind the session).
+     */
+    public function viewableAsStaff(User $user, PropertyGroup $group): bool
+    {
+        return $this->propertiesFor($user, $group)->every(fn (Property $property): bool => Gate::forUser($user)->allows('viewAs', $property));
     }
 
     /**

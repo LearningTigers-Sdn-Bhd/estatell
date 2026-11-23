@@ -121,7 +121,8 @@ class HandleInertiaRequests extends Middleware
         $supportUser = $impersonation->supportUser();
         $user = $request->user();
 
-        $property = $this->resolveProperty($request);
+        // In group mode the page has no property: the banner names the session's.
+        $property = $this->resolveProperty($request) ?? $impersonation->property();
 
         if ($supportUser === null || $user === null || $property === null) {
             return null;

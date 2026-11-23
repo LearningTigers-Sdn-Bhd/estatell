@@ -207,7 +207,7 @@ test('the access check and the switcher cost the same queries however many prope
     expect($four)->toBe($one);
 });
 
-test('a support session viewing a staff member covers only its own property, not their others', function () {
+test('a support session covers its own property; the menu offers the others, which open through the view-as switch', function () {
     $setup = groupSetup();
     grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
     $admin = User::factory()->admin()->create();
@@ -223,7 +223,10 @@ test('a support session viewing a staff member covers only its own property, not
     ]]);
 
     $this->get(route('dashboard', $setup['sepilok']->code))->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->where('propertySwitcher', []));
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('propertySwitcher', 1)
+            ->where('propertySwitcher.0.code', $setup['kinabatangan']->code)
+            ->where('groupSwitcher.0.name', 'Tanini'));
     $this->get(route('dashboard', $setup['kinabatangan']->code))->assertRedirect(route('view-as.show', ['property' => $setup['kinabatangan']->code, 'to' => "/p/{$setup['kinabatangan']->code}/dashboard"]));
     $this->post(route('settings.staff.access.store', $setup['kinabatangan']->code), ['user_id' => $setup['frontDesk']->id, 'role_id' => roleAt($setup['kinabatangan'], DefaultRoleEnum::FrontDesk)->id]);
 

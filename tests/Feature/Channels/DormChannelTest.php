@@ -24,7 +24,7 @@ use Carbon\CarbonImmutable;
  *
  * @return array{property: Property, dorm: RoomType, plan: RatePlan}
  */
-function dormSetup(): array
+function dormChannelSetup(): array
 {
     $property = channelProperty();
     $dorm = RoomType::factory()->for($property)->create(['name' => '6-Bed Dorm', 'sell_unit' => 'bed', 'max_adults' => 1, 'max_children' => 0, 'base_occupancy' => 1]);
@@ -36,7 +36,7 @@ function dormSetup(): array
 }
 
 test('a dorm goes to channels as one unit per active bed for one guest, with its per-bed plans', function () {
-    $setup = dormSetup();
+    $setup = dormChannelSetup();
     $capability = app(ChannelCapability::class);
     $mapper = app(ChannexStructureMapper::class);
     $result = $capability->forPair($setup['dorm'], $setup['plan']);
@@ -64,7 +64,7 @@ test('a dorm goes to channels as one unit per active bed for one guest, with its
 });
 
 test('a dorm refuses other plans, a room type refuses per-bed plans, and a dorm with no bed is not sent', function () {
-    $setup = dormSetup();
+    $setup = dormChannelSetup();
     $capability = app(ChannelCapability::class);
     $roomPlan = channelRatePlan($setup['property'], [$setup['dorm']], 'Room rate');
     $room = channelRoomType($setup['property']);
@@ -76,7 +76,7 @@ test('a dorm refuses other plans, a room type refuses per-bed plans, and a dorm 
 });
 
 test('a dorm sends the bed price at occupancy one and its free beds', function () {
-    $setup = dormSetup();
+    $setup = dormChannelSetup();
     channelRate($setup['plan'], $setup['dorm'], '2026-10-14', '45.00');
     $values = app(ChannelAriValues::class);
     $from = CarbonImmutable::parse('2026-10-14');
@@ -86,7 +86,7 @@ test('a dorm sends the bed price at occupancy one and its free beds', function (
 });
 
 test('a room of an OTA booking for a dorm is one bed for one guest', function () {
-    $setup = dormSetup();
+    $setup = dormChannelSetup();
     $channelProperty = channelSyncedProperty($setup['property']);
     ChannelRatePlanMapping::factory()->create([
         'channel_property_id' => $channelProperty->id,
@@ -113,7 +113,7 @@ test('a room of an OTA booking for a dorm is one bed for one guest', function ()
 });
 
 test('native dorm stays off until it is verified, whatever the platform default says', function () {
-    $setup = dormSetup();
+    $setup = dormChannelSetup();
     PlatformSetting::query()->update(['default_dorm_strategy' => DormStrategy::NativeDorm->value]);
     cache()->flush();
 
