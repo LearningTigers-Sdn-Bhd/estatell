@@ -9,6 +9,7 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import {
     chargedByHand,
     EventFacilityLines,
+    newFacilityLine,
 } from '@/components/pms/events/event-facility-lines';
 import type { FacilityLine } from '@/components/pms/events/event-facility-lines';
 import { NewEventSummary } from '@/components/pms/events/new-event-summary';
@@ -57,11 +58,13 @@ type Props = {
     companies: App.Data.CityLedger.CompanyOptionData[];
     /** Tentative and Confirmed. */
     statuses: EnumOption[];
-    /** Both dates start here, `Y-m-d`: the business date. */
+    /** Both dates start here, `Y-m-d`: the business date, or `?date=` from Book facility on the Timeline. */
     defaultDate: string;
     /** `facilities.book`: the page shows facility lines. */
     canBook: boolean;
     facilities: App.Data.Facilities.FacilityOptionData[];
+    /** `?facility=` from Book facility on the Timeline: the page starts with one line for it. */
+    defaultFacilityId: number | null;
     currency: App.Data.Property.CurrencyData | null;
 };
 
@@ -135,8 +138,12 @@ export default function EventCreate({
     defaultDate,
     canBook,
     facilities,
+    defaultFacilityId,
     currency,
 }: Props) {
+    const startFacility = facilities.find(
+        (facility) => facility.id === defaultFacilityId,
+    );
     const form = useForm<{
         name: string;
         payerType: PayerType;
@@ -156,7 +163,15 @@ export default function EventCreate({
         endsOn: defaultDate,
         status: 'confirmed',
         notes: '',
-        bookings: [],
+        bookings: startFacility
+            ? [
+                  {
+                      ...newFacilityLine(defaultDate),
+                      facility_id: String(startFacility.id),
+                      unit_amount: startFacility.listPrice ?? '',
+                  },
+              ]
+            : [],
     });
     const { data } = form;
     const errors = form.errors as Partial<Record<string, string>>;

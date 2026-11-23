@@ -2,6 +2,7 @@
 
 namespace App\Services\Facilities;
 
+use App\Data\Facilities\ChargeToOptionData;
 use App\Data\Facilities\FacilityBookingRowData;
 use App\Data\Facilities\FacilityOptionData;
 use App\Enums\FacilityBookingStatus;
@@ -49,7 +50,6 @@ class ReservationFacilityBookings
             ->orderByRaw('status = ?', [FacilityBookingStatus::Cancelled->value])
             ->ordered()
             ->get();
-        $facilities = $canBook ? $this->facilities($property) : new Collection;
         $posted = $this->charge->postedIds($bookings);
         $canPost = $user->can(PermissionEnum::FolioPostCharge->value);
 
@@ -66,6 +66,23 @@ class ReservationFacilityBookings
                 ->all(),
             'canBookFacility' => $canBook,
             'canCreateChargeToFolio' => $canBook && $user->can(PermissionEnum::FolioTransfer->value),
+            ...$this->sheetProps($property, $reservation, $unitLabels, $canBook),
+        ];
+    }
+
+    /**
+     * What the Book facility Sheet needs for a reservation: the active facilities, the Charge to options, the routed
+     * folio of each facility (`defaultChargeTo`, by facility id) and the default date. Empty when `$canBook` is false.
+     * The reservation Facilities tab and the Timeline's Book facility both use it.
+     *
+     * @param  array<int, string>  $unitLabels  Unit label by unit id
+     * @return array{facilities: list<FacilityOptionData>, chargeToOptions: list<ChargeToOptionData>, defaultChargeTo: array<int, string|null>, facilityDefaultDate: string}
+     */
+    public function sheetProps(Property $property, Reservation $reservation, array $unitLabels, bool $canBook = true): array
+    {
+        $facilities = $canBook ? $this->facilities($property) : new Collection;
+
+        return [
             'facilities' => array_values($facilities->map(fn (Facility $facility): FacilityOptionData => FacilityOptionData::fromModel($facility))->all()),
             'chargeToOptions' => $canBook ? $this->chargeTo->options($reservation, $unitLabels) : [],
             'defaultChargeTo' => $facilities->mapWithKeys(fn (Facility $facility): array => [$facility->id => $this->chargeTo->defaultFor($reservation, $facility)])->all(),

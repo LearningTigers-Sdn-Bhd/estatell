@@ -8,7 +8,7 @@ Show facility bookings next to the rooms, on one screen, like Bookinglayer's res
 
 ## Facilities section on the Timeline View
 
-> **Built** (item 7). **+ Book facility** in the peek is item 7b.
+> **Built** (items 7 and 7b).
 
 The [Timeline View](../18-front-desk/03-stay-view.md#timeline-view-screen) gets a **Facilities** section after the room rows, above the sticky **Available** footer. There is no separate facilities board.
 
@@ -57,9 +57,34 @@ A click on a facility cell opens a Popover, like the stay peek.
 - Each line links to its event (`events.view`) or reservation's Facilities tab (`reservations.view`). Without the permission the line shows with no link.
 - The peek loads that day's bookings from `GET front-desk/facilities/{facility}/days/{date}` (`front-desk.facilities.day`, `FacilityDayLineData`), like the stay peek loads its folio. The route needs `front-desk.view` and the `facilities` middleware. The cell data does not carry the lines.
 
-### + Book facility (item 7b)
+### Book facility from the Timeline
 
-**+ Book facility** in the peek opens the [Book facility](04-facility-bookings.md#book-facility-sheet) Sheet with the facility and date filled in. From the Timeline, staff pick the owner first: **Event** (an existing event, or a new one) or **Reservation** (search by guest, reference or room).
+Staff with `facilities.book` see **+ Book facility** in the peek. It closes the peek and opens a Sheet on the **For** step.
+
+```
+┌ Book BBQ pit ──────────────────────────┐
+│ Tue 20 Oct. Who is the booking for?    │
+│ For   [● Reservation] [○ Event]        │
+│ Reservation                            │
+│ [ lee                              ⌄ ] │
+│   Lee Wei · ES-2041                    │
+│   Deluxe · 101 · 18–21 Oct             │
+│                       [Cancel] [Next]  │
+└────────────────────────────────────────┘
+```
+
+| For         | How staff pick                                                                                                                                                                               | Needs               |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Reservation | Search by booker name, reference or room (2 letters or more, up to 5). Only reservations with a Confirmed or In-house unit                                                                   | `reservations.view` |
+| Event       | A list of the Tentative and Confirmed events on the date. **+ New event** (`events.manage`) opens the [New event page](03-events-and-event-folios.md#new-event-page) with `?date=&facility=` | `events.view`       |
+
+A choice the user lacks the permission for does not show.
+
+**Next** swaps the Sheet for the [Book facility](04-facility-bookings.md#book-facility-sheet) Sheet with the facility, date and owner filled in. A **For** row names the owner, and **Change** goes back to the For step. Book saves through `facility-bookings.store`, which checks again, and the Timeline reloads with the new cell.
+
+**Decided:** **+ New third-party folio…** is not offered from the Timeline. The Sheet's Charge to options come from one request when the reservation is picked, and a new folio would need them again. Staff make a third-party folio on the reservation's Facilities tab.
+
+The For step reads `FacilityOwnerSearch` (a Service in this module) through `FacilityOwnerController`. See [Routes](04-facility-bookings.md#routes).
 
 ## Facility bookings report
 

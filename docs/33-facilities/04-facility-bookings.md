@@ -182,14 +182,19 @@ The same table on the event page, without the Charge to column (always the event
 
 ## Routes
 
-Need `facilities.book` and the `Facilities` feature. The Facilities tab needs `reservations.view` instead. The folio route also needs `folio.transfer`, and Post now (`facility-bookings.post`) needs `folio.post-charge`.
+Need `facilities.book` and the `Facilities` feature. The Facilities tab needs `reservations.view` instead. `ReservationFacilityBookings::sheetProps` builds the Sheet's facilities, Charge to options and default date for both the tab and the Timeline. The folio route also needs `folio.transfer`, and Post now (`facility-bookings.post`) needs `folio.post-charge`.
 
-| Route                                                                | Name                             |
-| -------------------------------------------------------------------- | -------------------------------- |
-| `GET /p/{code}/reservations/{reservation}/facilities`                | `reservations.facilities`        |
-| `POST /p/{code}/facility-bookings/reservations/{reservation}/folios` | `facility-bookings.folios.store` |
-| `POST /p/{code}/facility-bookings`                                   | `facility-bookings.store`        |
-| `POST /p/{code}/facility-bookings/quote`                             | `facility-bookings.quote`        |
-| `PUT /p/{code}/facility-bookings/{facilityBooking}`                  | `facility-bookings.update`       |
-| `POST /p/{code}/facility-bookings/{facilityBooking}/post`            | `facility-bookings.post`         |
-| `POST /p/{code}/facility-bookings/{facilityBooking}/cancel`          | `facility-bookings.cancel`       |
+| Route                                                                | Name                                    |
+| -------------------------------------------------------------------- | --------------------------------------- |
+| `GET /p/{code}/reservations/{reservation}/facilities`                | `reservations.facilities`               |
+| `POST /p/{code}/facility-bookings/reservations/{reservation}/folios` | `facility-bookings.folios.store`        |
+| `POST /p/{code}/facility-bookings`                                   | `facility-bookings.store`               |
+| `POST /p/{code}/facility-bookings/quote`                             | `facility-bookings.quote`               |
+| `PUT /p/{code}/facility-bookings/{facilityBooking}`                  | `facility-bookings.update`              |
+| `POST /p/{code}/facility-bookings/{facilityBooking}/post`            | `facility-bookings.post`                |
+| `POST /p/{code}/facility-bookings/{facilityBooking}/cancel`          | `facility-bookings.cancel`              |
+| `GET /p/{code}/facility-bookings/owners/reservations?q=`             | `facility-bookings.owners.reservations` |
+| `GET /p/{code}/facility-bookings/owners/reservations/{reservation}`  | `facility-bookings.owners.reservation`  |
+| `GET /p/{code}/facility-bookings/owners/events?date=`                | `facility-bookings.owners.events`       |
+
+The three `owners.*` routes are the [Timeline's For step](05-timeline-and-report.md#book-facility-from-the-timeline). They answer JSON. The two reservation routes also need `reservations.view`, and the events route `events.view`.

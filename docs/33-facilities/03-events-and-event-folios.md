@@ -70,6 +70,8 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
 
 **Decided 2026-11-23 (later):** the page looks like New reservation. The Event section, then underline tabs (**Facilities**, **Notes**), the facility lines as one table with a header row and a footer, and the guest payer as one guest row like the booker of the booking form. **New guest** is gone: the guest row finds a guest or adds a new one.
 
+`?date=Y-m-d&facility={id}` starts both dates on that date and adds one facility line for that facility, at its list price. **+ New event** on the [Timeline's For step](05-timeline-and-report.md#book-facility-from-the-timeline) links here this way. A value that does not parse, or a facility of another property, is ignored.
+
 ```
 ← New event
   A bill for people who are not staying: a wedding dinner, a meeting or a walk-in lunch. It gets its own folio.

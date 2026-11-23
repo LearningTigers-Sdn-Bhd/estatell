@@ -69,6 +69,12 @@ type Props = {
     /** The booking to edit. Without it the Sheet books a new one. */
     booking?: Booking;
     currency: App.Data.Property.CurrencyData | null;
+    /** A new booking starts on this facility (by id) and this date, as Book facility on the Timeline does. */
+    initialFacilityId?: number;
+    initialDate?: string;
+    /** Shows "For {ownerLabel}" with **Change**, which goes back to the Timeline's For step. */
+    ownerLabel?: string;
+    onChangeOwner?: () => void;
 };
 
 type FormData = {
@@ -95,19 +101,37 @@ function BookFacilityForm({
     facilities,
     booking,
     currency,
+    initialFacilityId,
+    initialDate,
+    ownerLabel,
+    onChangeOwner,
 }: Props) {
     const isReservation = owner.type === 'reservation';
+    const startFacility = booking
+        ? undefined
+        : facilities.find((one) => one.id === initialFacilityId);
     const form = useForm<FormData>({
-        facility_id: booking ? String(booking.facilityId) : '',
+        facility_id: booking
+            ? String(booking.facilityId)
+            : startFacility
+              ? String(startFacility.id)
+              : '',
         booking_date:
             booking?.bookingDate ??
+            initialDate ??
             (owner.type === 'event' ? owner.startsOn : owner.defaultDate),
         starts_at: booking?.startsAt ?? '',
         ends_at: booking?.endsAt ?? '',
         quantity: booking ? String(booking.quantity) : '1',
-        unit_amount: booking?.unitAmount ?? '',
+        unit_amount: booking?.unitAmount ?? startFacility?.listPrice ?? '',
         notes: booking?.notes ?? '',
-        charge_to: booking?.chargeTo ?? '',
+        charge_to:
+            booking?.chargeTo ??
+            (startFacility && owner.type === 'reservation'
+                ? (owner.defaultChargeTo[String(startFacility.id)] ??
+                  owner.chargeToOptions[0]?.value ??
+                  '')
+                : ''),
     });
     const { data, setData } = form;
     const [step, setStep] = useState<'booking' | 'payer'>('booking');
@@ -469,6 +493,24 @@ function BookFacilityForm({
             }
         >
             <FieldGroup>
+                {ownerLabel !== undefined && (
+                    <Field orientation="horizontal">
+                        <FieldLabel>For</FieldLabel>
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                            {ownerLabel}
+                        </span>
+                        {onChangeOwner && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={onChangeOwner}
+                            >
+                                Change
+                            </Button>
+                        )}
+                    </Field>
+                )}
                 <Field data-invalid={!!errors.facility_id}>
                     <FieldLabel htmlFor="booking-facility">Facility</FieldLabel>
                     <EnumSelect

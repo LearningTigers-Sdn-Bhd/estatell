@@ -50,7 +50,8 @@ function dayLabel(date: string): string {
 }
 
 /**
- * One facility on one date. A click opens the day peek, which loads that day's bookings when it opens.
+ * One facility on one date. A click opens the day peek, which loads that day's bookings when it opens, and offers
+ * **+ Book facility** to staff with `facilities.book`.
  */
 export function FacilityDayCell({
     facility,
@@ -59,6 +60,7 @@ export function FacilityDayCell({
     hasBookings,
     canViewReservations,
     canViewEvents,
+    onBook,
 }: {
     facility: Facility;
     date: string;
@@ -66,6 +68,8 @@ export function FacilityDayCell({
     hasBookings: boolean;
     canViewReservations: boolean;
     canViewEvents: boolean;
+    /** Shows **+ Book facility**, which closes the peek and opens the Book facility Sheet. */
+    onBook?: (facility: Facility, date: string) => void;
 }) {
     const [open, setOpen] = useState(false);
 
@@ -111,6 +115,19 @@ export function FacilityDayCell({
                     <p className="text-xs text-muted-foreground">
                         {view.title}.
                     </p>
+                )}
+                {onBook && (
+                    <Button
+                        type="button"
+                        size="sm"
+                        className="self-end"
+                        onClick={() => {
+                            setOpen(false);
+                            onBook(facility, date);
+                        }}
+                    >
+                        + Book facility
+                    </Button>
                 )}
             </PopoverContent>
         </Popover>
@@ -177,11 +194,7 @@ function FacilityDayLines({
     }
 
     if (state.lines.length === 0) {
-        return (
-            <p className="text-sm text-muted-foreground">
-                No bookings. Book from an event or a reservation.
-            </p>
-        );
+        return <p className="text-sm text-muted-foreground">No bookings.</p>;
     }
 
     return (

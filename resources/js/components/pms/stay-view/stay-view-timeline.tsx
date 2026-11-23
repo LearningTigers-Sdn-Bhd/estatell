@@ -81,6 +81,7 @@ export function StayViewTimeline({
     currency,
     canViewReservations,
     canViewEvents,
+    onBookFacility,
     canManageReservations,
     canOverrideRestrictions,
     canWaiveFees,
@@ -106,6 +107,11 @@ export function StayViewTimeline({
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
     canViewEvents: boolean;
+    /** Opens Book facility for a facility and date. Left out without `facilities.book`. */
+    onBookFacility?: (
+        facility: App.Data.Facilities.FacilityTimelineRowData,
+        date: string,
+    ) => void;
     canManageReservations: boolean;
     canOverrideRestrictions: boolean;
     canWaiveFees: boolean;
@@ -413,6 +419,7 @@ export function StayViewTimeline({
                             )}
                             canViewReservations={canViewReservations}
                             canViewEvents={canViewEvents}
+                            onBook={onBookFacility}
                         />
                     ) : row.kind === 'row' &&
                       row.room !== null &&

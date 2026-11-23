@@ -1712,6 +1712,19 @@ rateBasisLabel: string,
 listPrice: string | null,
 sessions: App.Data.Facilities.FacilitySessionData[],
 };
+export type FacilityOwnerEventData = {
+id: number,
+name: string,
+number: string,
+startsOn: string,
+endsOn: string,
+payerName: string,
+};
+export type FacilityOwnerReservationData = {
+id: number,
+label: string,
+detail: string,
+};
 export type FacilityQuoteTaxData = {
 name: string,
 amount: string,

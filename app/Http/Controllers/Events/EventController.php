@@ -22,6 +22,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Events\EventRequest;
+use App\Http\Requests\Events\NewEventRequest;
 use App\Http\Requests\Events\QuoteEventLinesRequest;
 use App\Models\ArInvoice;
 use App\Models\Event;
@@ -77,13 +78,15 @@ class EventController extends Controller
      * New event: a full page with its facility lines. Staff without `facilities.book` get no lines. See
      * docs/33-facilities/03-events-and-event-folios.md#new-event-page.
      */
-    public function create(Request $request, Property $property, CompanyOptions $companies): Response
+    public function create(NewEventRequest $request, Property $property, CompanyOptions $companies): Response
     {
         $user = $request->user();
         $canViewCompany = $user->can(PermissionEnum::CompanyView->value);
         $canBook = $user->can(PermissionEnum::FacilitiesBook->value);
 
         $canManageGuests = $user->can(PermissionEnum::GuestsManage->value);
+        $facilities = $canBook ? $this->facilityOptions($property) : [];
+        $prefill = $request->prefill();
 
         return Inertia::render('events/create', [
             'canManageGuests' => $canManageGuests,
@@ -96,9 +99,10 @@ class EventController extends Controller
             'canViewCompany' => $canViewCompany,
             'companies' => $canViewCompany ? $companies->active($property) : [],
             'statuses' => EventStatus::newEventOptions(),
-            'defaultDate' => (app(CurrentBusinessDate::class)->date($property) ?? app(PropertyToday::class)->date($property))->toDateString(),
+            'defaultDate' => $prefill['date'] ?? (app(CurrentBusinessDate::class)->date($property) ?? app(PropertyToday::class)->date($property))->toDateString(),
             'canBook' => $canBook,
-            'facilities' => $canBook ? $this->facilityOptions($property) : [],
+            'facilities' => $facilities,
+            'defaultFacilityId' => collect($facilities)->contains(fn (FacilityOptionData $facility): bool => $facility->id === $prefill['facility']) ? $prefill['facility'] : null,
             'currency' => CurrencyData::forProperty($property),
         ]);
     }
