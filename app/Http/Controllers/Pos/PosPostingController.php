@@ -18,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\LaravelData\PaginatedDataCollection;
 
 class PosPostingController extends Controller
 {
@@ -33,7 +34,7 @@ class PosPostingController extends Controller
             ->withQueryString();
 
         return Inertia::render('finance/pos-postings/index', [
-            'postings' => PosPostingRowData::collect($postings->through(PosPostingRowData::fromModel(...))),
+            'postings' => PosPostingRowData::collect($postings->through(PosPostingRowData::fromModel(...)), PaginatedDataCollection::class),
             'status' => $status?->value,
             'statuses' => PosPostingStatus::options(),
             'currency' => CurrencyData::forProperty($property),
