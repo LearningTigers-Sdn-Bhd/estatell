@@ -32,6 +32,8 @@ export function FacilityTable({
     onMove: (from: number, to: number) => void;
     onToggleActive: (facility: Facility, active: boolean) => void;
 }) {
+    const activeFacilities = facilities.filter((facility) => facility.active);
+
     return (
         <div className="overflow-auto rounded-lg border">
             <Table>
@@ -61,102 +63,119 @@ export function FacilityTable({
                             </TableCell>
                         </TableRow>
                     )}
-                    {facilities.map((facility, position) => (
-                        <TableRow
-                            key={facility.id}
-                            className={
-                                facility.active
-                                    ? undefined
-                                    : 'text-muted-foreground'
-                            }
-                        >
-                            <TableCell>
-                                <Switch
-                                    size="sm"
-                                    checked={facility.active}
-                                    disabled={busyIds.has(facility.id)}
-                                    aria-label={`Make ${facility.name} ${facility.active ? 'unavailable' : 'available'}`}
-                                    onCheckedChange={(active) =>
-                                        onToggleActive(facility, active)
-                                    }
-                                />
-                            </TableCell>
-                            <TableCell className="font-medium">
-                                <Link
-                                    href={show.url({ facility: facility.id })}
-                                    className="underline-offset-4 hover:underline"
-                                >
-                                    {facility.name}
-                                </Link>
-                            </TableCell>
-                            <TableCell>{facility.bookedByLabel}</TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {facility.capacity} {facility.unitLabel}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                {facility.amount === null ? (
-                                    <span className="text-muted-foreground">
-                                        Charge by hand
-                                    </span>
-                                ) : (
-                                    <>
-                                        <MoneyText
-                                            amount={facility.amount}
-                                            currency={currency}
-                                            plain
-                                        />{' '}
-                                        <span className="text-muted-foreground">
-                                            {facility.rateBasisLabel.toLowerCase()}
-                                        </span>
-                                    </>
-                                )}
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex justify-end gap-1">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        aria-label={`Move ${facility.name} up`}
-                                        disabled={
-                                            position === 0 ||
-                                            busyIds.has(facility.id)
+                    {facilities.map((facility) => {
+                        const position = activeFacilities.indexOf(facility);
+
+                        return (
+                            <TableRow
+                                key={facility.id}
+                                className={
+                                    facility.active
+                                        ? undefined
+                                        : 'text-muted-foreground'
+                                }
+                            >
+                                <TableCell>
+                                    <Switch
+                                        size="sm"
+                                        checked={facility.active}
+                                        disabled={busyIds.has(facility.id)}
+                                        aria-label={`Make ${facility.name} ${facility.active ? 'unavailable' : 'available'}`}
+                                        onCheckedChange={(active) =>
+                                            onToggleActive(facility, active)
                                         }
-                                        onClick={() =>
-                                            onMove(position, position - 1)
-                                        }
-                                    >
-                                        <ArrowUp />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        aria-label={`Move ${facility.name} down`}
-                                        disabled={
-                                            position ===
-                                                facilities.length - 1 ||
-                                            busyIds.has(facility.id)
-                                        }
-                                        onClick={() =>
-                                            onMove(position, position + 1)
-                                        }
-                                    >
-                                        <ArrowDown />
-                                    </Button>
+                                    />
+                                </TableCell>
+                                <TableCell className="font-medium">
                                     <Link
                                         href={show.url({
                                             facility: facility.id,
                                         })}
-                                        className={buttonVariants({
-                                            variant: 'ghost',
-                                            size: 'sm',
-                                        })}
+                                        className="underline-offset-4 hover:underline"
                                     >
-                                        Edit
+                                        {facility.name}
                                     </Link>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                                </TableCell>
+                                <TableCell>{facility.bookedByLabel}</TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                    {facility.capacity} {facility.unitLabel}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {facility.amount === null ? (
+                                        <span className="text-muted-foreground">
+                                            Charge by hand
+                                        </span>
+                                    ) : (
+                                        <>
+                                            <MoneyText
+                                                amount={facility.amount}
+                                                currency={currency}
+                                                plain
+                                            />{' '}
+                                            <span className="text-muted-foreground">
+                                                {facility.rateBasisLabel.toLowerCase()}
+                                            </span>
+                                        </>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex justify-end gap-1">
+                                        {facility.active && (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Move ${facility.name} up`}
+                                                    disabled={
+                                                        position === 0 ||
+                                                        busyIds.has(facility.id)
+                                                    }
+                                                    onClick={() =>
+                                                        onMove(
+                                                            position,
+                                                            position - 1,
+                                                        )
+                                                    }
+                                                >
+                                                    <ArrowUp />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Move ${facility.name} down`}
+                                                    disabled={
+                                                        position ===
+                                                            activeFacilities.length -
+                                                                1 ||
+                                                        busyIds.has(facility.id)
+                                                    }
+                                                    onClick={() =>
+                                                        onMove(
+                                                            position,
+                                                            position + 1,
+                                                        )
+                                                    }
+                                                >
+                                                    <ArrowDown />
+                                                </Button>
+                                            </>
+                                        )}
+                                        <Link
+                                            href={show.url({
+                                                facility: facility.id,
+                                            })}
+                                            className={buttonVariants({
+                                                variant: 'ghost',
+                                                size: 'sm',
+                                            })}
+                                        >
+                                            Edit
+                                        </Link>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
                 </TableBody>
             </Table>
         </div>

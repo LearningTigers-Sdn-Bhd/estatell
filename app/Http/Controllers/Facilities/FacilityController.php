@@ -34,6 +34,7 @@ class FacilityController extends Controller
             'facilities' => $property->facilities()
                 ->with('chargeItem.transactionCode.applicableTaxes')
                 ->withCount('sessions')
+                ->orderByDesc('active')
                 ->ordered()
                 ->get()
                 ->map(fn (Facility $facility): FacilityData => FacilityData::fromModel($facility))

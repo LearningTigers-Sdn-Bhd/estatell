@@ -44,17 +44,23 @@ export default function FacilitiesIndex({
             return next;
         });
 
+    /** Moves among the available facilities only; unavailable ones stay after them, as on Charge items. */
     const move = (from: number, to: number) => {
-        const order = facilities.map((facility) => facility.id);
+        const order = facilities
+            .filter((facility) => facility.active)
+            .map((facility) => facility.id);
         order.splice(to, 0, ...order.splice(from, 1));
 
         router
             .optimistic<{ facilities: Facility[] }>((props) => ({
-                facilities: order
-                    .map((id) =>
-                        props.facilities.find((item) => item.id === id),
-                    )
-                    .filter((item): item is Facility => item !== undefined),
+                facilities: [
+                    ...order
+                        .map((id) =>
+                            props.facilities.find((item) => item.id === id),
+                        )
+                        .filter((item): item is Facility => item !== undefined),
+                    ...props.facilities.filter((item) => !item.active),
+                ],
             }))
             .put(reorder.url(), { order }, { preserveScroll: true });
     };

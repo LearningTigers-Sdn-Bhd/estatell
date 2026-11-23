@@ -66,7 +66,7 @@ Available     Name             Booked by   How many    Rate (MYR)
 
 - The **Available** switch in the first column turns a facility on or off. Its charge item follows.
 - The name opens the [facility page](#facility-page).
-- Rows sort by `position`. The ↑ and ↓ buttons change it, as on Charge items. The Timeline View uses the same order.
+- Available facilities come first, sorted by `position`; unavailable ones follow, muted, with no ↑ ↓ buttons, as on Charge items. The ↑ and ↓ buttons order the available ones only. The Timeline View uses the same order.
 - **Rate** shows the charge item's amount and the rate basis, or "Charge by hand".
 - **Edit** opens the facility page, as on Charge items. There is no ⋯ menu.
 

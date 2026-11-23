@@ -11,14 +11,16 @@ class ReorderFacilities
     /**
      * Set the order of the property's facilities, which the Timeline View also uses.
      *
-     * Returns false, and saves nothing, unless the ids are exactly the property's facilities.
+     * Only available facilities are ordered, as Settings › Facilities lists them; unavailable ones keep their position
+     * and are listed after them, like Charge items. Returns false, and saves nothing, unless the ids are exactly the
+     * property's available facilities.
      *
      * @param  list<int>  $orderedIds
      */
     public function __invoke(Property $property, User $actor, array $orderedIds): bool
     {
         return DB::transaction(function () use ($property, $actor, $orderedIds): bool {
-            $current = $property->facilities()->lockForUpdate()->pluck('id')->all();
+            $current = $property->facilities()->where('active', true)->lockForUpdate()->pluck('id')->all();
 
             if (count($orderedIds) !== count($current) || array_diff($orderedIds, $current) !== [] || array_diff($current, $orderedIds) !== []) {
                 return false;

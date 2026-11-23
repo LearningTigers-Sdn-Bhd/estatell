@@ -135,19 +135,22 @@ test('a facility needs a free name and a rate unless it is charged by hand', fun
     expect(Facility::query()->where('name', 'Riverside Hall')->sole()->chargeItem->default_amount)->toBeNull();
 });
 
-test('reorder saves the order of all facilities and refuses a stale list', function () {
+test('the list shows available facilities first, and reorder orders only those', function () {
     ['owner' => $owner, 'property' => $property] = facilitySetup();
-    [$first, $second, $third] = Facility::factory()->for($property)->count(3)->sequence(['position' => 1], ['position' => 2], ['position' => 3])->create();
-    $third->update(['active' => false]);
+    [$off, $first, $second] = Facility::factory()->for($property)->count(3)->sequence(['position' => 1], ['position' => 2], ['position' => 3])->create();
+    $off->update(['active' => false]);
     $this->actingAs($owner);
 
-    $this->put(route('settings.facilities.reorder', $property->code), ['order' => [$third->id, $first->id, $second->id]])
-        ->assertSessionHasNoErrors();
-    expect([$third->refresh()->position, $first->refresh()->position, $second->refresh()->position])->toBe([1, 2, 3]);
+    $this->get(route('settings.facilities.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('facilities', fn ($rows) => collect($rows)->pluck('id')->all() === [$first->id, $second->id, $off->id]));
 
     $this->put(route('settings.facilities.reorder', $property->code), ['order' => [$second->id, $first->id]])
+        ->assertSessionHasNoErrors();
+    expect([$second->refresh()->position, $first->refresh()->position, $off->refresh()->position])->toBe([1, 2, 1]);
+
+    $this->put(route('settings.facilities.reorder', $property->code), ['order' => [$off->id, $first->id, $second->id]])
         ->assertInertiaFlash('toast.type', 'error');
-    expect($second->refresh()->position)->toBe(3);
+    expect($second->refresh()->position)->toBe(1);
 });
 
 test('owners add, change and delete sessions of a facility', function () {
