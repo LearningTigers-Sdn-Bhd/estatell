@@ -119,5 +119,12 @@ Time          Facility     Guest / event          Room / no.   Qty   Status
 
 ## Report changes
 
-- **Deposit liability:** counts payments on Open event folios whose event starts (`starts_on`) after the business date, as it does for reservations not yet arrived.
-- **Payments, Folio ledger, Tax:** event folio lines show the event number where they show a reservation number today.
+**Built 2026-11-23.** Event folios have no reservation. The finance reports show the event in its place:
+
+| Report                                 | For an event folio                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Payments, Folio ledger                 | The event number in the Reservation column, and the folio payer.                                             |
+| Deposit liability, Outstanding balance | The event number, the folio payer, the event status, and `starts_on` and `ends_on` as Arrival and Departure. |
+| Tax                                    | No change. It does not show the reservation.                                                                 |
+
+- **Deposit liability** lists every folio in credit on the date, so an event deposit shows there until charges use it up, the same as a reservation deposit.

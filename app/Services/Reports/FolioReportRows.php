@@ -18,7 +18,7 @@ use Carbon\CarbonImmutable;
  * loads the folios with their reservation, payer and units in a fixed number of queries, and works out the display
  * facts. The report picks the sign of the balance and maps the entries to its row class.
  *
- * Status is today's status of the unit (a unit folio) or of the reservation (a master or third party folio), not the
+ * Status is today's status of the unit (a unit folio), of the reservation (a master or third party folio) or of the event (an event folio), not the
  * status on the date: the ledger is exact for a past date, the bookings are not kept by date.
  */
 class FolioReportRows
@@ -47,7 +47,7 @@ class FolioReportRows
         $folios = Folio::query()
             ->where('property_id', $property->id)
             ->whereIn('id', array_keys($figures))
-            ->with(['reservation.booker', 'reservation.units', 'payerGuest', 'payerCompany', 'reservationUnit'])
+            ->with(['reservation.booker', 'reservation.units', 'event', 'payerGuest', 'payerCompany', 'reservationUnit'])
             ->orderBy('id')
             ->get();
 
@@ -67,18 +67,21 @@ class FolioReportRows
     private function entry(Folio $folio, FolioBalanceOnDate $figures, string $date): FolioReportEntry
     {
         $reservation = $folio->reservation;
+        $event = $folio->event;
         [$arrival, $departure] = $this->dates($folio);
 
         return new FolioReportEntry(
             folioId: $folio->id,
             folio: $folio->number,
-            reservation: $reservation->reference,
-            payer: $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? $reservation->booker->full_name,
+            reservation: $reservation->reference ?? $event->number ?? '',
+            payer: $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? $reservation?->booker->full_name ?? '',
             arrival: $arrival,
             departure: $departure,
-            status: $folio->type === FolioType::Unit && $folio->reservationUnit !== null
-                ? BadgeData::fromUnitStatus($folio->reservationUnit->status)
-                : BadgeData::fromReservationStatus($reservation->status),
+            status: match (true) {
+                $folio->type === FolioType::Unit && $folio->reservationUnit !== null => BadgeData::fromUnitStatus($folio->reservationUnit->status),
+                $reservation !== null => BadgeData::fromReservationStatus($reservation->status),
+                default => BadgeData::fromEventStatus($event->status),
+            },
             figures: $figures,
             daysSinceDeparture: $departure !== null && $departure <= $date
                 ? (int) CarbonImmutable::parse($departure)->diffInDays(CarbonImmutable::parse($date))
@@ -87,8 +90,9 @@ class FolioReportRows
     }
 
     /**
-     * The arrival and departure dates of the folio: the unit's for a unit folio, else the first arrival and last
-     * departure of the reservation's units that were not cancelled or missed (every unit when none is left).
+     * The arrival and departure dates of the folio: the unit's for a unit folio, the event's first and last day for an
+     * event folio, else the first arrival and last departure of the reservation's units that were not cancelled or
+     * missed (every unit when none is left).
      *
      * @return array{0: string|null, 1: string|null}
      */
@@ -98,6 +102,10 @@ class FolioReportRows
 
         if ($unit !== null) {
             return [$unit->arrival_date->toDateString(), $unit->departure_date->toDateString()];
+        }
+
+        if ($folio->reservation === null) {
+            return $folio->event === null ? [null, null] : [$folio->event->starts_on->toDateString(), $folio->event->ends_on->toDateString()];
         }
 
         $units = $folio->reservation->units;
