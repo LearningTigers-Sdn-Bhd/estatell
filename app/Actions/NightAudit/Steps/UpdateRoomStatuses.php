@@ -5,6 +5,7 @@ namespace App\Actions\NightAudit\Steps;
 use App\Enums\HousekeepingStatus;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
+use App\Models\BedStatus;
 use App\Models\NightAudit;
 use App\Models\RoomStatus;
 use App\Models\UnitNight;
@@ -14,8 +15,8 @@ class UpdateRoomStatuses implements AuditStepRunner
 {
     /**
      * Mark every room that sleeps a CheckedIn unit on the night of the business date Dirty, so housekeeping cleans it
-     * the next morning. A bed gives its room. A room that departed is already Dirty from check-out. Rooms that are
-     * already Dirty are not touched.
+     * the next morning. A bed gives its room, and the bed itself goes Dirty too. A room that departed is already Dirty
+     * from check-out. Rooms and beds that are already Dirty are not touched.
      */
     public function run(NightAudit $audit, CarbonImmutable $date): StepOutcome
     {
@@ -38,6 +39,13 @@ class UpdateRoomStatuses implements AuditStepRunner
                 'last_changed_by' => null,
                 'last_changed_at' => now(),
             ]);
+
+        // In a dorm only the stay-over guests' bunks go Dirty; the room is a summary of its beds (docs/19-housekeeping/04-dorm-beds.md).
+        BedStatus::query()
+            ->where('property_id', $audit->property_id)
+            ->whereIn('bed_id', $nights->pluck('bed_id')->filter()->unique()->values())
+            ->where('status', '!=', HousekeepingStatus::Dirty->value)
+            ->update(['status' => HousekeepingStatus::Dirty->value, 'last_changed_by' => null, 'last_changed_at' => now()]);
 
         return new StepOutcome($updated);
     }

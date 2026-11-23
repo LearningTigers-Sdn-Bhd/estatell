@@ -103,7 +103,8 @@ An open `room_blocks` row that covers the business date makes the room **Blocked
 
 - The red badge replaces the status badge. The status cell also shows the reason and the last night, for example "Maintenance · until 18 Oct", and the block notes show as the grey line.
 - The stored room status stays under the block and comes back when the block ends.
-- A **bed block** does not take the room out of service. The room row stays workable and shows a neutral badge in the Status cell, for example "Bed A3 blocked", with the reason and last night on hover.
+- A **bed block** does not take the room out of service. The room row stays workable and shows a neutral badge in the Status cell, for example "Bed A3 blocked", with the reason and last night on hover. The blocked bed cannot change status.
+- A **dorm** has a status per bed; its room status is their summary. See [Dorm beds](04-dorm-beds.md).
 - The **Needs maintenance** flag shows as an amber badge with a wrench under the status, in the same cell.
 - The row ⋯ menu has **Block room** for a user with `rooms.block`. It opens the Room blocks sheet and calls `CreateRoomBlock`. Ending a block stays on the Room blocks page.
 - Blocked rows have no tick box, and the bulk bar skips them.

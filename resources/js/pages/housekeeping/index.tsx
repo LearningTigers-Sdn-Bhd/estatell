@@ -64,6 +64,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { DormBeds } from '@/components/pms/housekeeping/dorm-beds';
 import { bulk, index, pdf, spreadsheet } from '@/routes/housekeeping';
 import {
     assignee,
@@ -1179,6 +1180,11 @@ function GroupRows({
                                         status={room.status}
                                         size="lg"
                                     />
+                                )}
+                                {room.beds.length > 0 && (
+                                    <div>
+                                        <DormBeds room={room} />
+                                    </div>
                                 )}
                                 {room.outOfService && (
                                     <div className="mt-1 text-xs text-muted-foreground">

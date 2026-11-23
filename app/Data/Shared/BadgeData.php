@@ -27,6 +27,7 @@ use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\ForecastBasis;
 use App\Enums\GatewayRefundStatus;
+use App\Enums\HousekeepingStatus;
 use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
@@ -103,6 +104,11 @@ class BadgeData extends Data
     public static function fromForecastBasis(ForecastBasis $basis): self
     {
         return new self($basis->value, $basis->label(), $basis->tone());
+    }
+
+    public static function fromHousekeepingStatus(HousekeepingStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
     }
 
     public static function fromBookingChangeKind(BookingChangeKind $kind): self

@@ -17,7 +17,9 @@ class HousekeepingRoomData extends Data
 {
     /**
      * @param  list<HousekeepingBedBlockData>  $bedBlocks
+     * @param  list<HousekeepingBedData>  $beds
      * @param  list<BadgeData>  $moves  The statuses the viewer may move this room to.
+     * @param  list<HousekeepingBedData>  $beds  A dorm's active beds with their own status; empty for a room that sells rooms.
      */
     public function __construct(
         public int $id,
@@ -29,6 +31,7 @@ class HousekeepingRoomData extends Data
         public BadgeData $status,
         public ?HousekeepingOutOfServiceData $outOfService,
         public array $bedBlocks,
+        public array $beds,
         public array $moves,
         public ?int $assignedTo,
         public ?string $assignedName,
@@ -55,12 +58,14 @@ class HousekeepingRoomData extends Data
      * Expects `roomType`, `roomGroup` and `status.assignee` loaded.
      *
      * @param  list<HousekeepingBedBlockData>  $bedBlocks
+     * @param  list<HousekeepingBedData>  $beds
      * @param  array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}  $stay
      */
     public static function forRoom(
         Room $room,
         ?HousekeepingOutOfServiceData $outOfService,
         array $bedBlocks,
+        array $beds,
         array $stay,
         ?HousekeepingReason $reason,
         bool $canUpdate,
@@ -70,15 +75,9 @@ class HousekeepingRoomData extends Data
         RoomCleaningStateData $cleaning,
     ): self {
         $roomStatus = $room->status;
-        $moves = [];
-
-        if ($outOfService === null && $canUpdate) {
-            foreach (HousekeepingStatus::cases() as $status) {
-                if ($roomStatus->status->canTransitionTo($status) && ($status !== HousekeepingStatus::Inspected || $canInspect)) {
-                    $moves[] = new BadgeData($status->value, $status->label(), $status->tone());
-                }
-            }
-        }
+        $moves = $outOfService === null && $canUpdate
+            ? array_map(fn (HousekeepingStatus $status): BadgeData => BadgeData::fromHousekeepingStatus($status), $roomStatus->status->movesFor($canInspect))
+            : [];
 
         return new self(
             id: $room->id,
@@ -92,6 +91,7 @@ class HousekeepingRoomData extends Data
                 : new BadgeData('out_of_service', __('Blocked'), Tone::Danger),
             outOfService: $outOfService,
             bedBlocks: $bedBlocks,
+            beds: $beds,
             moves: $moves,
             assignedTo: $roomStatus->assigned_to,
             assignedName: $roomStatus->assignee?->name,

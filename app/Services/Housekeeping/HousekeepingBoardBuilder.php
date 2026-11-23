@@ -3,12 +3,15 @@
 namespace App\Services\Housekeeping;
 
 use App\Data\Housekeeping\HousekeepingBedBlockData;
+use App\Data\Housekeeping\HousekeepingBedData;
 use App\Data\Housekeeping\HousekeepingOutOfServiceData;
 use App\Data\Housekeeping\HousekeepingRoomData;
 use App\Enums\HousekeepingReason;
 use App\Enums\HousekeepingStay;
+use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Models\Bed;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\Room;
@@ -35,7 +38,7 @@ class HousekeepingBoardBuilder
         $rooms = Room::query()
             ->where('property_id', $property->id)
             ->active()->ordered()
-            ->with(['roomType', 'roomGroup', 'status.assignee'])
+            ->with(['roomType', 'roomGroup', 'status.assignee', 'beds' => fn ($beds) => $beds->active()->ordered(), 'beds.status'])
             ->get();
 
         $blocks = RoomBlock::query()
@@ -46,23 +49,34 @@ class HousekeepingBoardBuilder
             ->get()
             ->groupBy('room_id');
 
-        $stays = $this->staysByRoom($property, $date);
+        ['rooms' => $stays, 'beds' => $bedStays] = $this->stays($property, $date);
         $dateString = $date->toDateString();
         $cleanings = $this->roomCleanings->latestByRoom($property, $dateString);
         $timeZone = $property->loadMissing('settings')->settings->time_zone ?? config('app.timezone');
 
-        $rows = $rooms->map(function (Room $room) use ($blocks, $stays, $canUpdate, $canInspect, $canBlock, $canEditTimes, $dateString, $cleanings, $timeZone): array {
+        $rows = $rooms->map(function (Room $room) use ($blocks, $stays, $bedStays, $canUpdate, $canInspect, $canBlock, $canEditTimes, $dateString, $cleanings, $timeZone): array {
             $roomBlocks = $blocks->get($room->id, collect());
             $wholeRoom = $roomBlocks->first(fn (RoomBlock $block): bool => $block->bed_id === null);
             $bedBlocks = $roomBlocks->filter(fn (RoomBlock $block): bool => $block->bed_id !== null)
                 ->map(fn (RoomBlock $block): HousekeepingBedBlockData => HousekeepingBedBlockData::fromModel($block))
                 ->values()->all();
             $stay = $stays->get($room->id, $this->emptyStay());
+            $blockedBeds = $roomBlocks->pluck('bed_id')->filter()->all();
+            $beds = $room->roomType->sell_unit === SellUnit::Bed
+                ? array_values($room->beds->map(fn (Bed $bed): HousekeepingBedData => HousekeepingBedData::forBed(
+                    $bed,
+                    $wholeRoom !== null || in_array($bed->id, $blockedBeds, true),
+                    $bedStays->get($bed->id),
+                    $canUpdate,
+                    $canInspect,
+                ))->all())
+                : [];
 
             $row = HousekeepingRoomData::forRoom(
                 room: $room,
                 outOfService: $wholeRoom === null ? null : HousekeepingOutOfServiceData::fromModel($wholeRoom),
                 bedBlocks: array_values($bedBlocks),
+                beds: $beds,
                 stay: $stay['view'],
                 reason: $stay['reason'],
                 canUpdate: $canUpdate,
@@ -81,11 +95,11 @@ class HousekeepingBoardBuilder
     }
 
     /**
-     * Group the units that touch the date by the room they use that day.
+     * Group the units that touch the date by the room they use that day, and by the dorm bed, in one read.
      *
-     * @return Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}>
+     * @return array{rooms: Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}>, beds: Collection<int, array{stay: ?HousekeepingStay, guest: ?string}>}
      */
-    private function staysByRoom(Property $property, CarbonImmutable $date): Collection
+    private function stays(Property $property, CarbonImmutable $date): array
     {
         $units = ReservationUnit::query()
             ->where('property_id', $property->id)
@@ -104,6 +118,7 @@ class HousekeepingBoardBuilder
             ->get();
 
         $byRoom = [];
+        $byBed = [];
 
         foreach ($units as $unit) {
             $departing = $unit->departure_date->toDateString() === $date->toDateString();
@@ -120,9 +135,20 @@ class HousekeepingBoardBuilder
             }
 
             $byRoom[$roomId][] = ['unit' => $unit, 'departing' => $departing];
+
+            if ($night->bed_id !== null) {
+                $byBed[$night->bed_id][] = ['unit' => $unit, 'departing' => $departing];
+            }
         }
 
-        return collect($byRoom)->map(fn (array $entries): array => $this->summarize($entries, $date));
+        return [
+            'rooms' => collect($byRoom)->map(fn (array $entries): array => $this->summarize($entries, $date)),
+            'beds' => collect($byBed)->map(function (array $entries) use ($date): array {
+                $view = $this->summarize($entries, $date)['view'];
+
+                return ['stay' => $view['stay'], 'guest' => $view['guest']];
+            }),
+        ];
     }
 
     /**

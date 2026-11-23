@@ -386,15 +386,18 @@ test('auto clean leaves the room Dirty while another guest still sleeps in a bed
     expect(RoomStatus::query()->where('room_id', $setup['room']->id)->sole()->status)->toBe(HousekeepingStatus::Dirty);
 });
 
-test('a bed unit marks the room of its bed Dirty on check-out', function () {
+test('a bed unit marks its bed and the room of its bed Dirty on check-out, and the other beds stay as they are', function () {
     $setup = stayDeskInHouse();
-    $bed = Bed::factory()->create(['room_id' => $setup['room']->id]);
-    $setup['unit']->nights()->update(['room_id' => null, 'bed_id' => $bed->id]);
     RoomStatus::query()->where('room_id', $setup['room']->id)->update(['status' => HousekeepingStatus::Clean]);
+    $bed = Bed::factory()->create(['room_id' => $setup['room']->id]);
+    $other = Bed::factory()->create(['room_id' => $setup['room']->id]);
+    $setup['unit']->nights()->update(['room_id' => null, 'bed_id' => $bed->id]);
 
     stayDeskCheckOut($setup);
 
-    expect(RoomStatus::query()->where('room_id', $setup['room']->id)->sole()->status)->toBe(HousekeepingStatus::Dirty);
+    expect(RoomStatus::query()->where('room_id', $setup['room']->id)->sole()->status)->toBe(HousekeepingStatus::Dirty)
+        ->and($bed->status()->sole()->status)->toBe(HousekeepingStatus::Dirty)
+        ->and($other->status()->sole()->status)->toBe(HousekeepingStatus::Clean);
 });
 
 test('check-out is refused and writes nothing when the unit cannot be checked out', function (string $case, string $refusal) {

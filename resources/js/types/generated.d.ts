@@ -2553,6 +2553,15 @@ bedLabel: string,
 reasonLabel: string,
 endsOn: string,
 };
+export type HousekeepingBedData = {
+id: number,
+label: string,
+status: App.Data.Shared.BadgeData,
+moves: App.Data.Shared.BadgeData[],
+blocked: boolean,
+stay: App.Data.Shared.BadgeData | null,
+guest: string | null,
+};
 export type HousekeepingBulkResultData = {
 done: number,
 skipped: {
@@ -2575,6 +2584,7 @@ roomTypeName: string,
 status: App.Data.Shared.BadgeData,
 outOfService: App.Data.Housekeeping.HousekeepingOutOfServiceData | null,
 bedBlocks: App.Data.Housekeeping.HousekeepingBedBlockData[],
+beds: App.Data.Housekeeping.HousekeepingBedData[],
 moves: App.Data.Shared.BadgeData[],
 assignedTo: number | null,
 assignedName: string | null,
