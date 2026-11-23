@@ -17,6 +17,7 @@ use App\Enums\ChargeStatus;
 use App\Enums\CommissionRateStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\ContactEnquiryStatus;
+use App\Enums\EventStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\GatewayRefundStatus;
@@ -121,6 +122,11 @@ class BadgeData extends Data
     }
 
     public static function fromCompanyStatus(CompanyStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromEventStatus(EventStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

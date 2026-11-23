@@ -45,8 +45,8 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { folio as folioTab } from '@/routes/reservations';
-import { receipt } from '@/routes/reservations/folios/payments';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Row = App.Data.Folio.FolioRowData;
 
@@ -129,7 +129,7 @@ const SECTIONS: Record<Row['state'], string> = {
  * A credit move row with `pairFolio` shows ⇄ after its description, a link to the folio of the other line of its pair.
  */
 export function FolioRowsTable({
-    reservationId,
+    owner,
     folioId,
     rows,
     currency,
@@ -137,7 +137,7 @@ export function FolioRowsTable({
     onPrintVoucher,
     oldSystem = null,
 }: {
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     rows: Row[];
     currency: App.Data.Property.CurrencyData | null;
@@ -341,28 +341,17 @@ export function FolioRowsTable({
                                                 <PairFolioText
                                                     row={row}
                                                     pairFolio={row.pairFolio}
-                                                    reservationId={
-                                                        reservationId
-                                                    }
+                                                    owner={owner}
                                                 />
                                             ) : (
                                                 row.description
                                             )}
                                             {row.onFolio !== null && (
                                                 <Link
-                                                    href={folioTab.url(
-                                                        {
-                                                            reservation:
-                                                                reservationId,
-                                                        },
-                                                        {
-                                                            query: {
-                                                                folio: String(
-                                                                    row.onFolio
-                                                                        .id,
-                                                                ),
-                                                            },
-                                                        },
+                                                    href={folioRoutes(
+                                                        owner,
+                                                    ).page(
+                                                        String(row.onFolio.id),
                                                     )}
                                                     preserveScroll
                                                     preserveState
@@ -449,15 +438,15 @@ export function FolioRowsTable({
                                                                 <DropdownMenuItem
                                                                     render={
                                                                         <a
-                                                                            href={receipt.url(
-                                                                                {
-                                                                                    reservation:
-                                                                                        reservationId,
-                                                                                    folio: folioId,
-                                                                                    payment:
-                                                                                        row.paymentId,
-                                                                                },
-                                                                            )}
+                                                                            href={
+                                                                                folioRoutes(
+                                                                                    owner,
+                                                                                ).receipt(
+                                                                                    folioId,
+                                                                                    row.paymentId,
+                                                                                )
+                                                                                    .url
+                                                                            }
                                                                             target="_blank"
                                                                             rel="noopener"
                                                                         />
@@ -721,17 +710,14 @@ export function FolioRowsTable({
 function PairFolioText({
     row,
     pairFolio,
-    reservationId,
+    owner,
 }: {
     row: Row;
     pairFolio: App.Data.Folio.FolioOptionData;
-    reservationId: number;
+    owner: FolioOwner;
 }) {
     const named = row.description.endsWith(pairFolio.label);
-    const href = folioTab.url(
-        { reservation: reservationId },
-        { query: { folio: String(pairFolio.id) } },
-    );
+    const href = folioRoutes(owner).page(String(pairFolio.id));
 
     return (
         <>

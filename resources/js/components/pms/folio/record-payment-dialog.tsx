@@ -22,9 +22,9 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { store as storeOnFolio } from '@/routes/reservations/folios/payments';
-import { quote as quoteRoute } from '@/routes/reservations/payments';
 import { store as storeOnUnit } from '@/routes/reservations/units/payments';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 /** The fields of a folio the Dialog reads, so a page that has only these (the group check-out) can open it. */
 type Folio = Pick<
@@ -126,7 +126,7 @@ function CreditWarning({
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    owner: FolioOwner;
     folio: Folio;
     options?: Options;
     currency: App.Data.Property.CurrencyData | null;
@@ -135,7 +135,7 @@ type Props = {
 function RecordPaymentForm({
     open,
     onOpenChange,
-    reservationId,
+    owner,
     folio,
     options = { methods: [], businessDate: null },
     currency,
@@ -183,7 +183,7 @@ function RecordPaymentForm({
     const needsReference = method?.requiresReference === true || oldSystem;
     const http = useHttp<{ payment_method_id: string; amount: string }, Quote>(
         'post',
-        quoteRoute.url({ reservation: reservationId }),
+        folioRoutes(owner).paymentQuote().url,
         { payment_method_id: '', amount: '' },
     );
     const [quote, setQuote] = useState<Quote | null>(null);
@@ -224,15 +224,12 @@ function RecordPaymentForm({
             idempotency_key: key,
         }));
         form.post(
-            folio.paymentUnitId !== null
+            folio.paymentUnitId !== null && owner.kind === 'reservation'
                 ? storeOnUnit.url({
-                      reservation: reservationId,
+                      reservation: owner.id,
                       unit: folio.paymentUnitId,
                   })
-                : storeOnFolio.url({
-                      reservation: reservationId,
-                      folio: Number(folio.key),
-                  }),
+                : folioRoutes(owner).payment(Number(folio.key)).url,
             {
                 preserveScroll: true,
                 except: KEEP_OPTIONS,

@@ -31,6 +31,7 @@ use App\Features\EInvoicing;
 use App\Models\ArInvoice;
 use App\Models\Company;
 use App\Models\EInvoiceSubmission;
+use App\Models\Event;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioManualBatch;
@@ -130,6 +131,52 @@ class FolioStatement
     }
 
     /**
+     * The Folio tab of an event: its one folio that is not Voided, with no units, no routing and no Scheduled rows
+     * (facility bookings add them later). Expects the property's `settings` to be loaded. `$can` takes the same keys
+     * as `build()`; moving charges, manual entry and price changes never apply. See
+     * docs/33-facilities/03-events-and-event-folios.md.
+     *
+     * @param  array{postCharge?: bool, reverse?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, viewManual?: bool}  $can
+     * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
+     */
+    public function buildForEvent(Property $property, Event $event, array $can = [], ?User $user = null): array
+    {
+        $folios = Folio::query()
+            ->where('property_id', $property->id)
+            ->where('event_id', $event->id)
+            ->where('status', '!=', FolioStatus::Voided)
+            ->with('payerGuest', 'payerCompany:id,name')
+            ->get()
+            ->each(fn (Folio $folio) => $folio->setRelation('property', $property));
+        $balances = $this->balances($folios);
+        $entries = $folios->map(fn (Folio $folio): array => $this->entry((string) $folio->id, $folio, null, new FolioRailItemData(
+            (string) $folio->id,
+            $folio->type->value,
+            $this->name($folio, []),
+            $folio->payerGuest->full_name ?? $folio->payerCompany?->name,
+            BadgeData::fromFolioStatus($folio->status),
+            $balances[$folio->id] ?? '0.00',
+        )))->values();
+        $open = $entries->first();
+        $can = [...$can, 'transfer' => false, 'manual' => false, 'changePrice' => false];
+
+        return [
+            'folios' => array_values($entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all()),
+            'folio' => $open === null ? null : $this->data($property, $event, $open, $entries, [], [], $balances, $can, [], $user),
+        ];
+    }
+
+    /**
+     * @return list<PaymentPurpose>
+     */
+    private function eventPurposes(Property $property, Event $event): array
+    {
+        $businessDate = $this->currentBusinessDate->date($property);
+
+        return $businessDate === null ? [] : $this->paymentPurposeChoices->forEvent($event, $businessDate);
+    }
+
+    /**
      * @return array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}
      */
     private function entry(string $key, ?Folio $folio, ?int $unit, FolioRailItemData $item): array
@@ -157,6 +204,7 @@ class FolioStatement
                     FolioType::Master => 0,
                     FolioType::Unit => 1,
                     FolioType::ThirdParty => 2,
+                    FolioType::Event => 3,
                 },
                 $folio->type === FolioType::Unit ? (int) array_search($folio->reservation_unit_id, $unitOrder, true) : 0,
                 $folio->id,
@@ -232,6 +280,7 @@ class FolioStatement
             FolioType::Master => __('Master'),
             FolioType::Unit => __('Unit :unit', ['unit' => $labels[$folio->reservation_unit_id] ?? '—']),
             FolioType::ThirdParty => __('Third party'),
+            FolioType::Event => __('Event folio'),
         };
     }
 
@@ -298,7 +347,7 @@ class FolioStatement
      * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool, manual?: bool, viewManual?: bool}  $can
      * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function data(Property $property, Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
+    private function data(Property $property, Reservation|Event $owner, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
     {
         $folio = $entry['folio'];
         $isOpen = $folio?->status === FolioStatus::Open;
@@ -347,14 +396,14 @@ class FolioStatement
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->map(fn (ReservationUnitOptionData $unit): int => $unit->id)
             ->all()) : [];
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($reservation->property)?->toDateString(), $isOpen && ($can['recordPayment'] ?? false));
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($property)?->toDateString(), $isOpen && ($can['recordPayment'] ?? false));
         $old = $posted->where('state', 'old')->values();
         $posted = $posted->where('state', 'posted')->values();
         $lineCount = $old->merge($posted)->whereNull('onFolio')->count();
         $oldTotal = $old->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::zero());
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
-            ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
+            ? ($owner instanceof Event ? $this->eventPurposes($property, $owner) : $this->paymentPurposeChoices->for($owner, $folio, $entry['unit']))
             : [];
         $refundCredit = $this->refundCredit($folio, $isOpen && ($can['refund'] ?? false), $balance, $posted);
         $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio->payer_company_id !== null && BigDecimal::of($balance)->isPositive();
@@ -364,8 +413,9 @@ class FolioStatement
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
         $rows = [...$old->all(), ...$posted->all(), ...$this->withScheduledParents($blocks, $scheduled, $entries)];
 
-        $eInvoiceSetting = $reservation->property->eInvoiceSetting;
-        $eInvoiceEnabled = $eInvoiceSetting !== null && $eInvoiceSetting->enabled && Feature::for($reservation->property)->active(EInvoicing::class);
+        // Event folios are not e-invoiced yet.
+        $eInvoiceSetting = $property->eInvoiceSetting;
+        $eInvoiceEnabled = $owner instanceof Reservation && $eInvoiceSetting !== null && $eInvoiceSetting->enabled && Feature::for($property)->active(EInvoicing::class);
         $latestSubmission = $folio !== null ? EInvoiceSubmission::query()
             ->where('folio_id', $folio->id)
             ->where('document_type', EInvoiceDocumentType::Invoice)
@@ -409,7 +459,7 @@ class FolioStatement
             canClose: $isOpen && ($can['close'] ?? false),
             canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio) && ($eInvoiceEnabled ? $eInvoiceHold === null : $this->folioEInvoiceLock->for($folio) === null),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
-            canPostCharge: $postUnits !== [],
+            canPostCharge: $postUnits !== [] || ($owner instanceof Event && $isOpen && ($can['postCharge'] ?? false)),
             postUnits: array_values($postUnits),
             postFolios: $postFolios,
             postRooms: $postRooms,

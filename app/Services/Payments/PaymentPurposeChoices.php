@@ -6,10 +6,12 @@ use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStage;
 use App\Enums\UnitStatus;
+use App\Models\Event;
 use App\Models\Folio;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Services\Folio\FolioRouter;
+use Carbon\CarbonImmutable;
 
 /**
  * The payment purposes one folio (or a "not started" unit entry) offers, by its stage. The first is the default; none
@@ -55,5 +57,17 @@ class PaymentPurposeChoices
         $purposes = PaymentPurpose::forStage($type, $stage);
 
         return $stage === PaymentStage::BeforeArrival && $this->folioRouter->roomChargesGoToMaster($unit) ? [] : $purposes;
+    }
+
+    /**
+     * An event folio takes Advance (a deposit) before the event's first day, then Settlement.
+     *
+     * @return list<PaymentPurpose>
+     */
+    public function forEvent(Event $event, CarbonImmutable $businessDate): array
+    {
+        $stage = $businessDate->lessThan($event->starts_on) ? PaymentStage::BeforeArrival : PaymentStage::InHouse;
+
+        return PaymentPurpose::forStage(FolioType::Event, $stage);
     }
 }

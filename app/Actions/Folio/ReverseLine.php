@@ -6,6 +6,7 @@ use App\Enums\FolioStatus;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\User;
+use App\Services\Folio\FolioOwner;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
@@ -60,7 +61,7 @@ class ReverseLine
             $lines = $this->post($actor, $current, $businessDate->toDateString(), null);
 
             activity()
-                ->performedOn($folio->reservation)
+                ->performedOn(app(FolioOwner::class)->of($folio))
                 ->causedBy($actor)
                 ->event('folio.line_reversed')
                 ->withProperties([

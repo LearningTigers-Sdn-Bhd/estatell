@@ -11,6 +11,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\User;
 use App\Services\Folio\DiscountQuote;
+use App\Services\Folio\FolioOwner;
 use App\Services\Folio\LineTaxes;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
@@ -78,7 +79,7 @@ class ApplyDiscount
             }
 
             activity()
-                ->performedOn($locked->reservation)
+                ->performedOn(app(FolioOwner::class)->of($locked))
                 ->causedBy($actor)
                 ->event('folio.discount_applied')
                 ->withProperties([

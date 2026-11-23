@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { close } from '@/routes/reservations/folios';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 /**
  * Closes a folio after a confirmation. Only a balance of 0 closes, and closing issues the invoice number. A refusal
@@ -20,12 +21,12 @@ import { close } from '@/routes/reservations/folios';
 export function CloseFolioDialog({
     open,
     onOpenChange,
-    reservationId,
+    owner,
     folio,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    owner: FolioOwner;
     folio: App.Data.Folio.FolioData;
 }) {
     return (
@@ -40,10 +41,7 @@ export function CloseFolioDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Form
-                    {...close.form({
-                        reservation: reservationId,
-                        folio: Number(folio.key),
-                    })}
+                    {...folioRoutes(owner).close(Number(folio.key)).form}
                     options={{ preserveScroll: true, except: KEEP_OPTIONS }}
                     onSuccess={() => onOpenChange(false)}
                 >

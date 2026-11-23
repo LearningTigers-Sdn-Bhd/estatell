@@ -2,6 +2,7 @@
 
 namespace App\Actions\Folio;
 
+use App\Actions\Events\CompleteEvent;
 use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
@@ -10,6 +11,7 @@ use App\Events\FolioClosed;
 use App\Models\Folio;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
+use App\Services\Folio\FolioOwner;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\InHouseUnits;
 use App\Services\NightAudit\NextDocumentNumber;
@@ -34,7 +36,7 @@ class CloseFolio
      * the webhook must still post on it. The folio row is locked first, and every check runs before the first
      * write, so a refusal writes and logs nothing. Closing changes the status and assigns `invoice_number` once: a
      * folio that was reopened keeps its number. `$issueInvoiceNumber` false (only `CreateOldStay` passes it) closes
-     * an empty folio without using a number of the invoice sequence; a later close with lines issues one. Ledger lines are never touched. Raises `FolioClosed` (e-invoicing listens). Permissions are checked by the route.
+     * an empty folio without using a number of the invoice sequence; a later close with lines issues one. Ledger lines are never touched. Closing an event folio completes its Confirmed event (`CompleteEvent`). Raises `FolioClosed` (e-invoicing listens). Permissions are checked by the route.
      * See docs/13-folio/01-folios-and-lines.md.
      */
     public function __invoke(?User $actor, Folio $folio, bool $issueInvoiceNumber = true): FolioStatusResult
@@ -73,8 +75,10 @@ class CloseFolio
                 'invoice_number' => $current->invoice_number ?? ($issueInvoiceNumber ? ($this->nextDocumentNumber)($current->property, DocumentType::Invoice)->reference : null),
             ])->save();
 
+            app(CompleteEvent::class)($current);
+
             activity()
-                ->performedOn($current->reservation)
+                ->performedOn(app(FolioOwner::class)->of($current))
                 ->causedBy($actor)
                 ->event('folio.closed')
                 ->withProperties([

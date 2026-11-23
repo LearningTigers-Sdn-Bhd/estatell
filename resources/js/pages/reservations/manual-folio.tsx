@@ -52,6 +52,7 @@ import { manual as manualPage } from '@/routes/reservations/folios';
 import { store } from '@/routes/reservations/folios/manual';
 import { store as storeFolio } from '@/routes/reservations/folios/manual/folios';
 import { move as moveCharges } from '@/routes/reservations/folio';
+import { reservationOwner } from '@/components/pms/folio/folio-owner';
 
 type Props = {
     manual: App.Data.Folio.ManualFolioPageData;
@@ -355,7 +356,9 @@ export default function ManualFolio({ manual: page, companies }: Props) {
                             <TabsContent value="posted">
                                 {page.posted && (
                                     <FolioRowsTable
-                                        reservationId={page.reservationId}
+                                        owner={reservationOwner(
+                                            page.reservationId,
+                                        )}
                                         folioId={page.folioId}
                                         rows={page.posted.rows.filter(
                                             (row) => row.state !== 'scheduled',
@@ -396,7 +399,9 @@ export default function ManualFolio({ manual: page, companies }: Props) {
                             <TabsContent value="scheduled">
                                 {page.posted && (
                                     <FolioRowsTable
-                                        reservationId={page.reservationId}
+                                        owner={reservationOwner(
+                                            page.reservationId,
+                                        )}
                                         folioId={page.folioId}
                                         rows={scheduledRows}
                                         currency={page.currency}
@@ -450,7 +455,7 @@ export default function ManualFolio({ manual: page, companies }: Props) {
             />
 
             <ReverseLineDialog
-                reservationId={page.reservationId}
+                owner={reservationOwner(page.reservationId)}
                 folioId={page.folioId}
                 row={reversing}
                 onClose={() => setReversing(null)}

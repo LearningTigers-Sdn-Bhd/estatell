@@ -6,6 +6,7 @@ use App\Actions\Payments\PaymentResult;
 use App\Enums\PaymentMethodType;
 use App\Enums\SurchargeType;
 use App\Models\PaymentMethod;
+use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\Catalogues\TaxCalculator;
 use Brick\Math\BigDecimal;
@@ -30,11 +31,18 @@ class PaymentQuote
      */
     public function quote(Reservation $reservation, PaymentMethod $method, string $amount): PaymentQuoteResult
     {
+        return $this->quoteFor($reservation->property, $reservation->booker?->nationality_code, $method, $amount);
+    }
+
+    /**
+     * The same quote for a folio with no reservation (an event folio): the fee's tax follows the given nationality.
+     */
+    public function quoteFor(Property $property, ?string $nationalityCode, PaymentMethod $method, string $amount): PaymentQuoteResult
+    {
         if (preg_match('/^\d+(\.\d{1,2})?$/', $amount) !== 1 || (float) $amount <= 0) {
             return PaymentQuoteResult::refused(PaymentResult::REFUSAL_AMOUNT_INVALID);
         }
 
-        $property = $reservation->property;
         $currency = $property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a payment.');
         $paid = Money::of($amount, $currency);
@@ -51,7 +59,7 @@ class PaymentQuote
 
         $item = $method->surchargeChargeItem
             ?? throw new InvalidArgumentException('A payment method with a surcharge needs a surcharge charge item.');
-        $tax = $this->taxCalculator->calculate($property, $item->transactionCode, $surcharge, '1', $reservation->booker?->nationality_code);
+        $tax = $this->taxCalculator->calculate($property, $item->transactionCode, $surcharge, '1', $nationalityCode);
 
         if (! $tax->isCalculated()) {
             return PaymentQuoteResult::refused((string) $tax->refusalReason);

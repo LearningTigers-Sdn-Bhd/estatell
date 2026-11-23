@@ -1,10 +1,10 @@
 # Events and event folios
 
-> **Planned.** See [Facilities and events](01-overview.md).
+> **Built** (checklist item 3). Facility bookings, posting, the Timeline View and the report are still planned. See [Facilities and events](01-overview.md).
 
 ## Purpose
 
-A bill for people who are not staying: a wedding dinner, a meeting, a walk-in lunch, a kayak hire. Today every folio belongs to a reservation, so these have nowhere to go. An event holds one folio and, later, its facility bookings.
+A bill for people who are not staying: a wedding dinner, a meeting, a walk-in lunch, a kayak hire. Before this, every folio belonged to a reservation, so these had nowhere to go. An event holds one folio and, later, its facility bookings.
 
 ## Data model
 
@@ -12,7 +12,7 @@ A bill for people who are not staying: a wedding dinner, a meeting, a walk-in lu
 events   id, property_id, number, name,
          payer_guest_id null → guests, payer_company_id null → companies,
          starts_on date, ends_on date, status (EventStatus), notes text null,
-         cancelled_at null, cancelled_by null, timestamps
+         cancelled_at null, cancelled_by null → users, timestamps
          UNIQUE (property_id, number)
          CHECK exactly one of payer_guest_id, payer_company_id
          CHECK ends_on >= starts_on
@@ -20,114 +20,128 @@ events   id, property_id, number, name,
 folios   reservation_id becomes nullable, adds event_id null → events (restrict)
          CHECK exactly one of reservation_id, event_id
          CHECK (type = 'event') = (event_id is set)
+         UNIQUE (event_id) WHERE status <> 'voided'
 ```
 
-- `number` is `EVT-{n}` from `document_sequences`, like other document numbers.
+- `number` comes from `document_sequences` with the **Event** document type (code 9). It has the same shape as every other document number, for example `BSAA-26900012`. Codes 4 and 6 stay unused to match wastays.
 - An event runs from `starts_on` to `ends_on`: one day (a lunch) or several (a two-day conference, a wedding with a rehearsal the day before). Each facility booking keeps its own date inside that range.
-- An event has exactly one folio, made with the event (`CreateFolio::forEvent`). A partial unique index allows one active (not Voided) folio per event.
+- An event has exactly one folio, made with the event (`CreateEvent`). The partial unique index allows one active (not Voided) folio per event.
 - The event folio is a normal folio: the same lines, ledger rules, payments, discounts, Close and invoice. `FolioType` adds **Event**.
-- The event folio has no units, no routing rules and no night lines. Every charge on it is posted by staff or by a [facility booking](04-facility-bookings.md#posting).
-- Code that reads `folio->reservation` must handle null. The build item lists every caller (`FolioBalance`, `FolioStatement`, the folio invoice, receipts, the Payments and Folio ledger reports) and adds the event as the folio's owner.
+- The event folio has no units, no routing rules and no night lines. Every charge on it is posted by staff or, later, by a [facility booking](04-facility-bookings.md#posting).
+- The folio's payer is the event's payer. Changing the payer of an event also changes the payer of its Open folio.
+- A folio's activity is logged on its owner, the reservation or the event (`FolioOwner`).
 
 ## Enums
 
-| Enum          | Cases                                      | Rules                                                                                       |
-| ------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `EventStatus` | Tentative, Confirmed, Completed, Cancelled | `canTransitionTo()`: Tentative → Confirmed or Cancelled; Confirmed → Completed or Cancelled |
-| `FolioType`   | adds Event ("Event")                       |                                                                                             |
+| Enum           | Cases                                      | Rules                                                                                                              |
+| -------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `EventStatus`  | Tentative, Confirmed, Completed, Cancelled | `canTransitionTo()`: Tentative → Confirmed or Cancelled; Confirmed → Completed or Cancelled; Completed → Confirmed |
+| `FolioType`    | adds Event ("Event")                       |                                                                                                                    |
+| `DocumentType` | adds Event ("Event", code 9)               |                                                                                                                    |
 
 - **Tentative:** held while the client waits for a deposit. Its facility bookings show but do not block.
 - **Confirmed:** its facility bookings block and post.
-- **Completed:** set when the event folio is closed.
+- **Completed:** set when the event folio is closed. Reopening the folio puts the event back to Confirmed. A Tentative or Cancelled event keeps its status when its folio closes.
 - **Cancelled:** its facility bookings are cancelled. The folio stays Open until staff refund the deposit or post a cancellation fee, then close it at 0.00. Nothing is automatic.
 
 ## Events list (Index)
 
-Front desk sidebar, after Reservations: **Events** (icon `calendar-heart`). Needs `events.view` and the feature.
+Front desk sidebar, in the Reservations group after All reservations: **Events** (icon `calendar-heart`). Needs `events.view` and the feature.
 
 ```
 Events                                                            [+ New event]
-[ e.g. Lim wedding ]   Status [ All ▾ ]   Date [ This month ▾ ]
+[ e.g. Lim wedding ]   [ All statuses ▾ ]   [ This month ▾ ]
 ────────────────────────────────────────────────────────────────────────────────
-No.        Event                      Payer               Dates       Status     Balance (MYR)
-EVT-0012   Lim & Tan wedding dinner   Mr Lim Wei Jie      11–12 Dec   Confirmed       4,200.00
-EVT-0011   WWF field team lunch       WWF-Malaysia        20 Nov      Completed           0.00
-EVT-0010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec      Tentative           0.00
+No.             Event                      Payer               Dates          Status     Balance (MYR)
+BSAA-26900012   Lim & Tan wedding dinner   Mr Lim Wei Jie      11–12 Dec      Confirmed       4,200.00
+BSAA-26900011   WWF field team lunch       WWF-Malaysia        20 Nov         Completed           0.00
+BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Tentative           0.00
 ```
 
-- Search by number, name or payer. Filters for status and date range. The date filter keeps events whose dates overlap the range. Paginated on the server.
-- Balance is the event folio's balance from `FolioBalance`.
+- Search by number, name or payer. Filters for status and month: **This month** (the default), Next month, Last month, All dates. The month counts from the business date. The month filter keeps events whose dates overlap it.
+- Sorted by the first day, then by number. Paginated on the server, 25 to a page.
+- Balance is the event folio's balance (posted lines only), from one sub-query.
 
 ## New event (Dialog)
 
-| Field      | Control                                                     | Placeholder                       |
-| ---------- | ----------------------------------------------------------- | --------------------------------- |
-| Event name | Text                                                        | e.g. Lim & Tan wedding dinner     |
-| Payer      | Guest or Company toggle, then the guest or company combobox | Choose a guest / Choose a company |
-| Dates      | Date range picker, default the business date for both ends  | e.g. 11/12/2026 → 12/12/2026      |
-| Status     | Tentative or Confirmed, default Confirmed                   | –                                 |
+| Field      | Control                                                      | Placeholder                       |
+| ---------- | ------------------------------------------------------------ | --------------------------------- |
+| Event name | Text                                                         | e.g. Lim & Tan wedding dinner     |
+| Payer      | Guest, New guest or Company, then the guest, name or company | Choose a guest / e.g. Lim Wei Jie |
+| Dates      | Date range picker, both ends default to the business date    | e.g. 11/12/2026 → 12/12/2026      |
+| Status     | Tentative or Confirmed, default Confirmed                    | –                                 |
 
-A one-day event has the same date at both ends. A walk-in uses the same Dialog: the guest's name, today, Confirmed. "+ New guest" in the guest combobox works as on the booking form.
+- A one-day event has the same date at both ends. A walk-in uses the same Dialog: **New guest** with the guest's name, today, Confirmed.
+- **New guest** needs `guests.manage` and asks for the name only, so the Dialog stays within five fields. `CreateEvent` adds the guest with `CreateGuest` in the same transaction. Staff add a phone or email on the guest page.
+- **Company** needs `company.view` and offers Active companies.
+- **Edit event** is the same Dialog without Status and New guest, with **Notes** (e.g. Vegetarian menu for 20 guests). A Completed or Cancelled event cannot be edited.
 
 ## Event page (Detail)
 
-Two link tabs with their own routes: **Folio** and **Bookings**.
+Two link tabs with their own routes and pages: **Folio** (`events/show`) and **Bookings** (`events/bookings`). The summary aside shows the payer, phone, dates, event number and notes.
 
 ```
 Events › Lim & Tan wedding dinner › Folio ▾
-Lim & Tan wedding dinner  [Confirmed]                          [⋯ More ▾]
-EVT-0012 · 11–12 Dec 2026 · Mr Lim Wei Jie
+‹  Lim & Tan wedding dinner  [Confirmed]                       [⋯ More actions]
+   BSAA-26900012 · 11 Dec 2026 – 12 Dec 2026 · Mr Lim Wei Jie
 [▤ Folio] [▦ Bookings]
 ┌──────────────────────────────────────────────────────────┬────────────────┐
 │ Event folio · Open                        [Close folio]  │ SUMMARY        │
-│ Folio BSAA-26300050                                      │ Mr Lim Wei Jie │
-│ Charges 9,776.00   Paid 5,000.00   Balance 4,776.00      │ 012-345 6789   │
-│ [⋯ More ▾]     [Apply discount] [Record payment] [Post…] │ Dates          │
-│ Date     Description                  Amount (MYR)       │ 11–12 Dec 2026 │
-│ POSTED                                                   │ Bookings       │
-│ 01 Nov   Deposit · Bank transfer         -2,000.00       │ 2 facilities   │
-│ 20 Nov   Deposit · Bank transfer         -3,000.00       │                │
-│ SCHEDULED                                                │                │
-│ 12 Dec ⏱ Riverside Hall · 18:00–23:00    1,500.00       │                │
-│ 12 Dec ⏱ BBQ pit · 19:00–22:00             150.00       │                │
+│ Folio BSAA-26300050                                      │ Payer          │
+│ Charges 9,776.00   Paid 5,000.00   Balance 4,776.00      │ Mr Lim Wei Jie │
+│              [Apply discount] [Record payment] [Post…]   │ Phone          │
+│ Date     Description                  Amount (MYR)       │ 012-345 6789   │
+│ POSTED                                                   │ Dates          │
+│ 01 Nov   Deposit · Bank transfer         -2,000.00       │ 11–12 Dec 2026 │
+│ 20 Nov   Deposit · Bank transfer         -3,000.00       │ Event no.      │
+│                                                          │ BSAA-26900012  │
 └──────────────────────────────────────────────────────────┴────────────────┘
 ```
 
-- The **Folio** tab reuses the folio panel from the reservation page (`components/pms/folio/`). Routing actions are hidden: an event folio has no routing.
-- **⋯ More**: Edit event (the same fields), Confirm, Cancel event (AlertDialog), Print booking summary later.
-- The **Bookings** tab is in [Facility bookings](04-facility-bookings.md#event-bookings-tab).
+- The **Folio** tab reuses the folio panel of the reservation page (`components/pms/folio/folio-tab.tsx`) with an event owner (`FolioOwner` in `folio-owner.ts`). The panel posts to the event's folio routes.
+- Not on an event folio: routing rules, third-party folios, Move charges, Move credit, the Manual Folio Editor and e-invoice. Post charge has no Folio or Room field.
+- **⋯ More actions**: Edit event, Confirm (Tentative only), Cancel event (AlertDialog). Print booking summary comes later.
+- The **Bookings** tab shows an empty state until the [facility bookings item](04-facility-bookings.md#event-bookings-tab).
 
 ## Deposits
 
-Deposits are normal payments on the event folio before the event starts. They show in **Deposit liability** until `starts_on` (see [Reports](05-timeline-and-report.md#report-changes)).
+Deposits are payments on the event folio before the event starts. Before `starts_on` the folio offers **Advance**; from `starts_on` it offers **Settlement**. A Security deposit is refused. The event folio takes any active method of the property except City ledger, OTA collected, Online and Old system. The surcharge tax follows the payer guest's nationality.
+
+Deposits will show in **Deposit liability** until `starts_on` (see [Reports](05-timeline-and-report.md#report-changes)).
 
 ## City ledger
 
-A company payer can **Settle to City ledger** on an event folio, as on a reservation folio (checked in the code on 2026-11-18). `ar_invoices` links by `folio_id`, not by reservation, and `SettleToCityLedger` needs only an Open folio with a company payer. `ArInvoiceDetail` already reads the reservation with `?->`.
+A company payer can **Settle to City ledger** on an event folio, as on a reservation folio. `ar_invoices` links by `folio_id`, not by reservation, and `SettleToCityLedger` needs only an Open folio with a company payer. Settling closes the folio, so it completes the event.
 
-Three places assume a folio has a reservation. The events item fixes them:
+Code that read `folio->reservation` now handles an event folio:
 
-| Where                                               | Today                              | Change                                                                      |
-| --------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------- |
-| `ArInvoicePrinter` (`$folio->reservation->units()`) | Fails on an event folio            | No units for an event folio: the lines print with no room                   |
-| `InHouseUnits::roomsFor()`                          | Reads the reservation's units      | Returns no rooms for an event folio                                         |
-| `IncomingScheduledCharges::for()`                   | Checks unposted charges from units | Also checks the event's unposted facility bookings (from the bookings item) |
-
-The invoice strip shows the event number where it shows the reservation reference today.
+| Where                                                      | Change for an event folio                                                              |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ArInvoicePrinter`                                         | No units: the lines print with no room. The strip shows the event number               |
+| `StatementBuilder`, `PaymentReceipt`                       | The event number where the reservation reference shows                                 |
+| `FolioInvoice`                                             | The strip shows Bill to, Event, Dates and Event no. (in place of Stay and Reservation) |
+| `FolioVoucher`                                             | The event number and dates; a company payer's name in place of a guest                 |
+| `InHouseUnits`, `IncomingScheduledCharges`                 | No change needed: they return nothing for an event folio. Bookings are added in item 4 |
+| Activity on close, reopen, discounts, reversal and refunds | Logged on the event (`FolioOwner`)                                                     |
 
 ## Actions
 
-| Action          | Does                                                                                                                                                                     |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CreateEvent`   | Takes the number, creates the event and its folio in one transaction. Logs `events.created`                                                                              |
-| `UpdateEvent`   | Name, payer, dates, notes. Refuses `booking_outside_event` when a booking that is not Cancelled falls outside the new dates, and names it. Staff move or cancel it first |
-| `ConfirmEvent`  | Tentative → Confirmed. Runs the clash check on its bookings; refuses `facility_clash` and names them                                                                     |
-| `CancelEvent`   | → Cancelled. Cancels its facility bookings (reversing posted ones). Logs `events.cancelled`                                                                              |
-| `CompleteEvent` | Called by `CloseFolio` when the closed folio is an event folio                                                                                                           |
+| Action                      | Does                                                                                                                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateEvent`               | Takes the Event number, creates the event and its folio in one transaction, and adds a new guest payer when given. Logs `events.created`                                          |
+| `UpdateEvent`               | Name, payer, dates, notes. Refuses a Completed or Cancelled event. The facility bookings item adds `booking_outside_event`: a booking that is not Cancelled outside the new dates |
+| `ConfirmEvent`              | Tentative → Confirmed. Logs `events.confirmed`. The facility bookings item adds the clash check (`facility_clash`)                                                                |
+| `CancelEvent`               | → Cancelled. Logs `events.cancelled`. The facility bookings item adds cancelling its bookings (reversing posted ones)                                                             |
+| `CompleteEvent`             | Called by `CloseFolio`: a Confirmed event becomes Completed                                                                                                                       |
+| `ReopenEvent`               | Called by `ReopenFolio`: a Completed event becomes Confirmed                                                                                                                      |
+| `PostEventCharge`           | Posts a charge and its tax on the event folio, with the same checks as `PostCharge` and no unit or routing. Logs `folio.charge_posted` on the event                               |
+| `RecordPayment::forEvent()` | Records a payment on the event folio, with the checks in [Deposits](#deposits). Shares the write step with `RecordPayment`                                                        |
+
+Refusals return `false` or a refused result; the controller shows an error toast and nothing is written or logged.
 
 ## Routes
 
-Need the `Facilities` feature.
+Need the `Facilities` feature (`facilities` middleware). Routes in `routes/events.php`, with scoped bindings: a folio must belong to the event, and a line or payment to the folio.
 
 | Route                                   | Name              | Permission      |
 | --------------------------------------- | ----------------- | --------------- |
@@ -139,4 +153,24 @@ Need the `Facilities` feature.
 | `POST /p/{code}/events/{event}/confirm` | `events.confirm`  | `events.manage` |
 | `POST /p/{code}/events/{event}/cancel`  | `events.cancel`   | `events.manage` |
 
-Folio actions on the event page use the existing folio routes, which must accept a folio with no reservation.
+The folio actions sit under `/p/{code}/events/{event}/folios/{folio}/…` (`events.folios.*`) and use the existing folio permissions on top of `events.view`:
+
+| Path                                                                     | Permission                               |
+| ------------------------------------------------------------------------ | ---------------------------------------- |
+| `charges`                                                                | `folio.post-charge`                      |
+| `lines/{line}/reversal`                                                  | `folio.reverse`                          |
+| `discounts/quote`, `discounts`, `lines/{line}/discount`                  | `folio.discount`                         |
+| `close`                                                                  | `folio.close`                            |
+| `reopen`                                                                 | `FolioReopenRule`                        |
+| `city-ledger`                                                            | `city-ledger.invoice`                    |
+| `void-invoice-and-reopen`                                                | `city-ledger.invoice` and `folio.reopen` |
+| `payments`, `payments/{payment}/receipt`                                 | `payment.record`                         |
+| `payments/{payment}/refunds`, `payments/{payment}/void`, `refund-credit` | `payment.refund`                         |
+| `voucher`, `invoice`                                                     | `folio.print-voucher`                    |
+
+`POST /p/{code}/events/{event}/payments/quote` (`events.payments.quote`, `payment.record`) quotes the surcharge.
+
+## Open
+
+- An event folio over RM10,000 needs its own e-invoice, and event folios cannot submit one yet. Below that, a closed event folio goes into the monthly consolidated e-invoice like a stay.
+- The event page has no Activity tab. The log is written on the event.

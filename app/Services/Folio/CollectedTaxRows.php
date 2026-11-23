@@ -123,6 +123,7 @@ class CollectedTaxRows
             FolioType::Master => __('Master'),
             FolioType::ThirdParty => $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? __('Third party'),
             FolioType::Unit => __('Unit folio'),
+            FolioType::Event => __('Event folio'),
         };
     }
 }

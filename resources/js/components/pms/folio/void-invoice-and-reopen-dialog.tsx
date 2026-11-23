@@ -15,7 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { voidMethod as voidArDocument } from '@/routes/finance/city-ledger/invoices';
-import { voidInvoiceAndReopen } from '@/routes/reservations/folios';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Allocation = App.Data.CityLedger.ArAllocationRowData;
 type CreditNote = App.Data.CityLedger.ArInvoiceRowData;
@@ -111,7 +112,7 @@ function CreditNoteRow({
  * everything back and is an error toast. See docs/13-folio/01-folios-and-lines.md#close-and-reopen.
  */
 export function VoidInvoiceAndReopenDialog({
-    reservationId,
+    owner,
     folioId,
     invoiceNumber,
     invoice,
@@ -120,7 +121,7 @@ export function VoidInvoiceAndReopenDialog({
     onOpenChange,
     onReverse,
 }: {
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     invoiceNumber: string;
     invoice: App.Data.CityLedger.ArInvoiceData | null | undefined;
@@ -220,10 +221,8 @@ export function VoidInvoiceAndReopenDialog({
                     </AlertDialogFooter>
                 ) : (
                     <Form
-                        {...voidInvoiceAndReopen.form({
-                            reservation: reservationId,
-                            folio: folioId,
-                        })}
+                        {...folioRoutes(owner).voidInvoiceAndReopen(folioId)
+                            .form}
                         options={{
                             preserveScroll: true,
                             except: KEEP_OPTIONS,

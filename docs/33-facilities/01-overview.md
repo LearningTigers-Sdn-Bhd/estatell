@@ -1,6 +1,6 @@
 # Facilities and events
 
-> **Planned.** Not built. Planned on 2026-11-18 for a two-lodge client (Sepilok and Kinabatangan). The build items are in [checklist.md](../checklist.md#33-facilities). Assumptions to confirm with the client are at the end.
+> **In progress.** Facility settings and events are built; bookings, posting, the Timeline View and the report are planned. Planned on 2026-11-18 for a two-lodge client (Sepilok and Kinabatangan). The build items are in [checklist.md](../checklist.md#33-facilities). Assumptions to confirm with the client are at the end.
 
 ## Purpose
 
@@ -62,7 +62,7 @@ Pennant feature `Facilities` (`App\Features\Facilities`, `#[Name('facilities')]`
 | `events.manage`   | Create, edit, confirm and cancel events                               |
 | `facilities.book` | Book, change and cancel facility bookings, on events and reservations |
 
-Folio actions on an event folio use the existing folio permissions (`folio.post`, `payment.record` and so on). New permissions are added with a syncing migration, as for other modules.
+Folio actions on an event folio use the existing folio permissions (`folio.post-charge`, `payment.record` and so on). New permissions are added with a syncing migration, as for other modules.
 
 ## Assumptions to confirm with the client
 

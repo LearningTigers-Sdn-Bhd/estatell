@@ -276,6 +276,7 @@ class MoveChargesPreview
                     FolioType::Master => 0,
                     FolioType::Unit => 1,
                     FolioType::ThirdParty => 2,
+                    FolioType::Event => 3,
                 },
                 $folio->type === FolioType::Unit ? (int) array_search($folio->reservation_unit_id, $unitOrder, true) : 0,
                 $folio->id,

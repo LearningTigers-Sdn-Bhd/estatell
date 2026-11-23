@@ -38,6 +38,7 @@ import {
     index,
     show,
 } from '@/routes/reservations';
+import { reservationOwner } from '@/components/pms/folio/folio-owner';
 
 type Tab = 'units' | 'guests' | 'add-ons' | 'folio' | 'activity';
 
@@ -445,7 +446,7 @@ export default function ReservationShow({
                         ) : tab === 'folio' ? (
                             <div className="flex flex-col gap-6">
                                 <FolioTab
-                                    reservationId={reservation.id}
+                                    owner={reservationOwner(reservation.id)}
                                     units={units}
                                     folio={folio}
                                     chargeItems={chargeItems}
