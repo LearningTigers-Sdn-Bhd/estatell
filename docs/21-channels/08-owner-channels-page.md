@@ -32,7 +32,7 @@ Show owners and managers what is on their channels, without letting them change 
 │ │ ✓ Deluxe King · Standard, Breakfast included                                │ │
 │ │ ✓ Family Suite · Standard, 3-night package                                  │ │
 │ │ ✕ Garden Room · Day use     Day use plans are sold at the front desk only.  │ │
-│ │ ✕ 6-Bed Dorm · Bed rate     Dorm beds are not on channels yet.              │ │
+│ │ ✕ 6-Bed Dorm · Bed rate     Sent: one unit per bed (BedAsUnit)              │ │
 │ └─────────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                 │
 │ ┌─ Recent channel bookings ───────────────────────────────────────────────────┐ │

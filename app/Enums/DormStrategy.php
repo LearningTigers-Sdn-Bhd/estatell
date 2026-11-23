@@ -2,6 +2,13 @@
 
 namespace App\Enums;
 
+use App\Services\Channels\Dorm\BedAsUnitStrategy;
+use App\Services\Channels\Dorm\DormChannelStrategy;
+use App\Services\Channels\Dorm\NativeDormStrategy;
+
+/**
+ * How a dorm (a Bed room type) is sent to the channel manager. See docs/21-channels/03-dorm-strategies.md.
+ */
 enum DormStrategy: string
 {
     case BedAsUnit = 'bed_as_unit';
@@ -12,6 +19,17 @@ enum DormStrategy: string
         return match ($this) {
             self::BedAsUnit => __('Bed as unit'),
             self::NativeDorm => __('Native dorm'),
+        };
+    }
+
+    /**
+     * @return class-string<DormChannelStrategy>
+     */
+    public function strategy(): string
+    {
+        return match ($this) {
+            self::BedAsUnit => BedAsUnitStrategy::class,
+            self::NativeDorm => NativeDormStrategy::class,
         };
     }
 

@@ -61,7 +61,7 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
 - `IngestChannelBooking` creates reservations through `CreateReservation` (see [Group bookings](../12-reservations/02-group-bookings.md#creating-reservations-and-units)) with `fromChannel: true`, which skips the past-arrival, restriction and availability checks. `AddUnit` also accepts a stay the rate quote refuses when `override_total` is set (decided 2026-10-21).
 - `created_by` and the activity log causer are the property's owner (`PropertyOwners::firstFor`). There is no system user. A property with no owner fails the revision.
 - A refusal that estatell cannot skip fails the revision with its code, for example a Cancel with no cancellation policy (`policy_not_found`), a date change that needs a business date (`no_business_date`), or a closed reservation.
-- Dorm bed bookings are not expected until the dorm work. A revision for an unmapped room fails and alerts.
+- A room of a dorm booking is one bed for one guest (BedAsUnit): 1 adult, no children, the OTA price. A revision for an unmapped room fails and alerts.
 
 ## OTA collected payments
 

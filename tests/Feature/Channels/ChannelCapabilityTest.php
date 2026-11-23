@@ -33,17 +33,6 @@ test('a day use plan is not sent and says why', function () {
         ->and($result->detail)->toBe('Day use plans are sold at the front desk only.');
 });
 
-test('a bed room type is not sent and says why', function () {
-    $property = channelProperty();
-    $dorm = channelRoomType($property, '6-Bed Dorm', 1, ['sell_unit' => 'bed', 'max_adults' => 1, 'max_children' => 0, 'base_occupancy' => 1]);
-    $bedRate = channelRatePlan($property, [$dorm], 'Bed rate', 'perBed');
-
-    $result = app(ChannelCapability::class)->forPair($dorm, $bedRate);
-
-    expect($result->support)->toBe(ChannelSupport::Unsupported)
-        ->and($result->detail)->toBe('Dorm beds are not on channels yet.');
-});
-
 test('a room type with no active rooms is not sent', function () {
     $property = channelProperty();
     $empty = channelRoomType($property, 'Empty', 0);

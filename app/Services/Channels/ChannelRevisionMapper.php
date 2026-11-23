@@ -3,6 +3,7 @@
 namespace App\Services\Channels;
 
 use App\Data\Reservations\NewUnitData;
+use App\Enums\SellUnit;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\OtaChannel;
@@ -37,6 +38,7 @@ class ChannelRevisionMapper
         $mappings = ChannelRatePlanMapping::query()
             ->where('channel_property_id', $channelProperty->id)
             ->whereIn('external_rate_plan_id', array_values(array_filter(array_column($rooms, 'rate_plan_id'))))
+            ->with('roomType')
             ->get()
             ->keyBy('external_rate_plan_id');
 
@@ -57,14 +59,16 @@ class ChannelRevisionMapper
             $ages = array_values(array_map('intval', is_array($occupancy['ages'] ?? null) ? $occupancy['ages'] : []));
             // A child with no age counts as 5 (the child price); an infant as 0, so it is free and still on the manifest.
             $childAges = [...(count($ages) === $children ? $ages : array_fill(0, $children, 5)), ...array_fill(0, $infants, 0)];
+            // A dorm goes to the channel one bed per room for one guest (BedAsUnit), so a room of the booking is one bed.
+            $isBed = $mapping->roomType->sell_unit === SellUnit::Bed;
 
             return new NewUnitData(
                 roomTypeId: $mapping->room_type_id,
                 ratePlanId: $mapping->rate_plan_id,
                 arrivalDate: CarbonImmutable::parse((string) $room['checkin_date'])->startOfDay(),
                 departureDate: CarbonImmutable::parse((string) $room['checkout_date'])->startOfDay(),
-                adults: max(1, (int) ($occupancy['adults'] ?? 1)),
-                childAges: $childAges,
+                adults: $isBed ? 1 : max(1, (int) ($occupancy['adults'] ?? 1)),
+                childAges: $isBed ? [] : $childAges,
                 overrideTotal: number_format((float) ($room['amount'] ?? 0), 2, '.', ''),
                 overrideReason: __('Booked on :channel', ['channel' => $channelName]),
             );

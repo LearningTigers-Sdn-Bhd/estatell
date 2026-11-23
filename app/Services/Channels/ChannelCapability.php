@@ -8,31 +8,43 @@ use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\SellUnit;
 use App\Enums\Weekday;
+use App\Models\Bed;
 use App\Models\RateOccupancyPrice;
 use App\Models\RatePlan;
 use App\Models\RoomType;
+use App\Services\Channels\Dorm\DormStrategyResolver;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 
 /**
  * Decides, for each room type and rate plan pair, whether it is sent in full, sent flattened or not sent, with the
- * reason. The admin preview, the sync and the owner list all read the same answer.
+ * reason. The admin preview, the sync and the owner list all read the same answer. A dorm goes with its dorm strategy
+ * (docs/21-channels/03-dorm-strategies.md): its per-bed plans, one bed per unit.
  */
 class ChannelCapability
 {
+    public function __construct(private DormStrategyResolver $dorms) {}
+
     public function forPair(RoomType $roomType, RatePlan $ratePlan): ChannelCapabilityResult
     {
         if ($ratePlan->pricing_basis->channelRefusal() !== null) {
             return new ChannelCapabilityResult(ChannelSupport::Unsupported, $ratePlan->pricing_basis->channelRefusal());
         }
 
-        if ($roomType->sell_unit === SellUnit::Bed || $ratePlan->pricing_basis === PricingBasis::PerBed) {
-            return new ChannelCapabilityResult(ChannelSupport::Unsupported, __('Dorm beds are not on channels yet.'));
+        if ($roomType->sell_unit === SellUnit::Bed) {
+            $refusal = $this->dorms->for($roomType)->refusal()
+                ?? ($ratePlan->pricing_basis === PricingBasis::PerBed ? null : __('On channels a dorm sells its per-bed plans only.'));
+
+            if ($refusal !== null) {
+                return new ChannelCapabilityResult(ChannelSupport::Unsupported, $refusal);
+            }
+        } elseif ($ratePlan->pricing_basis === PricingBasis::PerBed) {
+            return new ChannelCapabilityResult(ChannelSupport::Unsupported, __('A per-bed plan goes on channels with a dorm room type only.'));
         }
 
         if ($this->activeRoomCount($roomType) === 0) {
-            return new ChannelCapabilityResult(ChannelSupport::Unsupported, __('This room type has no active rooms.'));
+            return new ChannelCapabilityResult(ChannelSupport::Unsupported, $roomType->sell_unit === SellUnit::Bed ? __('This dorm has no active beds.') : __('This room type has no active rooms.'));
         }
 
         return match ($ratePlan->pricing_basis) {
@@ -42,11 +54,42 @@ class ChannelCapability
     }
 
     /**
-     * The rooms a room type can sell. Uses `active_rooms_count` when the caller loaded it.
+     * The units a room type can sell on a channel: its active rooms, or for a dorm the active beds of its active rooms
+     * (each bed is one unit, see `BedAsUnitStrategy`). Uses `active_rooms_count` / `active_beds_count` when the caller
+     * loaded it.
      */
     public function activeRoomCount(RoomType $roomType): int
     {
+        if ($roomType->sell_unit === SellUnit::Bed) {
+            return (int) ($roomType->getAttribute('active_beds_count') ?? Bed::query()->active()->whereHas('room', fn (Builder $rooms) => $rooms->active()->where('room_type_id', $roomType->id))->count());
+        }
+
         return (int) ($roomType->getAttribute('active_rooms_count') ?? $roomType->rooms()->active()->count());
+    }
+
+    /**
+     * The adults one unit of the room type holds on the channel: its top adults, or for a dorm what its strategy sends
+     * (one guest per bed).
+     */
+    public function channelAdults(RoomType $roomType): int
+    {
+        return $roomType->sell_unit === SellUnit::Bed ? $this->dorms->for($roomType)->adults($roomType) : $roomType->max_adults;
+    }
+
+    /**
+     * The children one unit of the room type holds on the channel.
+     */
+    public function channelChildren(RoomType $roomType): int
+    {
+        return $roomType->sell_unit === SellUnit::Bed ? $this->dorms->for($roomType)->children($roomType) : $roomType->max_children;
+    }
+
+    /**
+     * The channel manager's room kind for the room type.
+     */
+    public function roomKind(RoomType $roomType): string
+    {
+        return $roomType->sell_unit === SellUnit::Bed ? $this->dorms->for($roomType)->roomKind() : 'room';
     }
 
     /**
@@ -99,6 +142,10 @@ class ChannelCapability
      */
     public function sellMode(RatePlan $ratePlan, RoomType $roomType): ChannelSellMode
     {
+        if ($roomType->sell_unit === SellUnit::Bed) {
+            return ChannelSellMode::PerRoom;
+        }
+
         if ($this->isPerGuestPackage($ratePlan) || $ratePlan->pricing_basis === PricingBasis::PerGuest) {
             return ChannelSellMode::PerPerson;
         }
