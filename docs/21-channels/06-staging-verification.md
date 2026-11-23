@@ -44,6 +44,19 @@ Hidden params are filled by Channex and never shown.
 
 Run with the [dorm strategy](03-dorm-strategies.md) item, not before.
 
+### BedAsUnit on staging (2026-11-23)
+
+The structure sync of the Kopi Lane demo property (ES1107) on Channex staging, read back from `/room_types` and `/rate_plans`:
+
+| Room type                            | `count_of_rooms` | `occ_adults` / `occ_children` / `default_occupancy` | `room_kind` | Rate plan                                      |
+| ------------------------------------ | ---------------- | --------------------------------------------------- | ----------- | ---------------------------------------------- |
+| 8-Bed Mixed Dorm (2 rooms of 8 beds) | 16               | 1 / 0 / 1                                           | room        | `per_room`, one option at occupancy 1, primary |
+| 6-Bed Female Dorm                    | 6                | 1 / 0 / 1                                           | room        | same                                           |
+| 4-Bed Dorm                           | 4                | 1 / 0 / 1                                           | room        | same                                           |
+| Private Double (not a dorm)          | 4                | 2 / 0 / 2                                           | room        | `per_room`, occupancy 2                        |
+
+Still to run: an ARI push and a test booking through Open Channel for a dorm room, and the OTA-side checks below (how each OTA shows a one-guest "room" of a dorm).
+
 ### Confirmed in Channex docs
 
 - `room_kind`: `room` or `dorm` (Room Types Collection).
