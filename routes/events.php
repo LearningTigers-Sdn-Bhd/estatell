@@ -16,6 +16,7 @@ Route::prefix('events')->name('events.')->middleware('facilities')->scopeBinding
         Route::prefix('{event}')->group(function () {
             Route::get('/', [EventController::class, 'show'])->name('show');
             Route::get('bookings', [EventController::class, 'bookings'])->name('bookings');
+            Route::get('booking-summary', [EventController::class, 'bookingSummary'])->name('booking-summary');
 
             Route::middleware('can:'.PermissionEnum::EventsManage->value)->group(function () {
                 Route::put('/', [EventController::class, 'update'])->name('update');

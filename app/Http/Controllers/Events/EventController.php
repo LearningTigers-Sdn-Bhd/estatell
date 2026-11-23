@@ -32,6 +32,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\Events\EventBookingSummary;
 use App\Services\Events\EventDirectory;
 use App\Services\Facilities\EventLinesQuote;
 use App\Services\Facilities\FacilityBookingCharge;
@@ -41,11 +42,13 @@ use App\Services\Folio\FolioVoucher;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Platform\Impersonation;
+use App\Services\Property\PrintedPdf;
 use App\Services\Property\PropertyToday;
 use App\Services\Reservations\ReservationFormOptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as PdfResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
@@ -177,6 +180,18 @@ class EventController extends Controller
                 return $invoice === null ? null : $invoiceDetail->build($invoice, $user);
             }),
         ]);
+    }
+
+    /**
+     * The event's booking summary as an A4 PDF shown inline. It is rendered on demand and stores nothing. `?prices=0`
+     * prints it without prices; an event with no company payer ignores that.
+     */
+    public function bookingSummary(Request $request, Property $property, Event $event, EventBookingSummary $summary, PrintedPdf $printedPdf): PdfResponse
+    {
+        return $printedPdf->make($property, 'pdf.booking-summary', [
+            'summary' => $summary->for($property, $event, $request->boolean('prices', true)),
+            'settings' => $property->printSetting,
+        ])->stream('booking-summary-'.$event->number.'.pdf');
     }
 
     /**

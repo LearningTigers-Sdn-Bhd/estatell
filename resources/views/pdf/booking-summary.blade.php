@@ -36,7 +36,7 @@
     @endif
 
     @if ($summary->rooms !== [])
-        <div class="heading gap-16">{{ __('Rooms') }}</div>
+        <div class="heading gap-16">{{ __($summary->roomsHeading) }}</div>
         <table>
             @foreach ($summary->rooms as $line)
                 <tr class="rule"><td>{{ $line }}</td></tr>

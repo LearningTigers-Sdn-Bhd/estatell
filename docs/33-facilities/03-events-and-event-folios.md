@@ -152,8 +152,23 @@ Events › Lim & Tan wedding dinner › Folio ▾
 
 - The **Folio** tab reuses the folio panel of the reservation page (`components/pms/folio/folio-tab.tsx`) with an event owner (`FolioOwner` in `folio-owner.ts`). The panel posts to the event's folio routes.
 - Not on an event folio: routing rules, third-party folios, Move charges, Move credit, the Manual Folio Editor and e-invoice. Post charge has no Folio or Room field.
-- **⋯ More actions**: Edit event, Confirm (Tentative only), Cancel event (AlertDialog). Print booking summary comes later.
+- **⋯ More actions**: Edit event, Confirm (Tentative only), **Print booking summary**, **Print without prices** (company payer only), Cancel event (AlertDialog). The prints show to anyone with `events.view`, on every status. See [Booking summary](#booking-summary).
 - The **Bookings** tab shows an empty state until the [facility bookings item](04-facility-bookings.md#event-bookings-tab).
+
+## Booking summary
+
+**Decided 2026-11-23.** The same proforma as the [reservation booking summary](../12-reservations/08-booking-summary.md), for an event. `EventBookingSummary` (`app/Services/Events/`) returns the same `BookingSummaryDocument`, and the PDF uses the same view.
+
+| Part                | For an event                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Number              | The event number, with "As at {date}, {time}". Nothing is stored.                                                                                           |
+| Strip               | Bill to (company, else the payer guest), Event, Dates, Booked on.                                                                                           |
+| Facilities          | In place of Rooms: one line per booking that is not Cancelled, "14 Oct · Riverside Hall · 18:00–23:00 · 1 item". A Tentative booking ends with "Tentative". |
+| Charges             | The posted lines of the folios that are not Voided, then the bookings not posted yet on Open folios. All under Other charges.                               |
+| Payments, balance   | As on a reservation.                                                                                                                                        |
+| Stamp               | CANCELLED for a Cancelled event.                                                                                                                            |
+| Cancellation policy | Left out. The property policy is written for rooms.                                                                                                         |
+| Without prices      | `?prices=0`, only for a company payer. A guest payer always gets prices.                                                                                    |
 
 ## Deposits
 
@@ -195,17 +210,18 @@ Refusals return `false` or a refused result; the controller shows an error toast
 
 Need the `Facilities` feature (`facilities` middleware). Routes in `routes/events.php`, with scoped bindings: a folio must belong to the event, and a line or payment to the folio.
 
-| Route                                   | Name              | Permission                            |
-| --------------------------------------- | ----------------- | ------------------------------------- |
-| `GET /p/{code}/events`                  | `events.index`    | `events.view`                         |
-| `GET /p/{code}/events/new`              | `events.create`   | `events.manage`                       |
-| `POST /p/{code}/events`                 | `events.store`    | `events.manage`                       |
-| `POST /p/{code}/events/quote`           | `events.quote`    | `events.manage` and `facilities.book` |
-| `GET /p/{code}/events/{event}`          | `events.show`     | `events.view`                         |
-| `GET /p/{code}/events/{event}/bookings` | `events.bookings` | `events.view`                         |
-| `PUT /p/{code}/events/{event}`          | `events.update`   | `events.manage`                       |
-| `POST /p/{code}/events/{event}/confirm` | `events.confirm`  | `events.manage`                       |
-| `POST /p/{code}/events/{event}/cancel`  | `events.cancel`   | `events.manage`                       |
+| Route                                          | Name                     | Permission                            |
+| ---------------------------------------------- | ------------------------ | ------------------------------------- |
+| `GET /p/{code}/events`                         | `events.index`           | `events.view`                         |
+| `GET /p/{code}/events/new`                     | `events.create`          | `events.manage`                       |
+| `POST /p/{code}/events`                        | `events.store`           | `events.manage`                       |
+| `POST /p/{code}/events/quote`                  | `events.quote`           | `events.manage` and `facilities.book` |
+| `GET /p/{code}/events/{event}`                 | `events.show`            | `events.view`                         |
+| `GET /p/{code}/events/{event}/bookings`        | `events.bookings`        | `events.view`                         |
+| `GET /p/{code}/events/{event}/booking-summary` | `events.booking-summary` | `events.view`                         |
+| `PUT /p/{code}/events/{event}`                 | `events.update`          | `events.manage`                       |
+| `POST /p/{code}/events/{event}/confirm`        | `events.confirm`         | `events.manage`                       |
+| `POST /p/{code}/events/{event}/cancel`         | `events.cancel`          | `events.manage`                       |
 
 The folio actions sit under `/p/{code}/events/{event}/folios/{folio}/…` (`events.folios.*`) and use the existing folio permissions on top of `events.view`:
 

@@ -10,6 +10,7 @@ import {
     MoreHorizontal,
     Pencil,
     Phone,
+    Printer,
     User,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -40,7 +41,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
-import { bookings, cancel, confirm, index, show } from '@/routes/events';
+import {
+    bookingSummary,
+    bookings,
+    cancel,
+    confirm,
+    index,
+    show,
+} from '@/routes/events';
 
 type Event = App.Data.Events.EventData;
 
@@ -155,10 +163,6 @@ function EventActions({ event, canViewCompany, companies }: EventShellProps) {
     const [cancelling, setCancelling] = useState(false);
     const [confirming, setConfirming] = useState(false);
 
-    if (!event.canEdit && !event.canConfirm && !event.canCancel) {
-        return null;
-    }
-
     return (
         <>
             <DropdownMenu>
@@ -190,6 +194,35 @@ function EventActions({ event, canViewCompany, companies }: EventShellProps) {
                         >
                             <CalendarCheck />
                             Confirm
+                        </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                        render={
+                            <a
+                                href={bookingSummary.url({ event: event.id })}
+                                target="_blank"
+                                rel="noreferrer"
+                            />
+                        }
+                    >
+                        <Printer />
+                        Print booking summary
+                    </DropdownMenuItem>
+                    {event.payerCompanyId !== null && (
+                        <DropdownMenuItem
+                            render={
+                                <a
+                                    href={bookingSummary.url(
+                                        { event: event.id },
+                                        { query: { prices: 0 } },
+                                    )}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                />
+                            }
+                        >
+                            <Printer />
+                            Print without prices
                         </DropdownMenuItem>
                     )}
                     {event.canCancel && (

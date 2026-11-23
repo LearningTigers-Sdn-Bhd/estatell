@@ -4,6 +4,8 @@
 
 A printable proforma of one reservation: who pays, the stay, every charge (posted and still to come), the payments and what is still due. Guests, travel agents and companies ask for it before arrival and during the stay.
 
+An event has the same document: see [Event booking summary](../33-facilities/03-events-and-event-folios.md#booking-summary).
+
 It is not a tax invoice. The tax invoice of a stay is the [folio invoice](../13-folio/06-folio-invoice.md), and a company gets an [AR invoice](../15-city-ledger/02-ar-invoices.md).
 
 ## Decisions
