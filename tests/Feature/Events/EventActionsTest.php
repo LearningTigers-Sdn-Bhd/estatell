@@ -107,7 +107,7 @@ test('changing the payer of an event moves the Open folio to the new payer', fun
         'notes' => 'Projector in the hall',
     ]);
 
-    expect($saved)->toBeTrue()
+    expect($saved->isRefused())->toBeFalse()
         ->and($event->refresh()->ends_on->toDateString())->toBe('2026-10-21')
         ->and($folio->refresh()->payer_company_id)->toBe($company->id)
         ->and($folio->payer_guest_id)->toBeNull();
@@ -118,9 +118,9 @@ test('confirm and cancel follow the event status rules and a refusal logs nothin
     [$tentative] = makeEvent($property, $owner, ['status' => EventStatus::Tentative]);
     [$confirmed] = makeEvent($property, $owner);
 
-    expect(app(ConfirmEvent::class)($owner, $tentative))->toBeTrue()
+    expect(app(ConfirmEvent::class)($owner, $tentative)->isRefused())->toBeFalse()
         ->and($tentative->refresh()->status)->toBe(EventStatus::Confirmed)
-        ->and(app(ConfirmEvent::class)($owner, $confirmed))->toBeFalse()
+        ->and(app(ConfirmEvent::class)($owner, $confirmed)->refusal)->toBe('event_not_tentative')
         ->and(Activity::query()->where('event', 'events.confirmed')->where('subject_id', $confirmed->id)->exists())->toBeFalse();
 
     expect(app(CancelEvent::class)($owner, $confirmed))->toBeTrue()
@@ -128,7 +128,7 @@ test('confirm and cancel follow the event status rules and a refusal logs nothin
         ->and($confirmed->cancelled_by)->toBe($owner->id)
         ->and(app(CancelEvent::class)($owner, $confirmed))->toBeFalse()
         ->and(Activity::query()->where('event', 'events.cancelled')->where('subject_id', $confirmed->id)->count())->toBe(1)
-        ->and(app(UpdateEvent::class)($owner, $confirmed, ['name' => 'New', 'payer_guest_id' => $confirmed->payer_guest_id, 'payer_company_id' => null, 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20']))->toBeFalse();
+        ->and(app(UpdateEvent::class)($owner, $confirmed, ['name' => 'New', 'payer_guest_id' => $confirmed->payer_guest_id, 'payer_company_id' => null, 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20'])->refusal)->toBe('event_not_open');
 });
 
 test('a charge posts on the event folio with its tax, and a repeat key returns the same lines', function () {

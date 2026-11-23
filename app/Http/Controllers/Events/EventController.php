@@ -6,22 +6,29 @@ use App\Actions\Events\CancelEvent;
 use App\Actions\Events\ConfirmEvent;
 use App\Actions\Events\CreateEvent;
 use App\Actions\Events\UpdateEvent;
+use App\Actions\Facilities\FacilityBookingResult;
 use App\Data\CityLedger\ArInvoiceData;
 use App\Data\Events\EventData;
 use App\Data\Events\EventRowData;
+use App\Data\Facilities\FacilityBookingRowData;
+use App\Data\Facilities\FacilityOptionData;
 use App\Data\Property\CurrencyData;
 use App\Enums\EventStatus;
+use App\Enums\FacilityBookingStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Events\EventRequest;
 use App\Models\ArInvoice;
 use App\Models\Event;
+use App\Models\Facility;
+use App\Models\FacilityBooking;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Events\EventDirectory;
+use App\Services\Facilities\FacilityBookingRefusals;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -125,31 +132,62 @@ class EventController extends Controller
     }
 
     /**
-     * Event page, Bookings tab. Facility bookings come with the facility bookings item; until then it is empty.
+     * Event page, Bookings tab: the event's facility bookings, Cancelled ones last, and the facilities the Book
+     * facility Sheet offers. See docs/33-facilities/04-facility-bookings.md#event-bookings-tab.
      */
     public function bookings(Request $request, Property $property, Event $event): Response
     {
-        return $this->renderTab($request->user(), $property, $event, 'bookings', []);
+        $user = $request->user();
+        $canBook = $user->can(PermissionEnum::FacilitiesBook->value)
+            && in_array($event->status, [EventStatus::Tentative, EventStatus::Confirmed], true);
+        $bookings = FacilityBooking::query()
+            ->where('event_id', $event->id)
+            ->with('facility')
+            ->orderByRaw('status = ? ', [FacilityBookingStatus::Cancelled->value])
+            ->ordered()
+            ->get();
+
+        return $this->renderTab($user, $property, $event, 'bookings', [
+            'bookings' => $bookings->map(fn (FacilityBooking $booking): FacilityBookingRowData => FacilityBookingRowData::fromModel($booking, $canBook))->values()->all(),
+            'canBook' => $canBook,
+            'facilities' => $canBook
+                ? Facility::query()
+                    ->where('property_id', $property->id)
+                    ->where('active', true)
+                    ->with(['chargeItem', 'sessions' => fn ($query) => $query->ordered()])
+                    ->ordered()
+                    ->get()
+                    ->map(fn (Facility $facility): FacilityOptionData => FacilityOptionData::fromModel($facility))
+                    ->values()
+                    ->all()
+                : [],
+        ]);
     }
 
     public function update(EventRequest $request, Property $property, Event $event, UpdateEvent $updateEvent): RedirectResponse
     {
-        $updated = $updateEvent($request->user(), $event, $request->eventAttributes());
+        $result = $updateEvent($request->user(), $event, $request->eventAttributes());
 
-        Inertia::flash('toast', $updated
-            ? ['type' => 'success', 'message' => __('Event saved.')]
-            : ['type' => 'error', 'message' => __('A completed or cancelled event cannot be edited.')]);
+        if ($result->refusal === FacilityBookingResult::REFUSAL_OUTSIDE_EVENT) {
+            return back()->withErrors(['starts_on' => __('A facility booking is outside these dates. Move or cancel it first.')]);
+        }
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => __('A completed or cancelled event cannot be edited.')]
+            : ['type' => 'success', 'message' => __('Event saved.')]);
 
         return back(fallback: route('events.show', ['property' => $property, 'event' => $event]));
     }
 
-    public function confirm(Request $request, Property $property, Event $event, ConfirmEvent $confirmEvent): RedirectResponse
+    public function confirm(Request $request, Property $property, Event $event, ConfirmEvent $confirmEvent, FacilityBookingRefusals $refusals): RedirectResponse
     {
-        $confirmed = $confirmEvent($request->user(), $event);
+        $result = $confirmEvent($request->user(), $event);
 
-        Inertia::flash('toast', $confirmed
-            ? ['type' => 'success', 'message' => __('Event :number confirmed.', ['number' => $event->number])]
-            : ['type' => 'error', 'message' => __('Only a tentative event can be confirmed.')]);
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => $result->refusal === FacilityBookingResult::REFUSAL_EVENT_NOT_TENTATIVE
+                ? $refusals->message($result)
+                : __('The event cannot be confirmed. :reason', ['reason' => $refusals->message($result)])]
+            : ['type' => 'success', 'message' => __('Event :number confirmed.', ['number' => $event->number])]);
 
         return back(fallback: route('events.show', ['property' => $property, 'event' => $event]));
     }

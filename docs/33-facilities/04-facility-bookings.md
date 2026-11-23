@@ -1,6 +1,6 @@
 # Facility bookings
 
-> **Planned.** See [Facilities and events](01-overview.md).
+> **Built for events** (checklist item 4). Reservation bookings (Charge to), posting and no-shows are planned. See [Facilities and events](01-overview.md).
 
 ## Purpose
 
@@ -29,6 +29,7 @@ facility_bookings  id, property_id, facility_id → facilities (restrict),
 - `folio_id` is **Charge to**. It is saved on the booking, so a later routing rule change does not move it.
 - `unit_amount` is the price of one unit of the rate basis (one day, one session, one hour, one person). See [Price](#price).
 - An event's booking has a date inside the event's dates (`booking_outside_event`).
+- A booking of a Shared facility with sessions uses one session's times (`facility_session_not_found`). It copies the times and keeps no link to the session.
 
 ## Enums
 
@@ -46,6 +47,7 @@ facility_bookings  id, property_id, facility_id → facilities (restrict),
 | Shared  | At every moment of the range, the quantity of Confirmed bookings plus this one is at most `capacity` | `facility_full`  |
 
 - Times overlap when one starts before the other ends. 18:00–23:00 and 09:00–18:00 do not overlap.
+- **Confirm event** runs the check for each of its Tentative bookings in turn, so two bookings of the same event that clash are caught too. A Private facility refuses with `facility_clash`, a Shared one with `facility_full`. A refusal confirms nothing and names the facility.
 - Tentative bookings never block. They show as a **warning** in the Sheet: "Riverside Hall is held 09:00–17:00 (Sabah Tourism meeting, Tentative)."
 - `BookFacility` locks the facility row while it checks and writes, so two staff cannot take the last slot together.
 - An inactive facility takes no new bookings (`facility_inactive`).
@@ -127,9 +129,11 @@ A Shared facility with sessions shows **Session** in place of From and To:
 │ 240.00 + SST 19.20                       │
 ```
 
+- **Notes** (optional) sits under Charge to, e.g. Round tables, stage on the left.
+- Edit booking is the same Sheet with the facility locked.
 - Facility, date and time (or session) prefill from the Timeline cell that opened it.
 - **Price** prefills with the list price. "List price …" shows beside it only when staff change it. Hidden for "Charge by hand".
-- The price line and the clash warning come from the server (`facilities.quote`, an optional prop reload). The browser does not calculate them.
+- The price line, the refusal and the Tentative warning come from the server (`POST facility-bookings/quote`, 300 ms after a change, like the payment quote). The browser does not calculate them. Book is disabled while the quote has a refusal.
 - A reservation booking defaults the date to the business date when it is inside the stay, else the arrival date. Dates outside the stay are allowed (a dinner the night before arrival).
 
 ## Reservation Facilities tab
@@ -148,27 +152,28 @@ Kayak           11 Dec  09:00–11:00   2      Room 101 folio        80.00   ⋯
 
 ## Event Bookings tab
 
-The same table on the event page, without the Charge to column (always the event folio). New bookings default to the event's first date and take its status. The date must be inside the event's dates.
+The same table on the event page, without the Charge to column (always the event folio). New bookings default to the event's first date and take its status. The date must be inside the event's dates. Cancelled bookings stay in the list, last and muted. Book facility and the row menu need `facilities.book` and a Tentative or Confirmed event. In the Sheet, Charge to is read only ("Event folio · {payer}").
 
 ## Actions
 
-| Action                   | Does                                                                                                                                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BookFacility`           | Locks the facility, runs the clash check, creates the booking with its price. Refuses `facility_clash`, `facility_full`, `facility_inactive`, `folio_not_open`, `folio_not_of_owner`, `booking_outside_event` |
-| `UpdateFacilityBooking`  | Date, time, quantity, price, Charge to, notes. Runs the clash check again. Refuses `facility_booking_posted` after posting and `booking_outside_event`                                                        |
-| `CancelFacilityBooking`  | → Cancelled. Reverses the posted line when there is one                                                                                                                                                       |
-| `CancelFacilityBookings` | Cancels all bookings of a reservation or an event. Called by `CancelEvent`, `CancelReservation`, and by `CancelUnit` and `MarkNoShow` for the last live unit                                                  |
-| `PostFacilityBooking`    | Posts one booking (Post now and the night audit). Idempotent by key. Resolves the booking's open `Facility` audit exceptions once it is posted                                                                |
-| `PostFacilityCharges`    | The night audit step body for one business date                                                                                                                                                               |
+| Action                   | Does                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BookFacility`           | Locks the event and the facility, runs the clash check, creates the booking with its price. Refuses `event_not_open` (a Completed or Cancelled event), `facility_inactive`, `booking_outside_event`, `facility_session_not_found`, `folio_not_open`, `facility_clash`, `facility_full`. Reservations add `folio_not_of_owner` |
+| `UpdateFacilityBooking`  | Date, time, quantity, price, Charge to, notes. The facility stays. Runs the same checks, leaving this booking out. Refuses `facility_booking_cancelled`; posting adds `facility_booking_posted`                                                                                                                               |
+| `CancelFacilityBooking`  | → Cancelled. Posting adds reversing the posted line                                                                                                                                                                                                                                                                           |
+| `CancelFacilityBookings` | Cancels all bookings of a reservation or an event. Called by `CancelEvent`, `CancelReservation`, and by `CancelUnit` and `MarkNoShow` for the last live unit                                                                                                                                                                  |
+| `PostFacilityBooking`    | Posts one booking (Post now and the night audit). Idempotent by key. Resolves the booking's open `Facility` audit exceptions once it is posted                                                                                                                                                                                |
+| `PostFacilityCharges`    | The night audit step body for one business date                                                                                                                                                                                                                                                                               |
 
 ## Routes
 
 Need `facilities.book` and the `Facilities` feature.
 
-| Route                                                 | Name                       |
-| ----------------------------------------------------- | -------------------------- |
-| `GET /p/{code}/reservations/{reservation}/facilities` | `reservations.facilities`  |
-| `POST /p/{code}/facility-bookings`                    | `facility-bookings.store`  |
-| `PUT /p/{code}/facility-bookings/{booking}`           | `facility-bookings.update` |
-| `POST /p/{code}/facility-bookings/{booking}/post`     | `facility-bookings.post`   |
-| `POST /p/{code}/facility-bookings/{booking}/cancel`   | `facility-bookings.cancel` |
+| Route                                                       | Name                       |
+| ----------------------------------------------------------- | -------------------------- |
+| `GET /p/{code}/reservations/{reservation}/facilities`       | `reservations.facilities`  |
+| `POST /p/{code}/facility-bookings`                          | `facility-bookings.store`  |
+| `POST /p/{code}/facility-bookings/quote`                    | `facility-bookings.quote`  |
+| `PUT /p/{code}/facility-bookings/{facilityBooking}`         | `facility-bookings.update` |
+| `POST /p/{code}/facility-bookings/{facilityBooking}/post`   | `facility-bookings.post`   |
+| `POST /p/{code}/facility-bookings/{facilityBooking}/cancel` | `facility-bookings.cancel` |

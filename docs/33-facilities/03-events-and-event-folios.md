@@ -1,6 +1,6 @@
 # Events and event folios
 
-> **Built** (checklist item 3). Facility bookings, posting, the Timeline View and the report are still planned. See [Facilities and events](01-overview.md).
+> **Built** (checklist items 3 and 4). Reservation bookings, posting, the Timeline View and the report are still planned. See [Facilities and events](01-overview.md).
 
 ## Purpose
 
@@ -150,16 +150,16 @@ Code that read `folio->reservation` now handles an event folio:
 
 ## Actions
 
-| Action                      | Does                                                                                                                                                                              |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateEvent`               | Takes the Event number, creates the event and its folio in one transaction, and adds a new guest payer when given. Logs `events.created`                                          |
-| `UpdateEvent`               | Name, payer, dates, notes. Refuses a Completed or Cancelled event. The facility bookings item adds `booking_outside_event`: a booking that is not Cancelled outside the new dates |
-| `ConfirmEvent`              | Tentative → Confirmed. Logs `events.confirmed`. The facility bookings item adds the clash check (`facility_clash`)                                                                |
-| `CancelEvent`               | → Cancelled. Logs `events.cancelled`. The facility bookings item adds cancelling its bookings (reversing posted ones)                                                             |
-| `CompleteEvent`             | Called by `CloseFolio`: a Confirmed event becomes Completed                                                                                                                       |
-| `ReopenEvent`               | Called by `ReopenFolio`: a Completed event becomes Confirmed                                                                                                                      |
-| `PostEventCharge`           | Posts a charge and its tax on the event folio, with the same checks as `PostCharge` and no unit or routing. Logs `folio.charge_posted` on the event                               |
-| `RecordPayment::forEvent()` | Records a payment on the event folio, with the checks in [Deposits](#deposits). Shares the write step with `RecordPayment`                                                        |
+| Action                      | Does                                                                                                                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateEvent`               | Takes the Event number, creates the event and its folio in one transaction, and adds a new guest payer when given. Logs `events.created`                                                 |
+| `UpdateEvent`               | Name, payer, dates, notes. Refuses a Completed or Cancelled event (`event_not_open`), and new dates that leave a live facility booking outside them (`booking_outside_event`)            |
+| `ConfirmEvent`              | Tentative → Confirmed, with its Tentative bookings. Each booking runs the clash check in turn (`facility_clash` or `facility_full`); a refusal confirms nothing. Logs `events.confirmed` |
+| `CancelEvent`               | → Cancelled, with its bookings (`CancelFacilityBookings`). Logs `events.cancelled`. Reversing posted bookings comes with posting                                                         |
+| `CompleteEvent`             | Called by `CloseFolio`: a Confirmed event becomes Completed                                                                                                                              |
+| `ReopenEvent`               | Called by `ReopenFolio`: a Completed event becomes Confirmed                                                                                                                             |
+| `PostEventCharge`           | Posts a charge and its tax on the event folio, with the same checks as `PostCharge` and no unit or routing. Logs `folio.charge_posted` on the event                                      |
+| `RecordPayment::forEvent()` | Records a payment on the event folio, with the checks in [Deposits](#deposits). Shares the write step with `RecordPayment`                                                               |
 
 Refusals return `false` or a refused result; the controller shows an error toast and nothing is written or logged.
 

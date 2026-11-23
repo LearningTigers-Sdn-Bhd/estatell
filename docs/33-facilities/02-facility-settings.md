@@ -31,12 +31,12 @@ facility_sessions   id, property_id, facility_id → facilities (cascade),
 
 ## Enums
 
-| Enum                   | Cases (label)                                              | Notes                                                                                                                                       |
-| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FacilitySharing`      | Private ("Private"), Shared ("Shared")                     | `description()`: "One booking takes the whole facility." / "Several bookings share it until it is full."                                    |
-| `FacilityCapacityUnit` | Pax ("pax"), Units ("units")                               | Kayaks are units; halls and activities are pax                                                                                              |
-| `FacilityRateBasis`    | Day, Session, Hour, Person ("Per day", "Per session", ...) | `quantity(FacilityBooking)`, added with bookings (item 4): Day and Session 1, Hour the booked hours rounded up, Person the booking quantity |
-| `TransactionCategory`  | adds Facility ("Facility")                                 | In `chargeItemCases()`, so also a routing category                                                                                          |
+| Enum                   | Cases (label)                                              | Notes                                                                                                                    |
+| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `FacilitySharing`      | Private ("Private"), Shared ("Shared")                     | `description()`: "One booking takes the whole facility." / "Several bookings share it until it is full."                 |
+| `FacilityCapacityUnit` | Pax ("pax"), Units ("units")                               | Kayaks are units; halls and activities are pax                                                                           |
+| `FacilityRateBasis`    | Day, Session, Hour, Person ("Per day", "Per session", ...) | `quantity(startsAt, endsAt, quantity)`: Day and Session 1, Hour the booked hours rounded up, Person the booking quantity |
+| `TransactionCategory`  | adds Facility ("Facility")                                 | In `chargeItemCases()`, so also a routing category                                                                       |
 
 ## Where it lives
 

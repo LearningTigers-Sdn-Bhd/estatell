@@ -70,4 +70,10 @@ class Event extends Model
     {
         return $this->hasMany(Folio::class);
     }
+
+    /** @return HasMany<FacilityBooking, $this> */
+    public function facilityBookings(): HasMany
+    {
+        return $this->hasMany(FacilityBooking::class);
+    }
 }

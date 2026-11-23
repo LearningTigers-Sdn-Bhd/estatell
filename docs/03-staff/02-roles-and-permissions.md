@@ -61,6 +61,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `reservations.change-price`        | Change the price of booked nights                                           | ✓     | ✓       | Finance                           |
 | `events.view`                      | Events list and event pages (with the Facilities feature)                   | ✓     | ✓       | Front desk, Finance               |
 | `events.manage`                    | Create, edit, confirm and cancel events                                     | ✓     | ✓       | Front desk                        |
+| `facilities.book`                  | Book, change and cancel facility bookings (with the Facilities feature)     | ✓     | ✓       | Front desk                        |
 | `folio.post-charge`                | Post a manual charge to a unit's folio                                      | ✓     | ✓       | Front desk, Finance               |
 | `folio.reverse`                    | Reverse a folio line                                                        | ✓     | ✓       | Finance                           |
 | `folio.transfer`                   | Transfer lines between folios and manage routing                            | ✓     | ✓       | Finance                           |
