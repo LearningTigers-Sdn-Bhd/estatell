@@ -1681,6 +1681,26 @@ bookedByLabel: string,
 unitLabel: string,
 rateBasisLabel: string,
 };
+export type FacilityDayCellData = {
+facilityId: number,
+date: string,
+booked: number,
+full: boolean,
+bookings: number,
+tentative: number,
+label: string | null,
+};
+export type FacilityDayLineData = {
+id: number,
+startsAt: string,
+endsAt: string,
+name: string,
+eventId: number | null,
+reservationId: number | null,
+quantity: number,
+quantityUnit: string,
+status: App.Data.Shared.BadgeData,
+};
 export type FacilityOptionData = {
 id: number,
 name: string,
@@ -1706,6 +1726,13 @@ export type FacilitySessionPlacesData = {
 startsAt: string,
 endsAt: string,
 left: number,
+};
+export type FacilityTimelineRowData = {
+id: number,
+name: string,
+capacity: number,
+single: boolean,
+unit: string,
 };
 }
 namespace Folio {

@@ -10,6 +10,13 @@ import { EmptyCell } from './cell-actions';
 import type { BlockCell } from './cell-actions';
 import { DayUseBar } from './day-use-bar';
 import { rowOnNight, rowTakesDrop } from './drop-target';
+import { FacilityDayCell, FacilityLabel } from './facility-row';
+import {
+    buildFacilityRows,
+    cellsByKey,
+    facilityCellKey,
+    facilityCellView,
+} from './facility-rows';
 import { filterStays } from './filter-stays';
 import { buildRows, toggleCollapsed } from './group-rows';
 import { InventoryFooterCell, InventoryFooterLabel } from './inventory-footer';
@@ -66,11 +73,14 @@ export function StayViewTimeline({
     blocks,
     dayUses,
     rates,
+    facilities,
+    facilityCells,
     filters,
     showRates,
     rateChoice,
     currency,
     canViewReservations,
+    canViewEvents,
     canManageReservations,
     canOverrideRestrictions,
     canWaiveFees,
@@ -87,11 +97,15 @@ export function StayViewTimeline({
     blocks: App.Data.StayView.BlockData[];
     dayUses: App.Data.StayView.DayUseData[];
     rates: App.Data.StayView.RatePriceRowData[];
+    /** The facility rows, or an empty list when the section is off. */
+    facilities: App.Data.Facilities.FacilityTimelineRowData[];
+    facilityCells: App.Data.Facilities.FacilityDayCellData[];
     filters: Filters;
     showRates: boolean;
     rateChoice: RateChoice;
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
+    canViewEvents: boolean;
     canManageReservations: boolean;
     canOverrideRestrictions: boolean;
     canWaiveFees: boolean;
@@ -138,15 +152,28 @@ export function StayViewTimeline({
         () => unassignedLanes(visible.stays, rooms),
         [visible.stays, rooms],
     );
+    // The Facilities section comes after the rooms, above the sticky Available footer.
     const rows = useMemo(
-        () =>
-            buildRows(
+        () => [
+            ...buildRows(
                 visible.rooms,
                 filters.groupBy,
                 collapsed,
                 unassigned.lanes,
             ),
-        [visible.rooms, filters.groupBy, collapsed, unassigned.lanes],
+            ...buildFacilityRows(facilities, collapsed),
+        ],
+        [
+            visible.rooms,
+            filters.groupBy,
+            collapsed,
+            unassigned.lanes,
+            facilities,
+        ],
+    );
+    const facilityCellMap = useMemo(
+        () => cellsByKey(facilityCells),
+        [facilityCells],
     );
     const roomByKey = useMemo(
         () => new Map(visible.rooms.map((room) => [room.key, room])),
@@ -359,6 +386,8 @@ export function StayViewTimeline({
                                 )
                             }
                         />
+                    ) : row.facility ? (
+                        <FacilityLabel facility={row.facility} />
                     ) : row.room === null ? (
                         <LaneLabel lane={row.lane} />
                     ) : (
@@ -366,9 +395,28 @@ export function StayViewTimeline({
                     )
                 }
                 renderCell={(row, column) =>
-                    row.kind === 'row' &&
-                    row.room !== null &&
-                    column.date < window.businessDate ? (
+                    row.kind === 'row' && row.facility ? (
+                        <FacilityDayCell
+                            facility={row.facility}
+                            date={column.date}
+                            view={facilityCellView(
+                                row.facility,
+                                facilityCellMap.get(
+                                    facilityCellKey(
+                                        row.facility.id,
+                                        column.date,
+                                    ),
+                                ),
+                            )}
+                            hasBookings={facilityCellMap.has(
+                                facilityCellKey(row.facility.id, column.date),
+                            )}
+                            canViewReservations={canViewReservations}
+                            canViewEvents={canViewEvents}
+                        />
+                    ) : row.kind === 'row' &&
+                      row.room !== null &&
+                      column.date < window.businessDate ? (
                         <span
                             aria-hidden
                             className="pointer-events-none absolute inset-0 bg-muted/50"
@@ -391,7 +439,8 @@ export function StayViewTimeline({
                     ) : null
                 }
                 renderRowOverlay={(row, { labelWidth, columnWidth }) =>
-                    row.kind === 'row' && (
+                    row.kind === 'row' &&
+                    !row.facility && (
                         <>
                             {drag?.targets &&
                                 drag.shift === 0 &&

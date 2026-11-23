@@ -96,6 +96,8 @@ export function StayViewFilters({
     planOptions = [],
     ratePlanId = '',
     onRatePlanChange,
+    showFacilities = false,
+    onShowFacilitiesChange,
     className = 'w-full justify-start bg-grid-header text-grid-header-foreground hover:bg-grid-hover',
     description = 'Choose which rooms and stays show on the timeline.',
 }: {
@@ -110,6 +112,9 @@ export function StayViewFilters({
     planOptions?: Option[];
     ratePlanId?: string;
     onRatePlanChange?: (ratePlanId: number) => void;
+    /** The Facilities section switch. Left out when the Facilities feature is off. */
+    showFacilities?: boolean;
+    onShowFacilitiesChange?: (show: boolean) => void;
     /** The classes of the trigger button. */
     className?: string;
     description?: string;
@@ -251,6 +256,24 @@ export function StayViewFilters({
                                 />
                             </div>
                         )}
+                    {onShowFacilitiesChange && (
+                        <FieldLabel htmlFor="stay-view-show-facilities">
+                            <Field orientation="horizontal">
+                                <Switch
+                                    id="stay-view-show-facilities"
+                                    checked={showFacilities}
+                                    onCheckedChange={onShowFacilitiesChange}
+                                />
+                                <FieldContent>
+                                    <FieldTitle>Show facilities</FieldTitle>
+                                    <FieldDescription>
+                                        Show halls, equipment and activities
+                                        under the rooms.
+                                    </FieldDescription>
+                                </FieldContent>
+                            </Field>
+                        </FieldLabel>
+                    )}
                 </div>
                 <SheetFooter className="border-t bg-muted/50">
                     <SheetClose

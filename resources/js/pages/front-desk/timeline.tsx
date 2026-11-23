@@ -32,12 +32,15 @@ export default function Timeline({
     blocks,
     dayUses,
     rates,
+    facilities,
+    facilityCells,
     filters: initialFilters,
     groupingOptions,
     statusOptions,
     weekendDays,
     currency,
     canViewReservations,
+    canViewEvents,
     canManageReservations,
     canOverrideRestrictions,
     canWaiveFees,
@@ -51,12 +54,16 @@ export default function Timeline({
     blocks: App.Data.StayView.BlockData[];
     dayUses: App.Data.StayView.DayUseData[];
     rates: App.Data.StayView.RatePriceRowData[];
+    /** Null when the Facilities feature is off. */
+    facilities: App.Data.Facilities.FacilityTimelineRowData[] | null;
+    facilityCells: App.Data.Facilities.FacilityDayCellData[];
     filters: App.Data.StayView.StayViewFiltersData;
     groupingOptions: { value: string; label: string }[];
     statusOptions: { value: string; label: string }[];
     weekendDays: number[];
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
+    canViewEvents: boolean;
     canManageReservations: boolean;
     canOverrideRestrictions: boolean;
     canWaiveFees: boolean;
@@ -115,11 +122,19 @@ export default function Timeline({
                             blocks={blocks}
                             dayUses={dayUses}
                             rates={rates}
+                            facilities={
+                                facilities !== null &&
+                                preferences.showFacilities
+                                    ? facilities
+                                    : []
+                            }
+                            facilityCells={facilityCells}
                             filters={filters}
                             showRates={preferences.showRates}
                             rateChoice={preferences.rateChoice}
                             currency={currency}
                             canViewReservations={canViewReservations}
+                            canViewEvents={canViewEvents}
                             canManageReservations={canManageReservations}
                             canOverrideRestrictions={canOverrideRestrictions}
                             canWaiveFees={canWaiveFees}
@@ -151,6 +166,15 @@ export default function Timeline({
                                         updatePreferences({
                                             rateChoice: { ratePlanId: planId },
                                         })
+                                    }
+                                    showFacilities={preferences.showFacilities}
+                                    onShowFacilitiesChange={
+                                        facilities === null
+                                            ? undefined
+                                            : (showFacilities) =>
+                                                  updatePreferences({
+                                                      showFacilities,
+                                                  })
                                     }
                                 />
                             }

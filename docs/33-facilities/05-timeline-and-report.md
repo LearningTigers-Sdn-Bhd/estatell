@@ -8,32 +8,35 @@ Show facility bookings next to the rooms, on one screen, like Bookinglayer's res
 
 ## Facilities section on the Timeline View
 
-The [Timeline View](../18-front-desk/03-stay-view.md#timeline-view-screen) gets a **Facilities** section below the room rows and the **Available** footer. There is no separate facilities board.
+> **Built** (item 7). **+ Book facility** in the peek is item 7b.
+
+The [Timeline View](../18-front-desk/03-stay-view.md#timeline-view-screen) gets a **Facilities** section after the room rows, above the sticky **Available** footer. There is no separate facilities board.
 
 ```
 ├────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼───────┤
-│ Available      │  4/12   │  1/12   │  2/12   │  6/12   │  7/12   │       │
-├ Facilities ⌄ ──┴─────────┴─────────┴─────────┴─────────┴─────────┴───────┤
+│ Facilities ⌄   │         │         │         │         │         │       │
 │ Riverside      │         │▒Sabah   │▐ Lim &  │         │         │       │
 │ Hall           │         │▒Tourism │  Tan    │         │         │       │
-│ BBQ pit        │  1/3    │  0/3    │  2/3    │  0/3    │ 3/3 Full│       │
+│ BBQ pit        │  1/3    │  0/3    │ 3/3 Full│  0/3    │  0/3    │       │
 │ Kayak          │  4/6    │  0/6    │ 6/6 Full│  2/6    │  0/6    │       │
 │ Night Walk     │ 12/20   │  8/20   │20/20Full│  5/20   │  0/20   │       │
+├────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼───────┤
+│ Available      │  4/12   │  1/12   │  2/12   │  6/12   │  7/12   │       │
 └────────────────┴─────────┴─────────┴─────────┴─────────┴─────────┴───────┘
   ▐ Confirmed   ▒ Tentative
 ```
 
-| Row                  | Cell                                                                                                  |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| Facility with 1 item | The booking's name (event name, or room and guest). "{n} booked" when there is more than one that day |
-| Any other facility   | The highest quantity booked at one time / How many. "Full" in the warning tone when it reaches it     |
+| Row                                   | Cell                                                                                                                   |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Booked by Item with How many 1 (hall) | The booking's name: the event name, or the booker and reference ("Lee Wei · ES-2041"). "{n} booked" when more than one |
+| Any other facility                    | The most Confirmed bookings take at one time / How many. "Full" in the warning tone when it reaches it                 |
 
 - Day columns, as for rooms. Hours are in the peek, so the grid does not get wider.
-- Tentative bookings are hatched and muted. Cancelled bookings do not show.
-- Facility rows sort by `position`. The section header collapses like a room group, and shows the facility count.
-- The **Filters** sheet gets a **Show facilities** switch, remembered in the browser (`estatell:stay-view:show-facilities`), default on when the feature is on.
+- Only Confirmed bookings count towards the number, the same rule as the clash check. A day whose bookings are all Tentative is hatched and muted; a mixed day says "{n} tentative" in the cell title. Cancelled bookings do not show.
+- Facility rows sort by `position`. The section shows the available facilities, and any other facility with a live booking in the window. The section header collapses like a room group, and shows the facility count when folded.
+- The **Filters** sheet gets a **Show facilities** switch, on by default. It is remembered in the browser with the other Timeline choices (`showFacilities` in `estatell:stay-view:timeline`). The switch shows only when the feature is on.
 - **Available** counts rooms only.
-- The server sends one `FacilityDayCell` per facility and day (`FacilityTimeline`, a Service in this module). The Timeline only draws them, so the stay view module does not read `facility_bookings`.
+- The server sends `facilities` (`FacilityTimelineRowData`, null when the feature is off) and `facilityCells` (`FacilityDayCellData`, only for dates with a live booking; a date with none is 0 booked). Both come from `FacilityTimeline`, a Service in this module. The Timeline only draws them, so the stay view module does not read `facility_bookings`.
 - Room View is not changed.
 
 ## Facility day peek
@@ -42,17 +45,21 @@ A click on a facility cell opens a Popover, like the stay peek.
 
 ```
 ┌──────────────────────────────────────────┐
-│ BBQ pit · Fri 12 Dec                   ✕ │
-│ 12:00–14:00  WWF lunch          Event    │
-│ 19:00–22:00  Room 101 · Lee     Booking  │
-│                                          │
-│                       [+ Book facility]  │
+│ BBQ pit · Fri 12 Dec                     │
+│ 12:00–14:00  WWF lunch               ›   │
+│              Event · 1 item              │
+│ 19:00–22:00  Lee Wei · ES-2041       ›   │
+│              Booking · 2 items           │
+│ 3 of 3 items booked at the busiest time. │
 └──────────────────────────────────────────┘
 ```
 
-- Each line links to its event or reservation (the Facilities tab).
-- **+ Book facility** opens the [Book facility](04-facility-bookings.md#book-facility-sheet) Sheet with the facility and date filled in. From the Timeline, staff pick the owner first: **Event** (an existing event, or a new one) or **Reservation** (search by guest, reference or room).
-- The peek loads that day's bookings as an optional prop. The cell data does not carry the lines.
+- Each line links to its event (`events.view`) or reservation's Facilities tab (`reservations.view`). Without the permission the line shows with no link.
+- The peek loads that day's bookings from `GET front-desk/facilities/{facility}/days/{date}` (`front-desk.facilities.day`, `FacilityDayLineData`), like the stay peek loads its folio. The route needs `front-desk.view` and the `facilities` middleware. The cell data does not carry the lines.
+
+### + Book facility (item 7b)
+
+**+ Book facility** in the peek opens the [Book facility](04-facility-bookings.md#book-facility-sheet) Sheet with the facility and date filled in. From the Timeline, staff pick the owner first: **Event** (an existing event, or a new one) or **Reservation** (search by guest, reference or room).
 
 ## Facility bookings report
 
