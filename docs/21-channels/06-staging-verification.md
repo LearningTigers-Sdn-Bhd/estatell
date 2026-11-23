@@ -59,6 +59,20 @@ Still to run: an ARI push and a test booking through Open Channel for a dorm roo
 
 ### Confirmed in Channex docs
 
+Checked again 2026-11-23 against the Channex documentation (Room Types, Rate Plans, Availability, Hostelworld mapping guide). BedAsUnit follows it:
+
+| Channex docs                                                                                                                         | BedAsUnit sends                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| A room type is "an accommodation inventory unit — a room, villa, or dormitory bed"; "a bed at a hostel dormitory can be a Room Type" | One room type per dorm whose units are its beds |
+| `count_of_rooms`: "Number of rooms (units) of this type available to sell"                                                           | The active beds                                 |
+| `occ_adults`: "Number of adult bed spaces"; `occ_children`: child-only bed spaces, 0 when children use adult beds                    | 1 and 0                                         |
+| `default_occupancy` is deprecated and defaults to `occ_adults`                                                                       | 1                                               |
+| A per-room rate plan passes one occupancy option, for the maximum occupancy                                                          | `per_room`, one option at occupancy 1           |
+| Availability is per room type and date: "the number of rooms left to sell"                                                           | The free beds                                   |
+| Hostelworld: "If it is a dorm room please send price for 1 person"                                                                   | The bed price, at occupancy 1                   |
+
+`room_kind: dorm` with `capacity` ("Number of beds in a single physical room") is Channex's own dorm kind: "A `dorm` sells beds within a shared physical room; a `room` sells the whole unit". The docs do not say how it is counted for availability or shown on each OTA, so NativeDorm stays pending.
+
 - `room_kind`: `room` or `dorm` (Room Types Collection).
 - `capacity`: count of beds in one physical room, dorm only.
 - `count_of_rooms`: units to sell of this type.
@@ -69,10 +83,9 @@ Still to run: an ARI push and a test booking through Open Channel for a dorm roo
 
 ### Not confirmed
 
-1. Is dorm availability counted in beds or rooms?
-2. Does `count_of_rooms` for a dorm mean rooms or total beds?
-3. Do Agoda and Booking.com accept `room_kind: dorm`?
-4. Does a multi-bed booking arrive as one room entry with N guests, or N room entries?
+1. For `room_kind: dorm` (NativeDorm only): is availability counted in beds or rooms, and does `count_of_rooms` mean rooms or total beds? BedAsUnit does not depend on it.
+2. Do Agoda and Booking.com accept `room_kind: dorm`?
+3. Does a multi-bed booking arrive as one room entry with N guests, or N room entries?
 
 ### Checks
 
