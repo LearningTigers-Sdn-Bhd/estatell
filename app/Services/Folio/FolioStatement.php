@@ -105,7 +105,7 @@ class FolioStatement
         $balances = $this->balances($folios);
         $blocks = [
             ...$this->scheduledRows->forReservation($property, $reservation, $labels),
-            ...$this->scheduledRows->forFacilityBookings($property, $folios->where('status', FolioStatus::Open)->pluck('id')->all()),
+            ...$this->scheduledRows->forFacilityBookings($property, array_values($folios->where('status', FolioStatus::Open)->map(fn (Folio $folio): int => $folio->id)->all())),
         ];
 
         $entries = $folios->map(fn (Folio $folio): array => $this->entry((string) $folio->id, $folio, null, new FolioRailItemData(
@@ -165,7 +165,7 @@ class FolioStatement
 
         return [
             'folios' => array_values($entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all()),
-            'folio' => $open === null ? null : $this->data($property, $event, $open, $entries, [], $this->scheduledRows->forFacilityBookings($property, $folios->where('status', FolioStatus::Open)->pluck('id')->all()), $balances, $can, [], $user),
+            'folio' => $open === null ? null : $this->data($property, $event, $open, $entries, [], $this->scheduledRows->forFacilityBookings($property, array_values($folios->where('status', FolioStatus::Open)->map(fn (Folio $folio): int => $folio->id)->all())), $balances, $can, [], $user),
         ];
     }
 

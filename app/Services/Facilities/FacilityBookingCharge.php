@@ -38,8 +38,8 @@ class FacilityBookingCharge
         $quantity = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity);
         $unitAmount = Money::of($booking->unit_amount, $property->settings->currency->getCurrencyCode());
         $nationality = $booking->folio->payerGuest->nationality_code
-            ?? $booking->event?->payerGuest?->nationality_code
-            ?? $booking->reservation?->booker?->nationality_code;
+            ?? $booking->event->payerGuest->nationality_code
+            ?? $booking->reservation->booker->nationality_code;
 
         return [
             'code' => $code,
@@ -74,11 +74,17 @@ class FacilityBookingCharge
             $keys[] = 'facility:'.$booking->id;
         }
 
-        return $keys === [] ? [] : FolioLine::query()
-            ->whereIn('idempotency_key', $keys)
-            ->pluck('idempotency_key')
-            ->mapWithKeys(fn (string $key): array => [(int) substr($key, 9) => true])
-            ->all();
+        if ($keys === []) {
+            return [];
+        }
+
+        $posted = [];
+
+        foreach (FolioLine::query()->whereIn('idempotency_key', $keys)->pluck('idempotency_key') as $key) {
+            $posted[(int) substr((string) $key, 9)] = true;
+        }
+
+        return $posted;
     }
 
     public static function description(FacilityBooking $booking): string
