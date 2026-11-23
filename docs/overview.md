@@ -248,4 +248,5 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 33  | [Facilities](33-facilities/)           | Bookable halls, equipment and activities (booked by Item or Person), events and event folios (feature flag, planned)                                         |
 | 33  | [POS integration](33-pos/)             | External POS outlets, room-charge postings, restaurant meal check-in, inbound `/api/pos/v1` and Loyverse adapter (feature flag)                              |
 | 34  | [Native POS](34-native-pos/)           | Built-in hospitality POS: menu, floor plan, shifts, MY SST/5-sen/LHDN, live room charge & meals, KDS, QR ordering and Posport bridge (feature flag, planned) |
+| 34  | [Land transfers](34-transfers/)        | Road routes and prices, vehicles, drivers (own or subcontracted), a transfer per room and direction, and the daily run sheet (feature flag)                  |
 | 35  | [AI assistant](35-ai-assistant/)       | An AI chat on the Concierge page and through an API for n8n, with a usage log (feature flag). Booking website chat and staff helper are WIP                  |

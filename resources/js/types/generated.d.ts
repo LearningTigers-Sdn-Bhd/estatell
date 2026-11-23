@@ -6446,6 +6446,82 @@ today: string,
 businessDate: string,
 };
 }
+namespace Transfers {
+export type TransferDriverData = {
+id: number,
+name: string,
+label: string,
+phone: string | null,
+subcontractor: string | null,
+active: boolean,
+};
+export type TransferRouteData = {
+id: number,
+direction: App.Enums.TransferDirection,
+directionLabel: string,
+name: string,
+place: string,
+minutes: number | null,
+sharedChargeItemId: number | null,
+sharedChargeItemName: string | null,
+sharedAmount: string | null,
+privateChargeItemId: number | null,
+privateChargeItemName: string | null,
+privateAmount: string | null,
+active: boolean,
+};
+export type TransferRunRowData = {
+id: number,
+reservationId: number,
+reference: string,
+guest: string | null,
+direction: App.Enums.TransferDirection,
+directionLabel: string,
+mode: App.Enums.TransferMode,
+modeLabel: string,
+routeName: string,
+place: string,
+minutes: number | null,
+pickupTime: string,
+pax: number,
+flightNumber: string | null,
+note: string | null,
+vehicleId: number | null,
+driverId: number | null,
+};
+export type TransferVehicleData = {
+id: number,
+name: string,
+plate: string | null,
+seats: number | null,
+active: boolean,
+};
+export type UnitTransferInputData = {
+direction: App.Enums.TransferDirection,
+mode: App.Enums.TransferMode,
+routeId: number,
+pickupTime: string,
+flightNumber: string | null,
+note: string | null,
+};
+export type UnitTransferRowData = {
+unitId: number,
+unitLabel: string,
+direction: App.Enums.TransferDirection,
+directionLabel: string,
+date: string,
+mode: App.Enums.TransferMode | null,
+modeLabel: string | null,
+routeId: number | null,
+routeName: string | null,
+pickupTime: string | null,
+flightNumber: string | null,
+note: string | null,
+vehicle: string | null,
+driver: string | null,
+canEdit: boolean,
+};
+}
 namespace Webhooks {
 export type WebhookDeliveryData = {
 row: App.Data.Webhooks.WebhookDeliveryRowData,
@@ -6657,7 +6733,7 @@ export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'events.view' | 'events.manage' | 'facilities.book' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'booking-website.payment-mode' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view' | 'pos.view' | 'pos.manage' | 'pos.resolve' | 'meals.redeem' | 'pos.sell' | 'pos.shift' | 'pos.void' | 'pos.discount' | 'pos.refund' | 'pos.kds' | 'pos.menu' | 'pos.inventory' | 'pos.hardware' | 'pos.reports';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities' | 'ai-assistant';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities' | 'ai-assistant' | 'transfers';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
@@ -6735,6 +6811,8 @@ export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apa
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'facility' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'online' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
+export type TransferDirection = 'in' | 'out';
+export type TransferMode = 'shared' | 'private' | 'included';
 export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out' | 'waive-tax';
 export type UnitMovement = 'arrivals' | 'departures';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';

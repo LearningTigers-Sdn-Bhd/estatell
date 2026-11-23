@@ -80,6 +80,7 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}']
         require __DIR__.'/night-audit.php';
         require __DIR__.'/rates.php';
         require __DIR__.'/settings.php';
+        require __DIR__.'/transfers.php';
         require __DIR__.'/finance.php';
         require __DIR__.'/front-desk.php';
         require __DIR__.'/guest-requests.php';

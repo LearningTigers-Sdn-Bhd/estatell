@@ -275,6 +275,30 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(Boat::class);
     }
 
+    /** @return HasMany<TransferRoute, $this> */
+    public function transferRoutes(): HasMany
+    {
+        return $this->hasMany(TransferRoute::class);
+    }
+
+    /** @return HasMany<TransferVehicle, $this> */
+    public function transferVehicles(): HasMany
+    {
+        return $this->hasMany(TransferVehicle::class);
+    }
+
+    /** @return HasMany<TransferDriver, $this> */
+    public function transferDrivers(): HasMany
+    {
+        return $this->hasMany(TransferDriver::class);
+    }
+
+    /** @return HasMany<UnitTransfer, $this> */
+    public function unitTransfers(): HasMany
+    {
+        return $this->hasMany(UnitTransfer::class);
+    }
+
     /**
      * The boat crew. Named after the `{crewMember}` route parameter, so scoped route bindings find it.
      *

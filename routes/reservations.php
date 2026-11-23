@@ -33,6 +33,7 @@ use App\Http\Controllers\Reservations\ReservationUnitController;
 use App\Http\Controllers\Reservations\ReservationUnitPartyController;
 use App\Http\Controllers\Reservations\ReservationUnitStayController;
 use App\Http\Controllers\Reservations\ReservationUnitTaxWaiverController;
+use App\Http\Controllers\Transfers\ReservationTransferController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(function () {
@@ -66,6 +67,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('guests', [ReservationController::class, 'guests'])->name('guests');
             Route::get('add-ons', [ReservationController::class, 'addOns'])->name('add-ons');
             Route::get('facilities', [ReservationController::class, 'facilities'])->middleware('facilities')->name('facilities');
+            Route::get('transfers', [ReservationController::class, 'transfers'])->middleware('transfers')->name('transfers');
             Route::get('folio', [ReservationController::class, 'folio'])->name('folio');
             Route::get('activity', [ReservationController::class, 'activity'])->name('activity');
             Route::get('booking-summary', BookingSummaryController::class)->name('booking-summary');
@@ -224,6 +226,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::middleware('boats')->group(function () {
                     Route::put('boat-trips/{direction}', [ReservationBoatTripController::class, 'set'])->name('boat-trips.set');
                     Route::delete('boat-trips/{direction}', [ReservationBoatTripController::class, 'clear'])->name('boat-trips.clear');
+                });
+                Route::middleware('transfers')->group(function () {
+                    Route::put('transfers/{direction}', [ReservationTransferController::class, 'set'])->name('transfers.set');
+                    Route::delete('transfers/{direction}', [ReservationTransferController::class, 'clear'])->name('transfers.clear');
                 });
                 Route::post('add-ons', [ReservationUnitAddOnController::class, 'store'])->name('add-ons.store');
                 Route::delete('add-ons/{addOn}', [ReservationUnitAddOnController::class, 'destroy'])->name('add-ons.destroy');

@@ -174,6 +174,12 @@ class ReservationUnit extends Model
         return $this->hasMany(UnitBoatTrip::class);
     }
 
+    /** @return HasMany<UnitTransfer, $this> The land transfers, at most one per direction. */
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(UnitTransfer::class);
+    }
+
     /**
      * @return HasMany<UnitAddOn, $this>
      */

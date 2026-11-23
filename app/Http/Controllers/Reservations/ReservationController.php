@@ -42,6 +42,7 @@ use App\Features\Boats;
 use App\Features\DoorLocks;
 use App\Features\Facilities;
 use App\Features\Pos;
+use App\Features\Transfers;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
@@ -92,6 +93,7 @@ use App\Services\Reservations\ReservationRoomBox;
 use App\Services\Reservations\ReservationUnitRows;
 use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\UnitActionMenu;
+use App\Services\Transfers\ReservationTransfers;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -313,6 +315,19 @@ class ReservationController extends Controller
     }
 
     /**
+     * Reservation page, Transfers tab: a row per unit and direction, and the routes for the transfer Dialog.
+     * See docs/34-transfers/01-land-transfers.md#reservation-transfers-tab.
+     */
+    public function transfers(Request $request, Property $property, Reservation $reservation, ReservationTransfers $reservationTransfers): Response
+    {
+        return $this->renderTab($request->user(), $property, $reservation, 'transfers', function (array $units, EloquentCollection $models) use ($request, $property, $reservationTransfers): array {
+            $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->label])->all();
+
+            return $reservationTransfers->tabProps($request->user(), $property, $models, $labels);
+        });
+    }
+
+    /**
      * Reservation page, Folio tab. `?folio=` picks the folio (an id, or `u{unit id}` for a unit with no folio yet).
      * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`. `creditInvoice` is an optional prop with the AR invoice page data of a settled folio, read when its credit note Dialog or void Dialog opens and null without the credit note permission or the void and reopen permissions.
      */
@@ -496,7 +511,7 @@ class ReservationController extends Controller
      * list. Only the open tab's own data is read and sent. The form option lists are optional props, read when an
      * overlay opens.
      *
-     * @param  'units'|'guests'|'add-ons'|'facilities'|'folio'|'activity'  $tab
+     * @param  'units'|'guests'|'add-ons'|'facilities'|'transfers'|'folio'|'activity'  $tab
      * @param  callable(list<ReservationUnitOptionData>, EloquentCollection<int, ReservationUnit>): array<string, mixed>  $tabProps
      */
     private function renderTab(User $user, Property $property, Reservation $reservation, string $tab, callable $tabProps): Response
@@ -529,6 +544,7 @@ class ReservationController extends Controller
             'singleUnit' => $tab === 'units' ? null : $this->singleUnitData($user, $property, $reservation, $overview['models']),
             'hasBoats' => $hasBoats,
             'hasFacilities' => Feature::for($property)->active(Facilities::class),
+            'hasTransfers' => Feature::for($property)->active(Transfers::class),
             'hasUnitToCheckIn' => $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canCancelReservation' => $user->can(PermissionEnum::ReservationsManage->value) && $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),

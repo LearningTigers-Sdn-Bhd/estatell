@@ -55,6 +55,9 @@ use App\Http\Controllers\Staff\StaffInvitationController;
 use App\Http\Controllers\Staff\StaffRoleController;
 use App\Http\Controllers\Staff\StaffStatusController;
 use App\Http\Controllers\Staff\StaffTemporaryPasswordController;
+use App\Http\Controllers\Transfers\TransferDriverController;
+use App\Http\Controllers\Transfers\TransferRouteController;
+use App\Http\Controllers\Transfers\TransferVehicleController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('settings')->name('settings.')->group(function () {
@@ -212,6 +215,25 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('key/test', [AiAssistantSettingsController::class, 'testKey'])->name('key.test');
         Route::delete('key', [AiAssistantSettingsController::class, 'removeKey'])->name('key.destroy');
         Route::put('monthly-cap', [AiAssistantSettingsController::class, 'monthlyCap'])->name('monthly-cap.update');
+    });
+
+    Route::middleware(['transfers', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('transfers', [TransferRouteController::class, 'redirectToRoutes'])->name('transfers');
+        Route::prefix('transfers/routes')->name('transfers.routes.')->group(function () {
+            Route::get('/', [TransferRouteController::class, 'index'])->name('index');
+            Route::post('/', [TransferRouteController::class, 'store'])->name('store');
+            Route::put('{transferRoute}', [TransferRouteController::class, 'update'])->name('update');
+        });
+        Route::prefix('transfers/vehicles')->name('transfers.vehicles.')->group(function () {
+            Route::get('/', [TransferVehicleController::class, 'index'])->name('index');
+            Route::post('/', [TransferVehicleController::class, 'store'])->name('store');
+            Route::put('{transferVehicle}', [TransferVehicleController::class, 'update'])->name('update');
+        });
+        Route::prefix('transfers/drivers')->name('transfers.drivers.')->group(function () {
+            Route::get('/', [TransferDriverController::class, 'index'])->name('index');
+            Route::post('/', [TransferDriverController::class, 'store'])->name('store');
+            Route::put('{transferDriver}', [TransferDriverController::class, 'update'])->name('update');
+        });
     });
 
     Route::middleware(['facilities', 'can:'.PermissionEnum::SettingsManage->value])->prefix('facilities')->name('facilities.')->scopeBindings()->group(function () {

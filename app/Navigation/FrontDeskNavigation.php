@@ -9,6 +9,7 @@ use App\Enums\PropertyStatus;
 use App\Features\AiAssistant;
 use App\Features\Boats;
 use App\Features\Facilities;
+use App\Features\Transfers;
 use App\Models\Property;
 use App\Models\User;
 use Laravel\Pennant\Feature;
@@ -63,6 +64,12 @@ class FrontDeskNavigation
                     href: route('boats.index', ['property' => $property->code], absolute: false),
                     icon: 'ship',
                     active: request()->routeIs('boats.*'),
+                ) : null,
+                $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Transfers::class) ? new NavItemData(
+                    title: __('Transfers'),
+                    href: route('transfers.index', ['property' => $property->code], absolute: false),
+                    icon: 'bus',
+                    active: request()->routeIs('transfers.*'),
                 ) : null,
                 $user->can(PermissionEnum::ReportsView->value) ? new NavItemData(
                     title: __('House status'),

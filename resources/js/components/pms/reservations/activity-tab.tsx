@@ -1,11 +1,12 @@
 import {
-    BedDouble,
     Banknote,
+    BedDouble,
+    Bus,
     CalendarPlus,
+    ChartPie,
     Circle,
     CreditCard,
     History,
-    ChartPie,
     MessageSquareText,
     Pencil,
     Receipt,
@@ -38,6 +39,9 @@ const kindIcons: Record<string, LucideIcon> = {
     'reservation.boat_trip_set': Ship,
     'reservation.boat_trip_cleared': Ship,
     'reservation.boat_trip_ticked': Ship,
+    'reservation.transfer_set': Bus,
+    'reservation.transfer_cleared': Bus,
+    'reservation.transfer_assigned': Bus,
 };
 
 function iconFor(kind: string | null): LucideIcon {

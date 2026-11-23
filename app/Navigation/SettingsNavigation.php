@@ -14,6 +14,7 @@ use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Facilities;
 use App\Features\Kiosks;
+use App\Features\Transfers;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Notifications\GuestEmailText;
@@ -97,6 +98,12 @@ class SettingsNavigation
                     href: route('settings.boats', ['property' => $property->code], absolute: false),
                     icon: 'ship',
                     active: request()->routeIs('settings.boats', 'settings.boats.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Transfers::class) ? new NavItemData(
+                    title: __('Transfers'),
+                    href: route('settings.transfers', ['property' => $property->code], absolute: false),
+                    icon: 'bus',
+                    active: request()->routeIs('settings.transfers', 'settings.transfers.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Facilities::class) ? new NavItemData(
                     title: __('Facilities'),
