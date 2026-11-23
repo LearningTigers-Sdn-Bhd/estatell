@@ -14,19 +14,19 @@ The [Timeline View](../18-front-desk/03-stay-view.md#timeline-view-screen) gets 
 ├────────────────┼─────────┼─────────┼─────────┼─────────┼─────────┼───────┤
 │ Available      │  4/12   │  1/12   │  2/12   │  6/12   │  7/12   │       │
 ├ Facilities ⌄ ──┴─────────┴─────────┴─────────┴─────────┴─────────┴───────┤
-│ Riverside   P  │         │▒Sabah   │▐ Lim &  │         │         │       │
+│ Riverside      │         │▒Sabah   │▐ Lim &  │         │         │       │
 │ Hall           │         │▒Tourism │  Tan    │         │         │       │
-│ BBQ pit     P  │▐ Rm 101 │         │2 booked │         │▐ Bday   │       │
-│ Kayak       S  │  4/6    │  0/6    │ 6/6 Full│  2/6    │  0/6    │       │
-│ Night Walk  S  │ 12/20   │  8/20   │20/20Full│  5/20   │  0/20   │       │
+│ BBQ pit        │  1/3    │  0/3    │  2/3    │  0/3    │ 3/3 Full│       │
+│ Kayak          │  4/6    │  0/6    │ 6/6 Full│  2/6    │  0/6    │       │
+│ Night Walk     │ 12/20   │  8/20   │20/20Full│  5/20   │  0/20   │       │
 └────────────────┴─────────┴─────────┴─────────┴─────────┴─────────┴───────┘
-  ▐ Confirmed   ▒ Tentative   P Private   S Shared
+  ▐ Confirmed   ▒ Tentative
 ```
 
-| Row              | Cell                                                                                                    |
-| ---------------- | ------------------------------------------------------------------------------------------------------- |
-| Private facility | The booking's name (event name, or room and guest). "{n} booked" when there is more than one that day   |
-| Shared facility  | The highest quantity booked at one time / capacity. "Full" in the warning tone when it reaches capacity |
+| Row                  | Cell                                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| Facility with 1 item | The booking's name (event name, or room and guest). "{n} booked" when there is more than one that day |
+| Any other facility   | The highest quantity booked at one time / How many. "Full" in the warning tone when it reaches it     |
 
 - Day columns, as for rooms. Hours are in the peek, so the grid does not get wider.
 - Tentative bookings are hatched and muted. Cancelled bookings do not show.

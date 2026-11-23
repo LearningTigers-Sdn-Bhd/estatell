@@ -15,9 +15,9 @@ Lodges and resorts sell more than rooms: an event hall, a BBQ pit, kayaks, a Riv
 | Term             | Means                                                                                                     |
 | ---------------- | --------------------------------------------------------------------------------------------------------- |
 | Facility         | Something staff book by date and time: a hall, a BBQ pit, kayaks, an activity                             |
-| Private          | One booking takes the whole facility. Bookings cannot overlap                                             |
-| Shared           | Several bookings share the facility until it is full                                                      |
-| Session          | A fixed time of a Shared facility that staff pick when booking, such as Night Walk 20:00–22:00            |
+| Booked by        | **Item** (a group takes one whole item, like a room) or **Person** (people join until it is full)         |
+| How many         | The items the property has, or the people one session holds. Always the limit                             |
+| Session          | A fixed time of a facility that staff pick when booking, such as Night Walk 20:00–22:00                   |
 | Facility booking | One booking of one facility, for a time, a quantity and a folio                                           |
 | Event            | A bill for people who are not staying: a wedding, a meeting, a walk-in. One or more days, one event folio |
 | Event folio      | A folio that belongs to an event, not a reservation                                                       |
@@ -27,7 +27,7 @@ A facility is not an amenity. An amenity is a fact shown to guests ("Swimming po
 
 **Naming (decided 2026-11-18):** both names stay. Staff edit amenities in Settings, Concierge, **Amenities**, and facilities in Settings, **Facilities**, so staff never see the two under one name. Guest pages keep the label "Hotel facilities" for amenities and never show bookable facilities. In staff UI and code, use **Amenity** for what is shown to guests (`property_amenities`) and **Facility** for what is booked (`facilities`).
 
-"Private" and "Shared" follow Bookinglayer, which marks rooms Private (P) or Shared (S).
+Item and Person replaced the earlier Private and Shared on 2026-11-23, so facilities are set up like rooms. See [Booked by](02-facility-settings.md#booked-by-decided-2026-11-23).
 
 ## Two cases
 
@@ -38,7 +38,7 @@ A facility is not an amenity. An amenity is a fact shown to guests ("Swimming po
 
 A reservation never creates an event or an event folio. A group's dinner that someone else pays goes to a [third-party folio](../13-folio/03-routing.md#folio-types) of the reservation.
 
-Activities (River Safari, Night Walk) are Shared facilities with [sessions](02-facility-settings.md#sessions). The [Facility bookings report](05-timeline-and-report.md#facility-bookings-report) is their participant list.
+Activities (River Safari, Night Walk) are Person facilities with [sessions](02-facility-settings.md#sessions). The [Facility bookings report](05-timeline-and-report.md#facility-bookings-report) is their participant list.
 
 ## Feature flag
 
@@ -48,7 +48,7 @@ Pennant feature `Facilities` (`App\Features\Facilities`, `#[Name('facilities')]`
 
 | File                                                     | Covers                                                              |
 | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| [Facility settings](02-facility-settings.md)             | `facilities`, Private and Shared, the price, the settings page      |
+| [Facility settings](02-facility-settings.md)             | `facilities`, Item and Person, the price, the settings page         |
 | [Events and event folios](03-events-and-event-folios.md) | `events`, the event folio, the Events list and the event page       |
 | [Facility bookings](04-facility-bookings.md)             | `facility_bookings`, the clash check, Charge to, posting, the Sheet |
 | [Timeline and report](05-timeline-and-report.md)         | The Facilities section on the Timeline View and the report          |
@@ -70,7 +70,7 @@ The client is a prospect, not a signed customer, so we decided these ourselves o
 
 | #   | Decision                                                                                                                   |
 | --- | -------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Activities (River Safari, Night Walk) are Shared facilities. Assigning a guide or a boat to a session is not in this plan. |
+| 1   | Activities (River Safari, Night Walk) are Person facilities. Assigning a guide or a boat to a session is not in this plan. |
 | 2   | Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.                   |
 
 ## Not in this plan
@@ -79,5 +79,5 @@ The client is a prospect, not a signed customer, so we decided these ourselves o
 - Automatic cancellation fees for events. Staff refund or keep a deposit by hand.
 - Auto-expiry of Tentative holds.
 - Guides, boats or crew per activity session.
-- Adult and child prices on one booking. A Person rate counts heads at one price. For a mix, staff change the booking's price.
+- Adult and child prices on one booking. A Per person rate counts heads at one price. For a mix, staff change the booking's price.
 - Selling facilities on the booking engine or channels.

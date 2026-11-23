@@ -27,9 +27,9 @@ facility_bookings  id, property_id, facility_id → facilities (restrict),
 
 - `booking_date` is the day it happens, in the property time zone. A booking cannot cross midnight.
 - `folio_id` is **Charge to**. It is saved on the booking, so a later routing rule change does not move it.
-- `unit_amount` is the price of one unit of the rate basis (one day, one session, one hour, one person). See [Price](#price).
+- `unit_amount` is the price of one unit of the rate basis (one day, one session, one hour, one item or person). See [Price](#price).
 - An event's booking has a date inside the event's dates (`booking_outside_event`).
-- A booking of a Shared facility with sessions uses one session's times (`facility_session_not_found`). It copies the times and keeps no link to the session.
+- A booking of a facility with sessions uses one session's times (`facility_session_not_found`). It copies the times and keeps no link to the session.
 
 ## Enums
 
@@ -41,17 +41,19 @@ facility_bookings  id, property_id, facility_id → facilities (restrict),
 
 `FacilityAvailability` (Service) answers for one facility, one date and one time range.
 
-| Sharing | Rule                                                                                                 | Refusal          |
-| ------- | ---------------------------------------------------------------------------------------------------- | ---------------- |
-| Private | No other Confirmed booking overlaps the time                                                         | `facility_clash` |
-| Shared  | At every moment of the range, the quantity of Confirmed bookings plus this one is at most `capacity` | `facility_full`  |
+One rule for Item and Person: at every moment of the range, the quantity of Confirmed bookings plus this one is at most `capacity` (How many). Otherwise it refuses with `facility_full`. For a facility with 1 item the message reads "Meeting room is taken 09:00–11:00."; otherwise "BBQ pit is full 18:00–22:00 (3 of 3 booked)."
+
+| Booked by | Quantity is      | Default |
+| --------- | ---------------- | ------- |
+| Item      | Items it takes   | 1       |
+| Person    | People it brings | –       |
 
 - Times overlap when one starts before the other ends. 18:00–23:00 and 09:00–18:00 do not overlap.
-- **Confirm event** runs the check for each of its Tentative bookings in turn, so two bookings of the same event that clash are caught too. A Private facility refuses with `facility_clash`, a Shared one with `facility_full`. A refusal confirms nothing and names the facility.
+- **Confirm event** runs the check for each of its Tentative bookings in turn, so two bookings of the same event that clash are caught too. It refuses with `facility_full`. A refusal confirms nothing and names the facility.
 - Tentative bookings never block. They show as a **warning** in the Sheet: "Riverside Hall is held 09:00–17:00 (Sabah Tourism meeting, Tentative)."
 - `BookFacility` locks the facility row while it checks and writes, so two staff cannot take the last slot together.
 - An inactive facility takes no new bookings (`facility_inactive`).
-- For a Shared facility with [sessions](02-facility-settings.md#sessions), the Session select shows what is left of each session ("8 of 20 left") from the same Service.
+- For a facility with [sessions](02-facility-settings.md#sessions), the Session select shows what is left of each session ("8 of 20 left", "0 of 1 left") from the same Service.
 
 ## Price
 
@@ -111,7 +113,7 @@ The same Sheet on the event page, the reservation page and the Timeline View pee
 │ From              To                     │
 │ [ e.g. 18:00 ]    [ e.g. 23:00 ]         │
 │ Quantity                                 │
-│ [ e.g. 20 ]  pax                         │
+│ [ 1 ]  item                              │
 │ Price (MYR)              Per day         │
 │ [ 1,200.00 ]   List price 1,500.00       │
 │ Charge to                                │
@@ -123,13 +125,13 @@ The same Sheet on the event page, the reservation page and the Timeline View pee
 └──────────────────────────────────────────┘
 ```
 
-A Shared facility with sessions shows **Session** in place of From and To:
+A facility with sessions shows **Session** in place of From and To:
 
 ```
 │ Session                                  │
 │ [ 20:00–22:00 · 8 of 20 left         ▾ ] │
 │ Quantity                                 │
-│ [ 3 ]  pax                               │
+│ [ 3 ]  people                            │
 │ Price (MYR)              Per person      │
 │ [ 80.00 ]                                │
 │ 240.00 + SST 19.20                       │
@@ -150,7 +152,7 @@ A new tab on the [reservation page](../12-reservations/06-reservation-page.md), 
 ```
 Facilities                                      [+ Book facility]
 Facility        Date    Time         Qty     Charge to          Amount (MYR)
-Riverside Hall  12 Dec  19:00–22:00  20 pax  Lee Chong Wei      1,500.00   ⋯
+Riverside Hall  12 Dec  19:00–22:00   1 item Lee Chong Wei      1,500.00   ⋯
 Kayak           11 Dec  09:00–11:00   2      Room 101 folio        80.00   ⋯
                                                        Total      1,580.00
 ```
@@ -168,14 +170,14 @@ The same table on the event page, without the Charge to column (always the event
 
 ## Actions
 
-| Action                   | Does                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BookFacility`           | Locks the event or reservation and the facility, runs the clash check, creates the booking with its price. Refuses `event_not_open` (a Completed or Cancelled event), `facility_inactive`, `booking_outside_event`, `facility_session_not_found`, `folio_not_open`, `facility_clash`, `facility_full`. Reservations add `reservation_not_live` and `folio_not_of_owner` |
-| `UpdateFacilityBooking`  | Date, time, quantity, price, Charge to, notes. The facility stays. Runs the same checks, leaving this booking out. Refuses `facility_booking_cancelled`, and `facility_booking_posted` for any change but notes once posted                                                                                                                                             |
-| `CancelFacilityBooking`  | → Cancelled. Reverses a posted line first; refuses `folio_not_open` when that folio is closed                                                                                                                                                                                                                                                                           |
-| `CancelFacilityBookings` | Cancels all bookings of an event (`CancelEvent`) or of a reservation with no live unit left (`CancelUnit` and `MarkNoShow`)                                                                                                                                                                                                                                             |
-| `PostFacilityBooking`    | Posts one booking (Post now and the night audit). Idempotent by key. Refuses `facility_booking_cancelled`, `facility_booking_tentative`, `facility_charged_by_hand`, a folio that takes no charges and a tax it cannot work out. Resolves the booking's open `Facility` audit exceptions once it is posted                                                              |
-| `PostFacilityCharges`    | The night audit step body for one business date                                                                                                                                                                                                                                                                                                                         |
+| Action                   | Does                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BookFacility`           | Locks the event or reservation and the facility, runs the clash check, creates the booking with its price. Refuses `event_not_open` (a Completed or Cancelled event), `facility_inactive`, `booking_outside_event`, `facility_session_not_found`, `folio_not_open`, `facility_full`. Reservations add `reservation_not_live` and `folio_not_of_owner` |
+| `UpdateFacilityBooking`  | Date, time, quantity, price, Charge to, notes. The facility stays. Runs the same checks, leaving this booking out. Refuses `facility_booking_cancelled`, and `facility_booking_posted` for any change but notes once posted                                                                                                                           |
+| `CancelFacilityBooking`  | → Cancelled. Reverses a posted line first; refuses `folio_not_open` when that folio is closed                                                                                                                                                                                                                                                         |
+| `CancelFacilityBookings` | Cancels all bookings of an event (`CancelEvent`) or of a reservation with no live unit left (`CancelUnit` and `MarkNoShow`)                                                                                                                                                                                                                           |
+| `PostFacilityBooking`    | Posts one booking (Post now and the night audit). Idempotent by key. Refuses `facility_booking_cancelled`, `facility_booking_tentative`, `facility_charged_by_hand`, a folio that takes no charges and a tax it cannot work out. Resolves the booking's open `Facility` audit exceptions once it is posted                                            |
+| `PostFacilityCharges`    | The night audit step body for one business date                                                                                                                                                                                                                                                                                                       |
 
 ## Routes
 
