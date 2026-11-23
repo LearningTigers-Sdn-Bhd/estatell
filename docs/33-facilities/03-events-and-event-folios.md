@@ -76,8 +76,8 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
 
   Event                                                         SUMMARY       (sticky)
   Who pays and on which days.                                   Event   Lim & Tan wedding
-  Dates [ 12/12/2026 → 12/12/2026 ]  Status [ Confirmed ▾ ]     Dates   12 Dec 2026
-  Event name [ e.g. Lim & Tan wedding ]  Payer [ Guest | Company ]   Status  Confirmed
+  Event name [ e.g. Lim & Tan ]  Dates [ 12/12 → 12/12 ]  Status [ Confirmed ▾ ]   Dates   12 Dec 2026
+  Payer ( Guest )  ( Company )                                  Status  Confirmed
   ┌ Guest                      │ Phone            ┐             Facilities        2
   │ > [ Lim Wei Jie  Existing ]│ [ +60 12-345 … ] │             ─────────────────
   │   Email, details, MyKad / ID (opens below)    │             Facilities 1,440.00
@@ -98,12 +98,12 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
 
 | Field      | Control                                                                | Placeholder                        |
 | ---------- | ---------------------------------------------------------------------- | ---------------------------------- |
+| Event name | Text                                                                   | e.g. Lim & Tan wedding dinner      |
 | Dates      | Date range picker, both ends default to the business date              | e.g. 11/12/2026 → 12/12/2026       |
 | Status     | Tentative or Confirmed, default Confirmed                              | –                                  |
-| Event name | Text                                                                   | e.g. Lim & Tan wedding dinner      |
-| Payer      | Toggle: Guest or Company (shown with `company.view`)                   | –                                  |
+| Payer      | Choice cards: Guest or Company (shown with `company.view`)             | –                                  |
 | Guest      | One guest row of the booking form's Guests table, without Stays in     | –                                  |
-| Company    | Active companies                                                       | –                                  |
+| Company    | Active companies, full width, when the payer is Company                | –                                  |
 | Notes      | Notes tab: text box with a counter, optional, at most 2,000 characters | e.g. Vegetarian menu for 20 guests |
 
 - A one-day event has the same date at both ends. A walk-in uses the same page: type the guest's name, today, Confirmed.

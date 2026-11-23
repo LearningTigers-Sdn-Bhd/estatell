@@ -1,6 +1,7 @@
 import { Head, Link, useForm, useHttp } from '@inertiajs/react';
 import { Building2, NotebookText, Plus, Tent, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ChoiceCards } from '@/components/pms/choice-cards';
 import { CompanySelect } from '@/components/pms/company-select';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -40,7 +41,6 @@ import {
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { create, index, quote as quoteRoute, store } from '@/routes/events';
 
@@ -309,66 +309,7 @@ export default function EventCreate({
                                 description="Who pays and on which days. A one-day event has the same date at both ends."
                             >
                                 <FieldGroup>
-                                    <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
-                                        <Field
-                                            data-invalid={
-                                                !!errors.starts_on ||
-                                                !!errors.ends_on
-                                            }
-                                        >
-                                            <FieldLabel htmlFor="event-dates">
-                                                Dates
-                                            </FieldLabel>
-                                            <DateRangePicker
-                                                id="event-dates"
-                                                from={data.startsOn}
-                                                to={data.endsOn}
-                                                onChange={(from, to) =>
-                                                    form.setData((current) => ({
-                                                        ...current,
-                                                        startsOn: from,
-                                                        endsOn: to || from,
-                                                    }))
-                                                }
-                                                placeholder="e.g. 11/12/2026 → 12/12/2026"
-                                                aria-invalid={
-                                                    !!errors.starts_on ||
-                                                    !!errors.ends_on
-                                                }
-                                            />
-                                            <FieldError>
-                                                {errors.starts_on ??
-                                                    errors.ends_on}
-                                            </FieldError>
-                                        </Field>
-                                        <Field data-invalid={!!errors.status}>
-                                            <FieldLabel htmlFor="event-status">
-                                                Status
-                                            </FieldLabel>
-                                            <EnumSelect
-                                                id="event-status"
-                                                name="status"
-                                                options={statuses}
-                                                value={data.status}
-                                                onValueChange={(value) =>
-                                                    form.setData(
-                                                        'status',
-                                                        value,
-                                                    )
-                                                }
-                                                aria-invalid={!!errors.status}
-                                            />
-                                            <FieldDescription>
-                                                Tentative holds the dates before
-                                                the deposit is paid.
-                                            </FieldDescription>
-                                            <FieldError>
-                                                {errors.status}
-                                            </FieldError>
-                                        </Field>
-                                    </div>
-
-                                    <div className="grid items-start gap-4 sm:grid-cols-2">
+                                    <div className="grid items-start gap-4 lg:grid-cols-2">
                                         <Field data-invalid={!!errors.name}>
                                             <FieldLabel htmlFor="event-name">
                                                 Event name
@@ -392,79 +333,132 @@ export default function EventCreate({
                                                 {errors.name}
                                             </FieldError>
                                         </Field>
-                                        {canViewCompany && (
+                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
                                             <Field
                                                 data-invalid={
-                                                    !!errors.payer_type
+                                                    !!errors.starts_on ||
+                                                    !!errors.ends_on
                                                 }
                                             >
-                                                <FieldLabel>Payer</FieldLabel>
-                                                <ToggleGroup
-                                                    variant="outline"
-                                                    spacing={0}
-                                                    value={[data.payerType]}
-                                                    onValueChange={(value) =>
-                                                        value[0] &&
-                                                        form.setData(
-                                                            'payerType',
-                                                            value[0] as PayerType,
-                                                        )
-                                                    }
-                                                    aria-label="Payer"
-                                                >
-                                                    <ToggleGroupItem value="guest">
-                                                        <User data-icon="inline-start" />
-                                                        Guest
-                                                    </ToggleGroupItem>
-                                                    <ToggleGroupItem value="company">
-                                                        <Building2 data-icon="inline-start" />
-                                                        Company
-                                                    </ToggleGroupItem>
-                                                </ToggleGroup>
-                                                <FieldDescription>
-                                                    {data.payerType ===
-                                                    'company'
-                                                        ? 'The company pays. Its folio can settle to the city ledger.'
-                                                        : canManageGuests
-                                                          ? 'Search the guest list, or type a new name to add the guest.'
-                                                          : 'Search the guest list.'}
-                                                </FieldDescription>
-                                                <FieldError>
-                                                    {errors.payer_type}
-                                                </FieldError>
-                                            </Field>
-                                        )}
-                                    </div>
-
-                                    {data.payerType === 'company' ? (
-                                        <div className="grid items-start gap-4 sm:grid-cols-2">
-                                            <Field
-                                                data-invalid={
-                                                    !!errors.payer_company_id
-                                                }
-                                            >
-                                                <FieldLabel htmlFor="event-company">
-                                                    Company
+                                                <FieldLabel htmlFor="event-dates">
+                                                    Dates
                                                 </FieldLabel>
-                                                <CompanySelect
-                                                    id="event-company"
-                                                    value={data.company}
-                                                    onValueChange={(value) =>
+                                                <DateRangePicker
+                                                    id="event-dates"
+                                                    from={data.startsOn}
+                                                    to={data.endsOn}
+                                                    onChange={(from, to) =>
                                                         form.setData(
-                                                            'company',
-                                                            value,
+                                                            (current) => ({
+                                                                ...current,
+                                                                startsOn: from,
+                                                                endsOn:
+                                                                    to || from,
+                                                            }),
                                                         )
                                                     }
-                                                    companies={companies}
-                                                    invalid={
-                                                        !!errors.payer_company_id
+                                                    placeholder="e.g. 11/12/2026 → 12/12/2026"
+                                                    aria-invalid={
+                                                        !!errors.starts_on ||
+                                                        !!errors.ends_on
                                                     }
                                                 />
                                                 <FieldError>
-                                                    {errors.payer_company_id}
+                                                    {errors.starts_on ??
+                                                        errors.ends_on}
+                                                </FieldError>
+                                            </Field>
+                                            <Field
+                                                data-invalid={!!errors.status}
+                                            >
+                                                <FieldLabel htmlFor="event-status">
+                                                    Status
+                                                </FieldLabel>
+                                                <EnumSelect
+                                                    id="event-status"
+                                                    name="status"
+                                                    options={statuses}
+                                                    value={data.status}
+                                                    onValueChange={(value) =>
+                                                        form.setData(
+                                                            'status',
+                                                            value,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.status
+                                                    }
+                                                />
+                                                <FieldDescription>
+                                                    Tentative holds the dates
+                                                    before the deposit is paid.
+                                                </FieldDescription>
+                                                <FieldError>
+                                                    {errors.status}
                                                 </FieldError>
                                             </Field>
                                         </div>
+                                    </div>
+
+                                    {canViewCompany && (
+                                        <ChoiceCards
+                                            id="event-payer-type"
+                                            legend="Payer"
+                                            choices={[
+                                                {
+                                                    value: 'guest',
+                                                    label: 'Guest',
+                                                    description: canManageGuests
+                                                        ? 'Search the guest list, or type a new name.'
+                                                        : 'A guest already in the guest list.',
+                                                    icon: User,
+                                                },
+                                                {
+                                                    value: 'company',
+                                                    label: 'Company',
+                                                    description:
+                                                        'Can settle to the city ledger.',
+                                                    icon: Building2,
+                                                },
+                                            ]}
+                                            value={data.payerType}
+                                            onValueChange={(value) =>
+                                                form.setData(
+                                                    'payerType',
+                                                    value as PayerType,
+                                                )
+                                            }
+                                            error={errors.payer_type}
+                                        />
+                                    )}
+
+                                    {data.payerType === 'company' ? (
+                                        <Field
+                                            data-invalid={
+                                                !!errors.payer_company_id
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="event-company">
+                                                Company
+                                            </FieldLabel>
+                                            <CompanySelect
+                                                id="event-company"
+                                                value={data.company}
+                                                onValueChange={(value) =>
+                                                    form.setData(
+                                                        'company',
+                                                        value,
+                                                    )
+                                                }
+                                                companies={companies}
+                                                invalid={
+                                                    !!errors.payer_company_id
+                                                }
+                                            />
+                                            <FieldError>
+                                                {errors.payer_company_id}
+                                            </FieldError>
+                                        </Field>
                                     ) : (
                                         <BookingGuestsSection
                                             single
