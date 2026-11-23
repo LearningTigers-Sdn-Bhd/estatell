@@ -6,7 +6,7 @@ Let owners and partners' prospects try the full product on realistic data, witho
 
 ## Decision
 
-Test drive was removed from onboarding on 2026-10-16. Two demo properties replace it. On 2026-10-18 they moved out of production into a separate [demo environment](../deployment/demo_environment.md), reset every night.
+Test drive was removed from onboarding on 2026-10-16. Two demo properties replace it. On 2026-10-18 they moved out of production into a separate [demo environment](../deployment/demo_environment.md). It was reset every night until 2026-11-23. Now its data stays and the night audit runs by itself ([why](../deployment/demo_environment.md#no-nightly-reset)).
 
 | Reason                               | Detail                                                                                                                            |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -36,13 +36,13 @@ Rimba Kinabatangan Lodge, a rainforest lodge with packages, is the same: product
 
 ## Data
 
-`DemoSeeder` runs `OtaChannelSeeder`, `PearlsideSeeder`, `BorenoSeeder`, `KopiLaneSeeder` and `DemoBookingEngineSeeder` through the real Actions only, so the ledger, AR balances and reports add up. It runs at every [reset](../deployment/demo_environment.md#reset) and takes about 3.5 s (measured locally).
+`DemoSeeder` runs `OtaChannelSeeder`, `PearlsideSeeder`, `BorenoSeeder`, `KopiLaneSeeder` and `DemoBookingEngineSeeder` through the real Actions only, so the ledger, AR balances and reports add up. It runs at each manual [reset](../deployment/demo_environment.md#reset) and takes about 3.5 s (measured locally).
 
 1. Setup: room types, rooms, taxes, rates, charge items, discounts, companies.
 2. Open the business date on today.
 3. Create today's state: bookings, check-ins, charges, payments, city ledger invoices.
 
-Fixed names and amounts, no random Faker data (Faker is not in the production image), so every reset looks the same and support can say "open the booking for Ahmad Razak". Dates are relative to today.
+Fixed names and amounts, no random Faker data (Faker is not in the production image), so every reset looks the same and support can say "open the booking for Ahmad Razak". Dates are relative to the day of the reset, so the seeded bookings age between resets.
 
 | Area         | Pearlside View Resort                                                                  | Boreno Hotel                                                                                                        | Kopi Lane Hostel                                                                                                                              |
 | ------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -75,12 +75,12 @@ Only on the demo environment (`APP_ENV=demo`):
 
 | Guard                   | Effect                                                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Banner                  | A fixed banner: "Demo · Resets every night · Don't enter real guest details."                                          |
+| Banner                  | A fixed banner: "Demo · Shared with other visitors · Don't enter real guest details."                                  |
 | No signup               | Fortify registration is off. The demo has no admins or partners, so no partner invitation or signup link exists there. |
 | Account security locked | Profile (email), password, two-factor and delete account can't be changed, so no visitor locks the others out.         |
 | Device check exempt     | Demo logins sign in directly without an emailed OTP code (`TrustedDevices::requiresCheck()` skips `APP_ENV=demo`).     |
 
-Everything else works as in production. Mail goes to the log, and the nightly reset undoes every change.
+Everything else works as in production. Mail goes to the log. Changes stay until someone runs a manual reset.
 
 ## Tests
 

@@ -114,7 +114,7 @@ These are lessons from wastays. Each one caused real maintenance cost.
 - **Accounting before rooms in onboarding.** Ask in the owner's order: property, rooms, prices, payments, check-in.
 - **Blocking checks that need a person at 2 AM.** Resolve by policy and fix problems during the day.
 - **Strict step chains with invalidation.** Calculate progress from data instead.
-- **Review and training modes that need resets.** No practice mode. Owners try the product on demo properties in a separate [demo environment](deployment/demo_environment.md), reset every night.
+- **Review and training modes that need resets.** No practice mode. Owners try the product on demo properties in a separate [demo environment](deployment/demo_environment.md).
 
 ## jsonb allowlist
 

@@ -85,19 +85,19 @@ demo.estatell.com/api/booking/v1         app.estatell.com/api/booking/v1
 fixed test token                         the property's real token
       │                                        │
       ▼                                        ▼
-Demo database, reset nightly             Production database
+Demo database, reset by hand             Production database
 Curlec test keys                         Curlec live keys
 ```
 
 Going live changes only the API address and token.
 
-| Demo fact                       | Effect                                        | Plan                                                                                                                                    |
-| ------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| The database resets every night | A token made by hand would disappear          | `DemoSeeder` stores the hash of one fixed token from an environment setting, with its abilities. `createToken` only makes random tokens |
-| Demo properties only            | Developers test on sample rooms               | The owner does one real booking and refund before launch                                                                                |
-| Mail is only logged             | No confirmation email arrives                 | Check the booking through the API; test email separately                                                                                |
-| No scheduler or queue workers   | No job expires holds; the queue is `sync`     | [Availability ignores expired holds](03-checkout-and-hold.md#holds-and-availability)                                                    |
-| A shared token                  | Developers can see each other's test activity | Acceptable for sample data; never use real guest details                                                                                |
+| Demo fact                    | Effect                                        | Plan                                                                                                                                    |
+| ---------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| The database can be reset    | A token made by hand would disappear          | `DemoSeeder` stores the hash of one fixed token from an environment setting, with its abilities. `createToken` only makes random tokens |
+| Demo properties only         | Developers test on sample rooms               | The owner does one real booking and refund before launch                                                                                |
+| Mail is only logged          | No confirmation email arrives                 | Check the booking through the API; test email separately                                                                                |
+| Scheduler and a queue worker | Expired holds are released, as in production  | [Availability ignores expired holds](03-checkout-and-hold.md#holds-and-availability) until the job runs                                 |
+| A shared token               | Developers can see each other's test activity | Acceptable for sample data; never use real guest details                                                                                |
 
 `DemoBookingEngineSeeder` (run by `DemoSeeder`) sets up the demo side:
 
