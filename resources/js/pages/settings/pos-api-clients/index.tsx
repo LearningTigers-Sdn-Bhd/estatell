@@ -1,9 +1,12 @@
-import { Form, Head, router, useForm } from '@inertiajs/react';
+import { Form, router, useForm } from '@inertiajs/react';
 import { Check, Copy, MoreHorizontal, Plus, Webhook } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { PageHeader } from '@/components/pms/page-header';
+import {
+    PosSettingsShell,
+    posSettingsBreadcrumbs,
+} from '@/components/pms/pos/pos-settings-tabs';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -15,7 +18,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -42,8 +51,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useClipboard } from '@/hooks/use-clipboard';
-import { profile } from '@/routes/settings';
-import { index, revoke, store } from '@/routes/settings/pos-api-clients';
+import { revoke, store } from '@/routes/settings/pos-api-clients';
 
 type Client = App.Data.Pos.PosApiClientRowData;
 type Issued = { name: string; token: string };
@@ -110,25 +118,31 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
 
     return (
         <>
-            <Head title="POS API access" />
-
-            <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader
-                    title="POS API access"
-                    description="Tokens for an external POS or middleware to look up in-house guests and post room charges. Revoke a client to stop it at once."
-                    actions={addButton}
-                />
-
-                {clients.length === 0 ? (
-                    <EmptyState
-                        icon={Webhook}
-                        title="No API clients yet"
-                        description="Add a client to get a token for your POS."
-                        action={addButton}
-                    />
-                ) : (
-                    <Card>
-                        <CardContent>
+            <PosSettingsShell activeTab="api">
+                <Card>
+                    <CardHeader className="flex flex-row items-start justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                            <CardTitle>API access</CardTitle>
+                            <CardDescription>
+                                Bearer tokens for external POS systems or
+                                middleware calling{' '}
+                                <code className="font-mono text-xs">
+                                    /api/pos/v1
+                                </code>
+                                . Revoking a client stops it immediately.
+                            </CardDescription>
+                        </div>
+                        {clients.length > 0 && addButton}
+                    </CardHeader>
+                    <CardContent>
+                        {clients.length === 0 ? (
+                            <EmptyState
+                                icon={Webhook}
+                                title="No API clients yet"
+                                description="Add a client to issue a scoped token for your POS."
+                                action={addButton}
+                            />
+                        ) : (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -199,10 +213,10 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
                                     ))}
                                 </TableBody>
                             </Table>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </PosSettingsShell>
 
             <FormOverlay
                 variant="dialog"
@@ -322,8 +336,5 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
 }
 
 PosApiClientsIndex.layout = {
-    breadcrumbs: [
-        { title: 'Settings', href: profile() },
-        { title: 'POS API access', href: index() },
-    ],
+    breadcrumbs: posSettingsBreadcrumbs('api'),
 };

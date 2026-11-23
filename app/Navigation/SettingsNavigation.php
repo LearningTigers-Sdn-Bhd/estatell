@@ -68,22 +68,10 @@ class SettingsNavigation
                     active: request()->routeIs('settings.kiosks.*'),
                 ) : null,
                 $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
-                    title: __('POS outlets'),
+                    title: __('POS'),
                     href: route('settings.pos-outlets.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',
-                    active: request()->routeIs('settings.pos-outlets.*'),
-                ) : null,
-                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
-                    title: __('POS API access'),
-                    href: route('settings.pos-api-clients.index', ['property' => $property->code], absolute: false),
-                    icon: 'webhook',
-                    active: request()->routeIs('settings.pos-api-clients.*'),
-                ) : null,
-                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
-                    title: __('POS integrations'),
-                    href: route('settings.pos-integrations.index', ['property' => $property->code], absolute: false),
-                    icon: 'plug',
-                    active: request()->routeIs('settings.pos-integrations.*'),
+                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-integrations.*', 'settings.pos-api-clients.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Concierge::class) ? new NavItemData(
                     title: __('Concierge'),

@@ -1,13 +1,22 @@
-import { Head, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { MoreHorizontal, Plus, Utensils } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { PageHeader } from '@/components/pms/page-header';
+import {
+    PosSettingsShell,
+    posSettingsBreadcrumbs,
+} from '@/components/pms/pos/pos-settings-tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -30,8 +39,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { profile } from '@/routes/settings';
-import { index, store, update } from '@/routes/settings/pos-outlets';
+import { store, update } from '@/routes/settings/pos-outlets';
 
 type Outlet = App.Data.Pos.PosOutletRowData;
 type Option = { value: string; label: string };
@@ -101,25 +109,29 @@ export default function PosOutletsIndex({
 
     return (
         <>
-            <Head title="POS outlets" />
-
-            <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader
-                    title="POS outlets"
-                    description="Places that bill a guest's room, such as a restaurant or bar. Each outlet uses a charge item for its code, GL account and taxes."
-                    actions={addButton}
-                />
-
-                {outlets.length === 0 ? (
-                    <EmptyState
-                        icon={Utensils}
-                        title="No outlets yet"
-                        description="Add an outlet, then use its code in your POS."
-                        action={addButton}
-                    />
-                ) : (
-                    <Card>
-                        <CardContent>
+            <PosSettingsShell activeTab="outlets">
+                <Card>
+                    <CardHeader className="flex flex-row items-start justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                            <CardTitle>Outlets</CardTitle>
+                            <CardDescription>
+                                Places that bill a guest&apos;s room, such as a
+                                restaurant or bar. Each outlet maps to an
+                                inclusive-tax charge item for its code, GL
+                                account, and taxes.
+                            </CardDescription>
+                        </div>
+                        {outlets.length > 0 && addButton}
+                    </CardHeader>
+                    <CardContent>
+                        {outlets.length === 0 ? (
+                            <EmptyState
+                                icon={Utensils}
+                                title="No outlets yet"
+                                description="Add an outlet, then use its code in your POS."
+                                action={addButton}
+                            />
+                        ) : (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -189,10 +201,10 @@ export default function PosOutletsIndex({
                                     ))}
                                 </TableBody>
                             </Table>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </PosSettingsShell>
 
             <FormOverlay
                 variant="dialog"
@@ -271,8 +283,5 @@ export default function PosOutletsIndex({
 }
 
 PosOutletsIndex.layout = {
-    breadcrumbs: [
-        { title: 'Settings', href: profile() },
-        { title: 'POS outlets', href: index() },
-    ],
+    breadcrumbs: posSettingsBreadcrumbs('outlets'),
 };
