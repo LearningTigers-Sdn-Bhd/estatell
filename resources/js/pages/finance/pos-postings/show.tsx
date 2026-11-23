@@ -1,6 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -29,6 +28,26 @@ type Props = {
     q: string | null;
     currency: App.Data.Property.CurrencyData | null;
 };
+
+function formatTimestamp(iso: string | null): string {
+    if (!iso) {
+        return '—';
+    }
+
+    const parsed = new Date(iso);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return '—';
+    }
+
+    return parsed.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
 
 /** A receipt value as text. The payload is the provider's own, so anything else shows as empty. */
 function text(value: unknown, fallback = ''): string {
@@ -142,7 +161,12 @@ export default function PosPostingShow({
                                     Received
                                 </dt>
                                 <dd>
-                                    <DateText date={row.createdAt} />
+                                    <time
+                                        dateTime={row.createdAt ?? undefined}
+                                        className="tabular-nums"
+                                    >
+                                        {formatTimestamp(row.createdAt)}
+                                    </time>
                                 </dd>
                             </dl>
                             <Items payload={posting.rawPayload} />
@@ -157,7 +181,12 @@ export default function PosPostingShow({
                             <CardContent className="text-sm">
                                 <p>
                                     {posting.resolvedBy ?? 'The system'} ·{' '}
-                                    <DateText date={posting.resolvedAt} />
+                                    <time
+                                        dateTime={posting.resolvedAt}
+                                        className="tabular-nums"
+                                    >
+                                        {formatTimestamp(posting.resolvedAt)}
+                                    </time>
                                 </p>
                                 {posting.resolutionNote && (
                                     <p className="text-muted-foreground">
