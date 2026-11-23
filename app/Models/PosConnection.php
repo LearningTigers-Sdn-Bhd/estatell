@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property PosProvider $provider
  * @property PosConnectionStatus $status
  * @property string|null $external_merchant_id
+ * @property string|null $external_webhook_id The Loyverse webhook Estatell registered, removed again on disconnect.
  * @property string|null $access_token
  * @property string|null $refresh_token
  * @property CarbonImmutable|null $token_expires_at
@@ -29,7 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['provider', 'status', 'external_merchant_id', 'access_token', 'refresh_token', 'token_expires_at', 'webhook_secret', 'last_synced_at', 'last_error'])]
+#[Fillable(['provider', 'status', 'external_merchant_id', 'external_webhook_id', 'access_token', 'refresh_token', 'token_expires_at', 'webhook_secret', 'last_synced_at', 'last_error'])]
 #[Hidden(['access_token', 'refresh_token', 'webhook_secret'])]
 class PosConnection extends Model
 {

@@ -40,6 +40,15 @@ return [
         'refund_fee' => env('CURLEC_REFUND_FEE', '0.50'),
     ],
 
+    // Loyverse POS (public OAuth 2.0 app). See docs/33-pos/04-loyverse-integration.md. `redirect_uri` defaults to the
+    // `webhooks.loyverse.oauth-callback` route and must be one of the redirect URLs of the app in the Loyverse developer portal.
+    'loyverse' => [
+        'base_url' => env('LOYVERSE_BASE_URL', 'https://api.loyverse.com'),
+        'client_id' => env('LOYVERSE_CLIENT_ID'),
+        'client_secret' => env('LOYVERSE_CLIENT_SECRET'),
+        'redirect_uri' => env('LOYVERSE_REDIRECT_URI'),
+    ],
+
     'channex' => [
         'base_url' => env('CHANNEX_BASE_URL', 'https://staging.channex.io/api/v1'),
         'api_key' => env('CHANNEX_API_KEY'),

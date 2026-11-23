@@ -52,7 +52,7 @@ Lives in `config/services.php` under `loyverse`:
     - `RECEIPTS_READ`
     - `STORES_READ`
     - `PAYMENT_TYPES_READ`
-    - `WEBHOOKS_WRITE` (if registering webhook via API; otherwise configured per app in Loyverse Developer Portal)
+    - There is no webhook scope: Loyverse lets an OAuth token call `/webhooks`. Estatell also asks for `MERCHANT_READ` (the merchant id).
 3. Callback verifies `state`, exchanges `code` for `access_token` + `refresh_token`, fetches merchant info, upserts `pos_connections` (`provider = Loyverse`, `status = Connected`), and redirects back to `/p/{code}/settings/pos-integrations`.
 4. **Token refresh:** `LoyverseClient` checks `token_expires_at` (with a 5-minute buffer) and refreshes the token under a per-connection cache lock before any API call. If refresh fails with `invalid_grant`, sets `pos_connections.status = Error` and notifies property admins.
 5. **Disconnect:** Revokes/clears tokens, sets `status = Disconnected`, and stops outbound guest syncs. Existing `pos_postings` history is preserved.
@@ -79,12 +79,12 @@ Listeners in `App\Listeners\Pos\` react to existing stay events (no-op when `Pos
 | `StayCheckedOut`  | `RemoveLoyverseGuestJob` | `DELETE /v1.0/customers/{id}` so cashiers never see departed guests (if Loyverse ever rejects delete with 4xx, fall back to renaming `"[Checked Out] ..."`), then delete `pos_guest_links` row                                         |
 
 - **Initial sync button:** Settings page includes a **Sync all in-house guests now** action to backfill currently checked-in rooms right after first connecting Loyverse.
-- **Rate limiting:** Loyverse enforces ~60 requests/minute. All outbound Loyverse jobs run on a dedicated Horizon queue with `Redis::throttle('loyverse:'.$connection->id)->allow(45)->every(60)` and exponential backoff on `429`.
+- **Rate limiting:** Loyverse allows 300 requests per 300 seconds per account and answers `429` (with `Retry-After`) beyond it. Outbound jobs run on the dedicated `loyverse` queue (added to the Horizon supervisor) behind the `loyverse` rate limiter (240 per 5 minutes per connection) and release themselves for the `Retry-After` wait on a `429`.
 
 ## Webhook ingestion (Loyverse → Estatell)
 
 - **Route:** `POST /webhooks/loyverse` (`webhooks.loyverse`, in `routes/webhooks.php`, no CSRF).
-- **Verification:** Compute HMAC-SHA1/SHA256 (per Loyverse Developer docs for public apps) of the raw request body using the app's client secret / webhook secret and compare with `X-Loyverse-Webhook-Signature` using `hash_equals`. Reject invalid signatures with `401`.
+- **Verification:** Loyverse signs a webhook created with an OAuth token. The header is `X-Loyverse-Signature`: the lowercase hex **HMAC-SHA1** of the raw request body, keyed with the app's **client secret** (`VerifyLoyverseSignature`, compared with `hash_equals`). A missing or wrong signature answers `401`. Webhooks made with a personal token are not signed and are never used.
 - **Fast ack:** Immediately dispatch `ProcessLoyverseWebhookJob` and return `200 OK` so Loyverse never times out or disables the webhook.
 - **Job processing (`ProcessLoyverseWebhookJob`):**
     1. Resolve `pos_connection` by `merchant_id` (ignore if disconnected or feature off).
@@ -126,3 +126,17 @@ In `routes/webhooks.php` (no auth/CSRF):
 | --------------------------------------- | ---------------------------------- | ----------------------------------------- |
 | `GET /webhooks/loyverse/oauth/callback` | `webhooks.loyverse.oauth-callback` | OAuth callback (validates cached `state`) |
 | `POST /webhooks/loyverse`               | `webhooks.loyverse`                | Incoming Loyverse receipt webhooks        |
+
+## Implementation notes
+
+Settled while building, from the Loyverse developer docs (https://developer.loyverse.com/docs/):
+
+- **Webhook registration:** on connect, `ConnectLoyverse` calls `POST /webhooks/` (`{url, type: "receipts.update", status: "ENABLED"}`) with the OAuth token, after listing existing webhooks so a second connect does not register a duplicate. The id is kept in `pos_connections.external_webhook_id` and deleted on disconnect. The webhook has no secret of its own, so `pos_connections.webhook_secret` stays unused.
+- **One merchant, one property:** a webhook finds its connection by `merchant_id`, so a Loyverse account that another property uses is refused (`merchant_in_use`).
+- **Receipt identity:** a Loyverse receipt has no UUID; its `receipt_number` is its id. The webhook body is `{merchant_id, type, created_at, receipts: [...]}`. `receipts.update` fires again when a receipt is updated, so repeats are absorbed by the posting Actions' idempotency.
+- **Void ids:** a refund posts a void with id `refund:{receipt_number}` for `refund_for`; a sale whose `cancelled_at` is set posts a void with id `cancel:{receipt_number}`.
+- **Customers:** `POST /customers` creates (or, with `id`, updates) a customer; `DELETE /customers/{id}` removes it. Loyverse soft-deletes customers.
+- **Revocation:** Loyverse documents no uninstall webhook. A refresh that Loyverse refuses (`400` or `401`) marks the connection Error with a reconnect message, and queued syncs stop quietly.
+- **Listener registration:** stay events are wired in `AppServiceProvider` to `QueueLoyverseGuestSync`, like the door lock and welcome Actions, instead of an `App\Listeners\Pos` folder.
+- **Config:** `LOYVERSE_BASE_URL`, `LOYVERSE_CLIENT_ID`, `LOYVERSE_CLIENT_SECRET` and `LOYVERSE_REDIRECT_URI` (default: the `webhooks.loyverse.oauth-callback` route, which must be listed as a redirect URL in the Loyverse developer portal).
+- **Not built:** the "notify property admins" step on a failed refresh. The connection shows Error and the reason on the settings page.

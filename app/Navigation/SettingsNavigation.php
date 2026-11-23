@@ -79,6 +79,12 @@ class SettingsNavigation
                     icon: 'webhook',
                     active: request()->routeIs('settings.pos-api-clients.*'),
                 ) : null,
+                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
+                    title: __('POS integrations'),
+                    href: route('settings.pos-integrations.index', ['property' => $property->code], absolute: false),
+                    icon: 'plug',
+                    active: request()->routeIs('settings.pos-integrations.*'),
+                ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Concierge::class) ? new NavItemData(
                     title: __('Concierge'),
                     href: route('settings.concierge.index', ['property' => $property->code], absolute: false),
