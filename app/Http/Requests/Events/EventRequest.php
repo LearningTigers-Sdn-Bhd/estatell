@@ -12,6 +12,7 @@ use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\Property;
 use App\Services\Guests\CountryOptions;
 use App\Services\Guests\IdentityNumber;
+use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -106,7 +107,30 @@ class EventRequest extends FormRequest
      */
     public function after(): array
     {
-        return [fn (Validator $validator) => $this->checkGuest($validator)];
+        return [
+            fn (Validator $validator) => $this->checkGuest($validator),
+            fn (Validator $validator) => $this->checkStatus($validator),
+        ];
+    }
+
+    /**
+     * A new event that starts on or before the business date has happened, so it must be Confirmed: a Tentative
+     * booking never posts, and the night audit would list it as an exception every night.
+     */
+    private function checkStatus(Validator $validator): void
+    {
+        $property = $this->route('property');
+
+        if (! $this->isNew() || ! $property instanceof Property || $validator->errors()->hasAny(['starts_on', 'status'])) {
+            return;
+        }
+
+        $businessDate = app(CurrentBusinessDate::class)->date($property);
+
+        if ($businessDate !== null && $this->string('status')->toString() === EventStatus::Tentative->value
+            && $this->string('starts_on')->toString() <= $businessDate->toDateString()) {
+            $validator->errors()->add('status', __('An event that starts on or before the business date must be Confirmed.'));
+        }
     }
 
     /**

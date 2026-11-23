@@ -134,6 +134,23 @@ test('the night audit posts the bookings of the business date once and turns a T
         ->and($exception->message)->toBe(FacilityBookingResult::REFUSAL_TENTATIVE);
 });
 
+test('the night audit catches up a booking dated before the business date, on the business date', function () {
+    $setup = facilityPostingSetup();
+    $missed = postingBooking($setup, ['booking_date' => '2026-10-13']);
+    $audit = NightAudit::factory()->create(['business_date_id' => $setup['property']->businessDates()->sole()->id]);
+    $date = CarbonImmutable::parse('2026-10-14');
+
+    $outcome = app(PostFacilityChargesStep::class)->run($audit, $date);
+    app(PostFacilityChargesStep::class)->run($audit, $date);
+
+    $line = FolioLine::query()->where('idempotency_key', 'facility:'.$missed->id)->sole();
+
+    expect($outcome->processed)->toBe(1)
+        ->and($line->posting_date->toDateString())->toBe('2026-10-14')
+        ->and($line->service_date->toDateString())->toBe('2026-10-13')
+        ->and(FolioLine::query()->count())->toBe(2);
+});
+
 test('the night audit posts nothing while the Facilities feature is off', function () {
     $setup = facilityPostingSetup();
     postingBooking($setup);
