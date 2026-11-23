@@ -68,39 +68,47 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
 
 **Decided 2026-11-23:** a page, not a Dialog. Six fields fit a Dialog under DESIGN.md §5, but the page has [facility booking lines](04-facility-bookings.md) (repeating rows), so it follows the full-page rule.
 
+**Decided 2026-11-23 (later):** the page looks like New reservation. The Event section, then underline tabs (**Facilities**, **Notes**), the facility lines as one table with a header row and a footer, and the guest payer as one guest row like the booker of the booking form. **New guest** is gone: the guest row finds a guest or adds a new one.
+
 ```
 ← New event
   A bill for people who are not staying: a wedding dinner, a meeting or a walk-in lunch. It gets its own folio.
 
-  EVENT
-  Event name  [ e.g. Lim & Tan wedding dinner     ]
-  Payer       ( Guest ) ( New guest ) ( Company )
-  Guest       [ Choose a guest                  ▾ ]
-  Dates       [ 11/12/2026 → 12/12/2026           ]
-  Status      [ Confirmed                       ▾ ]
-  Notes       [ e.g. Vegetarian menu for 20 guests ]          SUMMARY       (sticky)
-                                                               Event   Lim & Tan wedding
-  FACILITY BOOKINGS                                            Dates   12 Dec 2026
-  Facility ▾       Date ▾   Time / Session    Qty  Price   🗑  Status  Confirmed
-  Riverside Hall   12 Dec   18:00 – 23:00       1  1,200.00    Facilities        2
-    1,200.00 + SST 96.00                                       ─────────────────
-  Night Walk       12 Dec   20:00–22:00 · 8 left 3     80.00    Facilities 1,440.00
-    ⚠ Night Walk is full at that time.                         Tax          115.20
-  [+ Add facility]                                             Total  RM 1,555.20
+  Event                                                         SUMMARY       (sticky)
+  Who pays and on which days.                                   Event   Lim & Tan wedding
+  Dates [ 12/12/2026 → 12/12/2026 ]  Status [ Confirmed ▾ ]     Dates   12 Dec 2026
+  Event name [ e.g. Lim & Tan wedding ]  Payer [ Guest | Company ]   Status  Confirmed
+  ┌ Guest                      │ Phone            ┐             Facilities        2
+  │ > [ Lim Wei Jie  Existing ]│ [ +60 12-345 … ] │             ─────────────────
+  │   Email, details, MyKad / ID (opens below)    │             Facilities 1,440.00
+  └───────────────────────────────────────────────┘             Tax          115.20
+                                                                Total  RM 1,555.20
+  ─ Facilities (2) ─  Notes ─────────────────────
+  Facility bookings
+  ┌ Facility       │ Date   │ Time          │ Qty │ Price    │   ┐
+  │ Riverside Hall │ 12 Dec │ 18:00 – 23:00 │ 1   │ 1,200.00 │ 🗑 │
+  │   1,200.00 + SST 96.00                                       │
+  │ Night Walk     │ 12 Dec │ 20:00–22:00   │ 3   │ 80.00    │ 🗑 │
+  │   ⚠ Night Walk is full at that time.                         │
+  ├ 2 bookings                                [+ Add facility] ┤
+  └──────────────────────────────────────────────────────────────┘
 ──────────────────────────────────────────────────────────────────────────────────
                                                          [Cancel] [Create event]
 ```
 
-| Field      | Control                                                      | Placeholder                        |
-| ---------- | ------------------------------------------------------------ | ---------------------------------- |
-| Event name | Text                                                         | e.g. Lim & Tan wedding dinner      |
-| Payer      | Guest, New guest or Company, then the guest, name or company | Choose a guest / e.g. Lim Wei Jie  |
-| Dates      | Date range picker, both ends default to the business date    | e.g. 11/12/2026 → 12/12/2026       |
-| Status     | Tentative or Confirmed, default Confirmed                    | –                                  |
-| Notes      | Textarea, optional                                           | e.g. Vegetarian menu for 20 guests |
+| Field      | Control                                                                | Placeholder                        |
+| ---------- | ---------------------------------------------------------------------- | ---------------------------------- |
+| Dates      | Date range picker, both ends default to the business date              | e.g. 11/12/2026 → 12/12/2026       |
+| Status     | Tentative or Confirmed, default Confirmed                              | –                                  |
+| Event name | Text                                                                   | e.g. Lim & Tan wedding dinner      |
+| Payer      | Toggle: Guest or Company (shown with `company.view`)                   | –                                  |
+| Guest      | One guest row of the booking form's Guests table, without Stays in     | –                                  |
+| Company    | Active companies                                                       | –                                  |
+| Notes      | Notes tab: text box with a counter, optional, at most 2,000 characters | e.g. Vegetarian menu for 20 guests |
 
-- A one-day event has the same date at both ends. A walk-in uses the same page: **New guest** with the guest's name, today, Confirmed.
-- **New guest** needs `guests.manage` and asks for the name only. `CreateEvent` adds the guest with `CreateGuest` in the same transaction. Staff add a phone or email on the guest page.
+- A one-day event has the same date at both ends. A walk-in uses the same page: type the guest's name, today, Confirmed.
+- **Guest row:** the same row as the booking form's Guests table (Name and Phone in the row; Email, guest details, MyKad and ID below), with no Stays in, Remove or footer. Typing a name searches the guest list. A picked guest is linked, and **Update guest profile with my changes** saves edits to it. A typed name is a new guest. It sends `guest` (`guest.guest_id`, `guest.update_profile`, the profile fields and the ID), checked like a booking guest row: a new guest needs a name, adding or changing a guest needs `guests.manage` (without it staff can only pick), and an ID for a new guest needs `guests.view-documents`. Errors come back as `guest.{field}`.
+- **Save:** `CreateEvent::withBookings()` resolves the guest row with `ResolveUnitGuest` (the same as a booking guest row) inside its transaction, so a new guest is not kept when a line is refused. A guest merged or removed after the page loaded comes back as an error on `guest.full_name`.
 - **Company** needs `company.view` and offers Active companies.
 - Back and Cancel go to the Events list. Leaving with unsaved changes asks to Save, Discard or Cancel.
 
@@ -111,11 +119,12 @@ Shown with `facilities.book`. Each line is a [facility booking](04-facility-book
 - **Quote:** 300 ms after a change, `POST events/quote` (`events.quote`, `events.manage` and `facilities.book`) answers each line, in order, with its price and tax, its refusal, the Tentative hold warning and the places left in each session, and the totals for the rail. The browser calculates nothing. Each line is checked against the bookings already saved and against the earlier lines, counted as saved when the status is Confirmed, so two lines that clash are caught. **Create event** is disabled while a line is refused or not filled in.
 - **Save:** `CreateEvent::withBookings()` creates the event and its folio, then books each line with `BookFacility` in order, in one transaction. The first refused line rolls everything back (the event number included) and comes back as an error on that line (`bookings.{line}.{field}`).
 - Lines take the event's status. At most 30 lines.
+- **Table:** the booking form's lines style: a header row from `2xl` (each cell shows its label below that), one row per line with its quote, refusal or warning under it, and a footer with the count and **Add facility**. The price's rate basis shows under the price.
 - **Summary rail:** event name, dates, status and the number of lines, then the facilities before tax, the added tax and the total. Lines charged by hand are not counted.
 
 ## Edit event (Dialog)
 
-The same fields without Status and New guest, in a Dialog on the event page (**⋯ More actions**, **Edit event**). A Completed or Cancelled event cannot be edited.
+Event name, Payer (Guest or Company cards, then a guest picker or a company), Dates and Notes, in a Dialog on the event page (**⋯ More actions**, **Edit event**). It sends `payer_guest_id`; it does not add guests. A Completed or Cancelled event cannot be edited.
 
 ## Event page (Detail)
 
@@ -167,16 +176,16 @@ Code that read `folio->reservation` now handles an event folio:
 
 ## Actions
 
-| Action                      | Does                                                                                                                                                                                                      |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateEvent`               | Takes the Event number, creates the event and its folio in one transaction, and adds a new guest payer when given. Logs `events.created`. `withBookings()` also books the New event lines, all or nothing |
-| `UpdateEvent`               | Name, payer, dates, notes. Refuses a Completed or Cancelled event (`event_not_open`), and new dates that leave a live facility booking outside them (`booking_outside_event`)                             |
-| `ConfirmEvent`              | Tentative → Confirmed, with its Tentative bookings. Each booking runs the clash check in turn (`facility_clash` or `facility_full`); a refusal confirms nothing. Logs `events.confirmed`                  |
-| `CancelEvent`               | → Cancelled, with its bookings (`CancelFacilityBookings`). Logs `events.cancelled`. Reversing posted bookings comes with posting                                                                          |
-| `CompleteEvent`             | Called by `CloseFolio`: a Confirmed event becomes Completed                                                                                                                                               |
-| `ReopenEvent`               | Called by `ReopenFolio`: a Completed event becomes Confirmed                                                                                                                                              |
-| `PostEventCharge`           | Posts a charge and its tax on the event folio, with the same checks as `PostCharge` and no unit or routing. Logs `folio.charge_posted` on the event                                                       |
-| `RecordPayment::forEvent()` | Records a payment on the event folio, with the checks in [Deposits](#deposits). Shares the write step with `RecordPayment`                                                                                |
+| Action                      | Does                                                                                                                                                                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateEvent`               | Takes the Event number, creates the event and its folio in one transaction. Logs `events.created`. `withBookings()` also resolves the New event guest row with `ResolveUnitGuest` and books the lines, all or nothing |
+| `UpdateEvent`               | Name, payer, dates, notes. Refuses a Completed or Cancelled event (`event_not_open`), and new dates that leave a live facility booking outside them (`booking_outside_event`)                                         |
+| `ConfirmEvent`              | Tentative → Confirmed, with its Tentative bookings. Each booking runs the clash check in turn (`facility_clash` or `facility_full`); a refusal confirms nothing. Logs `events.confirmed`                              |
+| `CancelEvent`               | → Cancelled, with its bookings (`CancelFacilityBookings`). Logs `events.cancelled`. Reversing posted bookings comes with posting                                                                                      |
+| `CompleteEvent`             | Called by `CloseFolio`: a Confirmed event becomes Completed                                                                                                                                                           |
+| `ReopenEvent`               | Called by `ReopenFolio`: a Completed event becomes Confirmed                                                                                                                                                          |
+| `PostEventCharge`           | Posts a charge and its tax on the event folio, with the same checks as `PostCharge` and no unit or routing. Logs `folio.charge_posted` on the event                                                                   |
+| `RecordPayment::forEvent()` | Records a payment on the event folio, with the checks in [Deposits](#deposits). Shares the write step with `RecordPayment`                                                                                            |
 
 Refusals return `false` or a refused result; the controller shows an error toast and nothing is written or logged.
 

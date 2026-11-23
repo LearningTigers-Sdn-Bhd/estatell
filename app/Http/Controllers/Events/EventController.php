@@ -15,6 +15,9 @@ use App\Data\Facilities\FacilityOptionData;
 use App\Data\Property\CurrencyData;
 use App\Enums\EventStatus;
 use App\Enums\FacilityBookingStatus;
+use App\Enums\Gender;
+use App\Enums\IdentityDocumentType;
+use App\Enums\Locale;
 use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
@@ -33,6 +36,7 @@ use App\Services\Facilities\EventLinesQuote;
 use App\Services\Facilities\FacilityBookingRefusals;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
+use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Platform\Impersonation;
 use App\Services\Property\PropertyToday;
@@ -78,8 +82,16 @@ class EventController extends Controller
         $canViewCompany = $user->can(PermissionEnum::CompanyView->value);
         $canBook = $user->can(PermissionEnum::FacilitiesBook->value);
 
+        $canManageGuests = $user->can(PermissionEnum::GuestsManage->value);
+
         return Inertia::render('events/create', [
-            'canAddGuest' => $user->can(PermissionEnum::GuestsManage->value),
+            'canManageGuests' => $canManageGuests,
+            'canAddIdentity' => $canManageGuests && $user->can(PermissionEnum::GuestsViewDocuments->value),
+            'identityDocumentTypes' => IdentityDocumentType::options(),
+            'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
+            'defaultNationalityCode' => $property->country_code ?? 'MY',
+            'genders' => Gender::options(),
+            'locales' => Locale::options(),
             'canViewCompany' => $canViewCompany,
             'companies' => $canViewCompany ? $companies->active($property) : [],
             'statuses' => EventStatus::newEventOptions(),
@@ -97,6 +109,10 @@ class EventController extends Controller
     {
         $bookings = $request->bookingInputs();
         $result = $createEvent->withBookings($property, $request->user(), $request->eventAttributes(), $bookings);
+
+        if ($result->guestRefusal !== null) {
+            return back()->withErrors(['guest.full_name' => __('This guest was merged or removed. Search for the guest again.')]);
+        }
 
         if ($result->isRefused()) {
             return back()->withErrors($refusals->lineErrors((int) $result->line, $result->refusal));

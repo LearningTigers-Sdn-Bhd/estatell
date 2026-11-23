@@ -1,4 +1,4 @@
-import { Building2, User, UserPlus } from 'lucide-react';
+import { Building2, User } from 'lucide-react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
 import { CompanySelect } from '@/components/pms/company-select';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
@@ -9,14 +9,13 @@ import { Input } from '@/components/ui/input';
 type Guest = App.Data.Guests.GuestOptionData;
 type Company = App.Data.CityLedger.CompanyOptionData;
 
-export type PayerType = 'guest' | 'new_guest' | 'company';
+export type PayerType = 'guest' | 'company';
 
-/** The fields New event and Edit event share. */
+/** The fields of the Edit event Dialog. */
 export type EventFieldValues = {
     name: string;
     payerType: PayerType;
     payer: Guest | null;
-    newGuestName: string;
     company: string;
     startsOn: string;
     endsOn: string;
@@ -26,9 +25,7 @@ export type EventFieldValues = {
 export function payerMissing(values: EventFieldValues): boolean {
     return values.payerType === 'company'
         ? values.company === ''
-        : values.payerType === 'new_guest'
-          ? values.newGuestName.trim() === ''
-          : values.payer === null;
+        : values.payer === null;
 }
 
 /** The shared fields in the shape `EventRequest` takes. */
@@ -37,7 +34,6 @@ export function eventFieldPayload(values: EventFieldValues) {
         name: values.name,
         payer_type: values.payerType,
         payer_guest_id: values.payer?.id ?? null,
-        new_guest_name: values.newGuestName,
         payer_company_id: values.company || null,
         starts_on: values.startsOn,
         ends_on: values.endsOn,
@@ -48,23 +44,18 @@ type Props = {
     values: EventFieldValues;
     onChange: (changes: Partial<EventFieldValues>) => void;
     errors: Partial<Record<string, string>>;
-    /** New event offers New guest (with `guests.manage`). */
-    isNew: boolean;
-    canAddGuest: boolean;
     canViewCompany: boolean;
     companies?: Company[];
 };
 
 /**
- * Event name, Payer and Dates: the fields the New event page and the Edit event Dialog share. A one-day event has the
- * same date at both ends. See docs/33-facilities/03-events-and-event-folios.md.
+ * Event name, Payer and Dates of the Edit event Dialog. A one-day event has the same date at both ends. The New event
+ * page lays out its own fields. See docs/33-facilities/03-events-and-event-folios.md#edit-event-dialog.
  */
 export function EventFields({
     values,
     onChange,
     errors,
-    isNew,
-    canAddGuest,
     canViewCompany,
     companies,
 }: Props) {
@@ -75,16 +66,6 @@ export function EventFields({
             description: 'A guest already in the guest list.',
             icon: User,
         },
-        ...(isNew && canAddGuest
-            ? [
-                  {
-                      value: 'new_guest',
-                      label: 'New guest',
-                      description: 'A walk-in. Adds them to the guest list.',
-                      icon: UserPlus,
-                  },
-              ]
-            : []),
         ...(canViewCompany
             ? [
                   {
@@ -136,24 +117,6 @@ export function EventFields({
                         invalid={!!errors.payer_company_id}
                     />
                     <FieldError>{errors.payer_company_id}</FieldError>
-                </Field>
-            ) : values.payerType === 'new_guest' ? (
-                <Field data-invalid={!!errors.new_guest_name}>
-                    <FieldLabel htmlFor="event-new-guest">
-                        Guest name
-                    </FieldLabel>
-                    <Input
-                        id="event-new-guest"
-                        name="new_guest_name"
-                        maxLength={150}
-                        placeholder="e.g. Lim Wei Jie"
-                        value={values.newGuestName}
-                        onChange={(change) =>
-                            onChange({ newGuestName: change.target.value })
-                        }
-                        aria-invalid={!!errors.new_guest_name}
-                    />
-                    <FieldError>{errors.new_guest_name}</FieldError>
                 </Field>
             ) : (
                 <Field data-invalid={!!errors.payer_guest_id}>

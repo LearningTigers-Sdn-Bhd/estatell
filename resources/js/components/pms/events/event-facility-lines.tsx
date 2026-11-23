@@ -5,7 +5,12 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { Button } from '@/components/ui/button';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 type Facility = App.Data.Facilities.FacilityOptionData;
@@ -47,8 +52,31 @@ const sessionKey = (startsAt: string, endsAt: string) =>
     `${startsAt}-${endsAt}`;
 
 /**
- * The Facility bookings section of the New event page: one row per line, each with its server quote (price, refusal,
- * Tentative warning, places left). The browser calculates nothing. Errors arrive as `bookings.{index}.{field}`.
+ * The columns of a line from `2xl`: facility, date, time or session, quantity, price and remove. The header row uses the
+ * same template. Below `2xl` the cells stack and show their labels, like the booking form's lines.
+ */
+const LINE_COLUMNS =
+    'sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1.6fr)_5rem_minmax(0,1.1fr)_2rem]';
+
+function FacilityLinesHeader() {
+    return (
+        <div
+            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground 2xl:grid ${LINE_COLUMNS}`}
+        >
+            <span>Facility</span>
+            <span>Date</span>
+            <span>Time</span>
+            <span>Qty</span>
+            <span>Price</span>
+            <span />
+        </div>
+    );
+}
+
+/**
+ * The Facility bookings table of the New event page, in the style of the booking form's lines: a header row, one row
+ * per line with its server quote (price, refusal, Tentative warning, places left) and a footer that adds a line. The
+ * browser calculates nothing. Errors arrive as `bookings.{index}.{field}`.
  * See docs/33-facilities/03-events-and-event-folios.md#new-event-page.
  */
 export function EventFacilityLines({
@@ -85,41 +113,45 @@ export function EventFacilityLines({
         );
 
     return (
-        <div className="flex flex-col gap-3">
-            {lines.map((line, index) => {
-                const facility = facilities.find(
-                    (one) => String(one.id) === line.facility_id,
-                );
-                const quote = quotes?.[index] ?? null;
-                const error = (field: string) =>
-                    errors[`bookings.${index}.${field}`];
-                const id = (field: string) => `line-${line.key}-${field}`;
-                const sessionOptions: EnumOption[] = (
-                    facility?.sessions ?? []
-                ).map((session) => {
-                    const places = quote?.sessions.find(
-                        (one) =>
-                            one.startsAt === session.startsAt &&
-                            one.endsAt === session.endsAt,
+        <div className="overflow-hidden rounded-lg border">
+            {lines.length > 0 && <FacilityLinesHeader />}
+            <div className="divide-y">
+                {lines.map((line, index) => {
+                    const facility = facilities.find(
+                        (one) => String(one.id) === line.facility_id,
                     );
+                    const quote = quotes?.[index] ?? null;
+                    const error = (field: string) =>
+                        errors[`bookings.${index}.${field}`];
+                    const id = (field: string) => `line-${line.key}-${field}`;
+                    const sessionOptions: EnumOption[] = (
+                        facility?.sessions ?? []
+                    ).map((session) => {
+                        const places = quote?.sessions.find(
+                            (one) =>
+                                one.startsAt === session.startsAt &&
+                                one.endsAt === session.endsAt,
+                        );
 
-                    return {
-                        value: sessionKey(session.startsAt, session.endsAt),
-                        label:
-                            places === undefined
-                                ? `${session.startsAt}–${session.endsAt}`
-                                : `${session.startsAt}–${session.endsAt} · ${places.left} left`,
-                    };
-                });
+                        return {
+                            value: sessionKey(session.startsAt, session.endsAt),
+                            label:
+                                places === undefined
+                                    ? `${session.startsAt}–${session.endsAt}`
+                                    : `${session.startsAt}–${session.endsAt} · ${places.left} left`,
+                        };
+                    });
 
-                return (
-                    <div
-                        key={line.key}
-                        className="flex flex-col gap-3 rounded-lg border p-3"
-                    >
-                        <div className="grid items-start gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.8fr)_5rem_minmax(0,1.3fr)_auto]">
+                    return (
+                        <div
+                            key={line.key}
+                            className={`grid items-start gap-3 p-3 ${LINE_COLUMNS}`}
+                        >
                             <Field data-invalid={!!error('facility_id')}>
-                                <FieldLabel htmlFor={id('facility')}>
+                                <FieldLabel
+                                    htmlFor={id('facility')}
+                                    className="2xl:sr-only"
+                                >
                                     Facility
                                 </FieldLabel>
                                 <EnumSelect
@@ -145,7 +177,10 @@ export function EventFacilityLines({
                                 <FieldError>{error('facility_id')}</FieldError>
                             </Field>
                             <Field data-invalid={!!error('booking_date')}>
-                                <FieldLabel htmlFor={id('date')}>
+                                <FieldLabel
+                                    htmlFor={id('date')}
+                                    className="2xl:sr-only"
+                                >
                                     Date
                                 </FieldLabel>
                                 <DatePicker
@@ -163,7 +198,10 @@ export function EventFacilityLines({
                             </Field>
                             {(facility?.sessions.length ?? 0) > 0 ? (
                                 <Field data-invalid={!!error('starts_at')}>
-                                    <FieldLabel htmlFor={id('session')}>
+                                    <FieldLabel
+                                        htmlFor={id('session')}
+                                        className="2xl:sr-only"
+                                    >
                                         Session
                                     </FieldLabel>
                                     <EnumSelect
@@ -200,7 +238,10 @@ export function EventFacilityLines({
                                         !!error('ends_at')
                                     }
                                 >
-                                    <FieldLabel htmlFor={id('from')}>
+                                    <FieldLabel
+                                        htmlFor={id('from')}
+                                        className="2xl:sr-only"
+                                    >
                                         Time
                                     </FieldLabel>
                                     <div className="flex items-center gap-1">
@@ -238,7 +279,10 @@ export function EventFacilityLines({
                                 </Field>
                             )}
                             <Field data-invalid={!!error('quantity')}>
-                                <FieldLabel htmlFor={id('quantity')}>
+                                <FieldLabel
+                                    htmlFor={id('quantity')}
+                                    className="2xl:sr-only"
+                                >
                                     Qty
                                 </FieldLabel>
                                 <Input
@@ -258,10 +302,11 @@ export function EventFacilityLines({
                                 <FieldError>{error('quantity')}</FieldError>
                             </Field>
                             <Field data-invalid={!!error('unit_amount')}>
-                                <FieldLabel htmlFor={id('price')}>
-                                    {facility
-                                        ? `Price · ${facility.rateBasisLabel.toLowerCase()}`
-                                        : 'Price'}
+                                <FieldLabel
+                                    htmlFor={id('price')}
+                                    className="2xl:sr-only"
+                                >
+                                    Price
                                 </FieldLabel>
                                 {facility && facility.listPrice === null ? (
                                     <p className="py-2 text-sm text-muted-foreground">
@@ -281,73 +326,89 @@ export function EventFacilityLines({
                                         invalid={!!error('unit_amount')}
                                     />
                                 )}
+                                {facility && facility.listPrice !== null && (
+                                    <FieldDescription>
+                                        {facility.rateBasisLabel}
+                                    </FieldDescription>
+                                )}
                                 <FieldError>{error('unit_amount')}</FieldError>
                             </Field>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="md:mt-6"
-                                aria-label={`Remove ${facility?.name ?? 'this line'}`}
-                                onClick={() =>
-                                    onChange(
-                                        lines.filter((_, at) => at !== index),
-                                    )
-                                }
-                            >
-                                <Trash2 />
-                            </Button>
-                        </div>
-                        {(quote?.amount ||
-                            quote?.refusal ||
-                            quote?.warning) && (
-                            <div
-                                className="flex flex-col gap-1 text-sm"
-                                aria-live="polite"
-                            >
-                                {quote.refusal && (
-                                    <p className="flex items-center gap-1.5 text-destructive">
-                                        <TriangleAlert className="size-4" />
-                                        {quote.refusal}
-                                    </p>
-                                )}
-                                {quote.warning && (
-                                    <p className="flex items-center gap-1.5 text-muted-foreground">
-                                        <TriangleAlert className="size-4" />
-                                        {quote.warning}
-                                    </p>
-                                )}
-                                {quote.amount && (
-                                    <p className="text-muted-foreground">
-                                        <MoneyText
-                                            amount={quote.amount}
-                                            currency={currency}
-                                            plain
-                                        />
-                                        {quote.taxes.map((tax) => (
-                                            <span key={tax.name}>
-                                                {tax.inclusive
-                                                    ? ' incl. '
-                                                    : ' + '}
-                                                {tax.name}{' '}
-                                                <MoneyText
-                                                    amount={tax.amount}
-                                                    currency={currency}
-                                                    plain
-                                                />
-                                            </span>
-                                        ))}
-                                    </p>
-                                )}
+                            <div className="flex items-start justify-end">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label={`Remove ${facility?.name ?? 'this line'}`}
+                                    onClick={() =>
+                                        onChange(
+                                            lines.filter(
+                                                (_, at) => at !== index,
+                                            ),
+                                        )
+                                    }
+                                >
+                                    <Trash2 />
+                                </Button>
                             </div>
-                        )}
-                    </div>
-                );
-            })}
-            <div>
+                            {(quote?.amount ||
+                                quote?.refusal ||
+                                quote?.warning) && (
+                                <div
+                                    className="flex flex-col gap-1 text-sm sm:col-span-full"
+                                    aria-live="polite"
+                                >
+                                    {quote.refusal && (
+                                        <p className="flex items-center gap-1.5 text-destructive">
+                                            <TriangleAlert className="size-4" />
+                                            {quote.refusal}
+                                        </p>
+                                    )}
+                                    {quote.warning && (
+                                        <p className="flex items-center gap-1.5 text-muted-foreground">
+                                            <TriangleAlert className="size-4" />
+                                            {quote.warning}
+                                        </p>
+                                    )}
+                                    {quote.amount && (
+                                        <p className="text-muted-foreground">
+                                            <MoneyText
+                                                amount={quote.amount}
+                                                currency={currency}
+                                                plain
+                                            />
+                                            {quote.taxes.map((tax) => (
+                                                <span key={tax.name}>
+                                                    {tax.inclusive
+                                                        ? ' incl. '
+                                                        : ' + '}
+                                                    {tax.name}{' '}
+                                                    <MoneyText
+                                                        amount={tax.amount}
+                                                        currency={currency}
+                                                        plain
+                                                    />
+                                                </span>
+                                            ))}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+            <div
+                className={`flex items-center justify-between gap-3 bg-muted/50 px-3 py-2 ${lines.length > 0 ? 'border-t' : ''}`}
+            >
+                <FieldDescription>
+                    {lines.length === 0
+                        ? 'No facility bookings yet.'
+                        : `${lines.length} ${lines.length === 1 ? 'booking' : 'bookings'}`}
+                </FieldDescription>
                 <Button
                     type="button"
                     variant="outline"
+                    size="sm"
                     onClick={() =>
                         onChange([...lines, newFacilityLine(startsOn)])
                     }

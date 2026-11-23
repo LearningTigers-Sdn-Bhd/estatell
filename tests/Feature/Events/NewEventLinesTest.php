@@ -73,7 +73,7 @@ test('the page sends a refused line back as an error on that line', function () 
     $hall = Facility::factory()->create(['property_id' => $property->id, 'name' => 'Riverside Hall']);
     $guest = Guest::factory()->create(['property_id' => $property->id]);
     $line = ['facility_id' => $hall->id, 'booking_date' => '2026-10-20', 'starts_at' => '18:00', 'ends_at' => '23:00', 'quantity' => 1, 'unit_amount' => '1200.00'];
-    $payload = ['name' => 'Wedding', 'payer_type' => 'guest', 'payer_guest_id' => $guest->id, 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20', 'status' => 'confirmed'];
+    $payload = ['name' => 'Wedding', 'payer_type' => 'guest', 'guest' => ['guest_id' => $guest->id], 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20', 'status' => 'confirmed'];
 
     $this->actingAs($owner)->post(route('events.store', $property->code), [...$payload, 'bookings' => [$line, [...$line, 'starts_at' => '22:00']]])
         ->assertSessionHasErrors(['bookings.1.starts_at' => 'Riverside Hall is already booked at that time.']);
@@ -99,7 +99,7 @@ test('staff without facilities.book get no lines and cannot send them', function
         ->assertInertia(fn (Assert $page) => $page->where('canBook', false)->where('facilities', []));
 
     $this->actingAs($clerk)->post(route('events.store', $property->code), [
-        'name' => 'Wedding', 'payer_type' => 'guest', 'payer_guest_id' => $guest->id, 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20', 'status' => 'confirmed',
+        'name' => 'Wedding', 'payer_type' => 'guest', 'guest' => ['guest_id' => $guest->id], 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-20', 'status' => 'confirmed',
         'bookings' => [['facility_id' => $hall->id, 'booking_date' => '2026-10-20', 'starts_at' => '18:00', 'ends_at' => '23:00', 'quantity' => 1]],
     ])->assertSessionHasErrors('bookings');
 

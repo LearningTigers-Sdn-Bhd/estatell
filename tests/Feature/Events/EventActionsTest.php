@@ -3,6 +3,7 @@
 use App\Actions\CityLedger\SettleToCityLedger;
 use App\Actions\Events\CancelEvent;
 use App\Actions\Events\ConfirmEvent;
+use App\Actions\Events\CreateEvent;
 use App\Actions\Events\PostEventCharge;
 use App\Actions\Events\UpdateEvent;
 use App\Actions\Folio\CloseFolio;
@@ -75,7 +76,16 @@ test('an event is created with an Event number and one Open Event folio paid by 
 test('a walk-in event adds the new guest as its payer', function () {
     ['property' => $property, 'owner' => $owner] = eventSetup();
 
-    [$event, $folio] = makeEvent($property, $owner, ['payer_guest_id' => null, 'new_guest' => ['full_name' => 'Aminah Yusof']]);
+    $event = app(CreateEvent::class)->withBookings($property, $owner, [
+        'name' => 'Walk-in lunch',
+        'payer_guest_id' => null,
+        'payer_company_id' => null,
+        'guest' => ['guest_id' => null, 'profile' => ['full_name' => 'Aminah Yusof'], 'update_profile' => false, 'identity' => null],
+        'starts_on' => '2026-10-20',
+        'ends_on' => '2026-10-20',
+        'status' => EventStatus::Confirmed,
+    ], [])->event;
+    $folio = Folio::query()->where('event_id', $event->id)->sole();
 
     $guest = Guest::query()->findOrFail($event->payer_guest_id);
     expect($guest->full_name)->toBe('Aminah Yusof')

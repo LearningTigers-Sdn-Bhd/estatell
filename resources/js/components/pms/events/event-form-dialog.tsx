@@ -43,7 +43,6 @@ function EventForm({
         name: event.name,
         payerType: event.payerCompanyId != null ? 'company' : 'guest',
         payer: event.payerGuest ?? null,
-        newGuestName: '',
         company:
             event.payerCompanyId != null ? String(event.payerCompanyId) : '',
         startsOn: event.startsOn,
@@ -89,8 +88,6 @@ function EventForm({
                     form.setData((current) => ({ ...current, ...changes }))
                 }
                 errors={errors}
-                isNew={false}
-                canAddGuest={false}
                 canViewCompany={canViewCompany}
                 companies={companies}
             />

@@ -3,8 +3,10 @@
 namespace App\Actions\Events;
 
 use App\Actions\Facilities\BookFacility;
-use App\Actions\Guests\CreateGuest;
+use App\Actions\Reservations\AttachGuestResult;
+use App\Actions\Reservations\ResolveUnitGuest;
 use App\Data\Facilities\FacilityBookingInputData;
+use App\Data\Guests\IdentityDocumentInputData;
 use App\Enums\DocumentType;
 use App\Enums\EventStatus;
 use App\Enums\FolioStatus;
@@ -21,17 +23,19 @@ class CreateEvent
 {
     public function __construct(
         private NextDocumentNumber $nextDocumentNumber,
-        private CreateGuest $createGuest,
+        private ResolveUnitGuest $resolveGuest,
         private BookFacility $bookFacility,
     ) {}
 
     /**
      * Create the event, its folio and its facility bookings in one transaction, as the New event page saves them.
-     * The lines are booked in order with `BookFacility`, so a line is checked against the earlier ones. The first
-     * refused line rolls everything back, the event number included, and is returned with its index.
+     * A `guest` row (the payer, like the booker of the booking form) is resolved first with `ResolveUnitGuest`: the
+     * picked guest, with its profile updated when asked, or a new guest. The lines are booked in order with
+     * `BookFacility`, so a line is checked against the earlier ones. A refused guest or the first refused line rolls
+     * everything back, the event number included, and is returned.
      * See docs/33-facilities/03-events-and-event-folios.md#new-event-page.
      *
-     * @param  array{name: string, payer_guest_id: ?int, payer_company_id: ?int, new_guest?: array{full_name: string}|null, starts_on: string, ends_on: string, status: EventStatus, notes?: ?string}  $attributes
+     * @param  array{name: string, payer_guest_id: ?int, payer_company_id: ?int, guest?: array{guest_id: ?int, profile: array<string, mixed>, update_profile: bool, identity: ?IdentityDocumentInputData}|null, starts_on: string, ends_on: string, status: EventStatus, notes?: ?string}  $attributes
      * @param  list<FacilityBookingInputData>  $bookings
      */
     public function withBookings(Property $property, User $actor, array $attributes, array $bookings): CreateEventResult
@@ -39,6 +43,21 @@ class CreateEvent
         DB::beginTransaction();
 
         try {
+            $row = $attributes['guest'] ?? null;
+
+            if ($row !== null) {
+                $guest = ($this->resolveGuest)($actor, $property, $row['guest_id'], $row['profile'], $row['update_profile'], $row['identity']);
+
+                if ($guest instanceof AttachGuestResult) {
+                    DB::rollBack();
+
+                    return CreateEventResult::guestRefused((string) $guest->refusal);
+                }
+
+                $attributes['payer_guest_id'] = $guest->id;
+                $attributes['payer_company_id'] = null;
+            }
+
             $event = $this($property, $actor, $attributes);
 
             foreach ($bookings as $index => $booking) {
@@ -64,23 +83,19 @@ class CreateEvent
     /**
      * Create an event and its Open Event folio in one transaction. The event takes the next Event number and the
      * folio the next Folio number; the folio's payer is the event's payer. The caller checks that the payer belongs
-     * to the property and that the status is Tentative or Confirmed. A `new_guest` (a walk-in) is added with
-     * `CreateGuest` in the same transaction and becomes the payer. Logs `events.created`.
+     * to the property and that the status is Tentative or Confirmed. Logs `events.created`.
      * See docs/33-facilities/03-events-and-event-folios.md.
      *
-     * @param  array{name: string, payer_guest_id: ?int, payer_company_id: ?int, new_guest?: array{full_name: string}|null, starts_on: string, ends_on: string, status: EventStatus, notes?: ?string}  $attributes
+     * @param  array{name: string, payer_guest_id: ?int, payer_company_id: ?int, starts_on: string, ends_on: string, status: EventStatus, notes?: ?string}  $attributes
      */
     public function __invoke(Property $property, User $actor, array $attributes): Event
     {
         return DB::transaction(function () use ($property, $actor, $attributes): Event {
-            $newGuest = $attributes['new_guest'] ?? null;
-            $payerGuestId = $newGuest === null ? $attributes['payer_guest_id'] : ($this->createGuest)($actor, $property, $newGuest)->id;
-
             $event = new Event([
                 'number' => ($this->nextDocumentNumber)($property, DocumentType::Event)->reference,
                 'name' => $attributes['name'],
-                'payer_guest_id' => $payerGuestId,
-                'payer_company_id' => $newGuest === null ? $attributes['payer_company_id'] : null,
+                'payer_guest_id' => $attributes['payer_guest_id'],
+                'payer_company_id' => $attributes['payer_company_id'],
                 'starts_on' => $attributes['starts_on'],
                 'ends_on' => $attributes['ends_on'],
                 'status' => $attributes['status'],

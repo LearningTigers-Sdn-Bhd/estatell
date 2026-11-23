@@ -86,7 +86,9 @@ test('New event is a page that needs events.manage', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('events/create')
-            ->where('canAddGuest', true)
+            ->where('canManageGuests', true)
+            ->where('canAddIdentity', true)
+            ->where('defaultNationalityCode', 'MY')
             ->where('defaultDate', '2026-10-14')
             ->has('statuses', 2));
 
@@ -102,7 +104,7 @@ test('staff create an event for a guest and land on its folio', function () {
     $this->actingAs($owner)->post(route('events.store', $property->code), [
         'name' => 'WWF field team lunch',
         'payer_type' => 'guest',
-        'payer_guest_id' => $guest->id,
+        'guest' => ['guest_id' => $guest->id, 'update_profile' => false],
         'starts_on' => '2026-10-14',
         'ends_on' => '2026-10-14',
         'status' => 'confirmed',
@@ -113,6 +115,28 @@ test('staff create an event for a guest and land on its folio', function () {
         ->and(Folio::query()->where('event_id', $event->id)->count())->toBe(1);
 });
 
+test('a new guest on the guest row is added with their contact details and pays the event', function () {
+    ['property' => $property, 'owner' => $owner] = eventSetup();
+
+    $this->actingAs($owner)->post(route('events.store', $property->code), [
+        'name' => 'Walk-in lunch',
+        'payer_type' => 'guest',
+        'guest' => ['guest_id' => '', 'full_name' => 'Aminah Yusof', 'phone' => '012-345 6789', 'email' => 'aminah@example.com', 'nationality_code' => 'MY'],
+        'starts_on' => '2026-10-14',
+        'ends_on' => '2026-10-14',
+        'status' => 'confirmed',
+    ])->assertSessionHasNoErrors();
+
+    $event = Event::query()->sole();
+    $guest = Guest::query()->findOrFail($event->payer_guest_id);
+
+    expect($guest->full_name)->toBe('Aminah Yusof')
+        ->and($guest->phone)->toBe('+60123456789')
+        ->and($guest->email)->toBe('aminah@example.com')
+        ->and($guest->property_id)->toBe($property->id)
+        ->and(Folio::query()->where('event_id', $event->id)->sole()->payer_guest_id)->toBe($guest->id);
+});
+
 test('the New event form checks the payer and the dates', function () {
     ['property' => $property, 'owner' => $owner] = eventSetup();
     $otherGuest = Guest::factory()->create(['property_id' => Property::factory()->create()->id]);
@@ -121,11 +145,29 @@ test('the New event form checks the payer and the dates', function () {
     $this->actingAs($owner)->post(route('events.store', $property->code), [
         'name' => 'Lunch',
         'payer_type' => 'guest',
-        'payer_guest_id' => $otherGuest->id,
+        'guest' => ['guest_id' => $otherGuest->id],
         'starts_on' => '2026-10-15',
         'ends_on' => '2026-10-14',
         'status' => 'completed',
-    ])->assertSessionHasErrors(['payer_guest_id', 'ends_on', 'status']);
+    ])->assertSessionHasErrors(['guest.guest_id', 'ends_on', 'status']);
+
+    $this->actingAs($owner)->post(route('events.store', $property->code), [
+        'name' => 'Lunch',
+        'payer_type' => 'guest',
+        'guest' => ['full_name' => ' '],
+        'starts_on' => '2026-10-14',
+        'ends_on' => '2026-10-14',
+        'status' => 'confirmed',
+    ])->assertSessionHasErrors(['guest.full_name' => 'Enter the guest\'s name or pick an existing guest.']);
+
+    $this->actingAs($clerk)->post(route('events.store', $property->code), [
+        'name' => 'Lunch',
+        'payer_type' => 'guest',
+        'guest' => ['full_name' => 'Aminah Yusof'],
+        'starts_on' => '2026-10-14',
+        'ends_on' => '2026-10-14',
+        'status' => 'confirmed',
+    ])->assertSessionHasErrors(['guest.full_name' => 'Pick an existing guest.']);
 
     $this->actingAs($clerk)->post(route('events.store', $property->code), [
         'name' => 'Lunch',
