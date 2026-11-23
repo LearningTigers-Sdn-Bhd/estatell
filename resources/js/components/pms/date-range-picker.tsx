@@ -160,7 +160,8 @@ export function DateRangePicker({
             return;
         }
 
-        if (picking && fromDate && triggerDate > fromDate) {
+        // A second click on the first date confirms a one-day range.
+        if (picking && fromDate && triggerDate >= fromDate) {
             onChange(from, toValue(triggerDate));
             changeOpen(false);
 
