@@ -11,10 +11,11 @@ A bill for people who are not staying: a wedding dinner, a meeting, a walk-in lu
 ```
 events   id, property_id, number, name,
          payer_guest_id null → guests, payer_company_id null → companies,
-         event_date date, status (EventStatus), notes text null,
+         starts_on date, ends_on date, status (EventStatus), notes text null,
          cancelled_at null, cancelled_by null, timestamps
          UNIQUE (property_id, number)
          CHECK exactly one of payer_guest_id, payer_company_id
+         CHECK ends_on >= starts_on
 
 folios   reservation_id becomes nullable, adds event_id null → events (restrict)
          CHECK exactly one of reservation_id, event_id
@@ -22,6 +23,7 @@ folios   reservation_id becomes nullable, adds event_id null → events (restric
 ```
 
 - `number` is `EVT-{n}` from `document_sequences`, like other document numbers.
+- An event runs from `starts_on` to `ends_on`: one day (a lunch) or several (a two-day conference, a wedding with a rehearsal the day before). Each facility booking keeps its own date inside that range.
 - An event has exactly one folio, made with the event (`CreateFolio::forEvent`). A partial unique index allows one active (not Voided) folio per event.
 - The event folio is a normal folio: the same lines, ledger rules, payments, discounts, Close and invoice. `FolioType` adds **Event**.
 - The event folio has no units, no routing rules and no night lines. Every charge on it is posted by staff or by a [facility booking](04-facility-bookings.md#posting).
@@ -47,13 +49,13 @@ Front desk sidebar, after Reservations: **Events** (icon `calendar-heart`). Need
 Events                                                            [+ New event]
 [ e.g. Lim wedding ]   Status [ All ▾ ]   Date [ This month ▾ ]
 ────────────────────────────────────────────────────────────────────────────────
-No.        Event                      Payer               Date     Status     Balance (MYR)
-EVT-0012   Lim & Tan wedding dinner   Mr Lim Wei Jie      12 Dec   Confirmed       4,200.00
-EVT-0011   WWF field team lunch       WWF-Malaysia        20 Nov   Completed           0.00
-EVT-0010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec   Tentative           0.00
+No.        Event                      Payer               Dates       Status     Balance (MYR)
+EVT-0012   Lim & Tan wedding dinner   Mr Lim Wei Jie      11–12 Dec   Confirmed       4,200.00
+EVT-0011   WWF field team lunch       WWF-Malaysia        20 Nov      Completed           0.00
+EVT-0010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec      Tentative           0.00
 ```
 
-- Search by number, name or payer. Filters for status and date range. Paginated on the server.
+- Search by number, name or payer. Filters for status and date range. The date filter keeps events whose dates overlap the range. Paginated on the server.
 - Balance is the event folio's balance from `FolioBalance`.
 
 ## New event (Dialog)
@@ -62,10 +64,10 @@ EVT-0010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec   Tentative    
 | ---------- | ----------------------------------------------------------- | --------------------------------- |
 | Event name | Text                                                        | e.g. Lim & Tan wedding dinner     |
 | Payer      | Guest or Company toggle, then the guest or company combobox | Choose a guest / Choose a company |
-| Event date | Date picker, default the business date                      | e.g. 12/12/2026                   |
+| Dates      | Date range picker, default the business date for both ends  | e.g. 11/12/2026 → 12/12/2026      |
 | Status     | Tentative or Confirmed, default Confirmed                   | –                                 |
 
-A walk-in uses the same Dialog: the guest's name, today, Confirmed. "+ New guest" in the guest combobox works as on the booking form.
+A one-day event has the same date at both ends. A walk-in uses the same Dialog: the guest's name, today, Confirmed. "+ New guest" in the guest combobox works as on the booking form.
 
 ## Event page (Detail)
 
@@ -74,14 +76,14 @@ Two link tabs with their own routes: **Folio** and **Bookings**.
 ```
 Events › Lim & Tan wedding dinner › Folio ▾
 Lim & Tan wedding dinner  [Confirmed]                          [⋯ More ▾]
-EVT-0012 · Fri 12 Dec 2026 · Mr Lim Wei Jie
+EVT-0012 · 11–12 Dec 2026 · Mr Lim Wei Jie
 [▤ Folio] [▦ Bookings]
 ┌──────────────────────────────────────────────────────────┬────────────────┐
 │ Event folio · Open                        [Close folio]  │ SUMMARY        │
 │ Folio BSAA-26300050                                      │ Mr Lim Wei Jie │
 │ Charges 9,776.00   Paid 5,000.00   Balance 4,776.00      │ 012-345 6789   │
-│ [⋯ More ▾]     [Apply discount] [Record payment] [Post…] │ Event date     │
-│ Date     Description                  Amount (MYR)       │ 12 Dec 2026    │
+│ [⋯ More ▾]     [Apply discount] [Record payment] [Post…] │ Dates          │
+│ Date     Description                  Amount (MYR)       │ 11–12 Dec 2026 │
 │ POSTED                                                   │ Bookings       │
 │ 01 Nov   Deposit · Bank transfer         -2,000.00       │ 2 facilities   │
 │ 20 Nov   Deposit · Bank transfer         -3,000.00       │                │
@@ -97,7 +99,7 @@ EVT-0012 · Fri 12 Dec 2026 · Mr Lim Wei Jie
 
 ## Deposits
 
-Deposits are normal payments on the event folio before the event date. They show in **Deposit liability** until the event date (see [Reports](05-timeline-and-report.md#report-changes)).
+Deposits are normal payments on the event folio before the event starts. They show in **Deposit liability** until `starts_on` (see [Reports](05-timeline-and-report.md#report-changes)).
 
 ## City ledger
 
@@ -115,13 +117,13 @@ The invoice strip shows the event number where it shows the reservation referenc
 
 ## Actions
 
-| Action          | Does                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------- |
-| `CreateEvent`   | Takes the number, creates the event and its folio in one transaction. Logs `events.created`             |
-| `UpdateEvent`   | Name, payer, date, notes. A new date moves its facility bookings to the same date after the clash check |
-| `ConfirmEvent`  | Tentative → Confirmed. Runs the clash check on its bookings; refuses `facility_clash` and names them    |
-| `CancelEvent`   | → Cancelled. Cancels its facility bookings (reversing posted ones). Logs `events.cancelled`             |
-| `CompleteEvent` | Called by `CloseFolio` when the closed folio is an event folio                                          |
+| Action          | Does                                                                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CreateEvent`   | Takes the number, creates the event and its folio in one transaction. Logs `events.created`                                                                              |
+| `UpdateEvent`   | Name, payer, dates, notes. Refuses `booking_outside_event` when a booking that is not Cancelled falls outside the new dates, and names it. Staff move or cancel it first |
+| `ConfirmEvent`  | Tentative → Confirmed. Runs the clash check on its bookings; refuses `facility_clash` and names them                                                                     |
+| `CancelEvent`   | → Cancelled. Cancels its facility bookings (reversing posted ones). Logs `events.cancelled`                                                                              |
+| `CompleteEvent` | Called by `CloseFolio` when the closed folio is an event folio                                                                                                           |
 
 ## Routes
 

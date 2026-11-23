@@ -51,7 +51,7 @@ A click on a facility cell opens a Popover, like the stay peek.
 ```
 
 - Each line links to its event or reservation (the Facilities tab).
-- **+ Book facility** opens the [Book facility](04-facility-bookings.md#book-facility-dialog) Dialog with the facility and date filled in. From the Timeline, staff pick the owner first: **Event** (an existing event, or a new one) or **Reservation** (search by guest, reference or room).
+- **+ Book facility** opens the [Book facility](04-facility-bookings.md#book-facility-sheet) Sheet with the facility and date filled in. From the Timeline, staff pick the owner first: **Event** (an existing event, or a new one) or **Reservation** (search by guest, reference or room).
 - The peek loads that day's bookings as an optional prop. The cell data does not carry the lines.
 
 ## Facility bookings report
@@ -65,7 +65,7 @@ Time          Facility     Guest / event          Room / no.   Qty   Status
 20:00–22:00   Night Walk   Tan Mei Ling           Room 12       2    Confirmed
 20:00–22:00   Night Walk   Mr Ahmad Faizal        Room 07       3    Confirmed
 20:00–22:00   Night Walk   Borneo Trails group    BKG-0441     15    Confirmed
-                                                   Total        20 / 20
+                                                   Session      20 / 20
 ```
 
 | Key        | Label         | Default visible |
@@ -82,10 +82,10 @@ Time          Facility     Guest / event          Room / no.   Qty   Status
 | `notes`    | Notes         |                 |
 
 - Filters: date range, facility (multi-select), status. Cancelled are left out unless picked.
-- A total row per facility and time sums the quantity against capacity.
+- A total row per facility and session sums the quantity against capacity. A facility with no sessions totals per start and end time.
 - `ReportKey::FacilityBookings`, feature-gated by `Facilities`.
 
 ## Report changes
 
-- **Deposit liability:** counts payments on Open event folios whose event date is after the business date, as it does for reservations not yet arrived.
+- **Deposit liability:** counts payments on Open event folios whose event starts (`starts_on`) after the business date, as it does for reservations not yet arrived.
 - **Payments, Folio ledger, Tax:** event folio lines show the event number where they show a reservation number today.

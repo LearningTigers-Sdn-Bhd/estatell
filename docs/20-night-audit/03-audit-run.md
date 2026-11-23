@@ -17,6 +17,8 @@ night_audit_exceptions   id, property_id, night_audit_id, step (AuditStep), rese
                          type (AuditExceptionType), message, resolved_at, resolved_by, timestamps
 ```
 
+**Planned with [Facilities](../33-facilities/04-facility-bookings.md#posting):** `night_audit_exceptions` adds `facility_booking_id` (nullable → `facility_bookings`). A `Facility` exception has it set and `reservation_unit_id` null.
+
 A business date has at most one audit. A Failed audit is resumed on the same row, never replaced.
 
 ## Enums
@@ -27,11 +29,11 @@ A business date has at most one audit. A Failed audit is resumed on the same row
 | `AuditStatus`        | Running, Completed, Failed                                                                        |
 | `AuditStepStatus`    | Running, Completed, Failed                                                                        |
 | `AuditStep`          | The steps below, in run order. `runner()` gives the class of a step, and `runnable()` lists them. |
-| `AuditExceptionType` | MissedArrival, OverdueDeparture, RoomCharge, AddOn, UnexpectedError                               |
+| `AuditExceptionType` | MissedArrival, OverdueDeparture, RoomCharge, AddOn, UnexpectedError. Planned: Facility            |
 
 A `RoomCharge` exception can be retried from the readiness panel ([Retry a room charge](02-readiness-panel.md#retry-a-room-charge)), which sets `resolved_at` and `resolved_by` once the night is posted. The exception `message` is the refusal code of the Action that refused the unit (for example `folio_not_open`), the code of the audit's own refusal (below), or the error text for `UnexpectedError`. The readiness panel turns a code into a sentence.
 
-A **stale** exception is a missed arrival whose unit is no longer Confirmed, or an overdue departure whose unit is no longer CheckedIn (it was checked in, checked out, cancelled or marked no-show since). The readiness panel does not list it, and the start of the next run resolves it (`resolved_at` set, `resolved_by` null) so the history counts agree.
+A **stale** exception is a missed arrival whose unit is no longer Confirmed, or an overdue departure whose unit is no longer CheckedIn (it was checked in, checked out, cancelled or marked no-show since). A planned `Facility` exception is stale when its booking is Cancelled. The readiness panel does not list it, and the start of the next run resolves it (`resolved_at` set, `resolved_by` null) so the history counts agree.
 
 ## Principles
 
@@ -66,6 +68,7 @@ Each step is an `AuditStepRunner` class in `app/Actions/NightAudit/Steps/` that 
 3. `ResolveOverdueDepartures`: applies `overdue_departure_policy` to every CheckedIn unit that departs on or before the business date. With Extend one night, a unit that departs on the business date goes through `ExtendStay` to the next day, so the night of the business date posts in step 4. A unit that departed earlier is never extended: the nights between could not post on a closed date, so it becomes an exception (`departure_date_passed`). With Block, no unit is extended and each becomes an exception (`overdue_departure_blocked`). A refusal of `ExtendStay` (no free room, a restriction, no rate) becomes an `OverdueDeparture` exception. A [day use](../12-reservations/10-day-use.md#night-audit) is never extended under either policy: it becomes an exception (`day_use_not_extended`).
 4. `PostRoomChargesStep`: one `PostRoomChargesJob` per CheckedIn unit that has a night on the business date, in a `Bus::batch` (see [Posting charges](../13-folio/02-posting-charges.md#room-charge-pipeline-per-unit-night)). The job calls `PostRoomCharges` with a null actor and turns a refusal into a `RoomCharge` exception. The batch runs on the `sync` connection, so the step ends when the batch ends and step 5 never starts early. The batch row in `job_batches` gives progress and the job count. Moving the jobs to a queue connection later needs a continue callback that resumes the audit, which the resumable design allows.
 5. `PostScheduledAddOnsStep`: calls `PostScheduledAddOns` for the business date. Each refused add-on becomes an `AddOn` exception on its unit.
+    - **Planned:** `PostFacilityChargesStep` (`AuditStep::PostFacilityCharges`) runs here, after add-ons, when the `Facilities` feature is on. It calls `PostFacilityCharges` for the business date. A Tentative booking (`facility_booking_tentative`) or a refused one becomes a `Facility` exception linked to the booking. With the feature off, the step does nothing. See [Posting](../33-facilities/04-facility-bookings.md#posting).
 6. `UpdateRoomStatuses`: the room of every CheckedIn unit that sleeps on the night of the business date becomes Dirty (a bed gives its room). A room that departed is already Dirty from check-out, so the step does not touch it. A room that is already Dirty is left alone.
 7. `SnapshotStatisticsStep`: calls `SnapshotStatistics`, which writes `daily_statistics` and `daily_revenue` for the business date (see [Statistics](05-statistics.md)). A throw fails the audit, and the next run resumes here.
 8. `CloseAndOpenNext`: in one transaction, the date becomes Closed (with `closed_by` set to `run_by`), the next calendar day opens as the new Open date, and the audit becomes Completed. It throws if the date is not Auditing. `RunNightAudit` then logs `night-audit.completed` and queues `NotifyNightAuditResultJob` (see [Statistics](05-statistics.md#morning-handoff)). It does the same after it logs `night-audit.failed`. The report packet PDF comes with reports.
