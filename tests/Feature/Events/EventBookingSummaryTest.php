@@ -80,6 +80,7 @@ test('the summary lists the facilities and charges posted and scheduled bookings
             '15 Oct · Jungle dinner · 19:00–21:00 · 80 people',
         ])
         ->and(collect($summary->strip)->pluck('value', 'label')->all())->toMatchArray(['Event' => 'Lim–Tan wedding', 'Dates' => '14–15 Oct 2026'])
+        ->and(collect($summary->lines->groups)->pluck('heading')->all())->toBe([null])
         ->and($rows)->toHaveCount(2)
         ->and($rows->pluck('amount')->all())->toBe(['5000.00', '4000.00'])
         ->and($summary->lines->total)->toBe('9000.00')
@@ -114,6 +115,18 @@ test('a company payer can print without prices, and a guest payer always gets pr
         ->and($withoutPrices->rooms)->toHaveCount(1)
         ->and($withoutPrices->strip[0]['value'])->toBe('Acme Sdn Bhd')
         ->and(eventSummary($guest, false)->showPrices)->toBeTrue();
+});
+
+test('a priced booking for a company payer with no reservation shows its charge', function () {
+    $setup = eventSummarySetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    $setup['event']->forceFill(['payer_guest_id' => null, 'payer_company_id' => $company->id])->save();
+    $setup['folio']->forceFill(['payer_guest_id' => null, 'payer_company_id' => $company->id])->save();
+    eventSummaryBooking($setup, $setup['hall'], ['unit_amount' => '5000.00']);
+
+    $summary = eventSummary($setup);
+
+    expect($summary->lines->total)->toBe('5000.00');
 });
 
 test('the PDF streams inline under the event number with events.view, and another property is not found', function () {
