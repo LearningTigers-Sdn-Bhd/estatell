@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Events;
 
+use App\Data\Facilities\FacilityBookingInputData;
 use App\Enums\CompanyStatus;
 use App\Enums\EventStatus;
 use App\Enums\PermissionEnum;
@@ -13,7 +14,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * New event and Edit event. The `can:events.manage` route middleware authorizes it. The payer is a guest of the
- * property, a new guest (New event only, with `guests.manage`) or an Active company (with `company.view`).
+ * property, a new guest (New event only, with `guests.manage`) or an Active company (with `company.view`). New event
+ * may send facility lines (`bookings`, with `facilities.book`); `CreateEvent::withBookings()` runs their state checks.
  * See docs/33-facilities/03-events-and-event-folios.md.
  */
 class EventRequest extends FormRequest
@@ -56,6 +58,13 @@ class EventRequest extends FormRequest
             'ends_on' => ['required', 'date_format:Y-m-d', 'after_or_equal:starts_on'],
             'status' => [Rule::excludeIf(! $isNew), 'required', Rule::in([EventStatus::Tentative->value, EventStatus::Confirmed->value])],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'bookings' => [Rule::excludeIf(! $isNew), Rule::prohibitedIf(! $this->user()->can(PermissionEnum::FacilitiesBook->value)), 'array', 'max:30'],
+            'bookings.*.facility_id' => [Rule::excludeIf(! $isNew), 'required', 'integer', Rule::exists('facilities', 'id')->where('property_id', $propertyId)],
+            'bookings.*.booking_date' => [Rule::excludeIf(! $isNew), 'required', 'date_format:Y-m-d', 'after_or_equal:starts_on', 'before_or_equal:ends_on'],
+            'bookings.*.starts_at' => [Rule::excludeIf(! $isNew), 'required', 'date_format:H:i'],
+            'bookings.*.ends_at' => [Rule::excludeIf(! $isNew), 'required', 'date_format:H:i', 'after:bookings.*.starts_at'],
+            'bookings.*.quantity' => [Rule::excludeIf(! $isNew), 'required', 'integer', 'min:1', 'max:9999'],
+            'bookings.*.unit_amount' => [Rule::excludeIf(! $isNew), 'nullable', 'decimal:0,2', 'min:0', 'max:9999999999'],
         ];
     }
 
@@ -69,6 +78,12 @@ class EventRequest extends FormRequest
             'payer_company_id.required' => __('Choose a company.'),
             'new_guest_name.required' => __('Enter the guest\'s name.'),
             'ends_on.after_or_equal' => __('The last day cannot be before the first day.'),
+            'bookings.*.facility_id.required' => __('Choose a facility.'),
+            'bookings.*.booking_date.after_or_equal' => __('The date must be within the event\'s dates.'),
+            'bookings.*.booking_date.before_or_equal' => __('The date must be within the event\'s dates.'),
+            'bookings.*.starts_at.required' => __('Enter the start time, or choose a session.'),
+            'bookings.*.ends_at.required' => __('Enter the end time.'),
+            'bookings.*.ends_at.after' => __('The end time must be after the start time. A booking cannot cross midnight.'),
         ];
     }
 
@@ -91,5 +106,23 @@ class EventRequest extends FormRequest
             'status' => EventStatus::tryFrom($this->string('status')->toString()) ?? EventStatus::Confirmed,
             'notes' => $this->filled('notes') ? trim($this->string('notes')->toString()) : null,
         ];
+    }
+
+    /**
+     * The facility lines of New event, in page order.
+     *
+     * @return list<FacilityBookingInputData>
+     */
+    public function bookingInputs(): array
+    {
+        return array_values(array_map(fn (array $line): FacilityBookingInputData => new FacilityBookingInputData(
+            facilityId: (int) $line['facility_id'],
+            bookingDate: (string) $line['booking_date'],
+            startsAt: (string) $line['starts_at'],
+            endsAt: (string) $line['ends_at'],
+            quantity: (int) $line['quantity'],
+            unitAmount: filled($line['unit_amount'] ?? null) ? (string) $line['unit_amount'] : null,
+            notes: null,
+        ), (array) $this->validated('bookings', [])));
     }
 }

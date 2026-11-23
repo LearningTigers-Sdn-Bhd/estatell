@@ -11,6 +11,7 @@ Route::prefix('events')->name('events.')->middleware('facilities')->scopeBinding
         Route::get('/', [EventController::class, 'index'])->name('index');
         Route::get('new', [EventController::class, 'create'])->middleware('can:'.PermissionEnum::EventsManage->value)->name('create');
         Route::post('/', [EventController::class, 'store'])->middleware('can:'.PermissionEnum::EventsManage->value)->name('store');
+        Route::post('quote', [EventController::class, 'quote'])->middleware(['can:'.PermissionEnum::EventsManage->value, 'can:'.PermissionEnum::FacilitiesBook->value])->name('quote');
 
         Route::prefix('{event}')->group(function () {
             Route::get('/', [EventController::class, 'show'])->name('show');

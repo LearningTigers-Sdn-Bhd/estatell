@@ -1614,6 +1614,12 @@ balance: string,
 };
 }
 namespace Facilities {
+export type EventLinesQuoteData = {
+lines: App.Data.Facilities.FacilityBookingQuoteData[],
+amount: string,
+tax: string,
+total: string,
+};
 export type FacilityBookingInputData = {
 facilityId: number,
 bookingDate: string,

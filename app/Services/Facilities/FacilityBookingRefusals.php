@@ -22,6 +22,19 @@ class FacilityBookingRefusals
         return [$this->field((string) $result->refusal) => $this->message($result)];
     }
 
+    /**
+     * The error for one facility line of the New event page, keyed `bookings.{line}.{field}`. A refusal with no field
+     * goes on the line's facility.
+     *
+     * @return array<string, string>
+     */
+    public function lineErrors(int $line, FacilityBookingResult $result): array
+    {
+        $field = $this->field((string) $result->refusal);
+
+        return ["bookings.{$line}.".($field === self::FORM ? 'facility_id' : $field) => $this->message($result)];
+    }
+
     public function message(FacilityBookingResult $result): string
     {
         $name = $result->facilityName ?? __('The facility');

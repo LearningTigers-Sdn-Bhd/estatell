@@ -30,16 +30,19 @@ class FacilityBookingQuote
     ) {}
 
     /**
-     * `$data` may have empty times while staff have not picked them; then only the sessions are given.
+     * `$data` may have empty times while staff have not picked them; then only the sessions are given. `$event` may be
+     * unsaved (a New event page line), with `$pending` its earlier lines.
+     *
+     * @param  iterable<FacilityBooking>  $pending
      */
-    public function forEvent(Event $event, Facility $facility, FacilityBookingInputData $data, ?FacilityBooking $booking = null): FacilityBookingQuoteData
+    public function forEvent(Event $event, Facility $facility, FacilityBookingInputData $data, ?FacilityBooking $booking = null, iterable $pending = []): FacilityBookingQuoteData
     {
         $facility->loadMissing(['chargeItem.transactionCode', 'sessions' => fn ($query) => $query->ordered()]);
         $sessions = array_values($facility->sessions
             ->map(fn (FacilitySession $session): FacilitySessionPlacesData => new FacilitySessionPlacesData(
                 substr($session->starts_at, 0, 5),
                 substr($session->ends_at, 0, 5),
-                $this->availability->placesLeft($facility, $data->bookingDate, $session->starts_at, $session->ends_at, $booking?->id),
+                $this->availability->placesLeft($facility, $data->bookingDate, $session->starts_at, $session->ends_at, $booking?->id, $pending),
             ))
             ->all());
 
@@ -47,7 +50,7 @@ class FacilityBookingQuote
             return new FacilityBookingQuoteData(null, [], null, null, null, $sessions);
         }
 
-        $refusal = $this->checks->forEvent($event, $facility, $data, $booking?->id);
+        $refusal = $this->checks->forEvent($event, $facility, $data, $booking?->id, $pending);
         $holds = $this->availability->tentativeHolds($facility, $data->bookingDate, $data->startsAt, $data->endsAt, $booking?->id, $event->id);
         $warning = $holds->isEmpty() ? null : __(':facility is held :from–:to (:owner, Tentative).', [
             'facility' => $facility->name,

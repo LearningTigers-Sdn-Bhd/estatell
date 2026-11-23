@@ -2,7 +2,9 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\Facilities\BookFacility;
 use App\Actions\Guests\CreateGuest;
+use App\Data\Facilities\FacilityBookingInputData;
 use App\Enums\DocumentType;
 use App\Enums\EventStatus;
 use App\Enums\FolioStatus;
@@ -13,10 +15,51 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\NightAudit\NextDocumentNumber;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class CreateEvent
 {
-    public function __construct(private NextDocumentNumber $nextDocumentNumber, private CreateGuest $createGuest) {}
+    public function __construct(
+        private NextDocumentNumber $nextDocumentNumber,
+        private CreateGuest $createGuest,
+        private BookFacility $bookFacility,
+    ) {}
+
+    /**
+     * Create the event, its folio and its facility bookings in one transaction, as the New event page saves them.
+     * The lines are booked in order with `BookFacility`, so a line is checked against the earlier ones. The first
+     * refused line rolls everything back, the event number included, and is returned with its index.
+     * See docs/33-facilities/03-events-and-event-folios.md#new-event-page.
+     *
+     * @param  array{name: string, payer_guest_id: ?int, payer_company_id: ?int, new_guest?: array{full_name: string}|null, starts_on: string, ends_on: string, status: EventStatus, notes?: ?string}  $attributes
+     * @param  list<FacilityBookingInputData>  $bookings
+     */
+    public function withBookings(Property $property, User $actor, array $attributes, array $bookings): CreateEventResult
+    {
+        DB::beginTransaction();
+
+        try {
+            $event = $this($property, $actor, $attributes);
+
+            foreach ($bookings as $index => $booking) {
+                $result = $this->bookFacility->forEvent($actor, $event, $booking);
+
+                if ($result->isRefused()) {
+                    DB::rollBack();
+
+                    return CreateEventResult::refused($index, $result);
+                }
+            }
+
+            DB::commit();
+
+            return CreateEventResult::created($event);
+        } catch (Throwable $exception) {
+            DB::rollBack();
+
+            throw $exception;
+        }
+    }
 
     /**
      * Create an event and its Open Event folio in one transaction. The event takes the next Event number and the

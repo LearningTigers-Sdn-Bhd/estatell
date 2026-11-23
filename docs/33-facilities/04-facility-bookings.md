@@ -152,6 +152,8 @@ Kayak           11 Dec  09:00–11:00   2      Room 101 folio        80.00   ⋯
 
 ## Event Bookings tab
 
+Bookings can also be made with the event, as lines on the [New event page](03-events-and-event-folios.md#facility-lines).
+
 The same table on the event page, without the Charge to column (always the event folio). New bookings default to the event's first date and take its status. The date must be inside the event's dates. Cancelled bookings stay in the list, last and muted. Book facility and the row menu need `facilities.book` and a Tentative or Confirmed event. In the Sheet, Charge to is read only ("Event folio · {payer}").
 
 ## Actions

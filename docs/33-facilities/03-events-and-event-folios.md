@@ -64,9 +64,9 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
 
 ## New event page
 
-**New event** on the Events list opens a full page at `/p/{code}/events/new`, in the layout of the [booking form](../12-reservations/05-booking-form.md#container-and-layout): one scroll region with the title and fields, and Cancel and **Create event** in a footer that stays visible. Saving opens the event page.
+**New event** on the Events list opens a full page at `/p/{code}/events/new`, in the layout of the [booking form](../12-reservations/05-booking-form.md#container-and-layout): one scroll region with the title, the fields and a sticky summary rail (two columns from `xl`), and Cancel and **Create event** in a footer that stays visible. Saving opens the event page.
 
-**Decided 2026-11-23:** a page, not a Dialog. Six fields fit a Dialog under DESIGN.md §5, but the page gets [facility booking lines](04-facility-bookings.md) (repeating rows) in a later item, so it follows the full-page rule.
+**Decided 2026-11-23:** a page, not a Dialog. Six fields fit a Dialog under DESIGN.md §5, but the page has [facility booking lines](04-facility-bookings.md) (repeating rows), so it follows the full-page rule.
 
 ```
 ← New event
@@ -78,9 +78,17 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
   Guest       [ Choose a guest                  ▾ ]
   Dates       [ 11/12/2026 → 12/12/2026           ]
   Status      [ Confirmed                       ▾ ]
-  Notes       [ e.g. Vegetarian menu for 20 guests ]
-──────────────────────────────────────────────────────────
-                                 [Cancel] [Create event]
+  Notes       [ e.g. Vegetarian menu for 20 guests ]          SUMMARY       (sticky)
+                                                               Event   Lim & Tan wedding
+  FACILITY BOOKINGS                                            Dates   12 Dec 2026
+  Facility ▾       Date ▾   Time / Session    Qty  Price   🗑  Status  Confirmed
+  Riverside Hall   12 Dec   18:00 – 23:00       1  1,200.00    Facilities        2
+    1,200.00 + SST 96.00                                       ─────────────────
+  Night Walk       12 Dec   20:00–22:00 · 8 left 3     80.00    Facilities 1,440.00
+    ⚠ Night Walk is full at that time.                         Tax          115.20
+  [+ Add facility]                                             Total  RM 1,555.20
+──────────────────────────────────────────────────────────────────────────────────
+                                                         [Cancel] [Create event]
 ```
 
 | Field      | Control                                                      | Placeholder                        |
@@ -95,6 +103,15 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
 - **New guest** needs `guests.manage` and asks for the name only. `CreateEvent` adds the guest with `CreateGuest` in the same transaction. Staff add a phone or email on the guest page.
 - **Company** needs `company.view` and offers Active companies.
 - Back and Cancel go to the Events list. Leaving with unsaved changes asks to Save, Discard or Cancel.
+
+### Facility lines
+
+Shown with `facilities.book`. Each line is a [facility booking](04-facility-bookings.md) made with the event: Facility, Date (inside the event's dates, default its first day), Time or Session, Qty and Price (hidden for "Charge by hand"). There is no Charge to: every line goes to the event folio.
+
+- **Quote:** 300 ms after a change, `POST events/quote` (`events.quote`, `events.manage` and `facilities.book`) answers each line, in order, with its price and tax, its refusal, the Tentative hold warning and the places left in each session, and the totals for the rail. The browser calculates nothing. Each line is checked against the bookings already saved and against the earlier lines, counted as saved when the status is Confirmed, so two lines that clash are caught. **Create event** is disabled while a line is refused or not filled in.
+- **Save:** `CreateEvent::withBookings()` creates the event and its folio, then books each line with `BookFacility` in order, in one transaction. The first refused line rolls everything back (the event number included) and comes back as an error on that line (`bookings.{line}.{field}`).
+- Lines take the event's status. At most 30 lines.
+- **Summary rail:** event name, dates, status and the number of lines, then the facilities before tax, the added tax and the total. Lines charged by hand are not counted.
 
 ## Edit event (Dialog)
 
@@ -150,16 +167,16 @@ Code that read `folio->reservation` now handles an event folio:
 
 ## Actions
 
-| Action                      | Does                                                                                                                                                                                     |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateEvent`               | Takes the Event number, creates the event and its folio in one transaction, and adds a new guest payer when given. Logs `events.created`                                                 |
-| `UpdateEvent`               | Name, payer, dates, notes. Refuses a Completed or Cancelled event (`event_not_open`), and new dates that leave a live facility booking outside them (`booking_outside_event`)            |
-| `ConfirmEvent`              | Tentative → Confirmed, with its Tentative bookings. Each booking runs the clash check in turn (`facility_clash` or `facility_full`); a refusal confirms nothing. Logs `events.confirmed` |
-| `CancelEvent`               | → Cancelled, with its bookings (`CancelFacilityBookings`). Logs `events.cancelled`. Reversing posted bookings comes with posting                                                         |
-| `CompleteEvent`             | Called by `CloseFolio`: a Confirmed event becomes Completed                                                                                                                              |
-| `ReopenEvent`               | Called by `ReopenFolio`: a Completed event becomes Confirmed                                                                                                                             |
-| `PostEventCharge`           | Posts a charge and its tax on the event folio, with the same checks as `PostCharge` and no unit or routing. Logs `folio.charge_posted` on the event                                      |
-| `RecordPayment::forEvent()` | Records a payment on the event folio, with the checks in [Deposits](#deposits). Shares the write step with `RecordPayment`                                                               |
+| Action                      | Does                                                                                                                                                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateEvent`               | Takes the Event number, creates the event and its folio in one transaction, and adds a new guest payer when given. Logs `events.created`. `withBookings()` also books the New event lines, all or nothing |
+| `UpdateEvent`               | Name, payer, dates, notes. Refuses a Completed or Cancelled event (`event_not_open`), and new dates that leave a live facility booking outside them (`booking_outside_event`)                             |
+| `ConfirmEvent`              | Tentative → Confirmed, with its Tentative bookings. Each booking runs the clash check in turn (`facility_clash` or `facility_full`); a refusal confirms nothing. Logs `events.confirmed`                  |
+| `CancelEvent`               | → Cancelled, with its bookings (`CancelFacilityBookings`). Logs `events.cancelled`. Reversing posted bookings comes with posting                                                                          |
+| `CompleteEvent`             | Called by `CloseFolio`: a Confirmed event becomes Completed                                                                                                                                               |
+| `ReopenEvent`               | Called by `ReopenFolio`: a Completed event becomes Confirmed                                                                                                                                              |
+| `PostEventCharge`           | Posts a charge and its tax on the event folio, with the same checks as `PostCharge` and no unit or routing. Logs `folio.charge_posted` on the event                                                       |
+| `RecordPayment::forEvent()` | Records a payment on the event folio, with the checks in [Deposits](#deposits). Shares the write step with `RecordPayment`                                                                                |
 
 Refusals return `false` or a refused result; the controller shows an error toast and nothing is written or logged.
 
@@ -167,16 +184,17 @@ Refusals return `false` or a refused result; the controller shows an error toast
 
 Need the `Facilities` feature (`facilities` middleware). Routes in `routes/events.php`, with scoped bindings: a folio must belong to the event, and a line or payment to the folio.
 
-| Route                                   | Name              | Permission      |
-| --------------------------------------- | ----------------- | --------------- |
-| `GET /p/{code}/events`                  | `events.index`    | `events.view`   |
-| `GET /p/{code}/events/new`              | `events.create`   | `events.manage` |
-| `POST /p/{code}/events`                 | `events.store`    | `events.manage` |
-| `GET /p/{code}/events/{event}`          | `events.show`     | `events.view`   |
-| `GET /p/{code}/events/{event}/bookings` | `events.bookings` | `events.view`   |
-| `PUT /p/{code}/events/{event}`          | `events.update`   | `events.manage` |
-| `POST /p/{code}/events/{event}/confirm` | `events.confirm`  | `events.manage` |
-| `POST /p/{code}/events/{event}/cancel`  | `events.cancel`   | `events.manage` |
+| Route                                   | Name              | Permission                            |
+| --------------------------------------- | ----------------- | ------------------------------------- |
+| `GET /p/{code}/events`                  | `events.index`    | `events.view`                         |
+| `GET /p/{code}/events/new`              | `events.create`   | `events.manage`                       |
+| `POST /p/{code}/events`                 | `events.store`    | `events.manage`                       |
+| `POST /p/{code}/events/quote`           | `events.quote`    | `events.manage` and `facilities.book` |
+| `GET /p/{code}/events/{event}`          | `events.show`     | `events.view`                         |
+| `GET /p/{code}/events/{event}/bookings` | `events.bookings` | `events.view`                         |
+| `PUT /p/{code}/events/{event}`          | `events.update`   | `events.manage`                       |
+| `POST /p/{code}/events/{event}/confirm` | `events.confirm`  | `events.manage`                       |
+| `POST /p/{code}/events/{event}/cancel`  | `events.cancel`   | `events.manage`                       |
 
 The folio actions sit under `/p/{code}/events/{event}/folios/{folio}/…` (`events.folios.*`) and use the existing folio permissions on top of `events.view`:
 

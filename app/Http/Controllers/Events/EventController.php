@@ -19,6 +19,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Events\EventRequest;
+use App\Http\Requests\Events\QuoteEventLinesRequest;
 use App\Models\ArInvoice;
 use App\Models\Event;
 use App\Models\Facility;
@@ -28,6 +29,7 @@ use App\Models\User;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Events\EventDirectory;
+use App\Services\Facilities\EventLinesQuote;
 use App\Services\Facilities\FacilityBookingRefusals;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
@@ -35,6 +37,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Platform\Impersonation;
 use App\Services\Property\PropertyToday;
 use App\Services\Reservations\ReservationFormOptions;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -66,13 +69,14 @@ class EventController extends Controller
     }
 
     /**
-     * New event: a full page, so facility booking lines can join it. See
+     * New event: a full page with its facility lines. Staff without `facilities.book` get no lines. See
      * docs/33-facilities/03-events-and-event-folios.md#new-event-page.
      */
     public function create(Request $request, Property $property, CompanyOptions $companies): Response
     {
         $user = $request->user();
         $canViewCompany = $user->can(PermissionEnum::CompanyView->value);
+        $canBook = $user->can(PermissionEnum::FacilitiesBook->value);
 
         return Inertia::render('events/create', [
             'canAddGuest' => $user->can(PermissionEnum::GuestsManage->value),
@@ -80,16 +84,39 @@ class EventController extends Controller
             'companies' => $canViewCompany ? $companies->active($property) : [],
             'statuses' => EventStatus::newEventOptions(),
             'defaultDate' => (app(CurrentBusinessDate::class)->date($property) ?? app(PropertyToday::class)->date($property))->toDateString(),
+            'canBook' => $canBook,
+            'facilities' => $canBook ? $this->facilityOptions($property) : [],
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
-    public function store(EventRequest $request, Property $property, CreateEvent $createEvent): RedirectResponse
+    /**
+     * Create the event with its facility lines. A refused line goes back to the page as an error on that line.
+     */
+    public function store(EventRequest $request, Property $property, CreateEvent $createEvent, FacilityBookingRefusals $refusals): RedirectResponse
     {
-        $event = $createEvent($property, $request->user(), $request->eventAttributes());
+        $bookings = $request->bookingInputs();
+        $result = $createEvent->withBookings($property, $request->user(), $request->eventAttributes(), $bookings);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Event :number created.', ['number' => $event->number])]);
+        if ($result->isRefused()) {
+            return back()->withErrors($refusals->lineErrors((int) $result->line, $result->refusal));
+        }
+
+        $event = $result->event;
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $bookings === []
+            ? __('Event :number created.', ['number' => $event?->number])
+            : trans_choice('Event :number created with :count facility booking.|Event :number created with :count facility bookings.', count($bookings), ['number' => $event?->number])]);
 
         return to_route('events.show', ['property' => $property, 'event' => $event]);
+    }
+
+    /**
+     * The New event page's quote of its facility lines, with the totals for the summary rail.
+     */
+    public function quote(QuoteEventLinesRequest $request, Property $property, EventLinesQuote $quote): JsonResponse
+    {
+        return response()->json($quote->quote($request->draftEvent($property), $request->lines()));
     }
 
     /**
@@ -150,17 +177,7 @@ class EventController extends Controller
         return $this->renderTab($user, $property, $event, 'bookings', [
             'bookings' => $bookings->map(fn (FacilityBooking $booking): FacilityBookingRowData => FacilityBookingRowData::fromModel($booking, $canBook))->values()->all(),
             'canBook' => $canBook,
-            'facilities' => $canBook
-                ? Facility::query()
-                    ->where('property_id', $property->id)
-                    ->where('active', true)
-                    ->with(['chargeItem', 'sessions' => fn ($query) => $query->ordered()])
-                    ->ordered()
-                    ->get()
-                    ->map(fn (Facility $facility): FacilityOptionData => FacilityOptionData::fromModel($facility))
-                    ->values()
-                    ->all()
-                : [],
+            'facilities' => $canBook ? $this->facilityOptions($property) : [],
         ]);
     }
 
@@ -219,6 +236,23 @@ class EventController extends Controller
             'currency' => CurrencyData::forProperty($property),
             ...$tabProps,
         ]);
+    }
+
+    /**
+     * The active facilities, in their settings order, for the Book facility Sheet and the New event lines.
+     *
+     * @return list<FacilityOptionData>
+     */
+    private function facilityOptions(Property $property): array
+    {
+        return array_values(Facility::query()
+            ->where('property_id', $property->id)
+            ->where('active', true)
+            ->with(['chargeItem', 'sessions' => fn ($query) => $query->ordered()])
+            ->ordered()
+            ->get()
+            ->map(fn (Facility $facility): FacilityOptionData => FacilityOptionData::fromModel($facility))
+            ->all());
     }
 
     /**

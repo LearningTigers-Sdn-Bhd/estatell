@@ -12,7 +12,8 @@ use Illuminate\Support\Collection;
 /**
  * The clash check for one facility, one date and one time range. Only Confirmed bookings block: a Private facility
  * takes no overlapping booking, a Shared one takes bookings while their quantity at every moment stays within its
- * capacity. Times overlap when one starts before the other ends, so 09:00–18:00 and 18:00–23:00 do not.
+ * capacity. Times overlap when one starts before the other ends, so 09:00–18:00 and 18:00–23:00 do not. `$pending`
+ * are unsaved bookings counted as if saved: the earlier lines of the New event page.
  * See docs/33-facilities/04-facility-bookings.md#clash-check.
  */
 class FacilityAvailability
@@ -20,10 +21,12 @@ class FacilityAvailability
     /**
      * `facility_clash` or `facility_full` when the booking does not fit, otherwise null. `$ignoreBookingId` leaves out
      * the booking being changed or confirmed.
+     *
+     * @param  iterable<FacilityBooking>  $pending
      */
-    public function refusalFor(Facility $facility, string $date, string $startsAt, string $endsAt, int $quantity, ?int $ignoreBookingId = null): ?string
+    public function refusalFor(Facility $facility, string $date, string $startsAt, string $endsAt, int $quantity, ?int $ignoreBookingId = null, iterable $pending = []): ?string
     {
-        $confirmed = $this->overlapping($facility, $date, $startsAt, $endsAt, $ignoreBookingId)
+        $confirmed = $this->overlapping($facility, $date, $startsAt, $endsAt, $ignoreBookingId, $pending)
             ->where('status', FacilityBookingStatus::Confirmed);
 
         if ($facility->sharing === FacilitySharing::Private) {
@@ -38,10 +41,12 @@ class FacilityAvailability
     /**
      * What is left of a Shared facility over the whole range: its capacity less the most Confirmed bookings take at
      * any moment of it. Never below 0.
+     *
+     * @param  iterable<FacilityBooking>  $pending
      */
-    public function placesLeft(Facility $facility, string $date, string $startsAt, string $endsAt, ?int $ignoreBookingId = null): int
+    public function placesLeft(Facility $facility, string $date, string $startsAt, string $endsAt, ?int $ignoreBookingId = null, iterable $pending = []): int
     {
-        $confirmed = $this->overlapping($facility, $date, $startsAt, $endsAt, $ignoreBookingId)
+        $confirmed = $this->overlapping($facility, $date, $startsAt, $endsAt, $ignoreBookingId, $pending)
             ->where('status', FacilityBookingStatus::Confirmed);
 
         return max(0, $facility->capacity - $this->peak($confirmed, $startsAt, $endsAt));
@@ -61,12 +66,21 @@ class FacilityAvailability
     }
 
     /**
-     * Live bookings of the facility on the date whose time overlaps the range.
+     * Live bookings of the facility on the date whose time overlaps the range, saved and pending.
      *
+     * @param  iterable<FacilityBooking>  $pending
      * @return Collection<int, FacilityBooking>
      */
-    private function overlapping(Facility $facility, string $date, string $startsAt, string $endsAt, ?int $ignoreBookingId): Collection
+    private function overlapping(Facility $facility, string $date, string $startsAt, string $endsAt, ?int $ignoreBookingId, iterable $pending = []): Collection
     {
+        $from = self::time($startsAt);
+        $to = self::time($endsAt);
+        $unsaved = collect($pending)->filter(fn (FacilityBooking $booking): bool => $booking->facility_id === $facility->id
+            && $booking->booking_date->toDateString() === $date
+            && $booking->status !== FacilityBookingStatus::Cancelled
+            && self::time($booking->starts_at) < $to
+            && self::time($booking->ends_at) > $from);
+
         return FacilityBooking::query()
             ->where('property_id', $facility->property_id)
             ->where('facility_id', $facility->id)
@@ -77,7 +91,9 @@ class FacilityAvailability
             ->when($ignoreBookingId !== null, fn ($query) => $query->whereKeyNot($ignoreBookingId))
             ->with('event:id,name')
             ->ordered()
-            ->get();
+            ->get()
+            ->concat($unsaved)
+            ->values();
     }
 
     /**

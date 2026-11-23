@@ -7,6 +7,7 @@ use App\Data\Facilities\FacilityBookingInputData;
 use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\Facility;
+use App\Models\FacilityBooking;
 
 /**
  * The checks `BookFacility` and `UpdateFacilityBooking` share for an event's booking, run after the event and the
@@ -16,7 +17,13 @@ class FacilityBookingChecks
 {
     public function __construct(private FacilityAvailability $availability) {}
 
-    public function forEvent(Event $event, Facility $facility, FacilityBookingInputData $data, ?int $ignoreBookingId = null): ?string
+    /**
+     * `$event` may be unsaved: the New event page checks its lines before the event exists. `$pending` are the
+     * earlier lines of that page.
+     *
+     * @param  iterable<FacilityBooking>  $pending
+     */
+    public function forEvent(Event $event, Facility $facility, FacilityBookingInputData $data, ?int $ignoreBookingId = null, iterable $pending = []): ?string
     {
         if (! in_array($event->status, [EventStatus::Tentative, EventStatus::Confirmed], true)) {
             return FacilityBookingResult::REFUSAL_EVENT_NOT_OPEN;
@@ -31,6 +38,6 @@ class FacilityBookingChecks
             return FacilityBookingResult::REFUSAL_SESSION_NOT_FOUND;
         }
 
-        return $this->availability->refusalFor($facility, $data->bookingDate, $data->startsAt, $data->endsAt, $data->quantity, $ignoreBookingId);
+        return $this->availability->refusalFor($facility, $data->bookingDate, $data->startsAt, $data->endsAt, $data->quantity, $ignoreBookingId, $pending);
     }
 }
