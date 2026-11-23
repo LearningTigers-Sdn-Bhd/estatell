@@ -563,7 +563,7 @@ test('the exports use country names and a selected-row export holds only the sel
         ->and(json_encode($police))->not->toContain('B7654321')
         ->and($nonNational)->toHaveCount(3)
         ->and($nonNational[1])->toContain('Japan')
-        ->and(json_encode($nonNational))->not->toContain('SG')
+        ->and(json_encode($nonNational))->not->toContain('Singapore', 'A1234567')
         ->and(collect($pdf)->pluck('nationality')->sort()->values()->all())->toBe(['Japan', 'Singapore']);
 
     $entries = Activity::query()->where('event', 'report.exported_identity_numbers')->orderBy('id')->get();
