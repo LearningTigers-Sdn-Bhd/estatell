@@ -17,6 +17,7 @@ A manager of more than one property of a group (Tanini: Sepilok and Kinabatangan
 ## Navigation
 
 - **Property menu** (navbar): an **All properties** section lists the groups the user may open (`groupSwitcher`), above the properties. In group mode the identity shows the group name and "All properties", and the menu lists the group's properties to open one.
+- **Back to the group in one click**: inside a property, the sidebar starts with an **All properties** section linking to each group dashboard the user may open (`app-sidebar.tsx`, from `groupSwitcher`). The property menu offers it too.
 - **Group sidebar**: one Group context (`NavigationContext::Group`, built by `GroupNavigation`), labelled with the group's name. No folio, night audit or settings: those always belong to one property.
 - Group pages have no current property: no business date in the footer, no permission team. Every link into a property names it (`/p/{code}/...`).
 - Routes: `routes/group.php` under `/g/{propertyGroup}` (`group.*`), behind `EnsureGroupAccess`, which puts the properties on the request (`groupProperties`) for the page and the switcher.
