@@ -3,6 +3,7 @@
 namespace App\Actions\Concierge;
 
 use App\Actions\Kiosk\IssueBookingPreCheckInToken;
+use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Services\Concierge\ConciergeLookupLockout;
 use App\Services\Concierge\ConciergeStays;
@@ -18,7 +19,7 @@ class OpenConciergeStay
     /**
      * Open a stay from the lobby page by booking code alone. The booking code is the reservation's `short_code`, the one the guest is given, not the staff `reference`. The lockout is the main guard against guessing. Every lookup takes an attempt from the lockout, and a
      * stay that is found gives it back. The link it returns is the stay's own pre-check-in link, so every later page
-     * works from one signed token and no session. Refusals are `rate_limited` and `not_found`; nothing is written for either.
+     * works from one signed token and no session. Refusals are `rate_limited`, `not_found` (wrong code or another property), and, for a booking that exists here, `multiple_rooms`, `checked_out` and `closed`; nothing is written for any.
      */
     public function __invoke(Property $property, string $reference, string $address): ConciergeLookupResult
     {
@@ -29,7 +30,7 @@ class OpenConciergeStay
         $stay = $this->stays->byShortCode($property, $reference);
 
         if ($stay === null) {
-            return ConciergeLookupResult::refused('not_found');
+            return ConciergeLookupResult::refused($this->stays->lookupFailure($property, $reference));
         }
 
         if (! $this->lockout->found($property, $address)) {
@@ -38,6 +39,6 @@ class OpenConciergeStay
 
         $this->lockout->refund($property, $address, $reference);
 
-        return ConciergeLookupResult::found(basename(($this->issueToken)($stay)));
+        return ConciergeLookupResult::found(basename(($this->issueToken)($stay)), $stay->status === UnitStatus::CheckedIn);
     }
 }

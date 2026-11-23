@@ -17,6 +17,6 @@ class FindStayRequest extends FormRequest
      */
     public function rules(): array
     {
-        return ['reference' => ['required', 'string', 'max:40']];
+        return ['reference' => ['required', 'string', 'max:40'], 'for' => ['nullable', 'in:check-out']];
     }
 }

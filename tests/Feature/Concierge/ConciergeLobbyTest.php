@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\UnitStatus;
 use App\Features\Concierge;
 use App\Models\BookingPreCheckInToken;
 use App\Models\Property;
@@ -133,4 +134,45 @@ it('does not open a stay from the staff reference, only from the booking code', 
     ['property' => $property, 'unit' => $unit] = conciergeSetup();
 
     conciergeFind($property->code, $unit->reservation->reference)->assertSessionHasErrors('reference');
+});
+
+it('says why a booking code opens nothing when the booking exists at this property', function (array $unit, string $message) {
+    ['property' => $property] = conciergeSetup($unit);
+
+    $response = conciergeFind($property->code, 'R100')->assertSessionHasErrors('reference');
+
+    expect($response->getSession()->get('errors')->first('reference'))->toContain($message);
+})->with([
+    'checked out' => [['status' => UnitStatus::CheckedOut, 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14', 'checked_in_at' => '2026-10-12 15:00:00', 'checked_out_at' => '2026-10-14 10:00:00'], 'already checked out'],
+    'cancelled' => [['status' => UnitStatus::Cancelled], 'no longer active'],
+]);
+
+it('says the booking has more than one room', function () {
+    ['property' => $property, 'unit' => $unit] = conciergeSetup();
+    ReservationUnit::factory()->create(['reservation_id' => $unit->reservation_id, 'room_type_id' => $unit->room_type_id, 'arrival_date' => '2026-10-14', 'departure_date' => '2026-10-16']);
+
+    $response = conciergeFind($property->code, 'R100')->assertSessionHasErrors('reference');
+
+    expect($response->getSession()->get('errors')->first('reference'))->toContain('more than one room');
+});
+
+it('sends a checked-in guest from the Check out tile to the bill', function () {
+    ['property' => $property] = conciergeSetup(['status' => UnitStatus::CheckedIn, 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14', 'checked_in_at' => now()->subDays(2)]);
+
+    $response = $this->post("/stay/{$property->code}", ['reference' => 'R100', 'for' => 'check-out'])->assertRedirect();
+
+    expect($response->headers->get('Location'))->toEndWith('/bill');
+});
+
+it('keeps a guest who has not checked in on the Check out page, with a way to check in', function () {
+    ['property' => $property] = conciergeSetup();
+
+    $this->post("/stay/{$property->code}", ['reference' => 'R100', 'for' => 'check-out'])
+        ->assertRedirect("/stay/{$property->code}/find?for=check-out")
+        ->assertSessionHas('checkInHref', fn (string $href) => str_starts_with($href, '/c/'));
+
+    $this->get("/stay/{$property->code}/find?for=check-out")->assertInertia(fn (Assert $page) => $page
+        ->component('concierge/find')
+        ->where('checkOut', true)
+        ->where('checkInHref', fn (string $href) => str_starts_with($href, '/c/')));
 });
