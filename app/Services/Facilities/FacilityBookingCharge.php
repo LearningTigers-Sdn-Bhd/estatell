@@ -37,9 +37,9 @@ class FacilityBookingCharge
         $code = $facility->chargeItem->transactionCode;
         $quantity = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by);
         $unitAmount = Money::of($booking->unit_amount, $property->settings->currency->getCurrencyCode());
-        $nationality = $booking->folio->payerGuest->nationality_code
-            ?? $booking->event->payerGuest->nationality_code
-            ?? $booking->reservation->booker->nationality_code;
+        $nationality = $booking->folio?->payerGuest?->nationality_code
+            ?? $booking->event?->payerGuest?->nationality_code
+            ?? $booking->reservation?->booker?->nationality_code;
 
         return [
             'code' => $code,

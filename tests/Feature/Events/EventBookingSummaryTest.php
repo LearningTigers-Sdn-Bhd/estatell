@@ -116,6 +116,18 @@ test('a company payer can print without prices, and a guest payer always gets pr
         ->and(eventSummary($guest, false)->showPrices)->toBeTrue();
 });
 
+test('a priced booking for a company payer with no reservation shows its charge', function () {
+    $setup = eventSummarySetup();
+    $company = Company::factory()->for($setup['property'])->create();
+    $setup['event']->forceFill(['payer_guest_id' => null, 'payer_company_id' => $company->id])->save();
+    $setup['folio']->forceFill(['payer_guest_id' => null, 'payer_company_id' => $company->id])->save();
+    eventSummaryBooking($setup, $setup['hall'], ['unit_amount' => '5000.00']);
+
+    $summary = eventSummary($setup);
+
+    expect($summary->lines->total)->toBe('5000.00');
+});
+
 test('the PDF streams inline under the event number with events.view, and another property is not found', function () {
     $setup = eventSummarySetup();
     eventSummaryBooking($setup, $setup['hall']);
