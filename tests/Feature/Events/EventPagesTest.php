@@ -64,7 +64,7 @@ test('the Events list shows the events of this month with each folio balance', f
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('events/index')
-            ->where('eventDefaultDate', '2026-10-14')
+            ->where('canManage', true)
             ->has('businessDate.date')
             ->where('filters.period', 'this_month')
             ->has('events.data', 1)
@@ -74,6 +74,25 @@ test('the Events list shows the events of this month with each folio balance', f
 
     $this->actingAs($owner)->get(route('events.index', [$property->code, 'filter' => ['period' => 'all', 'search' => 'year-end']]))
         ->assertInertia(fn (Assert $page) => $page->has('events.data', 1)->where('events.data.0.name', 'Year-end dinner'));
+});
+
+test('New event is a page that needs events.manage', function () {
+    ['property' => $property, 'owner' => $owner] = eventSetup();
+    $viewer = User::factory()->for($property)->withPermissions([PermissionEnum::EventsView])->create();
+
+    $this->actingAs($viewer)->get(route('events.create', $property->code))->assertForbidden();
+
+    $this->actingAs($owner)->get(route('events.create', $property->code))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('events/create')
+            ->where('canAddGuest', true)
+            ->where('defaultDate', '2026-10-14')
+            ->has('statuses', 2));
+
+    Feature::for($property)->deactivate(Facilities::class);
+
+    $this->actingAs($owner)->get(route('events.create', $property->code))->assertNotFound();
 });
 
 test('staff create an event for a guest and land on its folio', function () {

@@ -15,7 +15,6 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import type { EnumOption } from '@/components/pms/enum-select';
 import { formatDate } from '@/components/pms/date-text';
 import { EventFormDialog } from '@/components/pms/events/event-form-dialog';
 import { PageHeader } from '@/components/pms/page-header';
@@ -50,11 +49,8 @@ export type EventTab = 'folio' | 'bookings';
 /** What every tab of the event page receives for its header, summary and Edit event Dialog. */
 export type EventShellProps = {
     event: Event;
-    canAddGuest: boolean;
     canViewCompany: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
-    newEventStatuses: EnumOption[];
-    eventDefaultDate: string;
 };
 
 /** "20 Oct 2026", or "11 Dec 2026 – 12 Dec 2026" for more than one day. */
@@ -154,14 +150,7 @@ function EventSummary({ event }: { event: Event }) {
     );
 }
 
-function EventActions({
-    event,
-    canAddGuest,
-    canViewCompany,
-    companies,
-    newEventStatuses,
-    eventDefaultDate,
-}: EventShellProps) {
+function EventActions({ event, canViewCompany, companies }: EventShellProps) {
     const [editing, setEditing] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [confirming, setConfirming] = useState(false);
@@ -220,11 +209,8 @@ function EventActions({
                     open={editing}
                     onOpenChange={setEditing}
                     event={event}
-                    canAddGuest={canAddGuest}
                     canViewCompany={canViewCompany}
                     companies={companies}
-                    statuses={newEventStatuses}
-                    eventDefaultDate={eventDefaultDate}
                 />
             )}
 

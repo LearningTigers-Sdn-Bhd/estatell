@@ -62,19 +62,43 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
 - Sorted by the first day, then by number. Paginated on the server, 25 to a page.
 - Balance is the event folio's balance (posted lines only), from one sub-query.
 
-## New event (Dialog)
+## New event page
 
-| Field      | Control                                                      | Placeholder                       |
-| ---------- | ------------------------------------------------------------ | --------------------------------- |
-| Event name | Text                                                         | e.g. Lim & Tan wedding dinner     |
-| Payer      | Guest, New guest or Company, then the guest, name or company | Choose a guest / e.g. Lim Wei Jie |
-| Dates      | Date range picker, both ends default to the business date    | e.g. 11/12/2026 → 12/12/2026      |
-| Status     | Tentative or Confirmed, default Confirmed                    | –                                 |
+**New event** on the Events list opens a full page at `/p/{code}/events/new`, in the layout of the [booking form](../12-reservations/05-booking-form.md#container-and-layout): one scroll region with the title and fields, and Cancel and **Create event** in a footer that stays visible. Saving opens the event page.
 
-- A one-day event has the same date at both ends. A walk-in uses the same Dialog: **New guest** with the guest's name, today, Confirmed.
-- **New guest** needs `guests.manage` and asks for the name only, so the Dialog stays within five fields. `CreateEvent` adds the guest with `CreateGuest` in the same transaction. Staff add a phone or email on the guest page.
+**Decided 2026-11-23:** a page, not a Dialog. Six fields fit a Dialog under DESIGN.md §5, but the page gets [facility booking lines](04-facility-bookings.md) (repeating rows) in a later item, so it follows the full-page rule.
+
+```
+← New event
+  A bill for people who are not staying: a wedding dinner, a meeting or a walk-in lunch. It gets its own folio.
+
+  EVENT
+  Event name  [ e.g. Lim & Tan wedding dinner     ]
+  Payer       ( Guest ) ( New guest ) ( Company )
+  Guest       [ Choose a guest                  ▾ ]
+  Dates       [ 11/12/2026 → 12/12/2026           ]
+  Status      [ Confirmed                       ▾ ]
+  Notes       [ e.g. Vegetarian menu for 20 guests ]
+──────────────────────────────────────────────────────────
+                                 [Cancel] [Create event]
+```
+
+| Field      | Control                                                      | Placeholder                        |
+| ---------- | ------------------------------------------------------------ | ---------------------------------- |
+| Event name | Text                                                         | e.g. Lim & Tan wedding dinner      |
+| Payer      | Guest, New guest or Company, then the guest, name or company | Choose a guest / e.g. Lim Wei Jie  |
+| Dates      | Date range picker, both ends default to the business date    | e.g. 11/12/2026 → 12/12/2026       |
+| Status     | Tentative or Confirmed, default Confirmed                    | –                                  |
+| Notes      | Textarea, optional                                           | e.g. Vegetarian menu for 20 guests |
+
+- A one-day event has the same date at both ends. A walk-in uses the same page: **New guest** with the guest's name, today, Confirmed.
+- **New guest** needs `guests.manage` and asks for the name only. `CreateEvent` adds the guest with `CreateGuest` in the same transaction. Staff add a phone or email on the guest page.
 - **Company** needs `company.view` and offers Active companies.
-- **Edit event** is the same Dialog without Status and New guest, with **Notes** (e.g. Vegetarian menu for 20 guests). A Completed or Cancelled event cannot be edited.
+- Back and Cancel go to the Events list. Leaving with unsaved changes asks to Save, Discard or Cancel.
+
+## Edit event (Dialog)
+
+The same fields without Status and New guest, in a Dialog on the event page (**⋯ More actions**, **Edit event**). A Completed or Cancelled event cannot be edited.
 
 ## Event page (Detail)
 
@@ -146,6 +170,7 @@ Need the `Facilities` feature (`facilities` middleware). Routes in `routes/event
 | Route                                   | Name              | Permission      |
 | --------------------------------------- | ----------------- | --------------- |
 | `GET /p/{code}/events`                  | `events.index`    | `events.view`   |
+| `GET /p/{code}/events/new`              | `events.create`   | `events.manage` |
 | `POST /p/{code}/events`                 | `events.store`    | `events.manage` |
 | `GET /p/{code}/events/{event}`          | `events.show`     | `events.view`   |
 | `GET /p/{code}/events/{event}/bookings` | `events.bookings` | `events.view`   |

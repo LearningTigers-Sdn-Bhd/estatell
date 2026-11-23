@@ -53,8 +53,26 @@ class EventController extends Controller
             ],
             'statuses' => EventStatus::options(),
             'periods' => $directory->periodOptions(),
-            ...$this->formProps($user, $property),
+            'canManage' => $user->can(PermissionEnum::EventsManage->value),
             'currency' => CurrencyData::forProperty($property),
+        ]);
+    }
+
+    /**
+     * New event: a full page, so facility booking lines can join it. See
+     * docs/33-facilities/03-events-and-event-folios.md#new-event-page.
+     */
+    public function create(Request $request, Property $property, CompanyOptions $companies): Response
+    {
+        $user = $request->user();
+        $canViewCompany = $user->can(PermissionEnum::CompanyView->value);
+
+        return Inertia::render('events/create', [
+            'canAddGuest' => $user->can(PermissionEnum::GuestsManage->value),
+            'canViewCompany' => $canViewCompany,
+            'companies' => $canViewCompany ? $companies->active($property) : [],
+            'statuses' => EventStatus::newEventOptions(),
+            'defaultDate' => (app(CurrentBusinessDate::class)->date($property) ?? app(PropertyToday::class)->date($property))->toDateString(),
         ]);
     }
 
@@ -148,7 +166,7 @@ class EventController extends Controller
     }
 
     /**
-     * The props every tab shares: the header, the summary and the Edit event form.
+     * The props every tab shares: the header, the summary and the Edit event Dialog.
      *
      * @param  array<string, mixed>  $tabProps
      */
@@ -159,27 +177,23 @@ class EventController extends Controller
         return Inertia::render($tab === 'folio' ? 'events/show' : 'events/bookings', [
             'event' => EventData::fromModel($event, $user->can(PermissionEnum::EventsManage->value)),
             'tab' => $tab,
-            ...$this->formProps($user, $property),
+            ...$this->editProps($user, $property),
             'currency' => CurrencyData::forProperty($property),
             ...$tabProps,
         ]);
     }
 
     /**
-     * What the New event and Edit event Dialogs need.
+     * What the Edit event Dialog needs.
      *
      * @return array<string, mixed>
      */
-    private function formProps(User $user, Property $property): array
+    private function editProps(User $user, Property $property): array
     {
         $canViewCompany = $user->can(PermissionEnum::CompanyView->value);
 
         return [
-            'canManage' => $user->can(PermissionEnum::EventsManage->value),
-            'canAddGuest' => $user->can(PermissionEnum::GuestsManage->value),
             'canViewCompany' => $canViewCompany,
-            'newEventStatuses' => EventStatus::newEventOptions(),
-            'eventDefaultDate' => (app(CurrentBusinessDate::class)->date($property) ?? app(PropertyToday::class)->date($property))->toDateString(),
             'companies' => Inertia::optional(fn () => $canViewCompany ? app(CompanyOptions::class)->active($property) : []),
         ];
     }

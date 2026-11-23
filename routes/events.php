@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('events')->name('events.')->middleware('facilities')->scopeBindings()->group(function () {
     Route::middleware('can:'.PermissionEnum::EventsView->value)->group(function () {
         Route::get('/', [EventController::class, 'index'])->name('index');
+        Route::get('new', [EventController::class, 'create'])->middleware('can:'.PermissionEnum::EventsManage->value)->name('create');
         Route::post('/', [EventController::class, 'store'])->middleware('can:'.PermissionEnum::EventsManage->value)->name('store');
 
         Route::prefix('{event}')->group(function () {

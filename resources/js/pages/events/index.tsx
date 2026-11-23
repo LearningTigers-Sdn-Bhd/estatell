@@ -1,18 +1,17 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { CalendarHeart, Plus } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { EmptyState } from '@/components/pms/empty-state';
-import { EventFormDialog } from '@/components/pms/events/event-form-dialog';
 import { eventDates } from '@/components/pms/events/event-shell';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { Button } from '@/components/ui/button';
-import { index, show } from '@/routes/events';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { create, index, show } from '@/routes/events';
 
 type Row = App.Data.Events.EventRowData;
 type Filters = { search: string; status: string; period: string };
@@ -23,11 +22,6 @@ type Props = {
     statuses: EnumOption[];
     periods: EnumOption[];
     canManage: boolean;
-    canAddGuest: boolean;
-    canViewCompany: boolean;
-    companies?: App.Data.CityLedger.CompanyOptionData[];
-    newEventStatuses: EnumOption[];
-    eventDefaultDate: string;
     currency: App.Data.Property.CurrencyData | null;
 };
 
@@ -39,14 +33,8 @@ export default function EventsIndex({
     statuses,
     periods,
     canManage,
-    canAddGuest,
-    canViewCompany,
-    companies,
-    newEventStatuses,
-    eventDefaultDate,
     currency,
 }: Props) {
-    const [creating, setCreating] = useState(false);
     const columns = useMemo(
         () => [
             column.accessor('number', {
@@ -126,10 +114,10 @@ export default function EventsIndex({
                     description="Bills for people who are not staying: weddings, meetings, walk-in meals and activities."
                     actions={
                         canManage && (
-                            <Button onClick={() => setCreating(true)}>
+                            <Link href={create()} className={buttonVariants()}>
                                 <Plus data-icon="inline-start" />
                                 New event
-                            </Button>
+                            </Link>
                         )
                     }
                 />
@@ -205,18 +193,6 @@ export default function EventsIndex({
                     }
                 />
             </div>
-
-            {canManage && (
-                <EventFormDialog
-                    open={creating}
-                    onOpenChange={setCreating}
-                    canAddGuest={canAddGuest}
-                    canViewCompany={canViewCompany}
-                    companies={companies}
-                    statuses={newEventStatuses}
-                    eventDefaultDate={eventDefaultDate}
-                />
-            )}
         </>
     );
 }
