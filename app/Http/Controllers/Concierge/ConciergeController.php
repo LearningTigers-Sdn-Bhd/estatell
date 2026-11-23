@@ -60,12 +60,25 @@ class ConciergeController extends Controller
         $result = $openStay($property, $request->string('reference')->toString(), (string) $request->ip());
 
         if ($result->token !== null) {
-            return to_route('concierge.show', ['token' => $result->token]);
+            if ($request->input('for') !== 'check-out') {
+                return to_route('concierge.show', ['token' => $result->token]);
+            }
+
+            // The Check out tile goes to the bill, where check-out lives. A guest who has not checked in yet stays on the
+            // Check out page with a note and a Check in button, instead of landing on the check-in steps unasked.
+            return $result->checkedIn
+                ? to_route('concierge.bill', ['token' => $result->token])
+                : to_route('concierge.enter-code', ['property' => $property->code, 'for' => 'check-out'])
+                    ->with('checkInHref', route('concierge.show', ['token' => $result->token], absolute: false));
         }
 
-        return back()->withErrors(['reference' => $result->refusal === 'rate_limited'
-            ? __('Too many tries. Wait :minutes minutes and try again.', ['minutes' => max(1, (int) ceil($result->retryAfter / 60))])
-            : __('We could not find a booking with that code. Check it, or use the link in your booking message.')]);
+        return back()->withErrors(['reference' => match ($result->refusal) {
+            'rate_limited' => __('Too many tries. Wait :minutes minutes and try again.', ['minutes' => max(1, (int) ceil($result->retryAfter / 60))]),
+            'multiple_rooms' => __('This booking has more than one room. Use the link in your booking message to open each room, or ask the front desk.'),
+            'checked_out' => __('This stay has already checked out. Thank you for staying with us.'),
+            'closed' => __('This booking is no longer active. Please ask the front desk.'),
+            default => __('We could not find a booking with that code. Check it against your confirmation, or ask the front desk.'),
+        }]);
     }
 
     public function show(Request $request, string $token, ConciergePageBuilder $builder, CountryOptions $countries): Response

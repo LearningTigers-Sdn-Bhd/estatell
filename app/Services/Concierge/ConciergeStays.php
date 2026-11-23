@@ -49,6 +49,30 @@ class ConciergeStays
     }
 
     /**
+     * Why a booking code opened no stay, so the guest is told what to do next. `not_found` covers a wrong code and a
+     * code of another property alike. The others only name a booking that exists at this property, and the lookup
+     * lockout still counts the try.
+     *
+     * @return 'multiple_rooms'|'checked_out'|'closed'|'not_found'
+     */
+    public function lookupFailure(Property $property, string $code): string
+    {
+        $statuses = ReservationUnit::query()
+            ->where('property_id', $property->id)
+            ->whereHas('reservation', fn ($query) => $query
+                ->where('property_id', $property->id)
+                ->where('short_code', mb_strtoupper(trim($code))))
+            ->pluck('status');
+
+        return match (true) {
+            $statuses->isEmpty() => 'not_found',
+            $statuses->filter(fn (UnitStatus $status) => in_array($status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true))->count() > 1 => 'multiple_rooms',
+            $statuses->contains(UnitStatus::CheckedOut) => 'checked_out',
+            default => 'closed',
+        };
+    }
+
+    /**
      * When check-in opens: the arrival day at the property's check-in time, in its time zone. Null when the property sets
      * no check-in time. A guest may register and pay before this; only the check-in itself waits for it.
      */

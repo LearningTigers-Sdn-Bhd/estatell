@@ -23,9 +23,14 @@ class ConciergeGuideController extends Controller
 {
     private const array PUBLIC_SECTIONS = ['property', 'amenities', 'policies', 'faqs'];
 
-    public function findForm(Property $property): Response
+    public function findForm(Request $request, Property $property): Response
     {
-        return Inertia::render('concierge/find', ['property' => PropertySummaryData::fromModel($property, forGuest: true), 'heroUrl' => $property->heroUrl()]);
+        return Inertia::render('concierge/find', [
+            'property' => PropertySummaryData::fromModel($property, forGuest: true),
+            'heroUrl' => $property->heroUrl(),
+            'checkOut' => $request->query('for') === 'check-out',
+            'checkInHref' => $request->session()->get('checkInHref'),
+        ]);
     }
 
     public function contact(Property $property, ConciergeGuide $guide): Response
