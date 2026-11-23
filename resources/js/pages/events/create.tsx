@@ -60,6 +60,8 @@ type Props = {
     statuses: EnumOption[];
     /** Both dates start here, `Y-m-d`: the business date, or `?date=` from Book facility on the Timeline. */
     defaultDate: string;
+    /** The open business date, `Y-m-d`. An event that starts on or before it is Confirmed. */
+    businessDate: string | null;
     /** `facilities.book`: the page shows facility lines. */
     canBook: boolean;
     facilities: App.Data.Facilities.FacilityOptionData[];
@@ -136,6 +138,7 @@ export default function EventCreate({
     companies,
     statuses,
     defaultDate,
+    businessDate,
     canBook,
     facilities,
     defaultFacilityId,
@@ -187,6 +190,12 @@ export default function EventCreate({
         bookings: [],
     });
     const [quote, setQuote] = useState<Quote | null>(null);
+    // An event that has started has happened, so it is Confirmed and its charges post. The server checks it too.
+    const startedByBusinessDate =
+        businessDate !== null &&
+        data.startsOn !== '' &&
+        data.startsOn <= businessDate;
+    const status = startedByBusinessDate ? 'confirmed' : data.status;
     const payerGuestId =
         data.payerType === 'guest' ? (payerRow.guest?.id ?? null) : null;
 
@@ -203,7 +212,7 @@ export default function EventCreate({
                 payer_guest_id: payerGuestId,
                 starts_on: data.startsOn,
                 ends_on: data.endsOn || data.startsOn,
-                status: data.status,
+                status,
                 bookings: data.bookings.map((line) => ({
                     facility_id:
                         line.facility_id === '' ? null : line.facility_id,
@@ -227,7 +236,7 @@ export default function EventCreate({
         };
         // The quote depends only on the lines, the dates, the status and the payer.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data.bookings, data.startsOn, data.endsOn, data.status, payerGuestId]);
+    }, [data.bookings, data.startsOn, data.endsOn, status, payerGuestId]);
 
     const linesComplete = data.bookings.every(
         (line) =>
@@ -273,7 +282,7 @@ export default function EventCreate({
                     : { payer_company_id: values.company || null }),
                 starts_on: values.startsOn,
                 ends_on: values.endsOn || values.startsOn,
-                status: values.status,
+                status,
                 notes: values.notes,
                 ...(canBook
                     ? {
@@ -393,7 +402,10 @@ export default function EventCreate({
                                                     id="event-status"
                                                     name="status"
                                                     options={statuses}
-                                                    value={data.status}
+                                                    value={status}
+                                                    disabled={
+                                                        startedByBusinessDate
+                                                    }
                                                     onValueChange={(value) =>
                                                         form.setData(
                                                             'status',
@@ -405,8 +417,9 @@ export default function EventCreate({
                                                     }
                                                 />
                                                 <FieldDescription>
-                                                    Tentative holds the dates
-                                                    before the deposit is paid.
+                                                    {startedByBusinessDate
+                                                        ? 'The event starts on or before the business date, so it is Confirmed and its charges post.'
+                                                        : 'Tentative holds the dates before the deposit is paid.'}
                                                 </FieldDescription>
                                                 <FieldError>
                                                     {errors.status}
@@ -634,9 +647,8 @@ export default function EventCreate({
                                 startsOn={data.startsOn}
                                 endsOn={data.endsOn || data.startsOn}
                                 statusLabel={
-                                    statuses.find(
-                                        (one) => one.value === data.status,
-                                    )?.label ?? ''
+                                    statuses.find((one) => one.value === status)
+                                        ?.label ?? ''
                                 }
                                 lineCount={data.bookings.length}
                                 quote={quote}

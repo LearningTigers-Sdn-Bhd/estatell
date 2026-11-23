@@ -39,7 +39,7 @@ folios   reservation_id becomes nullable, adds event_id null → events (restric
 | `FolioType`    | adds Event ("Event")                       |                                                                                                                    |
 | `DocumentType` | adds Event ("Event", code 9)               |                                                                                                                    |
 
-- **Tentative:** held while the client waits for a deposit. Its facility bookings show but do not block.
+- **Tentative:** held while the client waits for a deposit. Its facility bookings show but do not block. A new event that starts on or before the business date cannot be Tentative: it has happened, and a Tentative booking never posts.
 - **Confirmed:** its facility bookings block and post.
 - **Completed:** set when the event folio is closed. Reopening the folio puts the event back to Confirmed. A Tentative or Cancelled event keeps its status when its folio closes.
 - **Cancelled:** its facility bookings are cancelled. The folio stays Open until staff refund the deposit or post a cancellation fee, then close it at 0.00. Nothing is automatic.
@@ -98,15 +98,15 @@ BSAA-26900010   Sabah Tourism meeting      Sabah Tourism Board 11 Dec         Te
                                                          [Cancel] [Create event]
 ```
 
-| Field      | Control                                                                | Placeholder                        |
-| ---------- | ---------------------------------------------------------------------- | ---------------------------------- |
-| Event name | Text                                                                   | e.g. Lim & Tan wedding dinner      |
-| Dates      | Date range picker, both ends default to the business date              | e.g. 11/12/2026 → 12/12/2026       |
-| Status     | Tentative or Confirmed, default Confirmed                              | –                                  |
-| Payer      | Choice cards: Guest or Company (shown with `company.view`)             | –                                  |
-| Guest      | One guest row of the booking form's Guests table, without Stays in     | –                                  |
-| Company    | Active companies, full width, when the payer is Company                | –                                  |
-| Notes      | Notes tab: text box with a counter, optional, at most 2,000 characters | e.g. Vegetarian menu for 20 guests |
+| Field      | Control                                                                                                                                             | Placeholder                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Event name | Text                                                                                                                                                | e.g. Lim & Tan wedding dinner      |
+| Dates      | Date range picker, both ends default to the business date                                                                                           | e.g. 11/12/2026 → 12/12/2026       |
+| Status     | Tentative or Confirmed, default Confirmed. Locked to Confirmed when the first date is on or before the business date (`EventRequest` checks it too) | –                                  |
+| Payer      | Choice cards: Guest or Company (shown with `company.view`)                                                                                          | –                                  |
+| Guest      | One guest row of the booking form's Guests table, without Stays in                                                                                  | –                                  |
+| Company    | Active companies, full width, when the payer is Company                                                                                             | –                                  |
+| Notes      | Notes tab: text box with a counter, optional, at most 2,000 characters                                                                              | e.g. Vegetarian menu for 20 guests |
 
 - A one-day event has the same date at both ends. A walk-in uses the same page: type the guest's name, today, Confirmed.
 - **Guest row:** the same row as the booking form's Guests table (Name and Phone in the row; Email, guest details, MyKad and ID below), with no Stays in, Remove or footer. Typing a name searches the guest list. A picked guest is linked, and **Update guest profile with my changes** saves edits to it. A typed name is a new guest. It sends `guest` (`guest.guest_id`, `guest.update_profile`, the profile fields and the ID), checked like a booking guest row: a new guest needs a name, adding or changing a guest needs `guests.manage` (without it staff can only pick), and an ID for a new guest needs `guests.view-documents`. Errors come back as `guest.{field}`.

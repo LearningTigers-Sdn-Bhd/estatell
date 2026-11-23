@@ -90,6 +90,7 @@ test('New event is a page that needs events.manage', function () {
             ->where('canAddIdentity', true)
             ->where('defaultNationalityCode', 'MY')
             ->where('defaultDate', '2026-10-14')
+            ->where('businessDate', '2026-10-14')
             ->has('statuses', 2));
 
     Feature::for($property)->deactivate(Facilities::class);
@@ -113,6 +114,27 @@ test('staff create an event for a guest and land on its folio', function () {
     $event = Event::query()->sole();
     expect($event->payer_guest_id)->toBe($guest->id)
         ->and(Folio::query()->where('event_id', $event->id)->count())->toBe(1);
+});
+
+test('a new event that starts on or before the business date must be Confirmed', function () {
+    ['property' => $property, 'owner' => $owner] = eventSetup();
+    $guest = Guest::factory()->create(['property_id' => $property->id]);
+    $payload = [
+        'name' => 'WWF field team lunch',
+        'payer_type' => 'guest',
+        'guest' => ['guest_id' => $guest->id, 'update_profile' => false],
+        'starts_on' => '2026-10-13',
+        'ends_on' => '2026-10-14',
+        'status' => 'tentative',
+    ];
+
+    $this->actingAs($owner)->post(route('events.store', $property->code), $payload)->assertSessionHasErrors('status');
+    $this->actingAs($owner)->post(route('events.store', $property->code), [...$payload, 'starts_on' => '2026-10-14'])->assertSessionHasErrors('status');
+    expect(Event::query()->exists())->toBeFalse();
+
+    $this->actingAs($owner)->post(route('events.store', $property->code), [...$payload, 'starts_on' => '2026-10-15', 'ends_on' => '2026-10-15'])->assertSessionHasNoErrors();
+    $this->actingAs($owner)->post(route('events.store', $property->code), [...$payload, 'status' => 'confirmed'])->assertSessionHasNoErrors();
+    expect(Event::query()->count())->toBe(2);
 });
 
 test('a new guest on the guest row is added with their contact details and pays the event', function () {
