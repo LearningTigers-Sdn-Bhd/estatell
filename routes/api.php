@@ -14,6 +14,10 @@ use App\Http\Controllers\Api\Kiosk\PairController;
 use App\Http\Controllers\Api\Kiosk\RegistrationCardController;
 use App\Http\Controllers\Api\Kiosk\StayController;
 use App\Http\Controllers\Api\Kiosk\WalkInController;
+use App\Http\Controllers\Api\Pos\InHouseGuestController;
+use App\Http\Controllers\Api\Pos\OutletController;
+use App\Http\Controllers\Api\Pos\RoomChargeController;
+use App\Http\Middleware\EnsurePosApiFeatureActive;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -94,5 +98,19 @@ Route::prefix('booking/v1')->name('api.booking.v1.')->group(function () {
         Route::get('/', [ManageBookingController::class, 'show'])->name('bookings.show');
         Route::get('cancellation', [ManageBookingController::class, 'cancellation'])->name('bookings.cancellation');
         Route::post('cancellation', [ManageBookingController::class, 'cancel'])->middleware('api.idempotent')->name('bookings.cancel');
+    });
+});
+
+/*
+ * The inbound POS API. The token's property is the only property a request can see. See docs/33-pos/03-pos-api.md.
+ */
+Route::prefix('pos/v1')->name('api.pos.v1.')->middleware(['api.token:pos:*', 'throttle:api-token', EnsurePosApiFeatureActive::class])->group(function () {
+    Route::get('outlets', [OutletController::class, 'index'])->name('outlets.index');
+    Route::get('in-house-guests', [InHouseGuestController::class, 'index'])->name('in-house-guests.index');
+
+    // Writes: a repeated `Idempotency-Key` gets the first answer again.
+    Route::middleware('api.idempotent')->group(function () {
+        Route::post('room-charges', [RoomChargeController::class, 'store'])->name('room-charges.store');
+        Route::post('room-charges/{external_receipt_id}/void', [RoomChargeController::class, 'void'])->name('room-charges.void');
     });
 });

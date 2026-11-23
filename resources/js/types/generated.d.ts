@@ -2426,6 +2426,7 @@ canForce: boolean,
 canViewPacket: boolean,
 lastAudit: App.Data.NightAudit.LastAuditData | null,
 nextAutoAudit: App.Data.NightAudit.NextAutoAuditData | null,
+posReview: App.Data.NightAudit.PosReviewData | null,
 };
 export type PackageNightAmountData = {
 id: number,
@@ -2443,6 +2444,10 @@ nights: App.Data.NightAudit.PackageNightAmountData[],
 chargedNights: App.Data.NightAudit.PackageNightAmountData[],
 wholeStay: boolean,
 blockedReason: string | null,
+};
+export type PosReviewData = {
+message: string,
+url: string | null,
 };
 export type ReadinessActionData = {
 kind: string,
@@ -3275,6 +3280,90 @@ propertyName: string,
 propertyCode: string,
 companyName: string,
 logoUrl: string | null,
+};
+}
+namespace Pos {
+export type MealCheckInListData = {
+totalEntitled: number,
+checkedIn: number,
+remaining: number,
+rows: App.Data.Pos.MealCheckInRow[],
+};
+export type MealCheckInRow = {
+reservationUnitId: number,
+roomNumber: string,
+guestName: string,
+reservationReference: string,
+entitledGuests: number,
+redeemedGuests: number,
+remainingGuests: number,
+status: string,
+redemptionIds: number[],
+};
+export type PosApiClientRowData = {
+id: number,
+name: string,
+lastUsedAt: string | null,
+revokedAt: string | null,
+canRevoke: boolean,
+};
+export type PosChargeData = {
+externalReceiptId: string,
+externalReceiptNumber: string,
+amount: string,
+reservationUnitId: number | null,
+rawPayload: Record<string, any>,
+posConnectionId: number | null,
+serviceDate: string | null,
+failureHint: string | null,
+};
+export type PosOutletData = {
+name: string,
+code: string,
+defaultChargeItemId: number,
+active: boolean,
+};
+export type PosOutletRowData = {
+id: number,
+name: string,
+code: string,
+defaultChargeItemId: number,
+chargeItemName: string,
+active: boolean,
+};
+export type PosPostingDetailData = {
+row: App.Data.Pos.PosPostingRowData,
+rawPayload: Record<string, any>,
+folioLine: string | null,
+resolutionNote: string | null,
+resolvedBy: string | null,
+resolvedAt: string | null,
+canAttach: boolean,
+};
+export type PosPostingRowData = {
+id: number,
+outletName: string,
+receiptNumber: string,
+type: string,
+status: App.Data.Shared.BadgeData,
+amount: string,
+failureReason: string | null,
+reference: string | null,
+createdAt: string,
+};
+export type PosVoidData = {
+externalReceiptId: string,
+originalExternalReceiptId: string,
+amount: string | null,
+reason: string | null,
+rawPayload: Record<string, any>,
+posConnectionId: number | null,
+};
+export type ResolvePosPostingData = {
+action: string,
+reservationUnitId: number | null,
+folioId: number | null,
+note: string | null,
 };
 }
 namespace Property {
@@ -5726,8 +5815,8 @@ export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'booking-website.payment-mode' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types';
+export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'booking-website.payment-mode' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view' | 'pos.view' | 'pos.manage' | 'pos.resolve' | 'meals.redeem';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos-integration';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
@@ -5735,6 +5824,10 @@ export type PolicyTab = 'no-show' | 'cancellation' | 'early-departure' | 'late-c
 export type PortalCancelMode = 'free' | 'request' | 'closed';
 export type PortalLoginOutcome = 'unchanged' | 'removed' | 'created' | 'invited' | 'refused';
 export type PortalLoginRefusal = 'other_kind_of_account' | 'taken_by_other_company' | 'not_available' | 'company_suspended';
+export type PosConnectionStatus = 'connected' | 'error' | 'disconnected';
+export type PosPostingStatus = 'posted' | 'reversed' | 'pending_review' | 'ignored';
+export type PosPostingType = 'charge' | 'void';
+export type PosProvider = 'loyverse' | 'generic_api';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package' | 'day_use';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';

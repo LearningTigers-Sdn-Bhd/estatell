@@ -4,10 +4,12 @@ namespace App\Http\Middleware;
 
 use App\Actions\ApiAccess\RecordBookingClientUse;
 use App\Actions\ApiAccess\RecordKioskUse;
+use App\Actions\ApiAccess\RecordPosApiClientUse;
 use App\Features\Kiosks;
 use App\Http\Responses\ApiError;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
+use App\Models\PosApiClient;
 use Closure;
 use Illuminate\Auth\RequestGuard;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
@@ -32,13 +34,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AuthenticateApiToken implements AuthenticatesRequests
 {
-    public function __construct(private RecordKioskUse $recordKioskUse, private RecordBookingClientUse $recordClientUse) {}
+    public function __construct(private RecordKioskUse $recordKioskUse, private RecordBookingClientUse $recordClientUse, private RecordPosApiClientUse $recordPosUse) {}
 
     public function handle(Request $request, Closure $next, string $scope): Response
     {
         $owner = $this->usableOwner($request);
 
-        if ($owner === null || $owner->tokenCant($scope) || ($owner instanceof BookingClient) !== str_starts_with($scope, 'booking:')) {
+        if ($owner === null || $owner->tokenCant($scope) || ($owner instanceof BookingClient) !== str_starts_with($scope, 'booking:') || ($owner instanceof PosApiClient) !== str_starts_with($scope, 'pos:')) {
             $key = 'api-token-rejections:'.(string) $request->ip();
 
             if (RateLimiter::hit($key, 60) > 120) {
@@ -54,6 +56,9 @@ class AuthenticateApiToken implements AuthenticatesRequests
         if ($owner instanceof Kiosk) {
             $request->attributes->set('kiosk', $owner);
             ($this->recordKioskUse)($owner);
+        } elseif ($owner instanceof PosApiClient) {
+            $request->attributes->set('pos_client', $owner);
+            ($this->recordPosUse)($owner);
         } else {
             $request->attributes->set('booking_client', $owner);
             ($this->recordClientUse)($owner);
@@ -67,14 +72,14 @@ class AuthenticateApiToken implements AuthenticatesRequests
      * property is suspended or has the Kiosks feature off. The guard remembers its user for as long as the application
      * lives, so it is cleared for each request.
      */
-    private function usableOwner(Request $request): Kiosk|BookingClient|null
+    private function usableOwner(Request $request): Kiosk|BookingClient|PosApiClient|null
     {
         /** @var RequestGuard $guard */
         $guard = Auth::guard('sanctum');
         /** @var mixed $owner Static analysis assumes the guard returns a User, but Sanctum returns the token owner. */
         $owner = $guard->setRequest($request)->forgetUser()->user();
 
-        if ($owner instanceof BookingClient) {
+        if ($owner instanceof BookingClient || $owner instanceof PosApiClient) {
             return $owner->revoked_at === null ? $owner : null;
         }
 

@@ -5,13 +5,14 @@ namespace App\Services\ApiAccess;
 use App\Models\ApiIdempotencyKey;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
+use App\Models\PosApiClient;
 
 /**
  * Finds the stored first answer for an `Idempotency-Key`. Reads only. An answer older than 24 hours is not replayed.
  */
 class IdempotentResponses
 {
-    public function find(Kiosk|BookingClient $owner, string $key, string $path): ?ApiIdempotencyKey
+    public function find(Kiosk|BookingClient|PosApiClient $owner, string $key, string $path): ?ApiIdempotencyKey
     {
         return ApiIdempotencyKey::query()
             ->forOwner($owner)

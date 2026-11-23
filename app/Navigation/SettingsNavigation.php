@@ -12,6 +12,7 @@ use App\Features\Concierge;
 use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Kiosks;
+use App\Features\PosIntegration;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Notifications\GuestEmailText;
@@ -65,6 +66,12 @@ class SettingsNavigation
                     href: route('settings.kiosks.index', ['property' => $property->code], absolute: false),
                     icon: 'tablet',
                     active: request()->routeIs('settings.kiosks.*'),
+                ) : null,
+                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
+                    title: __('POS'),
+                    href: route('settings.pos-outlets.index', ['property' => $property->code], absolute: false),
+                    icon: 'utensils',
+                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-integrations.*', 'settings.pos-api-clients.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Concierge::class) ? new NavItemData(
                     title: __('Concierge'),

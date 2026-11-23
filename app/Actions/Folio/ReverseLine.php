@@ -22,11 +22,11 @@ class ReverseLine
      * level (a discount line has its own tax lines). A reversal of a child sits under the reversal of its parent. A
      * descendant that already has a reversal is skipped (the key `reverse:{line_id}` is unique). The folio row is locked first, so two
      * reversals of one line never race. Every check runs before the first write, so a refusal writes and logs nothing.
-     * A line that a payment or refund owns is refused: a refund corrects a payment. The last step closes the folio when
+     * A null actor is the system (a POS void). A line that a payment or refund owns is refused: a refund corrects a payment. The last step closes the folio when
      * it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`).
      * A reversed add-on keeps its `folio_line_id`, and a reversal keeps the source and the `migrated` flag of its line. See docs/13-folio/02-posting-charges.md.
      */
-    public function __invoke(User $actor, FolioLine $line): PostingResult
+    public function __invoke(?User $actor, FolioLine $line): PostingResult
     {
         return DB::transaction(function () use ($actor, $line): PostingResult {
             $current = FolioLine::query()->findOrFail($line->id);
@@ -87,7 +87,7 @@ class ReverseLine
      *
      * @return non-empty-list<FolioLine>
      */
-    public function post(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $manualBatchId = null): array
+    public function post(?User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $manualBatchId = null): array
     {
         $reversal = $this->reversalOf($actor, $line, $postingDate, $transferGroupId, null, $manualBatchId);
 
@@ -97,7 +97,7 @@ class ReverseLine
     /**
      * @return list<FolioLine>
      */
-    private function reverseChildren(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, int $parentReversalId): array
+    private function reverseChildren(?User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, int $parentReversalId): array
     {
         $lines = [];
 
@@ -115,7 +115,7 @@ class ReverseLine
         return $lines;
     }
 
-    private function reversalOf(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $parentReversalId, ?int $manualBatchId = null): FolioLine
+    private function reversalOf(?User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $parentReversalId, ?int $manualBatchId = null): FolioLine
     {
         $reversal = new FolioLine([
             'transaction_code_id' => $line->transaction_code_id,
@@ -137,7 +137,7 @@ class ReverseLine
         $reversal->manual_batch_id = $manualBatchId;
         $reversal->migrated = $line->migrated;
         $reversal->idempotency_key = 'reverse:'.$line->id;
-        $reversal->user_id = $actor->id;
+        $reversal->user_id = $actor?->id;
         $reversal->save();
 
         return $reversal->refresh();

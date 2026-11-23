@@ -20,6 +20,7 @@ use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePayoutsAreShown;
 use App\Http\Middleware\EnsurePortalAccess;
+use App\Http\Middleware\EnsurePosIntegrationIsActive;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
 use App\Http\Middleware\HandleAppearance;
@@ -80,6 +81,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'booking-engine' => EnsureBookingEngineIsActive::class,
             'concierge' => EnsureConciergeIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
+            'pos-integration' => EnsurePosIntegrationIsActive::class,
             'keyport.device' => AuthenticateKeyportDevice::class,
             'keyport.version' => EnsureKeyportVersion::class,
             'live' => EnsurePropertyIsLive::class,
@@ -105,6 +107,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePosIntegrationIsActive::class);
 
         $middleware->web(append: [
             AuthenticateSession::class,
@@ -127,7 +130,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ? ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, $exception->getHeaders())
             : null);
 
-        $exceptions->render(fn (ValidationException $exception, Request $request) => $request->is('api/booking/*')
+        $exceptions->render(fn (ValidationException $exception, Request $request) => $request->is('api/booking/*', 'api/pos/*')
             ? ApiError::response('invalid_fields', $exception->getMessage(), $exception->status, details: ['fields' => $exception->errors()])
             : null);
 
