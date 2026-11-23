@@ -80,6 +80,7 @@ test('the summary lists the facilities and charges posted and scheduled bookings
             '15 Oct · Jungle dinner · 19:00–21:00 · 80 people',
         ])
         ->and(collect($summary->strip)->pluck('value', 'label')->all())->toMatchArray(['Event' => 'Lim–Tan wedding', 'Dates' => '14–15 Oct 2026'])
+        ->and(collect($summary->lines->groups)->pluck('heading')->all())->toBe([null])
         ->and($rows)->toHaveCount(2)
         ->and($rows->pluck('amount')->all())->toBe(['5000.00', '4000.00'])
         ->and($summary->lines->total)->toBe('9000.00')

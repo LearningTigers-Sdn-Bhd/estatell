@@ -164,7 +164,7 @@ Events › Lim & Tan wedding dinner › Folio ▾
 | Number              | The event number, with "As at {date}, {time}". Nothing is stored.                                                                                           |
 | Strip               | Bill to (company, else the payer guest), Event, Dates, Booked on.                                                                                           |
 | Facilities          | In place of Rooms: one line per booking that is not Cancelled, "14 Oct · Riverside Hall · 18:00–23:00 · 1 item". A Tentative booking ends with "Tentative". |
-| Charges             | The posted lines of the folios that are not Voided, then the bookings not posted yet on Open folios. All under Other charges.                               |
+| Charges             | The posted lines of the folios that are not Voided, then the bookings not posted yet on Open folios. One list with no group heading.                        |
 | Payments, balance   | As on a reservation.                                                                                                                                        |
 | Stamp               | CANCELLED for a Cancelled event.                                                                                                                            |
 | Cancellation policy | Left out. The property policy is written for rooms.                                                                                                         |

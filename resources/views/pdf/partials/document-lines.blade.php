@@ -25,7 +25,7 @@
                 <th>{{ __('Date') }}</th>
                 <th>{{ __('Room') }}</th>
                 <th>{{ __('Description') }}</th>
-                <th class="num">{{ __('Amount') }}</th>
+                <th class="num" style="width: 22%;">{{ __('Amount') }}</th>
             </tr>
         </thead>
     @endif
@@ -42,7 +42,7 @@
                     <td style="width: 10%;">{{ $row->room }}</td>
                 @endif
                 <td>{{ $row->text() }}</td>
-                <td class="num">{{ $money($row->amount) }}</td>
+                <td class="num" style="width: 22%;">{{ $money($row->amount) }}</td>
             </tr>
         @endforeach
     @endforeach
@@ -59,7 +59,7 @@
     @endforeach
     <tr class="total">
         <td colspan="{{ $span }}" class="num">{{ $totalLabel }}</td>
-        <td class="num">{{ $money($groups->total) }}</td>
+        <td class="num" style="width: 22%;">{{ $money($groups->total) }}</td>
     </tr>
 </table>
 @if ($words && $settings->show_amount_in_words)

@@ -13,6 +13,8 @@ use App\Models\FolioLine;
 use App\Models\Property;
 use App\Services\Catalogues\BankAccountLines;
 use App\Services\Folio\DateRange;
+use App\Services\Folio\DocumentLineGroup;
+use App\Services\Folio\DocumentLineGroups;
 use App\Services\Folio\DocumentLines;
 use App\Services\Folio\DocumentRow;
 use App\Services\Folio\FolioDocumentRows;
@@ -58,7 +60,7 @@ class EventBookingSummary
         $paid = $billed = $balance = $words = null;
 
         if ($showPrices) {
-            $lines = $this->documentLines->group($this->rows($property, $folios), $settings);
+            $lines = $this->withoutHeadings($this->documentLines->group($this->rows($property, $folios), $settings));
             [$payments, $paid, $billed] = $this->paymentRows->for($property, $folios, $event->payerCompany?->name);
 
             if ($lines->groups !== [] || $lines->taxes !== [] || $payments !== []) {
@@ -89,8 +91,22 @@ class EventBookingSummary
     }
 
     /**
-     * The posted lines of the folios, then the Scheduled facility bookings of the Open ones. An event has no units, so
-     * every row prints under Other charges.
+     * An event has no units, so its rows make one Other charges group. The heading adds nothing under Charges, so the
+     * rows print without it.
+     */
+    private function withoutHeadings(DocumentLineGroups $lines): DocumentLineGroups
+    {
+        return new DocumentLineGroups(
+            array_map(fn (DocumentLineGroup $group): DocumentLineGroup => new DocumentLineGroup(null, $group->rows), $lines->groups),
+            $lines->taxes,
+            $lines->chargesSubtotal,
+            $lines->total,
+            $lines->showRoomColumn,
+        );
+    }
+
+    /**
+     * The posted lines of the folios, then the Scheduled facility bookings of the Open ones.
      *
      * @param  EloquentCollection<int, Folio>  $folios
      * @return list<DocumentRow>

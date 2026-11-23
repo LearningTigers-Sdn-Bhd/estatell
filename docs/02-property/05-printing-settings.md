@@ -193,7 +193,7 @@ rows ─▶ DocumentLines::group(rows, PrintSetting) ─▶ DocumentLineGroups
 - **Room label**: each output row carries the room label of its unit (`DocumentLineRow::$room`), so the template looks nothing up.
 - **Merging**: rows of one unit with the same kind, description and unit amount on consecutive dates become one row, "Room, 3 nights × 250.00", with the date range. A price change or a gap in dates starts a new row. Only nightly rows merge (room nights, inclusions, their child lines, Per night and Per guest night add-ons); other charges print one row per line.
 - **Transfers**: a transfer is a reversal plus a copy, so step 1 drops the pair and the copy prints once.
-- The partial `pdf/partials/document-lines.blade.php` draws the groups, the tax summary, the total and the amount in words. The three documents and the sample include it.
+- The partial `pdf/partials/document-lines.blade.php` draws the groups, the tax summary, the total and the amount in words. The three documents and the sample include it. Its Amount column is 22% wide, the same as the separate Total, Balance due and Credit tables under it, so all the totals line up.
 
 ### Room column
 
