@@ -88,20 +88,21 @@ The For step reads `FacilityOwnerSearch` (a Service in this module) through `Fac
 
 ## Facility bookings report
 
-A new report under **Reports**, category Front desk. Columns follow the [column layouts](../22-reports/01-core-reports.md#column-layouts-per-property).
+**Built 2026-11-23.** A report under **Reports › Front desk**, shown only while the `Facilities` feature is on. Columns follow the [column layouts](../22-reports/01-core-reports.md#column-layouts-per-property).
 
 ```
-Facility bookings      Date [ 12 Dec 2026 ▾ ]   Facility [ Night Walk ▾ ]   [Export]
-──────────────────────────────────────────────────────────────────────────────────
-Time          Facility     Guest / event          Room / no.   Qty   Status
-20:00–22:00   Night Walk   Tan Mei Ling           Room 12       2    Confirmed
-20:00–22:00   Night Walk   Mr Ahmad Faizal        Room 07       3    Confirmed
-20:00–22:00   Night Walk   Borneo Trails group    BKG-0441     15    Confirmed
-                                                   Session      20 / 20
+Facility bookings   Date [ 14–15 Oct 2026 ▾ ]  Facility [ All facilities ▾ ]  Status [ Tentative, Confirmed ▾ ]  [Export]
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Night Walk · 15 Oct · 20:00–22:00
+Date         Time          Facility     Guest / event          Room / no.      Qty   Status
+15 Oct 2026  20:00–22:00   Night Walk   Tan Mei Ling           12               2    Confirmed
+15 Oct 2026  20:00–22:00   Night Walk   Borneo Trails group    BSAA-26900012   15    Tentative
+                                                                         17 / 20 people
 ```
 
 | Key        | Label         | Default visible |
 | ---------- | ------------- | --------------- |
+| `date`     | Date          | ✓               |
 | `time`     | Time          | ✓               |
 | `facility` | Facility      | ✓               |
 | `owner`    | Guest / event | ✓               |
@@ -113,9 +114,12 @@ Time          Facility     Guest / event          Room / no.   Qty   Status
 | `amount`   | Amount        |                 |
 | `notes`    | Notes         |                 |
 
-- Filters: date range, facility (multi-select), status. Cancelled are left out unless picked.
-- A total row per facility and session sums the quantity against capacity. A facility with no sessions totals per start and end time.
-- `ReportKey::FacilityBookings`, feature-gated by `Facilities`.
+- **Date** is a column too, because the spreadsheet is flat (sections do not export).
+- **Guest / event**: the event name, or the reservation's booker. **Room / no.**: the event number, or the first-night rooms of the reservation's live units ("12, 14"), or its reference when no room is set. **Phone**: the event payer's (guest, else company contact), or the booker's. **Amount**: the price before tax (unit price × rate basis quantity), blank when charged by hand.
+- **Filters**: a date range (up to 31 days; Today, Tomorrow, Next 7 days, This week, Next week), facilities and statuses (both multi-select). In the URL they are comma lists: `?facilities=3,5&statuses=tentative,confirmed`. No statuses means Tentative and Confirmed; Cancelled shows only when picked. Unknown values are dropped.
+- **Order**: date, facility (settings order), start time. The rows keep this order, so the headers do not sort.
+- **Sections**: one for each facility, date and time (this covers sessions and facilities without sessions). The subtotal is the quantity of the Tentative and Confirmed bookings against the capacity ("17 / 20 people", "1 / 1 item"), in warning colour when over. A picked Cancelled booking shows but does not count.
+- `ReportKey::FacilityBookings` (`facility-bookings`, Landscape, icon `tent`), `FacilityBookingsReport`, `FacilityBookingRow`, `reports.facility-bookings`. The PDF and the spreadsheet use the standard export routes.
 
 ## Report changes
 
