@@ -99,7 +99,7 @@ Settings › Facilities › Night Walk › Details ▾
 - The header's **Available** switch saves at once, like the one on the list. A facility that is off shows **Unavailable** beside its name.
 - The summary in the aside shows the saved facility on every tab.
 - Save updates the facility and its charge item in one transaction (`UpdateChargeItem`): category Facility, charging unit Per item, `allow_override` on, `auto_add` off. The charge item's name, price, taxes and active state follow the facility. The code is derived from the name when the facility is added (Riverside Hall → `RIVERSIDE_HALL`) and does not change. This is the boat fare pattern.
-- The charge item still shows on Settings › Charge items. Its **Edit** opens the facility page (`ChargeItemFacility`), so only one page edits it.
+- Settings › Charge items does not list facility charge items, and its category picker has no Facility, so only a facility makes one. A direct link to such a charge item's edit page opens the facility page (`ChargeItemFacility`). Post charge on a folio, reports, routing rules and tax still use the charge item.
 - The name must be free among facilities and among charge items, because the charge item takes it.
 - `sharing` cannot change while the facility has a future booking that is not Cancelled: "Cancel or move its future bookings first." This check comes with facility bookings (item 4).
 - Saving a facility as Private deletes its sessions. The form says so before saving.

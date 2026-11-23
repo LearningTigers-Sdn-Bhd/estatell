@@ -99,12 +99,26 @@ enum TransactionCategory: string
         ));
     }
 
+    /**
+     * The categories staff may pick on Settings › Charge items: the charge item categories without Facility, because
+     * only a facility creates a Facility charge item.
+     *
+     * @return list<self>
+     */
+    public static function pickableChargeItemCases(): array
+    {
+        return array_values(array_filter(
+            self::chargeItemCases(),
+            fn (self $category): bool => $category !== self::Facility,
+        ));
+    }
+
     /** @return list<array{value: string, label: string}> */
     public static function chargeItemOptions(): array
     {
         return array_map(
             fn (self $category): array => ['value' => $category->value, 'label' => $category->label()],
-            self::chargeItemCases(),
+            self::pickableChargeItemCases(),
         );
     }
 

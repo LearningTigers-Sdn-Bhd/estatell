@@ -285,7 +285,7 @@ test('the routing rules load on request only, most specific first, with open fol
         ->and($rules[1]['target'])->toBe('Third party · Blue Reef Dive')
         ->and(collect($response->json('props.routingRules.targets'))->pluck('id')->all())->toBe([$setup['unitFolio']->id, $setup['agent']->id])
         ->and(collect($response->json('props.routingRules.targets'))->pluck('id'))->not->toContain($closed->id)
-        ->and(collect($response->json('props.routingRules.categories'))->pluck('value')->all())->toBe(['room', 'food_and_beverage', 'laundry', 'minibar', 'transport', 'fee', 'other']);
+        ->and(collect($response->json('props.routingRules.categories'))->pluck('value')->all())->toBe(['room', 'food_and_beverage', 'laundry', 'minibar', 'transport', 'facility', 'fee', 'other']);
 });
 
 test('a user without folio.transfer gets no routing rules', function () {

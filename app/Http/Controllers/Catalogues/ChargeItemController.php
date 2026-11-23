@@ -28,7 +28,8 @@ use Inertia\Response;
 class ChargeItemController extends Controller
 {
     /**
-     * Load the property's bounded charge-item catalogue once for browser-side filtering.
+     * Load the property's bounded charge-item catalogue once for browser-side filtering. Facility charge items are left
+     * out, because the facility page edits them.
      */
     public function index(Property $property): Response
     {
@@ -36,6 +37,7 @@ class ChargeItemController extends Controller
 
         return Inertia::render('settings/charge-items/index', [
             'chargeItems' => $property->chargeItems()
+                ->exceptFacilities()
                 ->with('transactionCode.applicableTaxes')
                 ->orderByDesc('active')
                 ->ordered()

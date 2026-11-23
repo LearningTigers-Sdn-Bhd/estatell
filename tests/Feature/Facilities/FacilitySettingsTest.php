@@ -252,3 +252,26 @@ test('the charge item page sends a facility charge item to its facility page', f
     $this->get(route('settings.charge-items.edit', [$property->code, $hall->charge_item_id]))
         ->assertOk();
 });
+
+test('Settings › Charge items leaves out facility charge items, and staff cannot pick the Facility category', function () {
+    ['owner' => $owner, 'property' => $property] = facilitySetup();
+    $hall = Facility::factory()->for($property)->create();
+    $breakfast = ChargeItem::factory()->for($property)->create(['name' => 'Breakfast', 'position' => 1]);
+    $laundry = ChargeItem::factory()->for($property)->create(['name' => 'Laundry', 'position' => 2]);
+    $this->actingAs($owner);
+
+    $this->get(route('settings.charge-items.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('chargeItems', fn ($items) => collect($items)->pluck('name')->sort()->values()->all() === ['Breakfast', 'Laundry'])
+            ->where('categories', fn ($categories) => ! collect($categories)->contains('value', TransactionCategory::Facility->value)));
+
+    // The list sends only the items it shows, so the reorder works without the facility's charge item.
+    $this->put(route('settings.charge-items.reorder', $property->code), ['order' => [$laundry->id, $breakfast->id]])
+        ->assertSessionHasNoErrors();
+    expect($laundry->refresh()->position)->toBe(1)->and($breakfast->refresh()->position)->toBe(2);
+
+    $this->post(route('settings.charge-items.store', $property->code), ['name' => 'Spa', 'code' => 'SPA', 'category' => TransactionCategory::Facility->value])
+        ->assertSessionHasErrors('category');
+    expect(ChargeItem::query()->where('name', 'Spa')->exists())->toBeFalse()
+        ->and($hall->chargeItem->refresh()->active)->toBeTrue();
+});
