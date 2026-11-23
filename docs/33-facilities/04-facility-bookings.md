@@ -49,6 +49,7 @@ One rule for Item and Person: at every moment of the range, the quantity of Conf
 | Person    | People it brings | –       |
 
 - Times overlap when one starts before the other ends. 18:00–23:00 and 09:00–18:00 do not overlap.
+- A **private** booking (`facility_bookings.private`) takes the whole capacity, however many people it brings. It fits only when nothing else is Confirmed at that time, and nothing else fits next to it. A facility with no private price refuses it (`facility_private_not_offered`).
 - **Confirm event** runs the check for each of its Tentative bookings in turn, so two bookings of the same event that clash are caught too. It refuses with `facility_full`. A refusal confirms nothing and names the facility.
 - Tentative bookings never block. They show as a **warning** in the Sheet: "Riverside Hall is held 09:00–17:00 (Sabah Tourism meeting, Tentative)."
 - `BookFacility` locks the facility row while it checks and writes, so two staff cannot take the last slot together.
@@ -60,6 +61,7 @@ One rule for Item and Person: at every moment of the range, the quantity of Conf
 - A booking copies the charge item's amount into `unit_amount` when it is made. Staff can change it until the booking posts, for example a negotiated hall price.
 - The charge is `unit_amount` × `FacilityRateBasis::quantity()`, plus the charge item's taxes. The server calculates it when shown and when posted.
 - **Items count (decided 2026-11-23):** an Item facility charges every item it takes, for every rate basis. 3 kayaks for 2 hours at 25.00 per hour is 6 × 25.00 = 150.00; 2 BBQ pits per session is 2 sessions. A Person facility charges Per day, Per session and Per hour once for the group, and Per person for each person.
+- **Private:** the booking copies the facility's private price and is charged once (`FacilityRateBasis::quantity()` returns 1 for a private booking). The breakdown reads "Private · 6 people". Switching a booking to or from private takes the list price of the new kind.
 - A later price change in Settings does not change saved bookings.
 - A price that differs from the list price is logged on the booking's event or reservation (`facility_bookings.price_changed`, with both prices).
 - "Charge by hand" (the charge item has no amount): `unit_amount` is null and the price field is hidden.
@@ -139,6 +141,7 @@ A facility with sessions shows **Session** in place of From and To:
 ```
 
 - **Notes** (optional) sits under Charge to, e.g. Round tables, stage on the left.
+- **Private booking** (a switch, above Price) shows only for a facility with a private price: "Takes the whole River Safari at this time, at one price for the group. Nobody else can join." Turning it on puts the private price in Price, which then reads "Per booking". The rows and the Facility bookings report mark the booking **Private**.
 - Edit booking is the same Sheet with the facility locked.
 - Facility, date and time (or session) prefill from the Timeline cell that opened it.
 - **Price** prefills with the list price. "List price …" shows beside it only when staff change it. Hidden for "Charge by hand".

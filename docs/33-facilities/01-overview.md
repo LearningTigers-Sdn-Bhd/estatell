@@ -68,10 +68,11 @@ Folio actions on an event folio use the existing folio permissions (`folio.post-
 
 The client is a prospect, not a signed customer, so we decided these ourselves on 2026-11-23.
 
-| #   | Decision                                                                                                                   |
-| --- | -------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Activities (River Safari, Night Walk) are Person facilities. Assigning a guide or a boat to a session is not in this plan. |
-| 2   | Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.                   |
+| #   | Decision                                                                                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Activities (River Safari, Night Walk) are Person facilities. Assigning a guide or a boat to a session is not in this plan.                                                                                                      |
+| 3   | A Person facility can be booked privately (a charter) at one private price, taking the whole session (decided by the owner on 2026-11-23). See [Private bookings](02-facility-settings.md#private-bookings-decided-2026-11-23). |
+| 2   | Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.                                                                                                                        |
 
 ## Not in this plan
 

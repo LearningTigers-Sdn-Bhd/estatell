@@ -28,7 +28,8 @@ class UpdateFacilityBooking
     /**
      * Change a booking's date, time, quantity, price and notes, and a reservation booking's Charge to. The facility
      * stays. Runs the same checks as `BookFacility`, leaving this booking out of the clash check. A Cancelled booking is
-     * refused (`facility_booking_cancelled`). A null price keeps the booking's price, and a reservation booking with no
+     * refused (`facility_booking_cancelled`). A null price keeps the booking's price; switching to or from a private
+     * booking takes the list price of the new kind instead, and a reservation booking with no
      * Charge to keeps its folio. Logs `facility_bookings.updated` on the owner, and `facility_bookings.price_changed`
      * when the price changes to one that is not the list price. Once posted (a `facility:{id}` line exists), only the
      * notes can change: any other change is refused (`facility_booking_posted`), and staff cancel and book again.
@@ -73,15 +74,18 @@ class UpdateFacilityBooking
                 $current->folio_id = ($target['folio'] ?? ($this->createFolio)($owner, $target['unit']))->id;
             }
 
-            $listPrice = $facility->chargeItem->default_amount;
+            $listPrice = $data->private ? $facility->private_amount : $facility->chargeItem->default_amount;
             $priceBefore = $current->unit_amount;
+            $switchesPrivate = $data->private !== $current->private;
+            $keptPrice = $switchesPrivate ? ($listPrice === null ? null : (string) $listPrice) : $current->unit_amount;
 
             $current->fill([
                 'booking_date' => $data->bookingDate,
                 'starts_at' => $data->startsAt,
                 'ends_at' => $data->endsAt,
                 'quantity' => $data->quantity,
-                'unit_amount' => $current->unit_amount === null ? null : ($data->unitAmount ?? $current->unit_amount),
+                'private' => $data->private,
+                'unit_amount' => $keptPrice === null ? null : ($data->unitAmount ?? $keptPrice),
                 'notes' => filled($data->notes) ? trim((string) $data->notes) : null,
             ]);
             $changes = array_keys($current->getDirty());
@@ -120,6 +124,7 @@ class UpdateFacilityBooking
             || substr($data->startsAt, 0, 5) !== substr($current->starts_at, 0, 5)
             || substr($data->endsAt, 0, 5) !== substr($current->ends_at, 0, 5)
             || $data->quantity !== $current->quantity
+            || $data->private !== $current->private
             || ($data->unitAmount !== null && $current->unit_amount !== null && ! BigDecimal::of($data->unitAmount)->isEqualTo(BigDecimal::of($current->unit_amount)))
             || ($owner instanceof Reservation && $data->chargeTo !== null && $data->chargeTo !== 'f'.$current->folio_id);
 

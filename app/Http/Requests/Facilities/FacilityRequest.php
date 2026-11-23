@@ -88,6 +88,7 @@ class FacilityRequest extends FormRequest
             'charge_by_hand' => ['boolean'],
             'default_amount' => ['exclude_if:charge_by_hand,true', 'required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'rate_basis' => ['required', Rule::enum(FacilityRateBasis::class)],
+            'private_amount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'active' => ['boolean'],
             'tax_ids' => ['sometimes', 'array'],
             'tax_ids.*' => ['integer', 'distinct', Rule::exists(Tax::class, 'id')->where('property_id', $property->id)],
@@ -106,8 +107,9 @@ class FacilityRequest extends FormRequest
 
     /**
      * `tax_ids` is null when the form sent none (the Available switch), so the charge item keeps its taxes.
+     * `private_amount` is there only when the form sent it, so the Available switch keeps it; an Item facility has none.
      *
-     * @return array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids: ?list<int>}
+     * @return array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids: ?list<int>, private_amount?: ?string}
      */
     public function facilityAttributes(): array
     {
@@ -121,6 +123,7 @@ class FacilityRequest extends FormRequest
             'rate_basis' => (string) $this->validated('rate_basis'),
             'active' => (bool) $this->validated('active'),
             'tax_ids' => $this->has('tax_ids') ? array_values(array_map('intval', (array) $this->validated('tax_ids', []))) : null,
+            ...($this->has('private_amount') ? ['private_amount' => $this->validated('booked_by') === FacilityBookedBy::Person->value && filled($this->validated('private_amount')) ? (string) $this->validated('private_amount') : null] : []),
         ];
     }
 }

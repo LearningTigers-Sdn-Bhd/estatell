@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Field,
+    FieldContent,
     FieldDescription,
     FieldError,
     FieldGroup,
@@ -26,6 +27,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { quote as quoteRoute, store, update } from '@/routes/facility-bookings';
 import { store as storeFolio } from '@/routes/facility-bookings/folios';
@@ -86,6 +88,8 @@ type FormData = {
     unit_amount: string;
     notes: string;
     charge_to: string;
+    /** A private booking (a charter): the whole facility at its time, at the private price. */
+    private: boolean;
 };
 
 /** The Charge to choice that swaps the Sheet to the payer step. */
@@ -125,6 +129,7 @@ function BookFacilityForm({
         quantity: booking ? String(booking.quantity) : '1',
         unit_amount: booking?.unitAmount ?? startFacility?.listPrice ?? '',
         notes: booking?.notes ?? '',
+        private: booking?.private ?? false,
         charge_to:
             booking?.chargeTo ??
             (startFacility && owner.type === 'reservation'
@@ -141,7 +146,10 @@ function BookFacilityForm({
         (one) => String(one.id) === data.facility_id,
     );
     const hasSessions = (facility?.sessions.length ?? 0) > 0;
-    const chargedByHand = facility !== undefined && facility.listPrice === null;
+    const listPrice = data.private
+        ? (facility?.privatePrice ?? null)
+        : (facility?.listPrice ?? null);
+    const chargedByHand = facility !== undefined && listPrice === null;
 
     const http = useHttp<Record<string, string | number | null>, Quote>(
         'post',
@@ -170,6 +178,7 @@ function BookFacilityForm({
                 ends_at: data.ends_at,
                 quantity: data.quantity === '' ? 1 : data.quantity,
                 unit_amount: chargedByHand ? null : data.unit_amount,
+                private: data.private ? 1 : 0,
             }));
             http.submit()
                 .then((answer) => current && setQuote(answer))
@@ -191,6 +200,7 @@ function BookFacilityForm({
         data.quantity,
         data.unit_amount,
         data.charge_to,
+        data.private,
     ]);
 
     const facilityOptions: EnumOption[] = facilities.map((one) => ({
@@ -226,6 +236,7 @@ function BookFacilityForm({
             starts_at: '',
             ends_at: '',
             unit_amount: picked?.listPrice ?? '',
+            private: false,
             charge_to:
                 owner.type === 'reservation' && !chargeToPicked
                     ? (owner.defaultChargeTo[value] ??
@@ -327,9 +338,17 @@ function BookFacilityForm({
     };
 
     const priceChanged =
-        facility?.listPrice != null &&
+        listPrice !== null &&
         data.unit_amount !== '' &&
-        Number(data.unit_amount) !== Number(facility.listPrice);
+        Number(data.unit_amount) !== Number(listPrice);
+
+    const togglePrivate = (checked: boolean) =>
+        setData((current) => ({
+            ...current,
+            private: checked,
+            unit_amount:
+                (checked ? facility?.privatePrice : facility?.listPrice) ?? '',
+        }));
 
     const submit = () => {
         form.transform((values) => ({
@@ -348,6 +367,7 @@ function BookFacilityForm({
             quantity: values.quantity,
             unit_amount: chargedByHand ? null : values.unit_amount || null,
             notes: values.notes,
+            private: values.private,
         }));
 
         const options = {
@@ -618,6 +638,31 @@ function BookFacilityForm({
                     <FieldError>{errors.quantity}</FieldError>
                 </Field>
 
+                {facility?.privatePrice != null && (
+                    <Field
+                        orientation="horizontal"
+                        className="items-start"
+                        data-invalid={!!errors.private}
+                    >
+                        <Switch
+                            id="booking-private"
+                            checked={data.private}
+                            onCheckedChange={togglePrivate}
+                            className="mt-0.5"
+                        />
+                        <FieldContent>
+                            <FieldLabel htmlFor="booking-private">
+                                Private booking
+                            </FieldLabel>
+                            <FieldDescription>
+                                Takes the whole {facility.name} at this time, at
+                                one price for the group. Nobody else can join.
+                            </FieldDescription>
+                            <FieldError>{errors.private}</FieldError>
+                        </FieldContent>
+                    </Field>
+                )}
+
                 {facility && !chargedByHand && (
                     <Field data-invalid={!!errors.unit_amount}>
                         <div className="flex items-baseline justify-between gap-2">
@@ -625,7 +670,9 @@ function BookFacilityForm({
                                 Price{currency ? ` (${currency.code})` : ''}
                             </FieldLabel>
                             <span className="text-sm text-muted-foreground">
-                                {facility.rateBasisLabel}
+                                {data.private
+                                    ? 'Per booking'
+                                    : facility.rateBasisLabel}
                             </span>
                         </div>
                         <MoneyInput
@@ -635,11 +682,11 @@ function BookFacilityForm({
                             onChange={(value) => setData('unit_amount', value)}
                             invalid={!!errors.unit_amount}
                         />
-                        {priceChanged && facility.listPrice !== null && (
+                        {priceChanged && listPrice !== null && (
                             <FieldDescription>
                                 List price{' '}
                                 <MoneyText
-                                    amount={facility.listPrice}
+                                    amount={listPrice}
                                     currency={currency}
                                     plain
                                 />

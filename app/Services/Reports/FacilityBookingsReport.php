@@ -94,7 +94,7 @@ class FacilityBookingsReport implements HasSections, Report
         $event = $booking->event;
         $reservation = $booking->reservation;
         $time = substr($booking->starts_at, 0, 5).'–'.substr($booking->ends_at, 0, 5);
-        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by);
+        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by, $booking->private);
         $roomList = $reservation === null ? [] : array_values(array_filter(array_map(
             fn (int $unitId): ?string => $rooms[$unitId] ?? null,
             $reservation->units->modelKeys(),
@@ -112,7 +112,7 @@ class FacilityBookingsReport implements HasSections, Report
             phone: $event !== null ? ($event->payerGuest->phone ?? $event->payerCompany->contact_phone ?? null) : $reservation?->booker->phone,
             folio: $booking->folio->number,
             amount: $booking->unit_amount === null ? null : (string) BigDecimal::of($booking->unit_amount)->multipliedBy($units)->toScale(2),
-            notes: $booking->notes,
+            notes: $booking->private ? trim(__('Private').' '.$booking->notes) : $booking->notes,
             section: $facility->id.'|'.$booking->booking_date->toDateString().'|'.$time,
             capacity: $facility->capacity,
             unit: $facility->booked_by->unit($facility->capacity),

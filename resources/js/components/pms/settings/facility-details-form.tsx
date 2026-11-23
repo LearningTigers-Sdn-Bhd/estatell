@@ -140,6 +140,7 @@ export function FacilityDetailsForm({
         charge_by_hand: facility.amount === null,
         default_amount: facility.amount ?? '',
         rate_basis: facility.rateBasis as string,
+        private_amount: facility.privateAmount ?? '',
         tax_ids: facility.taxIds.map(String),
     });
     const { data, errors, setData } = form;
@@ -236,6 +237,33 @@ export function FacilityDetailsForm({
                         />
                         <FieldError>{errors.rate_basis}</FieldError>
                     </Field>
+
+                    {data.booked_by === 'person' && (
+                        <Field
+                            className="md:col-span-2"
+                            data-invalid={!!errors.private_amount}
+                        >
+                            <FieldLabel htmlFor="facility-private-amount">
+                                Private price
+                            </FieldLabel>
+                            <MoneyInput
+                                id="facility-private-amount"
+                                currency={currency}
+                                placeholder="e.g. 700"
+                                value={data.private_amount}
+                                onChange={(value) =>
+                                    setData('private_amount', value)
+                                }
+                                invalid={!!errors.private_amount}
+                            />
+                            <FieldDescription>
+                                One price for a private booking, such as a
+                                private boat. It takes every place at that time.
+                                Leave empty if it cannot be booked privately.
+                            </FieldDescription>
+                            <FieldError>{errors.private_amount}</FieldError>
+                        </Field>
+                    )}
 
                     <Field
                         orientation="horizontal"

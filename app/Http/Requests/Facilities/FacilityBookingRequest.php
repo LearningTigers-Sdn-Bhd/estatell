@@ -37,6 +37,7 @@ class FacilityBookingRequest extends FormRequest
             'starts_at' => ['required', 'date_format:H:i'],
             'ends_at' => ['required', 'date_format:H:i', 'after:starts_at'],
             'quantity' => ['required', 'integer', 'min:1', 'max:9999'],
+            'private' => ['nullable', 'boolean'],
             'unit_amount' => ['nullable', 'decimal:0,2', 'min:0', 'max:9999999999'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'charge_to' => [Rule::requiredIf($isNew && $this->filled('reservation_id')), 'nullable', 'string', 'regex:/^[fu]\d+$/'],
@@ -67,6 +68,7 @@ class FacilityBookingRequest extends FormRequest
             unitAmount: $this->filled('unit_amount') ? $this->string('unit_amount')->toString() : null,
             notes: $this->filled('notes') ? $this->string('notes')->toString() : null,
             chargeTo: $this->filled('charge_to') ? $this->string('charge_to')->toString() : null,
+            private: $this->boolean('private'),
         );
     }
 }

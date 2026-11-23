@@ -111,11 +111,11 @@ class BookFacility
 
     /**
      * Save the booking with its price and log it on its owner. The list price is copied unless staff changed it (null
-     * for "Charge by hand").
+     * for "Charge by hand"). A private booking's list price is the facility's private price.
      */
     private function save(User $actor, Event|Reservation $owner, Facility $facility, Folio $folio, FacilityBookingInputData $data, FacilityBookingStatus $status): FacilityBooking
     {
-        $listPrice = $facility->chargeItem->default_amount;
+        $listPrice = $data->private ? $facility->private_amount : $facility->chargeItem->default_amount;
         $unitAmount = $listPrice === null ? null : ($data->unitAmount ?? (string) $listPrice);
 
         $booking = new FacilityBooking([
@@ -127,6 +127,7 @@ class BookFacility
             'starts_at' => $data->startsAt,
             'ends_at' => $data->endsAt,
             'quantity' => $data->quantity,
+            'private' => $data->private,
             'unit_amount' => $unitAmount,
             'status' => $status,
             'notes' => filled($data->notes) ? trim((string) $data->notes) : null,
@@ -147,6 +148,7 @@ class BookFacility
                 'starts_at' => $data->startsAt,
                 'ends_at' => $data->endsAt,
                 'quantity' => $data->quantity,
+                'private' => $data->private,
             ])
             ->log('Facility booked');
 

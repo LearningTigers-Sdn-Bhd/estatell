@@ -12,7 +12,8 @@ use Illuminate\Support\Collection;
  * The clash check for one facility, one date and one time range. Only Confirmed bookings block. One rule for items
  * and people: bookings fit while their quantity at every moment stays within the facility's capacity (one hall takes
  * one booking at a time). Times overlap when one starts before the other ends, so 09:00–18:00 and 18:00–23:00 do not. `$pending`
- * are unsaved bookings counted as if saved: the earlier lines of the New event page.
+ * are unsaved bookings counted as if saved: the earlier lines of the New event page. A private booking (a charter) takes the
+ * whole capacity at its time, however many people it brings, so it fits only when nothing else is booked then.
  * See docs/33-facilities/04-facility-bookings.md#clash-check.
  */
 class FacilityAvailability
@@ -23,12 +24,12 @@ class FacilityAvailability
      *
      * @param  iterable<FacilityBooking>  $pending
      */
-    public function refusalFor(Facility $facility, string $date, string $startsAt, string $endsAt, int $quantity, ?int $ignoreBookingId = null, iterable $pending = []): ?string
+    public function refusalFor(Facility $facility, string $date, string $startsAt, string $endsAt, int $quantity, ?int $ignoreBookingId = null, iterable $pending = [], bool $private = false): ?string
     {
         $confirmed = $this->overlapping($facility, $date, $startsAt, $endsAt, $ignoreBookingId, $pending)
             ->where('status', FacilityBookingStatus::Confirmed);
 
-        return $this->peak($confirmed, $startsAt, $endsAt) + $quantity > $facility->capacity
+        return $this->peak($facility, $confirmed, $startsAt, $endsAt) + ($private ? max($quantity, $facility->capacity) : $quantity) > $facility->capacity
             ? FacilityBookingResult::REFUSAL_FULL
             : null;
     }
@@ -44,7 +45,7 @@ class FacilityAvailability
         $confirmed = $this->overlapping($facility, $date, $startsAt, $endsAt, $ignoreBookingId, $pending)
             ->where('status', FacilityBookingStatus::Confirmed);
 
-        return max(0, $facility->capacity - $this->peak($confirmed, $startsAt, $endsAt));
+        return max(0, $facility->capacity - $this->peak($facility, $confirmed, $startsAt, $endsAt));
     }
 
     /**
@@ -92,12 +93,13 @@ class FacilityAvailability
     }
 
     /**
-     * The largest quantity the bookings take at one moment inside the range. The quantity only rises when a booking
-     * starts, so the start of the range and every booking start inside it are enough to check.
+     * The largest quantity the bookings take at one moment inside the range. A private booking takes the whole capacity.
+     * The quantity only rises when a booking starts, so the start of the range and every booking start inside it are
+     * enough to check.
      *
      * @param  Collection<int, FacilityBooking>  $bookings
      */
-    private function peak(Collection $bookings, string $startsAt, string $endsAt): int
+    private function peak(Facility $facility, Collection $bookings, string $startsAt, string $endsAt): int
     {
         $from = self::time($startsAt);
         $to = self::time($endsAt);
@@ -111,7 +113,7 @@ class FacilityAvailability
         return (int) $moments
             ->map(fn (string $moment): int => (int) $bookings
                 ->filter(fn (FacilityBooking $booking): bool => self::time($booking->starts_at) <= $moment && self::time($booking->ends_at) > $moment)
-                ->sum('quantity'))
+                ->sum(fn (FacilityBooking $booking): int => $booking->private ? max($booking->quantity, $facility->capacity) : $booking->quantity))
             ->max();
     }
 
