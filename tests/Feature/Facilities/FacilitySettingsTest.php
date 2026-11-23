@@ -183,6 +183,35 @@ test('owners add, change and delete sessions of a facility', function () {
     expect(Activity::query()->whereIn('event', ['facility_session.created', 'facility_session.updated', 'facility_session.deleted'])->count())->toBe(3);
 });
 
+test('a range adds back-to-back sessions, drops the time left over and skips sessions already added', function () {
+    ['owner' => $owner, 'property' => $property] = facilitySetup();
+    $bbq = Facility::factory()->for($property)->create(['name' => 'BBQ pit']);
+    FacilitySession::factory()->for($bbq)->create(['property_id' => $property->id, 'starts_at' => '10:00', 'ends_at' => '12:00']);
+    $this->actingAs($owner);
+
+    $this->post(route('settings.facilities.sessions.store', [$property->code, $bbq]), ['starts_at' => '08:00', 'ends_at' => '15:00', 'length' => '120'])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast.message', '2 sessions added.');
+
+    expect($bbq->sessions()->ordered()->get()->map(fn (FacilitySession $session): string => substr($session->starts_at, 0, 5).'–'.substr($session->ends_at, 0, 5))->all())
+        ->toBe(['08:00–10:00', '10:00–12:00', '12:00–14:00'])
+        ->and(Activity::query()->where('event', 'facility_session.created')->count())->toBe(2);
+});
+
+test('a range refuses a length that does not fit and sessions that all exist', function () {
+    ['owner' => $owner, 'property' => $property] = facilitySetup();
+    $bbq = Facility::factory()->for($property)->create(['name' => 'BBQ pit']);
+    FacilitySession::factory()->for($bbq)->create(['property_id' => $property->id, 'starts_at' => '12:00', 'ends_at' => '13:00']);
+    $this->actingAs($owner);
+
+    $this->post(route('settings.facilities.sessions.store', [$property->code, $bbq]), ['starts_at' => '12:00', 'ends_at' => '13:00', 'length' => '120'])
+        ->assertSessionHasErrors(['length' => 'A session this long does not fit between From and To.']);
+    $this->post(route('settings.facilities.sessions.store', [$property->code, $bbq]), ['starts_at' => '12:00', 'ends_at' => '13:00', 'length' => '60'])
+        ->assertSessionHasErrors(['ends_at' => 'This facility already has a session at these times.']);
+
+    expect($bbq->sessions()->count())->toBe(1);
+});
+
 test('a facility booked by item takes sessions too', function () {
     ['owner' => $owner, 'property' => $property] = facilitySetup();
     $onsen = Facility::factory()->for($property)->create(['name' => 'Private onsen']);

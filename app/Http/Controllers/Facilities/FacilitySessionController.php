@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Facilities;
 
+use App\Actions\Facilities\AddFacilitySessions;
 use App\Actions\Facilities\DeleteFacilitySession;
 use App\Actions\Facilities\SaveFacilitySession;
 use App\Data\Facilities\FacilityData;
 use App\Data\Facilities\FacilitySessionData;
 use App\Data\Property\CurrencyData;
+use App\Enums\FacilitySessionLength;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Facilities\AddFacilitySessionsRequest;
 use App\Http\Requests\Facilities\FacilitySessionRequest;
 use App\Models\Facility;
 use App\Models\FacilitySession;
@@ -35,15 +38,19 @@ class FacilitySessionController extends Controller
                 ->get()
                 ->map(fn (FacilitySession $session): FacilitySessionData => FacilitySessionData::fromModel($session))
                 ->all(),
+            'sessionLengths' => FacilitySessionLength::options(),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
-    public function store(FacilitySessionRequest $request, Property $property, Facility $facility, SaveFacilitySession $saveSession): RedirectResponse
+    /**
+     * Adds one session, or every session of a range at once. Sessions the facility already has are skipped.
+     */
+    public function store(AddFacilitySessionsRequest $request, Property $property, Facility $facility, AddFacilitySessions $addSessions): RedirectResponse
     {
-        $saveSession($request->user(), $facility, $request->sessionAttributes());
+        $added = $addSessions($request->user(), $facility, (string) $request->validated('starts_at'), (string) $request->validated('ends_at'), $request->length());
 
-        return $this->saved($property, $facility, __('Session added.'));
+        return $this->saved($property, $facility, count($added) === 1 ? __('Session added.') : __(':count sessions added.', ['count' => count($added)]));
     }
 
     public function update(FacilitySessionRequest $request, Property $property, Facility $facility, FacilitySession $session, SaveFacilitySession $saveSession): RedirectResponse

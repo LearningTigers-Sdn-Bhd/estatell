@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { Clock, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { FacilitySessionDialog } from '@/components/pms/settings/facility-session-dialog';
 import {
     FacilityShell,
@@ -40,10 +41,12 @@ type Session = App.Data.Facilities.FacilitySessionData;
 export default function FacilitySessions({
     facility,
     sessions,
+    sessionLengths,
     currency,
 }: {
     facility: Facility;
     sessions: Session[];
+    sessionLengths: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
     const [dialog, setDialog] = useState<{
@@ -77,7 +80,7 @@ export default function FacilitySessions({
                             }
                         >
                             <Plus data-icon="inline-start" />
-                            Add session
+                            Add sessions
                         </Button>
                     </header>
 
@@ -167,6 +170,8 @@ export default function FacilitySessions({
                 }
                 facilityId={facility.id}
                 session={dialog.session}
+                sessions={sessions}
+                sessionLengths={sessionLengths}
             />
 
             <AlertDialog

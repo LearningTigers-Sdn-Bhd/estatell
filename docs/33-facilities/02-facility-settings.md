@@ -130,7 +130,9 @@ From     To
 20:00    22:00     ⋯
 ```
 
-- **+ Add session** and **⋯ › Edit** open a Dialog with two time fields: From (e.g. 20:00) and To (e.g. 22:00). **⋯ › Delete** asks first.
+- **+ Add sessions** opens a Dialog with From (e.g. 08:00), To (e.g. 22:00) and **Each lasts** (`FacilitySessionLength`: Whole range, 30 minutes, 1 hour, 1½ hours, 2 hours, 3 hours, 4 hours). It adds every back-to-back session in the range at once (`AddFacilitySessions`, split by `FacilitySessionSlots`). A time left over at the end is dropped (08:00–21:00 in 2 hours stops at 20:00). Sessions the facility already has are skipped. A preview lists the sessions before saving, and the button says how many it adds. Whole range adds one session.
+- Refusals: a length that does not fit between From and To, and a range whose sessions all exist.
+- **⋯ › Edit** opens the same Dialog for one session, with From and To only. **⋯ › Delete** asks first.
 - Rows sort by `starts_at`.
 - A booking copies the session's times and has no link to the session. Changing or deleting a session does not change saved bookings.
 
@@ -141,7 +143,8 @@ From     To
 | `CreateFacility`        | Creates the facility and its charge item in one transaction. Logs `facility.created`                                                  |
 | `UpdateFacility`        | Updates both, including the Available switches. Without `tax_ids` the taxes stay. Logs `facility.updated`. Refuses `booked_by_locked` |
 | `ReorderFacilities`     | Saves `position`. Refuses a list that is not exactly the property's facilities                                                        |
-| `SaveFacilitySession`   | Creates or updates one session. The same times twice is a validation error                                                            |
+| `AddFacilitySessions`   | Adds the sessions of a range in one transaction, skipping those that exist. Logs `facility_session.created` for each                  |
+| `SaveFacilitySession`   | Updates one session. The same times twice is a validation error                                                                       |
 | `DeleteFacilitySession` | Deletes one session                                                                                                                   |
 
 ## Routes

@@ -8,7 +8,7 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Add or change one session of a facility. */
+/** Change one session of a facility. Adding goes through AddFacilitySessionsRequest. */
 class FacilitySessionRequest extends FormRequest
 {
     /**

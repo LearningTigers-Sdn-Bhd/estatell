@@ -5875,6 +5875,7 @@ export type EventStatus = 'tentative' | 'confirmed' | 'completed' | 'cancelled';
 export type FacilityBookedBy = 'item' | 'person';
 export type FacilityBookingStatus = 'tentative' | 'confirmed' | 'cancelled';
 export type FacilityRateBasis = 'day' | 'session' | 'hour' | 'each';
+export type FacilitySessionLength = 'whole' | '30' | '60' | '90' | '120' | '180' | '240';
 export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
 export type FolioStatus = 'open' | 'closed' | 'voided';
