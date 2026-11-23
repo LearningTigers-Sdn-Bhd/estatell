@@ -18,14 +18,15 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { store } from '@/routes/reservations/folios/payments/refunds';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Row = App.Data.Folio.FolioRowData;
 
 type FormProps = {
     open: boolean;
     onClose: () => void;
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     row: Row;
     currency: App.Data.Property.CurrencyData | null;
@@ -36,7 +37,7 @@ type FormProps = {
 function RefundForm({
     open,
     onClose,
-    reservationId,
+    owner,
     folioId,
     row,
     currency,
@@ -66,18 +67,11 @@ function RefundForm({
             reason: values.payment_method_id === '' ? '' : values.reason,
             idempotency_key: key,
         }));
-        form.post(
-            store.url({
-                reservation: reservationId,
-                folio: folioId,
-                payment: row.paymentId ?? 0,
-            }),
-            {
-                preserveScroll: true,
-                except: KEEP_OPTIONS,
-                onSuccess: onClose,
-            },
-        );
+        form.post(folioRoutes(owner).refund(folioId, row.paymentId ?? 0).url, {
+            preserveScroll: true,
+            except: KEEP_OPTIONS,
+            onSuccess: onClose,
+        });
     };
 
     return (
@@ -177,7 +171,7 @@ function RefundForm({
  * refunded: reverse that charge on its own when the fee must go too.
  */
 export function RefundPaymentDialog({
-    reservationId,
+    owner,
     folioId,
     row,
     currency,
@@ -185,7 +179,7 @@ export function RefundPaymentDialog({
     options,
     onClose,
 }: {
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     row: Row | null;
     currency: App.Data.Property.CurrencyData | null;
@@ -206,7 +200,7 @@ export function RefundPaymentDialog({
             key={`${kept.lineId}-${fresh}`}
             open={open}
             onClose={onClose}
-            reservationId={reservationId}
+            owner={owner}
             folioId={folioId}
             row={kept}
             currency={currency}

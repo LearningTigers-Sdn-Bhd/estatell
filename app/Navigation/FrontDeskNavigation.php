@@ -7,6 +7,7 @@ use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
 use App\Features\Boats;
+use App\Features\Facilities;
 use App\Features\PosIntegration;
 use App\Models\Property;
 use App\Models\User;
@@ -76,14 +77,20 @@ class FrontDeskNavigation
                     active: request()->routeIs('reports.house-status'),
                 ) : null,
             ]))),
-            new NavGroupData(label: __('Reservations'), items: array_filter([
+            new NavGroupData(label: __('Reservations'), items: array_values(array_filter([
                 $user->can(PermissionEnum::ReservationsView->value) ? new NavItemData(
                     title: __('All reservations'),
                     href: route('reservations.index', ['property' => $property->code], absolute: false),
                     icon: 'calendar-check',
                     active: request()->routeIs('reservations.*'),
                 ) : null,
-            ])),
+                $user->can(PermissionEnum::EventsView->value) && Feature::for($property)->active(Facilities::class) ? new NavItemData(
+                    title: __('Events'),
+                    href: route('events.index', ['property' => $property->code], absolute: false),
+                    icon: 'calendar-heart',
+                    active: request()->routeIs('events.*'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Guests'), items: array_filter([
                 $user->can(PermissionEnum::GuestsView->value) ? new NavItemData(
                     title: __('Guests'),

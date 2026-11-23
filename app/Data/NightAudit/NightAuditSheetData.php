@@ -79,7 +79,8 @@ class NightAuditSheetData extends Data
     }
 
     /**
-     * One group for each check and reservation, in the order of the items (blockers first).
+     * One group for each check and reservation, in the order of the items (blockers first). A facility exception is a
+     * group of its own.
      *
      * @param  list<ReadinessItem>  $items
      * @return list<ReadinessGroupData>
@@ -89,7 +90,7 @@ class NightAuditSheetData extends Data
         $byKey = [];
 
         foreach ($items as $item) {
-            $byKey[$item->check->value.':'.$item->reservationId][] = $item;
+            $byKey[ReadinessGroupData::keyFor($item)][] = $item;
         }
 
         return array_values(array_map(fn (array $group): ReadinessGroupData => ReadinessGroupData::fromItems($group, $property, $advice, $canCheckIn, $canCheckOut), $byKey));

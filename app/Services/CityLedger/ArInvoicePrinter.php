@@ -12,6 +12,7 @@ use App\Services\Folio\DocumentLines;
 use App\Services\Folio\FolioDocumentRows;
 use App\Services\Folio\FolioPaymentRows;
 use App\Services\Property\AmountInWords;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Reads an AR invoice or credit note and gathers what its PDF shows. An invoice prints the folio's lines through the
@@ -32,7 +33,7 @@ class ArInvoicePrinter
 
     public function forInvoice(ArInvoice $invoice): ArInvoiceDocument
     {
-        $invoice->loadMissing(['property.settings', 'property.printSetting', 'company', 'folio.reservation', 'folio.payerCompany', 'creditFor:id,number']);
+        $invoice->loadMissing(['property.settings', 'property.printSetting', 'company', 'folio.reservation', 'folio.event:id,number', 'folio.payerCompany', 'creditFor:id,number']);
         $company = $invoice->company;
         $isInvoice = $invoice->type === ArInvoiceType::Invoice;
         $issuedOn = $invoice->issued_on->format('j M Y');
@@ -66,7 +67,7 @@ class ArInvoicePrinter
 
         if ($folio instanceof Folio) {
             $property = $invoice->property;
-            $units = $folio->reservation->units()->with(['roomType', 'guests.guest'])->orderBy('id')->get();
+            $units = $folio->reservation === null ? new EloquentCollection : $folio->reservation->units()->with(['roomType', 'guests.guest'])->orderBy('id')->get();
             $places = $this->documentRows->places($property, $units);
             $rows = $this->documentRows->for($property, $folio->lines()->orderBy('posting_date')->orderBy('id')->get(), $units, $places);
             $groups = $this->documentLines->group($rows, $settings);
@@ -78,7 +79,7 @@ class ArInvoicePrinter
 
         return new ArInvoiceDocument(
             ...$base,
-            strip: $this->strip($company->name, $billToLines, $issuedOn, $dueOn, $folio?->reservation?->reference),
+            strip: $this->strip($company->name, $billToLines, $issuedOn, $dueOn, $folio?->reservation->reference ?? $folio?->event?->number),
             rooms: $rooms,
             lines: $groups instanceof DocumentLineGroups && ($groups->groups !== [] || $groups->taxes !== []) ? $groups : null,
             payments: $payments,

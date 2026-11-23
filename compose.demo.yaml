@@ -1,48 +1,81 @@
-# demo.estatell.com: same image as production, reset every night. See docs/deployment/demo_environment.md.
+# demo.estatell.com: same image as production, data kept between days. See docs/deployment/demo_environment.md.
+x-app: &app
+    build:
+        context: .
+        dockerfile: Dockerfile
+        args:
+            VITE_APP_NAME: ${APP_NAME:-estatell}
+    image: estatell-app:demo
+    restart: unless-stopped
+    environment: &app-env
+        APP_NAME: ${APP_NAME:-estatell}
+        # Not "production": production prohibits migrate:fresh (AppServiceProvider::configureDefaults).
+        APP_ENV: demo
+        APP_DEBUG: 'false'
+        APP_KEY: ${APP_KEY}
+        APP_URL: ${APP_URL:-https://demo.estatell.com}
+        TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
+        DB_CONNECTION: pgsql
+        DB_HOST: ${DB_HOST}
+        DB_PORT: ${DB_PORT:-5432}
+        DB_DATABASE: ${DB_DATABASE:-estatell_demo}
+        DB_USERNAME: ${DB_USERNAME:-estatell_demo}
+        DB_PASSWORD: ${DB_PASSWORD}
+        # No Redis: the worker reads the jobs table.
+        QUEUE_CONNECTION: database
+        CACHE_STORE: database
+        SESSION_DRIVER: database
+        MAIL_MAILER: log
+        CIPHERSWEET_KEY: ${CIPHERSWEET_KEY}
+        DEMO_PASSWORD: ${DEMO_PASSWORD}
+        # Booking API test mode: Curlec test keys only. See docs/29-booking-engine/09-api-only-mode.md#test-mode.
+        DEMO_BOOKING_API_TOKEN: ${DEMO_BOOKING_API_TOKEN:-}
+        CURLEC_BASE_URL: ${CURLEC_BASE_URL:-https://api.razorpay.com/v1}
+        CURLEC_ACCOUNT: ${CURLEC_ACCOUNT:-primary}
+        CURLEC_KEY_ID: ${CURLEC_KEY_ID:-}
+        CURLEC_KEY_SECRET: ${CURLEC_KEY_SECRET:-}
+        CURLEC_WEBHOOK_SECRET: ${CURLEC_WEBHOOK_SECRET:-}
+        BOOKING_SITE_URL: ${BOOKING_SITE_URL:-https://booking.estatell.com}
+        BOOKING_API_DOCS_URL: ${BOOKING_API_DOCS_URL:-https://docs.estatell.com/en/docs/developers/booking-api}
+        AUTORUN_ENABLED: 'false'
+        # The demo has no ssr service, and is not for search engines.
+        INERTIA_SSR_ENABLED: 'false'
+    volumes:
+        # Uploads (ID scans, signatures, photos). Shared by all services. A manual reset clears this folder.
+        - demo-media:/var/www/html/storage/app/private
+
 services:
     web:
-        build:
-            context: .
-            dockerfile: Dockerfile
-            args:
-                VITE_APP_NAME: ${APP_NAME:-estatell}
-        image: estatell-app:demo
-        restart: unless-stopped
+        <<: *app
         environment:
-            APP_NAME: ${APP_NAME:-estatell}
-            # Not "production": production prohibits migrate:fresh (AppServiceProvider::configureDefaults).
-            APP_ENV: demo
-            APP_DEBUG: 'false'
-            APP_KEY: ${APP_KEY}
-            APP_URL: ${APP_URL:-https://demo.estatell.com}
-            TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
-            DB_CONNECTION: pgsql
-            DB_HOST: ${DB_HOST}
-            DB_PORT: ${DB_PORT:-5432}
-            DB_DATABASE: ${DB_DATABASE:-estatell_demo}
-            DB_USERNAME: ${DB_USERNAME:-estatell_demo}
-            DB_PASSWORD: ${DB_PASSWORD}
-            QUEUE_CONNECTION: sync
-            CACHE_STORE: database
-            SESSION_DRIVER: database
-            MAIL_MAILER: log
-            CIPHERSWEET_KEY: ${CIPHERSWEET_KEY}
-            DEMO_PASSWORD: ${DEMO_PASSWORD}
-            # Booking API test mode: Curlec test keys only. See docs/29-booking-engine/09-api-only-mode.md#test-mode.
-            DEMO_BOOKING_API_TOKEN: ${DEMO_BOOKING_API_TOKEN:-}
-            CURLEC_BASE_URL: ${CURLEC_BASE_URL:-https://api.razorpay.com/v1}
-            CURLEC_ACCOUNT: ${CURLEC_ACCOUNT:-primary}
-            CURLEC_KEY_ID: ${CURLEC_KEY_ID:-}
-            CURLEC_KEY_SECRET: ${CURLEC_KEY_SECRET:-}
-            CURLEC_WEBHOOK_SECRET: ${CURLEC_WEBHOOK_SECRET:-}
-            BOOKING_SITE_URL: ${BOOKING_SITE_URL:-https://booking.estatell.com}
-            BOOKING_API_DOCS_URL: ${BOOKING_API_DOCS_URL:-https://docs.estatell.com/en/docs/developers/booking-api}
+            <<: *app-env
             AUTORUN_ENABLED: 'true'
-            # The demo has no ssr service, and is not for search engines.
-            INERTIA_SSR_ENABLED: 'false'
-        volumes:
-            # Uploads. The nightly reset clears this folder.
-            - demo-media:/var/www/html/storage/app/private
+
+    # Same settings as the production Horizon supervisor (config/horizon.php): both queues, 1 try, 60 s, 128 MB.
+    worker:
+        <<: *app
+        command:
+            [
+                'php',
+                '/var/www/html/artisan',
+                'queue:work',
+                '--queue=default,loyverse',
+                '--tries=1',
+                '--timeout=60',
+                '--memory=128',
+            ]
+        stop_signal: SIGTERM
+        healthcheck:
+            test: ['CMD', 'healthcheck-queue']
+            start_period: 10s
+
+    scheduler:
+        <<: *app
+        command: ['php', '/var/www/html/artisan', 'schedule:work']
+        stop_signal: SIGTERM
+        healthcheck:
+            test: ['CMD', 'healthcheck-schedule']
+            start_period: 10s
 
 volumes:
     demo-media:

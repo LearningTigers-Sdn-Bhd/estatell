@@ -71,7 +71,7 @@ php artisan db:seed --class=BorenoProductionSeeder --force --no-interaction
 - If a property named Boreno Hotel already exists, the seeder skips it without changing data or passwords.
 - The seeder does not reset production. Never use `migrate:fresh` for this property.
 
-This property has normal production behavior. Demo account restrictions and the nightly demo reset do not apply. No mail, jobs or reports exclude it automatically.
+This property has normal production behavior. Demo account restrictions and the demo reset do not apply. No mail, jobs or reports exclude it automatically.
 
 ## Varsity Loft for sales pitches
 

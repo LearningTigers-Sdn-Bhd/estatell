@@ -14,6 +14,7 @@ use App\Http\Middleware\EnsureConciergeIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEInvoicingIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsureFacilitiesAreActive;
 use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
 use App\Http\Middleware\EnsureOnboarding;
@@ -73,6 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'support.2fa' => RequireSupportTwoFactor::class,
             'beds' => EnsureBedsAreActive::class,
             'boats' => EnsureBoatsIsActive::class,
+            'facilities' => EnsureFacilitiesAreActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
             'einvoicing' => EnsureEInvoicingIsActive::class,
@@ -101,6 +103,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBedsAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureFacilitiesAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureEInvoicingIsActive::class);

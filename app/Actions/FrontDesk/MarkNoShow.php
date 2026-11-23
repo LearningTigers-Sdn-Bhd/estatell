@@ -2,6 +2,7 @@
 
 namespace App\Actions\FrontDesk;
 
+use App\Actions\Facilities\CancelFacilityBookings;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\SystemTransactionCode;
@@ -26,6 +27,7 @@ class MarkNoShow
         private RemoveUnpostedAddOns $removeUnpostedAddOns,
         private ReleaseUnitRooms $releaseUnitRooms,
         private SyncReservationStatus $syncReservationStatus,
+        private CancelFacilityBookings $cancelFacilityBookings,
     ) {}
 
     /**
@@ -111,6 +113,8 @@ class MarkNoShow
                     'business_date' => $businessDate->toDateString(),
                 ])
                 ->log('Unit marked as no-show');
+
+            $this->cancelFacilityBookings->forEndedReservation($actor, $locked->reservation);
 
             ($this->syncReservationStatus)($locked->reservation);
 

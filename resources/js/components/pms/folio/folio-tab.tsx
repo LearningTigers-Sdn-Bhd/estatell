@@ -86,7 +86,8 @@ import { credit as companyCredit } from '@/routes/finance/city-ledger/companies'
 import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
 import { show as showEInvoice } from '@/routes/finance/e-invoices';
 import { move as moveCharges } from '@/routes/reservations/folio';
-import { invoice, reopen } from '@/routes/reservations/folios';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 import { cn } from '@/lib/utils';
 
 function Figure({
@@ -109,7 +110,7 @@ function Figure({
  * Balance, Projected total and rows. Everything is worked out on the server, including which actions a row offers.
  */
 export function FolioTab({
-    reservationId,
+    owner,
     units,
     folio,
     chargeItems,
@@ -132,7 +133,8 @@ export function FolioTab({
     onCorrectPrice,
     currency,
 }: {
-    reservationId: number;
+    /** The reservation or event the folio belongs to. An event folio has no units, routing, moves, manual entry or e-invoice. */
+    owner: FolioOwner;
     units: App.Data.Reservations.ReservationUnitOptionData[];
     folio: App.Data.Folio.FolioData | null;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
@@ -160,6 +162,9 @@ export function FolioTab({
     currency: App.Data.Property.CurrencyData | null;
 }) {
     const canCorrectMoney = useCanCorrectMoney();
+    // Routing, moves, manual entry and e-invoice belong to a reservation. The server never offers them on an
+    // event folio, so their pieces below never show for one.
+    const reservationId = owner.kind === 'reservation' ? owner.id : 0;
     const [loadingCredit, setLoadingCredit] = useState(false);
     const [loadingVoid, setLoadingVoid] = useState(false);
     const creditFlow = useCreditNoteFlow(false, (done) =>
@@ -366,7 +371,7 @@ export function FolioTab({
                 folio.canVoidAndReopen &&
                 folio.arInvoiceNumber && (
                     <VoidInvoiceAndReopenDialog
-                        reservationId={reservationId}
+                        owner={owner}
                         folioId={Number(folio.key)}
                         invoiceNumber={folio.arInvoiceNumber}
                         invoice={creditInvoice}
@@ -462,13 +467,15 @@ export function FolioTab({
                                             <DropdownMenuItem
                                                 render={
                                                     <a
-                                                        href={invoice.url({
-                                                            reservation:
-                                                                reservationId,
-                                                            folio: Number(
-                                                                folio.key,
-                                                            ),
-                                                        })}
+                                                        href={
+                                                            folioRoutes(
+                                                                owner,
+                                                            ).invoice(
+                                                                Number(
+                                                                    folio.key,
+                                                                ),
+                                                            ).url
+                                                        }
                                                         target="_blank"
                                                         rel="noreferrer"
                                                     />
@@ -696,15 +703,15 @@ export function FolioTab({
                                                     <DropdownMenuItem
                                                         render={
                                                             <a
-                                                                href={invoice.url(
-                                                                    {
-                                                                        reservation:
-                                                                            reservationId,
-                                                                        folio: Number(
+                                                                href={
+                                                                    folioRoutes(
+                                                                        owner,
+                                                                    ).invoice(
+                                                                        Number(
                                                                             folio.key,
                                                                         ),
-                                                                    },
-                                                                )}
+                                                                    ).url
+                                                                }
                                                                 target="_blank"
                                                                 rel="noreferrer"
                                                             />
@@ -786,13 +793,13 @@ export function FolioTab({
                                         <>
                                             {folio.canPrintInvoice && (
                                                 <a
-                                                    href={invoice.url({
-                                                        reservation:
-                                                            reservationId,
-                                                        folio: Number(
-                                                            folio.key,
-                                                        ),
-                                                    })}
+                                                    href={
+                                                        folioRoutes(
+                                                            owner,
+                                                        ).invoice(
+                                                            Number(folio.key),
+                                                        ).url
+                                                    }
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className={buttonVariants({
@@ -808,10 +815,9 @@ export function FolioTab({
                                     )}
                                     {folio.canReopen && (
                                         <Form
-                                            {...reopen.form({
-                                                reservation: reservationId,
-                                                folio: Number(folio.key),
-                                            })}
+                                            {...folioRoutes(owner).reopen(
+                                                Number(folio.key),
+                                            ).form}
                                             options={{
                                                 preserveScroll: true,
                                                 except: KEEP_OPTIONS,
@@ -847,7 +853,7 @@ export function FolioTab({
                         />
                     ) : (
                         <FolioRowsTable
-                            reservationId={reservationId}
+                            owner={owner}
                             folioId={Number(folio.key)}
                             rows={folio.rows}
                             currency={currency}
@@ -922,7 +928,7 @@ export function FolioTab({
                     <PostChargeDialog
                         open={posting}
                         onOpenChange={setPosting}
-                        reservationId={reservationId}
+                        owner={owner}
                         folio={folio}
                         chargeItems={chargeItems}
                         currency={currency}
@@ -932,14 +938,14 @@ export function FolioTab({
                     <RecordPaymentDialog
                         open={paying}
                         onOpenChange={setPaying}
-                        reservationId={reservationId}
+                        owner={owner}
                         folio={folio}
                         options={paymentOptions}
                         currency={currency}
                     />
                 )}
                 <RefundPaymentDialog
-                    reservationId={reservationId}
+                    owner={owner}
                     folioId={Number(folio.key)}
                     row={refunding}
                     currency={currency}
@@ -948,7 +954,7 @@ export function FolioTab({
                     onClose={() => setRefunding(null)}
                 />
                 <VoidPaymentDialog
-                    reservationId={reservationId}
+                    owner={owner}
                     folioId={Number(folio.key)}
                     row={voiding}
                     currency={currency}
@@ -958,7 +964,7 @@ export function FolioTab({
                     <RefundCreditDialog
                         open={refundingCredit}
                         onOpenChange={setRefundingCredit}
-                        reservationId={reservationId}
+                        owner={owner}
                         folio={folio}
                         currency={currency}
                         options={paymentOptions}
@@ -969,7 +975,7 @@ export function FolioTab({
                         key={voucherInitial.join(',')}
                         open={voucherOpen}
                         onOpenChange={setVoucherOpen}
-                        reservationId={reservationId}
+                        owner={owner}
                         folioId={
                             folio.kind === 'not_started'
                                 ? null
@@ -986,7 +992,7 @@ export function FolioTab({
                     <SettleCityLedgerDialog
                         open={settling}
                         onOpenChange={setSettling}
-                        reservationId={reservationId}
+                        owner={owner}
                         folio={folio}
                         currency={currency}
                     />
@@ -995,7 +1001,7 @@ export function FolioTab({
                     <CloseFolioDialog
                         open={closing}
                         onOpenChange={setClosing}
-                        reservationId={reservationId}
+                        owner={owner}
                         folio={folio}
                     />
                 )}
@@ -1011,14 +1017,14 @@ export function FolioTab({
                     <ApplyDiscountDialog
                         open={discounting}
                         onOpenChange={setDiscounting}
-                        reservationId={reservationId}
+                        owner={owner}
                         folioId={Number(folio.key)}
                         discounts={folioDiscounts}
                         currency={currency}
                     />
                 )}
                 <RemoveDiscountDialog
-                    reservationId={reservationId}
+                    owner={owner}
                     folioId={Number(folio.key)}
                     row={removing}
                     onClose={() => setRemoving(null)}
@@ -1038,7 +1044,7 @@ export function FolioTab({
                     />
                 )}
                 <ReverseLineDialog
-                    reservationId={reservationId}
+                    owner={owner}
                     folioId={Number(folio.key)}
                     row={reversing}
                     onClose={() => setReversing(null)}

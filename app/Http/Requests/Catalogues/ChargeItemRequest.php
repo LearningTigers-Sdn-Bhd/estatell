@@ -100,7 +100,7 @@ class ChargeItemRequest extends FormRequest
                     }
                 },
             ],
-            'category' => ['required', Rule::enum(TransactionCategory::class)->only(TransactionCategory::chargeItemCases())],
+            'category' => ['required', Rule::enum(TransactionCategory::class)->only(TransactionCategory::pickableChargeItemCases())],
             'description' => ['nullable', 'string', 'max:2000'],
             'default_amount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'charging_unit' => ['required', Rule::enum(ChargingUnit::class)],

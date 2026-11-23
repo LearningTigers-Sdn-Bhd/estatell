@@ -26,8 +26,16 @@ class AvailablePaymentMethod
 
     public function find(Reservation $reservation, int $methodId, ?User $actor, bool $allowOtaCollected = false, bool $allowOnline = false): ?PaymentMethod
     {
+        return $this->findFor($reservation->property, $methodId, $actor, $allowOtaCollected, $allowOnline);
+    }
+
+    /**
+     * The same for a folio with no reservation (an event folio): the property's method, by the same rules.
+     */
+    public function findFor(Property $property, int $methodId, ?User $actor, bool $allowOtaCollected = false, bool $allowOnline = false): ?PaymentMethod
+    {
         $method = PaymentMethod::query()
-            ->where('property_id', $reservation->property_id)
+            ->where('property_id', $property->id)
             ->where('type', '!=', PaymentMethodType::DirectBill)
             ->when(! $allowOtaCollected, fn ($query) => $query->where('type', '!=', PaymentMethodType::OtaCollected))
             ->when(! $allowOnline, fn ($query) => $query->where('type', '!=', PaymentMethodType::Online))
@@ -41,7 +49,7 @@ class AvailablePaymentMethod
         if ($method->type === PaymentMethodType::OldSystem) {
             $codeUsable = $method->transactionCode->active && $method->transactionCode->kind === TransactionKind::Payment;
 
-            return $codeUsable && $this->oldSystemOffered($reservation->property, $actor) ? $method : null;
+            return $codeUsable && $this->oldSystemOffered($property, $actor) ? $method : null;
         }
 
         if (! $method->active || ! $method->transactionCode->active || $method->transactionCode->kind !== TransactionKind::Payment) {

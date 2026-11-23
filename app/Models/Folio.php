@@ -14,12 +14,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * The bill for a reservation or one of its units. The balance is `SUM(folio_lines.amount)` and is never stored
+ * The bill for a reservation, one of its units, or an event (people who are not staying). It belongs to exactly one
+ * reservation or one event. The balance is `SUM(folio_lines.amount)` and is never stored
  * (see `FolioBalance`). See docs/13-folio/01-folios-and-lines.md.
  *
  * @property int $id
  * @property int $property_id
- * @property int $reservation_id
+ * @property int|null $reservation_id Null for an event folio.
+ * @property int|null $event_id Set only on an event folio.
  * @property int|null $reservation_unit_id
  * @property string $number
  * @property FolioType $type
@@ -35,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-read EInvoiceSubmission|null $latestEInvoiceSubmission
  */
 #[Fillable([
-    'reservation_id', 'reservation_unit_id', 'number', 'type', 'status', 'payer_guest_id', 'payer_company_id',
+    'reservation_id', 'event_id', 'reservation_unit_id', 'number', 'type', 'status', 'payer_guest_id', 'payer_company_id',
     'invoice_number', 'legacy_number', 'closed_at', 'closed_by',
 ])]
 class Folio extends Model
@@ -69,6 +71,14 @@ class Folio extends Model
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /**
+     * @return BelongsTo<Event, $this>
+     */
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
     }
 
     /**

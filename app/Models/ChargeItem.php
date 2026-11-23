@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ChargingUnit;
+use App\Enums\TransactionCategory;
 use Carbon\CarbonImmutable;
 use Database\Factories\ChargeItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -85,6 +86,16 @@ class ChargeItem extends Model
     public function scopeActive(Builder $query): void
     {
         $query->where('active', true);
+    }
+
+    /**
+     * Leaves out the charge items of facilities, which the facility page edits.
+     *
+     * @param  Builder<ChargeItem>  $query
+     */
+    public function scopeExceptFacilities(Builder $query): void
+    {
+        $query->whereHas('transactionCode', fn (Builder $code) => $code->where('category', '!=', TransactionCategory::Facility->value));
     }
 
     /** @param Builder<ChargeItem> $query */

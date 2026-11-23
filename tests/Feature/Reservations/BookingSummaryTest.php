@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\CityLedger\SettleToCityLedger;
+use App\Actions\Facilities\PostFacilityBooking;
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReverseLine;
@@ -17,6 +18,8 @@ use App\Enums\TransactionKind;
 use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\Company;
+use App\Models\Facility;
+use App\Models\FacilityBooking;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
@@ -211,6 +214,36 @@ test('the total holds for a group with a third party folio', function () {
     $summary = bsAssertConsistent($setup);
 
     expect($summary->paid)->toBe('100.00');
+});
+
+test('a booked facility shows under Other charges before and after the night audit posts it', function () {
+    $setup = bsSetup();
+    $unit = bsUnit($setup['reservation'], 3);
+    $folio = app(CreateFolio::class)($setup['reservation'], $unit);
+    $hall = Facility::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Jungle dinner']);
+    $booking = FacilityBooking::factory()->create([
+        'event_id' => null,
+        'reservation_id' => $setup['reservation']->id,
+        'property_id' => $setup['property']->id,
+        'facility_id' => $hall->id,
+        'folio_id' => $folio->id,
+        'booking_date' => '2026-10-11',
+        'quantity' => 2,
+        'unit_amount' => '60.00',
+    ]);
+
+    $other = fn (BookingSummaryDocument $summary): array => collect($summary->lines->groups)->firstWhere('heading', 'Other charges')?->rows ?? [];
+    $before = bsAssertConsistent($setup);
+
+    expect($before->lines->total)->toBe('444.00')
+        ->and($other($before))->toHaveCount(1)
+        ->and($other($before)[0]->amount)->toBe('120.00');
+
+    app(PostFacilityBooking::class)($setup['user'], $booking);
+    $after = bsAssertConsistent($setup);
+
+    expect($after->lines->total)->toBe('444.00')
+        ->and($other($after))->toHaveCount(1);
 });
 
 test('the total holds for a reservation with a transferred charge, which shows once', function () {

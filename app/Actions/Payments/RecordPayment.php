@@ -16,9 +16,12 @@ use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
 use App\Enums\WebhookEvent;
+use App\Models\Event;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -28,6 +31,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\NextDocumentNumber;
 use App\Services\Payments\AvailablePaymentMethod;
 use App\Services\Payments\PaymentQuote;
+use App\Services\Payments\PaymentQuoteResult;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -144,80 +148,179 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_RECEIVED_ON_IN_FUTURE);
             }
 
-            $notes = filled($data->notes) ? trim((string) $data->notes) : null;
             $target ??= ($this->createFolio)($reservation, $lockedUnit);
-            $receiptNumber = $isOldSystem || ! $data->issueReceipt ? null : ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
-            $surchargeLines = [];
-
-            if ($quote->tax !== null && $quote->surcharge !== null) {
-                $item = $method->surchargeChargeItem;
-                $surchargeLines = ($this->postFolioCharge)($actor, $target, $item->transactionCode, $item->name, 1, $quote->surcharge, $quote->tax, $key.':surcharge', $postingDate, serviceDate: $serviceDate);
-            }
-
-            $total = (string) $quote->total?->getAmount();
-            $line = new FolioLine([
-                'transaction_code_id' => $method->transaction_code_id,
-                'kind' => TransactionKind::Payment,
-                'description' => $isOldSystem ? __('Paid in old system · :reference', ['reference' => $reference]) : $method->name,
-                'quantity' => 1,
-                'unit_amount' => '-'.$total,
-                'amount' => '-'.$total,
-            ]);
-            $line->folio_id = $target->id;
-            $line->posting_date = $postingDate;
-            $line->service_date = $serviceDate;
-            $line->manual_batch_id = $data->manualBatchId;
-            $line->migrated = $data->migrated;
-            $line->idempotency_key = $key;
-            $line->user_id = $actor?->id;
-            $line->save();
-
-            $payment = new Payment([
-                'folio_id' => $target->id,
-                'payment_method_id' => $method->id,
-                'amount' => $total,
-                'purpose' => $data->purpose,
-                'status' => PaymentStatus::Completed,
-                'reference' => $reference,
-                'received_on' => $receivedOn,
-                'notes' => $notes,
-                'receipt_number' => $receiptNumber,
-                'folio_line_id' => $line->id,
-                'surcharge_line_id' => $surchargeLines[0]->id ?? null,
-                'received_by' => $actor?->id,
-                'received_at' => now(),
-            ]);
-            $payment->property_id = $reservation->property_id;
-            $payment->save();
-
-            activity()
-                ->performedOn($reservation)
-                ->causedBy($actor)
-                ->event('payment.recorded')
-                ->withProperties([
-                    'property_id' => $reservation->property_id,
-                    'folio_id' => $target->id,
-                    'payment_id' => $payment->id,
-                    'payment_method_id' => $method->id,
-                    'purpose' => $data->purpose->value,
-                    'amount' => (string) $quote->amount?->getAmount(),
-                    'surcharge' => (string) $quote->surcharge?->getAmount(),
-                    'total' => $total,
-                    'receipt_number' => $receiptNumber,
-                    'posting_date' => $postingDate,
-                    'service_date' => $serviceDate,
-                    'received_on' => $receivedOn,
-                    'manual_batch_id' => $data->manualBatchId,
-                ])
-                ->log('Payment recorded');
+            [$payment, $lines] = $this->write($actor, $reservation, $property, $target, $method, $quote, $data, $key, $reference, $postingDate, $serviceDate, $receivedOn);
 
             ($this->closeSettledUnitFolio)($actor, $target);
 
             app(AnnounceWalkInBooking::class)($reservation->property_id, $reservation->id);
             app(TriggerWebhook::class)(WebhookEvent::PaymentReceived, $payment->property_id, Payment::class, $payment->id);
 
-            return PaymentResult::recorded($payment->refresh(), [...$surchargeLines, $line->refresh()]);
+            return PaymentResult::recorded($payment, $lines);
         });
+    }
+
+    /**
+     * Record a payment on an event folio. An event folio has no units and no routing, so the money lands on this
+     * folio. The same checks as a reservation folio run first, so a refusal writes and logs nothing: an Open Event
+     * folio of the actor's property, Advance or Settlement only (`purpose_not_offered`), an active method of the
+     * property that is not City ledger, OTA collected, Online or Old system (`method_not_available`), a reference
+     * when the method needs one, and no service date (an event folio has no manual entry). The surcharge tax follows
+     * the payer guest's nationality. The key `payment:{uuid}` makes a repeat return the existing payment. Logs
+     * `payment.recorded` on the event. See docs/33-facilities/03-events-and-event-folios.md.
+     */
+    public function forEvent(User $actor, Folio $folio, NewPaymentData $data): PaymentResult
+    {
+        return DB::transaction(function () use ($actor, $folio, $data): PaymentResult {
+            $target = Folio::query()->lockForUpdate()->findOrFail($folio->id);
+            $key = $data->lineKey ?? 'payment:'.$data->idempotencyKey;
+            $existing = FolioLine::query()->where('idempotency_key', $key)->first();
+
+            if ($existing !== null) {
+                $payment = Payment::query()->where('folio_line_id', $existing->id)->first();
+
+                return $payment === null || $payment->folio_id !== $target->id
+                    ? PaymentResult::refused(PaymentResult::REFUSAL_PAYMENT_NOT_FOUND)
+                    : PaymentResult::replayed($payment);
+            }
+
+            if ($target->type !== FolioType::Event || ($target->property_id !== $actor->property_id && ! $actor->is_admin)) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_PAYMENT_NOT_FOUND);
+            }
+
+            $property = $target->property;
+            $businessDate = $this->currentBusinessDate->date($property);
+
+            if ($businessDate === null) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_NO_BUSINESS_DATE);
+            }
+
+            if ($target->status !== FolioStatus::Open) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_FOLIO_NOT_OPEN);
+            }
+
+            if ($data->purpose === PaymentPurpose::SecurityDeposit) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_PURPOSE_NOT_OFFERED);
+            }
+
+            $method = $this->availablePaymentMethod->findFor($property, $data->paymentMethodId, $actor);
+
+            if ($method === null || $method->type === PaymentMethodType::OldSystem) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);
+            }
+
+            $event = $target->event()->with('payerGuest')->firstOrFail();
+            $quote = $this->paymentQuote->quoteFor($property, $event->payerGuest?->nationality_code, $method, $data->amount);
+
+            if ($quote->refusal === PaymentResult::REFUSAL_AMOUNT_INVALID) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_AMOUNT_INVALID);
+            }
+
+            $reference = filled($data->reference) ? trim((string) $data->reference) : null;
+
+            if ($method->requires_reference && $reference === null) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_REFERENCE_REQUIRED);
+            }
+
+            if ($quote->isRefused()) {
+                return PaymentResult::refused((string) $quote->refusal);
+            }
+
+            if ($data->serviceDate !== null) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_SERVICE_DATE_INVALID);
+            }
+
+            $postingDate = $businessDate->toDateString();
+            $receivedOn = $data->receivedOn ?? $postingDate;
+
+            if ($receivedOn > $postingDate) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_RECEIVED_ON_IN_FUTURE);
+            }
+
+            [$payment, $lines] = $this->write($actor, $event, $property, $target, $method, $quote, $data, $key, $reference, $postingDate, $postingDate, $receivedOn);
+
+            app(TriggerWebhook::class)(WebhookEvent::PaymentReceived, $payment->property_id, Payment::class, $payment->id);
+
+            return PaymentResult::recorded($payment, $lines);
+        });
+    }
+
+    /**
+     * Write the payment: its receipt number, the surcharge lines, the payment line and the payment row, and log
+     * `payment.recorded` on the folio's owner. Every check has already passed.
+     *
+     * @return array{0: Payment, 1: list<FolioLine>}
+     */
+    private function write(?User $actor, Reservation|Event $owner, Property $property, Folio $target, PaymentMethod $method, PaymentQuoteResult $quote, NewPaymentData $data, string $key, ?string $reference, string $postingDate, string $serviceDate, string $receivedOn): array
+    {
+        $isOldSystem = $method->type === PaymentMethodType::OldSystem;
+        $notes = filled($data->notes) ? trim((string) $data->notes) : null;
+        $receiptNumber = $isOldSystem || ! $data->issueReceipt ? null : ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
+        $surchargeLines = [];
+
+        if ($quote->tax !== null && $quote->surcharge !== null) {
+            $item = $method->surchargeChargeItem;
+            $surchargeLines = ($this->postFolioCharge)($actor, $target, $item->transactionCode, $item->name, 1, $quote->surcharge, $quote->tax, $key.':surcharge', $postingDate, serviceDate: $serviceDate);
+        }
+
+        $total = (string) $quote->total?->getAmount();
+        $line = new FolioLine([
+            'transaction_code_id' => $method->transaction_code_id,
+            'kind' => TransactionKind::Payment,
+            'description' => $isOldSystem ? __('Paid in old system · :reference', ['reference' => $reference]) : $method->name,
+            'quantity' => 1,
+            'unit_amount' => '-'.$total,
+            'amount' => '-'.$total,
+        ]);
+        $line->folio_id = $target->id;
+        $line->posting_date = $postingDate;
+        $line->service_date = $serviceDate;
+        $line->manual_batch_id = $data->manualBatchId;
+        $line->migrated = $data->migrated;
+        $line->idempotency_key = $key;
+        $line->user_id = $actor?->id;
+        $line->save();
+
+        $payment = new Payment([
+            'folio_id' => $target->id,
+            'payment_method_id' => $method->id,
+            'amount' => $total,
+            'purpose' => $data->purpose,
+            'status' => PaymentStatus::Completed,
+            'reference' => $reference,
+            'received_on' => $receivedOn,
+            'notes' => $notes,
+            'receipt_number' => $receiptNumber,
+            'folio_line_id' => $line->id,
+            'surcharge_line_id' => $surchargeLines[0]->id ?? null,
+            'received_by' => $actor?->id,
+            'received_at' => now(),
+        ]);
+        $payment->property_id = $property->id;
+        $payment->save();
+
+        activity()
+            ->performedOn($owner)
+            ->causedBy($actor)
+            ->event('payment.recorded')
+            ->withProperties([
+                'property_id' => $property->id,
+                'folio_id' => $target->id,
+                'payment_id' => $payment->id,
+                'payment_method_id' => $method->id,
+                'purpose' => $data->purpose->value,
+                'amount' => (string) $quote->amount?->getAmount(),
+                'surcharge' => (string) $quote->surcharge?->getAmount(),
+                'total' => $total,
+                'receipt_number' => $receiptNumber,
+                'posting_date' => $postingDate,
+                'service_date' => $serviceDate,
+                'received_on' => $receivedOn,
+                'manual_batch_id' => $data->manualBatchId,
+            ])
+            ->log('Payment recorded');
+
+        return [$payment->refresh(), [...$surchargeLines, $line->refresh()]];
     }
 
     /**

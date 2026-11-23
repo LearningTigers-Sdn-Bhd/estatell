@@ -77,7 +77,7 @@ export default function PosPostingsIndex({
                 header: 'Why',
                 enableSorting: false,
                 cell: (info) => (
-                    <span className="text-muted-foreground">
+                    <span className="whitespace-normal text-muted-foreground">
                         {info.getValue() ?? '—'}
                     </span>
                 ),
@@ -109,8 +109,9 @@ export default function PosPostingsIndex({
                 {pendingCount > 0 && status !== 'pending_review' && (
                     <Alert>
                         <AlertTitle>
-                            {pendingCount} receipt
-                            {pendingCount === 1 ? '' : 's'} need review.
+                            {pendingCount === 1
+                                ? '1 receipt needs review.'
+                                : `${pendingCount} receipts need review.`}
                         </AlertTitle>
                     </Alert>
                 )}

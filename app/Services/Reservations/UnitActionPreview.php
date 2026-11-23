@@ -49,6 +49,7 @@ use App\Services\Catalogues\PolicyCharge;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\CityLedger\CreditCheck;
+use App\Services\Facilities\ReservationFacilityBookings;
 use App\Services\FrontDesk\AuditPendingNotice;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
@@ -107,6 +108,7 @@ class UnitActionPreview
         private DamageChargeItem $damageChargeItem,
         private CancellationPolicy $cancellationPolicy,
         private CancellationSteps $cancellationSteps,
+        private ReservationFacilityBookings $facilityBookings,
         private CancelledUnitRefund $cancelledUnitRefund,
     ) {}
 
@@ -749,7 +751,20 @@ class UnitActionPreview
             ];
         }
 
-        return new CancelAllPreviewData($rows, $this->cancellationSteps->freeUntilDays($this->cancellationSteps->of($policy)), (string) BigDecimal::of((string) ($paid ?: 0))->toScale(2), $request, null);
+        $liveUnitIds = array_values($units
+            ->reject(fn (ReservationUnit $unit): bool => in_array($unit->status, [UnitStatus::Cancelled, UnitStatus::NoShow], true))
+            ->map(fn (ReservationUnit $unit): int => $unit->id)
+            ->all());
+
+        return new CancelAllPreviewData(
+            $rows,
+            $this->cancellationSteps->freeUntilDays($this->cancellationSteps->of($policy)),
+            (string) BigDecimal::of((string) ($paid ?: 0))->toScale(2),
+            $request,
+            null,
+            $this->facilityBookings->liveCount($reservation),
+            $liveUnitIds,
+        );
     }
 
     /**
@@ -782,7 +797,23 @@ class UnitActionPreview
             error: null,
             onlineRefund: $onlineRefund,
             onlineRefundWaived: $onlineRefundWaived,
+            facilityBookingsToCancel: $this->facilityBookingsToCancel($unit),
         );
+    }
+
+    /**
+     * The live facility bookings the cancel or no-show of this unit also cancels: all of them when no other unit of
+     * the reservation is live (not Cancelled or No-show), otherwise none.
+     */
+    private function facilityBookingsToCancel(ReservationUnit $unit): int
+    {
+        $otherLiveUnit = ReservationUnit::query()
+            ->where('reservation_id', $unit->reservation_id)
+            ->whereKeyNot($unit->id)
+            ->whereNotIn('status', [UnitStatus::Cancelled->value, UnitStatus::NoShow->value])
+            ->exists();
+
+        return $otherLiveUnit ? 0 : $this->facilityBookings->liveCount($unit->reservation()->firstOrFail());
     }
 
     /**

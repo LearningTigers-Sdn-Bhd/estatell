@@ -5,6 +5,7 @@ namespace App\Http\Requests\Reports;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
 use App\Enums\ChargeBucket;
+use App\Enums\FacilityBookingStatus;
 use App\Enums\PaymentDateBasis;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
@@ -37,6 +38,8 @@ use LogicException;
  * guests only). Other reports ignore it.
  * A report with a Boat not set filter (`ReportKey::hasBoatNotSetFilter()`, Arrivals and Departures) also takes `no_boat`
  * (1 for the units with no boat trip in their direction). It applies only when the property uses boats.
+ * A report with facility filters (`ReportKey::hasFacilityFilters()`, Facility bookings) also takes `facilities` (facility
+ * ids, comma separated) and `statuses` (`FacilityBookingStatus` values, comma separated). Unknown values are dropped.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name. On a `TabbedReport`
  * page it is the report of the `?tab` (the first tab when the value is not a tab).
  */
@@ -76,6 +79,10 @@ class ReportFiltersRequest extends FormRequest
             ...($this->reportKey()->hasDirectionFilter() ? [
                 'direction' => ['nullable', Rule::in([...array_column(BoatDirection::cases(), 'value'), 'both'])],
                 'boat_group' => ['nullable', Rule::in(['scheduled', 'other'])],
+            ] : []),
+            ...($this->reportKey()->hasFacilityFilters() ? [
+                'facilities' => ['nullable', 'string', 'max:500'],
+                'statuses' => ['nullable', 'string', 'max:100'],
             ] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
@@ -150,7 +157,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup(), facilityIds: $this->facilityIds(), facilityStatuses: $this->facilityStatuses());
         }
 
         $from = $this->input('from');
@@ -160,7 +167,45 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup(), facilityIds: $this->facilityIds(), facilityStatuses: $this->facilityStatuses());
+    }
+
+    /**
+     * The facility ids of Facility bookings: the whole numbers in the comma separated `facilities`, or none for every
+     * facility. The report keeps only the property's own.
+     *
+     * @return list<int>
+     */
+    private function facilityIds(): array
+    {
+        if (! $this->reportKey()->hasFacilityFilters()) {
+            return [];
+        }
+
+        return array_values(array_unique(array_map(intval(...), array_filter(
+            explode(',', $this->string('facilities')->toString()),
+            fn (string $id): bool => ctype_digit($id),
+        ))));
+    }
+
+    /**
+     * The booking statuses of Facility bookings: the `FacilityBookingStatus` values in the comma separated `statuses`,
+     * in enum order, or none for the default (Tentative and Confirmed).
+     *
+     * @return list<string>
+     */
+    private function facilityStatuses(): array
+    {
+        if (! $this->reportKey()->hasFacilityFilters()) {
+            return [];
+        }
+
+        $picked = explode(',', $this->string('statuses')->toString());
+
+        return array_values(array_map(
+            fn (FacilityBookingStatus $status): string => $status->value,
+            array_filter(FacilityBookingStatus::cases(), fn (FacilityBookingStatus $status): bool => in_array($status->value, $picked, true)),
+        ));
     }
 
     /**

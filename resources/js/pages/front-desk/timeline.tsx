@@ -2,6 +2,8 @@ import { Head } from '@inertiajs/react';
 import { ChartGantt } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { TimelineBookFacility } from '@/components/pms/facilities/timeline-book-facility';
+import type { TimelineBookingCell } from '@/components/pms/facilities/timeline-book-facility';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
 import { BlockRoomDialog } from '@/components/pms/stay-view/cell-actions';
 import type { BlockCell } from '@/components/pms/stay-view/cell-actions';
@@ -32,12 +34,17 @@ export default function Timeline({
     blocks,
     dayUses,
     rates,
+    facilities,
+    facilityCells,
     filters: initialFilters,
     groupingOptions,
     statusOptions,
     weekendDays,
     currency,
     canViewReservations,
+    canViewEvents,
+    canBookFacility,
+    canManageEvents,
     canManageReservations,
     canOverrideRestrictions,
     canWaiveFees,
@@ -51,12 +58,19 @@ export default function Timeline({
     blocks: App.Data.StayView.BlockData[];
     dayUses: App.Data.StayView.DayUseData[];
     rates: App.Data.StayView.RatePriceRowData[];
+    /** Null when the Facilities feature is off. */
+    facilities: App.Data.Facilities.FacilityTimelineRowData[] | null;
+    facilityCells: App.Data.Facilities.FacilityDayCellData[];
     filters: App.Data.StayView.StayViewFiltersData;
     groupingOptions: { value: string; label: string }[];
     statusOptions: { value: string; label: string }[];
     weekendDays: number[];
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
+    canViewEvents: boolean;
+    /** `facilities.book` with the feature on: the day peek offers + Book facility. */
+    canBookFacility: boolean;
+    canManageEvents: boolean;
     canManageReservations: boolean;
     canOverrideRestrictions: boolean;
     canWaiveFees: boolean;
@@ -68,6 +82,9 @@ export default function Timeline({
     const [filters, setFilters] = useStayViewGrouping(initialFilters);
     const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
     const [blockCell, setBlockCell] = useState<BlockCell | null>(null);
+    const [bookingCell, setBookingCell] = useState<TimelineBookingCell | null>(
+        null,
+    );
     const [preferences, updatePreferences] = useStayViewPreferences();
     const ratePlanId = resolveChoice(rates, preferences.rateChoice).ratePlanId;
     const range: DateWindow = { from: stayWindow.from, to: stayWindow.to };
@@ -115,11 +132,30 @@ export default function Timeline({
                             blocks={blocks}
                             dayUses={dayUses}
                             rates={rates}
+                            facilities={
+                                facilities !== null &&
+                                preferences.showFacilities
+                                    ? facilities
+                                    : []
+                            }
+                            facilityCells={facilityCells}
                             filters={filters}
                             showRates={preferences.showRates}
                             rateChoice={preferences.rateChoice}
                             currency={currency}
                             canViewReservations={canViewReservations}
+                            canViewEvents={canViewEvents}
+                            onBookFacility={
+                                canBookFacility &&
+                                (canViewReservations || canViewEvents)
+                                    ? (facility, date) =>
+                                          setBookingCell({
+                                              facilityId: facility.id,
+                                              facilityName: facility.name,
+                                              date,
+                                          })
+                                    : undefined
+                            }
                             canManageReservations={canManageReservations}
                             canOverrideRestrictions={canOverrideRestrictions}
                             canWaiveFees={canWaiveFees}
@@ -152,6 +188,15 @@ export default function Timeline({
                                             rateChoice: { ratePlanId: planId },
                                         })
                                     }
+                                    showFacilities={preferences.showFacilities}
+                                    onShowFacilitiesChange={
+                                        facilities === null
+                                            ? undefined
+                                            : (showFacilities) =>
+                                                  updatePreferences({
+                                                      showFacilities,
+                                                  })
+                                    }
                                 />
                             }
                         />
@@ -167,6 +212,14 @@ export default function Timeline({
                         canViewReservations={canViewReservations}
                         onSelect={setPeekUnitId}
                         onClose={() => setPeekUnitId(null)}
+                    />
+                    <TimelineBookFacility
+                        cell={bookingCell}
+                        onClose={() => setBookingCell(null)}
+                        canViewReservations={canViewReservations}
+                        canViewEvents={canViewEvents}
+                        canManageEvents={canManageEvents}
+                        currency={currency}
                     />
                     <BlockRoomDialog
                         cell={blockCell}

@@ -65,8 +65,9 @@ class FolioLedgerRow extends Data implements ReportRow
     }
 
     /**
-     * The folio, its reservation, its payer guest or company, the transaction code and the user must be loaded. A
-     * folio with no payer shows the booker of the reservation.
+     * The folio, its reservation or event, its payer guest or company, the transaction code and the user must be
+     * loaded. A folio with no payer shows the booker of the reservation. An event folio shows the event number in the
+     * Reservation column.
      */
     public static function fromModel(FolioLine $line): self
     {
@@ -77,8 +78,8 @@ class FolioLedgerRow extends Data implements ReportRow
             date: $line->posting_date->toDateString(),
             serviceDate: $line->service_date->toDateString(),
             folio: $folio->number,
-            reservation: $folio->reservation->reference,
-            guest: $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? $folio->reservation->booker->full_name,
+            reservation: $folio->reservation->reference ?? $folio->event->number ?? '',
+            guest: $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? $folio->reservation?->booker->full_name ?? '',
             code: $line->transactionCode->code,
             description: $line->description,
             kind: $line->kind->label(),

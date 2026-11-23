@@ -28,6 +28,9 @@ enum PermissionEnum: string
     case ReservationsView = 'reservations.view';
     case ReservationsManage = 'reservations.manage';
     case ReservationsChangePrice = 'reservations.change-price';
+    case EventsView = 'events.view';
+    case EventsManage = 'events.manage';
+    case FacilitiesBook = 'facilities.book';
     case FolioPostCharge = 'folio.post-charge';
     case FolioReverse = 'folio.reverse';
     case FolioTransfer = 'folio.transfer';
@@ -106,6 +109,9 @@ enum PermissionEnum: string
             self::ReservationsView => __('View reservations'),
             self::ReservationsManage => __('Manage reservations'),
             self::ReservationsChangePrice => __('Change the price of booked nights'),
+            self::EventsView => __('View events'),
+            self::EventsManage => __('Create and edit events'),
+            self::FacilitiesBook => __('Book facilities'),
             self::FolioPostCharge => __('Post charges to folios'),
             self::FolioReverse => __('Reverse folio lines'),
             self::FolioTransfer => __('Transfer folio lines and manage routing'),
@@ -176,6 +182,7 @@ enum PermissionEnum: string
             self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
             self::ReservationsView, self::ReservationsManage, self::ReservationsChangePrice => __('Reservations'),
+            self::EventsView, self::EventsManage, self::FacilitiesBook => __('Events'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher, self::FolioManual, self::FolioViewManualEntries, self::FolioWaiveTax => __('Folio'),
             self::PaymentRecord, self::PaymentRefund, self::PaymentRefundOtherMethod => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),

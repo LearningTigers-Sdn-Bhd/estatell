@@ -15,12 +15,13 @@ import {
     FieldError,
     FieldLabel,
 } from '@/components/ui/field';
-import { store } from '@/routes/reservations/folios/refund-credit';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    owner: FolioOwner;
     folio: App.Data.Folio.FolioData;
     currency: App.Data.Property.CurrencyData | null;
     options?: App.Data.Payments.PaymentFormOptionsData;
@@ -29,7 +30,7 @@ type Props = {
 function RefundCreditForm({
     open,
     onOpenChange,
-    reservationId,
+    owner,
     folio,
     currency,
     options,
@@ -62,14 +63,11 @@ function RefundCreditForm({
             reason: values.payment_method_id === '' ? '' : values.reason,
             idempotency_key: key,
         }));
-        form.post(
-            store.url({ reservation: reservationId, folio: Number(folio.key) }),
-            {
-                preserveScroll: true,
-                except: KEEP_OPTIONS,
-                onSuccess: () => onOpenChange(false),
-            },
-        );
+        form.post(folioRoutes(owner).refundCredit(Number(folio.key)).url, {
+            preserveScroll: true,
+            except: KEEP_OPTIONS,
+            onSuccess: () => onOpenChange(false),
+        });
     };
 
     return (

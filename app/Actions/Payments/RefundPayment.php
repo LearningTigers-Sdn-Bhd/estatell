@@ -17,6 +17,7 @@ use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Folio\FolioOwner;
 use App\Services\Folio\ServiceDateRange;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Money\Money;
@@ -143,7 +144,7 @@ class RefundPayment
                 ->where('property_id', $folio->property_id)
                 ->where('system_key', SystemTransactionCode::Refund->value)
                 ->firstOrFail();
-            if ($serviceDate !== null && ! $this->serviceDateRange->allows($property, $folio->reservation, $businessDate, $serviceDate)) {
+            if ($serviceDate !== null && ($folio->reservation === null || ! $this->serviceDateRange->allows($property, $folio->reservation, $businessDate, $serviceDate))) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_SERVICE_DATE_INVALID);
             }
 
@@ -188,7 +189,7 @@ class RefundPayment
             $refund->save();
 
             activity()
-                ->performedOn($folio->reservation)
+                ->performedOn(app(FolioOwner::class)->of($folio))
                 ->causedBy($actor)
                 ->event($void ? 'payment.voided' : 'payment.refunded')
                 ->withProperties([

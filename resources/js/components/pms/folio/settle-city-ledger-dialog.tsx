@@ -14,7 +14,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { cityLedger } from '@/routes/reservations/folios';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 /**
  * Moves the whole balance of a folio to the city ledger after a confirmation. The folio closes and an AR invoice is
@@ -23,13 +24,13 @@ import { cityLedger } from '@/routes/reservations/folios';
 export function SettleCityLedgerDialog({
     open,
     onOpenChange,
-    reservationId,
+    owner,
     folio,
     currency,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    owner: FolioOwner;
     folio: Pick<
         App.Data.Folio.FolioData,
         'key' | 'name' | 'balance' | 'payerCompanyName' | 'settleCreditWarning'
@@ -54,10 +55,7 @@ export function SettleCityLedgerDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Form
-                    {...cityLedger.form({
-                        reservation: reservationId,
-                        folio: Number(folio.key),
-                    })}
+                    {...folioRoutes(owner).cityLedger(Number(folio.key)).form}
                     options={{ preserveScroll: true, except: KEEP_OPTIONS }}
                     onSuccess={() => onOpenChange(false)}
                 >

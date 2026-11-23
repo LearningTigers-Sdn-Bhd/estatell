@@ -71,6 +71,8 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}']
         Route::get('logo', [PropertyLogoController::class, 'show'])->name('property.logo');
 
         require __DIR__.'/boats.php';
+        require __DIR__.'/events.php';
+        require __DIR__.'/facilities.php';
         require __DIR__.'/night-audit.php';
         require __DIR__.'/rates.php';
         require __DIR__.'/settings.php';

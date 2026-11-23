@@ -162,6 +162,21 @@ function CancelReservationForm({
                             {preview.error}
                         </p>
                     )}
+                    {preview.facilityBookings > 0 &&
+                        preview.liveUnitIds.length > 0 &&
+                        preview.liveUnitIds.every((id) =>
+                            selected.includes(id),
+                        ) && (
+                            <Alert>
+                                <AlertDescription>
+                                    {preview.facilityBookings} facility booking
+                                    {preview.facilityBookings === 1
+                                        ? ''
+                                        : 's'}{' '}
+                                    will also be cancelled.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     {preview.request !== null && (
                         <Alert>
                             <AlertDescription>

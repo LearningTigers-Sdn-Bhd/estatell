@@ -158,7 +158,7 @@ abstract class NightAuditResultNotification extends PropertyNotification
 
         return [
             __('Exceptions to review:'),
-            ...$summary->exceptions->map(fn ($exception): string => '- '.($exception->reservationUnit?->reservation->reference ?? __('Property')).': '.$exception->type->label().'. '.$advice->reason($exception->message))->all(),
+            ...$summary->exceptions->map(fn ($exception): string => '- '.($exception->reservationUnit?->reservation->reference ?? $exception->facilityBooking->event->number ?? $exception->facilityBooking->reservation->reference ?? __('Property')).': '.$exception->type->label().'. '.$advice->exceptionReason($exception->type, $exception->message))->all(),
         ];
     }
 

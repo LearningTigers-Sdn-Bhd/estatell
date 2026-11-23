@@ -53,19 +53,27 @@ const NOT_STAYING = '';
 const GUEST_COLUMNS =
     'lg:grid-cols-[4.25rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem]';
 
+/** The columns of the one guest row of `single` mode: chevron and MyKad toggle, name and phone. */
+const SINGLE_GUEST_COLUMNS =
+    'lg:grid-cols-[4.25rem_minmax(0,1.4fr)_minmax(0,1fr)]';
+
 /** The fields of a guest row that sit in the main row. An error elsewhere opens the row. */
 const MAIN_ROW_FIELDS = ['full_name', 'phone', 'stays_in'];
 
-function GuestsHeader() {
+function GuestsHeader({ single }: { single: boolean }) {
     return (
         <div
-            className={`hidden gap-3 rounded-t-lg border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${GUEST_COLUMNS}`}
+            className={`hidden gap-3 rounded-t-lg border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${single ? SINGLE_GUEST_COLUMNS : GUEST_COLUMNS}`}
         >
             <span />
             <span>Guest</span>
             <span>Phone</span>
-            <span>Stays in</span>
-            <span />
+            {!single && (
+                <>
+                    <span>Stays in</span>
+                    <span />
+                </>
+            )}
         </div>
     );
 }
@@ -83,6 +91,7 @@ function GuestRow({
     genders,
     locales,
     errors,
+    single,
     onChange,
     onRemove,
 }: {
@@ -98,10 +107,11 @@ function GuestRow({
     genders: EnumOption[];
     locales: EnumOption[];
     errors: Errors;
+    single: boolean;
     onChange: (patch: Partial<BookingGuest> | BookingGuest) => void;
     onRemove: () => void;
 }) {
-    const prefix = `guests.${index}.`;
+    const prefix = single ? 'guest.' : `guests.${index}.`;
     const error = (field: string) => errors[`${prefix}${field}`];
     const [checked, setChecked] = useState<GuestMatchCriteria>({});
     const [dismissed, setDismissed] = useState('');
@@ -142,7 +152,9 @@ function GuestRow({
             labelClassName={{ full_name: 'lg:sr-only', phone: 'lg:sr-only' }}
             nameBadges={
                 <>
-                    {index === 0 && <Badge variant="secondary">Booker</Badge>}
+                    {index === 0 && !single && (
+                        <Badge variant="secondary">Booker</Badge>
+                    )}
                     {guest.guest !== null && (
                         <Badge variant="outline">Existing</Badge>
                     )}
@@ -179,7 +191,9 @@ function GuestRow({
                     onOpenChange={setOpen}
                     className="flex flex-col"
                 >
-                    <div className={`grid gap-3 p-3 ${GUEST_COLUMNS}`}>
+                    <div
+                        className={`grid gap-3 p-3 ${single ? SINGLE_GUEST_COLUMNS : GUEST_COLUMNS}`}
+                    >
                         <div className="flex items-start gap-1">
                             <CollapsibleTrigger
                                 render={
@@ -204,58 +218,63 @@ function GuestRow({
                         </div>
                         {parts.name}
                         {parts.phone}
-                        <Field data-invalid={!!error('stays_in')}>
-                            <FieldLabel
-                                htmlFor={`guest-${index}-stays_in`}
-                                className="lg:sr-only"
-                            >
-                                Stays in
-                            </FieldLabel>
-                            <EnumSelect
-                                id={`guest-${index}-stays_in`}
-                                placeholder={
-                                    units.length === 0
-                                        ? 'Add a room or bed first'
-                                        : 'Select a unit'
-                                }
-                                options={[
-                                    ...(index === 0
-                                        ? [
-                                              {
-                                                  value: NOT_STAYING,
-                                                  label: 'Not staying',
-                                              },
-                                          ]
-                                        : []),
-                                    ...units.map((unit) => ({
-                                        value: unit.value,
-                                        label: unit.label,
-                                        disabled:
-                                            full.has(unit.value) &&
-                                            unit.value !== guest.stays_in,
-                                    })),
-                                ]}
-                                value={guest.stays_in}
-                                onValueChange={(value) =>
-                                    onChange({ stays_in: value })
-                                }
-                                aria-invalid={!!error('stays_in')}
-                            />
-                            <FieldError>{error('stays_in')}</FieldError>
-                        </Field>
-                        <div className="flex items-start justify-end">
-                            {index > 0 && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={`Remove ${label}`}
-                                    onClick={onRemove}
-                                >
-                                    <X />
-                                </Button>
-                            )}
-                        </div>
+                        {!single && (
+                            <>
+                                <Field data-invalid={!!error('stays_in')}>
+                                    <FieldLabel
+                                        htmlFor={`guest-${index}-stays_in`}
+                                        className="lg:sr-only"
+                                    >
+                                        Stays in
+                                    </FieldLabel>
+                                    <EnumSelect
+                                        id={`guest-${index}-stays_in`}
+                                        placeholder={
+                                            units.length === 0
+                                                ? 'Add a room or bed first'
+                                                : 'Select a unit'
+                                        }
+                                        options={[
+                                            ...(index === 0
+                                                ? [
+                                                      {
+                                                          value: NOT_STAYING,
+                                                          label: 'Not staying',
+                                                      },
+                                                  ]
+                                                : []),
+                                            ...units.map((unit) => ({
+                                                value: unit.value,
+                                                label: unit.label,
+                                                disabled:
+                                                    full.has(unit.value) &&
+                                                    unit.value !==
+                                                        guest.stays_in,
+                                            })),
+                                        ]}
+                                        value={guest.stays_in}
+                                        onValueChange={(value) =>
+                                            onChange({ stays_in: value })
+                                        }
+                                        aria-invalid={!!error('stays_in')}
+                                    />
+                                    <FieldError>{error('stays_in')}</FieldError>
+                                </Field>
+                                <div className="flex items-start justify-end">
+                                    {index > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            aria-label={`Remove ${label}`}
+                                            onClick={onRemove}
+                                        >
+                                            <X />
+                                        </Button>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <CollapsibleContent>
@@ -367,7 +386,8 @@ function GuestRow({
  * The Guests section: a table with one collapsible row for each guest. The booker is the first row. Name, Phone and
  * the unit the guest stays in are in the row; Email, the guest card, the profile update, the duplicate warning and the
  * guest details are in the expanded part. The footer counts the units without a guest and adds a guest. Units
- * without a guest are allowed.
+ * without a guest are allowed. `single` shows one guest with no unit, no footer and errors under `guest.`, for the
+ * payer of the New event page.
  */
 export function BookingGuestsSection({
     guests,
@@ -380,6 +400,7 @@ export function BookingGuestsSection({
     genders,
     locales,
     errors,
+    single = false,
     onChange,
 }: {
     guests: BookingGuest[];
@@ -393,6 +414,8 @@ export function BookingGuestsSection({
     genders: EnumOption[];
     locales: EnumOption[];
     errors: Errors;
+    /** One guest row with no unit column, remove button or footer. Errors arrive as `guest.{field}`. */
+    single?: boolean;
     onChange: (guests: BookingGuest[]) => void;
 }) {
     const empty = unitsWithoutGuest(guests, units.length);
@@ -409,7 +432,7 @@ export function BookingGuestsSection({
         <div className="flex flex-col gap-2">
             {canManageGuests && <MyKadScanner className="justify-end" />}
             <div className="rounded-lg border">
-                <GuestsHeader />
+                <GuestsHeader single={single} />
                 <div className="divide-y">
                     {guests.map((guest, index) => (
                         <GuestRow
@@ -426,6 +449,7 @@ export function BookingGuestsSection({
                             genders={genders}
                             locales={locales}
                             errors={errors}
+                            single={single}
                             onChange={(patch) =>
                                 onChange(
                                     guests.map((one) =>
@@ -445,32 +469,34 @@ export function BookingGuestsSection({
                         />
                     ))}
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-b-lg border-t bg-muted/50 px-3 py-2">
-                    <FieldDescription>
-                        {units.length === 0
-                            ? 'Add a room or bed line first.'
-                            : empty === 0
-                              ? 'Every unit has a guest.'
-                              : `${empty} ${empty === 1 ? 'unit' : 'units'} without a guest`}
-                    </FieldDescription>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={guests.length >= 20}
-                        onClick={() =>
-                            onChange([
-                                ...guests,
-                                emptyGuest(
-                                    firstUnitWithSpace(guests, units),
-                                    defaultNationalityCode,
-                                ),
-                            ])
-                        }
-                    >
-                        <Plus data-icon="inline-start" />
-                        Add guest
-                    </Button>
-                </div>
+                {!single && (
+                    <div className="flex items-center justify-between gap-3 rounded-b-lg border-t bg-muted/50 px-3 py-2">
+                        <FieldDescription>
+                            {units.length === 0
+                                ? 'Add a room or bed line first.'
+                                : empty === 0
+                                  ? 'Every unit has a guest.'
+                                  : `${empty} ${empty === 1 ? 'unit' : 'units'} without a guest`}
+                        </FieldDescription>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={guests.length >= 20}
+                            onClick={() =>
+                                onChange([
+                                    ...guests,
+                                    emptyGuest(
+                                        firstUnitWithSpace(guests, units),
+                                        defaultNationalityCode,
+                                    ),
+                                ])
+                            }
+                        >
+                            <Plus data-icon="inline-start" />
+                            Add guest
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );

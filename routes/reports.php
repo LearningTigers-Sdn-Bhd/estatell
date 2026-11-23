@@ -10,6 +10,7 @@ use App\Http\Controllers\Reports\CheckedOutReportController;
 use App\Http\Controllers\Reports\DailyReportController;
 use App\Http\Controllers\Reports\DeparturesReportController;
 use App\Http\Controllers\Reports\DepositLiabilityReportController;
+use App\Http\Controllers\Reports\FacilityBookingsReportController;
 use App\Http\Controllers\Reports\FolioLedgerReportController;
 use App\Http\Controllers\Reports\GuestListController;
 use App\Http\Controllers\Reports\HousekeepingReportController;
@@ -45,6 +46,7 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('folio-ledger', FolioLedgerReportController::class)->name('folio-ledger');
     Route::get('tax', TaxReportController::class)->name('tax');
     Route::get('meal-counts', MealCountsReportController::class)->name('meal-counts');
+    Route::get('facility-bookings', FacilityBookingsReportController::class)->name('facility-bookings');
     Route::get('outstanding-balance', OutstandingBalanceReportController::class)->name('outstanding-balance');
     Route::get('deposit-liability', DepositLiabilityReportController::class)->name('deposit-liability');
     Route::get('non-national-guests', NonNationalGuestsReportController::class)->name('non-national-guests');

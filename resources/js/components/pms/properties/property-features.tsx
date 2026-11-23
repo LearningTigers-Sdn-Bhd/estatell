@@ -15,6 +15,7 @@ import {
     Ship,
     Utensils,
     Tablet,
+    Tent,
     ToggleRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -64,6 +65,7 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     concierge: ConciergeBell,
     'bed-room-types': BedSingle,
     'pos-integration': Utensils,
+    facilities: Tent,
 };
 
 /** On and Off for the partner's read-only rows. */
