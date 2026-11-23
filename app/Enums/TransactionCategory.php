@@ -9,6 +9,7 @@ enum TransactionCategory: string
     case Laundry = 'laundry';
     case Minibar = 'minibar';
     case Transport = 'transport';
+    case Facility = 'facility';
     case Fee = 'fee';
     case Tax = 'tax';
     case Discount = 'discount';
@@ -34,6 +35,7 @@ enum TransactionCategory: string
             self::Laundry => __('Laundry'),
             self::Minibar => __('Minibar'),
             self::Transport => __('Transport'),
+            self::Facility => __('Facility'),
             self::Fee => __('Fee'),
             self::Tax => __('Tax'),
             self::Discount => __('Discount'),
@@ -69,7 +71,7 @@ enum TransactionCategory: string
      */
     public static function chargeItemCases(): array
     {
-        return [self::FoodAndBeverage, self::Laundry, self::Minibar, self::Transport, self::Fee, self::Other];
+        return [self::FoodAndBeverage, self::Laundry, self::Minibar, self::Transport, self::Facility, self::Fee, self::Other];
     }
 
     /**
@@ -84,7 +86,8 @@ enum TransactionCategory: string
     }
 
     /**
-     * The categories a charge item takes in onboarding: the charge item categories without Transport, which boat fares own.
+     * The categories a charge item takes in onboarding: the charge item categories without Transport and Facility, which
+     * boat fares and facilities own.
      *
      * @return list<self>
      */
@@ -92,7 +95,7 @@ enum TransactionCategory: string
     {
         return array_values(array_filter(
             self::chargeItemCases(),
-            fn (self $category): bool => $category !== self::Transport,
+            fn (self $category): bool => $category !== self::Transport && $category !== self::Facility,
         ));
     }
 

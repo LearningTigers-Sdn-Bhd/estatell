@@ -57,7 +57,7 @@ facility_bookings  id, property_id, facility_id → facilities (restrict),
 - The charge is `unit_amount` × `FacilityRateBasis::quantity()`, plus the charge item's taxes. The server calculates it when shown and when posted.
 - A later price change in Settings does not change saved bookings.
 - A price that differs from the list price is logged on the booking's event or reservation (`facility_bookings.price_changed`, with both prices).
-- "Charge by hand" (no charge item): `unit_amount` is null and the price field is hidden.
+- "Charge by hand" (the charge item has no amount): `unit_amount` is null and the price field is hidden.
 
 ## Charge to
 
@@ -77,7 +77,7 @@ The **Charge to** select lists the Open folios of the owner.
 - **Night audit:** a new step `PostFacilityChargesStep`, after `PostScheduledAddOnsStep`, calls `PostFacilityCharges` for the business date. It posts every Confirmed booking on that date that has no line. A Tentative booking on that date becomes an exception (`facility_booking_tentative`) and is not posted. A Closed target folio becomes an exception (`folio_not_open`). Both are `Facility` exceptions linked to the booking ([Audit run](../20-night-audit/03-audit-run.md#steps)). **Post now** on the booking, or Dismiss, resolves them.
 - **Post now:** staff with `folio.post` can post a booking before its date from the row menu. Same Action, same key, so it never posts twice.
 - Until it posts, the folio shows the booking as a **Scheduled** row (`ScheduledFolioRows` adds `facility:{id}` rows), like nights and add-ons. The row moves to Posted when the line exists.
-- No charge item ("Charge by hand"): nothing posts and no Scheduled row shows. Staff post the charge themselves.
+- No amount on the charge item ("Charge by hand"): nothing posts and no Scheduled row shows. Staff post the charge themselves.
 - **Change after posting:** time, quantity, price and Charge to are locked. Cancel reverses the line (`ReverseLine`, key `facility-cancel:{id}`), then staff book again.
 
 ## No-shows

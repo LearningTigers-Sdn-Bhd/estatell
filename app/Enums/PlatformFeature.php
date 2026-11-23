@@ -10,6 +10,7 @@ use App\Features\ChannelManager;
 use App\Features\Concierge;
 use App\Features\DoorLocks;
 use App\Features\EInvoicing;
+use App\Features\Facilities;
 use App\Features\Kiosks;
 use App\Features\PosIntegration;
 
@@ -28,6 +29,7 @@ enum PlatformFeature: string
     case Concierge = 'concierge';
     case BedRoomTypes = 'bed-room-types';
     case PosIntegration = 'pos-integration';
+    case Facilities = 'facilities';
 
     public function label(): string
     {
@@ -42,6 +44,7 @@ enum PlatformFeature: string
             self::Concierge => __('Concierge page'),
             self::BedRoomTypes => __('Dormitory features'),
             self::PosIntegration => __('POS integration'),
+            self::Facilities => __('Facilities and events'),
         };
     }
 
@@ -58,6 +61,7 @@ enum PlatformFeature: string
             self::Concierge => __('Guest self check-in on the guest\'s own phone, from a lobby QR code or the pre-check-in link.'),
             self::BedRoomTypes => __('Create room types sold by bed, for dorms. Room types that already sell beds keep working while this is off.'),
             self::PosIntegration => __('Outlets, restaurant meal check-in and room charges from a POS (Loyverse or the POS API).'),
+            self::Facilities => __('Halls, equipment and activities staff book by date and time, and event folios for guests who do not stay.'),
         };
     }
 
@@ -77,6 +81,7 @@ enum PlatformFeature: string
             self::Concierge => Concierge::class,
             self::BedRoomTypes => BedRoomTypes::class,
             self::PosIntegration => PosIntegration::class,
+            self::Facilities => Facilities::class,
         };
     }
 }

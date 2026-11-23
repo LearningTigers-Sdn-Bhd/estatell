@@ -217,6 +217,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(BoatDeparture::class);
     }
 
+    /** @return HasMany<Facility, $this> */
+    public function facilities(): HasMany
+    {
+        return $this->hasMany(Facility::class);
+    }
+
     /** @return HasMany<Boat, $this> */
     public function boats(): HasMany
     {

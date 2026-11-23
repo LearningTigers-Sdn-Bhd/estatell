@@ -22,6 +22,8 @@ use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\Concierge\ConciergeSettingsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\DoorLocks\KeyportSettingsController;
+use App\Http\Controllers\Facilities\FacilityController;
+use App\Http\Controllers\Facilities\FacilitySessionController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
@@ -193,6 +195,19 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [BoatFareController::class, 'index'])->name('index');
             Route::post('/', [BoatFareController::class, 'store'])->name('store');
             Route::put('{chargeItem}', [BoatFareController::class, 'update'])->name('update');
+        });
+    });
+
+    Route::middleware(['facilities', 'can:'.PermissionEnum::SettingsManage->value])->prefix('facilities')->name('facilities.')->scopeBindings()->group(function () {
+        Route::get('/', [FacilityController::class, 'index'])->name('index');
+        Route::post('/', [FacilityController::class, 'store'])->name('store');
+        Route::put('order', [FacilityController::class, 'reorder'])->name('reorder');
+        Route::put('{facility}', [FacilityController::class, 'update'])->whereNumber('facility')->name('update');
+        Route::prefix('{facility}/sessions')->whereNumber('facility')->name('sessions.')->group(function () {
+            Route::get('/', [FacilitySessionController::class, 'index'])->name('index');
+            Route::post('/', [FacilitySessionController::class, 'store'])->name('store');
+            Route::put('{session}', [FacilitySessionController::class, 'update'])->whereNumber('session')->name('update');
+            Route::delete('{session}', [FacilitySessionController::class, 'destroy'])->whereNumber('session')->name('destroy');
         });
     });
 
