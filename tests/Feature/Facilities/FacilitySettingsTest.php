@@ -51,11 +51,11 @@ test('owners add a facility with its own Facility charge item at the end of the 
     ['owner' => $owner, 'property' => $property] = facilitySetup();
     Facility::factory()->for($property)->create(['position' => 4]);
 
-    $this->actingAs($owner)->post(route('settings.facilities.store', $property->code), facilityPayload())
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('settings.facilities.index', $property->code));
+    $response = $this->actingAs($owner)->post(route('settings.facilities.store', $property->code), facilityPayload())
+        ->assertSessionHasNoErrors();
 
     $hall = Facility::query()->where('name', 'Riverside Hall')->sole();
+    $response->assertRedirect(route('settings.facilities.show', [$property->code, $hall]));
     $chargeItem = $hall->chargeItem()->with('transactionCode')->sole();
 
     expect($hall->sharing)->toBe(FacilitySharing::Private)
@@ -202,10 +202,53 @@ test('facility settings need the feature, settings.manage and the same property'
 
     $this->actingAs($owner)->put(route('settings.facilities.update', [$property->code, $other]), facilityPayload())->assertNotFound();
     $this->get(route('settings.facilities.sessions.index', [$property->code, $otherSession->facility_id]))->assertNotFound();
+    $this->get(route('settings.facilities.show', [$property->code, $other]))->assertNotFound();
 
     $clerk = User::factory()->for($property)->withPermissions([PermissionEnum::ReservationsView])->create();
     $this->actingAs($clerk)->get(route('settings.facilities.index', $property->code))->assertForbidden();
 
     Feature::for($property)->deactivate(Facilities::class);
     $this->actingAs($owner)->get(route('settings.facilities.index', $property->code))->assertNotFound();
+});
+
+test('the facility page saves its taxes with the details, and the Available switch keeps them', function () {
+    ['owner' => $owner, 'property' => $property] = facilitySetup();
+    $hall = Facility::factory()->for($property)->create(['name' => 'Riverside Hall']);
+    $sst = Tax::factory()->for($property)->create(['name' => 'SST']);
+    $otherPropertyTax = Tax::factory()->create();
+    $this->actingAs($owner);
+
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'tax_ids' => [$otherPropertyTax->id]]))
+        ->assertSessionHasErrors('tax_ids.0');
+
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'tax_ids' => [$sst->id]]))
+        ->assertSessionHasNoErrors();
+    expect(Activity::query()->where('event', 'facility.updated')->sole()->properties['changed'])->toBe(['tax_ids']);
+
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'active' => '0']));
+    expect($hall->chargeItem->transactionCode->applicableTaxes()->pluck('taxes.id')->all())->toBe([$sst->id]);
+
+    $this->get(route('settings.facilities.show', [$property->code, $hall]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/facilities/show')
+            ->where('facility.taxIds', [$sst->id])
+            ->where('facility.taxNames', ['SST'])
+            ->where('facility.active', false)
+            ->has('taxes', 1));
+
+    $this->put(route('settings.facilities.update', [$property->code, $hall]), facilityPayload(['capacity' => '100', 'tax_ids' => []]));
+    expect($hall->chargeItem->transactionCode->applicableTaxes()->count())->toBe(0);
+});
+
+test('the charge item page sends a facility charge item to its facility page', function () {
+    ['owner' => $owner, 'property' => $property] = facilitySetup();
+    $hall = Facility::factory()->for($property)->create();
+    $this->actingAs($owner);
+
+    $this->get(route('settings.charge-items.edit', [$property->code, $hall->charge_item_id]))
+        ->assertRedirect(route('settings.facilities.show', [$property->code, $hall]));
+
+    Feature::for($property)->deactivate(Facilities::class);
+    $this->get(route('settings.charge-items.edit', [$property->code, $hall->charge_item_id]))
+        ->assertOk();
 });

@@ -9,8 +9,8 @@ use App\Models\Facility;
 use Spatie\LaravelData\Data;
 
 /**
- * One row of the Facilities settings table and the facility Sheet. `amount` is the charge item's list price, or null
- * for "Charge by hand". `sessionCount` is set on Shared facilities only.
+ * A facility on the Facilities list and its own page. `amount` is the charge item's list price, or null for "Charge by
+ * hand". `code` and `taxIds` are the charge item's. `sessionCount` counts the sessions of a Shared facility.
  */
 class FacilityData extends Data
 {
@@ -25,10 +25,18 @@ class FacilityData extends Data
         public FacilityRateBasis $rateBasis,
         public bool $active,
         public int $sessionCount,
+        public string $code,
+        /** @var list<int> */
+        public array $taxIds,
+        /** @var list<string> */
+        public array $taxNames,
+        public string $sharingLabel,
+        public string $capacityUnitLabel,
+        public string $rateBasisLabel,
     ) {}
 
     /**
-     * Load `chargeItem` and count `sessions` first.
+     * Load `chargeItem.transactionCode.applicableTaxes` and count `sessions` first.
      */
     public static function fromModel(Facility $facility): self
     {
@@ -43,6 +51,12 @@ class FacilityData extends Data
             rateBasis: $facility->rate_basis,
             active: $facility->active,
             sessionCount: (int) ($facility->sessions_count ?? 0),
+            code: $facility->chargeItem->transactionCode->code,
+            taxIds: array_values(array_map('intval', $facility->chargeItem->transactionCode->applicableTaxes->modelKeys())),
+            taxNames: array_values($facility->chargeItem->transactionCode->applicableTaxes->sortBy('name')->pluck('name')->all()),
+            sharingLabel: $facility->sharing->label(),
+            capacityUnitLabel: $facility->capacity_unit->label(),
+            rateBasisLabel: $facility->rate_basis->label(),
         );
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Facilities;
 use App\Actions\Facilities\CreateFacility;
 use App\Actions\Facilities\ReorderFacilities;
 use App\Actions\Facilities\UpdateFacility;
+use App\Data\Catalogues\ChargeItemTaxData;
 use App\Data\Facilities\FacilityData;
 use App\Data\Property\CurrencyData;
 use App\Enums\FacilityCapacityUnit;
@@ -15,6 +16,7 @@ use App\Http\Requests\Facilities\FacilityRequest;
 use App\Http\Requests\Facilities\ReorderFacilitiesRequest;
 use App\Models\Facility;
 use App\Models\Property;
+use App\Models\Tax;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,7 +33,7 @@ class FacilityController extends Controller
 
         return Inertia::render('settings/facilities/index', [
             'facilities' => $property->facilities()
-                ->with('chargeItem')
+                ->with('chargeItem.transactionCode.applicableTaxes')
                 ->withCount('sessions')
                 ->ordered()
                 ->get()
@@ -44,17 +46,43 @@ class FacilityController extends Controller
         ]);
     }
 
-    public function store(FacilityRequest $request, Property $property, CreateFacility $createFacility): RedirectResponse
+    /**
+     * The facility page's Details tab: every field of the facility, its taxes, and a summary beside them.
+     */
+    public function show(Property $property, Facility $facility): Response
     {
-        $createFacility($property, $request->user(), $request->facilityAttributes());
+        abort_if($property->settings === null, 404);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Facility added.')]);
-
-        return to_route('settings.facilities.index', $property);
+        return Inertia::render('settings/facilities/show', [
+            'facility' => FacilityData::fromModel($facility->load('chargeItem.transactionCode.applicableTaxes')->loadCount('sessions')),
+            'sharingOptions' => FacilitySharing::options(),
+            'capacityUnits' => FacilityCapacityUnit::options(),
+            'rateBases' => FacilityRateBasis::options(),
+            'taxes' => $property->taxes()
+                ->orderByDesc('enabled')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Tax $tax): ChargeItemTaxData => ChargeItemTaxData::fromModel($tax))
+                ->all(),
+            'currency' => CurrencyData::forProperty($property),
+        ]);
     }
 
     /**
-     * Turn off and Turn on send the full row with a new `active`, so the toast names the change.
+     * A new facility opens on its own page, where staff add taxes and sessions.
+     */
+    public function store(FacilityRequest $request, Property $property, CreateFacility $createFacility): RedirectResponse
+    {
+        $facility = $createFacility($property, $request->user(), $request->facilityAttributes());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Facility added.')]);
+
+        return to_route('settings.facilities.show', [$property, $facility]);
+    }
+
+    /**
+     * The Available switches send the full row with a new `active`, so the toast names the change. Saves go back to
+     * the page they came from: the list or the Details tab.
      */
     public function update(FacilityRequest $request, Property $property, Facility $facility, UpdateFacility $updateFacility): RedirectResponse
     {
@@ -69,7 +97,7 @@ class FacilityController extends Controller
         };
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
-        return to_route('settings.facilities.index', $property);
+        return back();
     }
 
     public function reorder(ReorderFacilitiesRequest $request, Property $property, ReorderFacilities $reorderFacilities): RedirectResponse

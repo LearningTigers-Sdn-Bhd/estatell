@@ -8,12 +8,13 @@ use App\Enums\FacilitySharing;
 use App\Models\ChargeItem;
 use App\Models\Facility;
 use App\Models\Property;
+use App\Models\Tax;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/** Add or change a facility in the facility Sheet, or turn one on or off from the row menu. */
+/** Add a facility in the Sheet, save its Details tab, or turn it on or off with an Available switch. */
 class FacilityRequest extends FormRequest
 {
     /**
@@ -36,6 +37,10 @@ class FacilityRequest extends FormRequest
             // A save that sends no Active keeps the facility's own state.
             'active' => $this->boolean('active', $facility instanceof Facility ? $facility->active : true),
         ]);
+
+        if (is_array($this->input('tax_ids'))) {
+            $this->merge(['tax_ids' => array_values(array_map(fn (mixed $id): int => (int) $id, $this->input('tax_ids')))]);
+        }
     }
 
     /**
@@ -86,6 +91,8 @@ class FacilityRequest extends FormRequest
             'default_amount' => ['exclude_if:charge_by_hand,true', 'required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:9999999999.99'],
             'rate_basis' => ['required', Rule::enum(FacilityRateBasis::class)],
             'active' => ['boolean'],
+            'tax_ids' => ['sometimes', 'array'],
+            'tax_ids.*' => ['integer', 'distinct', Rule::exists(Tax::class, 'id')->where('property_id', $property->id)],
         ];
     }
 
@@ -100,7 +107,9 @@ class FacilityRequest extends FormRequest
     }
 
     /**
-     * @return array{name: string, sharing: string, capacity: int, capacity_unit: string, default_amount: ?string, rate_basis: string, active: bool}
+     * `tax_ids` is null when the form sent none (the Available switch), so the charge item keeps its taxes.
+     *
+     * @return array{name: string, sharing: string, capacity: int, capacity_unit: string, default_amount: ?string, rate_basis: string, active: bool, tax_ids: ?list<int>}
      */
     public function facilityAttributes(): array
     {
@@ -114,6 +123,7 @@ class FacilityRequest extends FormRequest
             'default_amount' => $amount === null ? null : (string) $amount,
             'rate_basis' => (string) $this->validated('rate_basis'),
             'active' => (bool) $this->validated('active'),
+            'tax_ids' => $this->has('tax_ids') ? array_values(array_map('intval', (array) $this->validated('tax_ids', []))) : null,
         ];
     }
 }

@@ -27,10 +27,7 @@ export default function FacilitiesIndex({
     rateBases: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
-    const [sheet, setSheet] = useState<{
-        open: boolean;
-        facility: Facility | null;
-    }>({ open: false, facility: null });
+    const [adding, setAdding] = useState(false);
     const [busyIds, setBusyIds] = useState<Set<number>>(new Set());
 
     const setBusy = (id: number, busy: boolean) =>
@@ -95,11 +92,7 @@ export default function FacilitiesIndex({
                     title="Facilities"
                     description="Halls, equipment and activities guests can book."
                     actions={
-                        <Button
-                            onClick={() =>
-                                setSheet({ open: true, facility: null })
-                            }
-                        >
+                        <Button onClick={() => setAdding(true)}>
                             <Plus data-icon="inline-start" />
                             Add facility
                         </Button>
@@ -113,18 +106,14 @@ export default function FacilitiesIndex({
                     rateBases={rateBases}
                     currency={currency}
                     busyIds={busyIds}
-                    onEdit={(facility) => setSheet({ open: true, facility })}
                     onMove={move}
                     onToggleActive={toggleActive}
                 />
             </div>
 
             <FacilitySheet
-                open={sheet.open}
-                onOpenChange={(open) =>
-                    setSheet((current) => ({ ...current, open }))
-                }
-                facility={sheet.facility}
+                open={adding}
+                onOpenChange={setAdding}
                 sharingOptions={sharingOptions}
                 capacityUnits={capacityUnits}
                 rateBases={rateBases}

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Facilities;
 
 use App\Actions\Facilities\DeleteFacilitySession;
 use App\Actions\Facilities\SaveFacilitySession;
+use App\Data\Facilities\FacilityData;
 use App\Data\Facilities\FacilitySessionData;
+use App\Data\Property\CurrencyData;
 use App\Enums\FacilitySharing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Facilities\FacilitySessionRequest;
@@ -23,19 +25,20 @@ use Inertia\Response;
 class FacilitySessionController extends Controller
 {
     /**
-     * Only a Shared facility has sessions, so a Private one answers 404.
+     * The facility page's Sessions tab. Only a Shared facility has sessions, so a Private one answers 404.
      */
     public function index(Property $property, Facility $facility): Response
     {
         abort_unless($facility->sharing === FacilitySharing::Shared, 404);
 
         return Inertia::render('settings/facilities/sessions', [
-            'facility' => ['id' => $facility->id, 'name' => $facility->name],
+            'facility' => FacilityData::fromModel($facility->load('chargeItem.transactionCode.applicableTaxes')->loadCount('sessions')),
             'sessions' => $facility->sessions()
                 ->ordered()
                 ->get()
                 ->map(fn (FacilitySession $session): FacilitySessionData => FacilitySessionData::fromModel($session))
                 ->all(),
+            'currency' => CurrencyData::forProperty($property),
         ]);
     }
 

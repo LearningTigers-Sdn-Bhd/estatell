@@ -1,24 +1,13 @@
 import { Link } from '@inertiajs/react';
-import {
-    ArrowDown,
-    ArrowUp,
-    Clock,
-    Ellipsis,
-    Pencil,
-    Power,
-    PowerOff,
-    ReceiptText,
-    Tent,
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, Ellipsis, ExternalLink, Tent } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
-import { StatusBadge } from '@/components/pms/status-badge';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -29,22 +18,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { edit as editChargeItem } from '@/routes/settings/charge-items';
-import { index as sessionsIndex } from '@/routes/settings/facilities/sessions';
+import { show } from '@/routes/settings/facilities';
 
 type Facility = App.Data.Facilities.FacilityData;
 type Option = { value: string; label: string };
-
-const ACTIVE: App.Data.Shared.BadgeData = {
-    value: 'active',
-    label: 'Active',
-    tone: 'success',
-};
-const OFF: App.Data.Shared.BadgeData = {
-    value: 'off',
-    label: 'Off',
-    tone: 'neutral',
-};
 
 function labelOf(options: Option[], value: string): string {
     return options.find((option) => option.value === value)?.label ?? value;
@@ -61,7 +38,6 @@ export function FacilityTable({
     rateBases,
     currency,
     busyIds,
-    onEdit,
     onMove,
     onToggleActive,
 }: {
@@ -71,7 +47,6 @@ export function FacilityTable({
     rateBases: Option[];
     currency: App.Data.Property.CurrencyData | null;
     busyIds: Set<number>;
-    onEdit: (facility: Facility) => void;
     onMove: (from: number, to: number) => void;
     onToggleActive: (facility: Facility, active: boolean) => void;
 }) {
@@ -80,13 +55,13 @@ export function FacilityTable({
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead className="w-28">Available</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Sharing</TableHead>
                         <TableHead className="text-right">Capacity</TableHead>
                         <TableHead className="text-right">
                             Rate{currency ? ` (${currency.code})` : ''}
                         </TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead className="w-12">
                             <span className="sr-only">Actions</span>
                         </TableHead>
@@ -113,8 +88,24 @@ export function FacilityTable({
                                     : 'text-muted-foreground'
                             }
                         >
+                            <TableCell>
+                                <Switch
+                                    size="sm"
+                                    checked={facility.active}
+                                    disabled={busyIds.has(facility.id)}
+                                    aria-label={`Make ${facility.name} ${facility.active ? 'unavailable' : 'available'}`}
+                                    onCheckedChange={(active) =>
+                                        onToggleActive(facility, active)
+                                    }
+                                />
+                            </TableCell>
                             <TableCell className="font-medium">
-                                {facility.name}
+                                <Link
+                                    href={show.url({ facility: facility.id })}
+                                    className="underline-offset-4 hover:underline"
+                                >
+                                    {facility.name}
+                                </Link>
                             </TableCell>
                             <TableCell>
                                 {labelOf(sharingOptions, facility.sharing)}
@@ -145,11 +136,6 @@ export function FacilityTable({
                                 )}
                             </TableCell>
                             <TableCell>
-                                <StatusBadge
-                                    status={facility.active ? ACTIVE : OFF}
-                                />
-                            </TableCell>
-                            <TableCell>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger
                                         render={
@@ -168,28 +154,17 @@ export function FacilityTable({
                                         className="w-44"
                                     >
                                         <DropdownMenuItem
-                                            onClick={() => onEdit(facility)}
+                                            render={
+                                                <Link
+                                                    href={show.url({
+                                                        facility: facility.id,
+                                                    })}
+                                                />
+                                            }
                                         >
-                                            <Pencil />
-                                            Edit
+                                            <ExternalLink />
+                                            Open
                                         </DropdownMenuItem>
-                                        {facility.sharing === 'shared' && (
-                                            <DropdownMenuItem
-                                                render={
-                                                    <Link
-                                                        href={sessionsIndex.url(
-                                                            {
-                                                                facility:
-                                                                    facility.id,
-                                                            },
-                                                        )}
-                                                    />
-                                                }
-                                            >
-                                                <Clock />
-                                                Sessions
-                                            </DropdownMenuItem>
-                                        )}
                                         <DropdownMenuItem
                                             disabled={position === 0}
                                             onClick={() =>
@@ -210,37 +185,6 @@ export function FacilityTable({
                                         >
                                             <ArrowDown />
                                             Move down
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            onClick={() =>
-                                                onToggleActive(
-                                                    facility,
-                                                    !facility.active,
-                                                )
-                                            }
-                                        >
-                                            {facility.active ? (
-                                                <PowerOff />
-                                            ) : (
-                                                <Power />
-                                            )}
-                                            {facility.active
-                                                ? 'Turn off'
-                                                : 'Turn on'}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            render={
-                                                <Link
-                                                    href={editChargeItem.url({
-                                                        chargeItem:
-                                                            facility.chargeItemId,
-                                                    })}
-                                                />
-                                            }
-                                        >
-                                            <ReceiptText />
-                                            More settings
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>

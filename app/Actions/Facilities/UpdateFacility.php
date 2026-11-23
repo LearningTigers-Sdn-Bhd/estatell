@@ -17,11 +17,12 @@ class UpdateFacility
 
     /**
      * Save a facility and its charge item in one transaction. The charge item follows the name, the price (null is
-     * "Charge by hand") and whether the facility is on. Its code, description and taxes stay as they are. Saving a
+     * "Charge by hand"), the taxes and whether the facility is on. Its code and description stay as they are. Without
+     * `tax_ids` (the Available switch) the taxes stay too. Saving a
      * facility as Private deletes its sessions. Logs `facility.updated` with the changed fields, or nothing when
      * nothing changed. See docs/33-facilities/02-facility-settings.md.
      *
-     * @param  array{name: string, sharing: string, capacity: int, capacity_unit: string, default_amount: ?string, rate_basis: string, active: bool}  $attributes
+     * @param  array{name: string, sharing: string, capacity: int, capacity_unit: string, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>}  $attributes
      */
     public function __invoke(User $actor, Facility $facility, array $attributes): Facility
     {
@@ -29,6 +30,8 @@ class UpdateFacility
             $facility = Facility::query()->lockForUpdate()->findOrFail($facility->id);
             $chargeItem = ChargeItem::query()->with('transactionCode.applicableTaxes')->findOrFail($facility->charge_item_id);
             $amountBefore = $chargeItem->default_amount;
+            $taxIdsBefore = collect($chargeItem->transactionCode->applicableTaxes->modelKeys())->map(fn (mixed $id): int => (int) $id)->sort()->values()->all();
+            $taxIds = isset($attributes['tax_ids']) ? collect($attributes['tax_ids'])->sort()->values()->all() : $taxIdsBefore;
 
             $facility->fill([
                 'name' => $attributes['name'],
@@ -50,11 +53,15 @@ class UpdateFacility
                 'allow_override' => true,
                 'active' => $attributes['active'],
                 'auto_add' => false,
-                'tax_ids' => $chargeItem->transactionCode->applicableTaxes->modelKeys(),
+                'tax_ids' => $taxIds,
             ]);
 
             if ($chargeItem->refresh()->default_amount !== $amountBefore) {
                 $changes[] = 'default_amount';
+            }
+
+            if ($taxIds !== $taxIdsBefore) {
+                $changes[] = 'tax_ids';
             }
 
             $facility->save();

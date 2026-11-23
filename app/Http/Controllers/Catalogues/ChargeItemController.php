@@ -20,6 +20,7 @@ use App\Models\Property;
 use App\Models\PropertyAgeGroup;
 use App\Models\Tax;
 use App\Services\Boats\BoatFareUsage;
+use App\Services\Facilities\ChargeItemFacility;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -60,9 +61,18 @@ class ChargeItemController extends Controller
         return to_route('settings.charge-items.edit', [$property, $chargeItem]);
     }
 
-    public function edit(Property $property, ChargeItem $chargeItem, BoatFareUsage $boatFareUsage): Response
+    /**
+     * A facility's charge item is edited on the facility page, so its Edit link goes there.
+     */
+    public function edit(Property $property, ChargeItem $chargeItem, BoatFareUsage $boatFareUsage, ChargeItemFacility $chargeItemFacility): Response|RedirectResponse
     {
         abort_if($property->settings === null, 404);
+
+        $facilityId = $chargeItemFacility->facilityIdFor($property, $chargeItem);
+
+        if ($facilityId !== null) {
+            return to_route('settings.facilities.show', [$property, $facilityId]);
+        }
 
         $prices = $chargeItem->childPrices()->get()->keyBy('property_age_group_id');
 

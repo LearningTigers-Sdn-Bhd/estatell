@@ -202,6 +202,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [FacilityController::class, 'index'])->name('index');
         Route::post('/', [FacilityController::class, 'store'])->name('store');
         Route::put('order', [FacilityController::class, 'reorder'])->name('reorder');
+        Route::get('{facility}', [FacilityController::class, 'show'])->whereNumber('facility')->name('show');
         Route::put('{facility}', [FacilityController::class, 'update'])->whereNumber('facility')->name('update');
         Route::prefix('{facility}/sessions')->whereNumber('facility')->name('sessions.')->group(function () {
             Route::get('/', [FacilitySessionController::class, 'index'])->name('index');

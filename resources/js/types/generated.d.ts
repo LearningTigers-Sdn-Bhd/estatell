@@ -1597,6 +1597,12 @@ amount: string | null,
 rateBasis: App.Enums.FacilityRateBasis,
 active: boolean,
 sessionCount: number,
+code: string,
+taxIds: number[],
+taxNames: string[],
+sharingLabel: string,
+capacityUnitLabel: string,
+rateBasisLabel: string,
 };
 export type FacilitySessionData = {
 id: number,

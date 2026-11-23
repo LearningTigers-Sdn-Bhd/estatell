@@ -2,8 +2,11 @@ import { Form, Head } from '@inertiajs/react';
 import { Clock, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
-import { PageHeader } from '@/components/pms/page-header';
 import { FacilitySessionDialog } from '@/components/pms/settings/facility-session-dialog';
+import {
+    FacilityShell,
+    facilityBreadcrumbs,
+} from '@/components/pms/settings/facility-shell';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -29,18 +32,19 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { index as facilitiesIndex } from '@/routes/settings/facilities';
-import { destroy, index } from '@/routes/settings/facilities/sessions';
+import { destroy } from '@/routes/settings/facilities/sessions';
 
+type Facility = App.Data.Facilities.FacilityData;
 type Session = App.Data.Facilities.FacilitySessionData;
-type FacilityRef = { id: number; name: string };
 
 export default function FacilitySessions({
     facility,
     sessions,
+    currency,
 }: {
-    facility: FacilityRef;
+    facility: Facility;
     sessions: Session[];
+    currency: App.Data.Property.CurrencyData | null;
 }) {
     const [dialog, setDialog] = useState<{
         open: boolean;
@@ -52,12 +56,22 @@ export default function FacilitySessions({
         <>
             <Head title={`${facility.name} sessions`} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader
-                    title="Sessions"
-                    description={`Staff pick one of these when they book ${facility.name}.`}
-                    actions={
+            <FacilityShell
+                facility={facility}
+                activeTab="sessions"
+                currency={currency}
+            >
+                <section className="flex flex-col gap-5">
+                    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <h3 className="text-base font-medium">Sessions</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Staff pick one of these when they book{' '}
+                                {facility.name}.
+                            </p>
+                        </div>
                         <Button
+                            variant="outline"
                             onClick={() =>
                                 setDialog({ open: true, session: null })
                             }
@@ -65,86 +79,86 @@ export default function FacilitySessions({
                             <Plus data-icon="inline-start" />
                             Add session
                         </Button>
-                    }
-                />
+                    </header>
 
-                <div className="overflow-auto rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>From</TableHead>
-                                <TableHead>To</TableHead>
-                                <TableHead className="w-12">
-                                    <span className="sr-only">Actions</span>
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sessions.length === 0 && (
-                                <TableRow className="hover:bg-transparent">
-                                    <TableCell colSpan={3}>
-                                        <EmptyState
-                                            icon={Clock}
-                                            title="No sessions yet."
-                                            description="Without sessions, staff type the From and To times of each booking."
-                                        />
-                                    </TableCell>
+                    <div className="overflow-auto rounded-lg border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>From</TableHead>
+                                    <TableHead>To</TableHead>
+                                    <TableHead className="w-12">
+                                        <span className="sr-only">Actions</span>
+                                    </TableHead>
                                 </TableRow>
-                            )}
-                            {sessions.map((session) => (
-                                <TableRow key={session.id}>
-                                    <TableCell className="tabular-nums">
-                                        {session.startsAt}
-                                    </TableCell>
-                                    <TableCell className="tabular-nums">
-                                        {session.endsAt}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger
-                                                render={
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon-sm"
-                                                    />
-                                                }
-                                                aria-label={`Actions for ${session.startsAt} to ${session.endsAt}`}
-                                            >
-                                                <Ellipsis />
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent
-                                                align="end"
-                                                className="w-36"
-                                            >
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        setDialog({
-                                                            open: true,
-                                                            session,
-                                                        })
+                            </TableHeader>
+                            <TableBody>
+                                {sessions.length === 0 && (
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableCell colSpan={3}>
+                                            <EmptyState
+                                                icon={Clock}
+                                                title="No sessions yet."
+                                                description="Without sessions, staff type the From and To times of each booking."
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {sessions.map((session) => (
+                                    <TableRow key={session.id}>
+                                        <TableCell className="tabular-nums">
+                                            {session.startsAt}
+                                        </TableCell>
+                                        <TableCell className="tabular-nums">
+                                            {session.endsAt}
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger
+                                                    render={
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                        />
                                                     }
+                                                    aria-label={`Actions for ${session.startsAt} to ${session.endsAt}`}
                                                 >
-                                                    <Pencil />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    variant="destructive"
-                                                    onClick={() =>
-                                                        setDeleting(session)
-                                                    }
+                                                    <Ellipsis />
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent
+                                                    align="end"
+                                                    className="w-36"
                                                 >
-                                                    <Trash2 />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            setDialog({
+                                                                open: true,
+                                                                session,
+                                                            })
+                                                        }
+                                                    >
+                                                        <Pencil />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            setDeleting(session)
+                                                        }
+                                                    >
+                                                        <Trash2 />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </section>
+            </FacilityShell>
 
             <FacilitySessionDialog
                 open={dialog.open}
@@ -212,16 +226,6 @@ export default function FacilitySessions({
     );
 }
 
-FacilitySessions.layout = (props: { facility: FacilityRef }) => ({
-    breadcrumbs: [
-        { title: 'Facilities', href: facilitiesIndex() },
-        {
-            title: props.facility.name,
-            href: facilitiesIndex(),
-        },
-        {
-            title: 'Sessions',
-            href: index({ facility: props.facility.id }),
-        },
-    ],
+FacilitySessions.layout = (props: { facility: Facility }) => ({
+    breadcrumbs: facilityBreadcrumbs(props, 'sessions'),
 });

@@ -43,44 +43,74 @@ facility_sessions   id, property_id, facility_id → facilities (cascade),
 Settings sidebar, **Property** group, after Boats: **Facilities** (icon `tent`). Only when the feature is on and the user has `settings.manage`. A Settings page with one table.
 
 ```
-Facilities                                       [+ Add facility]
+Facilities                                                    [+ Add facility]
 Halls, equipment and activities guests can book.
-────────────────────────────────────────────────────────────────
-Name             Sharing    Capacity   Rate (MYR)          Status
-Riverside Hall   Private    150 pax    1,500.00 / day      Active   ⋯
-BBQ pit          Private     20 pax      150.00 / session  Active   ⋯
-Kayak            Shared       6 units     40.00 / hour     Active   ⋯
-Night Walk       Shared      20 pax       80.00 / person   Active   ⋯
+───────────────────────────────────────────────────────────────────────────────
+Available     Name             Sharing    Capacity   Rate (MYR)
+[on]          Riverside Hall   Private    150 pax    1,500.00 per day   ⋯
+[on]          BBQ pit          Private     20 pax      150.00 per session   ⋯
+[on]          Kayak            Shared       6 units     40.00 per hour   ⋯
+[on]          Night Walk       Shared      20 pax       80.00 per person   ⋯
 ```
 
+- The **Available** switch in the first column turns a facility on or off. Its charge item follows.
+- The name opens the [facility page](#facility-page).
 - Rows sort by `position`. **Move up** and **Move down** in the ⋯ menu change it, as on Rate plans. The Timeline View uses the same order.
 - **Rate** shows the charge item's amount and the rate basis, or "Charge by hand".
-- The **⋯** menu: **Edit** (the Sheet), **Sessions** (Shared only, see below), **Move up**, **Move down**, **Turn off** or **Turn on**, and **More settings** (the charge item page, for taxes).
+- The **⋯** menu: **Open**, **Move up** and **Move down**.
 
-## Add or edit facility (Sheet)
+## Add facility (Sheet)
 
-| Field    | Control                                              | Placeholder         |
-| -------- | ---------------------------------------------------- | ------------------- |
-| Name     | Text                                                 | e.g. Riverside Hall |
-| Sharing  | Two radio cards with icons and the enum descriptions | –                   |
-| Capacity | Number, with the unit select (pax, units) beside it  | e.g. 150            |
-| Rate     | Amount (MYR), or the switch **Charge by hand**       | e.g. 1500           |
-| Per      | Select from `FacilityRateBasis::options()`           | Choose a rate basis |
-| Active   | Switch                                               | –                   |
+| Field     | Control                                              | Placeholder         |
+| --------- | ---------------------------------------------------- | ------------------- |
+| Name      | Text                                                 | e.g. Riverside Hall |
+| Sharing   | Two radio cards with icons and the enum descriptions | –                   |
+| Capacity  | Number, with the unit select (pax, units) beside it  | e.g. 150            |
+| Rate      | Amount (MYR), or the switch **Charge by hand**       | e.g. 1500           |
+| Per       | Select from `FacilityRateBasis::options()`           | Choose a rate basis |
+| Available | Switch                                               | –                   |
 
-- Save creates or updates the charge item in the same transaction (`CreateChargeItem`, `UpdateChargeItem`), category Facility, charging unit Per item, `allow_override` on, `auto_add` off. The code is derived from the name (Riverside Hall → `RIVERSIDE_HALL`) and stays when the name changes. The charge item's name and active state follow the facility. Its taxes are set on the charge item page. This is the boat fare pattern.
+Saving opens the new facility's page, where staff add taxes and sessions.
+
+## Facility page
+
+`settings/facilities/{facility}`. A Detail page with tab links and a page-scroll `Workspace`, like Booking website. The facility is edited only here, so there is no Edit Sheet and no trip to the charge item page.
+
+```
+Settings › Facilities › Night Walk › Details ▾
+←  Night Walk                                         [on] Available
+[Details] [Sessions (2)]
+┌────────────────────────────────────────────┐ ┌────────────────────┐
+│ Details                                    │ │ Summary            │
+│ Name [Night Walk]     Capacity [20] [pax]  │ │ Sharing   Shared   │
+│ Sharing  (○) Private  (●) Shared           │ │ Capacity  20 pax   │
+│ Rate [MYR 80.00]      Per [Per person]     │ │ Rate  80.00 /person│
+│ [ ] Charge by hand                         │ │ Taxes     SST      │
+│ Taxes [SST 8%]                             │ │ Code   NIGHT_WALK  │
+│                             [Save details] │ │ Sessions  2        │
+└────────────────────────────────────────────┘ └────────────────────┘
+```
+
+| Tab      | Route                                                                  | Holds                                                       |
+| -------- | ---------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Details  | `settings.facilities.show`                                             | Name, Sharing, Capacity, Rate or Charge by hand, Per, Taxes |
+| Sessions | `settings.facilities.sessions.index`. Shared only; Private answers 404 | The facility's fixed times, see [Sessions](#sessions)       |
+
+- The header's **Available** switch saves at once, like the one on the list. A facility that is off shows **Unavailable** beside its name.
+- The summary in the aside shows the saved facility on every tab.
+- Save updates the facility and its charge item in one transaction (`UpdateChargeItem`): category Facility, charging unit Per item, `allow_override` on, `auto_add` off. The charge item's name, price, taxes and active state follow the facility. The code is derived from the name when the facility is added (Riverside Hall → `RIVERSIDE_HALL`) and does not change. This is the boat fare pattern.
+- The charge item still shows on Settings › Charge items. Its **Edit** opens the facility page (`ChargeItemFacility`), so only one page edits it.
 - The name must be free among facilities and among charge items, because the charge item takes it.
 - `sharing` cannot change while the facility has a future booking that is not Cancelled: "Cancel or move its future bookings first." This check comes with facility bookings (item 4).
-- Saving a facility as Private deletes its sessions.
+- Saving a facility as Private deletes its sessions. The form says so before saving.
 
 ## Sessions
 
 A Shared facility can have fixed times. When it has any, the [Book facility](04-facility-bookings.md#book-facility-sheet) Sheet shows a **Session** select instead of From and To. Every booking of a session then has the same times, and the report adds them up in one row.
 
-Sessions are repeating rows, so they get a page of their own (DESIGN.md §5): **⋯ › Sessions** opens `settings/facilities/{facility}/sessions`.
+Sessions are repeating rows, so they get their own tab (DESIGN.md §5): `settings/facilities/{facility}/sessions`.
 
 ```
-Settings › Facilities › Night Walk › Sessions
 Sessions                                              [+ Add session]
 Staff pick one of these when they book Night Walk.
 ──────────────────────────────────────────────────────────────────────
@@ -95,13 +125,13 @@ From     To
 
 ## Actions
 
-| Action                  | Does                                                                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateFacility`        | Creates the facility and its charge item in one transaction. Logs `facility.created`                                                                    |
-| `UpdateFacility`        | Updates both, including Turn off and Turn on. Deletes the sessions when saved as Private. Logs `facility.updated`. Refuses `sharing_locked` from item 4 |
-| `ReorderFacilities`     | Saves `position`. Refuses a list that is not exactly the property's facilities                                                                          |
-| `SaveFacilitySession`   | Creates or updates one session. Refuses `facility_not_shared`. The same times twice is a validation error                                               |
-| `DeleteFacilitySession` | Deletes one session                                                                                                                                     |
+| Action                  | Does                                                                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateFacility`        | Creates the facility and its charge item in one transaction. Logs `facility.created`                                                                                                        |
+| `UpdateFacility`        | Updates both, including the Available switches. Without `tax_ids` the taxes stay. Deletes the sessions when saved as Private. Logs `facility.updated`. Refuses `sharing_locked` from item 4 |
+| `ReorderFacilities`     | Saves `position`. Refuses a list that is not exactly the property's facilities                                                                                                              |
+| `SaveFacilitySession`   | Creates or updates one session. Refuses `facility_not_shared`. The same times twice is a validation error                                                                                   |
+| `DeleteFacilitySession` | Deletes one session                                                                                                                                                                         |
 
 ## Routes
 
@@ -111,6 +141,7 @@ All need `settings.manage` and the `Facilities` feature.
 | -------------------------------------------------------------------- | -------------------------------------- |
 | `GET /p/{code}/settings/facilities`                                  | `settings.facilities.index`            |
 | `POST /p/{code}/settings/facilities`                                 | `settings.facilities.store`            |
+| `GET /p/{code}/settings/facilities/{facility}`                       | `settings.facilities.show`             |
 | `PUT /p/{code}/settings/facilities/{facility}`                       | `settings.facilities.update`           |
 | `PUT /p/{code}/settings/facilities/order`                            | `settings.facilities.reorder`          |
 | `GET /p/{code}/settings/facilities/{facility}/sessions`              | `settings.facilities.sessions.index`   |

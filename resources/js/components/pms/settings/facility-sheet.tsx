@@ -1,11 +1,13 @@
 import { useForm } from '@inertiajs/react';
-import { Lock, Users } from 'lucide-react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
-import type { Choice } from '@/components/pms/choice-cards';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
+import {
+    sharingChoices,
+    type SharingOption,
+} from '@/components/pms/settings/facility-details-form';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import {
     Field,
@@ -17,16 +19,13 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { store, update } from '@/routes/settings/facilities';
+import { store } from '@/routes/settings/facilities';
 
 type Facility = App.Data.Facilities.FacilityData;
-type SharingOption = { value: string; label: string; description: string };
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    /** The facility being edited, or null to add one. */
-    facility: Facility | null;
     sharingOptions: SharingOption[];
     capacityUnits: EnumOption[];
     rateBases: EnumOption[];
@@ -44,12 +43,7 @@ type FormData = {
     active: boolean;
 };
 
-const SHARING_ICONS: Record<string, Choice['icon']> = {
-    private: Lock,
-    shared: Users,
-};
-
-/** The full row, so Turn off and Turn on can save it with a new `active`. */
+/** The full row, so an Available switch can save it with a new `active`. Taxes are left out, so they stay. */
 export function facilityValues(facility: Facility): FormData {
     return {
         name: facility.name,
@@ -66,57 +60,35 @@ export function facilityValues(facility: Facility): FormData {
 function FacilityForm({
     open,
     onOpenChange,
-    facility,
     sharingOptions,
     capacityUnits,
     rateBases,
     currency,
 }: Props) {
-    const form = useForm<FormData>(
-        facility === null
-            ? {
-                  name: '',
-                  sharing: 'private',
-                  capacity: '',
-                  capacity_unit: 'pax',
-                  charge_by_hand: false,
-                  default_amount: '',
-                  rate_basis: '',
-                  active: true,
-              }
-            : facilityValues(facility),
-    );
+    const form = useForm<FormData>({
+        name: '',
+        sharing: 'private',
+        capacity: '',
+        capacity_unit: 'pax',
+        charge_by_hand: false,
+        default_amount: '',
+        rate_basis: '',
+        active: true,
+    });
     const { data, errors, setData } = form;
-    const losesSessions =
-        facility !== null &&
-        facility.sessionCount > 0 &&
-        data.sharing === 'private';
-
-    const submit = () => {
-        const options = {
-            preserveScroll: true,
-            onSuccess: () => onOpenChange(false),
-        };
-
-        if (facility === null) {
-            form.post(store.url(), options);
-        } else {
-            form.put(update.url({ facility: facility.id }), options);
-        }
-    };
 
     return (
         <FormOverlay
             variant="sheet"
             open={open}
             onOpenChange={onOpenChange}
-            title={facility === null ? 'Add facility' : `Edit ${facility.name}`}
-            description="A hall, piece of equipment or activity staff can book."
+            title="Add facility"
+            description="A hall, piece of equipment or activity staff can book. Add taxes and sessions on its page next."
             errors={errors}
             dirty={form.isDirty}
             discardTitle="Discard this facility?"
-            onSubmit={submit}
-            submitLabel={facility === null ? 'Add facility' : 'Save facility'}
+            onSubmit={() => form.post(store.url())}
+            submitLabel="Add facility"
             processing={form.processing}
         >
             <FieldGroup>
@@ -139,23 +111,11 @@ function FacilityForm({
                 <ChoiceCards
                     id="facility-sharing"
                     legend="Sharing"
-                    choices={sharingOptions.map((option) => ({
-                        ...option,
-                        icon: SHARING_ICONS[option.value] ?? Lock,
-                    }))}
+                    choices={sharingChoices(sharingOptions)}
                     value={data.sharing}
                     onValueChange={(value) => setData('sharing', value)}
                     error={errors.sharing}
                 />
-                {losesSessions && (
-                    <FieldDescription>
-                        Saving as Private deletes its{' '}
-                        {facility.sessionCount === 1
-                            ? 'session'
-                            : `${facility.sessionCount} sessions`}
-                        .
-                    </FieldDescription>
-                )}
 
                 <Field data-invalid={!!errors.capacity}>
                     <FieldLabel htmlFor="facility-capacity">
@@ -254,10 +214,10 @@ function FacilityForm({
                     />
                     <FieldContent>
                         <FieldLabel htmlFor="facility-active">
-                            Active
+                            Available
                         </FieldLabel>
                         <FieldDescription>
-                            A facility that is off keeps its bookings but takes
+                            An unavailable facility keeps its bookings but takes
                             no new ones.
                         </FieldDescription>
                     </FieldContent>
@@ -268,7 +228,7 @@ function FacilityForm({
 }
 
 /**
- * Adds or edits one facility. Keyed on each opening, so it always starts from the facility it was opened for.
+ * Adds a facility. Saving opens the new facility's page. Keyed on each opening, so it always starts clean.
  */
 export function FacilitySheet(props: Props) {
     return <FacilityForm key={useFreshOnOpen(props.open)} {...props} />;
