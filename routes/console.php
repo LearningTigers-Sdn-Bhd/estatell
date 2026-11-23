@@ -58,7 +58,8 @@ Artisan::command('db:create-test', function () {
     return 0;
 })->purpose('Create the test database named in phpunit.xml if it does not exist');
 
-Schedule::command('horizon:snapshot')->everyFiveMinutes();
+// The demo has no Redis, so it runs no Horizon (docs/deployment/demo_environment.md).
+Schedule::command('horizon:snapshot')->everyFiveMinutes()->skip(fn (): bool => app()->environment('demo'));
 
 Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('purge-expired-identity-scans')->dailyAt('03:30')->onOneServer();
 
