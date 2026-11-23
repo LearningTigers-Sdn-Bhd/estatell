@@ -41,7 +41,7 @@ class SyncLoyverseGuest
         }
 
         $date = ($this->currentBusinessDate->date($unit->property) ?? now())->toDateString();
-        $place = $this->roomBox->assignmentsForUnitsOn([$unit->id], $date)[$unit->id] ?? null;
+        $place = $this->roomBox->currentAssignmentsForUnitsOn([$unit->id], $date)[$unit->id] ?? null;
 
         if ($place === null) {
             return;

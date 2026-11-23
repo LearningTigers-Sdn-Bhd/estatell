@@ -1,6 +1,6 @@
 import { Form, useForm } from '@inertiajs/react';
-import { Plug, RefreshCw, Users } from 'lucide-react';
-import { useMemo } from 'react';
+import { Info, Plug, RefreshCw, Users } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import {
@@ -18,8 +18,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import {
     Table,
     TableBody,
@@ -104,6 +104,11 @@ export default function PosIntegrationsIndex({
     );
     const form = useForm<{ mappings: Row[] }>({ mappings: initial });
 
+    useEffect(() => {
+        form.setData('mappings', initial);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initial]);
+
     function patch(position: number, changes: Partial<Row>) {
         form.setData(
             'mappings',
@@ -123,20 +128,66 @@ export default function PosIntegrationsIndex({
     return (
         <PosSettingsShell activeTab="integrations">
             <Card>
-                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex flex-col gap-1">
-                        <CardTitle>Loyverse</CardTitle>
+                        <div className="flex items-center gap-2.5">
+                            <CardTitle>Loyverse</CardTitle>
+                            {!configured ? (
+                                <Badge variant="secondary">
+                                    Not configured
+                                </Badge>
+                            ) : isDisconnected ? (
+                                <Badge variant="outline">Not connected</Badge>
+                            ) : (
+                                <StatusBadge status={connection.status} />
+                            )}
+                        </div>
                         <CardDescription>
                             Sync in-house guests to Loyverse as customers and
                             post Room Charge receipts straight to their folio.
                         </CardDescription>
                     </div>
-                    {!configured ? (
-                        <Badge variant="secondary">Not configured</Badge>
-                    ) : isDisconnected ? (
-                        <Badge variant="outline">Not connected</Badge>
-                    ) : (
-                        <StatusBadge status={connection.status} />
+                    {configured && !isDisconnected && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Form {...refreshCatalog.form()}>
+                                {({ processing }) => (
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        disabled={
+                                            processing || !connection.connected
+                                        }
+                                        focusableWhenDisabled
+                                    >
+                                        {processing ? (
+                                            <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <RefreshCw data-icon="inline-start" />
+                                        )}
+                                        Refresh stores &amp; payment types
+                                    </Button>
+                                )}
+                            </Form>
+                            <Form {...syncGuests.form()}>
+                                {({ processing }) => (
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        disabled={
+                                            processing || !connection.connected
+                                        }
+                                        focusableWhenDisabled
+                                    >
+                                        {processing ? (
+                                            <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <Users data-icon="inline-start" />
+                                        )}
+                                        Sync in-house guests
+                                    </Button>
+                                )}
+                            </Form>
+                        </div>
                     )}
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
@@ -205,51 +256,37 @@ export default function PosIntegrationsIndex({
                                 </Alert>
                             )}
 
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Form {...refreshCatalog.form()}>
-                                    {({ processing }) => (
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                            disabled={
-                                                processing ||
-                                                !connection.connected
-                                            }
-                                            focusableWhenDisabled
-                                        >
-                                            {processing ? (
-                                                <Spinner data-icon="inline-start" />
-                                            ) : (
-                                                <RefreshCw data-icon="inline-start" />
-                                            )}
-                                            Refresh stores &amp; payment types
-                                        </Button>
-                                    )}
-                                </Form>
-                                <Form {...syncGuests.form()}>
-                                    {({ processing }) => (
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                            disabled={
-                                                processing ||
-                                                !connection.connected
-                                            }
-                                            focusableWhenDisabled
-                                        >
-                                            {processing ? (
-                                                <Spinner data-icon="inline-start" />
-                                            ) : (
-                                                <Users data-icon="inline-start" />
-                                            )}
-                                            Sync in-house guests
-                                        </Button>
-                                    )}
-                                </Form>
-                                <Form
-                                    {...disconnect.form()}
-                                    className="sm:ml-auto"
-                                >
+                            <Alert>
+                                <Info aria-hidden />
+                                <AlertTitle>When to sync manually</AlertTitle>
+                                <AlertDescription>
+                                    <ul className="mt-1 flex list-disc flex-col gap-1 pl-4">
+                                        <li>
+                                            <span className="font-medium text-foreground">
+                                                Refresh stores &amp; payment
+                                                types
+                                            </span>{' '}
+                                            after adding or renaming a store or
+                                            payment type (such as Room Charge)
+                                            in Loyverse Back Office.
+                                        </li>
+                                        <li>
+                                            <span className="font-medium text-foreground">
+                                                Sync in-house guests
+                                            </span>{' '}
+                                            right after connecting for the first
+                                            time to backfill guests already
+                                            checked in, or if Loyverse customers
+                                            look out of date. Future check-ins,
+                                            room moves, and check-outs sync
+                                            automatically.
+                                        </li>
+                                    </ul>
+                                </AlertDescription>
+                            </Alert>
+
+                            <div className="flex justify-end">
+                                <Form {...disconnect.form()}>
                                     {({ processing }) => (
                                         <Button
                                             type="submit"
@@ -358,7 +395,7 @@ export default function PosIntegrationsIndex({
                                                         />
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Checkbox
+                                                        <Switch
                                                             checked={row.active}
                                                             onCheckedChange={(
                                                                 checked,
@@ -366,9 +403,7 @@ export default function PosIntegrationsIndex({
                                                                 patch(
                                                                     position,
                                                                     {
-                                                                        active:
-                                                                            checked ===
-                                                                            true,
+                                                                        active: checked,
                                                                     },
                                                                 )
                                                             }
@@ -380,22 +415,23 @@ export default function PosIntegrationsIndex({
                                         )}
                                     </TableBody>
                                 </Table>
-                                <Button
-                                    type="button"
-                                    className="self-start"
-                                    disabled={form.processing}
-                                    focusableWhenDisabled
-                                    onClick={() =>
-                                        form.put(updateMappings.url(), {
-                                            preserveScroll: true,
-                                        })
-                                    }
-                                >
-                                    {form.processing && (
-                                        <Spinner data-icon="inline-start" />
-                                    )}
-                                    Save mappings
-                                </Button>
+                                <div className="flex justify-end">
+                                    <Button
+                                        type="button"
+                                        disabled={form.processing}
+                                        focusableWhenDisabled
+                                        onClick={() =>
+                                            form.put(updateMappings.url(), {
+                                                preserveScroll: true,
+                                            })
+                                        }
+                                    >
+                                        {form.processing && (
+                                            <Spinner data-icon="inline-start" />
+                                        )}
+                                        Save mappings
+                                    </Button>
+                                </div>
                             </>
                         )}
                     </CardContent>

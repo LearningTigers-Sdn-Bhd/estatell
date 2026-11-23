@@ -92,11 +92,16 @@ class LoyverseClient
     }
 
     /**
-     * Create a customer, or update the one with `$id`. Returns the customer id.
+     * Create a customer, or update the one with `$id`. Returns the customer id. When Loyverse no longer has `$id` (a merchant
+     * deleted the customer by hand), a new customer is created, so the guest is not stuck without one.
      */
     public function saveCustomer(PosConnection $connection, ?string $id, string $name, string $note): string
     {
         $response = $this->send($connection, 'POST', '/customers', array_filter(['id' => $id, 'name' => $name, 'note' => $note], fn (?string $value): bool => $value !== null));
+
+        if ($id !== null && $response->status() === 404) {
+            $response = $this->send($connection, 'POST', '/customers', ['name' => $name, 'note' => $note]);
+        }
 
         return (string) $this->ok($response)->json('id');
     }

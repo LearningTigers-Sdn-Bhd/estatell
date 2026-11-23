@@ -4,6 +4,7 @@ namespace App\Actions\Pos;
 
 use App\Data\Pos\PosChargeData;
 use App\Data\Pos\PosVoidData;
+use App\Enums\PosPostingType;
 use App\Models\PosConnection;
 use App\Models\PosGuestLink;
 use App\Models\PosOutletMapping;
@@ -40,14 +41,15 @@ class ProcessLoyverseReceipt
             return null;
         }
 
-        $amount = $this->roomChargeAmount($receipt, $mapping);
-
-        if ($amount->isLessThanOrEqualTo(0)) {
-            return null;
-        }
-
         $outlet = $mapping->outlet;
         $isRefund = ($receipt['receipt_type'] ?? 'SALE') === 'REFUND';
+        $isCancelled = ! $isRefund && ($receipt['cancelled_at'] ?? null) !== null;
+        $amount = $this->roomChargeAmount($receipt, $mapping);
+
+        // A cancelled sale may arrive without its payments. It still voids a charge this receipt already posted.
+        if ($amount->isLessThanOrEqualTo(0) && ! ($isCancelled && $this->posted($outlet->id, $number))) {
+            return null;
+        }
 
         if ($isRefund && filled($receipt['refund_for'] ?? null)) {
             return ($this->voidPosCharge)($outlet, new PosVoidData('refund:'.$number, (string) $receipt['refund_for'], (string) $amount, 'Refunded in Loyverse', $receipt, $connection->id))->posting;
@@ -57,7 +59,7 @@ class ProcessLoyverseReceipt
             return null;
         }
 
-        if (($receipt['cancelled_at'] ?? null) !== null) {
+        if ($isCancelled) {
             return ($this->voidPosCharge)($outlet, new PosVoidData('cancel:'.$number, $number, null, 'Cancelled in Loyverse', $receipt, $connection->id))->posting;
         }
 
@@ -91,6 +93,12 @@ class ProcessLoyverseReceipt
             }
         }
 
-        return $sum->toScale(2, RoundingMode::HalfUp);
+        // Absolute, because a refund's tender may be reported as a negative amount.
+        return $sum->abs()->toScale(2, RoundingMode::HalfUp);
+    }
+
+    private function posted(int $outletId, string $number): bool
+    {
+        return PosPosting::query()->where('pos_outlet_id', $outletId)->where('external_receipt_id', $number)->where('posting_type', PosPostingType::Charge)->exists();
     }
 }

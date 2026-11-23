@@ -166,6 +166,25 @@ class ReservationRoomBox
     }
 
     /**
+     * The room number or bed label of each unit on `$date`, falling back to its last night (or day-use block) when
+     * `$date` is its departure morning or past departure while still checked in.
+     *
+     * @param  list<int>  $unitIds
+     * @return array<int, string> By unit id
+     */
+    public function currentAssignmentsForUnitsOn(array $unitIds, string $date): array
+    {
+        $assigned = $this->assignmentsForUnitsOn($unitIds, $date);
+        $missing = array_values(array_diff($unitIds, array_keys($assigned)));
+
+        if ($missing === []) {
+            return $assigned;
+        }
+
+        return $assigned + $this->lastNightAssignmentsForUnits($missing);
+    }
+
+    /**
      * @param  list<int>  $unitIds
      * @param  callable(Builder): mixed  $night  Narrows the query to one night per unit.
      * @param  string|null  $date  A day use unit shows its room only when its date matches. Null shows it always.

@@ -12,6 +12,7 @@ use App\Enums\UnitStatus;
 use App\Features\PosIntegration;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pos\SaveLoyverseMappingsRequest;
+use App\Jobs\RemoveLoyverseGuestJob;
 use App\Jobs\SyncLoyverseGuestJob;
 use App\Models\PosConnection;
 use App\Models\PosGuestLink;
@@ -117,15 +118,21 @@ class LoyverseIntegrationController extends Controller
     }
 
     /**
-     * Backfill the guests already in house, right after the first connect.
+     * Backfill the guests already in house, and take off the cashier's list the guests who left while the connection was
+     * down (check-outs are not queued then, so their links would stay for good).
      */
     public function syncGuests(Property $property): RedirectResponse
     {
         $connection = $this->connected($property);
         $ids = ReservationUnit::query()->where('property_id', $property->id)->where('status', UnitStatus::CheckedIn)->pluck('id');
+        $stale = PosGuestLink::query()->where('pos_connection_id', $connection->id)->whereNotIn('reservation_unit_id', $ids)->pluck('reservation_unit_id');
 
         foreach ($ids as $id) {
             SyncLoyverseGuestJob::dispatch($connection->id, (int) $id);
+        }
+
+        foreach ($stale as $id) {
+            RemoveLoyverseGuestJob::dispatch($connection->id, (int) $id);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice('Syncing :count in-house guest to Loyverse.|Syncing :count in-house guests to Loyverse.', $ids->count())]);

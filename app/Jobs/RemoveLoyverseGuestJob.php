@@ -9,6 +9,7 @@ use App\Services\Pos\Loyverse\LoyverseException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\RateLimited;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 /**
  * Delete the Loyverse customer of a unit that checked out, so cashiers never see departed guests. Same queue, rate
@@ -38,7 +39,8 @@ class RemoveLoyverseGuestJob implements ShouldQueue
      */
     public function middleware(): array
     {
-        return [new RateLimited('loyverse')];
+        // Same key as the sync job, so a check-out never runs beside a sync of the same guest.
+        return [(new WithoutOverlapping('loyverse-guest:'.$this->connectionId.':'.$this->reservationUnitId))->releaseAfter(15)->expireAfter(300), new RateLimited('loyverse')];
     }
 
     public function handle(RemoveLoyverseGuest $remove): void

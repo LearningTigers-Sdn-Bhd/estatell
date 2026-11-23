@@ -39,6 +39,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { suggestCode } from '@/lib/charge-code';
 import { store, update } from '@/routes/settings/pos-outlets';
 
 type Outlet = App.Data.Pos.PosOutletRowData;
@@ -67,10 +68,12 @@ export default function PosOutletsIndex({
 }) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Outlet | null>(null);
+    const [codeEdited, setCodeEdited] = useState(false);
     const form = useForm<FormData>(empty);
 
     function openForm(outlet: Outlet | null) {
         setEditing(outlet);
+        setCodeEdited(outlet !== null);
         form.clearErrors();
         form.setData(
             outlet
@@ -224,9 +227,17 @@ export default function PosOutletsIndex({
                         maxLength={100}
                         placeholder="e.g. Main Restaurant"
                         value={form.data.name}
-                        onChange={(event) =>
-                            form.setData('name', event.target.value)
-                        }
+                        onChange={(event) => {
+                            const name = event.target.value;
+
+                            form.setData((data) => ({
+                                ...data,
+                                name,
+                                code: codeEdited
+                                    ? data.code
+                                    : suggestCode(name),
+                            }));
+                        }}
                         aria-invalid={!!form.errors.name}
                         autoFocus
                     />
@@ -237,11 +248,15 @@ export default function PosOutletsIndex({
                     <Input
                         id="outlet-code"
                         maxLength={30}
-                        placeholder="e.g. MAIN-REST"
+                        placeholder="e.g. MAIN_RESTAURANT"
                         value={form.data.code}
-                        onChange={(event) =>
-                            form.setData('code', event.target.value)
-                        }
+                        onChange={(event) => {
+                            setCodeEdited(true);
+                            form.setData(
+                                'code',
+                                event.target.value.toUpperCase(),
+                            );
+                        }}
                         aria-invalid={!!form.errors.code}
                     />
                     <FieldDescription>

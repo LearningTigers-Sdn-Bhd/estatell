@@ -40,7 +40,7 @@ class InHouseGuestLookup
             ->get();
 
         $date = ($this->currentBusinessDate->date($property) ?? now())->toDateString();
-        $rooms = $this->roomBox->assignmentsForUnitsOn(array_values(array_map(intval(...), $units->modelKeys())), $date);
+        $rooms = $this->roomBox->currentAssignmentsForUnitsOn(array_values(array_map(intval(...), $units->modelKeys())), $date);
         $code = PosOutlet::query()->where('property_id', $property->id)->active()->with('defaultChargeItem.transactionCode')->orderBy('id')->first()?->defaultChargeItem?->transactionCode;
         $needle = $query === null ? '' : mb_strtolower(trim($query));
         $room = $room === null ? '' : mb_strtolower(trim($room));

@@ -9,6 +9,7 @@ use App\Services\Pos\Loyverse\LoyverseException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\RateLimited;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 /**
  * Create or rename the Loyverse customer of a checked-in unit. It runs on the `loyverse` queue behind the `loyverse` rate
@@ -39,7 +40,8 @@ class SyncLoyverseGuestJob implements ShouldQueue
      */
     public function middleware(): array
     {
-        return [new RateLimited('loyverse')];
+        // One guest at a time: a check-in and a room change queued together must not both create the customer.
+        return [(new WithoutOverlapping('loyverse-guest:'.$this->connectionId.':'.$this->reservationUnitId))->releaseAfter(15)->expireAfter(300), new RateLimited('loyverse')];
     }
 
     public function handle(SyncLoyverseGuest $sync): void

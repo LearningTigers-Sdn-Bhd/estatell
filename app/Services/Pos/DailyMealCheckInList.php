@@ -47,7 +47,7 @@ class DailyMealCheckInList
             ->orderBy('id')
             ->get();
 
-        $rooms = $this->roomBox->assignmentsForUnitsOn(array_values(array_map(intval(...), $units->modelKeys())), $date->toDateString());
+        $rooms = $this->roomBox->currentAssignmentsForUnitsOn(array_values(array_map(intval(...), $units->modelKeys())), $date->toDateString());
         $redemptions = MealRedemption::query()
             ->where('property_id', $property->id)
             ->where('meal_period_id', $period->id)
