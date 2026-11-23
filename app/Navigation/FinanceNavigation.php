@@ -6,6 +6,7 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Features\EInvoicing;
+use App\Features\PosIntegration;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Commissions\PropertyPayouts;
@@ -54,10 +55,20 @@ class FinanceNavigation
             ),
         ] : [];
 
+        $pos = Feature::for($property)->active(PosIntegration::class) && $user->can(PermissionEnum::PosView->value) ? [
+            new NavItemData(
+                title: __('POS postings'),
+                href: route('finance.pos-postings.index', ['property' => $property->code], absolute: false),
+                icon: 'receipt',
+                active: request()->routeIs('finance.pos-postings.*'),
+            ),
+        ] : [];
+
         return [
             new NavGroupData(label: __('City ledger'), items: $cityLedger),
+            new NavGroupData(label: __('POS'), items: $pos),
             new NavGroupData(label: __('E-invoicing'), items: $eInvoices),
-            new NavGroupData(label: __('Estatell'), items: $this->showsPayouts($property, $user, [...$cityLedger, ...$eInvoices]) ? [
+            new NavGroupData(label: __('Estatell'), items: $this->showsPayouts($property, $user, [...$cityLedger, ...$eInvoices, ...$pos]) ? [
                 new NavItemData(
                     title: __('Payouts'),
                     href: route('finance.payouts.index', ['property' => $property->code], absolute: false),

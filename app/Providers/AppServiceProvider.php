@@ -13,6 +13,7 @@ use App\Actions\EInvoice\QueueFolioEInvoiceOnClose;
 use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\NotifySupportMoneyCorrection;
 use App\Actions\Platform\RecordImpersonationEnd;
+use App\Actions\Pos\QueueLoyverseGuestSync;
 use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
@@ -26,6 +27,8 @@ use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
+use App\Jobs\RemoveLoyverseGuestJob;
+use App\Jobs\SyncLoyverseGuestJob;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
 use App\Models\Property;
@@ -131,6 +134,8 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureApiRateLimiting(): void
     {
+        // Loyverse allows 300 requests per 300 seconds per account. Stay a little under it.
+        RateLimiter::for('loyverse', fn (SyncLoyverseGuestJob|RemoveLoyverseGuestJob $job): Limit => Limit::perMinutes(5, 240)->by('loyverse:'.$job->connectionId));
         RateLimiter::for('api-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
 
         // The Concierge page has no login. Browsing is limited per address and generous, because a lobby shares one Wi-Fi
@@ -184,6 +189,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayKeyCards::class)($event));
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayWelcome::class)($event));
+        Event::listen([StayCheckedIn::class, StayRoomChanged::class, StayCheckedOut::class], fn (StayCheckedIn|StayRoomChanged|StayCheckedOut $event) => app(QueueLoyverseGuestSync::class)($event));
         Event::listen(FolioClosed::class, fn (FolioClosed $event) => app(QueueFolioEInvoiceOnClose::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 

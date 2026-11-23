@@ -78,6 +78,10 @@ enum PermissionEnum: string
     case EInvoiceView = 'einvoice.view';
     case EInvoiceManage = 'einvoice.manage';
     case PayoutsView = 'payouts.view';
+    case PosView = 'pos.view';
+    case PosManage = 'pos.manage';
+    case PosResolve = 'pos.resolve';
+    case MealsRedeem = 'meals.redeem';
 
     public function label(): string
     {
@@ -152,6 +156,10 @@ enum PermissionEnum: string
             self::EInvoiceView => __('View e-invoices and submissions'),
             self::EInvoiceManage => __('Submit, cancel, and configure e-invoices'),
             self::PayoutsView => __('View payouts and commission from Estatell'),
+            self::PosView => __('View POS postings and receipt details'),
+            self::PosManage => __('Manage POS outlets, connections and API access'),
+            self::PosResolve => __('Attach or ignore POS postings that need review'),
+            self::MealsRedeem => __('Check off daily restaurant meal entitlements'),
         };
     }
 
@@ -180,6 +188,7 @@ enum PermissionEnum: string
             self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve => __('Guest requests'),
             self::EInvoiceView, self::EInvoiceManage => __('Finance'),
             self::PayoutsView => __('Payouts'),
+            self::PosView, self::PosManage, self::PosResolve, self::MealsRedeem => __('POS and restaurant'),
         };
     }
 

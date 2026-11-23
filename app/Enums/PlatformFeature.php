@@ -11,6 +11,7 @@ use App\Features\Concierge;
 use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Kiosks;
+use App\Features\PosIntegration;
 
 /**
  * Per-property features that platform admins turn on or off. Each case maps to a Pennant feature class.
@@ -26,6 +27,7 @@ enum PlatformFeature: string
     case BookingEngine = 'booking-engine';
     case Concierge = 'concierge';
     case BedRoomTypes = 'bed-room-types';
+    case PosIntegration = 'pos-integration';
 
     public function label(): string
     {
@@ -39,6 +41,7 @@ enum PlatformFeature: string
             self::BookingEngine => __('Booking engine'),
             self::Concierge => __('Concierge page'),
             self::BedRoomTypes => __('Dormitory features'),
+            self::PosIntegration => __('POS integration'),
         };
     }
 
@@ -54,6 +57,7 @@ enum PlatformFeature: string
             self::BookingEngine => __('Let guests book and pay online, on a booking website or through the API.'),
             self::Concierge => __('Guest self check-in on the guest\'s own phone, from a lobby QR code or the pre-check-in link.'),
             self::BedRoomTypes => __('Create room types sold by bed, for dorms. Room types that already sell beds keep working while this is off.'),
+            self::PosIntegration => __('Outlets, restaurant meal check-in and room charges from a POS (Loyverse or the POS API).'),
         };
     }
 
@@ -72,6 +76,7 @@ enum PlatformFeature: string
             self::BookingEngine => BookingEngine::class,
             self::Concierge => Concierge::class,
             self::BedRoomTypes => BedRoomTypes::class,
+            self::PosIntegration => PosIntegration::class,
         };
     }
 }

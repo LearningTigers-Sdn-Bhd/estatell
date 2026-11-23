@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Actions\ApiAccess\StoreIdempotentResponse;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
+use App\Models\PosApiClient;
 use App\Models\Property;
 use App\Services\ApiAccess\IdempotentResponses;
 use Closure;
@@ -29,9 +30,9 @@ class ReplayIdempotentRequest
     public function handle(Request $request, Closure $next): Response
     {
         $key = $request->header('Idempotency-Key');
-        $owner = $request->attributes->get('kiosk') ?? $request->attributes->get('booking_client');
+        $owner = $request->attributes->get('kiosk') ?? $request->attributes->get('booking_client') ?? $request->attributes->get('pos_client');
 
-        if (! is_string($key) || $key === '' || strlen($key) > self::MAX_KEY_LENGTH || ! ($owner instanceof Kiosk || $owner instanceof BookingClient)) {
+        if (! is_string($key) || $key === '' || strlen($key) > self::MAX_KEY_LENGTH || ! ($owner instanceof Kiosk || $owner instanceof BookingClient || $owner instanceof PosApiClient)) {
             return $next($request);
         }
 
@@ -54,9 +55,9 @@ class ReplayIdempotentRequest
         });
     }
 
-    private function propertyId(Request $request, Kiosk|BookingClient $owner): ?int
+    private function propertyId(Request $request, Kiosk|BookingClient|PosApiClient $owner): ?int
     {
-        if ($owner instanceof Kiosk) {
+        if ($owner instanceof Kiosk || $owner instanceof PosApiClient) {
             return $owner->property_id;
         }
 
