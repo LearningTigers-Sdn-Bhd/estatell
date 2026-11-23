@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserTrustedDevice;
 use App\Notifications\NewDeviceCodeNotification;
 use App\Services\Account\TrustedDevices;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -177,6 +178,17 @@ test('staff an owner creates with a temp password sign in without a code', funct
     $this->post(route('login.store'), ['email' => 'siti@example.test', 'password' => $staff->temporary_password]);
 
     $this->assertAuthenticatedAs($staff);
+    Notification::assertNothingSent();
+});
+
+test('users sign in on the demo environment without a code', function () {
+    app()['env'] = 'demo';
+    $this->withoutMiddleware(PreventRequestForgery::class);
+
+    $this->post(route('login.store'), ['email' => $this->staff->email, 'password' => 'password'])
+        ->assertRedirect(route('home.redirect', absolute: false));
+
+    $this->assertAuthenticatedAs($this->staff);
     Notification::assertNothingSent();
 });
 

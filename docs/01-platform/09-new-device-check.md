@@ -12,6 +12,7 @@ A stolen password alone should not open an account. When a user signs in with th
 | Staff created with a temp password         | No    | The owner may have made the email up (training accounts) |
 | Users with two-factor turned on            | No    | Fortify's two-factor challenge runs instead (stronger)   |
 | Platform admins                            | No    | Admins use two-factor (`SUPPORT_REQUIRE_2FA`)            |
+| Demo environment logins                    | No    | Demo accounts on `demo.estatell.com` sign in directly    |
 
 `TrustedDevices::requiresCheck()` holds this rule. `users.email_device_check` is false for temp-password staff (`CreateStaffWithTemporaryPassword`, also used by bulk add and import). The migration set it false for existing staff who still have a temp password or were created with one (`staff.created-with-temp-password` in the activity log).
 

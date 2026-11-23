@@ -23,11 +23,15 @@ class TrustedDevices
     public const int TRUST_DAYS = 90;
 
     /**
-     * Platform admins, users with two-factor turned on (their code is the stronger check) and staff created with a temp
-     * password (their email may be made up) sign in without the email code.
+     * Platform admins, users with two-factor turned on (their code is the stronger check), staff created with a temp
+     * password (their email may be made up) and anyone signing in on the demo environment sign in without the email code.
      */
     public function requiresCheck(User $user): bool
     {
+        if (app()->environment('demo')) {
+            return false;
+        }
+
         return ! $user->is_admin && $user->email_device_check && ! $user->hasEnabledTwoFactorAuthentication();
     }
 
