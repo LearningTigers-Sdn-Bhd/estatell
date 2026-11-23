@@ -15,7 +15,8 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { store } from '@/routes/reservations/folios/charges';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Folio = App.Data.Folio.FolioData;
 type ChargeItem = App.Data.Reservations.ChargeItemOptionData;
@@ -23,7 +24,7 @@ type ChargeItem = App.Data.Reservations.ChargeItemOptionData;
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    owner: FolioOwner;
     folio: Folio;
     chargeItems?: ChargeItem[];
     currency: App.Data.Property.CurrencyData | null;
@@ -43,7 +44,7 @@ function optionValue(option: FolioOption): string {
 function PostChargeForm({
     open,
     onOpenChange,
-    reservationId,
+    owner,
     folio,
     chargeItems = [],
     currency,
@@ -93,17 +94,11 @@ function PostChargeForm({
                 : (item?.defaultAmount ?? ''),
             idempotency_key: key,
         }));
-        form.post(
-            store.url({
-                reservation: reservationId,
-                folio: Number(folio.key),
-            }),
-            {
-                preserveScroll: true,
-                except: KEEP_OPTIONS,
-                onSuccess: () => onOpenChange(false),
-            },
-        );
+        form.post(folioRoutes(owner).charge(Number(folio.key)).url, {
+            preserveScroll: true,
+            except: KEEP_OPTIONS,
+            onSuccess: () => onOpenChange(false),
+        });
     };
 
     return (
@@ -120,48 +115,54 @@ function PostChargeForm({
             submitDisabled={!picked}
             loading={loading}
         >
-            <Field data-invalid={!!errors.folio_id}>
-                <FieldLabel htmlFor="charge-folio_id">Folio</FieldLabel>
-                <EnumSelect
-                    id="charge-folio_id"
-                    options={folio.postFolios.map((one) => ({
-                        value: optionValue(one),
-                        label: one.label,
-                    }))}
-                    value={data.folio_id}
-                    onValueChange={(value) => {
-                        const next = folio.postFolios.find(
-                            (one) => optionValue(one) === value,
-                        );
+            {owner.kind === 'reservation' && (
+                <>
+                    <Field data-invalid={!!errors.folio_id}>
+                        <FieldLabel htmlFor="charge-folio_id">Folio</FieldLabel>
+                        <EnumSelect
+                            id="charge-folio_id"
+                            options={folio.postFolios.map((one) => ({
+                                value: optionValue(one),
+                                label: one.label,
+                            }))}
+                            value={data.folio_id}
+                            onValueChange={(value) => {
+                                const next = folio.postFolios.find(
+                                    (one) => optionValue(one) === value,
+                                );
 
-                        form.setData((current) => ({
-                            ...current,
-                            folio_id: value,
-                            unit_id:
-                                next?.defaultUnitId == null
-                                    ? current.unit_id
-                                    : String(next.defaultUnitId),
-                        }));
-                    }}
-                    aria-invalid={!!errors.folio_id}
-                />
-                <FieldError>{errors.folio_id}</FieldError>
-            </Field>
-            <Field data-invalid={!!errors.unit_id}>
-                <FieldLabel htmlFor="charge-unit_id">Room</FieldLabel>
-                <EnumSelect
-                    id="charge-unit_id"
-                    options={folio.postRooms.map((one) => ({
-                        value: String(one.id),
-                        label: one.label,
-                    }))}
-                    value={roomValue}
-                    onValueChange={(value) => form.setData('unit_id', value)}
-                    disabled={fixedUnit !== null}
-                    aria-invalid={!!errors.unit_id}
-                />
-                <FieldError>{errors.unit_id}</FieldError>
-            </Field>
+                                form.setData((current) => ({
+                                    ...current,
+                                    folio_id: value,
+                                    unit_id:
+                                        next?.defaultUnitId == null
+                                            ? current.unit_id
+                                            : String(next.defaultUnitId),
+                                }));
+                            }}
+                            aria-invalid={!!errors.folio_id}
+                        />
+                        <FieldError>{errors.folio_id}</FieldError>
+                    </Field>
+                    <Field data-invalid={!!errors.unit_id}>
+                        <FieldLabel htmlFor="charge-unit_id">Room</FieldLabel>
+                        <EnumSelect
+                            id="charge-unit_id"
+                            options={folio.postRooms.map((one) => ({
+                                value: String(one.id),
+                                label: one.label,
+                            }))}
+                            value={roomValue}
+                            onValueChange={(value) =>
+                                form.setData('unit_id', value)
+                            }
+                            disabled={fixedUnit !== null}
+                            aria-invalid={!!errors.unit_id}
+                        />
+                        <FieldError>{errors.unit_id}</FieldError>
+                    </Field>
+                </>
+            )}
             <Field data-invalid={!!errors.charge_item_id}>
                 <FieldLabel htmlFor="charge-choice">Charge</FieldLabel>
                 <EnumSelect

@@ -30,7 +30,7 @@ class StoreFolioChargeRequest extends FormRequest
 
         return [
             'folio_id' => ['nullable', 'integer'],
-            'unit_id' => [Rule::requiredIf($target?->reservation_unit_id === null), 'nullable', 'integer'],
+            'unit_id' => [Rule::requiredIf($target?->reservation_unit_id === null && $target?->event_id === null), 'nullable', 'integer'],
             'charge_item_id' => ['required', 'integer'],
             'description' => ['nullable', 'string', 'max:120'],
             'quantity' => ['required', 'integer', 'min:1', 'max:999'],

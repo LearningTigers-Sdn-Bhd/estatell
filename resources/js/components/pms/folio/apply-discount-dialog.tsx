@@ -26,10 +26,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    quote as quoteRoute,
-    store,
-} from '@/routes/reservations/folios/discounts';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Discount = App.Data.Folio.FolioDiscountOptionData;
 type Answer = App.Data.Folio.FolioDiscountQuoteResponseData;
@@ -105,7 +103,7 @@ function QuoteReview({
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     discounts?: Discount[];
     currency: App.Data.Property.CurrencyData | null;
@@ -114,7 +112,7 @@ type Props = {
 function ApplyDiscountForm({
     open,
     onOpenChange,
-    reservationId,
+    owner,
     folioId,
     discounts = [],
     currency,
@@ -125,7 +123,7 @@ function ApplyDiscountForm({
     const form = useForm({ discount_id: '', amount: '' });
     const http = useHttp<{ discount_id: string; amount: string }, Answer>(
         'post',
-        quoteRoute.url({ reservation: reservationId, folio: folioId }),
+        folioRoutes(owner).discountQuote(folioId).url,
         { discount_id: '', amount: '' },
     );
     const [answer, setAnswer] = useState<Answer | null>(null);
@@ -152,7 +150,7 @@ function ApplyDiscountForm({
             ...payload(),
             fingerprint: answer?.quote.fingerprint ?? '',
         }));
-        form.post(store.url({ reservation: reservationId, folio: folioId }), {
+        form.post(folioRoutes(owner).discountStore(folioId).url, {
             preserveScroll: true,
             except: KEEP_OPTIONS,
             onSuccess: () => onOpenChange(false),

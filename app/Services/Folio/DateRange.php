@@ -10,10 +10,15 @@ use Carbon\CarbonImmutable;
 final class DateRange
 {
     /**
-     * "12–15 Oct 2026", "28 Oct – 2 Nov 2026" or, across years, both full dates. The Stay cell of the info strip.
+     * "12–15 Oct 2026", "28 Oct – 2 Nov 2026" or, across years, both full dates. One day is "20 Oct 2026" (a
+     * one-day event). The Stay cell of the info strip.
      */
     public static function long(CarbonImmutable $from, CarbonImmutable $to): string
     {
+        if ($from->isSameDay($to)) {
+            return $from->format('j M Y');
+        }
+
         if ($from->isSameMonth($to)) {
             return $from->format('j').'–'.$to->format('j M Y');
         }

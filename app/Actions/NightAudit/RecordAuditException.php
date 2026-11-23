@@ -10,15 +10,17 @@ use App\Models\NightAuditException;
 class RecordAuditException
 {
     /**
-     * Record that one unit could not be resolved by a step. The message is the refusal code of the Action that refused
-     * it, or the error. A step run twice records one row for the same unit and type, never two.
+     * Record that one unit (or one facility booking) could not be resolved by a step. The message is the refusal code
+     * of the Action that refused it, or the error. A step run twice records one row for the same unit or booking and
+     * type, never two.
      */
-    public function __invoke(NightAudit $audit, AuditStep $step, AuditExceptionType $type, string $message, ?int $reservationUnitId = null): NightAuditException
+    public function __invoke(NightAudit $audit, AuditStep $step, AuditExceptionType $type, string $message, ?int $reservationUnitId = null, ?int $facilityBookingId = null): NightAuditException
     {
         $exception = $audit->exceptions()->firstOrNew([
             'step' => $step,
             'type' => $type,
             'reservation_unit_id' => $reservationUnitId,
+            'facility_booking_id' => $facilityBookingId,
         ]);
         $exception->property_id = $audit->property_id;
         $exception->message = $message;

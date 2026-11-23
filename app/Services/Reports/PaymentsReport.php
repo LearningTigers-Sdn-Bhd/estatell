@@ -52,7 +52,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
                 ->when($filters->staff !== null, fn (Builder $query) => $query->where('payments.received_by', $filters->staff))
                 ->when($filters->refundsOnly, fn (Builder $query) => $query->whereNotNull('payments.refund_of_id'))
                 ->select('payments.*', 'folio_lines.posting_date as business_date')
-                ->with(['folio.reservation.booker', 'folio.payerGuest', 'folio.payerCompany', 'paymentMethod', 'receiver', 'refundOf:id,receipt_number'])
+                ->with(['folio.reservation.booker', 'folio.event:id,number', 'folio.payerGuest', 'folio.payerCompany', 'paymentMethod', 'receiver', 'refundOf:id,receipt_number'])
                 ->orderBy($filters->dateBasis->column())
                 ->orderBy('payments.id')
                 ->get();

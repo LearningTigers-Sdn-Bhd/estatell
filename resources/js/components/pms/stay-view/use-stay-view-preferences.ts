@@ -3,11 +3,16 @@ import type { RateChoice } from './nightly-rate';
 
 const KEY = 'estatell:stay-view:timeline';
 
-type Preferences = { showRates: boolean; rateChoice: RateChoice };
+type Preferences = {
+    showRates: boolean;
+    rateChoice: RateChoice;
+    showFacilities: boolean;
+};
 
 const DEFAULTS: Preferences = {
     showRates: true,
     rateChoice: { ratePlanId: null },
+    showFacilities: true,
 };
 
 function read(): Preferences {
@@ -23,7 +28,8 @@ function read(): Preferences {
 }
 
 /**
- * What the Timeline View remembers in this browser: whether the rates show, and which rate plan.
+ * What the Timeline View remembers in this browser: whether the rates show, which rate plan, and whether the
+ * Facilities section shows.
  * Storage can be blocked, so a failed read or write falls back to the defaults.
  */
 export function useStayViewPreferences() {

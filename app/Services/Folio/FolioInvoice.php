@@ -36,14 +36,14 @@ class FolioInvoice
 
     public function for(Folio $folio): FolioInvoiceDocument
     {
-        $folio->loadMissing(['property.settings', 'property.printSetting', 'reservation.booker', 'reservation.company', 'payerGuest', 'payerCompany']);
+        $folio->loadMissing(['property.settings', 'property.printSetting', 'reservation.booker', 'reservation.company', 'event', 'payerGuest', 'payerCompany']);
         $property = $folio->property;
         $reservation = $folio->reservation;
         $settings = $property->printSetting;
         $timeZone = $property->settings->time_zone;
         $currency = $property->settings->currency;
 
-        $units = $reservation->units()->with(['roomType', 'guests.guest'])->orderBy('id')->get();
+        $units = $reservation === null ? new EloquentCollection : $reservation->units()->with(['roomType', 'guests.guest'])->orderBy('id')->get();
         $places = $this->documentRows->places($property, $units);
         $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
         $oldRows = $this->documentRows->for($property, $lines->where('migrated', true), $units, $places);
@@ -53,7 +53,7 @@ class FolioInvoice
         $onFolio = $this->documentRows->unitsOnFolio($folio, [...$oldRows, ...$rows], $units);
         $total = BigDecimal::of($groups->total)->plus($old->total ?? '0');
 
-        [$payments, $paid, $billed] = $this->paymentRows->for($property, collect([$folio->id => $folio]), $reservation->company?->name);
+        [$payments, $paid, $billed] = $this->paymentRows->for($property, collect([$folio->id => $folio]), $reservation === null ? $folio->payerCompany?->name : $reservation->company?->name);
         $balance = (string) $total->minus($paid)->minus($billed)->toScale(2);
 
         return new FolioInvoiceDocument(
@@ -77,7 +77,7 @@ class FolioInvoice
     }
 
     /**
-     * Bill to, Stay, Reservation and Your ref, the cells that have a value.
+     * Bill to, Stay, Reservation and Your ref (an event folio: Bill to, Event, Dates and Event no.), the cells that have a value.
      *
      * @param  EloquentCollection<int, ReservationUnit>  $onFolio
      * @return list<array{label: string, lines: list<string>}>
@@ -85,16 +85,27 @@ class FolioInvoice
     private function strip(Folio $folio, Collection $onFolio): array
     {
         $reservation = $folio->reservation;
-        $dated = $onFolio->isEmpty() ? $reservation->units : $onFolio;
-        $from = $dated->isEmpty() ? null : CarbonImmutable::parse($dated->min(fn (ReservationUnit $unit): string => $unit->arrival_date->toDateString()));
-        $to = $dated->isEmpty() ? null : CarbonImmutable::parse($dated->max(fn (ReservationUnit $unit): string => $unit->departure_date->toDateString()));
-        $stay = $from === null || $to === null ? '' : DateRange::long($from, $to).' · '.trans_choice(':count night|:count nights', (int) $from->diffInDays($to));
-        $cells = [
-            [__('Bill to'), $this->billTo($folio)],
-            [__('Stay'), [$stay]],
-            [__('Reservation'), [$reservation->reference]],
-            [__('Your ref'), [trim((string) $reservation->external_reference)]],
-        ];
+
+        if ($reservation === null) {
+            $event = $folio->event;
+            $cells = [
+                [__('Bill to'), $this->billTo($folio)],
+                [__('Event'), [(string) $event?->name]],
+                [__('Dates'), [$event === null ? '' : DateRange::long($event->starts_on, $event->ends_on)]],
+                [__('Event no.'), [(string) $event?->number]],
+            ];
+        } else {
+            $dated = $onFolio->isEmpty() ? $reservation->units : $onFolio;
+            $from = $dated->isEmpty() ? null : CarbonImmutable::parse($dated->min(fn (ReservationUnit $unit): string => $unit->arrival_date->toDateString()));
+            $to = $dated->isEmpty() ? null : CarbonImmutable::parse($dated->max(fn (ReservationUnit $unit): string => $unit->departure_date->toDateString()));
+            $stay = $from === null || $to === null ? '' : DateRange::long($from, $to).' · '.trans_choice(':count night|:count nights', (int) $from->diffInDays($to));
+            $cells = [
+                [__('Bill to'), $this->billTo($folio)],
+                [__('Stay'), [$stay]],
+                [__('Reservation'), [$reservation->reference]],
+                [__('Your ref'), [trim((string) $reservation->external_reference)]],
+            ];
+        }
 
         $strip = [];
 
@@ -121,7 +132,9 @@ class FolioInvoice
             return [$folio->payerCompany->name, ...$this->companyBillTo->lines($folio->payerCompany)];
         }
 
-        return $this->guestLines($folio->payerGuest ?? $folio->reservation->booker);
+        $guest = $folio->payerGuest ?? $folio->reservation?->booker;
+
+        return $guest === null ? [] : $this->guestLines($guest);
     }
 
     /**

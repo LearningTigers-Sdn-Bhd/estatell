@@ -17,21 +17,22 @@ import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { voidMethod } from '@/routes/reservations/folios/payments';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Row = App.Data.Folio.FolioRowData;
 
 function VoidForm({
     open,
     onClose,
-    reservationId,
+    owner,
     folioId,
     row,
     currency,
 }: {
     open: boolean;
     onClose: () => void;
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     row: Row;
     currency: App.Data.Property.CurrencyData | null;
@@ -52,11 +53,10 @@ function VoidForm({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Form
-                    {...voidMethod.form({
-                        reservation: reservationId,
-                        folio: folioId,
-                        payment: row.paymentId ?? 0,
-                    })}
+                    {...folioRoutes(owner).voidPayment(
+                        folioId,
+                        row.paymentId ?? 0,
+                    ).form}
                     transform={(data) => ({ ...data, idempotency_key: key })}
                     options={{ preserveScroll: true, except: KEEP_OPTIONS }}
                     onSuccess={onClose}
@@ -112,13 +112,13 @@ function VoidForm({
  * older payment, a payment that already has a refund) shows in the Dialog.
  */
 export function VoidPaymentDialog({
-    reservationId,
+    owner,
     folioId,
     row,
     currency,
     onClose,
 }: {
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     row: Row | null;
     currency: App.Data.Property.CurrencyData | null;
@@ -137,7 +137,7 @@ export function VoidPaymentDialog({
             key={`${kept.lineId}-${fresh}`}
             open={open}
             onClose={onClose}
-            reservationId={reservationId}
+            owner={owner}
             folioId={folioId}
             row={kept}
             currency={currency}

@@ -29,8 +29,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { DateText } from '@/components/pms/date-text';
-import { voucher } from '@/routes/reservations/folios';
 import { voucher as unitVoucher } from '@/routes/reservations/units';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 type Row = App.Data.Folio.FolioRowData;
 
@@ -46,7 +47,7 @@ export type VoucherOptions = {
 };
 
 function VoucherForm({
-    reservationId,
+    owner,
     folioId,
     unitId,
     rows,
@@ -54,7 +55,7 @@ function VoucherForm({
     initial,
     currency,
 }: {
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number | null;
     unitId: number | null;
     rows: Row[];
@@ -92,17 +93,18 @@ function VoucherForm({
             .map((row) => row.key);
         const url =
             folioId === null
-                ? unitVoucher.url(
-                      {
-                          reservation: reservationId,
-                          unit: unitId as number,
-                      },
-                      { query: { scheduled } },
-                  )
-                : voucher.url(
-                      { reservation: reservationId, folio: folioId },
-                      { query: { lines, scheduled } },
-                  );
+                ? owner.kind === 'reservation'
+                    ? unitVoucher.url(
+                          {
+                              reservation: owner.id,
+                              unit: unitId as number,
+                          },
+                          { query: { scheduled } },
+                      )
+                    : ''
+                : folioRoutes(owner).voucher(folioId, {
+                      query: { lines, scheduled },
+                  }).url;
 
         window.open(url, '_blank', 'noopener');
     };
@@ -300,7 +302,7 @@ function hasParentAbove(rows: Row[], index: number): boolean {
 export function PrintVoucherDialog({
     open,
     onOpenChange,
-    reservationId,
+    owner,
     folioId,
     unitId,
     rows,
@@ -310,7 +312,7 @@ export function PrintVoucherDialog({
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    owner: FolioOwner;
     /** The folio, or null for a unit that has no folio yet. */
     folioId: number | null;
     /** The unit of a "not started" entry. */
@@ -330,7 +332,7 @@ export function PrintVoucherDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <VoucherForm
-                    reservationId={reservationId}
+                    owner={owner}
                     folioId={folioId}
                     unitId={unitId}
                     rows={rows}

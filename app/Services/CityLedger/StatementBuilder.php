@@ -106,12 +106,12 @@ class StatementBuilder
             ->where('status', PaymentStatus::Completed->value)
             ->whereHas('folio', fn (Builder $folios): Builder => $folios->where('payer_company_id', $company->id))
             ->whereHas('folioLine', fn (Builder $lines): Builder => $lines->whereBetween('posting_date', [$from->toDateString(), $to->toDateString()]))
-            ->with(['folio.reservation:id,reference', 'folioLine:id,posting_date', 'paymentMethod:id,name'])
+            ->with(['folio.reservation:id,reference', 'folio.event:id,number', 'folioLine:id,posting_date', 'paymentMethod:id,name'])
             ->orderBy('id')
             ->get()
             ->map(fn (Payment $payment): StatementBookingPaymentData => new StatementBookingPaymentData(
                 date: $payment->folioLine->posting_date->toDateString(),
-                booking: $payment->folio->reservation->reference ?? '',
+                booking: $payment->folio->reservation->reference ?? $payment->folio->event->number ?? '',
                 method: $payment->paymentMethod->name,
                 reference: $payment->reference,
                 receipt: $payment->receipt_number,

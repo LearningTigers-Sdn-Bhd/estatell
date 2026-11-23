@@ -31,8 +31,8 @@ enum PaymentPurpose: string
 
     /**
      * The purposes a folio offers at a stage, the default first. A ThirdParty folio is always Settlement. A Unit folio
-     * offers Advance before arrival, Settlement and Security deposit in-house, and Settlement after. A Master folio
-     * offers Advance before arrival and Settlement after. The caller drops Advance from a unit whose Room charges go
+     * offers Advance before arrival, Settlement and Security deposit in-house, and Settlement after. A Master or Event folio
+     * offers Advance before arrival (the event's first day) and Settlement after. The caller drops Advance from a unit whose Room charges go
      * to the Master folio.
      *
      * @return list<self>
@@ -58,7 +58,7 @@ enum PaymentPurpose: string
     {
         return match ($type) {
             FolioType::Unit => [self::Settlement, self::Advance, self::SecurityDeposit],
-            FolioType::Master => [self::Settlement, self::Advance],
+            FolioType::Master, FolioType::Event => [self::Settlement, self::Advance],
             FolioType::ThirdParty => [self::Settlement],
         };
     }

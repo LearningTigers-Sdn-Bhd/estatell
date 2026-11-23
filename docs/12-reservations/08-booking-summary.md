@@ -4,6 +4,8 @@
 
 A printable proforma of one reservation: who pays, the stay, every charge (posted and still to come), the payments and what is still due. Guests, travel agents and companies ask for it before arrival and during the stay.
 
+An event has the same document: see [Event booking summary](../33-facilities/03-events-and-event-folios.md#booking-summary).
+
 It is not a tax invoice. The tax invoice of a stay is the [folio invoice](../13-folio/06-folio-invoice.md), and a company gets an [AR invoice](../15-city-ledger/02-ar-invoices.md).
 
 ## Decisions
@@ -95,12 +97,14 @@ The rows below go through the shared [line grouper](../02-property/05-printing-s
 
 `BookingSummary` builds the grouper's `DocumentRow`s itself. It does not reuse `FolioStatement`: that service serves the folio tab (one selected folio, actions, permissions) and its rows carry no quantity, reversal link or nightly flag.
 
-| Source         | How                                                                                                                                      | Nightly                                                                      |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Posted lines   | Every line of the folios that are not Voided, in one query. The unit comes from `LineSourceUnits`; a child line takes its parent's unit. | Unit night source: yes. Add-on: by its `ChargingUnit`. Reservation unit: no. |
-| Scheduled rows | `ScheduledFolioRows::forReservation()`, the rows the folio tab shows. Each block carries its unit id.                                    | Key `night:`: yes. Key `addon:`: by the add-on's `ChargingUnit`.             |
+| Source         | How                                                                                                                                                  | Nightly                                                                      |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Posted lines   | Every line of the folios that are not Voided, in one query. The unit comes from `LineSourceUnits`; a child line takes its parent's unit.             | Unit night source: yes. Add-on: by its `ChargingUnit`. Reservation unit: no. |
+| Scheduled rows | `ScheduledFolioRows::forReservation()`, the rows the folio tab shows. Each block carries its unit id.                                                | Key `night:`: yes. Key `addon:`: by the add-on's `ChargingUnit`.             |
+| Facility rows  | `ScheduledFolioRows::forFacilityBookings()` for the Open folios, the same as the folio tab. A booked facility shows before the night audit posts it. | No.                                                                          |
 
 - A child line (discount, tax) takes its parent's nightly flag.
+- A facility booking has no unit, so it prints under **Other charges**, before and after it is posted.
 - **Room label** (`DocumentRow::$room`): tonight's room number, else the first night's before arrival, else the room type name (room types have no code). The group heading is "Room 103 · Tan Wei Ming".
 - A posted night and Scheduled nights with the same description and price merge into one row, for example one posted and two to come print "Room, 3 nights × 250.00".
 

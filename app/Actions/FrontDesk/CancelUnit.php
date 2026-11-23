@@ -2,6 +2,7 @@
 
 namespace App\Actions\FrontDesk;
 
+use App\Actions\Facilities\CancelFacilityBookings;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Actions\Webhooks\TriggerWebhook;
 use App\Enums\UnitStatus;
@@ -26,6 +27,7 @@ class CancelUnit
         private RemoveUnpostedAddOns $removeUnpostedAddOns,
         private ReleaseUnitRooms $releaseUnitRooms,
         private SyncReservationStatus $syncReservationStatus,
+        private CancelFacilityBookings $cancelFacilityBookings,
     ) {}
 
     /**
@@ -115,6 +117,8 @@ class CancelUnit
                     'business_date' => $businessDate->toDateString(),
                 ])
                 ->log('Unit cancelled');
+
+            $this->cancelFacilityBookings->forEndedReservation($actor, $locked->reservation);
 
             ($this->syncReservationStatus)($locked->reservation);
 

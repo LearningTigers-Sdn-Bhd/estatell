@@ -305,7 +305,7 @@ test('the sheet follows the audit once it has run', function () {
         ->assertJsonPath('date', '2026-10-13')
         ->assertJsonPath('audit.date', '2026-10-12')
         ->assertJsonPath('audit.status', 'completed')
-        ->assertJsonCount(7, 'audit.steps')
+        ->assertJsonCount(8, 'audit.steps')
         ->assertJsonPath('audit.steps.2.label', 'Post room charges')
         ->assertJsonPath('audit.steps.2.status', 'completed');
 });

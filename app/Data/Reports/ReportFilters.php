@@ -17,6 +17,8 @@ use Spatie\LaravelData\Data;
  * Boat Trips board tabs).
  * `boatNotSet` (units with no trip in their direction) is set only for Arrivals and Departures when the property uses boats.
  * `bucket` and `search` (a booking number or guest name) are set only for Daily report › Charges.
+ * `facilityIds` (empty for every facility) and `facilityStatuses` (booking status values, empty for Tentative and
+ * Confirmed) are set only for Facility bookings.
  */
 class ReportFilters extends Data
 {
@@ -35,6 +37,10 @@ class ReportFilters extends Data
         public bool $boatNotSet = false,
         public PaymentDateBasis $dateBasis = PaymentDateBasis::Posted,
         public ?string $boatGroup = null,
+        /** @var list<int> */
+        public array $facilityIds = [],
+        /** @var list<string> */
+        public array $facilityStatuses = [],
     ) {}
 
     /**
@@ -77,6 +83,8 @@ class ReportFilters extends Data
             ...($this->search === null ? [] : ['search' => $this->search]),
             ...($this->boatNotSet ? ['no_boat' => '1'] : []),
             ...($this->boatGroup === null ? [] : ['boat_group' => $this->boatGroup]),
+            ...($this->facilityIds === [] ? [] : ['facilities' => implode(',', $this->facilityIds)]),
+            ...($this->facilityStatuses === [] ? [] : ['statuses' => implode(',', $this->facilityStatuses)]),
         ];
     }
 }

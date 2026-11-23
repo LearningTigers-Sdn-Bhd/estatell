@@ -8,6 +8,7 @@ export type LaneRow = {
     kind: 'row';
     room: null;
     lane: { roomTypeId: number; roomTypeName: string; units: number | null };
+    facility?: undefined;
 };
 
 export type TimelineRow =
@@ -21,8 +22,15 @@ export type TimelineRow =
           roomTypeId: number | null;
           count: number;
           collapsed: boolean;
+          facility?: undefined;
       }
-    | { key: string; kind: 'row'; room: Room; lane?: undefined }
+    | {
+          key: string;
+          kind: 'row';
+          room: Room;
+          lane?: undefined;
+          facility?: undefined;
+      }
     | LaneRow;
 
 function groupOf(

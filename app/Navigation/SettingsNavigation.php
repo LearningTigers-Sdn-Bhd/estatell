@@ -11,6 +11,7 @@ use App\Features\BookingEngine;
 use App\Features\Concierge;
 use App\Features\DoorLocks;
 use App\Features\EInvoicing;
+use App\Features\Facilities;
 use App\Features\Kiosks;
 use App\Features\PosIntegration;
 use App\Models\Property;
@@ -96,6 +97,12 @@ class SettingsNavigation
                     href: route('settings.boats', ['property' => $property->code], absolute: false),
                     icon: 'ship',
                     active: request()->routeIs('settings.boats', 'settings.boats.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Facilities::class) ? new NavItemData(
+                    title: __('Facilities'),
+                    href: route('settings.facilities.index', ['property' => $property->code], absolute: false),
+                    icon: 'tent',
+                    active: request()->routeIs('settings.facilities.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([

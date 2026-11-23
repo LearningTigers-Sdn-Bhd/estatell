@@ -4,12 +4,14 @@ namespace App\Services\Folio;
 
 use App\Data\Folio\FolioRowData;
 use App\Data\Shared\BadgeData;
+use App\Enums\FacilityBookingStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioType;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\FacilityBooking;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
@@ -21,6 +23,7 @@ use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Services\Catalogues\TaxCalculationResult;
 use App\Services\Catalogues\TaxCalculator;
+use App\Services\Facilities\FacilityBookingCharge;
 use App\Services\NightAudit\FirstBusinessDate;
 use App\Services\Reservations\AddOnLabel;
 use App\Services\Reservations\UnitNationality;
@@ -49,6 +52,7 @@ class ScheduledFolioRows
         private FirstBusinessDate $firstBusinessDate,
         private CollectedTaxPayer $collectedTaxPayer,
         private UnitNationality $unitNationality,
+        private FacilityBookingCharge $facilityBookingCharge,
     ) {}
 
     /**
@@ -174,6 +178,60 @@ class ScheduledFolioRows
         }
 
         usort($blocks, fn (array $a, array $b): int => [$a['date'], $a['unit']] <=> [$b['date'], $b['unit']]);
+
+        return $blocks;
+    }
+
+    /**
+     * The facility bookings of the given folios that the night audit will post: Tentative or Confirmed, with a price and
+     * no `facility:{id}` line yet. One block each, on the booking's folio (Charge to is chosen, never routed), with no
+     * unit (`unit` 0). A booking charged by hand shows nothing. The amounts come from `FacilityBookingCharge`, the same
+     * as `PostFacilityBooking`. See docs/33-facilities/04-facility-bookings.md#posting.
+     *
+     * @param  list<int>  $folioIds
+     * @return list<array{target: int, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>
+     */
+    public function forFacilityBookings(Property $property, array $folioIds): array
+    {
+        if ($folioIds === [] || $property->settings === null) {
+            return [];
+        }
+
+        $bookings = FacilityBooking::query()
+            ->where('property_id', $property->id)
+            ->whereIn('folio_id', $folioIds)
+            ->whereIn('status', [FacilityBookingStatus::Tentative->value, FacilityBookingStatus::Confirmed->value])
+            ->whereNotNull('unit_amount')
+            ->whereNotExists(fn ($lines) => $lines->selectRaw('1')
+                ->from('folio_lines')
+                ->whereRaw("folio_lines.idempotency_key = 'facility:' || facility_bookings.id"))
+            ->with(FacilityBookingCharge::relations())
+            ->ordered()
+            ->get();
+        $blocks = [];
+
+        foreach ($bookings as $booking) {
+            $charge = $this->facilityBookingCharge->for($property, $booking);
+
+            if ($charge === null) {
+                continue;
+            }
+
+            $key = 'facility:'.$booking->id;
+            $date = $booking->booking_date->toDateString();
+            $tax = $charge['tax'];
+            $amount = $tax->isCalculated() ? $tax->netAmount : $charge['unitAmount']->multipliedBy($charge['quantity']);
+            $blocks[] = [
+                'target' => $booking->folio_id,
+                'unit' => 0,
+                'date' => $date,
+                'code' => $charge['code'],
+                'rows' => [
+                    $this->row($key, $date, $charge['description'].($charge['quantity'] > 1 ? ' ×'.$charge['quantity'] : ''), 0, null, $amount, [FolioRowTag::Scheduled]),
+                    ...$this->taxRows($key, $date, null, $tax),
+                ],
+            ];
+        }
 
         return $blocks;
     }

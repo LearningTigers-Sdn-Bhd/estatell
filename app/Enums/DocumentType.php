@@ -10,6 +10,7 @@ enum DocumentType: string
     case CreditNote = 'credit_note';
     case Receipt = 'receipt';
     case RegistrationCard = 'registration_card';
+    case Event = 'event';
 
     public function label(): string
     {
@@ -20,11 +21,12 @@ enum DocumentType: string
             self::CreditNote => __('Credit note'),
             self::Receipt => __('Receipt'),
             self::RegistrationCard => __('Registration card'),
+            self::Event => __('Event'),
         };
     }
 
     /**
-     * The one-digit type code in a document reference. It matches wastays; codes 4 and 6 stay unused.
+     * The one-digit type code in a document reference. It matches wastays; codes 4 and 6 stay unused. Event (9) is estatell's own.
      */
     public function code(): int
     {
@@ -35,6 +37,7 @@ enum DocumentType: string
             self::Receipt => 5,
             self::Invoice => 7,
             self::CreditNote => 8,
+            self::Event => 9,
         };
     }
 

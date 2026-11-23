@@ -208,7 +208,7 @@ Both list the Checked in and Checked out units whose stay overlaps the range (ar
 
 ### Categories
 
-`ReportCategory` groups the Reports sidebar: **Front desk** (Guest list, Housekeeping with its Items and Log tabs, Police report; House status sits under Housekeeping in the Front desk sidebar; the Boat manifest is exported from the Boat Trips board), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts) and **Audit** (Night audit history; the Activity log joins it in a later item). Audit is the last group in the sidebar.
+`ReportCategory` groups the Reports sidebar: **Front desk** (Guest list, Housekeeping with its Items and Log tabs, Police report; House status sits under Housekeeping in the Front desk sidebar; the Boat manifest is exported from the Boat Trips board; Facility bookings, with the `Facilities` feature: see [Facility bookings report](../33-facilities/05-timeline-and-report.md#facility-bookings-report)), **Revenue** (Occupancy, Revenue, Tax, Non-national guests), **Finance** (Payments, Folio ledger, Outstanding balance, Deposit liability) and **Kitchen** (Meal counts) and **Audit** (Night audit history; the Activity log joins it in a later item). Audit is the last group in the sidebar.
 
 ### Totals
 

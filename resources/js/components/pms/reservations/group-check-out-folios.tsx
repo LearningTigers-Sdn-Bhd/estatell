@@ -5,6 +5,7 @@ import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialo
 import { SettleCityLedgerDialog } from '@/components/pms/folio/settle-city-ledger-dialog';
 import { MoneyText } from '@/components/pms/money-text';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { reservationOwner } from '@/components/pms/folio/folio-owner';
 
 type Folio = App.Data.Reservations.GroupCheckOutFolioData;
 type Options = App.Data.Payments.PaymentFormOptionsData;
@@ -103,7 +104,7 @@ export function GroupCheckOutFolios({
                 <RecordPaymentDialog
                     open
                     onOpenChange={(open) => !open && setPaying(null)}
-                    reservationId={reservationId}
+                    owner={reservationOwner(reservationId)}
                     folio={paying}
                     options={paymentOptions}
                     currency={currency}
@@ -113,7 +114,7 @@ export function GroupCheckOutFolios({
                 <SettleCityLedgerDialog
                     open
                     onOpenChange={(open) => !open && setSettling(null)}
-                    reservationId={reservationId}
+                    owner={reservationOwner(reservationId)}
                     folio={settling}
                     currency={currency}
                 />

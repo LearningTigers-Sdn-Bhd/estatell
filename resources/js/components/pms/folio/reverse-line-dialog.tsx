@@ -11,18 +11,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { reverse } from '@/routes/reservations/folios/lines';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 /**
  * Reverses one charge after a confirmation. Its tax and discount lines reverse with it. A refusal is an error toast.
  */
 export function ReverseLineDialog({
-    reservationId,
+    owner,
     folioId,
     row,
     onClose,
 }: {
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     row: App.Data.Folio.FolioRowData | null;
     onClose: () => void;
@@ -44,11 +45,8 @@ export function ReverseLineDialog({
                 </AlertDialogHeader>
                 {row?.lineId != null && (
                     <Form
-                        {...reverse.form({
-                            reservation: reservationId,
-                            folio: folioId,
-                            line: row.lineId,
-                        })}
+                        {...folioRoutes(owner).reverse(folioId, row.lineId)
+                            .form}
                         options={{ preserveScroll: true, except: KEEP_OPTIONS }}
                         onSuccess={onClose}
                     >

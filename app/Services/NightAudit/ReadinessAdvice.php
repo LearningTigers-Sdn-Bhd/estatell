@@ -2,8 +2,10 @@
 
 namespace App\Services\NightAudit;
 
+use App\Actions\Facilities\FacilityBookingResult;
 use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
 use App\Enums\AuditCheck;
+use App\Enums\AuditExceptionType;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
 use App\Enums\SystemTransactionCode;
@@ -44,6 +46,24 @@ class ReadinessAdvice
             AuditCheck::MasterNotBilled => __('The audit does not touch it. Settle the folio to the city ledger, or collect the balance and close it.'),
             AuditCheck::MoneyHeldOnClosedBooking => __('The audit does not touch it. Refund the money, or post the charge it covers.'),
             AuditCheck::CarriedException => null,
+        };
+    }
+
+    /**
+     * The reason an earlier audit left a unit or a facility booking, from the exception's type and refusal code.
+     */
+    public function exceptionReason(AuditExceptionType $type, string $code): string
+    {
+        if ($type !== AuditExceptionType::Facility) {
+            return $this->reason($code);
+        }
+
+        return match ($code) {
+            FacilityBookingResult::REFUSAL_TENTATIVE => __('The booking is still Tentative, so it was not charged. Confirm the event, then Post now, or cancel the booking.'),
+            'folio_not_open' => __('The folio was closed, so the facility could not be charged. Reopen it, then Post now.'),
+            'folio_settled_to_city_ledger' => __('The folio was settled to the city ledger, so the facility could not be charged.'),
+            'nationality_required' => __('The payer has no nationality, and a tax needs it.'),
+            default => __('The audit could not charge this facility booking (:code).', ['code' => $code]),
         };
     }
 

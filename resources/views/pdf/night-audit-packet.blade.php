@@ -178,8 +178,8 @@
                 @foreach ($summary->exceptions as $exception)
                     <tr class="rule">
                         <td>{{ $exception->type->label() }}</td>
-                        <td>{{ $exception->reservationUnit?->reservation->reference ?? __('Property') }}</td>
-                        <td>{{ app(\App\Services\NightAudit\ReadinessAdvice::class)->reason($exception->message) }}</td>
+                        <td>{{ $exception->reservationUnit?->reservation->reference ?? $exception->facilityBooking?->event?->number ?? $exception->facilityBooking?->reservation?->reference ?? __('Property') }}</td>
+                        <td>{{ app(\App\Services\NightAudit\ReadinessAdvice::class)->exceptionReason($exception->type, $exception->message) }}</td>
                         <td>{{ $exception->resolved_at === null ? __('Open') : __('Resolved') }}</td>
                     </tr>
                 @endforeach

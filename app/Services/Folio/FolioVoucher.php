@@ -4,6 +4,7 @@ namespace App\Services\Folio;
 
 use App\Data\Folio\FolioRowData;
 use App\Enums\TransactionKind;
+use App\Models\Event;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
@@ -74,7 +75,7 @@ class FolioVoucher
      */
     public function forLines(Folio $folio, array $lineIds, ?Collection $scheduled = null): FolioVoucherDocument
     {
-        $folio->loadMissing(['property.settings', 'reservation.booker', 'payerGuest', 'payerCompany']);
+        $folio->loadMissing(['property.settings', 'reservation.booker', 'event', 'payerGuest', 'payerCompany']);
         $parents = $folio->lines()->pluck('parent_line_id', 'id');
         $chosen = $this->printableLines($folio)->whereIn('id', $lineIds)->values();
         $format = fn (FolioLine $line): array => [
@@ -87,7 +88,7 @@ class FolioVoucher
         $posted = $chosen->reject(fn (FolioLine $line): bool => $line->migrated)->map($format)->values();
         $old = $chosen->filter(fn (FolioLine $line): bool => $line->migrated)->map($format)->values();
 
-        return $this->document($folio->property, $folio->reservation, $folio, $folio->payerGuest ?? $folio->reservation->booker, $folio->reservation_unit_id, $posted, $scheduled ?? collect(), $old);
+        return $this->document($folio->property, $folio->reservation ?? $folio->event()->firstOrFail(), $folio, $folio->payerGuest ?? $folio->reservation?->booker, $folio->reservation_unit_id, $posted, $scheduled ?? collect(), $old);
     }
 
     /**
@@ -108,7 +109,7 @@ class FolioVoucher
      * @param  Collection<int, FolioRowData>  $scheduled
      * @param  Collection<int, array{date: string, posted: string|null, description: string, level: int, amount: string}>|null  $old  The chosen lines copied from the old system.
      */
-    private function document(Property $property, Reservation $reservation, ?Folio $folio, mixed $guest, ?int $unitId, Collection $posted, Collection $scheduled, ?Collection $old = null): FolioVoucherDocument
+    private function document(Property $property, Reservation|Event $owner, ?Folio $folio, mixed $guest, ?int $unitId, Collection $posted, Collection $scheduled, ?Collection $old = null): FolioVoucherDocument
     {
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
         $later = $scheduled->map(fn (FolioRowData $row): array => [
@@ -123,11 +124,11 @@ class FolioVoucher
 
         return new FolioVoucherDocument(
             issuedOn: now()->setTimezone($timeZone)->format('j M Y'),
-            reservationReference: $reservation->reference,
+            reservationReference: $owner instanceof Event ? $owner->number : $owner->reference,
             folioNumber: $folio?->number,
-            guestName: $guest->full_name,
-            nationality: $this->countryOptions->name($guest->nationality_code),
-            stay: $this->stay($reservation, $unitId),
+            guestName: $guest->full_name ?? $folio?->payerCompany->name ?? '',
+            nationality: $guest === null ? null : $this->countryOptions->name($guest->nationality_code),
+            stay: $owner instanceof Event ? DateRange::long($owner->starts_on, $owner->ends_on) : $this->stay($owner, $unitId),
             currency: $property->settings?->currency->getCurrencyCode() ?? '',
             rows: [...$posted->all(), ...$later->all()],
             total: (string) $sum($old->concat($posted)->concat($later))->toScale(2),

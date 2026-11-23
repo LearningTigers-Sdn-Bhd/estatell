@@ -7,6 +7,7 @@ use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\User;
+use App\Services\Folio\FolioOwner;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Illuminate\Support\Facades\DB;
 
@@ -51,7 +52,7 @@ class RemoveDiscount
             $lines = $this->reverseLine->post($actor, $current, $businessDate->toDateString(), null);
 
             activity()
-                ->performedOn($folio->reservation)
+                ->performedOn(app(FolioOwner::class)->of($folio))
                 ->causedBy($actor)
                 ->event('folio.discount_removed')
                 ->withProperties([

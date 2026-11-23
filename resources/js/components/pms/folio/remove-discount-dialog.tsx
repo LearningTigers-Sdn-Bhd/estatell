@@ -11,18 +11,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { destroy } from '@/routes/reservations/folios/discounts';
+import { folioRoutes } from '@/components/pms/folio/folio-owner';
+import type { FolioOwner } from '@/components/pms/folio/folio-owner';
 
 /**
  * Removes a discount from its charge after a confirmation. The charge stays. A refusal is an error toast.
  */
 export function RemoveDiscountDialog({
-    reservationId,
+    owner,
     folioId,
     row,
     onClose,
 }: {
-    reservationId: number;
+    owner: FolioOwner;
     folioId: number;
     row: App.Data.Folio.FolioRowData | null;
     onClose: () => void;
@@ -45,11 +46,10 @@ export function RemoveDiscountDialog({
                 </AlertDialogHeader>
                 {row?.lineId != null && (
                     <Form
-                        {...destroy.form({
-                            reservation: reservationId,
-                            folio: folioId,
-                            line: row.lineId,
-                        })}
+                        {...folioRoutes(owner).discountDestroy(
+                            folioId,
+                            row.lineId,
+                        ).form}
                         options={{ preserveScroll: true, except: KEEP_OPTIONS }}
                         onSuccess={onClose}
                     >

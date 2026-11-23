@@ -35,7 +35,7 @@ class FolioLedgerReport implements HasTotals, Report
             ))
             ->when($rowKeys !== null, fn (Builder $query) => $query->whereIn('folio_lines.id', $rowKeys))
             ->select('folio_lines.*')
-            ->with(['folio.reservation.booker', 'folio.payerGuest', 'folio.payerCompany', 'transactionCode', 'user'])
+            ->with(['folio.reservation.booker', 'folio.event:id,number', 'folio.payerGuest', 'folio.payerCompany', 'transactionCode', 'user'])
             ->orderBy('folio_lines.posting_date')
             ->orderBy('folio_lines.id')
             ->get()

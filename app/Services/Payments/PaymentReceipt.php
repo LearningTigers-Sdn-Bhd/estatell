@@ -43,7 +43,7 @@ class PaymentReceipt
             throw new InvalidArgumentException('A refund has no receipt.');
         }
 
-        $payment->loadMissing(['folio.property.settings', 'folio.reservation.booker', 'folio.payerGuest', 'folio.payerCompany', 'paymentMethod', 'receiver', 'folioLine', 'surchargeLine.children']);
+        $payment->loadMissing(['folio.property.settings', 'folio.reservation.booker', 'folio.event:id,number', 'folio.payerGuest', 'folio.payerCompany', 'paymentMethod', 'receiver', 'folioLine', 'surchargeLine.children']);
         $folio = $payment->folio;
         $property = $folio->property;
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
@@ -54,8 +54,8 @@ class PaymentReceipt
             receiptNumber: $payment->receipt_number,
             postingDate: $payment->folioLine->posting_date->format('j M Y'),
             receivedAt: $payment->received_at->setTimezone($timeZone)->format('j M Y, H:i'),
-            payerName: $folio->payerGuest->full_name ?? $folio->payerCompany->name ?? $folio->reservation->booker->full_name,
-            reservationReference: $folio->reservation->reference,
+            payerName: $folio->payerGuest->full_name ?? $folio->payerCompany->name ?? $folio->reservation->booker->full_name ?? '',
+            reservationReference: $folio->reservation->reference ?? $folio->event->number ?? '',
             folioNumber: $folio->number,
             method: $payment->paymentMethod->name,
             reference: $payment->reference,

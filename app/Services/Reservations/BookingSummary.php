@@ -125,8 +125,12 @@ class BookingSummary
      */
     private function rows(Property $property, Reservation $reservation, Collection $units, array $places): array
     {
-        $blocks = $this->scheduledRows->forReservation($property, $reservation, []);
-        $lines = FolioLine::query()->whereIn('folio_id', $this->folios($property, $reservation)->modelKeys())->orderBy('posting_date')->orderBy('id')->get();
+        $folios = $this->folios($property, $reservation);
+        $blocks = [
+            ...$this->scheduledRows->forReservation($property, $reservation, []),
+            ...$this->scheduledRows->forFacilityBookings($property, array_values($folios->where('status', FolioStatus::Open)->modelKeys())),
+        ];
+        $lines = FolioLine::query()->whereIn('folio_id', $folios->modelKeys())->orderBy('posting_date')->orderBy('id')->get();
         $addOns = UnitAddOn::query()->whereIn('reservation_unit_id', $units->modelKeys())->with('chargeItem')->get()->keyBy('id');
         $order = array_flip($units->modelKeys());
         $entries = [];
@@ -141,9 +145,9 @@ class BookingSummary
 
             foreach ($block['rows'] as $row) {
                 /** @var FolioRowData $row */
-                $unitId = $block['unit'];
+                $unitId = $block['unit'] === 0 ? null : $block['unit'];
                 $entries[] = [
-                    'sort' => [$order[$unitId] ?? PHP_INT_MAX, $block['date'], 1, count($entries)],
+                    'sort' => [$unitId === null ? PHP_INT_MAX : ($order[$unitId] ?? PHP_INT_MAX), $block['date'], 1, count($entries)],
                     'row' => new DocumentRow(
                         $row->kind ?? TransactionKind::Charge,
                         $row->description,

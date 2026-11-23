@@ -15,6 +15,7 @@ use App\Models\Folio;
 use App\Models\NightAuditException;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Facilities\FacilityBookingCharge;
 use App\Services\Packages\InclusionSplit;
 use App\Services\Property\PropertyToday;
 use Brick\Math\BigDecimal;
@@ -91,6 +92,7 @@ class AuditReadiness
             ...$this->mastersNotBilled($property),
             ...$this->moneyHeldOnClosedBookings($property),
             ...$this->carriedExceptions($property),
+            ...$this->carriedFacilityExceptions($property),
         ];
 
         usort($items, fn (ReadinessItem $a, ReadinessItem $b): int => [! $a->check->isBlocker()] <=> [! $b->check->isBlocker()]);
@@ -287,6 +289,44 @@ class AuditReadiness
                 exceptionType: $exception->type,
                 exceptionDate: $exception->nightAudit->businessDate->date->toDateString(),
             ))
+            ->all());
+    }
+
+    /**
+     * Open `Facility` exceptions: a facility booking the audit could not post. Each is its own item, on its event or
+     * reservation. Stale ones (the booking was cancelled since) are left out.
+     *
+     * @return list<ReadinessItem>
+     */
+    private function carriedFacilityExceptions(Property $property): array
+    {
+        return array_values(NightAuditException::query()
+            ->where('property_id', $property->id)
+            ->where('type', AuditExceptionType::Facility->value)
+            ->whereNotNull('facility_booking_id')
+            ->open()
+            ->notStale()
+            ->with(['facilityBooking.facility', 'facilityBooking.event', 'facilityBooking.reservation.booker', 'nightAudit.businessDate'])
+            ->orderBy('id')
+            ->get()
+            ->map(function (NightAuditException $exception): ReadinessItem {
+                $booking = $exception->facilityBooking;
+
+                return new ReadinessItem(
+                    check: AuditCheck::CarriedException,
+                    reservationId: $booking->reservation_id,
+                    reservationUnitId: null,
+                    reference: $booking->event->number ?? $booking->reservation->reference,
+                    guest: $booking->event->name ?? $booking->reservation->booker?->full_name,
+                    detail: FacilityBookingCharge::description($booking).' · '.$booking->booking_date->format('j M'),
+                    message: $exception->message,
+                    exceptionId: $exception->id,
+                    exceptionType: $exception->type,
+                    exceptionDate: $exception->nightAudit->businessDate->date->toDateString(),
+                    eventId: $booking->event_id,
+                    facilityBookingId: $booking->id,
+                );
+            })
             ->all());
     }
 

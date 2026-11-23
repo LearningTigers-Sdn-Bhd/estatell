@@ -2,12 +2,14 @@
 
 namespace App\Actions\Folio;
 
+use App\Actions\Events\ReopenEvent;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\FolioStatus;
 use App\Models\ArInvoice;
 use App\Models\Folio;
 use App\Models\User;
 use App\Services\EInvoice\FolioEInvoiceLock;
+use App\Services\Folio\FolioOwner;
 use Illuminate\Support\Facades\DB;
 
 class ReopenFolio
@@ -16,7 +18,7 @@ class ReopenFolio
 
     /**
      * Reopen a Closed folio. A Voided folio cannot reopen, and neither can one with an AR invoice that is not Void (`folio_has_ar_invoice`) or on an e-invoice LHDN holds (`folio_has_e_invoice`, see `FolioEInvoiceLock`). The invoice number stays on the folio, so closing it again
-     * issues no new number. The folio row is locked first and a refusal writes and logs nothing. Permissions are
+     * issues no new number. Reopening an event folio puts its Completed event back to Confirmed. The folio row is locked first and a refusal writes and logs nothing. Permissions are
      * checked by the route. See docs/13-folio/01-folios-and-lines.md.
      */
     public function __invoke(User $actor, Folio $folio): FolioStatusResult
@@ -42,8 +44,10 @@ class ReopenFolio
                 'closed_by' => null,
             ])->save();
 
+            app(ReopenEvent::class)($current);
+
             activity()
-                ->performedOn($current->reservation)
+                ->performedOn(app(FolioOwner::class)->of($current))
                 ->causedBy($actor)
                 ->event('folio.reopened')
                 ->withProperties([

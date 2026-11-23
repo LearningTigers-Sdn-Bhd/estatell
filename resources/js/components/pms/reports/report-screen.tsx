@@ -11,6 +11,8 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
+import { MultiCombobox } from '@/components/pms/multi-combobox';
+import type { MultiComboboxOption } from '@/components/pms/multi-combobox';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
@@ -101,6 +103,12 @@ type Props<TRow extends { key: number | string }> = {
     /** The Direction filter of the Boat manifest (`in` or `out`), with its options. */
     direction?: string | null;
     directionOptions?: EnumOption[];
+    /** The picked facilities of Facility bookings (ids, empty for all), with their options. */
+    facilities?: string[] | null;
+    facilityOptions?: MultiComboboxOption[];
+    /** The picked booking statuses of Facility bookings, with their options. */
+    statuses?: string[] | null;
+    statusOptions?: MultiComboboxOption[];
     /** The sections of a report that has them. Such a report keeps its row order, so its headers do not sort. */
     sections?: App.Data.Reports.ReportSection[] | null;
     /** An action under the empty state, such as a link to the settings. */
@@ -163,6 +171,10 @@ export function ReportScreen<TRow extends { key: number | string }>({
     bucketOptions = [],
     search,
     searchPlaceholder = 'e.g. guest name or booking no.',
+    facilities = null,
+    facilityOptions = [],
+    statuses = null,
+    statusOptions = [],
     sections = null,
     emptyAction = null,
     query,
@@ -191,6 +203,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(direction ? { direction } : {}),
             ...(bucket ? { bucket } : {}),
             ...(search ? { search } : {}),
+            ...(facilities?.length ? { facilities: facilities.join(',') } : {}),
+            ...(statuses?.length ? { statuses: statuses.join(',') } : {}),
         }),
         [
             isOneDate,
@@ -206,6 +220,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             direction,
             bucket,
             search,
+            facilities,
+            statuses,
         ],
     );
 
@@ -365,6 +381,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             direction?: string;
             bucket?: string;
             search?: string;
+            facilities?: string;
+            statuses?: string;
         }) => {
             const next = {
                 from,
@@ -380,6 +398,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 direction: direction ?? '',
                 bucket: bucket ?? '',
                 search: search ?? '',
+                facilities: facilities?.join(',') ?? '',
+                statuses: statuses?.join(',') ?? '',
                 ...changes,
             };
 
@@ -395,7 +415,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.boatNotSet !== (boatNotSet ?? false) ||
                 next.direction !== (direction ?? '') ||
                 next.bucket !== (bucket ?? '') ||
-                next.search !== (search ?? '')
+                next.search !== (search ?? '') ||
+                next.facilities !== (facilities?.join(',') ?? '') ||
+                next.statuses !== (statuses?.join(',') ?? '')
             ) {
                 setSelected(new Set());
             }
@@ -418,6 +440,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.direction ? { direction: next.direction } : {}),
                     ...(next.bucket ? { bucket: next.bucket } : {}),
                     ...(next.search ? { search: next.search } : {}),
+                    ...(next.facilities ? { facilities: next.facilities } : {}),
+                    ...(next.statuses ? { statuses: next.statuses } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
                     ...query,
                 },
@@ -440,6 +464,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             direction,
             bucket,
             search,
+            facilities,
+            statuses,
             query,
         ],
     );
@@ -582,6 +608,38 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             aria-label="Bucket"
                             className="w-auto"
                         />
+                    )}
+                    {facilityOptions.length > 0 && (
+                        <div className="w-56">
+                            <MultiCombobox
+                                id="report-facilities"
+                                name="facilities"
+                                items={facilityOptions}
+                                value={facilities ?? []}
+                                onValueChange={(next) =>
+                                    visit({ facilities: next.join(',') })
+                                }
+                                placeholder="All facilities"
+                                emptyLabel="No matching facilities."
+                                maxChips={2}
+                            />
+                        </div>
+                    )}
+                    {statusOptions.length > 0 && (
+                        <div className="w-64">
+                            <MultiCombobox
+                                id="report-statuses"
+                                name="statuses"
+                                items={statusOptions}
+                                value={statuses ?? []}
+                                onValueChange={(next) =>
+                                    visit({ statuses: next.join(',') })
+                                }
+                                placeholder="Tentative and Confirmed"
+                                emptyLabel="No matching statuses."
+                                maxChips={2}
+                            />
+                        </div>
                     )}
                     {search !== undefined && (
                         <div className="min-w-56 flex-1 sm:max-w-sm">
