@@ -7,6 +7,7 @@ import {
     FacilitySheet,
     facilityValues,
 } from '@/components/pms/settings/facility-sheet';
+import type { CapacityUnitOption } from '@/components/pms/settings/facility-details-form';
 import { FacilityTable } from '@/components/pms/settings/facility-table';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
@@ -23,7 +24,7 @@ export default function FacilitiesIndex({
 }: {
     facilities: Facility[];
     sharingOptions: { value: string; label: string; description: string }[];
-    capacityUnits: EnumOption[];
+    capacityUnits: CapacityUnitOption[];
     rateBases: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
 }) {

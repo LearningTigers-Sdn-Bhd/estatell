@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Lock, Users } from 'lucide-react';
+import { Lock, Package, User, Users } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { ChargeItemTaxesField } from '@/components/pms/charge-item-taxes-field';
 import { ChoiceCards } from '@/components/pms/choice-cards';
@@ -17,6 +17,12 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+    InputGroupText,
+} from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
@@ -43,6 +49,90 @@ export function sharingChoices(options: SharingOption[]): Choice[] {
     }));
 }
 
+export type CapacityUnitOption = {
+    value: string;
+    label: string;
+    title: string;
+    description: string;
+};
+
+const CAPACITY_UNIT_ICONS: Record<string, Choice['icon']> = {
+    pax: User,
+    units: Package,
+};
+
+/**
+ * Count by (People or Items) as choice cards, then Capacity with the unit after the number. Shared by the Add
+ * facility Sheet and the Details tab.
+ */
+export function CapacityFields({
+    capacityUnits,
+    sharing,
+    capacity,
+    capacityUnit,
+    onCapacityChange,
+    onCapacityUnitChange,
+    errors,
+}: {
+    capacityUnits: CapacityUnitOption[];
+    sharing: string;
+    capacity: string;
+    capacityUnit: string;
+    onCapacityChange: (value: string) => void;
+    onCapacityUnitChange: (value: string) => void;
+    errors: { capacity?: string; capacity_unit?: string };
+}) {
+    const unitLabel =
+        capacityUnits.find((option) => option.value === capacityUnit)?.label ??
+        capacityUnit;
+
+    return (
+        <>
+            <ChoiceCards
+                id="facility-capacity-unit"
+                legend="Count by"
+                choices={capacityUnits.map((option) => ({
+                    value: option.value,
+                    label: `${option.title} (${option.label})`,
+                    description: option.description,
+                    icon: CAPACITY_UNIT_ICONS[option.value] ?? User,
+                }))}
+                value={capacityUnit}
+                onValueChange={onCapacityUnitChange}
+                error={errors.capacity_unit}
+            />
+
+            <Field data-invalid={!!errors.capacity}>
+                <FieldLabel htmlFor="facility-capacity">Capacity</FieldLabel>
+                <InputGroup>
+                    <InputGroupInput
+                        id="facility-capacity"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        placeholder="e.g. 150"
+                        className="tabular-nums"
+                        value={capacity}
+                        onChange={(event) =>
+                            onCapacityChange(event.target.value)
+                        }
+                        aria-invalid={!!errors.capacity}
+                    />
+                    <InputGroupAddon align="inline-end">
+                        <InputGroupText>{unitLabel}</InputGroupText>
+                    </InputGroupAddon>
+                </InputGroup>
+                <FieldDescription>
+                    {sharing === 'shared'
+                        ? 'Bookings stop when it is full.'
+                        : 'Shown to staff. One booking takes it all.'}
+                </FieldDescription>
+                <FieldError>{errors.capacity}</FieldError>
+            </Field>
+        </>
+    );
+}
+
 /**
  * The Details tab: every field of the facility and the taxes of its charge item, saved together. Available is the
  * switch in the page header.
@@ -57,7 +147,7 @@ export function FacilityDetailsForm({
 }: {
     facility: Facility;
     sharingOptions: SharingOption[];
-    capacityUnits: EnumOption[];
+    capacityUnits: CapacityUnitOption[];
     rateBases: EnumOption[];
     taxes: Tax[];
     currency: App.Data.Property.CurrencyData | null;
@@ -118,47 +208,6 @@ export function FacilityDetailsForm({
                         <FieldError>{errors.name}</FieldError>
                     </Field>
 
-                    <Field data-invalid={!!errors.capacity}>
-                        <FieldLabel htmlFor="facility-capacity">
-                            Capacity
-                        </FieldLabel>
-                        <div className="flex gap-2">
-                            <Input
-                                id="facility-capacity"
-                                type="number"
-                                inputMode="numeric"
-                                min={1}
-                                placeholder="e.g. 150"
-                                className="min-w-0 flex-1"
-                                value={data.capacity}
-                                onChange={(event) =>
-                                    setData('capacity', event.target.value)
-                                }
-                                aria-invalid={!!errors.capacity}
-                            />
-                            <EnumSelect
-                                id="facility-capacity-unit"
-                                name="capacity_unit"
-                                aria-label="Capacity unit"
-                                className="w-32"
-                                options={capacityUnits}
-                                value={data.capacity_unit}
-                                onValueChange={(value) =>
-                                    setData('capacity_unit', value)
-                                }
-                                aria-invalid={!!errors.capacity_unit}
-                            />
-                        </div>
-                        <FieldDescription>
-                            {data.sharing === 'shared'
-                                ? 'Bookings stop when it is full.'
-                                : 'Shown to staff. One booking takes it all.'}
-                        </FieldDescription>
-                        <FieldError>
-                            {errors.capacity ?? errors.capacity_unit}
-                        </FieldError>
-                    </Field>
-
                     <div className="flex flex-col gap-2 md:col-span-2">
                         <ChoiceCards
                             id="facility-sharing"
@@ -177,6 +226,22 @@ export function FacilityDetailsForm({
                                 .
                             </FieldDescription>
                         )}
+                    </div>
+
+                    <div className="flex flex-col gap-5 md:col-span-2">
+                        <CapacityFields
+                            capacityUnits={capacityUnits}
+                            sharing={data.sharing}
+                            capacity={data.capacity}
+                            capacityUnit={data.capacity_unit}
+                            onCapacityChange={(value) =>
+                                setData('capacity', value)
+                            }
+                            onCapacityUnitChange={(value) =>
+                                setData('capacity_unit', value)
+                            }
+                            errors={errors}
+                        />
                     </div>
 
                     <Field data-invalid={!!errors.default_amount}>

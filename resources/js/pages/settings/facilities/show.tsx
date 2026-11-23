@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import {
     FacilityDetailsForm,
+    type CapacityUnitOption,
     type SharingOption,
 } from '@/components/pms/settings/facility-details-form';
 import {
@@ -21,7 +22,7 @@ export default function FacilityShow({
 }: {
     facility: Facility;
     sharingOptions: SharingOption[];
-    capacityUnits: EnumOption[];
+    capacityUnits: CapacityUnitOption[];
     rateBases: EnumOption[];
     taxes: App.Data.Catalogues.ChargeItemTaxData[];
     currency: App.Data.Property.CurrencyData | null;

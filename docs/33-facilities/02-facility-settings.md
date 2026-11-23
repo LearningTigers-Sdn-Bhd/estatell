@@ -34,7 +34,7 @@ facility_sessions   id, property_id, facility_id → facilities (cascade),
 | Enum                   | Cases (label)                                              | Notes                                                                                                                    |
 | ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `FacilitySharing`      | Private ("Private"), Shared ("Shared")                     | `description()`: "One booking takes the whole facility." / "Several bookings share it until it is full."                 |
-| `FacilityCapacityUnit` | Pax ("pax"), Units ("units")                               | Kayaks are units; halls and activities are pax                                                                           |
+| `FacilityCapacityUnit` | Pax ("pax"), Units ("units")                               | `title()` People / Items and `description()` for the Count by cards. Kayaks and BBQ pits are units; halls are pax        |
 | `FacilityRateBasis`    | Day, Session, Hour, Person ("Per day", "Per session", ...) | `quantity(startsAt, endsAt, quantity)`: Day and Session 1, Hour the booked hours rounded up, Person the booking quantity |
 | `TransactionCategory`  | adds Facility ("Facility")                                 | In `chargeItemCases()`, so also a routing category                                                                       |
 
@@ -65,7 +65,8 @@ Available     Name             Sharing    Capacity   Rate (MYR)
 | --------- | ---------------------------------------------------- | ------------------- |
 | Name      | Text                                                 | e.g. Riverside Hall |
 | Sharing   | Two radio cards with icons and the enum descriptions | –                   |
-| Capacity  | Number, with the unit select (pax, units) beside it  | e.g. 150            |
+| Count by  | Two radio cards: People (pax), Items (units)         | –                   |
+| Capacity  | Number, with the chosen unit shown after it          | e.g. 150            |
 | Rate      | Amount (MYR), or the switch **Charge by hand**       | e.g. 1500           |
 | Per       | Select from `FacilityRateBasis::options()`           | Choose a rate basis |
 | Available | Switch                                               | –                   |
@@ -82,8 +83,10 @@ Settings › Facilities › Night Walk › Details ▾
 [Details] [Sessions (2)]
 ┌────────────────────────────────────────────┐ ┌────────────────────┐
 │ Details                                    │ │ Summary            │
-│ Name [Night Walk]     Capacity [20] [pax]  │ │ Sharing   Shared   │
+│ Name [Night Walk]                          │ │ Sharing   Shared   │
 │ Sharing  (○) Private  (●) Shared           │ │ Capacity  20 pax   │
+│ Count by (●) People   (○) Items            │ │                    │
+│ Capacity [20 pax]                          │ │                    │
 │ Rate [MYR 80.00]      Per [Per person]     │ │ Rate  80.00 /person│
 │ [ ] Charge by hand                         │ │ Taxes     SST      │
 │ Taxes [SST 8%]                             │ │ Code   NIGHT_WALK  │

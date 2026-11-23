@@ -5,7 +5,9 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import {
+    CapacityFields,
     sharingChoices,
+    type CapacityUnitOption,
     type SharingOption,
 } from '@/components/pms/settings/facility-details-form';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
@@ -27,7 +29,7 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     sharingOptions: SharingOption[];
-    capacityUnits: EnumOption[];
+    capacityUnits: CapacityUnitOption[];
     rateBases: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
 };
@@ -117,46 +119,17 @@ function FacilityForm({
                     error={errors.sharing}
                 />
 
-                <Field data-invalid={!!errors.capacity}>
-                    <FieldLabel htmlFor="facility-capacity">
-                        Capacity
-                    </FieldLabel>
-                    <div className="flex gap-2">
-                        <Input
-                            id="facility-capacity"
-                            type="number"
-                            inputMode="numeric"
-                            min={1}
-                            placeholder="e.g. 150"
-                            className="min-w-0 flex-1"
-                            value={data.capacity}
-                            onChange={(event) =>
-                                setData('capacity', event.target.value)
-                            }
-                            aria-invalid={!!errors.capacity}
-                        />
-                        <EnumSelect
-                            id="facility-capacity-unit"
-                            name="capacity_unit"
-                            aria-label="Capacity unit"
-                            className="w-32"
-                            options={capacityUnits}
-                            value={data.capacity_unit}
-                            onValueChange={(value) =>
-                                setData('capacity_unit', value)
-                            }
-                            aria-invalid={!!errors.capacity_unit}
-                        />
-                    </div>
-                    <FieldDescription>
-                        {data.sharing === 'shared'
-                            ? 'Bookings stop when it is full.'
-                            : 'Shown to staff. One booking takes it all.'}
-                    </FieldDescription>
-                    <FieldError>
-                        {errors.capacity ?? errors.capacity_unit}
-                    </FieldError>
-                </Field>
+                <CapacityFields
+                    capacityUnits={capacityUnits}
+                    sharing={data.sharing}
+                    capacity={data.capacity}
+                    capacityUnit={data.capacity_unit}
+                    onCapacityChange={(value) => setData('capacity', value)}
+                    onCapacityUnitChange={(value) =>
+                        setData('capacity_unit', value)
+                    }
+                    errors={errors}
+                />
 
                 <Field data-invalid={!!errors.default_amount}>
                     <FieldLabel htmlFor="facility-amount">Rate</FieldLabel>
