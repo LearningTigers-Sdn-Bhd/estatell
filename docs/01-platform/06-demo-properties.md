@@ -78,6 +78,7 @@ Only on the demo environment (`APP_ENV=demo`):
 | Banner                  | A fixed banner: "Demo · Resets every night · Don't enter real guest details."                                          |
 | No signup               | Fortify registration is off. The demo has no admins or partners, so no partner invitation or signup link exists there. |
 | Account security locked | Profile (email), password, two-factor and delete account can't be changed, so no visitor locks the others out.         |
+| Device check exempt     | Demo logins sign in directly without an emailed OTP code (`TrustedDevices::requiresCheck()` skips `APP_ENV=demo`).     |
 
 Everything else works as in production. Mail goes to the log, and the nightly reset undoes every change.
 

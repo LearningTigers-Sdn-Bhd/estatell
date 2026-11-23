@@ -199,6 +199,7 @@ class BorenoSeeder extends Seeder
             $user = new User(['name' => $names[$role->value], 'email' => $this->staffEmail($role), 'password' => $this->staffPassword()]);
             $user->property_id = $property->id;
             $user->email_verified_at = now();
+            $user->email_device_check = false;
             $user->save();
             $users[$role->value] = $user;
         }
