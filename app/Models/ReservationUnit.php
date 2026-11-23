@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $reservation_id
  * @property int $property_id
  * @property int $room_type_id
+ * @property int|null $whole_room_id The dorm a whole-dorm booking buys out, on each of its bed units
  * @property int $rate_plan_id
  * @property CarbonImmutable $arrival_date
  * @property CarbonImmutable $departure_date
@@ -89,6 +90,14 @@ class ReservationUnit extends Model
     public function roomType(): BelongsTo
     {
         return $this->belongsTo(RoomType::class);
+    }
+
+    /**
+     * @return BelongsTo<Room, $this>
+     */
+    public function wholeRoom(): BelongsTo
+    {
+        return $this->belongsTo(Room::class, 'whole_room_id');
     }
 
     /**

@@ -314,11 +314,13 @@ class ReservationBookingController extends Controller
             $request->integer('beds', 1),
             $request->addOns(),
             $request->filled('override_total') ? $request->string('override_total')->toString() : null,
+            $request->boolean('whole_room'),
         ));
     }
 
     /**
-     * The rooms or beds of a room type that are free on every night of a stay. An unknown room type has none.
+     * The rooms or beds of a room type that are free on every night of a stay, and for a dorm room type the dorms that
+     * are wholly free (`wholeRooms`, for a whole-dorm booking). An unknown room type has none.
      */
     public function freeUnits(FreeUnitsRequest $request, Property $property, FreeUnits $freeUnits, DayUseAvailability $dayUseAvailability): JsonResponse
     {
@@ -336,12 +338,15 @@ class ReservationBookingController extends Controller
             )]);
         }
 
-        return response()->json(['units' => $roomType === null ? [] : $freeUnits->forStay(
-            $roomType,
-            $request->date('arrival_date', 'Y-m-d'),
-            $request->date('departure_date', 'Y-m-d'),
-            includeNotReady: $request->boolean('walk_in'),
-        )]);
+        return response()->json([
+            'units' => $roomType === null ? [] : $freeUnits->forStay(
+                $roomType,
+                $request->date('arrival_date', 'Y-m-d'),
+                $request->date('departure_date', 'Y-m-d'),
+                includeNotReady: $request->boolean('walk_in'),
+            ),
+            'wholeRooms' => $roomType === null ? [] : $freeUnits->wholeRooms($roomType, $request->date('arrival_date', 'Y-m-d'), $request->date('departure_date', 'Y-m-d')),
+        ]);
     }
 
     /**

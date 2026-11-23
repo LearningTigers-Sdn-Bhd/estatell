@@ -81,6 +81,12 @@ class ReservationResult
 
     public const REFUSAL_MARKET_SEGMENT_NOT_AVAILABLE = 'market_segment_not_available';
 
+    /** A whole-dorm line names a room that is not an active dorm of the line's room type. */
+    public const REFUSAL_WHOLE_ROOM_NOT_FOUND = 'whole_room_not_found';
+
+    /** A whole-dorm line's dorm has a bed that is booked or blocked on a night of the stay. */
+    public const REFUSAL_WHOLE_ROOM_NOT_FREE = 'whole_room_not_free';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,

@@ -38,6 +38,8 @@ export type BookingLine = {
     declined_auto_add_ons: string[];
     room_id: string;
     bed_ids: string[];
+    /** A dorm line that buys out one whole dorm: its room id, or '' for beds only. `beds` then holds its bed count. */
+    whole_room_id?: string;
     /** Day use only: the number of hours, as text. */
     hours: string;
 };
@@ -410,6 +412,7 @@ export function quotePayload(
         adults: isBed ? 1 : line.adults,
         child_ages: isBed ? [] : line.child_ages.map(Number),
         beds: isBed ? line.beds : 1,
+        whole_room: isBed && (line.whole_room_id ?? '') !== '' ? 1 : 0,
         override_total: MONEY.test(line.override_total)
             ? line.override_total
             : '',
@@ -494,7 +497,11 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
                 child_ages: isBed ? [] : line.child_ages.map(Number),
                 beds: isBed ? line.beds : '1',
                 room_id: isBed ? '' : line.room_id,
-                bed_ids: isBed ? line.bed_ids : [],
+                whole_room_id: isBed ? (line.whole_room_id ?? '') : '',
+                bed_ids:
+                    isBed && (line.whole_room_id ?? '') === ''
+                        ? line.bed_ids
+                        : [],
                 hours: '',
                 add_ons: sendableAddOns(line.add_ons),
             };

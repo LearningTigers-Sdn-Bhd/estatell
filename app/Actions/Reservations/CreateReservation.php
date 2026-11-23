@@ -14,20 +14,26 @@ use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\WebhookEvent;
+use App\Models\Bed;
 use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationRemark;
+use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Availability\FreeUnits;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\NextDocumentNumber;
 use App\Services\Reservations\MarketSegments;
 use App\Services\Reservations\ReservationShortCode;
 use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\StayChargeTotal;
+use Brick\Money\Money;
+use Brick\Money\SplitMode;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 
 class CreateReservation
 {
@@ -42,12 +48,15 @@ class CreateReservation
         private SetReservationPaymentSchedule $setPaymentSchedule,
         private SalesPeople $salesPeople,
         private MarketSegments $marketSegments,
+        private FreeUnits $freeUnits,
+        private AssignBed $assignBed,
     ) {}
 
     /**
      * Create a reservation and its units in one transaction.
      *
-     * A Bed room type line adds one unit for each bed. A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
+     * A Bed room type line adds one unit for each bed. A whole-dorm line (`wholeRoomId`) adds one unit for each active bed of
+     * that dorm, puts each on its bed, and splits the dorm's stay total over them (`addWholeRoom()`). A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
      * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. A sales person must be an active staff user of the property (`sales_person_not_available`), and a market segment an active segment of the property (`market_segment_not_available`). Each remark of `$data->remarks` becomes one `reservation_remarks` row (docs/12-reservations/16-remarks.md). A company that pays per booking gives the reservation its payment deadlines (`SetReservationPaymentSchedule`, not for channel bookings). `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(?User $actor, Property $property, NewReservationData $data, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
@@ -124,6 +133,12 @@ class CreateReservation
                 $roomCount = count(array_filter($data->units, fn (NewUnitData $line): bool => $line->stayType === StayType::Overnight && $roomTypes->get($line->roomTypeId)?->sell_unit === SellUnit::Room));
 
                 foreach ($data->units as $index => $line) {
+                    if ($line->wholeRoomId !== null && $line->stayType === StayType::Overnight) {
+                        $this->addWholeRoom($actor, $reservation, $roomTypes->get($line->roomTypeId), $line, $index, $fromChannel, $allowPastArrival, $roomCount);
+
+                        continue;
+                    }
+
                     foreach (range(1, $this->unitCount($roomTypes->get($line->roomTypeId), $line, $index)) as $ignored) {
                         $result = ($this->addUnit)($actor, $reservation, $line, $index, $fromChannel, $allowPastArrival, $roomCount);
 
@@ -193,6 +208,57 @@ class CreateReservation
         }
 
         ($this->recordCreditOverride)($actor, $company, $check, (string) $data->creditOverrideReason, 'create_reservation');
+    }
+
+    /**
+     * Book a whole dorm: one bed unit for each active bed of the dorm, each put on its bed and marked with the dorm
+     * (`whole_room_id`). Every bed must be free on every night (`whole_room_not_free`), so a dorm with even one bed sold
+     * cannot be bought out. A line override is the dorm's stay total: it is split over the beds, a cent more on the first
+     * beds until it adds up. See docs/12-reservations/03-bed-bookings.md.
+     *
+     * @throws ReservationRefused
+     */
+    private function addWholeRoom(?User $actor, Reservation $reservation, ?RoomType $roomType, NewUnitData $line, int $index, bool $fromChannel, bool $allowPastArrival, int $roomCount): void
+    {
+        $refuse = fn (string $code): ReservationRefused => new ReservationRefused(ReservationResult::refused($code, $index));
+
+        if ($roomType === null || $roomType->sell_unit !== SellUnit::Bed) {
+            throw $refuse(ReservationResult::REFUSAL_WHOLE_ROOM_NOT_FOUND);
+        }
+
+        $room = Room::query()->where('property_id', $reservation->property_id)->where('room_type_id', $roomType->id)->active()->find($line->wholeRoomId);
+        $whole = collect($this->freeUnits->wholeRooms($roomType, $line->arrivalDate, $line->departureDate))->firstWhere('id', $line->wholeRoomId);
+
+        if ($room === null || ! Bed::query()->where('room_id', $room->id)->active()->exists()) {
+            throw $refuse(ReservationResult::REFUSAL_WHOLE_ROOM_NOT_FOUND);
+        }
+
+        if ($whole === null || $whole->bedIds === []) {
+            throw $refuse(ReservationResult::REFUSAL_WHOLE_ROOM_NOT_FREE);
+        }
+
+        $shares = $line->overrideTotal === null
+            ? array_fill(0, count($whole->bedIds), null)
+            : array_map(fn (Money $share): string => (string) $share->getAmount(), Money::of($line->overrideTotal, $reservation->property->settings->currency)->split(count($whole->bedIds), SplitMode::ToFirst));
+
+        foreach ($whole->bedIds as $position => $bedId) {
+            $bedLine = clone $line;
+            $bedLine->beds = 1;
+            $bedLine->overrideTotal = $shares[$position];
+            $result = ($this->addUnit)($actor, $reservation, $bedLine, $index, $fromChannel, $allowPastArrival, $roomCount);
+
+            if ($result->isRefused()) {
+                throw new ReservationRefused($result);
+            }
+
+            $unit = $result->unit ?? throw new LogicException('AddUnit returns the unit it added.');
+            $unit->forceFill(['whole_room_id' => $room->id])->save();
+            $assigned = ($this->assignBed)($actor, $unit, Bed::query()->findOrFail($bedId));
+
+            if ($assigned->isRefused()) {
+                throw $refuse(ReservationResult::REFUSAL_WHOLE_ROOM_NOT_FREE);
+            }
+        }
     }
 
     /**

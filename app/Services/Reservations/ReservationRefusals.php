@@ -275,6 +275,8 @@ class ReservationRefusals
             ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE => ['company_id', __('This company is not available. Pick an active company.')],
             ReservationResult::REFUSAL_SALES_PERSON_NOT_AVAILABLE => ['sales_person_id', __('This staff member is not available. Pick an active staff member.')],
             ReservationResult::REFUSAL_MARKET_SEGMENT_NOT_AVAILABLE => ['market_segment_id', __('This market segment is not available. Pick an active segment.')],
+            ReservationResult::REFUSAL_WHOLE_ROOM_NOT_FOUND => ['whole_room_id', __('Pick a dorm of this room type.')],
+            ReservationResult::REFUSAL_WHOLE_ROOM_NOT_FREE => ['whole_room_id', __('A whole dorm can be booked only when every bed is free on every night. Pick another dorm or other dates.')],
             ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY => ['rate_plan_id', __('This rate plan is for certain companies only. Pick one of them on the reservation first.')],
             ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT => ['company_id', __('Units use plans only the old company can book.')],
             ReservationResult::REFUSAL_ROOMS_BELOW_MIN => ['rate_plan_id', __('This rate needs more rooms in one booking. Pick another rate.')],

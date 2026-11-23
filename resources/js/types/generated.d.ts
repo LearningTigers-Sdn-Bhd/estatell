@@ -1764,6 +1764,7 @@ quantity: number,
 unitAmount: string | null,
 notes: string | null,
 chargeTo: string | null,
+private: boolean,
 };
 export type FacilityBookingQuoteData = {
 amount: string | null,
@@ -1794,6 +1795,7 @@ posted: boolean,
 canPostNow: boolean,
 chargeTo: string | null,
 chargeToLabel: string | null,
+private: boolean,
 };
 export type FacilityData = {
 id: number,
@@ -1811,6 +1813,7 @@ taxNames: string[],
 bookedByLabel: string,
 unitLabel: string,
 rateBasisLabel: string,
+privateAmount: string | null,
 };
 export type FacilityDayCellData = {
 facilityId: number,
@@ -1842,6 +1845,7 @@ capacityLabel: string,
 rateBasisLabel: string,
 listPrice: string | null,
 sessions: App.Data.Facilities.FacilitySessionData[],
+privatePrice: string | null,
 };
 export type FacilityOwnerEventData = {
 id: number,
@@ -5676,6 +5680,7 @@ hours: number | null,
 roomId: number | null,
 declinedAutoAddOns: number[],
 boatTrips: App.Data.Boats.BoatTripData[],
+wholeRoomId: number | null,
 };
 export type NightPriceChangePreviewData = {
 nights: App.Data.Reservations.NightPriceNightData[],
@@ -6173,6 +6178,11 @@ total: string,
 totalWithRoomCharges: string,
 totalWithoutRoomCharges: string,
 errors: Record<string, string>,
+};
+export type WholeRoomData = {
+id: number,
+label: string,
+bedIds: number[],
 };
 }
 namespace Rooms {

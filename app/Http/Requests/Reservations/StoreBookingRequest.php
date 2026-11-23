@@ -19,6 +19,7 @@ use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Http\Requests\Concerns\ValidatesRemarks;
 use App\Http\Requests\Guests\GuestProfileRules;
+use App\Models\Bed;
 use App\Models\BookingSource;
 use App\Models\Guest;
 use App\Models\Property;
@@ -130,6 +131,7 @@ class StoreBookingRequest extends FormRequest
             'lines.*.room_id' => ['nullable', 'integer'],
             'lines.*.bed_ids' => ['nullable', 'array', 'max:99'],
             'lines.*.bed_ids.*' => ['nullable', 'integer'],
+            'lines.*.whole_room_id' => ['nullable', 'integer'],
         ];
     }
 
@@ -165,6 +167,10 @@ class StoreBookingRequest extends FormRequest
             }
 
             foreach ($this->input('lines', []) as $index => $line) {
+                if ($this->isBedLine((int) $line['room_type_id']) && ! empty($line['whole_room_id'])) {
+                    continue;
+                }
+
                 if ($this->isBedLine((int) $line['room_type_id'])) {
                     foreach (range(0, max(1, (int) ($line['beds'] ?? 1)) - 1) as $bed) {
                         if (empty($line['bed_ids'][$bed])) {
@@ -218,7 +224,12 @@ class StoreBookingRequest extends FormRequest
 
         foreach ($this->validated('lines') as $line) {
             $isBed = $this->isBedLine((int) $line['room_type_id']);
-            $beds = $isBed ? max(1, (int) ($line['beds'] ?? 1)) : 1;
+            $wholeRoomId = $isBed && ! $isDayUse && ! empty($line['whole_room_id']) ? (int) $line['whole_room_id'] : null;
+            $beds = match (true) {
+                $wholeRoomId !== null => max(1, $this->activeBeds($wholeRoomId)),
+                $isBed => max(1, (int) ($line['beds'] ?? 1)),
+                default => 1,
+            };
 
             $units[] = new NewUnitData(
                 roomTypeId: (int) $line['room_type_id'],
@@ -246,10 +257,11 @@ class StoreBookingRequest extends FormRequest
                 ), $line['add_ons'] ?? [])),
                 declinedAutoAddOns: array_values(array_map(intval(...), $line['declined_auto_add_ons'] ?? [])),
                 boatTrips: $boatTrips,
+                wholeRoomId: $wholeRoomId,
             );
 
             foreach (range(0, $beds - 1) as $bed) {
-                if (! $isDayUse) {
+                if (! $isDayUse && $wholeRoomId === null) {
                     $picks[] = $isBed
                         ? new UnitPickData($unitIndex, bedId: isset($line['bed_ids'][$bed]) ? (int) $line['bed_ids'][$bed] : null)
                         : new UnitPickData($unitIndex, roomId: isset($line['room_id']) ? (int) $line['room_id'] : null);
@@ -275,6 +287,15 @@ class StoreBookingRequest extends FormRequest
             marketSegmentId: $this->filled('market_segment_id') ? $this->integer('market_segment_id') : null,
             remarks: $this->remarks(),
         );
+    }
+
+    /**
+     * The active beds of a room of the property: a whole-dorm line books one unit for each. `CreateReservation` refuses a
+     * room that is not a dorm of the line's room type.
+     */
+    private function activeBeds(int $roomId): int
+    {
+        return Bed::query()->active()->where('room_id', $roomId)->whereHas('room', fn ($rooms) => $rooms->where('property_id', $this->property()->id))->count();
     }
 
     /**
