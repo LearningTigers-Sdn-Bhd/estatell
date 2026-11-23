@@ -1,4 +1,4 @@
-import { Head, Link, useForm, useHttp } from '@inertiajs/react';
+import { Head, Link, useForm, useHttp, usePage } from '@inertiajs/react';
 import { Building2, NotebookText, Plus, Tent, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
@@ -60,8 +60,6 @@ type Props = {
     statuses: EnumOption[];
     /** Both dates start here, `Y-m-d`: the business date, or `?date=` from Book facility on the Timeline. */
     defaultDate: string;
-    /** The open business date, `Y-m-d`. An event that starts on or before it is Confirmed. */
-    businessDate: string | null;
     /** `facilities.book`: the page shows facility lines. */
     canBook: boolean;
     facilities: App.Data.Facilities.FacilityOptionData[];
@@ -138,7 +136,6 @@ export default function EventCreate({
     companies,
     statuses,
     defaultDate,
-    businessDate,
     canBook,
     facilities,
     defaultFacilityId,
@@ -191,6 +188,7 @@ export default function EventCreate({
     });
     const [quote, setQuote] = useState<Quote | null>(null);
     // An event that has started has happened, so it is Confirmed and its charges post. The server checks it too.
+    const businessDate = usePage().props.businessDate?.date ?? null;
     const startedByBusinessDate =
         businessDate !== null &&
         data.startsOn !== '' &&

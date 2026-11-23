@@ -90,7 +90,7 @@ test('New event is a page that needs events.manage', function () {
             ->where('canAddIdentity', true)
             ->where('defaultNationalityCode', 'MY')
             ->where('defaultDate', '2026-10-14')
-            ->where('businessDate', '2026-10-14')
+            ->where('businessDate.date', '2026-10-14')
             ->has('statuses', 2));
 
     Feature::for($property)->deactivate(Facilities::class);

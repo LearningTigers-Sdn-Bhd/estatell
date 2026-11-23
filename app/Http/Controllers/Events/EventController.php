@@ -90,7 +90,6 @@ class EventController extends Controller
         $canManageGuests = $user->can(PermissionEnum::GuestsManage->value);
         $facilities = $canBook ? $this->facilityOptions($property) : [];
         $prefill = $request->prefill();
-        $businessDate = app(CurrentBusinessDate::class)->date($property);
 
         return Inertia::render('events/create', [
             'canManageGuests' => $canManageGuests,
@@ -103,8 +102,7 @@ class EventController extends Controller
             'canViewCompany' => $canViewCompany,
             'companies' => $canViewCompany ? $companies->active($property) : [],
             'statuses' => EventStatus::newEventOptions(),
-            'defaultDate' => $prefill['date'] ?? ($businessDate ?? app(PropertyToday::class)->date($property))->toDateString(),
-            'businessDate' => $businessDate?->toDateString(),
+            'defaultDate' => $prefill['date'] ?? (app(CurrentBusinessDate::class)->date($property) ?? app(PropertyToday::class)->date($property))->toDateString(),
             'canBook' => $canBook,
             'facilities' => $facilities,
             'defaultFacilityId' => collect($facilities)->contains(fn (FacilityOptionData $facility): bool => $facility->id === $prefill['facility']) ? $prefill['facility'] : null,
