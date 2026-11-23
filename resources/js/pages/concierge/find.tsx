@@ -1,6 +1,8 @@
-import { Form } from '@inertiajs/react';
+import { Form, Link } from '@inertiajs/react';
+import { LogIn } from 'lucide-react';
 import { GuestFrame } from '@/components/concierge/stay-menu';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Field,
     FieldError,
@@ -15,9 +17,13 @@ import { find, lobby } from '@/routes/concierge';
 export default function ConciergeFind({
     property,
     heroUrl,
+    checkOut,
+    checkInHref,
 }: {
     property: App.Data.Property.PropertySummaryData;
     heroUrl: string | null;
+    checkOut: boolean;
+    checkInHref: string | null;
 }) {
     return (
         <GuestFrame
@@ -26,8 +32,12 @@ export default function ConciergeFind({
                 href: lobby.url({ property: property.code }),
                 label: 'Home',
             }}
-            title="Check in"
-            description="Enter the booking code from your confirmation. If you are already checked in, it opens your stay."
+            title={checkOut ? 'Check out' : 'Check in'}
+            description={
+                checkOut
+                    ? 'Enter the booking code from your confirmation to see your bill and check out.'
+                    : 'Enter the booking code from your confirmation. If you are already checked in, it opens your stay.'
+            }
         >
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
                 <Form
@@ -37,6 +47,37 @@ export default function ConciergeFind({
                 >
                     {({ processing, errors }) => (
                         <div className="flex flex-col gap-6">
+                            {checkInHref && (
+                                <Alert className="gap-y-1 p-4">
+                                    <LogIn />
+                                    <AlertTitle>
+                                        Looks like you haven't checked in yet
+                                    </AlertTitle>
+                                    <AlertDescription>
+                                        <p>
+                                            No worries, it only takes a minute.
+                                            Check in first, and check-out will
+                                            be ready when it's time to leave.
+                                        </p>
+                                        <Link
+                                            href={checkInHref}
+                                            className={buttonVariants({
+                                                className:
+                                                    'mt-3 w-full no-underline!',
+                                            })}
+                                        >
+                                            Check in
+                                        </Link>
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                            {checkOut && (
+                                <input
+                                    type="hidden"
+                                    name="for"
+                                    value="check-out"
+                                />
+                            )}
                             <FieldGroup>
                                 <Field data-invalid={!!errors.reference}>
                                     <FieldLabel htmlFor="reference">

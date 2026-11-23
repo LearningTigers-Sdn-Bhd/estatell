@@ -12,11 +12,12 @@ final readonly class ConciergeLookupResult
         public ?string $token,
         public ?string $refusal,
         public int $retryAfter = 0,
+        public bool $checkedIn = false,
     ) {}
 
-    public static function found(string $token): self
+    public static function found(string $token, bool $checkedIn = false): self
     {
-        return new self($token, null);
+        return new self($token, null, 0, $checkedIn);
     }
 
     public static function refused(string $refusal, int $retryAfter = 0): self

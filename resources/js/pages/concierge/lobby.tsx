@@ -7,6 +7,7 @@ import {
     BookOpen,
     CalendarDays,
     LogIn,
+    LogOut,
     MapPin,
     Undo2,
     Phone,
@@ -82,10 +83,16 @@ export default function ConciergeLobby({
             icon: LogIn,
             href: enterCode.url(code),
         },
+        {
+            title: 'Check out',
+            body: 'Use your booking code to see your bill and check out.',
+            icon: LogOut,
+            href: `${enterCode.url(code)}?for=check-out`,
+        },
         ...(walkInEnabled
             ? [
                   {
-                      title: 'Book a room for today',
+                      title: 'Book a room',
                       body: 'No booking? Choose a room and check in on this phone.',
                       icon: BedDouble,
                       href: walkIn.url(code),
@@ -135,7 +142,7 @@ export default function ConciergeLobby({
         <>
             <Head title={property.name} />
             <div className="concierge-editorial min-h-0 flex-1 overflow-y-auto bg-background text-foreground">
-                <div className="concierge-editorial-layout h-full! min-h-0!">
+                <div className="concierge-editorial-layout">
                     <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-10 lg:gap-y-6">
                         <section
                             aria-labelledby="concierge-welcome"
