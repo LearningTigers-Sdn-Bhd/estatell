@@ -12,7 +12,7 @@ How the assistant thinks: one agent class, its instructions, what it knows and t
 - The model and the provider come from `config/ai.php`: OpenAI, one model for all properties. The model name is set in config, not per property. The key is the hotel's own, built per turn with `Ai::build()` (see [API key](01-overview.md#api-key)).
 - At most 4 tool calls per turn. A turn that needs more has misunderstood the guest; it hands over instead.
 - Each thread stores its SDK conversation id in `ai_threads.agent_conversation_id`. `OpenAiThread` creates the conversation when the thread starts, with no participant (the SDK's `participant_id` is a number and the thread id is a UUID). Each turn resumes it with `continue()`. The browser sends our thread id, never a conversation id.
-- Fakes from the SDK are used in tests. Tests never call OpenAI.
+- Fakes from the SDK are used in tests. Tests never call OpenAI, except the opt-in [AI eval](05-eval.md), which runs by hand only and never in CI.
 
 A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, where the SDK's generators put agents. The user approved this new top-level folder on 2026-11-24 (see [Confirmed defaults](01-overview.md#confirmed-defaults)).
 

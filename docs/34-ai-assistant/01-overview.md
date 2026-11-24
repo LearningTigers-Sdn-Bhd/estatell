@@ -126,6 +126,7 @@ property_settings   ai_openai_key (text, nullable, encrypted cast),
 | [Agent and tools](02-agent-and-tools.md)     | The agent, its instructions, knowledge, languages and each tool                        |
 | [Places and routes](03-places-and-routes.md) | Each place's routes and UI, quote links, the chat API, handover and the AI chats inbox |
 | [Usage and cost](04-usage-and-cost.md)       | `ai_threads`, `ai_turns`, the cost, the monthly cap and the Usage tab                  |
+| [AI eval](05-eval.md)                        | The opt-in live test of the assistant's answers, run by hand, never in CI              |
 
 ## Permissions
 
