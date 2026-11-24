@@ -12,6 +12,7 @@ use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Facilities;
 use App\Features\Kiosks;
+use App\Features\NativePos;
 use App\Features\PosIntegration;
 
 /**
@@ -30,6 +31,7 @@ enum PlatformFeature: string
     case BedRoomTypes = 'bed-room-types';
     case PosIntegration = 'pos-integration';
     case Facilities = 'facilities';
+    case NativePos = 'native-pos';
 
     public function label(): string
     {
@@ -45,6 +47,7 @@ enum PlatformFeature: string
             self::BedRoomTypes => __('Dormitory features'),
             self::PosIntegration => __('POS integration'),
             self::Facilities => __('Facilities and events'),
+            self::NativePos => __('Native POS'),
         };
     }
 
@@ -62,6 +65,7 @@ enum PlatformFeature: string
             self::BedRoomTypes => __('Create room types sold by bed, for dorms. Room types that already sell beds keep working while this is off.'),
             self::PosIntegration => __('Outlets, restaurant meal check-in and room charges from a POS (Loyverse or the POS API).'),
             self::Facilities => __('Halls, equipment and activities staff book by date and time, and event folios for guests who do not stay.'),
+            self::NativePos => __('Estatell\'s built-in point of sale: registers, shifts, menu, orders and room charges, with no external POS.'),
         };
     }
 
@@ -82,6 +86,7 @@ enum PlatformFeature: string
             self::BedRoomTypes => BedRoomTypes::class,
             self::PosIntegration => PosIntegration::class,
             self::Facilities => Facilities::class,
+            self::NativePos => NativePos::class,
         };
     }
 }
