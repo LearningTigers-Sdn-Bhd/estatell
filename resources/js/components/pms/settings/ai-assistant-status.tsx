@@ -1,5 +1,6 @@
 import { Link, useForm } from '@inertiajs/react';
-import { KeyRound, Plug, TriangleAlert } from 'lucide-react';
+import { Activity, KeyRound, Plug, TriangleAlert, Wallet } from 'lucide-react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -56,15 +57,17 @@ export function AiAssistantStatusRail({
                     {failing ? <TriangleAlert /> : <KeyRound />}
                     <AlertTitle>
                         {failing
-                            ? 'OpenAI refused this key.'
-                            : 'Add your OpenAI key to start the assistant.'}
+                            ? 'Your OpenAI key is not working'
+                            : 'Add your OpenAI key to start'}
                     </AlertTitle>
                     <AlertDescription>
-                        {failing
-                            ? 'Chats hand over to staff until you fix the key or add credit, then test it again.'
-                            : 'Every place stays off until a key is saved.'}
+                        <p>
+                            {failing
+                                ? 'The assistant is paused, so every chat goes to your staff. Check that the key is correct and your OpenAI account has credit, then tap Test key.'
+                                : 'The assistant stays off in every place until you save a key.'}
+                        </p>
                         {showKeyLink && (
-                            <Link href={general()} className="underline">
+                            <Link href={general()} className="font-medium">
                                 {failing ? 'Change key' : 'Add key'}
                             </Link>
                         )}
@@ -73,7 +76,11 @@ export function AiAssistantStatusRail({
             )}
 
             <section className="flex flex-col gap-3">
-                <h2 className="ps-3 pt-2 text-base font-medium">Status</h2>
+                <PanelHeading
+                    icon={Activity}
+                    title="Status"
+                    description="Your key and where the assistant is on."
+                />
                 <dl className="flex flex-col gap-3 text-sm">
                     <Row label="Key">
                         <span className="font-mono">
@@ -107,13 +114,11 @@ export function AiAssistantStatusRail({
             </section>
 
             <section className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1 ps-3 pt-2">
-                    <h2 className="text-base font-medium">This month</h2>
-                    <p className="text-sm text-muted-foreground">
-                        An estimate from tokens. Your OpenAI bill shows the
-                        exact amount.
-                    </p>
-                </div>
+                <PanelHeading
+                    icon={Wallet}
+                    title="This month"
+                    description="An estimate from tokens. Your OpenAI bill shows the exact amount."
+                />
                 <dl className="flex flex-col gap-3 text-sm">
                     <Row label="Spent">US$ {status.spentUsd}</Row>
                     <Row label="Cap">
