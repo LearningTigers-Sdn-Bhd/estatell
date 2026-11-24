@@ -8,6 +8,7 @@ use App\Http\Controllers\Landing\ContactController;
 use App\Http\Controllers\Landing\SearchEngineController;
 use App\Http\Controllers\Landing\ServicePageController;
 use App\Http\Controllers\Platform\CommandSearchController;
+use App\Http\Controllers\Platform\DocsAuthController;
 use App\Http\Controllers\Platform\ImpersonationController;
 use App\Http\Controllers\Platform\ViewAsController;
 use App\Http\Controllers\Property\PropertyLogoController;
@@ -52,6 +53,7 @@ Route::prefix('login/verify-device')->name('login.otp.')->middleware('guest')->g
 Route::get('dashboard', HomeRedirectController::class)->middleware('auth')->name('home.redirect');
 
 Route::middleware('auth')->group(function () {
+    Route::get('docs/auth', DocsAuthController::class)->name('docs.auth');
     Route::get('command-search', CommandSearchController::class)->middleware(['verified', 'throttle:120,1'])->name('command-search');
     Route::get('view-as/{property:code}', [ViewAsController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('view-as.show');
     Route::post('view-as/{property:code}', [ViewAsController::class, 'store'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('view-as.store');
