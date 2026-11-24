@@ -13,18 +13,18 @@ export type AiAssistantTab = 'places' | 'capabilities' | 'general';
 /** The tabs of Settings › AI assistant. Usage and Connections come with their checklist items. */
 export function aiAssistantTabs(): TabLink[] {
     return [
+        {
+            value: 'general',
+            label: 'General',
+            icon: Settings2,
+            href: general(),
+        },
         { value: 'places', label: 'Places', icon: MapPin, href: index() },
         {
             value: 'capabilities',
             label: 'Capabilities',
             icon: Sparkles,
             href: capabilities(),
-        },
-        {
-            value: 'general',
-            label: 'General',
-            icon: Settings2,
-            href: general(),
         },
     ];
 }

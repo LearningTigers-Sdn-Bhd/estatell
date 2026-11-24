@@ -86,13 +86,13 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
 
 ## Settings
 
-**Settings › AI assistant** is a fixed-height `Workspace` with tab links, like Settings › Concierge: the tab and a right rail each scroll on their own, and the page does not scroll. Every page sets the layout `variant: 'fixed'`.
+**Settings › AI assistant** is a fixed-height `Workspace` with tab links, like Settings › Concierge: the tab and a right rail each scroll on their own, and the page does not scroll. Every page sets the layout `variant: 'fixed'`. General is the first tab; the AI assistant link still opens Places (`settings/ai-assistant`).
 
 | Tab          | Holds                                                                                                                 |
 | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| General      | The hotel's [OpenAI key](#api-key), the monthly cap and the handover message (`settings/ai-assistant/general`)        |
 | Places       | The switch for each allowed place (`settings/ai-assistant`)                                                           |
 | Capabilities | The switch for each allowed capability (`settings/ai-assistant/capabilities`)                                         |
-| General      | The hotel's [OpenAI key](#api-key), the monthly cap and the handover message (`settings/ai-assistant/general`)        |
 | Usage        | The hotel's [spend and usage](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`)             |
 | Connections  | The AI connections for the [chat API](03-places-and-routes.md#chat-api-for-n8n) (`settings/ai-assistant/connections`) |
 
