@@ -5,6 +5,7 @@ use App\Http\Controllers\Concierge\ConciergeController;
 use App\Http\Controllers\Concierge\ConciergeDocumentController;
 use App\Http\Controllers\Concierge\ConciergeEInvoiceController;
 use App\Http\Controllers\Concierge\ConciergeGuideController;
+use App\Http\Controllers\Concierge\ConciergeQuoteController;
 use App\Http\Controllers\Concierge\ConciergeStayController;
 use App\Http\Controllers\Concierge\ConciergeWalkInController;
 use App\Http\Controllers\Property\PropertyLogoController;
@@ -28,6 +29,13 @@ Route::middleware(['concierge', 'throttle:concierge'])->group(function () {
     Route::get('stay/{property:code}/walk-in/details', [ConciergeWalkInController::class, 'details'])->name('concierge.walk-in.details');
     Route::post('stay/{property:code}/walk-in', [ConciergeWalkInController::class, 'book'])->middleware('throttle:concierge-walk-in')->name('concierge.walk-in.book');
     Route::post('stay/{property:code}/walk-in/returning', [ConciergeWalkInController::class, 'returning'])->middleware('throttle:concierge-returning')->name('concierge.walk-in.returning');
+
+    // A quote link the AI assistant sent. It needs the AI assistant feature and its RoomQuotes scope, not the walk-in switch.
+    Route::middleware('ai-assistant:room-quotes')->group(function () {
+        Route::get('stay/{property:code}/quote/{quote}', [ConciergeQuoteController::class, 'show'])->name('concierge.quote');
+        Route::post('stay/{property:code}/quote/{quote}', [ConciergeQuoteController::class, 'book'])->middleware('throttle:concierge-walk-in')->name('concierge.quote.book');
+        Route::post('stay/{property:code}/quote/{quote}/returning', [ConciergeQuoteController::class, 'returning'])->middleware('throttle:concierge-returning')->name('concierge.quote.returning');
+    });
 
     Route::prefix('c/{token}')->name('concierge.')->group(function () {
         Route::get('/', [ConciergeController::class, 'show'])->name('show');

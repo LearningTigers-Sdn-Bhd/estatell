@@ -41,6 +41,7 @@ class ConciergePageBuilder
         private RequestConciergeCheckOut $checkOut,
         private ConciergeEInvoice $eInvoice,
         private ConciergeStays $concierge,
+        private ConciergeQuoteStays $quotes,
     ) {}
 
     public function build(string $token, ReservationUnit $stay, ?Locale $locale): ConciergeStayData
@@ -60,6 +61,8 @@ class ConciergePageBuilder
         $opensLater = in_array($step, [ConciergeStep::Identity, ConciergeStep::Card, ConciergeStep::Payment, ConciergeStep::NotOpen], true)
             && ($this->stays->window($stay) !== KioskStays::OPEN || ! $this->concierge->checkInTimeReached($stay));
 
+        $quoted = $this->quotes->isQuoted($stay);
+
         // A walk-in's ID step never shows a profile's values, as the guest joined it by an email or phone alone.
         $walkIn = KioskWalkInHold::query()->where('reservation_unit_id', $stay->id)->exists();
 
@@ -74,7 +77,7 @@ class ConciergePageBuilder
             nights: (int) $stay->arrival_date->diffInDays($stay->departure_date),
             nationalityRequired: $guest !== null && blank($guest->nationality_code) && $this->fieldRules->nationalityIsNeededForTax($stay->property),
             roomNumber: $step === ConciergeStep::Key ? $this->stays->roomNumber($stay) : null,
-            shortfall: $step === ConciergeStep::Payment ? $this->payment->shortfall($stay) : null,
+            shortfall: $step === ConciergeStep::Payment ? $this->payment->shortfall($stay, $quoted) : null,
             terms: $terms,
             pin: $step === ConciergeStep::Key ? ConciergePinData::fromStatus($this->pin->for($stay), $this->pin->canRetry($stay)) : null,
             documents: in_array($step, [ConciergeStep::Key, ConciergeStep::Home, ConciergeStep::CheckedOut], true) ? $this->documents->links($stay, $token) : [],
@@ -86,6 +89,7 @@ class ConciergePageBuilder
             eInvoiceUrl: $step === ConciergeStep::CheckedOut && $this->eInvoice->isOffered($stay) ? route('concierge.e-invoice', ['token' => $token], absolute: false) : null,
             checkInTime: $opensLater ? $this->concierge->checkInOpensAt($stay)?->format('H:i') : null,
             checkInOpensLater: $opensLater,
+            fromQuote: in_array($step, [ConciergeStep::Payment, ConciergeStep::HoldExpired], true) && $quoted,
         );
     }
 

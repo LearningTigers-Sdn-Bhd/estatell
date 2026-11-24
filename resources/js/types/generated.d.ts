@@ -1298,6 +1298,19 @@ departureInstructions: string | null,
 transport: App.Data.Concierge.ConciergeTransportData | null,
 topics: App.Data.Concierge.ConciergeTopicData[],
 };
+export type ConciergeQuoteData = {
+token: string,
+roomTypeName: string,
+ratePlanName: string,
+arrivalDate: string,
+departureDate: string,
+nights: number,
+adults: number,
+quotedTotal: string,
+total: string | null,
+currency: string,
+expired: boolean,
+};
 export type ConciergeRequestData = {
 id: number,
 type: string,
@@ -1329,6 +1342,7 @@ identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
 eInvoiceUrl: string | null,
 checkInTime: string | null,
 checkInOpensLater: boolean,
+fromQuote: boolean,
 };
 export type ConciergeTermsData = {
 version: number,

@@ -120,6 +120,11 @@ export default function ConciergeStay({
                 <PaymentStep
                     token={stay.token}
                     amount={stay.shortfall ?? '0.00'}
+                    description={
+                        stay.fromQuote
+                            ? 'Pay the amount due to confirm your booking. Your room is held for a few minutes.'
+                            : undefined
+                    }
                 />
             )}
             {stay.step === 'check_in' && <CheckInStep stay={stay} />}
@@ -150,7 +155,11 @@ export default function ConciergeStay({
                         label: 'Start again',
                     }}
                     title="Your room hold has ended"
-                    body="The room was held for a short time and was not paid for, so it was released. Scan the lobby QR code to start again, or ask the front desk."
+                    body={
+                        stay.fromQuote
+                            ? 'The room was held for a short time and was not paid for, so it was released. Ask us again in the chat for a new quote, or ask the front desk.'
+                            : 'The room was held for a short time and was not paid for, so it was released. Scan the lobby QR code to start again, or ask the front desk.'
+                    }
                 />
             )}
             {stay.step === 'desk' && (

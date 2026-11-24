@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Account\RecordSignIn;
 use App\Actions\Account\RecordSignOut;
+use App\Actions\AiAssistant\MarkAiTurnBooked;
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
 use App\Actions\Concierge\QueueStayWelcome;
@@ -21,6 +22,7 @@ use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
 use App\Enums\SignInResult;
 use App\Events\ChannelStructureChanged;
+use App\Events\ConciergeQuoteBooked;
 use App\Events\FolioClosed;
 use App\Events\InventoryChanged;
 use App\Events\RatesChanged;
@@ -199,6 +201,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(IssueRoomQrSession::class)($event->propertyId, $event->reservationUnitId));
         Event::listen([StayCheckedOut::class, StayCheckInUndone::class], fn (StayCheckedOut|StayCheckInUndone $event) => app(RevokeRoomQrSessions::class)($event->propertyId, $event->reservationUnitId));
         Event::listen(FolioClosed::class, fn (FolioClosed $event) => app(QueueFolioEInvoiceOnClose::class)($event));
+        Event::listen(ConciergeQuoteBooked::class, fn (ConciergeQuoteBooked $event) => app(MarkAiTurnBooked::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 
         // A wastays import replays old stays: it sends no webhooks, also from the jobs it queues.

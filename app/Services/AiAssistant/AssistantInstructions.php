@@ -7,6 +7,7 @@ use App\Models\AiThread;
 use App\Models\Property;
 use App\Services\Concierge\ConciergeContent;
 use App\Services\Concierge\ConciergeGuide;
+use App\Services\Property\PropertyToday;
 
 /**
  * The instructions of one AI assistant turn: the rules, the place, what a guest may know about the property, the
@@ -19,6 +20,7 @@ class AssistantInstructions
         private readonly ConciergeGuide $guide,
         private readonly ConciergeContent $content,
         private readonly AiHandoverMessage $handover,
+        private readonly PropertyToday $today,
     ) {}
 
     public function for(AiThread $thread): string
@@ -31,6 +33,8 @@ class AssistantInstructions
             "# The property\n\n".$this->json($this->knowledge($property)),
             $this->language($property),
             "# Handover\n\nWhen you hand over, call the HandOver tool and then tell the guest exactly this:\n".$this->handover->forProperty($property),
+            // Last, so the parts before it stay the same all day for the provider's prompt cache.
+            "# Today\n\nToday at the property is ".$this->today->date($property)->format('l j F Y (Y-m-d)').'. Work out dates such as "next weekend" from it.',
         ]);
     }
 

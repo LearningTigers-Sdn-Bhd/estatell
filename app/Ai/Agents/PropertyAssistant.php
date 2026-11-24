@@ -2,8 +2,10 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Tools\CheckRoomsAndPrices;
 use App\Ai\Tools\HandOver;
 use App\Ai\Tools\PropertyFacts;
+use App\Ai\Tools\SendQuoteLink;
 use App\Enums\AiTool;
 use App\Models\AiThread;
 use App\Services\AiAssistant\AiScopes;
@@ -57,6 +59,8 @@ class PropertyAssistant implements Agent, Conversational, HasTools
 
             $instance = match ($tool) {
                 AiTool::PropertyFacts => app(PropertyFacts::class, ['property' => $property]),
+                AiTool::CheckRoomsAndPrices => app(CheckRoomsAndPrices::class, ['property' => $property]),
+                AiTool::SendQuoteLink => app(SendQuoteLink::class, ['property' => $property]),
                 AiTool::HandOver => app(HandOver::class, ['thread' => $this->thread]),
                 default => null,
             };

@@ -18,6 +18,10 @@ import {
 } from '@/components/ui/message';
 import { Button } from '@/components/ui/button';
 import {
+    QuoteLinkCard,
+    RoomOptionsCard,
+} from '@/components/pms/ai-chat/ai-chat-cards';
+import {
     InputGroup,
     InputGroupAddon,
     InputGroupButton,
@@ -246,6 +250,13 @@ function ChatBody({
         void sendMessage({ text: message });
     }
 
+    /** A room picked on a room card goes as the guest's next message. */
+    function choose(message: string) {
+        if (!busy) {
+            void sendMessage({ text: message });
+        }
+    }
+
     function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
@@ -268,9 +279,34 @@ function ChatBody({
                             <Message key={message.id} from={message.role}>
                                 <MessageContent>
                                     {message.role === 'assistant' ? (
-                                        <MessageResponse>
-                                            {textOf(message)}
-                                        </MessageResponse>
+                                        <>
+                                            {textOf(message) !== '' && (
+                                                <MessageResponse>
+                                                    {textOf(message)}
+                                                </MessageResponse>
+                                            )}
+                                            {message.parts.map((part) =>
+                                                part.type ===
+                                                    'tool-CheckRoomsAndPrices' &&
+                                                part.state ===
+                                                    'output-available' ? (
+                                                    <RoomOptionsCard
+                                                        key={part.toolCallId}
+                                                        output={part.output}
+                                                        disabled={busy}
+                                                        onChoose={choose}
+                                                    />
+                                                ) : part.type ===
+                                                      'tool-SendQuoteLink' &&
+                                                  part.state ===
+                                                      'output-available' ? (
+                                                    <QuoteLinkCard
+                                                        key={part.toolCallId}
+                                                        output={part.output}
+                                                    />
+                                                ) : null,
+                                            )}
+                                        </>
                                     ) : (
                                         <p className="whitespace-pre-wrap">
                                             {textOf(message)}
