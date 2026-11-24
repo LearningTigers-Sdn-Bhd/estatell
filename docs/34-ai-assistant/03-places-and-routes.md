@@ -22,7 +22,7 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 | `GET/PUT /p/{property:code}/settings/ai-assistant`   | Settings        | `settings.manage`                                   |
 | `GET /p/{property:code}/settings/ai-assistant/usage` | Settings        | `settings.manage`                                   |
 
-Every chat route sits behind the `ai-assistant` middleware and checks the place switch. A switch that is off returns 404. A cap that is reached returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap)).
+Every chat route sits behind the `ai-assistant` middleware and checks its place [scope](01-overview.md#scopes) through `AiScopes`. A scope that is off returns 404. A cap that is reached returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap)).
 
 Throttles: lobby 10 messages a minute per address and property; stay and booking engine 20 a minute per thread; API 60 a minute per connection.
 

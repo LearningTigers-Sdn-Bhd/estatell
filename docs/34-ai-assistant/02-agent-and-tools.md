@@ -8,7 +8,7 @@ How the assistant thinks: one agent class, its instructions, what it knows and t
 
 `App\Ai\Agents\PropertyAssistant` implements the SDK's `Agent` with `Promptable` and `RemembersConversations`.
 
-- One agent for every place. The place decides which tools it gets (`tools()` reads the thread's `AiPlace`).
+- One agent for every place. The place decides which tools it gets (`tools()` reads the thread's `AiPlace`), and a tool whose capability [scope](01-overview.md#scopes) is off is left out.
 - The model and the provider come from `config/ai.php`: OpenAI, one model for all properties. The model name is set in config, not per property.
 - At most 4 tool calls per turn. A turn that needs more has misunderstood the guest; it hands over instead.
 - The conversation participant is the `AiThread`, so the SDK's conversation store keeps one history per thread.
@@ -57,6 +57,8 @@ Each tool is one class in `app/Ai/Tools/`. It validates its input, calls a Servi
 | `HandOver`            | `EscalateAiThread`                                                         |  yes  | yes  |      yes       |  yes  | yes |
 | `DailyNumbers`        | Arrivals, departures, in-house and unpaid counts from the existing reports |  no   |  no  |       no       |  yes  | no  |
 | `HowTo`               | Searches the user docs                                                     |  no   |  no  |       no       |  yes  | no  |
+
+Scopes: `CheckRoomsAndPrices` and `SendQuoteLink` need RoomQuotes, `ReadMyStay` needs StayDetails, `MakeGuestRequest` needs GuestRequests, `DailyNumbers` and `HowTo` need their own scope. `PropertyFacts` and `HandOver` need none. See [Scopes](01-overview.md#scopes).
 
 Rules for every tool:
 

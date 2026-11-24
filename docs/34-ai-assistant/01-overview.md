@@ -8,16 +8,17 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 
 ## Decisions
 
-| #   | Decision                                                                                                                                                | Date       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 1   | One **AI assistant** module, not a part of the Concierge page. The places share the same knowledge, handover and usage log; only the tools change.      | 2026-11-20 |
-| 2   | The package is `laravel/ai` (the Laravel AI SDK).                                                                                                       | 2026-11-24 |
-| 3   | The provider is **OpenAI**, on Estatell's own key. Hotels do not need an AI account or a key.                                                           | 2026-11-24 |
-| 4   | The chat UI uses **shadcn AI Elements**, which needs the npm packages `ai` and `@ai-sdk/react`.                                                         | 2026-11-24 |
-| 5   | The Concierge page books **future dates** itself, through a quote link. No microsite is needed. See [Quote links](03-places-and-routes.md#quote-links). | 2026-11-24 |
-| 6   | No MCP server. Outside tools such as n8n use the [chat API](03-places-and-routes.md#chat-api-for-n8n).                                                  | 2026-11-20 |
-| 7   | The AI never sets a price, cancels, refunds, or changes a folio. The staff helper is **read only**.                                                     | 2026-11-20 |
-| 8   | Every AI turn is a row in the [usage log](04-usage-and-cost.md), for analysis, the monthly cap and the add-on bill.                                     | 2026-11-20 |
+| #   | Decision                                                                                                                                                      | Date       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | One **AI assistant** module, not a part of the Concierge page. The places share the same knowledge, handover and usage log; only the tools change.            | 2026-11-20 |
+| 2   | The package is `laravel/ai` (the Laravel AI SDK).                                                                                                             | 2026-11-24 |
+| 3   | The provider is **OpenAI**, on Estatell's own key. Hotels do not need an AI account or a key.                                                                 | 2026-11-24 |
+| 4   | The chat UI uses **shadcn AI Elements**, which needs the npm packages `ai` and `@ai-sdk/react`.                                                               | 2026-11-24 |
+| 5   | The Concierge page books **future dates** itself, through a quote link. No microsite is needed. See [Quote links](03-places-and-routes.md#quote-links).       | 2026-11-24 |
+| 6   | No MCP server. Outside tools such as n8n use the [chat API](03-places-and-routes.md#chat-api-for-n8n).                                                        | 2026-11-20 |
+| 7   | The AI never sets a price, cancels, refunds, or changes a folio. The staff helper is **read only**.                                                           | 2026-11-20 |
+| 8   | Every AI turn is a row in the [usage log](04-usage-and-cost.md), for analysis, the monthly cap and the add-on bill.                                           | 2026-11-20 |
+| 9   | The platform admin decides the [scope](#scopes): which places and capabilities each property may use. The hotel then turns on what it wants. Both must be on. | 2026-11-24 |
 
 ## Terms
 
@@ -32,13 +33,13 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 
 ## Places
 
-| Place           | Who                                  | Needs on                                                 | Switch                                                              |
-| --------------- | ------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| Concierge lobby | Anyone with the lobby link           | `AiAssistant` and `Concierge`                            | `property_settings.ai_concierge_enabled`                            |
-| Concierge stay  | The guest on `/c/{token}`            | `AiAssistant` and `Concierge`                            | `property_settings.ai_concierge_enabled`                            |
-| Booking engine  | Visitors of the booking website      | `AiAssistant`, `BookingEngine` and a published microsite | `property_settings.ai_booking_engine_enabled`                       |
-| Staff           | Signed-in staff                      | `AiAssistant`                                            | `property_settings.ai_staff_enabled`                                |
-| API             | n8n or another tool with an AI token | `AiAssistant`                                            | An active [AI connection](03-places-and-routes.md#chat-api-for-n8n) |
+| Place           | Who                                  | Needs on                                                                                     | Scope           |
+| --------------- | ------------------------------------ | -------------------------------------------------------------------------------------------- | --------------- |
+| Concierge lobby | Anyone with the lobby link           | `AiAssistant` and `Concierge`                                                                | `Concierge`     |
+| Concierge stay  | The guest on `/c/{token}`            | `AiAssistant` and `Concierge`                                                                | `Concierge`     |
+| Booking engine  | Visitors of the booking website      | `AiAssistant`, `BookingEngine` and a published microsite                                     | `BookingEngine` |
+| Staff           | Signed-in staff                      | `AiAssistant`                                                                                | `Staff`         |
+| API             | n8n or another tool with an AI token | `AiAssistant` `Api`, and an active [AI connection](03-places-and-routes.md#chat-api-for-n8n) |
 
 `AiPlace` enum: `ConciergeLobby`, `ConciergeStay`, `BookingEngine`, `Staff`, `Api`, with `label()`.
 
@@ -46,18 +47,53 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 
 Pennant feature `AiAssistant` (`App\Features\AiAssistant`, `#[Name('ai-assistant')]`), off by default, like [Facilities](../33-facilities/01-overview.md#feature-flag). A platform admin turns it on per property. `PlatformFeature::AiAssistant` lists it. With the feature off, the settings item, every chat and every AI route are hidden, and the routes return 404 through an `ai-assistant` middleware. Turning it off keeps all data.
 
-The platform admin also sets the property's **monthly cap** on the same admin page. See [Monthly cap](04-usage-and-cost.md#monthly-cap).
+On the same admin page, under the AI assistant row, the platform admin also sets the property's **monthly cap** (see [Monthly cap](04-usage-and-cost.md#monthly-cap)) and allows each [scope](#scopes).
+
+## Scopes
+
+A scope is a place or a capability. The `AiScope` enum lists them, with `label()`, `kind()` (Place or Capability) and the features each one needs.
+
+| Scope         | Kind       | Unlocks                                | Needs on            |
+| ------------- | ---------- | -------------------------------------- | ------------------- |
+| Concierge     | Place      | The lobby and stay chat                | `Concierge`         |
+| BookingEngine | Place      | The booking website chat               | `BookingEngine`     |
+| Staff         | Place      | Ask Estatell                           | None                |
+| Api           | Place      | The chat API for n8n                   | None                |
+| RoomQuotes    | Capability | `CheckRoomsAndPrices`, `SendQuoteLink` | None                |
+| StayDetails   | Capability | `ReadMyStay`                           | The Concierge scope |
+| GuestRequests | Capability | `MakeGuestRequest`                     | The Concierge scope |
+| DailyNumbers  | Capability | `DailyNumbers`                         | The Staff scope     |
+| HowTo         | Capability | `HowTo`                                | The Staff scope     |
+
+`PropertyFacts` and `HandOver` need no scope: every place has them. A capability works in every place that uses its tool (see [Tools](02-agent-and-tools.md#tools)).
+
+Two layers decide if a scope is on:
+
+| Layer   | Who                          | Where                             | Column    |
+| ------- | ---------------------------- | --------------------------------- | --------- |
+| Allowed | Platform admin               | Admin › property › Features       | `allowed` |
+| Enabled | Staff with `settings.manage` | Settings › AI assistant › General | `enabled` |
+
+```
+property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default false),
+                     enabled (bool, default false), timestamps
+                     unique (property_id, scope)
+```
+
+- A scope is on only when the `AiAssistant` feature is on, the features it needs are on, and the row is both allowed and enabled. `AiScopes` (a Service) answers this.
+- A missing row means off. A new scope is a new enum case, with no migration.
+- When the admin stops allowing a scope, the hotel's `enabled` stays, so allowing it again brings back the hotel's choice.
 
 ## Settings
 
 **Settings › AI assistant** follows the Settings archetype with tab links.
 
-| Tab     | Holds                                                                                                   |
-| ------- | ------------------------------------------------------------------------------------------------------- |
-| General | The switch for each place, the handover message the guest sees, and the AI connections for the chat API |
-| Usage   | The [usage report](04-usage-and-cost.md#usage-tab) for a month                                          |
+| Tab     | Holds                                                                                                           |
+| ------- | --------------------------------------------------------------------------------------------------------------- |
+| General | The switch for each allowed scope, the handover message the guest sees, and the AI connections for the chat API |
+| Usage   | The [usage report](04-usage-and-cost.md#usage-tab) for a month                                                  |
 
-The place switches are `property_settings` booleans, off by default. A place switch shows only when the features it needs are on. The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
+The General tab shows a switch only for a scope the admin allows and whose needed features are on. The others are hidden. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
 
 ## Files
 
