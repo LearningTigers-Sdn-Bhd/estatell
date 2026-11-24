@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { Gauge, KeyRound, MessageSquareShare } from 'lucide-react';
 import { useState } from 'react';
 import { SettingsInput } from '@/components/pms/settings/form-fields';
 import {
@@ -92,8 +93,9 @@ export default function AiAssistantGeneral({
                     <SettingsSection
                         form={update.form()}
                         title="OpenAI API key"
+                        icon={KeyRound}
                         description="Your hotel pays OpenAI directly for every chat. We test the key when you save it."
-                        headerClassName="ps-3 pt-2"
+                        headerClassName="ps-2 pt-2"
                         submitLabel="Save key"
                         contentClassName="grid gap-5"
                         actions={settings.hasKey ? <RemoveKey /> : undefined}
@@ -114,8 +116,9 @@ export default function AiAssistantGeneral({
                     <SettingsSection
                         form={updateCap.form()}
                         title="Monthly cap"
+                        icon={Gauge}
                         description="At the cap, the assistant stops calling OpenAI and hands every chat to staff until the next month."
-                        headerClassName="ps-3 pt-2"
+                        headerClassName="ps-2 pt-2"
                         submitLabel="Save cap"
                         contentClassName="grid gap-5 md:grid-cols-2"
                     >
@@ -137,8 +140,9 @@ export default function AiAssistantGeneral({
                     <SettingsSection
                         form={updateHandover.form()}
                         title="Handover message"
+                        icon={MessageSquareShare}
                         description="Guests see this when the assistant cannot help and passes the chat to staff."
-                        headerClassName="ps-3 pt-2"
+                        headerClassName="ps-2 pt-2"
                         submitLabel="Save message"
                         contentClassName="grid gap-5"
                     >

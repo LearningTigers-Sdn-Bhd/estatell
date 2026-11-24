@@ -33,6 +33,7 @@ type SectionActions = ReactNode | ((state: { isDirty: boolean }) => ReactNode);
 export function SettingsSection({
     form,
     title,
+    icon,
     description,
     submitLabel = 'Save settings',
     contentClassName = 'grid gap-5 md:grid-cols-2',
@@ -48,6 +49,8 @@ export function SettingsSection({
 }: {
     form: RouteFormDefinition<'post'>;
     title: string;
+    /** An icon box before the title, like `PanelHeading`. Inside a Workspace panel, pair it with `headerClassName="ps-2 pt-2"`. */
+    icon?: LucideIcon;
     description: string;
     submitLabel?: string;
     contentClassName?: string;
@@ -84,6 +87,7 @@ export function SettingsSection({
             {({ processing, errors, isDirty, submit, resetAndClearErrors }) => (
                 <SettingsSectionContent
                     title={title}
+                    icon={icon}
                     description={description}
                     submitLabel={submitLabel}
                     contentClassName={contentClassName}
@@ -115,8 +119,40 @@ export function SettingsSection({
     );
 }
 
+/** The section title and description, with an icon box before them when `icon` is set. */
+function SectionTitle({
+    title,
+    icon: Icon,
+    description,
+}: {
+    title: string;
+    icon?: LucideIcon;
+    description: string;
+}) {
+    const text = (
+        <div className="min-w-0 space-y-1">
+            <h3 className="text-base font-medium">{title}</h3>
+            <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+    );
+
+    if (!Icon) {
+        return text;
+    }
+
+    return (
+        <div className="flex min-w-0 items-start gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Icon aria-hidden className="size-4" />
+            </span>
+            {text}
+        </div>
+    );
+}
+
 function SettingsSectionContent({
     title,
+    icon,
     description,
     submitLabel,
     contentClassName,
@@ -135,6 +171,7 @@ function SettingsSectionContent({
     children,
 }: {
     title: string;
+    icon?: LucideIcon;
     description: string;
     submitLabel: string;
     contentClassName: string;
@@ -181,12 +218,11 @@ function SettingsSectionContent({
                         headerClassName,
                     )}
                 >
-                    <div className="min-w-0 space-y-1">
-                        <h3 className="text-base font-medium">{title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                            {description}
-                        </p>
-                    </div>
+                    <SectionTitle
+                        title={title}
+                        icon={icon}
+                        description={description}
+                    />
                     <div className="flex flex-wrap items-center gap-2">
                         {typeof actions === 'function'
                             ? actions({ isDirty })
@@ -195,11 +231,12 @@ function SettingsSectionContent({
                     </div>
                 </header>
             ) : hideHeader ? null : (
-                <header className={cn('space-y-1', headerClassName)}>
-                    <h3 className="text-base font-medium">{title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                        {description}
-                    </p>
+                <header className={headerClassName}>
+                    <SectionTitle
+                        title={title}
+                        icon={icon}
+                        description={description}
+                    />
                 </header>
             )}
             <div className={contentClassName}>{children}</div>
