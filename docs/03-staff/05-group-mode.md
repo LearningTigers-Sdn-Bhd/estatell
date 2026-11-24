@@ -55,6 +55,21 @@ Each property counts on its own business date, as its own dashboard does. Querie
 - **Export CSV** (`group.reports.export`) gives the open tab's rows with the screen's headings, the total last.
 - Queries grow with the number of properties, never with bookings (tested).
 
+## Forecast
+
+`GET /g/{group}/forecast` (`group.forecast`), Group › Forecast. Tanini asked for bookings 6 months ahead, perhaps a year (decided 2026-11-24: let the user pick).
+
+- `from` is the first month (`Y-m`, this month when missing) and `months` the number of months: 3, 6, 12, 18 or 24 on screen, 1 to 24 accepted (6 when missing). Earlier and later move one month.
+- Each property's History & forecast for those months (`HistoryForecastReport`), added up by month (`GroupForecast`): closed dates are actual, later dates are the bookings on hand, each property by its own business date. The **Basis** badge says Actual, Actual + on the books, or On the books.
+- **Last year** is the same month a year before, from closed dates only (`daily_statistics`). A month with no closed dates a year back (before go-live) shows "—". **Change** is occupancy minus last year's, in points.
+- Columns: Available, Sold, Occupancy, Last year, Change, ADR, Pax, Room revenue, Total revenue (room + extra), Room revenue last year. A bar chart shows occupancy on the books beside last year by month.
+- The **All properties / one property** switch works on the loaded rows (no request). Money in the all-properties rows is shown only when every property uses one currency.
+- Only properties whose role shows reports (`reports.view`) count; the others are named ("Not included: …").
+- **Export CSV** (`group.forecast.export`): every row, each property month by month, then All properties.
+- Queries grow with the number of properties, never with bookings or months (tested).
+
+A single property gets the same look-ahead in Reports › History & forecast: the quick dates now include **Next 3 months**, **Next 6 months** and **Next 12 months** (today to the end of the last whole month).
+
 ## Code
 
 | Part                                                            | Role                                                                                   |
@@ -63,6 +78,7 @@ Each property counts on its own business date, as its own dashboard does. Querie
 | `EnsureGroupAccess`                                             | Lets in two or more Live properties; a support session only where it may view them all |
 | `GroupNavigation`                                               | The group sidebar                                                                      |
 | `GroupDashboard`, `GroupDashboardController`, `group/dashboard` | The dashboard                                                                          |
+| `GroupForecast`, `GroupForecastController`, `group/forecast`    | The forecast and its CSV                                                               |
 | `app-navbar.tsx`                                                | The group entries and identity                                                         |
 
 ## Tests

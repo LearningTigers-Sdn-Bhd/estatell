@@ -2355,6 +2355,30 @@ extraCharges: string | null,
 tax: string | null,
 receipts: string | null,
 };
+export type GroupForecastData = {
+months: string[],
+properties: App.Data.Property.PropertySummaryData[],
+rows: App.Data.Group.GroupForecastRowData[],
+currency: App.Data.Property.CurrencyData | null,
+leftOut: string[],
+};
+export type GroupForecastRowData = {
+month: string,
+code: string | null,
+basis: string,
+available: number,
+sold: number,
+occupancy: string,
+adr: string | null,
+revpar: string | null,
+pax: number,
+roomRevenue: string | null,
+extraRevenue: string | null,
+totalRevenue: string | null,
+lastYearSold: number | null,
+lastYearOccupancy: string | null,
+lastYearRoomRevenue: string | null,
+};
 export type GroupPropertyTilesData = {
 property: App.Data.Property.PropertySummaryData,
 businessDate: string | null,
@@ -6778,7 +6802,7 @@ export type RegistrationCardScope = 'primary_only' | 'every_adult';
 export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type RemarkKind = 'housekeeping' | 'dietary' | 'package' | 'payment';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
-export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
+export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days' | 'next-3-months' | 'next-6-months' | 'next-12-months';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff' | 'room_type' | 'source' | 'rate_plan' | 'status' | 'sales_person' | 'market_segment' | 'company';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'history-forecast' | 'on-the-books' | 'booking-changes' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'housekeeping-log' | 'house-status' | 'agent-payments' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges' | 'guests' | 'booking-performance' | 'facility-bookings';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';

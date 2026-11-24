@@ -31,6 +31,12 @@ class GroupNavigation
                 active: request()->routeIs('group.timeline'),
             ),
             new NavItemData(
+                title: __('Forecast'),
+                href: route('group.forecast', ['propertyGroup' => $group->id], absolute: false),
+                icon: 'trending-up',
+                active: request()->routeIs('group.forecast*'),
+            ),
+            new NavItemData(
                 title: __('Reports'),
                 href: route('group.reports', ['propertyGroup' => $group->id], absolute: false),
                 icon: 'chart-column',

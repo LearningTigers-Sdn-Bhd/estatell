@@ -8,7 +8,7 @@ One row for each date, past and future, with rooms, pax and money: Tanini's eZee
 
 ## Report
 
-`ReportKey::HistoryForecast` (`history-forecast`), Reports › Revenue, Landscape, up to 366 days. With no dates in the URL it opens on the whole month of the business date (`ReportKey::opensOnMonth()`). Quick dates: This month, Last month, Next 7 days, This week, Next week, This year.
+`ReportKey::HistoryForecast` (`history-forecast`), Reports › Revenue, Landscape, up to 366 days. With no dates in the URL it opens on the whole month of the business date (`ReportKey::opensOnMonth()`). Quick dates: This month, Last month, Next 7 days, This week, Next week, Next 3 months, Next 6 months, Next 12 months (today to the end of the last whole month), This year. The group view by month is [Group › Forecast](../03-staff/05-group-mode.md#forecast).
 
 | Column          | Key             | Actual (closed date)                                       | Today and Forecast                                              |
 | --------------- | --------------- | ---------------------------------------------------------- | --------------------------------------------------------------- |

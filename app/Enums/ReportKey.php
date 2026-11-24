@@ -213,7 +213,7 @@ enum ReportKey: string
             self::MealCounts, self::FacilityBookings => [ReportDatePreset::Today, ReportDatePreset::Tomorrow, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek],
             self::BoatManifest, self::HousekeepingItems, self::HouseStatus => [ReportDatePreset::Today, ReportDatePreset::Tomorrow],
             self::OnTheBooks => [ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek, ReportDatePreset::ThisMonth],
-            self::HistoryForecast => [ReportDatePreset::ThisMonth, ReportDatePreset::LastMonth, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek, ReportDatePreset::ThisYear],
+            self::HistoryForecast => [ReportDatePreset::ThisMonth, ReportDatePreset::LastMonth, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek, ReportDatePreset::Next3Months, ReportDatePreset::Next6Months, ReportDatePreset::Next12Months, ReportDatePreset::ThisYear],
             default => null,
         };
     }
