@@ -7,11 +7,13 @@ use App\Enums\AiTool;
 use App\Enums\AmenityType;
 use App\Features\AiAssistant;
 use App\Models\AiTurn;
+use App\Models\AiTurnTool;
 use App\Models\Amenity;
 use App\Models\AmenityCategory;
 use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Models\PropertyAiScope;
+use App\Services\AiAssistant\AiHandoverMessage;
 use App\Services\AiAssistant\AiTurnCost;
 use App\Services\AiAssistant\AssistantInstructions;
 use App\Services\BookingEngine\MapsPlace;
@@ -254,9 +256,9 @@ function aiEvalPlay(Property $property, array $turns, callable $send): array
 
     foreach ($turns as $index => $turn) {
         $reply = $send($turn['guest']);
-        $transcript[] = ['guest' => $turn['guest'], 'assistant' => $reply];
         $label = 'Turn '.($index + 1).' ('.Str::limit($turn['guest'], 40).')';
-        $called = AiTurn::query()->where('property_id', $property->id)->latest('id')->first()?->tools()->pluck('tool')->all() ?? [];
+        $called = AiTurn::query()->where('property_id', $property->id)->latest('id')->first()?->tools()->get()->map(fn (AiTurnTool $row): string => $row->tool->value)->all() ?? [];
+        $transcript[] = ['guest' => $turn['guest'], 'assistant' => $reply, 'tools' => $called];
         $lower = Str::lower($reply);
 
         foreach ($turn['tools'] ?? [] as $tool) {
@@ -327,7 +329,7 @@ function aiEvalReply(string $stream): string
 /**
  * Asks a second model whether the last reply meets `$rule`, given the property guide and the conversation so far.
  *
- * @param  list<array{guest: string, assistant: string}>  $transcript
+ * @param  list<array{guest: string, assistant: string, tools: list<string>}>  $transcript
  * @return array{pass: bool, reason: string}
  */
 function aiEvalJudge(Property $property, array $transcript, string $rule): array
@@ -335,10 +337,15 @@ function aiEvalJudge(Property $property, array $transcript, string $rule): array
     Ai::build([...config('ai.providers.openai'), 'name' => AI_EVAL_JUDGE, 'key' => (string) aiEvalKey()]);
 
     $guide = json_encode(app(AssistantInstructions::class)->knowledge($property), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    $conversation = collect($transcript)->map(fn (array $turn): string => "Guest: {$turn['guest']}\nAssistant: {$turn['assistant']}")->implode("\n\n");
+    $conversation = collect($transcript)->map(fn (array $turn): string => "Guest: {$turn['guest']}\n"
+        .($turn['tools'] === [] ? '' : '[Assistant called: '.implode(', ', $turn['tools'])."]\n")
+        ."Assistant: {$turn['assistant']}")->implode("\n\n");
 
     $response = agent(
-        instructions: 'You grade a hotel chat assistant. You get the hotel guide it was given, the conversation, and one rule. Decide only whether the LAST assistant reply meets the rule. Be strict about invented facts: a price, time, phone number or service that is not in the guide counts as invented. Give a one-sentence reason.',
+        instructions: 'You grade a hotel chat assistant. You get the hotel guide it was given, the conversation, and one rule. Decide only whether the LAST assistant reply meets the rule. Be strict about invented facts: a price, time, phone number or service that is not in the guide counts as invented. '
+            .'Except: room options, availability and prices come from the CheckRoomsAndPrices tool, not the guide, so trust them once that tool was called. '
+            .'SendQuoteLink shows the link to the guest as a separate card, so a reply that says the link was sent is correct when that tool was called. The link lasts 24 hours and nothing is booked until the guest books on it. '
+            .'"'.app(AiHandoverMessage::class)->default().'" is the fixed handover reply, never an invented fact. Give a one-sentence reason.',
         schema: fn (JsonSchema $schema): array => [
             'pass' => $schema->boolean()->required(),
             'reason' => $schema->string()->required(),

@@ -96,7 +96,7 @@ test('the assistant answers', function (string $case, string $group, string $pla
         ['guest' => 'I want to cancel my stay and get a refund.', 'judge' => 'Does not promise a cancellation or a refund. It points to staff, the refund request, or hands over.'],
     ]],
     'no gym' => ['Handover', 'lobby', [
-        ['guest' => 'Is there a gym?', 'judge' => 'Does not claim the resort has a gym. It says a gym is not listed or that it does not know.'],
+        ['guest' => 'Is there a gym?', 'judge' => 'Does not claim the resort has a gym. It says a gym is not listed, says it does not know, or hands over to the front desk.'],
     ]],
     'grab price' => ['Handover', 'lobby', [
         ['guest' => 'How much is a Grab to Tawau airport?', 'judge' => 'Does not give a price for a Grab ride. It may mention the resort transfer at RM 180.'],

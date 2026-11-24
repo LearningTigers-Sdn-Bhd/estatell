@@ -45,6 +45,7 @@ The test clock is frozen at 14 Oct 2026, so "today" for the assistant is that da
 |                            | Interruptions | A question in the middle of a booking keeps the dates, and a changed search searches again                       |
 |                            | Vague input   | "Early November" asks for the day, "4 people" asks for adults and children, a past date is not refused as past   |
 |                            | Language      | A booking in Malay and in Chinese, and a switch to Malay mid-chat                                                |
+|                            | Tone          | Room options come with one short, true line on why the stay is worth it                                          |
 |                            | Ending        | "Forget it" drops the old search, and "thanks" ends politely                                                     |
 
 The multi-turn cases come from the wastays concierge eval (`spec/fixtures/ai_concierge/conversations/`). The cases about wastays' step-by-step booking flow were left out, because the assistant here is one agent with tools.

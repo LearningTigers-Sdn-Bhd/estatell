@@ -19,16 +19,16 @@ test('the assistant handles', function (string $case, string $group, string $pla
 })->with(aiEvalDataset([
     // Meaning: questions that sound like something else.
     'room service is not a room search' => ['Meaning', 'lobby', [
-        ['guest' => 'Do you have room service?', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Answers about room service as a hotel service (it is not listed, or ask the front desk). Does not search rooms or quote room prices.'],
+        ['guest' => 'Do you have room service?', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Treats room service as a hotel service: says it is not listed, points to the front desk, or hands over to the front desk. Does not search rooms or quote room prices.'],
     ]],
     'booking advice is policy' => ['Meaning', 'lobby', [
         ['guest' => 'What should I know before booking here?', 'noTools' => [AiTool::CheckRoomsAndPrices, AiTool::SendQuoteLink], 'judge' => 'Gives terms from the guide, such as check-in times, the deposit or house rules. Does not start a booking.'],
     ]],
     'cancellation is policy' => ['Meaning', 'lobby', [
-        ['guest' => 'Is cancellation free?', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Answers from the cancellation policy in the guide, or says staff can confirm. Does not cancel anything or promise a refund.'],
+        ['guest' => 'Is cancellation free?', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'The guide has no cancellation policy. Says staff can confirm, or hands over to the front desk. Does not invent a policy, cancel anything or promise a refund.'],
     ]],
     'room price asks for dates first' => ['Meaning', 'lobby', [
-        ['guest' => 'How much is a room?', 'noTools' => [AiTool::CheckRoomsAndPrices], 'never' => ['RM 100', 'RM 130'], 'judge' => 'Asks for the dates and the number of guests before giving any price.'],
+        ['guest' => 'How much is a room?', 'noTools' => [AiTool::CheckRoomsAndPrices], 'never' => ['RM 100', 'RM 130'], 'judge' => 'Asks for the dates and the number of guests before giving any price. Asking for the number of adults counts as asking for the guests.'],
     ]],
     'hotel amenities are not room amenities' => ['Meaning', 'lobby', [
         ['guest' => 'What amenities does the hotel have?', 'judge' => 'Lists property amenities such as the pool, spa, restaurant or activities, not only things inside a room.'],
@@ -65,7 +65,7 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => 'Early November for 2 nights, 2 adults.', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Asks which exact day the guest arrives. Does not pick a date itself.'],
     ]],
     'four people asks adults and children' => ['Vague input', 'lobby', [
-        ['guest' => 'Room for 4 people from 2 to 4 November 2026.', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Asks how many are adults and how many are children before checking prices.'],
+        ['guest' => 'Room for 4 people from 2 to 4 November 2026.', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Asks how many of the 4 are adults (and may ask about children) before checking prices. Does not assume all 4 are adults.'],
     ]],
     'a passed month is not refused as past' => ['Vague input', 'lobby', [
         ['guest' => 'Can I book a room on 28 August?', 'judge' => 'Does not refuse because 28 August has passed. It treats it as 28 August 2027, asks which year, or says it can only check up to 6 months ahead.'],
@@ -73,22 +73,27 @@ test('the assistant handles', function (string $case, string $group, string $pla
     'guest keeps missing the number' => ['Vague input', 'lobby', [
         ['guest' => 'I want a room from 2 to 4 November 2026.'],
         ['guest' => 'Just a small one for the family.', 'noTools' => [AiTool::SendQuoteLink]],
-        ['guest' => 'Not too many la.', 'noTools' => [AiTool::SendQuoteLink], 'judge' => 'Asks again for the number of adults and children, or offers to pass the guest to staff. Does not quote a price for a guessed number of guests.'],
+        ['guest' => 'Not too many la.', 'noTools' => [AiTool::SendQuoteLink], 'judge' => 'Asks again for the number of guests (asking for adults is enough), or offers to pass the guest to staff. Does not quote a price for a guessed number of guests.'],
     ]],
 
     // Language: reply in the guest's language.
     'booking in malay' => ['Language', 'lobby', [
-        ['guest' => 'Boleh saya tempah bilik?', 'judge' => 'Replies in Malay and asks for the dates and the number of guests.'],
+        ['guest' => 'Boleh saya tempah bilik?', 'judge' => 'Replies in Malay and asks for the dates and the number of guests. Asking for the number of adults counts.'],
         ['guest' => '2 hingga 4 November 2026, 2 dewasa.', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Replies in Malay with the room options and their prices.'],
     ]],
     'booking in chinese' => ['Language', 'lobby', [
-        ['guest' => '我想订房', 'judge' => 'Replies in Chinese and asks for the dates and the number of guests.'],
+        ['guest' => '我想订房', 'judge' => 'Replies in Chinese and asks for the dates and the number of guests. Asking for the number of adults counts.'],
         ['guest' => '2026年11月2号入住，住两晚，两位大人', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Replies in Chinese with the room options and their prices for 2 to 4 November.'],
     ]],
     'switch to malay mid chat' => ['Language', 'lobby', [
         ['guest' => 'Hi, what time is check-in?', 'saysAny' => ['3 pm', '3pm', '3:00', '15:00']],
         ['guest' => 'Boleh saya simpan beg awal?', 'judge' => 'Replies in Malay. Says bags can be left at the front desk.'],
         ['guest' => 'Ok terima kasih', 'judge' => 'Replies in Malay.'],
+    ]],
+
+    // Tone: sell the stay without pushing.
+    'room options sell the stay' => ['Tone', 'lobby', [
+        ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Lists the options with their prices and adds one short line on why the stay is worth it (for example breakfast, the sea view or the pool), using only facts from the guide. Friendly, not pushy.'],
     ]],
 
     // Ending: stop when the guest stops.
