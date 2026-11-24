@@ -30,7 +30,7 @@ class BroadcastWebhookJob implements ShouldBeEncrypted, ShouldQueue
         public readonly WebhookEvent $event,
         public readonly int $propertyId,
         public readonly string $subjectType,
-        public readonly int $subjectId,
+        public readonly int|string $subjectId,
         public readonly array $context,
         public readonly CarbonImmutable $occurredAt,
     ) {}

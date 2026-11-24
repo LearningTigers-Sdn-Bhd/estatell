@@ -101,4 +101,6 @@ Idempotency-Key: <n8n execution id>
 | Webhook        | `ai.escalated`, with the thread id, place, reservation id if any and the summary         |
 | The thread     | Status Escalated. The assistant still answers                                            |
 
-The summary is written by the model in one or two sentences. The webhook and the notification never carry the full chat.
+The summary is written by the model in one or two sentences, as the `summary` argument of the `HandOver` call, so it costs no extra model call. When it is empty, the `reason` is used. It is cut at 500 characters and is not saved on the thread: only the notification and the webhook delivery hold it. The webhook and the notification never carry the full chat.
+
+The notification goes to the active staff with `front-desk.view`. It links to the reservation of a stay chat, or to the dashboard for a lobby chat, until a staff list of escalated threads is built. Only the first handover of a thread sends: a second `HandOver` call, or one on a Closed thread, sends nothing.

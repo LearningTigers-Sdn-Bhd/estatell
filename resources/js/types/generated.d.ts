@@ -6246,7 +6246,7 @@ export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled' | 'ai_thread_escalated';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
@@ -6359,7 +6359,7 @@ export type UnitMovement = 'arrivals' | 'departures';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type WastaysEventType = 'create' | 'check_in' | 'charge' | 'adjustment' | 'repair' | 'payment' | 'deposit' | 'refund' | 'reversal' | 'folio_movement' | 'stay_change' | 'early_departure' | 'check_out';
 export type WebhookDeliveryStatus = 'pending' | 'retrying' | 'delivered' | 'refused' | 'failed';
-export type WebhookEvent = 'booking.created' | 'booking.updated' | 'booking.cancelled' | 'booking.no_show' | 'stay.checked_in' | 'stay.checked_out' | 'stay.welcome_ready' | 'payment.received' | 'payment.refunded' | 'folio.closed' | 'guest.created' | 'guest.updated' | 'guest.merged' | 'guest.anonymized' | 'room.cleaned' | 'room.maintenance_flagged' | 'night_audit.completed' | 'channel.alert';
+export type WebhookEvent = 'booking.created' | 'booking.updated' | 'booking.cancelled' | 'booking.no_show' | 'stay.checked_in' | 'stay.checked_out' | 'stay.welcome_ready' | 'payment.received' | 'payment.refunded' | 'folio.closed' | 'guest.created' | 'guest.updated' | 'guest.merged' | 'guest.anonymized' | 'room.cleaned' | 'room.maintenance_flagged' | 'night_audit.completed' | 'channel.alert' | 'ai.escalated';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';
 }

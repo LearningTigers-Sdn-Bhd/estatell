@@ -29,13 +29,18 @@ class HandOver implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        ($this->escalate)($this->thread);
+        $summary = trim((string) $request->string('summary'));
+
+        ($this->escalate)($this->thread, $summary !== '' ? $summary : (string) $request->string('reason'));
 
         return 'Handed over to the front desk. Now tell the guest: '.$this->handover->forProperty($this->thread->property);
     }
 
     public function schema(JsonSchema $schema): array
     {
-        return ['reason' => $schema->string()->description('Why you are handing over, in a few words.')->required()];
+        return [
+            'reason' => $schema->string()->description('Why you are handing over, in a few words.')->required(),
+            'summary' => $schema->string()->description('For the front desk: what the guest needs, in one or two short sentences. No card numbers, passwords or ID numbers.')->required(),
+        ];
     }
 }

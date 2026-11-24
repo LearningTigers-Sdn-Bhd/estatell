@@ -70,7 +70,7 @@ Rules for every tool:
 
 ## Handover
 
-`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff who get front desk notifications) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, but staff now see it in the list. See [Handover](03-places-and-routes.md#handover).
+`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff with `front-desk.view`) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, but staff now see it in the list. See [Handover](03-places-and-routes.md#handover).
 
 ## Safety in the instructions is not enough
 

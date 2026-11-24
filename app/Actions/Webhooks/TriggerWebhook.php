@@ -37,7 +37,7 @@ class TriggerWebhook
      * @param  class-string<Model>  $subjectType
      * @param  array<string, mixed>  $context
      */
-    public function __invoke(WebhookEvent $event, int $propertyId, string $subjectType, int $subjectId, array $context = []): void
+    public function __invoke(WebhookEvent $event, int $propertyId, string $subjectType, int|string $subjectId, array $context = []): void
     {
         if (Context::getHidden(self::MUTED) === true) {
             return;
