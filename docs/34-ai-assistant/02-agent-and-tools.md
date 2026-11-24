@@ -14,7 +14,7 @@ How the assistant thinks: one agent class, its instructions, what it knows and t
 - The conversation participant is the `AiThread`, so the SDK's conversation store keeps one history per thread.
 - Fakes from the SDK are used in tests. Tests never call OpenAI.
 
-A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, where the SDK's generators put agents. A new top-level folder needs the user's OK, so it is on the [proposed](01-overview.md#proposed-defaults) list.
+A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, where the SDK's generators put agents. The user approved this new top-level folder on 2026-11-24 (see [Confirmed defaults](01-overview.md#confirmed-defaults)).
 
 ## Instructions
 

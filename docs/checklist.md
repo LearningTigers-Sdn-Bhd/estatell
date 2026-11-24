@@ -141,7 +141,7 @@ Planned on 2026-11-18 for a two-lodge prospect (Sepilok and Kinabatangan). Build
 
 ### 34 AI assistant
 
-Planned on 2026-11-24. Build in this order. Docs: [AI assistant](34-ai-assistant/01-overview.md). Confirm the [proposed defaults](34-ai-assistant/01-overview.md#proposed-defaults) each item uses before building it, and answer the [to verify](34-ai-assistant/01-overview.md#to-verify) list along the way. The PDPA check comes before launch.
+Planned on 2026-11-24. Build in this order. Docs: [AI assistant](34-ai-assistant/01-overview.md). The [defaults](34-ai-assistant/01-overview.md#confirmed-defaults) were confirmed on 2026-11-24. Answer the [to verify](34-ai-assistant/01-overview.md#to-verify) list along the way. The PDPA check comes before launch.
 
 - [x] `docs(ai): plan the AI assistant`
 - [ ] `feat(ai): add the AI assistant feature and settings` — install `laravel/ai` with OpenAI in `config/ai.php` (add it to Approved dependencies), the `AiAssistant` Pennant flag and its admin switch, `PlatformFeature::AiAssistant`, the `ai-assistant` middleware, the place switches in `property_settings`, `ai_monthly_cap_micros` on the admin property page, and Settings › AI assistant with the General tab. No chat yet. Docs: [Feature flag](34-ai-assistant/01-overview.md#feature-flag), [Settings](34-ai-assistant/01-overview.md#settings).

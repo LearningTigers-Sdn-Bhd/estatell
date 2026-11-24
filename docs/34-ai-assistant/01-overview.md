@@ -96,9 +96,9 @@ Guest messages go to OpenAI. Before launch, check Malaysia's PDPA (see [To verif
 | Usage         | No usage table                                              | One row per turn                           |
 | Staff         | None                                                        | A read-only helper                         |
 
-## Proposed defaults
+## Confirmed defaults
 
-These came with the plan and are not confirmed yet. Confirm or change them before the item that uses them.
+These came with the plan. The user confirmed all of them on 2026-11-24.
 
 | Default                                                                | Used by                                            |
 | ---------------------------------------------------------------------- | -------------------------------------------------- |
