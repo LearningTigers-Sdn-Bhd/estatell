@@ -8,6 +8,7 @@ use App\Models\FolioLine;
 use App\Models\User;
 use App\Services\Folio\FolioOwner;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Pos\PosFolioLinkGuard;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
@@ -29,8 +30,28 @@ class ReverseLine
      */
     public function __invoke(?User $actor, FolioLine $line): PostingResult
     {
-        return DB::transaction(function () use ($actor, $line): PostingResult {
+        return $this->reverse($actor, $line, false);
+    }
+
+    /**
+     * The POS refund's way in: reverses the root charge line of a room charge, which `__invoke` refuses as
+     * `pos_line_managed_in_pos` so front desk cannot undo a restaurant sale by hand. Same checks otherwise, and the
+     * whole charge goes once, tax lines included.
+     */
+    public function forPos(?User $actor, FolioLine $rootLine): PostingResult
+    {
+        return $this->reverse($actor, $rootLine, true);
+    }
+
+    private function reverse(?User $actor, FolioLine $line, bool $fromPos): PostingResult
+    {
+        return DB::transaction(function () use ($actor, $line, $fromPos): PostingResult {
             $current = FolioLine::query()->findOrFail($line->id);
+
+            if (! $fromPos && app(PosFolioLinkGuard::class)->isManagedInPos($current)) {
+                return PostingResult::refused(PostingResult::REFUSAL_POS_LINE_MANAGED);
+            }
+
             $folio = Folio::query()->lockForUpdate()->findOrFail($current->folio_id);
             $businessDate = $this->currentBusinessDate->date($folio->property);
 

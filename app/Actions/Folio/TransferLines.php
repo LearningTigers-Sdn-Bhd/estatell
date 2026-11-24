@@ -8,6 +8,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Pos\PosFolioLinkGuard;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -84,6 +85,7 @@ class TransferLines
 
             foreach ($sources as $source) {
                 $parentCopy = $this->copy($actor, $source, $targetFolio, $date, $group, null);
+                app(PosFolioLinkGuard::class)->follow($source, $parentCopy);
                 $copies = [...$copies, $parentCopy, ...$this->copyChildren($actor, $source, $targetFolio, $date, $group, $parentCopy->id)];
                 $this->reverseLine->post($actor, $source, $date, $group);
             }

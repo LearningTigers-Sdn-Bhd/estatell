@@ -70,6 +70,7 @@ class DiscountQuote
             ->where('amount', '>', 0)
             ->whereDate('posting_date', '<=', $businessDate->toDateString())
             ->whereDoesntHave('reversal')
+            ->whereDoesntHave('posOrderFolioLink')
             ->whereDoesntHave('children', fn ($children) => $children
                 ->where('kind', TransactionKind::Adjustment)
                 ->whereDoesntHave('reversal'))
