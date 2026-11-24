@@ -14,6 +14,8 @@ ai_threads       id (UUID), property_id, place (AiPlace), status (AiThreadStatus
                  reservation_unit_id (nullable), user_id (nullable, staff),
                  ai_connection_id (nullable), external_ref_hash (nullable),
                  language (nullable), escalated_at (nullable),
+                 handover_summary (text, nullable), resolved_at (nullable),
+                 resolved_by_user_id (nullable),
                  last_message_at, timestamps
 
 ai_turns         id, property_id, ai_thread_id, place (AiPlace), language (nullable),
@@ -24,14 +26,15 @@ ai_turns         id, property_id, ai_thread_id, place (AiPlace), language (nulla
 ai_turn_tools    id, ai_turn_id, tool (AiTool), succeeded (bool)
 ```
 
-- `AiThreadStatus`: Open, Escalated, Closed, with `label()`, `tone()` and `canTransitionTo()`. A thread with no message for 7 days is Closed by a daily job.
+- `AiThreadStatus`: Open, Escalated, Closed, with `label()`, `tone()` and `canTransitionTo()`. Open goes to Escalated or Closed. Escalated goes to Closed, or back to Open when staff resolve it in the [AI chats inbox](03-places-and-routes.md#ai-chats-inbox). Closed stays closed. A thread with no message for 7 days is Closed by a daily job.
+- `handover_summary`, `resolved_at` and `resolved_by_user_id` come with the AI chats inbox. A new handover replaces the summary and clears `resolved_at` and `resolved_by_user_id`.
 - `AiOutcome`: Answered, QuoteSent, Booked, Escalated, Refused, Failed, CapReached, with `label()` and `tone()`.
 - `language` is the language of the person's message, as the model reports it (ISO 639-1, for example `ms`, `en`, `zh`). Not filled yet: how the model reports it is decided with the Usage tab.
 - `ai_connection_id` and `external_ref_hash` come with the chat API for n8n. The guest questions item creates the other columns.
 - `cost_micros` is the provider's price in millionths of a US dollar, from the tokens and the model's price in `config/ai-pricing.php`. OpenAI bills in dollars, so the log does too.
 - `reservation_id` is filled when a [quote](03-places-and-routes.md#quote-links) from that turn becomes a booking. The outcome then moves to Booked.
 - The turn row is written by `RecordAiTurn` (an Action), called from the stream's `then()` in `ReplyInAiThread` once the reply ends. The outcome is Failed when a tool failed, Escalated when `HandOver` ran, otherwise Answered. A stream that breaks before it ends logs no turn yet.
-- Message text lives in the SDK's conversation tables and is deleted after 90 days. `ai_turns` and `ai_turn_tools` keep no text, so they stay.
+- Message text lives in the SDK's conversation tables and is deleted after 90 days. The same purge sets `ai_threads.handover_summary` to null. `ai_turns` and `ai_turn_tools` keep no text, so they stay.
 
 ## Monthly cap
 

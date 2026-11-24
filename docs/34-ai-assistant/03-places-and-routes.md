@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Where the chat appears, the routes behind it, how a quote becomes a booking, the chat API for n8n, and the handover.
+Where the chat appears, the routes behind it, how a quote becomes a booking, the chat API for n8n, the handover and the AI chats inbox.
 
 ## Chat UI
 
@@ -21,6 +21,8 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 | `POST /api/booking/v1/properties/{code}/ai/messages`                                  | Booking engine  | Booking client token (`booking:*`) and `X-Guest-IP` |
 | `POST /p/{property:code}/ai/messages`                                                 | Staff           | Staff session                                       |
 | `POST /api/ai/v1/messages`                                                            | API             | AI connection token (`ai:chat`)                     |
+| `GET /p/{property:code}/ai-chats` (`?thread={id}` opens one)                          | AI chats inbox  | `front-desk.view`                                   |
+| `POST /p/{property:code}/ai-chats/{thread}/resolve`                                   | AI chats inbox  | `front-desk.view`                                   |
 | `GET /p/{property:code}/settings/ai-assistant` (Places), `/capabilities`, `/handover` | Settings        | `settings.manage`                                   |
 | `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`            | Settings        | `settings.manage`                                   |
 | `GET /p/{property:code}/settings/ai-assistant/connections`                            | Settings        | `settings.manage`                                   |
@@ -101,6 +103,24 @@ Idempotency-Key: <n8n execution id>
 | Webhook        | `ai.escalated`, with the thread id, place, reservation id if any and the summary         |
 | The thread     | Status Escalated. The assistant still answers                                            |
 
-The summary is written by the model in one or two sentences, as the `summary` argument of the `HandOver` call, so it costs no extra model call. When it is empty, the `reason` is used. It is cut at 500 characters and is not saved on the thread: only the notification and the webhook delivery hold it. The webhook and the notification never carry the full chat.
+The summary is written by the model in one or two sentences, as the `summary` argument of the `HandOver` call, so it costs no extra model call. When it is empty, the `reason` is used. It is cut at 500 characters. The webhook and the notification never carry the full chat. With the inbox, the summary is also saved as `ai_threads.handover_summary`, so the list can show it (see [AI chats inbox](#ai-chats-inbox)).
 
-The notification goes to the active staff with `front-desk.view`. It links to the reservation of a stay chat, or to the dashboard for a lobby chat, until a staff list of escalated threads is built. Only the first handover of a thread sends: a second `HandOver` call, or one on a Closed thread, sends nothing.
+The notification goes to the active staff with `front-desk.view`. It links to the reservation of a stay chat, or to the dashboard for a lobby chat. With the inbox, it links to the chat instead. Only the first handover of a thread sends: a second `HandOver` call, or one on a Closed thread, sends nothing. After staff resolve a handover, a new handover in the same thread sends again.
+
+## AI chats inbox
+
+Planned on 2026-11-24. Staff read what the assistant and the guest said, contact the guest their own way (phone, WhatsApp, the desk), and mark the handover resolved. Staff do not reply inside the guest's chat.
+
+| Part    | What it is                                                                                                                                                                                                                   |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nav     | **AI chats** in the Front desk nav, after Requests. Shown when the AI assistant feature is on and the user has `front-desk.view`.                                                                                            |
+| Tabs    | **Handed over** (the default: status Escalated, oldest handover first) and **All** (every thread, last message first). The Handed over tab shows its count.                                                                  |
+| Columns | Last message (time ago), Place, Guest (the stay's guest and room, or "Lobby guest"), Summary (the handover summary, else the guest's last message, one line), Status (`AiThreadStatus` tone), Turns.                         |
+| Filters | Place, and a date range on the last message. 25 rows a page.                                                                                                                                                                 |
+| Chat    | A row opens a Sheet (`?thread={id}` in the URL): the summary, the stay link to the reservation, and the full chat, read only, with AI Elements Conversation and Message. A **Resolve** button shows on a handed-over thread. |
+| Resolve | `ResolveAiThread` moves Escalated back to Open and sets `resolved_at` and `resolved_by_user_id`. It logs `ai.thread-resolved`. A thread that is not Escalated returns false and the page shows an error toast.               |
+| Purged  | A thread older than 90 days has no text: the Sheet says "The messages were deleted after 90 days." The row stays, with its place, status and turns.                                                                          |
+
+Resolve goes back to Open, not to Closed, so the guest keeps the same chat and its history, and a new handover alerts staff again. The daily job still closes a thread after 7 days with no message.
+
+The list and the Sheet are read by `AiThreadList` and `AiThreadTranscript` (Services). The page gets a query-count test with lazy loading prevented. Another property's thread returns 404.

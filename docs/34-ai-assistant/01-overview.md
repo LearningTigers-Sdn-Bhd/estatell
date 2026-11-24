@@ -102,11 +102,11 @@ The Places and Capabilities tabs show a switch only for a scope the admin allows
 
 ## Files
 
-| File                                         | Covers                                                                |
-| -------------------------------------------- | --------------------------------------------------------------------- |
-| [Agent and tools](02-agent-and-tools.md)     | The agent, its instructions, knowledge, languages and each tool       |
-| [Places and routes](03-places-and-routes.md) | Each place's routes and UI, quote links, the chat API and handover    |
-| [Usage and cost](04-usage-and-cost.md)       | `ai_threads`, `ai_turns`, the cost, the monthly cap and the Usage tab |
+| File                                         | Covers                                                                                 |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [Agent and tools](02-agent-and-tools.md)     | The agent, its instructions, knowledge, languages and each tool                        |
+| [Places and routes](03-places-and-routes.md) | Each place's routes and UI, quote links, the chat API, handover and the AI chats inbox |
+| [Usage and cost](04-usage-and-cost.md)       | `ai_threads`, `ai_turns`, the cost, the monthly cap and the Usage tab                  |
 
 ## Permissions
 
