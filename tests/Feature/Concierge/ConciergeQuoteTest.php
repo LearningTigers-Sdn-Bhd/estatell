@@ -68,7 +68,7 @@ test('a quote is refused outside the booking window, on a plan not sold online, 
 
 test('the quote page prices the quote again and shows a changed price', function () {
     $setup = conciergeQuoteSetup();
-    $quote = quoteFor($setup, $setup['breakfast'], ['quoted_total' => '240.00']);
+    $quote = savedConciergeQuote($setup, $setup['breakfast'], ['quoted_total' => '240.00']);
 
     $this->get("/stay/{$setup['property']->code}/quote/{$quote->token}")
         ->assertOk()
@@ -81,8 +81,8 @@ test('the quote page prices the quote again and shows a changed price', function
 
 test('the quote page shows an expired quote or a room no longer free without a price', function () {
     $setup = conciergeQuoteSetup();
-    $expired = quoteFor($setup, $setup['breakfast'], ['expires_at' => now()->subMinute()]);
-    $offline = quoteFor($setup, $setup['roomOnly']);
+    $expired = savedConciergeQuote($setup, $setup['breakfast'], ['expires_at' => now()->subMinute()]);
+    $offline = savedConciergeQuote($setup, $setup['roomOnly']);
     $setup['roomOnly']->forceFill(['bookable_online' => false])->save();
 
     $this->get("/stay/{$setup['property']->code}/quote/{$expired->token}")
@@ -96,7 +96,7 @@ test('the quote routes answer 404 for another property, or while the AI assistan
     $other = ['property' => Property::factory()->create()];
     PropertySetting::factory()->for($other['property'])->create();
     Feature::for($other['property'])->activate(Concierge::class);
-    $quote = quoteFor($setup, $setup['breakfast']);
+    $quote = savedConciergeQuote($setup, $setup['breakfast']);
 
     $this->get("/stay/{$other['property']->code}/quote/{$quote->token}")->assertNotFound();
     bookQuote($other['property'], $quote)->assertNotFound();
@@ -115,7 +115,7 @@ test('the quote routes answer 404 for another property, or while the AI assistan
 test('booking a quote books and holds its plan with the walk-in switch off, then opens the stay on payment', function () {
     Event::fake([ConciergeQuoteBooked::class]);
     $setup = conciergeQuoteSetup();
-    $quote = quoteFor($setup, $setup['breakfast'], ['ai_turn_id' => null]);
+    $quote = savedConciergeQuote($setup, $setup['breakfast'], ['ai_turn_id' => null]);
 
     $location = bookQuote($setup['property'], $quote)->assertSessionHasNoErrors()->assertRedirect()->headers->get('Location');
 
@@ -134,7 +134,7 @@ test('booking a quote books and holds its plan with the walk-in switch off, then
 
 test('a used quote books once and its link then opens the stay page', function () {
     $setup = conciergeQuoteSetup();
-    $quote = quoteFor($setup, $setup['breakfast']);
+    $quote = savedConciergeQuote($setup, $setup['breakfast']);
     bookQuote($setup['property'], $quote)->assertSessionHasNoErrors();
 
     bookQuote($setup['property'], $quote)->assertRedirect("/stay/{$setup['property']->code}/quote/{$quote->token}");
@@ -145,8 +145,8 @@ test('a used quote books once and its link then opens the stay page', function (
 
 test('an expired quote, or a plan no longer sold online, books nothing', function () {
     $setup = conciergeQuoteSetup();
-    $expired = quoteFor($setup, $setup['breakfast'], ['expires_at' => now()->subMinute()]);
-    $offline = quoteFor($setup, $setup['roomOnly']);
+    $expired = savedConciergeQuote($setup, $setup['breakfast'], ['expires_at' => now()->subMinute()]);
+    $offline = savedConciergeQuote($setup, $setup['roomOnly']);
     $setup['roomOnly']->forceFill(['bookable_online' => false])->save();
 
     bookQuote($setup['property'], $expired)->assertRedirect("/stay/{$setup['property']->code}/quote/{$expired->token}");
@@ -159,7 +159,7 @@ test('an expired quote, or a plan no longer sold online, books nothing', functio
 test('a returning guest books a quote by email for their own profile', function () {
     $setup = conciergeQuoteSetup();
     $returning = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Nora Lim', 'email' => 'nora@example.com']);
-    $quote = quoteFor($setup, $setup['roomOnly']);
+    $quote = savedConciergeQuote($setup, $setup['roomOnly']);
 
     $this->post("/stay/{$setup['property']->code}/quote/{$quote->token}/returning", ['contact' => 'nora@example.com'])->assertSessionHasNoErrors()->assertRedirect();
 
@@ -185,7 +185,7 @@ test('a quote stay asks for the whole stay with its taxes and the deposit, not o
     $roomRevenue = TransactionCode::query()->where('property_id', $setup['property']->id)->sole();
     $tax = Tax::factory()->for($setup['property'])->create(['name' => 'Tourism tax', 'rate' => '8.00', 'is_inclusive' => false, 'collect_at_check_in' => true]);
     $tax->applicableTransactionCodes()->attach($roomRevenue);
-    $quote = quoteFor($setup, $setup['breakfast']);
+    $quote = savedConciergeQuote($setup, $setup['breakfast']);
 
     $location = bookQuote($setup['property'], $quote)->assertSessionHasNoErrors()->headers->get('Location');
     $stay = ReservationUnit::query()->findOrFail(KioskWalkInHold::query()->sole()->reservation_unit_id);

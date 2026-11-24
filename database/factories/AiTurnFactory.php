@@ -19,7 +19,7 @@ class AiTurnFactory extends Factory
     public function definition(): array
     {
         return [
-            'property_id' => fn (array $attributes): int => AiThread::query()->findOrFail($attributes['ai_thread_id'])->property_id,
+            'property_id' => fn (array $attributes): int => (int) AiThread::query()->whereKey($attributes['ai_thread_id'])->value('property_id'),
             'ai_thread_id' => AiThread::factory(),
             'place' => AiPlace::ConciergeLobby,
             'model' => 'test-model',

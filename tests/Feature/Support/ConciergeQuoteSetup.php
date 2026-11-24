@@ -70,7 +70,7 @@ function quotePlan(Property $property, RoomType $type, string $name, string $amo
  * @param  array<string, mixed>  $setup
  * @param  array<string, mixed>  $attributes
  */
-function quoteFor(array $setup, RatePlan $plan, array $attributes = []): ConciergeQuote
+function savedConciergeQuote(array $setup, RatePlan $plan, array $attributes = []): ConciergeQuote
 {
     return ConciergeQuote::factory()->create([
         'property_id' => $setup['property']->id,

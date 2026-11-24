@@ -85,7 +85,7 @@ test('SendQuoteLink saves a quote and returns its link, or says why it could not
 test('a turn that sent a quote is logged as QuoteSent and linked to the quote', function () {
     $setup = conciergeQuoteSetup();
     $thread = AiThread::factory()->for($setup['property'])->create();
-    $quote = quoteFor($setup, $setup['breakfast']);
+    $quote = savedConciergeQuote($setup, $setup['breakfast']);
     $result = new ToolResult('call_1', 'SendQuoteLink', [], json_encode(['sent' => true, 'quote_id' => $quote->id]));
 
     $turn = app(RecordAiTurn::class)($thread, 'test-model', new TextUsage, 100, [$result]);
@@ -98,7 +98,7 @@ test('booking a quote marks the turn that sent it as Booked', function () {
     $setup = conciergeQuoteSetup();
     $thread = AiThread::factory()->for($setup['property'])->create();
     $turn = AiTurn::factory()->create(['ai_thread_id' => $thread->id, 'outcome' => AiOutcome::QuoteSent]);
-    $quote = quoteFor($setup, $setup['breakfast'], ['ai_turn_id' => $turn->id]);
+    $quote = savedConciergeQuote($setup, $setup['breakfast'], ['ai_turn_id' => $turn->id]);
 
     bookQuote($setup['property'], $quote)->assertSessionHasNoErrors();
 
