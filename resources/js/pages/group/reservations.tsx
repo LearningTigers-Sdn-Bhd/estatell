@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { CalendarCheck, Download, Search } from 'lucide-react';
+import { CalendarCheck, Search } from 'lucide-react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { formatDate } from '@/components/pms/date-text';
@@ -7,13 +7,13 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { formatMoney } from '@/components/pms/money-text';
-import { PageHeader } from '@/components/pms/page-header';
+import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
 import {
     PaginationFooter,
     toPaginationData,
 } from '@/components/pms/pagination-footer';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Table,
@@ -25,7 +25,10 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { dashboard as groupDashboard, reservations } from '@/routes/group';
-import { exportMethod as exportCsv } from '@/routes/group/reservations';
+import {
+    exportMethod as exportCsv,
+    pdf as exportPdf,
+} from '@/routes/group/reservations';
 import { show } from '@/routes/reservations';
 
 type Group = { id: number; name: string };
@@ -93,24 +96,7 @@ export default function GroupReservations({
         <>
             <Head title={`${group.name} reservations`} />
 
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <PageHeader
-                    title="Reservations"
-                    description="Every property's bookings in one list. A search looks at every date."
-                    actions={
-                        <a
-                            href={exportCsv.url(
-                                { propertyGroup: group.id },
-                                { query: query({}) },
-                            )}
-                            className={buttonVariants({ variant: 'outline' })}
-                        >
-                            <Download data-icon="inline-start" />
-                            Export CSV
-                        </a>
-                    }
-                />
-
+            <div className="flex flex-1 flex-col gap-3 p-4">
                 <div className="flex flex-wrap items-center gap-3">
                     <form
                         className="flex items-center gap-2"
@@ -142,7 +128,7 @@ export default function GroupReservations({
                     </form>
                     <DateRangePicker
                         from={filters.from ?? ''}
-                        to={filters.to ?? filters.from ?? ''}
+                        to={filters.to ?? ''}
                         onChange={(from, to) => visit({ from, to })}
                         placeholder="Any dates"
                         weekStartsOn={1}
@@ -169,6 +155,18 @@ export default function GroupReservations({
                             onValueChange={(property) => visit({ property })}
                         />
                     )}
+                    <div className="ml-auto">
+                        <GroupExportMenu
+                            pdfUrl={exportPdf.url(
+                                { propertyGroup: group.id },
+                                { query: query({}) },
+                            )}
+                            csvUrl={exportCsv.url(
+                                { propertyGroup: group.id },
+                                { query: query({}) },
+                            )}
+                        />
+                    </div>
                 </div>
 
                 {leftOut.length > 0 && (

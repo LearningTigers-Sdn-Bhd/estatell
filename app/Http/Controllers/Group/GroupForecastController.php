@@ -10,13 +10,14 @@ use App\Http\Requests\Group\GroupForecastRequest;
 use App\Models\Property;
 use App\Models\PropertyGroup;
 use App\Services\Group\GroupForecast;
+use App\Services\Group\GroupTableExport;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -42,28 +43,50 @@ class GroupForecastController extends Controller
     }
 
     /**
-     * Every row on screen: each property month by month, then all properties.
+     * Every row on screen as CSV: each property month by month, then all properties.
      */
-    public function export(GroupForecastRequest $request, PropertyGroup $propertyGroup): StreamedResponse
+    public function export(GroupForecastRequest $request, PropertyGroup $propertyGroup, GroupTableExport $export): StreamedResponse
+    {
+        $table = $this->table($request, $propertyGroup);
+
+        return $export->csv($table['filename'], $table['headings'], $table['rows']);
+    }
+
+    /**
+     * The same rows as a landscape PDF, the all-properties rows in bold.
+     */
+    public function pdf(GroupForecastRequest $request, PropertyGroup $propertyGroup, GroupTableExport $export): HttpResponse
+    {
+        $table = $this->table($request, $propertyGroup);
+
+        return $export->pdf($table['filename'], $propertyGroup->name, __('Forecast'), $table['subtitle'], $table['headings'], $table['rows'], $table['totalRows']);
+    }
+
+    /**
+     * @return array{filename: string, subtitle: string, headings: list<string>, rows: list<list<string|int|null>>, totalRows: list<int>}
+     */
+    private function table(GroupForecastRequest $request, PropertyGroup $propertyGroup): array
     {
         [$firstMonth, $months, $report] = $this->open($request);
         $names = collect($report->properties)->mapWithKeys(fn ($property): array => [$property->code => $property->name])->all();
+        $rows = [];
+        $totalRows = [];
 
-        return response()->streamDownload(function () use ($report, $names): void {
-            $out = fopen('php://output', 'w');
-
-            if ($out === false) {
-                throw new RuntimeException('The CSV output stream could not be opened.');
+        foreach ($report->rows as $row) {
+            if ($row->code === null) {
+                $totalRows[] = count($rows);
             }
 
-            fputcsv($out, GroupForecastRowData::csvHeadings());
+            $rows[] = $row->csv($row->code === null ? __('All properties') : $names[$row->code]);
+        }
 
-            foreach ($report->rows as $row) {
-                fputcsv($out, $row->csv($row->code === null ? __('All properties') : $names[$row->code]));
-            }
-
-            fclose($out);
-        }, Str::slug("{$propertyGroup->name} forecast {$firstMonth->format('Y-m')} {$months} months").'.csv', ['Content-Type' => 'text/csv', 'Cache-Control' => 'no-store, private']);
+        return [
+            'filename' => Str::slug("{$propertyGroup->name} forecast {$firstMonth->format('Y-m')} {$months} months"),
+            'subtitle' => $firstMonth->format('M Y').' – '.$firstMonth->addMonthsNoOverflow($months - 1)->format('M Y'),
+            'headings' => GroupForecastRowData::csvHeadings(),
+            'rows' => $rows,
+            'totalRows' => $totalRows,
+        ];
     }
 
     /**

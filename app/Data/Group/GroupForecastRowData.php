@@ -26,6 +26,7 @@ class GroupForecastRowData extends Data
         public ?string $roomRevenue,
         public ?string $extraRevenue,
         public ?string $totalRevenue,
+        public ?int $lastYearAvailable,
         public ?int $lastYearSold,
         public ?string $lastYearOccupancy,
         public ?string $lastYearRoomRevenue,

@@ -131,6 +131,7 @@ class GroupForecast
             roomRevenue: $withMoney ? ReportFigures::money($room) : null,
             extraRevenue: $withMoney ? ReportFigures::money($extra) : null,
             totalRevenue: $withMoney ? ReportFigures::money($room->plus($extra)) : null,
+            lastYearAvailable: $lastYear === [] ? null : $lastYearAvailable,
             lastYearSold: $lastYear === [] ? null : $count($lastYear, 'sold'),
             lastYearOccupancy: $lastYear === [] ? null : ReportFigures::percent($count($lastYear, 'sold'), $lastYearAvailable),
             lastYearRoomRevenue: $lastYear === [] || ! $withMoney ? null : ReportFigures::money($money($lastYear, 'room_charges')),

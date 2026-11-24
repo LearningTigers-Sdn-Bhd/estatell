@@ -1,13 +1,14 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Download, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
-import { PageHeader } from '@/components/pms/page-header';
+import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     ChartContainer,
     ChartLegend,
@@ -26,7 +27,10 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { dashboard as groupDashboard, forecast } from '@/routes/group';
-import { exportMethod as exportCsv } from '@/routes/group/forecast';
+import {
+    exportMethod as exportCsv,
+    pdf as exportPdf,
+} from '@/routes/group/forecast';
 
 type Group = { id: number; name: string };
 type Row = App.Data.Group.GroupForecastRowData;
@@ -36,6 +40,9 @@ type Currency = App.Data.Property.CurrencyData | null;
 const ALL = 'all';
 
 const HORIZONS = [3, 6, 12, 18, 24];
+
+/** The horizon select's value for a number of months the user types. */
+const CUSTOM = 'custom';
 
 const chartConfig = {
     occupancy: { label: 'On the books', color: 'var(--chart-1)' },
@@ -109,6 +116,7 @@ export default function GroupForecast({
     group,
     from,
     months,
+    maxMonths,
     thisMonth,
     forecast: report,
 }: {
@@ -120,6 +128,8 @@ export default function GroupForecast({
     forecast: App.Data.Group.GroupForecastData;
 }) {
     const [view, setView] = useState<string>(ALL);
+    const [custom, setCustom] = useState(!HORIZONS.includes(months));
+    const [typed, setTyped] = useState(String(months));
     const rows = useMemo(
         () =>
             report.rows.filter((row) =>
@@ -155,24 +165,7 @@ export default function GroupForecast({
         <>
             <Head title={`${group.name} forecast`} />
 
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <PageHeader
-                    title="Forecast"
-                    description="Occupancy and revenue month by month: closed dates as they happened, later dates from the bookings on hand, beside last year."
-                    actions={
-                        <a
-                            href={exportCsv.url(
-                                { propertyGroup: group.id },
-                                { query: { from, months } },
-                            )}
-                            className={buttonVariants({ variant: 'outline' })}
-                        >
-                            <Download data-icon="inline-start" />
-                            Export CSV
-                        </a>
-                    }
-                />
-
+            <div className="flex flex-1 flex-col gap-3 p-4">
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2">
                         <Button
@@ -209,15 +202,59 @@ export default function GroupForecast({
                     <EnumSelect
                         aria-label="Months ahead"
                         className="w-36"
-                        options={HORIZONS.map((count) => ({
-                            value: String(count),
-                            label: `${count} months`,
-                        }))}
-                        value={String(months)}
-                        onValueChange={(value) =>
-                            visit({ months: Number(value) })
-                        }
+                        options={[
+                            ...HORIZONS.map((count) => ({
+                                value: String(count),
+                                label: `${count} months`,
+                            })),
+                            { value: CUSTOM, label: 'Custom…' },
+                        ]}
+                        value={custom ? CUSTOM : String(months)}
+                        onValueChange={(value) => {
+                            if (value === CUSTOM) {
+                                setCustom(true);
+
+                                return;
+                            }
+
+                            setCustom(false);
+                            visit({ months: Number(value) });
+                        }}
                     />
+                    {custom && (
+                        <form
+                            className="flex items-center gap-2"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                const count = Math.min(
+                                    Math.max(Math.round(Number(typed)) || 1, 1),
+                                    maxMonths,
+                                );
+
+                                setTyped(String(count));
+                                visit({ months: count });
+                            }}
+                        >
+                            <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={1}
+                                max={maxMonths}
+                                aria-label="Number of months"
+                                value={typed}
+                                onChange={(event) =>
+                                    setTyped(event.target.value)
+                                }
+                                className="w-20"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                                months
+                            </span>
+                            <Button type="submit" variant="outline">
+                                Show
+                            </Button>
+                        </form>
+                    )}
                     {report.properties.length > 1 && (
                         <ToggleGroup
                             value={[view]}
@@ -240,6 +277,18 @@ export default function GroupForecast({
                             ))}
                         </ToggleGroup>
                     )}
+                    <div className="ml-auto">
+                        <GroupExportMenu
+                            pdfUrl={exportPdf.url(
+                                { propertyGroup: group.id },
+                                { query: { from, months } },
+                            )}
+                            csvUrl={exportCsv.url(
+                                { propertyGroup: group.id },
+                                { query: { from, months } },
+                            )}
+                        />
+                    </div>
                 </div>
 
                 {report.leftOut.length > 0 && (

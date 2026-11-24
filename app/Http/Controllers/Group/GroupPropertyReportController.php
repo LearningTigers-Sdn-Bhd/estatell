@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Group;
 
 use App\Data\Group\GroupPropertyReportData;
-use App\Data\Group\GroupReportRowData;
 use App\Data\Reports\ReportFilters;
 use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
@@ -12,13 +11,14 @@ use App\Http\Requests\Group\GroupPropertyReportRequest;
 use App\Models\Property;
 use App\Models\PropertyGroup;
 use App\Services\Group\GroupPropertyReports;
+use App\Services\Group\GroupTableExport;
 use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -35,11 +35,12 @@ class GroupPropertyReportController extends Controller
 
         return Inertia::render('group/property-reports', [
             'group' => ['id' => $propertyGroup->id, 'name' => $propertyGroup->name],
+            'category' => ['value' => $key->category()->value, 'label' => $key->category()->label()],
             'reports' => array_map(fn (ReportKey $option): array => [
                 'value' => $option->value,
                 'label' => $option->label(),
-                'group' => $option->category()->label(),
-            ], GroupPropertyReportRequest::reports()),
+                'icon' => $option->icon(),
+            ], GroupPropertyReportRequest::inCategory($key->category())),
             'oneDate' => $key->maxRangeDays() === null,
             'maxRangeDays' => $key->maxRangeDays(),
             'groups' => array_map(fn ($group): array => ['value' => $group->value, 'label' => $group->label()], $key->groups()),
@@ -50,29 +51,54 @@ class GroupPropertyReportController extends Controller
     }
 
     /**
-     * Every row, each with its property, then the totals. Display text, as on screen.
+     * Every row, each with its property, then the totals, as CSV. Display text, as on screen.
      */
-    public function export(GroupPropertyReportRequest $request, PropertyGroup $propertyGroup): StreamedResponse
+    public function export(GroupPropertyReportRequest $request, PropertyGroup $propertyGroup, GroupTableExport $export): StreamedResponse
+    {
+        $table = $this->table($request, $propertyGroup);
+
+        return $export->csv($table['filename'], $table['headings'], $table['rows']);
+    }
+
+    /**
+     * The same rows as a landscape PDF, the totals in bold.
+     */
+    public function pdf(GroupPropertyReportRequest $request, PropertyGroup $propertyGroup, GroupTableExport $export): HttpResponse
+    {
+        $table = $this->table($request, $propertyGroup);
+
+        return $export->pdf($table['filename'], $propertyGroup->name, $table['title'], $table['subtitle'], $table['headings'], $table['rows'], $table['totalRows']);
+    }
+
+    /**
+     * @return array{filename: string, title: string, subtitle: string, headings: list<string>, rows: list<list<string>>, totalRows: list<int>}
+     */
+    private function table(GroupPropertyReportRequest $request, PropertyGroup $propertyGroup): array
     {
         [$key, $filters, $report] = $this->open($request, true);
         $currency = $report->currency?->code;
+        $rows = [];
+        $totalRows = [];
 
-        return response()->streamDownload(function () use ($report, $currency): void {
-            $out = fopen('php://output', 'w');
-
-            if ($out === false) {
-                throw new RuntimeException('The CSV output stream could not be opened.');
+        foreach ([...$report->rows, ...$report->totals] as $row) {
+            if ($row->total) {
+                $totalRows[] = count($rows);
             }
 
-            fputcsv($out, [__('Property'), ...array_map(fn ($column): string => $column->heading($currency), $report->columns)]);
+            $rows[] = [$row->total ? __(':property total', ['property' => $row->property]) : $row->property, ...array_values(array_map(fn (string $cell): string => $cell === __('Total') && $row->total ? '' : $cell, $row->cells))];
+        }
 
-            foreach ([...$report->rows, ...$report->totals] as $row) {
-                /** @var GroupReportRowData $row */
-                fputcsv($out, [$row->total ? __(':property total', ['property' => $row->property]) : $row->property, ...array_values($row->cells)]);
-            }
+        $from = CarbonImmutable::parse($filters->from)->format('j M Y');
+        $to = CarbonImmutable::parse($filters->to)->format('j M Y');
 
-            fclose($out);
-        }, Str::slug("{$propertyGroup->name} {$key->label()} {$filters->from} {$filters->to}").'.csv', ['Content-Type' => 'text/csv', 'Cache-Control' => 'no-store, private']);
+        return [
+            'filename' => Str::slug("{$propertyGroup->name} {$key->label()} {$filters->from} {$filters->to}"),
+            'title' => $key->label(),
+            'subtitle' => ($from === $to ? $from : "{$from} – {$to}").($filters->group === null ? '' : ' · '.$filters->group->label()),
+            'headings' => [__('Property'), ...array_map(fn ($column): string => $column->heading($currency), $report->columns)],
+            'rows' => $rows,
+            'totalRows' => $totalRows,
+        ];
     }
 
     /**

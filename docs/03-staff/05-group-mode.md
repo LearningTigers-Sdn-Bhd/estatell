@@ -38,29 +38,36 @@ Changes still happen inside a property: group mode reads and exports, and every 
 
 - **Property menu** (navbar): an **All properties** section lists the groups the user may open (`groupSwitcher`), above the properties. In group mode the identity shows the group name and "All properties", and the menu lists the group's properties to open one.
 - **Back to the group in one click**: inside a property, the sidebar starts with an **All properties** section linking to each group dashboard the user may open (`app-sidebar.tsx`, from `groupSwitcher`). The property menu offers it too.
-- **Group sidebar**: one Group context (`NavigationContext::Group`, built by `GroupNavigation`), labelled with the group's name. No folio, night audit or settings: those always belong to one property.
+- **Group sidebar**: one Group context (`NavigationContext::Group`, built by `GroupNavigation`), labelled with the group's name, in two sections (decided 2026-11-24):
+    - **Overview**: Dashboard, Reservations, Timeline View.
+    - **Reports**: Forecast, Performance (By property, By date, Bookings), then one item per report category that has a group report: Front desk, Revenue, Finance, Kitchen, Audit ([Property reports](#property-reports)).
+      No folio, night audit or settings: those always belong to one property.
+- **No page header** on group pages (decided 2026-11-24): the breadcrumb names the page, so each page starts with its own controls and the Export menu on the right, to give the tables and charts the space.
 - Group pages have no current property: no business date in the footer, no permission team. Every link into a property names it (`/p/{code}/...`).
 - Routes: `routes/group.php` under `/g/{propertyGroup}` (`group.*`), behind `EnsureGroupAccess`, which puts the properties on the request (`groupProperties`) for the page and the switcher.
 
 ## Group dashboard
 
-`GET /g/{group}/dashboard` (`group.dashboard`). The figures load after the page (deferred).
+`GET /g/{group}/dashboard` (`group.dashboard`). Redesigned 2026-11-24 for an owner reading several lodges at a glance: headline figures first, then the trend, then the lodges side by side. Everything loads after the page (two deferred props: `dashboard` for today, `forecast` for the months).
 
-| Part                           | What it shows                                                                                                                                                                                                                                                                |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| All properties                 | Arrivals and departures (to do of total), tonight's occupancy (units sold over units on sale, summed across properties), new bookings today, and revenue this month (summed only when every property has one currency, with "1 of 2 properties" when a role hides it at one) |
-| One card per property, by name | Its ID and own business date, the same figures from `DashboardTiles` (the property dashboard's numbers), and **Open** to its dashboard                                                                                                                                       |
+| Part                | What it shows                                                                                                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Needs attention     | A destructive Alert, only when a property's night audit alert is on (failed, waiting on a fix, or the business date behind), from the property dashboard's own `DashboardAlert`. Shown where the role shows reservations or reports. |
+| Four headline cards | This month for the group, actual and on the books: Occupancy, ADR, RevPAR and Revenue (rooms and extras), each with its change against the same month last year (points for occupancy, percent for money)                            |
+| Occupancy outlook   | A line per property for the next six months, and the group's last year as a dashed line. **Forecast** opens the full page                                                                                                            |
+| Revenue this month  | A bar per property, rooms and extras stacked. Hidden when the properties use different currencies                                                                                                                                    |
+| Today by property   | One row per property: business date, arrivals and departures left of the day's total, tonight's occupancy with a bar, the next seven nights as small bars, new bookings today, revenue posted this month, and a link into it         |
 
-- **Quick links** under the title: Reservations, Timeline View, Forecast, Property reports.
-- **Needs attention** (a destructive Alert, only when there is something): each property whose night audit alert is on (failed, waiting on a fix, or the business date behind), from the property dashboard's own `DashboardAlert`. Each property card repeats its alert. Shown where the role shows reservations or reports.
-- **Next 6 months**: occupancy on the books for each property and for all, beside last year ("LY"), from `GroupForecast` for six months from this month. It is its own deferred prop (`forecast`), so the day's figures do not wait for it. **Forecast** opens the full page.
+- The headline cards and both charts read `GroupForecast` for six months from this month (`lastYearAvailable` on each row gives last year's RevPAR). The browser only works out the change against last year.
+- Today by property reads each property's `DashboardTiles`, as the property dashboard does; a property whose role shows neither reservations nor reports says so in its row.
 
 Each property counts on its own business date, as its own dashboard does. Queries grow with the number of properties shown, never with bookings (tested).
 
 ## Group timeline
 
-`GET /g/{group}/timeline` (`group.timeline`), Group › Timeline View. It takes the same `from` and `to` as a property's Timeline View (`StayViewTimelineRequest`: 14 nights from today by default, 30 at most) and shows those dates for every property whose role shows the front desk (`front-desk.view`), one card each, by name.
+`GET /g/{group}/timeline` (`group.timeline`), Group › Timeline View. It takes the same `from` and `to` as a property's Timeline View (`StayViewTimelineRequest`: 31 at most). With no dates it opens on this whole month and shows those dates for every property whose role shows the front desk (`front-desk.view`), one card each, by name.
 
+- **Month / 2 weeks** (decided 2026-11-24; Month is the default): Month shows the whole calendar month (up to 31 nights; earlier and later move a month), 2 weeks the 14 nights from the first date. The grid is **compact** in group mode (`density="compact"`: 36pt rows, 44px nights, a narrower room column), and a night that narrow heads with the weekday's letter and the day only. The property's own Timeline View keeps its size.
 - Each card is the property's own Timeline View grid (`StayViewQuery` without rates, grouped by room type), read only: no dragging, resizing, blocking or new bookings. **Open Timeline View** opens the property's own view for the same dates, where every change happens.
 - Clicking a stay opens its booking in its property (`/p/{code}/reservations/{id}`), when the role there may view reservations.
 - Earlier and later move the whole window. Queries grow with the number of properties, never with stays (tested).
@@ -83,7 +90,7 @@ Each property counts on its own business date, as its own dashboard does. Querie
 
 `GET /g/{group}/forecast` (`group.forecast`), Group › Forecast. Tanini asked for bookings 6 months ahead, perhaps a year (decided 2026-11-24: let the user pick).
 
-- `from` is the first month (`Y-m`, this month when missing) and `months` the number of months: 3, 6, 12, 18 or 24 on screen, 1 to 24 accepted (6 when missing). Earlier and later move one month.
+- `from` is the first month (`Y-m`, this month when missing) and `months` the number of months: 3, 6, 12, 18 or 24, or **Custom…** to type any number from 1 to 24 (6 when missing). Earlier and later move one month.
 - Each property's History & forecast for those months (`HistoryForecastReport`), added up by month (`GroupForecast`): closed dates are actual, later dates are the bookings on hand, each property by its own business date. The **Basis** badge says Actual, Actual + on the books, or On the books.
 - **Last year** is the same month a year before, from closed dates only (`daily_statistics`). A month with no closed dates a year back (before go-live) shows "—". **Change** is occupancy minus last year's, in points.
 - Columns: Available, Sold, Occupancy, Last year, Change, ADR, Pax, Room revenue, Total revenue (room + extra), Room revenue last year. A bar chart shows occupancy on the books beside last year by month.
@@ -106,7 +113,7 @@ A single property gets the same look-ahead in Reports › History & forecast: th
 
 ## Property reports
 
-`GET /g/{group}/property-reports` (`group.property-reports`), Group › Property reports: any property report for every property at once, so an owner reads and exports both lodges without switching.
+`GET /g/{group}/property-reports` (`group.property-reports`), Group › Reports › a category (Front desk, Revenue, Finance, Kitchen, Audit): the category's reports as tabs, each run for every property at once, so an owner reads and exports both lodges without switching. `category` opens the category on its first report; `report` opens one report (and its category).
 
 - `report` picks the report (Arrivals when missing). Offered (`ReportKey::runsInGroup()`): Arrivals, Departures, In house, Checked out, Occupancy, Revenue, Daily revenue, Payments, Tax, Outstanding balance, Deposit liability, Agent payments, Meal counts, Night audit history, Housekeeping tasks, Booking changes. Left out: reports that need a filter of one property (transaction code, staff member, boat or facility), the ones that show ID numbers (Police report, Non-national guests), and the ones group mode already adds up (History & forecast, Rooms on books).
 - Dates follow the report: one `date` for a report of one date, else `from` and `to` no longer than the report allows (31 or 366 days). With none, today, or this month for a report that opens on the month. A report that groups its rows (Revenue, Tax, Payments) takes `group`.
@@ -114,16 +121,27 @@ A single property gets the same look-ahead in Reports › History & forecast: th
 - The screen shows the first 500 rows; **Export CSV** (`group.property-reports.export`) has every row and the totals.
 - A property without reports permission is named ("Not included: …"); one that does not use the report's feature is named too.
 
+## Exports
+
+Every group page with a table has one **Export** button with **Export PDF** and **Export CSV** (`GroupExportMenu`): Forecast, Performance, each report category and Reservations. Routes: `group.forecast.pdf`, `group.reports.pdf`, `group.property-reports.pdf`, `group.reservations.pdf` beside the `….export` CSV routes.
+
+- Both files come from the same headings and rows (`GroupTableExport`), so they always match. The PDF opens in a new tab.
+- The PDF is **landscape A4** (decided 2026-11-24: the group tables run to 12–16 columns, which portrait cannot fit). It has no property letterhead: it names the group and "All properties", the page and its dates or filters, and the time printed. Totals and all-properties rows print bold; numbers align right. More than 10 columns print a size smaller.
+
 ## Code
 
-| Part                                                            | Role                                                                                   |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `GroupProperties`                                               | The groups a user may open, a group's properties for them, their permissions at each   |
-| `EnsureGroupAccess`                                             | Lets in two or more Live properties; a support session only where it may view them all |
-| `GroupNavigation`                                               | The group sidebar                                                                      |
-| `GroupDashboard`, `GroupDashboardController`, `group/dashboard` | The dashboard                                                                          |
-| `GroupForecast`, `GroupForecastController`, `group/forecast`    | The forecast and its CSV                                                               |
-| `app-navbar.tsx`                                                | The group entries and identity                                                         |
+| Part                                                                              | Role                                                                                   |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `GroupProperties`                                                                 | The groups a user may open, a group's properties for them, their permissions at each   |
+| `EnsureGroupAccess`                                                               | Lets in two or more Live properties; a support session only where it may view them all |
+| `GroupNavigation`                                                                 | The group sidebar                                                                      |
+| `GroupDashboard`, `GroupDashboardController`, `group/dashboard`                   | The dashboard                                                                          |
+| `GroupForecast`, `GroupForecastController`, `group/forecast`                      | The forecast and its CSV                                                               |
+| `GroupReservations`, `GroupReservationsController`, `group/reservations`          | Every property's bookings in one list                                                  |
+| `GroupPropertyReports`, `GroupPropertyReportController`, `group/property-reports` | A property report for every property, by category                                      |
+| `GroupTableExport`, `pdf/group-table.blade.php`, `GroupExportMenu`                | The CSV and landscape PDF of every group table                                         |
+| `components/pms/group/*`                                                          | The dashboard's headline cards and charts, and the Export menu                         |
+| `app-navbar.tsx`                                                                  | The group entries and identity                                                         |
 
 ## Tests
 

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Group;
 
 use App\Data\Reports\ReportFilters;
+use App\Enums\ReportCategory;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use Carbon\CarbonImmutable;
@@ -12,7 +13,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
- * Group › Property reports: the report (`report`, Arrivals when missing; only `ReportKey::runsInGroup()`), its date
+ * Group › Reports › a category: the report (`report`, else the first of `category`, else Arrivals; only
+ * `ReportKey::runsInGroup()`), its date
  * (`date`, for a report of one date) or dates (`from`, `to`, no longer than the report allows), and `group` for a report
  * that groups its rows. With no dates it opens on today, or this month for a report that opens on the month.
  */
@@ -33,6 +35,7 @@ class GroupPropertyReportRequest extends FormRequest
     {
         return [
             'report' => ['nullable', Rule::in(array_map(fn (ReportKey $key): string => $key->value, self::reports()))],
+            'category' => ['nullable', Rule::enum(ReportCategory::class)],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d'],
@@ -72,9 +75,40 @@ class GroupPropertyReportRequest extends FormRequest
         return array_values(array_filter(ReportKey::cases(), fn (ReportKey $key): bool => $key->runsInGroup()));
     }
 
+    /**
+     * The report asked for, else the first report of the category asked for, else Arrivals.
+     */
     public function reportKey(): ReportKey
     {
-        return ReportKey::tryFrom((string) $this->input('report')) ?? ReportKey::Arrivals;
+        $report = ReportKey::tryFrom((string) $this->input('report'));
+
+        if ($report !== null && $report->runsInGroup()) {
+            return $report;
+        }
+
+        $category = ReportCategory::tryFrom((string) $this->input('category'));
+
+        return $category === null ? ReportKey::Arrivals : (self::inCategory($category)[0] ?? ReportKey::Arrivals);
+    }
+
+    /**
+     * The reports group mode runs in one category, in the reports menu order.
+     *
+     * @return list<ReportKey>
+     */
+    public static function inCategory(ReportCategory $category): array
+    {
+        return array_values(array_filter(self::reports(), fn (ReportKey $key): bool => $key->category() === $category));
+    }
+
+    /**
+     * The categories that have a report group mode runs, in menu order.
+     *
+     * @return list<ReportCategory>
+     */
+    public static function categories(): array
+    {
+        return array_values(array_filter(ReportCategory::cases(), fn (ReportCategory $category): bool => self::inCategory($category) !== []));
     }
 
     public function filters(CarbonImmutable $today): ReportFilters

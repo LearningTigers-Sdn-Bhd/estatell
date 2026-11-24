@@ -13,12 +13,14 @@ use App\Http\Requests\Group\GroupReportsRequest;
 use App\Models\Property;
 use App\Models\PropertyGroup;
 use App\Services\Group\GroupReports;
+use App\Services\Group\GroupTableExport;
 use App\Services\Property\PropertyToday;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -46,7 +48,27 @@ class GroupReportsController extends Controller
     /**
      * The open tab as a CSV file with the screen's rows; By property and By date end with the total row.
      */
-    public function export(GroupReportsRequest $request, PropertyGroup $propertyGroup): StreamedResponse
+    public function export(GroupReportsRequest $request, PropertyGroup $propertyGroup, GroupTableExport $export): StreamedResponse
+    {
+        $table = $this->table($request, $propertyGroup);
+
+        return $export->csv($table['filename'], $table['headings'], $table['rows']);
+    }
+
+    /**
+     * The open tab as a landscape PDF, the total row in bold.
+     */
+    public function pdf(GroupReportsRequest $request, PropertyGroup $propertyGroup, GroupTableExport $export): HttpResponse
+    {
+        $table = $this->table($request, $propertyGroup);
+
+        return $export->pdf($table['filename'], $propertyGroup->name, $table['title'], $table['subtitle'], $table['headings'], $table['rows'], $table['totalRows']);
+    }
+
+    /**
+     * @return array{filename: string, title: string, subtitle: string, headings: list<string>, rows: list<list<string|int|float|null>>, totalRows: list<int>}
+     */
+    private function table(GroupReportsRequest $request, PropertyGroup $propertyGroup): array
     {
         [$tab, $filters, $report] = $this->open($request);
         [$headings, $rows] = match ($tab) {
@@ -56,22 +78,17 @@ class GroupReportsController extends Controller
                 array_map(fn (GroupFiguresRowData $row): array => $row->csv(), $report->total === null ? $report->figures : [...$report->figures, $report->total]),
             ],
         };
+        $from = CarbonImmutable::parse($filters->from)->format('j M Y');
+        $to = CarbonImmutable::parse($filters->to)->format('j M Y');
 
-        return response()->streamDownload(function () use ($headings, $rows): void {
-            $out = fopen('php://output', 'w');
-
-            if ($out === false) {
-                throw new RuntimeException('The CSV output stream could not be opened.');
-            }
-
-            fputcsv($out, $headings);
-
-            foreach ($rows as $row) {
-                fputcsv($out, $row);
-            }
-
-            fclose($out);
-        }, Str::slug("{$propertyGroup->name} {$tab->label()} {$filters->from} {$filters->to}").'.csv', ['Content-Type' => 'text/csv', 'Cache-Control' => 'no-store, private']);
+        return [
+            'filename' => Str::slug("{$propertyGroup->name} {$tab->label()} {$filters->from} {$filters->to}"),
+            'title' => $tab->label(),
+            'subtitle' => $from === $to ? $from : "{$from} – {$to}",
+            'headings' => $headings,
+            'rows' => $rows,
+            'totalRows' => $tab !== GroupReportTab::Bookings && $report->total !== null ? [count($rows) - 1] : [],
+        ];
     }
 
     /**

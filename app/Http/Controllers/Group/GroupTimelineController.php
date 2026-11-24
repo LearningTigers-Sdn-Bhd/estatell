@@ -16,14 +16,18 @@ use Inertia\Response;
 class GroupTimelineController extends Controller
 {
     /**
-     * The group timeline: every property's Timeline View for the same dates (`from`, `to`, 30 days at most, 14 from
-     * today by default), read only. See docs/03-staff/05-group-mode.md#group-timeline.
+     * The group timeline: every property's Timeline View for the same dates (`from`, `to`, 31 days at most, this whole
+     * month by default), read only. See docs/03-staff/05-group-mode.md#group-timeline.
      */
     public function __invoke(StayViewTimelineRequest $request, PropertyGroup $propertyGroup, GroupTimeline $timeline, PropertyToday $propertyToday): Response
     {
         /** @var Collection<int, Property> $properties */
         $properties = $request->attributes->get(EnsureGroupAccess::PROPERTIES);
-        [$from, $to] = $request->window($propertyToday->date($properties->firstOrFail()));
+        $today = $propertyToday->date($properties->firstOrFail());
+        // With no dates the group timeline opens on this whole month (decided 2026-11-24).
+        [$from, $to] = $request->filled('from') || $request->filled('to')
+            ? $request->window($today)
+            : [$today->startOfMonth(), $today->endOfMonth()->startOfDay()];
 
         return Inertia::render('group/timeline', [
             'group' => ['id' => $propertyGroup->id, 'name' => $propertyGroup->name],

@@ -1,20 +1,24 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Info } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { formatDate } from '@/components/pms/date-text';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
-import { PageHeader } from '@/components/pms/page-header';
 import { StayViewTimeline } from '@/components/pms/stay-view/stay-view-timeline';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Card,
     CardAction,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useInitials } from '@/hooks/use-initials';
 import { timeline as propertyTimeline } from '@/routes/front-desk';
 import {
@@ -43,6 +47,27 @@ function addDays(date: string, days: number): string {
     return value.toISOString().slice(0, 10);
 }
 
+/** The first and last day of the month that holds the date. */
+function monthOf(date: string): { from: string; to: string } {
+    const [year, month] = date.split('-').map(Number);
+
+    return {
+        from: new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10),
+        to: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
+    };
+}
+
+/** `2026-11-01` as "November 2026". */
+function monthName(date: string): string {
+    const [year, month] = date.split('-').map(Number);
+
+    return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-GB', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+    });
+}
+
 /** The number of nights between two `Y-m-d` dates, counting both ends. */
 function length(from: string, to: string): number {
     return (
@@ -61,7 +86,7 @@ function PropertyTimeline({ block }: { block: Block }) {
     const gridRef = useRef<DateGridHandle>(null);
     const getInitials = useInitials();
     const { property } = block;
-    const height = Math.min(Math.max(block.rooms.length, 3) * 48 + 96, 480);
+    const height = Math.min(Math.max(block.rooms.length, 3) * 36 + 96, 520);
 
     const openStay = (unitId: number) => {
         const stay = block.stays.find((item) => item.unitId === unitId);
@@ -78,7 +103,7 @@ function PropertyTimeline({ block }: { block: Block }) {
 
     return (
         <Card size="sm" className="gap-0 overflow-hidden py-0">
-            <CardHeader className="border-b py-3">
+            <CardHeader className="border-b py-2">
                 <CardTitle className="flex items-center gap-2">
                     <Avatar className="overflow-hidden rounded-md after:rounded-md">
                         <AvatarImage
@@ -91,11 +116,24 @@ function PropertyTimeline({ block }: { block: Block }) {
                         </AvatarFallback>
                     </Avatar>
                     {property.name}
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <button
+                                    type="button"
+                                    aria-label={`About ${property.name}`}
+                                    className="rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                                />
+                            }
+                        >
+                            <Info className="size-4" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            ID {property.code} · {block.stays.length} stays ·{' '}
+                            {block.rooms.length} rooms and beds
+                        </TooltipContent>
+                    </Tooltip>
                 </CardTitle>
-                <CardDescription>
-                    ID {property.code} · {block.stays.length} stays ·{' '}
-                    {block.rooms.length} rooms and beds
-                </CardDescription>
                 <CardAction>
                     <Link
                         href={
@@ -144,6 +182,7 @@ function PropertyTimeline({ block }: { block: Block }) {
                         canBlockRooms={false}
                         onOpenStay={openStay}
                         onBlockRoom={() => undefined}
+                        density="compact"
                     />
                 )}
             </CardContent>
@@ -164,51 +203,80 @@ export default function GroupTimeline({
 }) {
     const [loading, setLoading] = useState(false);
     const days = length(from, to);
-    const go = (start: string) =>
+    const month = monthOf(from);
+    const isMonth = from === month.from && to === month.to;
+    const visit = (start: string, end: string) =>
         router.get(
             groupTimeline.url({ propertyGroup: group.id }),
-            { from: start, to: addDays(start, days - 1) },
+            { from: start, to: end },
             {
                 preserveScroll: true,
                 onStart: () => setLoading(true),
                 onFinish: () => setLoading(false),
             },
         );
+    const go = (direction: -1 | 1) => {
+        if (isMonth) {
+            const next = monthOf(
+                addDays(direction === 1 ? to : from, direction),
+            );
+
+            visit(next.from, next.to);
+
+            return;
+        }
+
+        const start = addDays(from, direction * days);
+
+        visit(start, addDays(start, days - 1));
+    };
 
     return (
         <>
             <Head title={`${group.name} timeline`} />
 
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <PageHeader
-                    title="Timeline View"
-                    description="Every property's rooms and beds for the same dates. Open a booking or a property's own Timeline View to change anything."
-                    actions={
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                aria-label="Earlier dates"
-                                disabled={loading}
-                                onClick={() => go(addDays(from, -days))}
-                            >
-                                <ChevronLeft />
-                            </Button>
-                            <span className="text-sm tabular-nums">
-                                {formatDate(from)} – {formatDate(to)}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                aria-label="Later dates"
-                                disabled={loading}
-                                onClick={() => go(addDays(from, days))}
-                            >
-                                <ChevronRight />
-                            </Button>
-                        </div>
-                    }
-                />
+            <div className="flex flex-1 flex-col gap-3 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label={isMonth ? 'Earlier month' : 'Earlier dates'}
+                        disabled={loading}
+                        onClick={() => go(-1)}
+                    >
+                        <ChevronLeft />
+                    </Button>
+                    <span className="min-w-44 text-center text-sm font-medium tabular-nums">
+                        {isMonth
+                            ? monthName(from)
+                            : `${formatDate(from)} – ${formatDate(to)}`}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label={isMonth ? 'Later month' : 'Later dates'}
+                        disabled={loading}
+                        onClick={() => go(1)}
+                    >
+                        <ChevronRight />
+                    </Button>
+                    <ToggleGroup
+                        value={[isMonth ? 'month' : 'weeks']}
+                        onValueChange={(value: string[]) => {
+                            if (value[0] === 'month' && !isMonth) {
+                                visit(month.from, month.to);
+                            } else if (value[0] === 'weeks' && isMonth) {
+                                visit(from, addDays(from, 13));
+                            }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto"
+                    >
+                        <ToggleGroupItem value="month">Month</ToggleGroupItem>
+                        <ToggleGroupItem value="weeks">2 weeks</ToggleGroupItem>
+                    </ToggleGroup>
+                </div>
 
                 {properties.length === 0 ? (
                     <p className="text-sm text-muted-foreground">

@@ -16,7 +16,7 @@ class StayViewTimelineRequest extends FormRequest
     /**
      * The longest window, counting both ends.
      */
-    public const MAX_DAYS = 30;
+    public const MAX_DAYS = 31;
 
     /**
      * The length of the window when the request gives none, counting both ends.

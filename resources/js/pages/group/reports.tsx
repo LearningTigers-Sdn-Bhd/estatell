@@ -1,16 +1,15 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Building2, CalendarDays, Download, History } from 'lucide-react';
+import { Building2, CalendarDays, History } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { DateText, formatDate } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
-import { PageHeader } from '@/components/pms/page-header';
+import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
-import { buttonVariants } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -22,7 +21,10 @@ import {
 } from '@/components/ui/table';
 import { reportDatePresets } from '@/lib/date-presets';
 import { dashboard as groupDashboard, reports } from '@/routes/group';
-import { exportMethod as exportCsv } from '@/routes/group/reports';
+import {
+    exportMethod as exportCsv,
+    pdf as exportPdf,
+} from '@/routes/group/reports';
 import { historyForecast } from '@/routes/reports';
 import { show } from '@/routes/reservations';
 
@@ -305,26 +307,9 @@ export default function GroupReports({
 
     return (
         <>
-            <Head title={`${group.name} reports`} />
+            <Head title={`${group.name} performance`} />
 
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <PageHeader
-                    title="Reports"
-                    description={`${report.properties.map((property) => property.name).join(' and ') || group.name}, together.`}
-                    actions={
-                        <a
-                            href={exportCsv.url(
-                                { propertyGroup: group.id },
-                                { query: { tab, from, to } },
-                            )}
-                            className={buttonVariants({ variant: 'outline' })}
-                        >
-                            <Download data-icon="inline-start" />
-                            Export CSV
-                        </a>
-                    }
-                />
-
+            <div className="flex flex-1 flex-col gap-3 p-4">
                 <TabLinks
                     activeTab={tab}
                     panelWidth="full"
@@ -351,6 +336,18 @@ export default function GroupReports({
                         <span className="text-sm text-muted-foreground">
                             {descriptions[tab]}
                         </span>
+                        <div className="ml-auto">
+                            <GroupExportMenu
+                                pdfUrl={exportPdf.url(
+                                    { propertyGroup: group.id },
+                                    { query: { tab, from, to } },
+                                )}
+                                csvUrl={exportCsv.url(
+                                    { propertyGroup: group.id },
+                                    { query: { tab, from, to } },
+                                )}
+                            />
+                        </div>
                     </div>
 
                     {report.leftOut.length > 0 && (
@@ -398,7 +395,7 @@ GroupReports.layout = (props: { group: Group }) => ({
             href: groupDashboard({ propertyGroup: props.group.id }),
         },
         {
-            title: 'Reports',
+            title: 'Performance',
             href: reports({ propertyGroup: props.group.id }),
         },
     ],

@@ -140,6 +140,7 @@ export function DateGrid<Row extends GridRow>({
         );
 
     const totalWidth = labelWidth + columnVirtualizer.getTotalSize();
+    const narrow = columnWidth < 64;
     const rowsHeight = rowVirtualizer.getTotalSize();
     const hasFooter = renderFooterCell !== undefined;
     const hasPinned = renderPinnedCell !== undefined;
@@ -264,7 +265,12 @@ export function DateGrid<Row extends GridRow>({
                                     changeHover(null, column.date)
                                 }
                             >
-                                <span>{column.weekday}</span>
+                                {/* A narrow night (a month on screen) shows the weekday's letter and the day only. */}
+                                <span>
+                                    {narrow
+                                        ? column.weekday.slice(0, 1)
+                                        : column.weekday}
+                                </span>
                                 <span
                                     className={cn(
                                         'text-sm',
@@ -273,7 +279,9 @@ export function DateGrid<Row extends GridRow>({
                                             : 'text-grid-foreground',
                                     )}
                                 >
-                                    {column.day} {column.month}
+                                    {narrow
+                                        ? column.day
+                                        : `${column.day} ${column.month}`}
                                 </span>
                             </div>
                         );
