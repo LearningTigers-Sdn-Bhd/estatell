@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class BuildDailyJournal
 {
+    public function __construct(private PosDailyJournalBuilder $posJournal) {}
+
     /**
      * Null when the date has no money lines. Throws when a code with an amount has no account or the guest ledger account
      * is not set.
@@ -29,7 +31,7 @@ class BuildDailyJournal
      */
     public function forDate(Property $property, AccountingConnection $connection, BusinessDate $date): ?AccountingJournal
     {
-        $rows = $this->totals($property, $date);
+        $rows = $this->merge($this->totals($property, $date), $this->posJournal->rows($property, $date));
 
         if ($rows === []) {
             return null;
@@ -45,11 +47,6 @@ class BuildDailyJournal
         }
 
         $guestLedger = $connection->guest_ledger_account_code;
-
-        if (blank($guestLedger)) {
-            throw AccountingException::guestLedgerMissing();
-        }
-
         $label = $date->date->toDateString();
         $lines = [];
         $balance = BigDecimal::zero();
@@ -66,6 +63,10 @@ class BuildDailyJournal
         }
 
         if (! $balance->isZero()) {
+            if (blank($guestLedger)) {
+                throw AccountingException::guestLedgerMissing();
+            }
+
             $lines[] = new AccountingJournalLine(
                 accountCode: (string) $guestLedger,
                 debit: $balance->isPositive() ? (string) $balance->toScale(2) : '0.00',
@@ -81,6 +82,29 @@ class BuildDailyJournal
             description: "{$property->name} daily journal {$label}",
             lines: $lines,
         );
+    }
+
+    /**
+     * Add the POS rows to the folio rows. A code in both has its nets added, and one that nets to zero is dropped.
+     *
+     * @param  list<array{code: string, name: string, account: string|null, net: BigDecimal}>  $folio
+     * @param  list<array{code: string, name: string, account: string|null, net: BigDecimal}>  $pos
+     * @return list<array{code: string, name: string, account: string|null, net: BigDecimal}>
+     */
+    private function merge(array $folio, array $pos): array
+    {
+        $byCode = [];
+
+        foreach ([...$folio, ...$pos] as $row) {
+            $byCode[$row['code']] = isset($byCode[$row['code']])
+                ? [...$byCode[$row['code']], 'net' => $byCode[$row['code']]['net']->plus($row['net'])]
+                : $row;
+        }
+
+        $rows = array_values(array_filter($byCode, fn (array $row): bool => ! $row['net']->isZero()));
+        usort($rows, fn (array $a, array $b): int => strcmp($a['code'], $b['code']));
+
+        return $rows;
     }
 
     /**

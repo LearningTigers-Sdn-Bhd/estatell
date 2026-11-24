@@ -61,7 +61,7 @@ type TaxNumberAnswer = {
  * Asks LHDN whether the tax number belongs to the ID before sending, so a mismatch is fixed here instead of coming
  * back as a rejection. When LHDN holds another tax number for the ID, one press puts it in the form.
  */
-function TaxNumberCheck({
+export function TaxNumberCheck({
     tin,
     idType,
     idValue,

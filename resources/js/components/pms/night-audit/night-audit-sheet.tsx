@@ -627,6 +627,19 @@ export function NightAuditSheet({
                         </Alert>
                     )}
 
+                    {sheet.nativePosReview && (
+                        <Alert>
+                            <TriangleAlert />
+                            <AlertTitle>
+                                {sheet.nativePosReview.message}
+                            </AlertTitle>
+                            <AlertDescription>
+                                Open POS shifts keep trading through the audit.
+                                Their orders settle on the new business date.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     {!notEnded &&
                         sheet.blockers.length > 0 &&
                         !sheet.canForce && (

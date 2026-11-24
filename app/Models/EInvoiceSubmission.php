@@ -132,6 +132,16 @@ class EInvoiceSubmission extends Model
     }
 
     /**
+     * @return BelongsToMany<PosOrder, $this>
+     */
+    public function posOrders(): BelongsToMany
+    {
+        return $this->belongsToMany(PosOrder::class, 'e_invoice_submission_pos_orders', 'submission_id', 'pos_order_id')
+            ->withPivot('line_number', 'is_active')
+            ->withTimestamps();
+    }
+
+    /**
      * @return BelongsTo<ArInvoice, $this>
      */
     public function arInvoice(): BelongsTo

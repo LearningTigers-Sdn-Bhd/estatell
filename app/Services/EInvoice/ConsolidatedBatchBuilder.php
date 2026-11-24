@@ -3,6 +3,7 @@
 namespace App\Services\EInvoice;
 
 use App\Models\Folio;
+use App\Models\PosOrder;
 use App\Models\Property;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -32,6 +33,9 @@ class ConsolidatedBatchBuilder
     public const string UNIT_CODE_EACH = 'C62';
 
     public const int MAX_FOLIOS_PER_DOCUMENT = 100;
+
+    /** The description of each walk-in sale's line. */
+    public const string POS_LINE_DESCRIPTION = 'Consolidated sale receipt';
 
     /** The description of each stay's line; `SubmissionView` reads the folio number back from it. */
     public const string LINE_DESCRIPTION = 'Consolidated stay receipt';
@@ -66,6 +70,7 @@ class ConsolidatedBatchBuilder
         private SupplierDetails $supplierDetails,
         private DocumentEncoder $documentEncoder,
         private StaysNeedingOwnEInvoice $staysNeedingOwnEInvoice,
+        private PosOrderReportLines $posOrderReportLines,
     ) {}
 
     /**
@@ -77,13 +82,14 @@ class ConsolidatedBatchBuilder
     }
 
     /**
-     * @param  Collection<int, Folio>  $folios  At most `MAX_FOLIOS_PER_DOCUMENT`; a stay that does not fit is left out.
-     * @return array{format: string, document: string, documentHash: string, codeNumber: string, payload: array<string, mixed>, lines: array<int, int>}
-     *                                                                                                                                                  `lines` is the line number of each stay in the document, by folio id.
+     * @param  Collection<int, Folio>  $folios  With `$posOrders`, at most `MAX_FOLIOS_PER_DOCUMENT`; a stay that does not fit is left out.
+     * @param  Collection<int, PosOrder>|null  $posOrders  Walk-in sales and refunds, one line each.
+     * @return array{format: string, document: string, documentHash: string, codeNumber: string, payload: array<string, mixed>, lines: array<int, int>, posLines: array<int, int>}
+     *                                                                                                                                                                             `lines` and `posLines` are the line number of each stay and of each POS order in the document, by id.
      *
      * @throws MissingEInvoiceDetails when the hotel lacks a detail LHDN needs.
      */
-    public function build(Property $property, Collection $folios, CarbonImmutable $month): array
+    public function build(Property $property, Collection $folios, CarbonImmutable $month, ?Collection $posOrders = null): array
     {
         if ($property->eInvoiceSetting === null) {
             throw new RuntimeException('Property e-invoice settings are not configured.');
@@ -93,7 +99,7 @@ class ConsolidatedBatchBuilder
 
         $signer = new DocumentSigner($property->eInvoiceSetting);
         $internalId = 'CONS-'.$property->id.'-'.$month->format('Ym').'-'.strtoupper(Str::random(6));
-        $stays = $this->stays($folios);
+        $stays = $this->stays($folios, $posOrders ?? new Collection);
 
         // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
         $issuedAt = now('UTC');
@@ -122,11 +128,17 @@ class ConsolidatedBatchBuilder
         $payload = $signer->apply(array_merge(FolioDocumentBuilder::UBL_NAMESPACES, ['Invoice' => [$body]]));
 
         $lines = [];
+        $posLines = [];
         foreach ($stays as $index => $stay) {
-            $lines[$stay['folio']->id] = $index + 1;
+            [$kind, $id] = explode(':', $stay['key']);
+            if ($kind === 'pos') {
+                $posLines[(int) $id] = $index + 1;
+            } else {
+                $lines[(int) $id] = $index + 1;
+            }
         }
 
-        return [...$this->documentEncoder->encode($payload, $internalId), 'lines' => $lines];
+        return [...$this->documentEncoder->encode($payload, $internalId), 'lines' => $lines, 'posLines' => $posLines];
     }
 
     /**
@@ -166,7 +178,7 @@ class ConsolidatedBatchBuilder
      * One line per stay: its charges before tax, and the taxes posted on it by LHDN tax type (SST is Service Tax
      * `02`). A stay without tax is exempt (`E`). The stay's own total, tax included, is what the guest paid.
      *
-     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
+     * @param  list<array{number: string, key: string, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
      * @return list<array<string, mixed>>
      */
     private function invoiceLines(array $stays): array
@@ -174,7 +186,6 @@ class ConsolidatedBatchBuilder
         $lines = [];
 
         foreach ($stays as $index => $stay) {
-            $folioNumber = $stay['folio']->invoice_number ?: $stay['folio']->number;
             $net = LhdnAmount::of($stay['net']);
 
             $lines[] = [
@@ -198,7 +209,7 @@ class ConsolidatedBatchBuilder
                         'CommodityClassification' => [
                             ['ItemClassificationCode' => [['_' => self::CONSOLIDATED_CLASS_CODE, 'listID' => 'CLASS']]],
                         ],
-                        'Description' => [['_' => self::LINE_DESCRIPTION." {$folioNumber}"]],
+                        'Description' => [['_' => ($stay['key'][0] === 'p' ? self::POS_LINE_DESCRIPTION : self::LINE_DESCRIPTION)." {$stay['number']}"]],
                         'OriginCountry' => [['IdentificationCode' => [['_' => self::ORIGIN_COUNTRY_CODE]]]],
                     ],
                 ],
@@ -214,7 +225,7 @@ class ConsolidatedBatchBuilder
      * The document's tax: each tax type's total over the stays, with the charges it is on as its taxable amount, plus
      * an exempt subtotal for the charges with no tax.
      *
-     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
+     * @param  list<array{number: string, key: string, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
      * @return array<string, mixed>
      */
     private function taxTotalBlock(array $stays): array
@@ -291,7 +302,7 @@ class ConsolidatedBatchBuilder
     }
 
     /**
-     * @param  list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
+     * @param  list<array{number: string, key: string, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>  $stays
      * @return array<string, mixed>
      */
     private function monetaryTotal(array $stays): array
@@ -315,20 +326,25 @@ class ConsolidatedBatchBuilder
     }
 
     /**
-     * The stays that go in the summary, each split into charges and taxes.
+     * The stays and walk-in sales that go in the summary, each split into charges and taxes. A refund's amounts are negative.
      *
      * @param  Collection<int, Folio>  $folios
-     * @return list<array{folio: Folio, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>
+     * @param  Collection<int, PosOrder>  $posOrders
+     * @return list<array{number: string, key: string, net: BigDecimal, tax: BigDecimal, taxes: array<string, BigDecimal>, taxable: array<string, BigDecimal>, percent: array<string, BigDecimal|null>, untaxed: BigDecimal}>
      */
-    private function stays(Collection $folios): array
+    private function stays(Collection $folios, Collection $posOrders): array
     {
         $taxTypes = new LhdnTaxType;
         $stays = [];
 
         foreach ($folios as $folio) {
             if ($this->fitsInSummary($folio)) {
-                $stays[] = ['folio' => $folio, ...$this->reportableLines->split($folio, $taxTypes)];
+                $stays[] = ['number' => (string) ($folio->invoice_number ?: $folio->number), 'key' => 'folio:'.$folio->id, ...$this->reportableLines->split($folio, $taxTypes)];
             }
+        }
+
+        foreach ($posOrders as $order) {
+            $stays[] = ['number' => (string) $order->order_number, 'key' => 'pos:'.$order->id, ...$this->posOrderReportLines->split($order)];
         }
 
         return $stays;
