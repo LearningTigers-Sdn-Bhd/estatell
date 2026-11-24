@@ -158,3 +158,21 @@ test('the group dashboard costs the same queries however many bookings the prope
 
     expect($many)->toBe($few);
 });
+
+test('a property whose business date is behind shows the night audit alert, and the next six months load on their own', function () {
+    $setup = liveGroupSetup();
+    grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
+    $this->travelTo('2026-10-17 12:00:00');
+    groupArrival($setup['sepilok'], $setup['roomTypes']['sepilok']);
+
+    $this->actingAs($setup['manager'])->get(groupDashboardUrl($setup['sepilok']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->missing('forecast')
+            ->loadDeferredProps('forecast', fn (Assert $page) => $page
+                ->has('forecast.months', 6)
+                ->where('forecast.months.0', '2026-10')
+                ->has('forecast.properties', 2))
+            ->loadDeferredProps('default', fn (Assert $page) => $page
+                ->where('dashboard.properties.1.property.name', 'Tanini Sepilok')
+                ->where('dashboard.properties.1.alert', 'The business date is 14 Oct. Run the night audit to catch up.')));
+});

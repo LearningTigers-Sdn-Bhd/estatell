@@ -2394,6 +2394,7 @@ export type GroupPropertyTilesData = {
 property: App.Data.Property.PropertySummaryData,
 businessDate: string | null,
 tiles: App.Data.Dashboard.DashboardTilesData | null,
+alert: string | null,
 };
 export type GroupReportRowData = {
 code: string | null,

@@ -4,7 +4,27 @@
 
 A manager of more than one property of a group (Tanini: Sepilok and Kinabatangan) sees them together, without signing in again: one dashboard with today at every property, then a group timeline and consolidated reports. Plan items 1.2 and 7.4. It builds on [Property groups and multi-property access](04-property-groups.md).
 
-**Status:** built 2026-11-22: group mode, the group dashboard, the group timeline and group reports.
+**Status:** built 2026-11-22: group mode, the group dashboard, the group timeline and group reports. Extended 2026-11-24: Reservations, Forecast, Property reports, and the dashboard's alerts, next six months and quick links.
+
+## What an owner needs across properties
+
+Analysis of 2026-11-24 (Tanini asked for more to see, manage and export from both lodges without switching). The owner's questions, and where group mode answers them:
+
+| The owner asks                                     | Group mode                                                                                                       | Status |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------ |
+| How is every lodge doing today? Is anything stuck? | Dashboard: today's figures per property and summed, night audit alerts                                           | Built  |
+| How do the next months look, against last year?    | Forecast (3–24 months) and the dashboard's next six months                                                       | Built  |
+| Where is this guest booked? What do they owe?      | Reservations: one list and search, with room total and balance                                                   | Built  |
+| Who is arriving, leaving or in house everywhere?   | Property reports: Arrivals, Departures, In house, Checked out                                                    | Built  |
+| Money: revenue, payments, tax, what is owed        | Group reports, Property reports (Revenue, Payments, Tax, Outstanding balance, Deposit liability, Agent payments) | Built  |
+| Which rooms are free across the lodges?            | Timeline View, read only                                                                                         | Built  |
+| Export anything for the accountant or the bank     | CSV on Forecast, Reports, Property reports and Reservations                                                      | Built  |
+| Change rates and availability for both at once     | Not yet: each property's Rates page                                                                              | Next   |
+| Give a staff member access to both, in one place   | Not yet: each property's Staff › Access                                                                          | Next   |
+| Group transfers and boats for the day              | Not yet: each property's run sheet and Boat Trips                                                                | Next   |
+| Channel health of every property                   | Not yet: each property's Channels page                                                                           | Next   |
+
+Changes still happen inside a property: group mode reads and exports, and every row links to the property page where the change is made. Rates, staff access and settings are per property by design (each lodge has its own licence, tax setup, channel connection and invoices), so a bulk edit across properties is a separate decision.
 
 ## Who sees it
 
@@ -30,6 +50,10 @@ A manager of more than one property of a group (Tanini: Sepilok and Kinabatangan
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | All properties                 | Arrivals and departures (to do of total), tonight's occupancy (units sold over units on sale, summed across properties), new bookings today, and revenue this month (summed only when every property has one currency, with "1 of 2 properties" when a role hides it at one) |
 | One card per property, by name | Its ID and own business date, the same figures from `DashboardTiles` (the property dashboard's numbers), and **Open** to its dashboard                                                                                                                                       |
+
+- **Quick links** under the title: Reservations, Timeline View, Forecast, Property reports.
+- **Needs attention** (a destructive Alert, only when there is something): each property whose night audit alert is on (failed, waiting on a fix, or the business date behind), from the property dashboard's own `DashboardAlert`. Each property card repeats its alert. Shown where the role shows reservations or reports.
+- **Next 6 months**: occupancy on the books for each property and for all, beside last year ("LY"), from `GroupForecast` for six months from this month. It is its own deferred prop (`forecast`), so the day's figures do not wait for it. **Forecast** opens the full page.
 
 Each property counts on its own business date, as its own dashboard does. Queries grow with the number of properties shown, never with bookings (tested).
 

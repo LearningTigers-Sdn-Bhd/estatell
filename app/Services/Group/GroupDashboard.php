@@ -10,10 +10,12 @@ use App\Data\Property\PropertySummaryData;
 use App\Enums\PermissionEnum;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Dashboard\DashboardAlert;
 use App\Services\Dashboard\DashboardTiles;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Staff\GroupProperties;
 use Brick\Math\BigDecimal;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -27,6 +29,7 @@ class GroupDashboard
         private GroupProperties $groupProperties,
         private DashboardTiles $tiles,
         private CurrentBusinessDate $businessDate,
+        private DashboardAlert $alert,
     ) {}
 
     /**
@@ -41,12 +44,14 @@ class GroupDashboard
             $held = $permissions[$property->id] ?? [];
             $units = in_array(PermissionEnum::ReservationsView->value, $held, true);
             $reports = in_array(PermissionEnum::ReportsView->value, $held, true);
-            $date = $this->businessDate->date($property);
+            $businessDate = $this->businessDate->get($property);
+            $date = $businessDate === null ? null : CarbonImmutable::parse($businessDate->date->toDateString());
 
             $blocks[] = new GroupPropertyTilesData(
                 property: PropertySummaryData::fromModel($property),
                 businessDate: $date?->toDateString(),
                 tiles: $date !== null && ($units || $reports) ? $this->tiles->forDate($property, $date, $units, $reports) : null,
+                alert: $units || $reports ? $this->alert->forBusinessDate($property, $businessDate)?->message : null,
             );
         }
 
