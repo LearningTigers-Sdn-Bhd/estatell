@@ -75,3 +75,25 @@ test('docs token verification fails on invalid signature or expired token', func
     $expiredToken = DocsAuthToken::generate($user, 'secret-a', ttlSeconds: -10);
     expect(DocsAuthToken::verify($expiredToken, 'secret-a'))->toBeNull();
 });
+
+test('docs tokens use the development secret locally when none is set', function () {
+    config(['estatell.docs_auth_secret' => null]);
+
+    $token = DocsAuthToken::generate(User::factory()->create());
+
+    expect(DocsAuthToken::verify($token, DocsAuthToken::DEVELOPMENT_SECRET))->not->toBeNull();
+});
+
+test('docs tokens refuse the development secret outside local and testing', function () {
+    config(['estatell.docs_auth_secret' => null]);
+    app()->detectEnvironment(fn (): string => 'production');
+
+    DocsAuthToken::generate(User::factory()->create());
+})->throws(RuntimeException::class, 'DOCS_AUTH_SECRET is not set.');
+
+test('docs token verification rejects a payload with the wrong field types', function () {
+    $encoded = rtrim(strtr(base64_encode(json_encode(['sub' => '1', 'email' => 'a@b.test', 'iat' => 1, 'exp' => now()->addHour()->getTimestamp()], JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
+    $token = $encoded.'.'.hash_hmac('sha256', $encoded, 'secret-a');
+
+    expect(DocsAuthToken::verify($token, 'secret-a'))->toBeNull();
+});

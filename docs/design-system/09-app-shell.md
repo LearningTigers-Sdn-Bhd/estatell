@@ -85,6 +85,8 @@ The shared `docsUrl` prop points at the English user docs (`config('estatell.doc
 - Staff navbar: a `CircleHelp` icon button before the theme shortcut.
 - Setup wizard: the existing help popover links to `/onboarding` in the docs.
 
+The docs site needs an estatell sign-in. A reader without a docs session is sent to `/docs/auth` (route `docs.auth`, behind `auth`). It signs a 7-day token with `DOCS_AUTH_SECRET` (`DocsAuthToken`) and redirects back to the page they asked for (`return_to`, docs host only). The docs Worker checks the token and keeps it in an HttpOnly cookie.
+
 ### Sidebar rows
 
 | Row | Content                        | Behavior                                                                                                                                                            |
