@@ -16,6 +16,7 @@ use App\Services\AiAssistant\AiTurnCost;
 use App\Services\AiAssistant\AssistantInstructions;
 use App\Services\BookingEngine\MapsPlace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Str;
 use Laravel\Ai\Ai;
 use Laravel\Pennant\Feature;
@@ -360,13 +361,15 @@ function aiEvalRecord(Property $property, string $group, string $case, array $fa
     $micros = (int) AiTurn::query()->where('property_id', $property->id)->sum('cost_micros') + ($GLOBALS['aiEvalJudgeMicros'] ?? 0);
     $GLOBALS['aiEvalJudgeMicros'] = 0;
     $GLOBALS['aiEvalResults'][] = ['group' => $group, 'case' => $case, 'passed' => $failures === [], 'micros' => $micros];
+    $GLOBALS['aiEvalModel'] = (string) config('ai.providers.openai.models.text.default');
+    $GLOBALS['aiEvalLogs'] = storage_path('logs');
 
     expect($failures)->toBe([], implode("\n", $failures));
 }
 
 /**
  * Prints the pass rate per group and the cost of the run, and saves it to storage/logs/ai-eval-*.md. A case passes when
- * at least 2 of its 3 runs pass.
+ * at least 2 of its 3 runs pass. Called from `afterAll`, when the app is gone, so it reads what `aiEvalRecord` kept.
  */
 function aiEvalReport(string $title): void
 {
@@ -389,9 +392,42 @@ function aiEvalReport(string $title): void
     $failed = collect($results)->groupBy('case')->filter(fn ($runs): bool => $runs->where('passed', true)->count() * 3 < $runs->count() * 2)->keys();
     $lines[] = '';
     $lines[] = 'Failed cases: '.($failed->isEmpty() ? 'none' : $failed->implode(', '));
-    $lines[] = 'Cost: US$ '.number_format(collect($results)->sum('micros') / 1_000_000, 4).' on '.config('ai.providers.openai.models.text.default');
+    $lines[] = 'Cost: US$ '.number_format(collect($results)->sum('micros') / 1_000_000, 4).' on '.$GLOBALS['aiEvalModel'];
 
     $report = implode("\n", $lines)."\n";
     fwrite(STDOUT, "\n{$report}\n");
-    file_put_contents(storage_path('logs/ai-eval-'.Str::slug($title).'-'.date('Ymd-His').'.md'), $report);
+    file_put_contents($GLOBALS['aiEvalLogs'].'/ai-eval-'.Str::slug($title).'-'.date('Ymd-His').'.md', $report);
+}
+
+/**
+ * Gives each case its name as the first argument, so a run can record which case it was.
+ *
+ * @param  array<string, array{0: string, 1: 'lobby'|'stay', 2: list<array<string, mixed>>}>  $cases
+ * @return array<string, array{0: string, 1: string, 2: string, 3: list<array<string, mixed>>}>
+ */
+function aiEvalDataset(array $cases): array
+{
+    return collect($cases)->map(fn (array $case, string $name): array => [$name, ...$case])->all();
+}
+
+/**
+ * Runs one case on a fresh lobby or stay, then records it.
+ *
+ * @param  'lobby'|'stay'  $place
+ * @param  list<array{guest: string, tools?: list<AiTool>, noTools?: list<AiTool>, says?: list<string>, saysAny?: list<string>, never?: list<string>, judge?: string}>  $turns
+ */
+function aiEvalRun(string $case, string $group, string $place, array $turns): void
+{
+    aiEvalSkipWithoutKey();
+    test()->withoutMiddleware(ThrottleRequests::class);
+
+    if ($place === 'stay') {
+        ['property' => $property, 'token' => $token] = aiEvalStay();
+        $send = aiEvalStaySend($token);
+    } else {
+        ['property' => $property] = aiEvalLobby();
+        $send = aiEvalLobbySend($property, (string) Str::uuid());
+    }
+
+    aiEvalRecord($property, $group, $case, aiEvalPlay($property, $turns, $send));
 }
