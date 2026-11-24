@@ -24,21 +24,21 @@ export function StaffWorkspaceHeader({
             <div
                 title={current?.label}
                 className={cn(
-                    'hidden h-10 shrink-0 items-center gap-2 border-r border-sidebar-border px-4 text-sm font-medium transition-all duration-200 ease-linear md:flex',
+                    'hidden h-10 shrink-0 items-center border-r border-sidebar-border px-2 text-sm font-medium transition-[width] duration-200 ease-linear md:flex',
                     state === 'collapsed'
-                        ? 'md:w-(--sidebar-width-icon) md:justify-center md:px-0'
+                        ? 'md:w-(--sidebar-width-icon)'
                         : 'md:w-(--sidebar-width)',
                 )}
             >
-                {Icon && <Icon aria-hidden className="size-4 shrink-0" />}
-                <span
+                <div
                     className={cn(
-                        'truncate',
-                        state === 'collapsed' && 'md:sr-only',
+                        'flex w-full items-center gap-2 overflow-hidden p-2 transition-[width] duration-200 ease-linear',
+                        state === 'collapsed' && 'md:w-8',
                     )}
                 >
-                    {current?.label}
-                </span>
+                    {Icon && <Icon aria-hidden className="size-4 shrink-0" />}
+                    <span className="truncate">{current?.label}</span>
+                </div>
             </div>
             <AppSidebarHeader
                 breadcrumbs={breadcrumbs}

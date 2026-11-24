@@ -87,16 +87,18 @@ The shared `docsUrl` prop points at the English user docs (`config('estatell.doc
 
 ### Sidebar rows
 
-| Row | Content                        | Behavior                                                                                                                                     |
-| --- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| r1  | Menu groups (labels) and items | Takes all remaining height (`flex-1`) and scrolls inside a `ScrollArea`. Groups are plain labels, never collapsible; items are never nested. |
-| r2  | `AreaSwitcher`                 | Footer, above the dates. See below.                                                                                                          |
-| r3  | `BusinessDateIndicator`        | Footer, the last row, always visible.                                                                                                        |
+| Row | Content                        | Behavior                                                                                                                                                            |
+| --- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| r1  | Menu groups (labels) and items | Takes all remaining height (`flex-1`) and scrolls inside a `ScrollArea`. In the staff sidebar each group label folds its group (see below); items are never nested. |
+| r2  | `AreaSwitcher`                 | Footer, above the dates. See below.                                                                                                                                 |
+| r3  | `BusinessDateIndicator`        | Footer, the last row, always visible.                                                                                                                               |
 
 - The starter kit sidebar, restyled by the preset. The bold menu accent fills the active item with emerald.
 - The staff sidebar sits below the navbar and workspace row (`top-24`). r1 uses `SidebarContent` with `SidebarGroup` + `SidebarGroupLabel` + `SidebarMenu`; r2 and r3 use `SidebarFooter`.
 - The Dashboard sits in the Overview group. A group with an empty label would show no label.
-- Sub-views that would need nesting (for example Arrivals, In-house, Departures) are separate items under a group label, or tabs on the page. Never a collapsible submenu.
+- **Collapsible groups (staff sidebar only).** The group label is a button with a chevron that folds the group. All groups start open. The state lives only in memory: it survives page visits because the sidebar stays mounted, and resets on a full reload. A folded group opens again when you move to one of its pages. Icon mode always shows every item. Admin, partner, portal and account sidebars keep plain labels.
+- **Footer card.** r2 and r3 sit in one card: `m-2`, rounded, `sidebar-border` border and the darker `sidebar-accent` background, so the fixed footer reads apart from the scrolling menu. It has no inner padding (`p-0`), so its icons line up with the menu icons. Footer items use the lighter `sidebar` color for hover and active. In icon mode the card becomes a full-width band with a top border and `p-2`, because the 3 rem sidebar has no room for the margin.
+- Sub-views that would need nesting (for example Arrivals, In-house, Departures) are separate items under a group label, or tabs on the page. Never a collapsible submenu inside an item.
 
 ### Area links (`AreaSwitcher`)
 
