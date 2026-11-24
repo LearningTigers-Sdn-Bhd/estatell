@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Account\NotificationPreferenceController;
+use App\Http\Controllers\Account\PosPinController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\Account\SetPasswordController;
@@ -38,6 +39,8 @@ Route::middleware(['auth', 'verified'])->prefix('account')->name('account.')->gr
     Route::delete('sessions', [SecurityController::class, 'logoutOtherDevices'])
         ->middleware('throttle:6,1')
         ->name('sessions.destroy');
+
+    Route::put('pos-pin', [PosPinController::class, 'update'])->middleware('throttle:6,1')->name('pos-pin.update');
 
     Route::inertia('appearance', 'account/appearance')->name('appearance.edit');
 });

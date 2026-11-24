@@ -66,6 +66,7 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     'bed-room-types': BedSingle,
     'pos-integration': Utensils,
     facilities: Tent,
+    'native-pos': Utensils,
 };
 
 /** On and Off for the partner's read-only rows. */

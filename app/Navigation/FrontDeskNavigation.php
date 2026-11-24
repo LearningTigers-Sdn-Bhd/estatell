@@ -8,6 +8,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
 use App\Features\Boats;
 use App\Features\Facilities;
+use App\Features\NativePos;
 use App\Features\PosIntegration;
 use App\Models\Property;
 use App\Models\User;
@@ -106,7 +107,7 @@ class FrontDeskNavigation
                     icon: 'calendar-range',
                     active: request()->routeIs('rates.*'),
                 ) : null,
-                $user->can(PermissionEnum::MealsRedeem->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
+                $user->can(PermissionEnum::MealsRedeem->value) && (Feature::for($property)->active(PosIntegration::class) || Feature::for($property)->active(NativePos::class)) ? new NavItemData(
                     title: __('Meal check-in'),
                     href: route('restaurant.meal-check-in.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',

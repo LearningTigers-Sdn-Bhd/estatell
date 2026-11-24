@@ -13,6 +13,7 @@ use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Facilities;
 use App\Features\Kiosks;
+use App\Features\NativePos;
 use App\Features\PosIntegration;
 use App\Models\Property;
 use App\Models\User;
@@ -68,7 +69,7 @@ class SettingsNavigation
                     icon: 'tablet',
                     active: request()->routeIs('settings.kiosks.*'),
                 ) : null,
-                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
+                $user->can(PermissionEnum::PosManage->value) && (Feature::for($property)->active(PosIntegration::class) || Feature::for($property)->active(NativePos::class)) ? new NavItemData(
                     title: __('POS'),
                     href: route('settings.pos-outlets.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',

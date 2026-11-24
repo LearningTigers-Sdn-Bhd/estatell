@@ -85,6 +85,16 @@ enum PermissionEnum: string
     case PosManage = 'pos.manage';
     case PosResolve = 'pos.resolve';
     case MealsRedeem = 'meals.redeem';
+    case PosSell = 'pos.sell';
+    case PosShift = 'pos.shift';
+    case PosVoid = 'pos.void';
+    case PosDiscount = 'pos.discount';
+    case PosRefund = 'pos.refund';
+    case PosKds = 'pos.kds';
+    case PosMenu = 'pos.menu';
+    case PosInventory = 'pos.inventory';
+    case PosHardware = 'pos.hardware';
+    case PosReports = 'pos.reports';
 
     public function label(): string
     {
@@ -166,6 +176,16 @@ enum PermissionEnum: string
             self::PosManage => __('Manage POS outlets, connections and API access'),
             self::PosResolve => __('Attach or ignore POS postings that need review'),
             self::MealsRedeem => __('Check off daily restaurant meal entitlements'),
+            self::PosSell => __('Open the POS terminal, take orders and settle payments'),
+            self::PosShift => __('Open and close register shifts and record cash movements'),
+            self::PosVoid => __('Void fired POS lines and orders, reprint pre-bills and open the drawer'),
+            self::PosDiscount => __('Apply restricted POS discounts, comps and price overrides'),
+            self::PosRefund => __('Refund settled POS orders and change the payment method'),
+            self::PosKds => __('Use the kitchen display and update kitchen line statuses'),
+            self::PosMenu => __('Manage the POS menu, modifiers, floors and availability'),
+            self::PosInventory => __('Manage POS ingredients, recipes, purchases and stocktakes'),
+            self::PosHardware => __('Pair POS hardware and configure printers and stations'),
+            self::PosReports => __('View POS sales, shift Z-reports and cash audit'),
         };
     }
 
@@ -195,7 +215,7 @@ enum PermissionEnum: string
             self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve => __('Guest requests'),
             self::EInvoiceView, self::EInvoiceManage => __('Finance'),
             self::PayoutsView => __('Payouts'),
-            self::PosView, self::PosManage, self::PosResolve, self::MealsRedeem => __('POS and restaurant'),
+            self::PosView, self::PosManage, self::PosResolve, self::MealsRedeem, self::PosSell, self::PosShift, self::PosVoid, self::PosDiscount, self::PosRefund, self::PosKds, self::PosMenu, self::PosInventory, self::PosHardware, self::PosReports => __('POS and restaurant'),
         };
     }
 

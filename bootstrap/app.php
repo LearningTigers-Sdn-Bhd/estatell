@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\AuthenticateKeyportDevice;
+use App\Http\Middleware\BlockBackOfficeInTerminalMode;
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
@@ -17,10 +18,13 @@ use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureFacilitiesAreActive;
 use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
+use App\Http\Middleware\EnsureNativePosIsActive;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePayoutsAreShown;
 use App\Http\Middleware\EnsurePortalAccess;
+use App\Http\Middleware\EnsurePosActorCan;
+use App\Http\Middleware\EnsurePosAnyIsActive;
 use App\Http\Middleware\EnsurePosIntegrationIsActive;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
@@ -28,7 +32,9 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogoutDeactivatedUsers;
 use App\Http\Middleware\ReplayIdempotentRequest;
+use App\Http\Middleware\RequirePosTerminalDevice;
 use App\Http\Middleware\RequireSupportTwoFactor;
+use App\Http\Middleware\ResolvePosActor;
 use App\Http\Middleware\TrackOnboardingActivity;
 use App\Http\Middleware\TrackSignInActivity;
 use App\Http\Responses\ApiError;
@@ -84,6 +90,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'concierge' => EnsureConciergeIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'pos-integration' => EnsurePosIntegrationIsActive::class,
+            'pos-any' => EnsurePosAnyIsActive::class,
+            'native-pos' => EnsureNativePosIsActive::class,
+            'pos.actor' => ResolvePosActor::class,
+            'pos.can' => EnsurePosActorCan::class,
+            'pos.device' => RequirePosTerminalDevice::class,
             'keyport.device' => AuthenticateKeyportDevice::class,
             'keyport.version' => EnsureKeyportVersion::class,
             'live' => EnsurePropertyIsLive::class,
@@ -111,6 +122,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePosIntegrationIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePosAnyIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureNativePosIsActive::class);
+        $middleware->appendToPriorityList(EnsureNativePosIsActive::class, ResolvePosActor::class);
+        $middleware->appendToPriorityList(ResolvePosActor::class, RequirePosTerminalDevice::class);
+        $middleware->appendToPriorityList(ResolvePosActor::class, EnsurePosActorCan::class);
 
         $middleware->web(append: [
             AuthenticateSession::class,
@@ -120,6 +136,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             BlockDuringImpersonation::class,
+            BlockBackOfficeInTerminalMode::class,
             BlockOnDemo::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
