@@ -65,6 +65,7 @@ return [
     */
 
     'docs_url' => env('DOCS_URL', 'https://docs.estatell.com'),
+    'docs_auth_secret' => env('DOCS_AUTH_SECRET'),
 
     /*
     |--------------------------------------------------------------------------
