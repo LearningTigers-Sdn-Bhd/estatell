@@ -57,7 +57,7 @@ Define every notification once, with its channels, defaults and recipients.
 
 `OnlineBookingCancelled` is built (`OnlineBookingCancelledByGuest`, sent by `NotifyOnlineCancellation` after `CancelBookingOnline` commits). The recipients are the active staff of the property with `reservations.manage`. The guest's email (`OnlineBookingCancelled`) skips the preference matrix. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#flow).
 
-`AiThreadEscalated` (label "AI chat handed over") is built (`EscalateAiThread`, run by the AI assistant's `HandOver` tool). The recipients are the active staff of the property with `front-desk.view`. The message names the place, the guest of the stay when there is one, and the model's short summary, never the chat. It links to the reservation, or to the dashboard for a lobby chat. The matrix check constraints list it. See [Handover](../34-ai-assistant/03-places-and-routes.md#handover).
+`AiThreadEscalated` (label "AI chat handed over") is built (`EscalateAiThread`, run by the AI assistant's `HandOver` tool). The recipients are the active staff of the property with `front-desk.view`. The message names the place, the guest of the stay when there is one, and the model's short summary, never the chat. It opens the chat in the AI chats inbox. The matrix check constraints list it. See [Handover](../34-ai-assistant/03-places-and-routes.md#handover).
 
 `OnlineRefundNeedsAttention` is built (`AlertOnlineRefundProblem`). It is sent when an online refund fails and when a late payment is refunded automatically. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#refund-status).
 

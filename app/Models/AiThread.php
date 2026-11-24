@@ -26,11 +26,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $user_id The staff member of a Staff thread.
  * @property string|null $language
  * @property CarbonImmutable|null $escalated_at
+ * @property string|null $handover_summary The model's short summary of the last handover. Cleared by the 90-day text purge.
+ * @property CarbonImmutable|null $resolved_at
+ * @property int|null $resolved_by_user_id
  * @property CarbonImmutable $last_message_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'place', 'status', 'agent_conversation_id', 'reservation_unit_id', 'user_id', 'language', 'escalated_at', 'last_message_at'])]
+#[Fillable(['property_id', 'place', 'status', 'agent_conversation_id', 'reservation_unit_id', 'user_id', 'language', 'escalated_at', 'handover_summary', 'resolved_at', 'resolved_by_user_id', 'last_message_at'])]
 class AiThread extends Model
 {
     /** @use HasFactory<AiThreadFactory> */
@@ -45,6 +48,7 @@ class AiThread extends Model
             'place' => AiPlace::class,
             'status' => AiThreadStatus::class,
             'escalated_at' => 'immutable_datetime',
+            'resolved_at' => 'immutable_datetime',
             'last_message_at' => 'immutable_datetime',
         ];
     }
@@ -63,6 +67,14 @@ class AiThread extends Model
     public function reservationUnit(): BelongsTo
     {
         return $this->belongsTo(ReservationUnit::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function resolvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by_user_id');
     }
 
     /**

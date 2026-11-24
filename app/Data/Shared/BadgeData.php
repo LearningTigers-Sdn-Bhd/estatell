@@ -5,6 +5,7 @@ namespace App\Data\Shared;
 use App\Enums\AccountingDocumentStatus;
 use App\Enums\AccountingSetupStatus;
 use App\Enums\AccountingSyncStatus;
+use App\Enums\AiThreadStatus;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArrivalImportOutcome;
 use App\Enums\AuditStatus;
@@ -51,6 +52,11 @@ class BadgeData extends Data
         public string $label,
         public Tone $tone,
     ) {}
+
+    public static function fromAiThreadStatus(AiThreadStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
 
     public static function fromGatewayRefundStatus(GatewayRefundStatus $status): self
     {

@@ -1,6 +1,6 @@
 # AI assistant
 
-> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities and Handover tabs, the Concierge lobby and stay chat, and the handover to staff. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
+> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities and Handover tabs, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
 
 ## Purpose
 

@@ -41,19 +41,19 @@ test('a handover tells front desk staff once, with the summary and the guest of 
     expect($thread->fresh()->status)->toBe(AiThreadStatus::Escalated);
 });
 
-test('a lobby handover has no guest and links to the dashboard', function () {
+test('a lobby handover has no guest and links to the chat', function () {
     $setup = conciergeSetup();
     $frontDesk = User::factory()->for($setup['property'])->withPermissions(['front-desk.view'])->create();
     $thread = AiThread::factory()->for($setup['property'])->create();
 
     app(EscalateAiThread::class)($thread, 'Asks about parking for a bus.');
 
-    Notification::assertSentTo($frontDesk, AiThreadEscalated::class, function (AiThreadEscalated $message) use ($frontDesk, $setup): bool {
+    Notification::assertSentTo($frontDesk, AiThreadEscalated::class, function (AiThreadEscalated $message) use ($frontDesk, $setup, $thread): bool {
         $data = $message->toArray($frontDesk);
 
         return $message->guestName === null
             && $message->reservationId === null
-            && $data['url'] === route('dashboard', ['property' => $setup['property']->code])
+            && $data['url'] === route('ai-chats.index', ['property' => $setup['property']->code, 'thread' => $thread->id])
             && str_contains($data['body'], 'Asks about parking for a bus.');
     });
 });

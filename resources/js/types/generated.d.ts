@@ -86,6 +86,27 @@ enabled: boolean,
 available: boolean,
 note: string | null,
 };
+export type AiThreadData = {
+row: App.Data.AiAssistant.AiThreadRowData,
+resolvedAt: string | null,
+resolvedByName: string | null,
+canResolve: boolean,
+messages: Record<string, any>[],
+};
+export type AiThreadRowData = {
+id: string,
+place: string,
+placeLabel: string,
+status: App.Data.Shared.BadgeData,
+guestName: string | null,
+roomNumber: string | null,
+reservationId: number | null,
+preview: string | null,
+hasSummary: boolean,
+turns: number,
+lastMessageAt: string,
+escalatedAt: string | null,
+};
 }
 namespace ApiAccess {
 export type KioskData = {

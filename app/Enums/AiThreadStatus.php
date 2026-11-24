@@ -27,14 +27,14 @@ enum AiThreadStatus: string
     }
 
     /**
-     * Open hands over or closes; a handed-over thread only closes. A closed thread stays closed: a new message starts a
-     * new thread.
+     * Open hands over or closes. A handed-over thread closes, or goes back to Open when staff resolve it. A closed thread
+     * stays closed: a new message starts a new thread.
      */
     public function canTransitionTo(self $next): bool
     {
         return match ($this) {
             self::Open => in_array($next, [self::Escalated, self::Closed], true),
-            self::Escalated => $next === self::Closed,
+            self::Escalated => in_array($next, [self::Open, self::Closed], true),
             self::Closed => false,
         };
     }

@@ -26,6 +26,27 @@ enum AiPlace: string
     }
 
     /**
+     * The places where a guest chats. Staff threads are one staff member's own helper chats, so the AI chats inbox
+     * never lists them.
+     *
+     * @return list<self>
+     */
+    public static function guestPlaces(): array
+    {
+        return [self::ConciergeLobby, self::ConciergeStay, self::BookingEngine, self::Api];
+    }
+
+    /**
+     * The guest places, for the AI chats inbox filter.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public static function guestOptions(): array
+    {
+        return array_map(fn (self $place): array => ['value' => $place->value, 'label' => $place->label()], self::guestPlaces());
+    }
+
+    /**
      * The place scope that must be on for a thread here.
      */
     public function scope(): AiScope

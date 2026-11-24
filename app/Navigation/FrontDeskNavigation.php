@@ -6,6 +6,7 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
+use App\Features\AiAssistant;
 use App\Features\Boats;
 use App\Features\Facilities;
 use App\Features\Pos;
@@ -63,6 +64,12 @@ class FrontDeskNavigation
                     href: route('guest-requests.index', ['property' => $property->code], absolute: false),
                     icon: 'concierge-bell',
                     active: request()->routeIs('guest-requests.*'),
+                ) : null,
+                $user->can(PermissionEnum::FrontDeskView->value) && Feature::for($property)->active(AiAssistant::class) ? new NavItemData(
+                    title: __('AI chats'),
+                    href: route('ai-chats.index', ['property' => $property->code], absolute: false),
+                    icon: 'bot',
+                    active: request()->routeIs('ai-chats.*'),
                 ) : null,
                 $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
                     title: __('Boat Trips'),

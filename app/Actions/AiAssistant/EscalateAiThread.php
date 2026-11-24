@@ -14,9 +14,10 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 /**
- * Hand a thread over to staff: it becomes Escalated, the property's front desk staff get `AiThreadEscalated` and the
- * `ai.escalated` webhook is queued, both with the model's short summary and never the chat. The thread keeps answering
- * questions. Returns false without writing or sending when the thread is already handed over or closed.
+ * Hand a thread over to staff: it becomes Escalated with the summary saved for the AI chats inbox, the property's front
+ * desk staff get `AiThreadEscalated` and the `ai.escalated` webhook is queued, both with the summary and never the chat.
+ * A new handover clears an earlier resolve. The thread keeps answering questions. Returns false without writing or
+ * sending when the thread is already handed over or closed.
  * See docs/34-ai-assistant/02-agent-and-tools.md#handover.
  */
 class EscalateAiThread
@@ -31,14 +32,21 @@ class EscalateAiThread
             return false;
         }
 
-        $thread->update(['status' => AiThreadStatus::Escalated, 'escalated_at' => now()]);
-
         $summary = Str::limit(trim($summary), self::SUMMARY_LIMIT);
+        $thread->update([
+            'status' => AiThreadStatus::Escalated,
+            'escalated_at' => now(),
+            'handover_summary' => $summary,
+            'resolved_at' => null,
+            'resolved_by_user_id' => null,
+        ]);
+
         $thread->loadMissing(['property', 'reservationUnit.guests.guest']);
         $unit = $thread->reservationUnit;
         $primaryGuest = $unit?->guests->first(fn (UnitGuest $unitGuest): bool => $unitGuest->is_primary) ?? $unit?->guests->first();
 
         $message = new AiThreadEscalated(
+            $thread->id,
             $thread->property->code,
             $thread->property->name,
             $thread->place->label(),

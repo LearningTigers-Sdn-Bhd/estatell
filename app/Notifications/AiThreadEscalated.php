@@ -8,11 +8,13 @@ use Illuminate\Notifications\Messages\MailMessage;
 /**
  * Tells front desk staff that the AI assistant handed a chat over. It carries the place, the guest name when the thread
  * belongs to a stay, and the model's short summary, never the chat itself. The data is copied in, so the message does
- * not depend on the thread when it is built. See docs/34-ai-assistant/03-places-and-routes.md#handover.
+ * not depend on the thread when it is built. It opens the chat in the AI chats inbox.
+ * See docs/34-ai-assistant/03-places-and-routes.md#handover.
  */
 class AiThreadEscalated extends PropertyNotification
 {
     public function __construct(
+        public string $threadId,
         public string $propertyCode,
         public string $propertyName,
         public string $placeLabel,
@@ -32,7 +34,7 @@ class AiThreadEscalated extends PropertyNotification
             ])
             ->subject($this->title())
             ->line($this->body())
-            ->action($this->reservationId === null ? __('Open dashboard') : __('Open reservation'), $this->url());
+            ->action(__('Open chat'), $this->url());
     }
 
     /**
@@ -64,8 +66,6 @@ class AiThreadEscalated extends PropertyNotification
 
     private function url(): string
     {
-        return $this->reservationId === null
-            ? route('dashboard', ['property' => $this->propertyCode])
-            : route('reservations.show', ['property' => $this->propertyCode, 'reservation' => $this->reservationId]);
+        return route('ai-chats.index', ['property' => $this->propertyCode, 'thread' => $this->threadId]);
     }
 }

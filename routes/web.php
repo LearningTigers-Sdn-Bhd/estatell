@@ -72,6 +72,7 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}']
         Route::get('dashboard/reservations/{reservation}', [DashboardController::class, 'reservation'])->scopeBindings()->middleware('can:reservations.view')->name('dashboard.reservation');
         Route::get('logo', [PropertyLogoController::class, 'show'])->name('property.logo');
 
+        require __DIR__.'/ai-chats.php';
         require __DIR__.'/boats.php';
         require __DIR__.'/events.php';
         require __DIR__.'/facilities.php';
