@@ -2379,10 +2379,27 @@ lastYearSold: number | null,
 lastYearOccupancy: string | null,
 lastYearRoomRevenue: string | null,
 };
+export type GroupPropertyReportData = {
+report: string,
+label: string,
+columns: App.Data.Reports.ReportLayoutColumnData[],
+rows: App.Data.Group.GroupReportRowData[],
+rowCount: number,
+totals: App.Data.Group.GroupReportRowData[],
+currency: App.Data.Property.CurrencyData | null,
+leftOut: string[],
+notOffered: string[],
+};
 export type GroupPropertyTilesData = {
 property: App.Data.Property.PropertySummaryData,
 businessDate: string | null,
 tiles: App.Data.Dashboard.DashboardTilesData | null,
+};
+export type GroupReportRowData = {
+code: string | null,
+property: string,
+cells: Record<string, string>,
+total: boolean,
 };
 export type GroupReportsData = {
 properties: App.Data.Property.PropertySummaryData[],

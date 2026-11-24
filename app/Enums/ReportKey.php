@@ -837,6 +837,20 @@ enum ReportKey: string
      * except Payments, which keeps its own entry. House status sits in the Front desk sidebar. Boat manifest is the export key of the Boat Trips board and has no page.
      * Guests holds the column layout of the guest list and is not a report.
      */
+    /**
+     * Whether group mode can run the report for every property at once (Group › Property reports). Left out: reports
+     * that need a filter of one property (a transaction code, a staff member, a boat or facility pick), that show ID
+     * numbers, and the ones group mode already adds up its own way (History & forecast, Rooms on books).
+     */
+    public function runsInGroup(): bool
+    {
+        return in_array($this, [
+            self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::Occupancy, self::Revenue,
+            self::DailyRevenue, self::Payments, self::Tax, self::OutstandingBalance, self::DepositLiability,
+            self::AgentPayments, self::MealCounts, self::NightAuditHistory, self::HousekeepingTasks, self::BookingChanges,
+        ], true);
+    }
+
     public function listedInReportsMenu(): bool
     {
         return ! in_array($this, [self::HousekeepingTasks, self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::DailyRevenue, self::DailyCharges, self::HousekeepingItems, self::HousekeepingLog, self::HouseStatus, self::BoatManifest, self::Guests, self::OnTheBooks, self::BookingChanges], true);

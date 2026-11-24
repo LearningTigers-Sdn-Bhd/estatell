@@ -42,6 +42,12 @@ class GroupNavigation
                 icon: 'chart-column',
                 active: request()->routeIs('group.reports*'),
             ),
+            new NavItemData(
+                title: __('Property reports'),
+                href: route('group.property-reports', ['propertyGroup' => $group->id], absolute: false),
+                icon: 'file-text',
+                active: request()->routeIs('group.property-reports*'),
+            ),
         ];
 
         return new StaffNavigationData(

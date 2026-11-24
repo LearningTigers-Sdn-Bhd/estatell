@@ -70,6 +70,16 @@ Each property counts on its own business date, as its own dashboard does. Querie
 
 A single property gets the same look-ahead in Reports › History & forecast: the quick dates now include **Next 3 months**, **Next 6 months** and **Next 12 months** (today to the end of the last whole month).
 
+## Property reports
+
+`GET /g/{group}/property-reports` (`group.property-reports`), Group › Property reports: any property report for every property at once, so an owner reads and exports both lodges without switching.
+
+- `report` picks the report (Arrivals when missing). Offered (`ReportKey::runsInGroup()`): Arrivals, Departures, In house, Checked out, Occupancy, Revenue, Daily revenue, Payments, Tax, Outstanding balance, Deposit liability, Agent payments, Meal counts, Night audit history, Housekeeping tasks, Booking changes. Left out: reports that need a filter of one property (transaction code, staff member, boat or facility), the ones that show ID numbers (Police report, Non-national guests), and the ones group mode already adds up (History & forecast, Rooms on books).
+- Dates follow the report: one `date` for a report of one date, else `from` and `to` no longer than the report allows (31 or 366 days). With none, today, or this month for a report that opens on the month. A report that groups its rows (Revenue, Tax, Payments) takes `group`.
+- Rows are the report's own `rows()` for each property whose role shows reports, in property order, with a **Property** column; columns are each property's default visible ones (tax columns of every property). Totals come from the report's own totals: one per property, then **All properties** when every property uses one currency.
+- The screen shows the first 500 rows; **Export CSV** (`group.property-reports.export`) has every row and the totals.
+- A property without reports permission is named ("Not included: …"); one that does not use the report's feature is named too.
+
 ## Code
 
 | Part                                                            | Role                                                                                   |
