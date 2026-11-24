@@ -4,13 +4,13 @@ Context for the next agent run. Read this first, then only the docs the task nee
 
 ## Where things stand
 
-| Item            | State                                                                                                                                                                 |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Branch          | `feat/dorm-beds-on-channels`, 27 commits ahead of `main`, **not pushed, no PR**                                                                                       |
-| Full suite      | 8373 / 8373 passed on `e0b2fec5` (`php artisan test --compact`, about 1 hour)                                                                                         |
-| Next step       | The owner demos to Tanini soon. Push and open a PR only when the user asks                                                                                            |
-| Feature tracker | `../docs/estatell/tanini/2026-11-21-tanini-milestones.md` (outside the repo). Its status rows for features 7 and 8 are stale: both are built (`6f7a0948`, `5aef8ec1`) |
-| Requirements    | `../docs/estatell/tanini/2026-11-18-tanini-system-requirements-plan.md`                                                                                               |
+| Item            | State                                                                                                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Branch          | `feat/dorm-beds-on-channels`, 27 commits ahead of `main`, **not pushed, no PR**                                                                                                                 |
+| Full suite      | 8373 / 8373 passed on `e0b2fec5` (`php artisan test --compact`, about 1 hour)                                                                                                                   |
+| Next step       | The owner demos to Tanini soon. Push and open a PR only when the user asks                                                                                                                      |
+| Feature tracker | `../docs/estatell/tanini/2026-11-21-tanini-milestones.md` (outside the repo, not in git). Synced 2026-11-24: features 1, 2, 4 to 11 and both small reports built, waiting for the owner's check |
+| Requirements    | `../docs/estatell/tanini/2026-11-18-tanini-system-requirements-plan.md`                                                                                                                         |
 
 ## Built on this branch
 
@@ -52,7 +52,7 @@ Context for the next agent run. Read this first, then only the docs the task nee
 ## Open items
 
 1. Push the branch and open the PR when asked.
-2. Get the owner's check on each built feature, then update the tracker, including the stale rows 7 and 8.
+2. Get the owner's check on each built feature, then mark each Done in the tracker.
 3. Transfers, not yet built: a booking-form field, the company portal, and a printed run sheet.
 4. Feature 3 (non-guest / event folio) is built by a teammate. Tanini question D (event tax, e-invoicing) is still open.
 5. Optional suggestions, not requested:
