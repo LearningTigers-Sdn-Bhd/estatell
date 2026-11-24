@@ -3,9 +3,15 @@
 namespace App\Services\Platform;
 
 use App\Models\User;
+use RuntimeException;
 
 class DocsAuthToken
 {
+    /**
+     * Matches the docs site's development fallback, so local sign-in works without configuration.
+     */
+    public const DEVELOPMENT_SECRET = 'estatell-docs-dev-secret';
+
     /**
      * Generate an HMAC-signed token for an authenticated user to access the docs site.
      */
@@ -72,9 +78,22 @@ class DocsAuthToken
         }
     }
 
+    /**
+     * The secret shared with the docs site. The development fallback is public, so it is used only locally and in tests.
+     */
     private static function secret(): string
     {
-        return (string) (config('estatell.docs_auth_secret') ?: config('app.key') ?: 'estatell-docs-dev-secret');
+        $secret = (string) config('estatell.docs_auth_secret');
+
+        if ($secret !== '') {
+            return $secret;
+        }
+
+        if (app()->environment('local', 'testing')) {
+            return self::DEVELOPMENT_SECRET;
+        }
+
+        throw new RuntimeException('DOCS_AUTH_SECRET is not set. Set it to the same value as the docs site.');
     }
 
     private static function base64UrlEncode(string $data): string
