@@ -4,6 +4,7 @@ use App\Http\Controllers\Group\GroupDashboardController;
 use App\Http\Controllers\Group\GroupForecastController;
 use App\Http\Controllers\Group\GroupPropertyReportController;
 use App\Http\Controllers\Group\GroupReportsController;
+use App\Http\Controllers\Group\GroupReservationsController;
 use App\Http\Controllers\Group\GroupTimelineController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,3 +20,5 @@ Route::get('forecast', [GroupForecastController::class, 'show'])->name('forecast
 Route::get('forecast/export.csv', [GroupForecastController::class, 'export'])->name('forecast.export');
 Route::get('property-reports', [GroupPropertyReportController::class, 'show'])->name('property-reports');
 Route::get('property-reports/export.csv', [GroupPropertyReportController::class, 'export'])->name('property-reports.export');
+Route::get('reservations', [GroupReservationsController::class, 'index'])->name('reservations');
+Route::get('reservations/export.csv', [GroupReservationsController::class, 'export'])->name('reservations.export');

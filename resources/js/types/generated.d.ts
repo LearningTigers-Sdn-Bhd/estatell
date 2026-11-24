@@ -2409,6 +2409,22 @@ total: App.Data.Group.GroupFiguresRowData | null,
 bookings: App.Data.Group.GroupBookingChangeRowData[],
 leftOut: string[],
 };
+export type GroupReservationRowData = {
+id: number,
+propertyCode: string,
+propertyName: string,
+reference: string,
+guest: string | null,
+arrival: string | null,
+departure: string | null,
+rooms: number,
+pax: number,
+status: App.Data.Shared.BadgeData,
+source: string | null,
+total: string,
+balance: string,
+currency: string,
+};
 export type GroupTimelinePropertyData = {
 property: App.Data.Property.PropertySummaryData,
 window: App.Data.StayView.StayViewWindowData,

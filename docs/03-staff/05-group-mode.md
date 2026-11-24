@@ -70,6 +70,16 @@ Each property counts on its own business date, as its own dashboard does. Querie
 
 A single property gets the same look-ahead in Reports › History & forecast: the quick dates now include **Next 3 months**, **Next 6 months** and **Next 12 months** (today to the end of the last whole month).
 
+## Reservations
+
+`GET /g/{group}/reservations` (`group.reservations`), Group › Reservations: every property's bookings in one list, so an owner finds a guest without knowing which lodge they booked.
+
+- Covers the properties whose role shows reservations (`reservations.view`); the others are named. Guest names show only where the role shows guests (`guests.view`), and a name search looks only there; elsewhere the row shows the reference.
+- Filters in the URL: `search` (reference, short code, channel reference, or the booker's name, email or phone), `status` (one reservation status, or all), `from` and `to` (stays that touch the dates) and `property` (a property code, or all). A plain list starts today; a search looks at every date.
+- Columns: Property, Booking (guest and reference; opens the booking in its property), Stay, Rooms, Pax, Status, Source, Room total and Balance in the property's currency (a balance owed shows in the danger colour). Sorted by arrival, 25 a page.
+- **Export CSV** (`group.reservations.export`): every matching booking, up to 5,000.
+- Built by `GroupReservations` with the same joins as the property's reservation list. Queries do not grow with the bookings on a page (tested).
+
 ## Property reports
 
 `GET /g/{group}/property-reports` (`group.property-reports`), Group › Property reports: any property report for every property at once, so an owner reads and exports both lodges without switching.

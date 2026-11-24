@@ -25,6 +25,12 @@ class GroupNavigation
                 active: request()->routeIs('group.dashboard'),
             ),
             new NavItemData(
+                title: __('Reservations'),
+                href: route('group.reservations', ['propertyGroup' => $group->id], absolute: false),
+                icon: 'calendar-check',
+                active: request()->routeIs('group.reservations*'),
+            ),
+            new NavItemData(
                 title: __('Timeline View'),
                 href: route('group.timeline', ['propertyGroup' => $group->id], absolute: false),
                 icon: 'chart-gantt',
