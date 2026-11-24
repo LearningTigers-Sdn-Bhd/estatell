@@ -23,6 +23,7 @@ class TaxInputData extends Data
         public bool $canBeWaived,
         public ?string $registrationNumber,
         public bool $enabled,
+        public ?string $lhdnTaxType = null,
     ) {}
 
     /**
@@ -41,6 +42,7 @@ class TaxInputData extends Data
             canBeWaived: $tax->can_be_waived,
             registrationNumber: $tax->registration_number,
             enabled: $enabled ?? $tax->enabled,
+            lhdnTaxType: $tax->lhdn_tax_type,
         );
     }
 }

@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int $transaction_code_id
  * @property string $name
  * @property string $code
+ * @property string|null $lhdn_tax_type `02` Service Tax, `03` Tourism Tax, `06` Not applicable. Null falls back to the tax code.
  * @property TaxRateType $rate_type
  * @property string $rate
  * @property bool $is_inclusive
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
-    'transaction_code_id', 'name', 'code', 'rate_type', 'rate', 'is_inclusive',
+    'transaction_code_id', 'name', 'code', 'lhdn_tax_type', 'rate_type', 'rate', 'is_inclusive',
     'foreign_guests_only', 'collect_at_check_in', 'can_be_waived', 'registration_number', 'enabled',
 ])]
 class Tax extends Model
