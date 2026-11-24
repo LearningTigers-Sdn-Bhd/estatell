@@ -5,6 +5,8 @@ use App\Enums\AiKeyStatus;
 use App\Enums\AiScope;
 use App\Enums\PermissionEnum;
 use App\Features\AiAssistant;
+use App\Models\AiThread;
+use App\Models\AiTurn;
 use App\Models\Property;
 use App\Models\PropertyAiScope;
 use App\Models\User;
@@ -36,18 +38,18 @@ test('the API key tab and its routes need the feature and settings.manage, and a
     $owner = User::factory()->owner()->create();
     $code = $owner->property->code;
 
-    $this->actingAs($owner)->get(route('settings.ai-assistant.key', $code))->assertNotFound();
+    $this->actingAs($owner)->get(route('settings.ai-assistant.general', $code))->assertNotFound();
     $this->actingAs($owner)->put(route('settings.ai-assistant.key.update', $code), ['key' => 'sk-test'])->assertNotFound();
     $this->actingAs($owner)->put(route('settings.ai-assistant.monthly-cap.update', $code), ['cap_usd' => '20'])->assertNotFound();
 
     ['property' => $property] = aiKeySetup();
     $staff = User::factory()->for($property)->withPermissions([PermissionEnum::ReservationsView])->create();
-    $this->actingAs($staff)->get(route('settings.ai-assistant.key', $property->code))->assertForbidden();
+    $this->actingAs($staff)->get(route('settings.ai-assistant.general', $property->code))->assertForbidden();
     $this->actingAs($staff)->delete(route('settings.ai-assistant.key.destroy', $property->code))->assertForbidden();
 
     $other = Property::factory()->create();
     Feature::for($other)->activate(AiAssistant::class);
-    $this->actingAs(aiKeySetup()['owner'])->get(route('settings.ai-assistant.key', $other->code))->assertNotFound();
+    $this->actingAs(aiKeySetup()['owner'])->get(route('settings.ai-assistant.general', $other->code))->assertNotFound();
 });
 
 test('saving a key stores it encrypted, tests it and shows only its last four characters', function () {
@@ -65,11 +67,12 @@ test('saving a key stores it encrypted, tests it and shows only its last four ch
         ->and($settings->ai_key_checked_at)->not->toBeNull();
     OpenAiKeyCheck::assertPrompted('OK');
 
-    $this->actingAs($owner)->get(route('settings.ai-assistant.key', $property->code))
+    $this->actingAs($owner)->get(route('settings.ai-assistant.general', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/ai-assistant/key')
-            ->where('settings.maskedKey', 'sk-…a1b2')
-            ->where('settings.status.value', 'working'))
+            ->component('settings/ai-assistant/general')
+            ->where('settings.hasKey', true)
+            ->where('status.maskedKey', 'sk-…a1b2')
+            ->where('status.keyStatus.value', 'working'))
         ->assertDontSee('sk-proj-secret');
 
     $activity = Activity::query()->where('event', 'ai-assistant.key-saved')->sole();
@@ -156,11 +159,30 @@ test('the hotel sets its monthly cap in US dollars, and empty is no cap', functi
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Monthly cap saved.']);
     expect($property->settings()->first()->ai_monthly_cap_micros)->toBe(20_500_000);
 
-    $this->actingAs($owner)->get(route('settings.ai-assistant.key', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('settings.capUsd', '20.50')->where('settings.status.value', 'none'));
+    $this->actingAs($owner)->get(route('settings.ai-assistant.general', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('settings.capUsd', '20.50')->where('status.keyStatus.value', 'none'));
 
     $this->actingAs($owner)->put($url, ['cap_usd' => ''])->assertRedirect();
     expect($property->settings()->first()->ai_monthly_cap_micros)->toBeNull();
 
     $this->actingAs($owner)->put($url, ['cap_usd' => '0'])->assertSessionHasErrors('cap_usd');
 });
+
+test('every tab shows the status rail with the places on and this month\'s spend against the cap', function (string $tab) {
+    ['owner' => $owner, 'property' => $property] = aiKeySetup();
+    giveAiKey($property);
+    $property->settings->forceFill(['ai_monthly_cap_micros' => 20_000_000])->save();
+    PropertyAiScope::factory()->for($property)->create(['scope' => AiScope::Staff]);
+    PropertyAiScope::factory()->for($property)->create(['scope' => AiScope::Api, 'enabled' => false]);
+    $thread = AiThread::factory()->for($property)->create();
+    AiTurn::factory()->create(['ai_thread_id' => $thread->id, 'cost_micros' => 12_400_000]);
+    AiTurn::factory()->create(['ai_thread_id' => $thread->id, 'cost_micros' => 9_000_000, 'created_at' => '2026-09-30 12:00:00']);
+
+    $this->actingAs($owner)->get(route("settings.ai-assistant.{$tab}", $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('status.placesOn', 1)
+            ->where('status.placesTotal', 2)
+            ->where('status.spentUsd', '12.40')
+            ->where('status.capUsd', '20.00')
+            ->where('status.capPercent', 62));
+})->with(['index', 'capabilities', 'general']);

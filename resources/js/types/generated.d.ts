@@ -73,15 +73,21 @@ export type AiAssistantSettingsData = {
 scopes: App.Data.AiAssistant.AiScopeData[],
 hasKey: boolean,
 };
-export type AiHandoverSettingsData = {
+export type AiAssistantStatusData = {
+maskedKey: string | null,
+keyStatus: App.Data.Shared.BadgeData,
+checkedAt: string | null,
+placesOn: number,
+placesTotal: number,
+spentUsd: string,
+capUsd: string | null,
+capPercent: number | null,
+};
+export type AiGeneralSettingsData = {
+hasKey: boolean,
+capUsd: string | null,
 handoverMessage: string | null,
 defaultHandoverMessage: string,
-};
-export type AiKeySettingsData = {
-maskedKey: string | null,
-status: App.Data.Shared.BadgeData,
-checkedAt: string | null,
-capUsd: string | null,
 };
 export type AiScopeData = {
 scope: App.Enums.AiScope,

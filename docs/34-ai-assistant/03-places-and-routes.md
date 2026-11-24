@@ -14,21 +14,21 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 
 ## Routes
 
-| Route                                                                                 | Place           | Auth                                                |
-| ------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------- |
-| `GET`, `POST /stay/{code}/ai/messages`                                                | Concierge lobby | None; throttled by address and property             |
-| `GET`, `POST /c/{token}/ai/messages`                                                  | Concierge stay  | The stay token                                      |
-| `POST /api/booking/v1/properties/{code}/ai/messages`                                  | Booking engine  | Booking client token (`booking:*`) and `X-Guest-IP` |
-| `POST /p/{property:code}/ai/messages`                                                 | Staff           | Staff session                                       |
-| `POST /api/ai/v1/messages`                                                            | API             | AI connection token (`ai:chat`)                     |
-| `GET /p/{property:code}/ai-chats` (`?thread={id}` opens one)                          | AI chats inbox  | `front-desk.view`                                   |
-| `POST /p/{property:code}/ai-chats/{thread}/resolve`                                   | AI chats inbox  | `front-desk.view`                                   |
-| `GET /p/{property:code}/settings/ai-assistant` (Places), `/capabilities`, `/handover` | Settings        | `settings.manage`                                   |
-| `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`            | Settings        | `settings.manage`                                   |
-| `GET`, `PUT`, `DELETE /p/{property:code}/settings/ai-assistant/key`                   | Settings        | `settings.manage`                                   |
-| `POST /p/{property:code}/settings/ai-assistant/key/test`, `PUT .../monthly-cap`       | Settings        | `settings.manage`                                   |
-| `GET /p/{property:code}/settings/ai-assistant/connections`                            | Settings        | `settings.manage`                                   |
-| `GET /p/{property:code}/settings/ai-assistant/usage`                                  | Settings        | `settings.manage`                                   |
+| Route                                                                                | Place           | Auth                                                |
+| ------------------------------------------------------------------------------------ | --------------- | --------------------------------------------------- |
+| `GET`, `POST /stay/{code}/ai/messages`                                               | Concierge lobby | None; throttled by address and property             |
+| `GET`, `POST /c/{token}/ai/messages`                                                 | Concierge stay  | The stay token                                      |
+| `POST /api/booking/v1/properties/{code}/ai/messages`                                 | Booking engine  | Booking client token (`booking:*`) and `X-Guest-IP` |
+| `POST /p/{property:code}/ai/messages`                                                | Staff           | Staff session                                       |
+| `POST /api/ai/v1/messages`                                                           | API             | AI connection token (`ai:chat`)                     |
+| `GET /p/{property:code}/ai-chats` (`?thread={id}` opens one)                         | AI chats inbox  | `front-desk.view`                                   |
+| `POST /p/{property:code}/ai-chats/{thread}/resolve`                                  | AI chats inbox  | `front-desk.view`                                   |
+| `GET /p/{property:code}/settings/ai-assistant` (Places), `/capabilities`, `/general` | Settings        | `settings.manage`                                   |
+| `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`           | Settings        | `settings.manage`                                   |
+| `PUT`, `DELETE /p/{property:code}/settings/ai-assistant/key`                         | Settings        | `settings.manage`                                   |
+| `POST /p/{property:code}/settings/ai-assistant/key/test`, `PUT .../monthly-cap`      | Settings        | `settings.manage`                                   |
+| `GET /p/{property:code}/settings/ai-assistant/connections`                           | Settings        | `settings.manage`                                   |
+| `GET /p/{property:code}/settings/ai-assistant/usage`                                 | Settings        | `settings.manage`                                   |
 
 Every chat route sits behind the `ai-assistant` middleware and checks its place [scope](01-overview.md#scopes) through `AiScopes`. A scope that is off returns 404. A cap that is reached, or a key that is Failing, returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap) and [API key](01-overview.md#api-key)).
 

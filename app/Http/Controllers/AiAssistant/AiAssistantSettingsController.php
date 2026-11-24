@@ -9,8 +9,8 @@ use App\Actions\AiAssistant\SetAiMonthlyCap;
 use App\Actions\AiAssistant\SetAiScopesEnabled;
 use App\Actions\AiAssistant\TestAiKey;
 use App\Data\AiAssistant\AiAssistantSettingsData;
-use App\Data\AiAssistant\AiHandoverSettingsData;
-use App\Data\AiAssistant\AiKeySettingsData;
+use App\Data\AiAssistant\AiAssistantStatusData;
+use App\Data\AiAssistant\AiGeneralSettingsData;
 use App\Enums\AiKeyStatus;
 use App\Enums\AiScopeKind;
 use App\Http\Controllers\Controller;
@@ -25,8 +25,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Settings › AI assistant: the Places, Capabilities, Handover and API key tabs. Each tab is its own URL and sends only its own
- * data. See docs/34-ai-assistant/01-overview.md#settings.
+ * Settings › AI assistant: the Places, Capabilities and General tabs. Each tab is its own URL and sends only its own
+ * data, plus the status rail every tab shows. See docs/34-ai-assistant/01-overview.md#settings.
  */
 class AiAssistantSettingsController extends Controller
 {
@@ -35,9 +35,7 @@ class AiAssistantSettingsController extends Controller
      */
     public function index(Property $property): Response
     {
-        return Inertia::render('settings/ai-assistant/index', [
-            'settings' => AiAssistantSettingsData::forProperty($property, AiScopeKind::Place),
-        ]);
+        return $this->renderTab('settings/ai-assistant/index', $property, AiAssistantSettingsData::forProperty($property, AiScopeKind::Place));
     }
 
     /**
@@ -45,29 +43,15 @@ class AiAssistantSettingsController extends Controller
      */
     public function capabilities(Property $property): Response
     {
-        return Inertia::render('settings/ai-assistant/capabilities', [
-            'settings' => AiAssistantSettingsData::forProperty($property, AiScopeKind::Capability),
-        ]);
+        return $this->renderTab('settings/ai-assistant/capabilities', $property, AiAssistantSettingsData::forProperty($property, AiScopeKind::Capability));
     }
 
     /**
-     * Handover tab: what guests see when the assistant passes the chat to staff.
+     * General tab: the hotel's own OpenAI key, the monthly cap and the handover message.
      */
-    public function handover(Property $property): Response
+    public function general(Property $property): Response
     {
-        return Inertia::render('settings/ai-assistant/handover', [
-            'settings' => AiHandoverSettingsData::forProperty($property->loadMissing('settings')),
-        ]);
-    }
-
-    /**
-     * API key tab: the hotel's own OpenAI key and the monthly cap.
-     */
-    public function key(Property $property): Response
-    {
-        return Inertia::render('settings/ai-assistant/key', [
-            'settings' => AiKeySettingsData::forProperty($property),
-        ]);
+        return $this->renderTab('settings/ai-assistant/general', $property, AiGeneralSettingsData::forProperty($property));
     }
 
     public function saveKey(UpdateAiKeyRequest $request, Property $property, SaveAiKey $saveAiKey): RedirectResponse
@@ -132,5 +116,16 @@ class AiAssistantSettingsController extends Controller
             AiKeyStatus::Failing => ['type' => 'error', 'message' => __('OpenAI refused this key. Check the key and your OpenAI credit.')],
             null => ['type' => 'error', 'message' => __('We could not reach OpenAI. Try again in a minute.')],
         };
+    }
+
+    /**
+     * One tab of Settings › AI assistant: its own data and the status rail.
+     */
+    private function renderTab(string $component, Property $property, AiAssistantSettingsData|AiGeneralSettingsData $settings): Response
+    {
+        return Inertia::render($component, [
+            'settings' => $settings,
+            'status' => AiAssistantStatusData::forProperty($property),
+        ]);
     }
 }

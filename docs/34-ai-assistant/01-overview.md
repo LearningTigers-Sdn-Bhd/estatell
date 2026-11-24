@@ -1,6 +1,6 @@
 # AI assistant
 
-> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities, Handover and API key tabs, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
+> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities and General tabs with the status rail, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
 
 ## Purpose
 
@@ -86,20 +86,21 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
 
 ## Settings
 
-**Settings › AI assistant** follows the Settings archetype with tab links.
+**Settings › AI assistant** is a fixed-height `Workspace` with tab links, like Settings › Concierge: the tab and a right rail each scroll on their own, and the page does not scroll. Every page sets the layout `variant: 'fixed'`.
 
 | Tab          | Holds                                                                                                                 |
 | ------------ | --------------------------------------------------------------------------------------------------------------------- |
 | Places       | The switch for each allowed place (`settings/ai-assistant`)                                                           |
 | Capabilities | The switch for each allowed capability (`settings/ai-assistant/capabilities`)                                         |
-| Handover     | The handover message the guest sees (`settings/ai-assistant/handover`)                                                |
-| API key      | The hotel's OpenAI key, its status and the monthly cap (`settings/ai-assistant/key`). See [API key](#api-key)         |
+| General      | The hotel's [OpenAI key](#api-key), the monthly cap and the handover message (`settings/ai-assistant/general`)        |
 | Usage        | The hotel's [spend and usage](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`)             |
 | Connections  | The AI connections for the [chat API](03-places-and-routes.md#chat-api-for-n8n) (`settings/ai-assistant/connections`) |
 
-Each tab is its own URL and sends only its own data. API key, Usage and Connections come with their checklist items. Decided 2026-11-24: tabs by kind of setting, not one General tab.
+Each tab is its own URL and sends only its own data, plus `status` for the rail. Usage and Connections come with their checklist items. Decided 2026-11-24: one General tab for the key, the cap and the handover message, replacing the earlier Handover and API key tabs (the earlier rule was "tabs by kind of setting, not one General tab").
 
-The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. With no key saved, the Places tab shows "Add your OpenAI key to start the assistant." with a link to the API key tab, and its switches are disabled. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
+**Status rail.** Every tab shows the same 20rem rail (`AiAssistantStatusData`): a warning when no key is saved or OpenAI refused it (with a link to General on the other tabs), the masked key, its status and last test, how many places are on, this month's estimated spend against the cap with a bar, and **Test key**. The spend is `AiMonthlyUsage`, the same sum the cap check uses; the [Usage tab](04-usage-and-cost.md#usage-tab) adds the breakdown.
+
+The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. With no key saved, the Places switches are disabled and the rail says why. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
 
 ## API key
 
@@ -111,7 +112,7 @@ property_settings   ai_openai_key (text, nullable, encrypted cast),
 ```
 
 - `AiKeyStatus`: Working, Failing (shown as "Not working"), with `label()` and `tone()`. Null means not tested yet. `BadgeData::forAiKey` adds Not tested and No key for the badge.
-- **Settings › AI assistant › API key** shows the key masked (`sk-…a1b2`), never in full. The hotel can replace, test or remove it. The same tab holds the [monthly cap](04-usage-and-cost.md#monthly-cap).
+- **Settings › AI assistant › General** holds the key form (replace, or remove with a confirm) and the [monthly cap](04-usage-and-cost.md#monthly-cap). The status rail shows the key masked (`sk-…a1b2`), never in full, and has **Test key**.
 - `SaveAiKey` (an Action) saves the key and tests it. `TestAiKey` prompts the `OpenAiKeyCheck` agent (a one-word reply, at most 16 tokens) and sets the status and `ai_key_checked_at`; when OpenAI cannot be reached it writes nothing and reports the error. `RemoveAiKey` clears all three columns. Saving and removing are logged, without the key.
 - `AiKeyProvider` (a Service) builds the provider from the hotel's key with the SDK's `Ai::build()`: `ai.providers.openai` (the same model and `store: false`) with the hotel's key, named `openai-property-{id}`. `PropertyAssistant::provider()` returns it, so every turn uses it.
 - When OpenAI refuses the key (the SDK's `InvalidApiKeyException` for a 401, `InsufficientCreditsException` or a stream error of type `insufficient_quota` for no credit), the turn is logged as Failed and `MarkAiKeyFailing` sets the status to Failing. While the status is Failing, turns make no model call: the guest gets the handover message, and the turn is logged as Failed with no tokens. The hotel fixes the key and taps **Test key**, which sets it back to Working. Other errors (OpenAI is down) do not change the status.

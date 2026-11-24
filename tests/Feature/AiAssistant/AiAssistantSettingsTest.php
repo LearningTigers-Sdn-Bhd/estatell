@@ -38,7 +38,7 @@ test('the settings page and its routes answer 404 while the AI assistant feature
 
     $this->actingAs($owner)->get(route('settings.ai-assistant.index', $code))->assertNotFound();
     $this->actingAs($owner)->get(route('settings.ai-assistant.capabilities', $code))->assertNotFound();
-    $this->actingAs($owner)->get(route('settings.ai-assistant.handover', $code))->assertNotFound();
+    $this->actingAs($owner)->get(route('settings.ai-assistant.general', $code))->assertNotFound();
     $this->actingAs($owner)->put(route('settings.ai-assistant.scopes.update', $code), ['scopes' => ['staff' => true]])->assertNotFound();
     $this->actingAs($owner)->put(route('settings.ai-assistant.handover-message.update', $code), ['handover_message' => 'Hi'])->assertNotFound();
 });
@@ -75,9 +75,9 @@ test('each tab shows only its own allowed scopes whose feature is on', function 
             ->where('settings.scopes.0.scope', 'how-to')
             ->where('settings.scopes.0.note', 'Works only while Staff (Ask Estatell) is on.'));
 
-    $this->actingAs($owner)->get(route('settings.ai-assistant.handover', $property->code))
+    $this->actingAs($owner)->get(route('settings.ai-assistant.general', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/ai-assistant/handover')
+            ->component('settings/ai-assistant/general')
             ->missing('settings.scopes')
             ->where('settings.handoverMessage', null)
             ->where('settings.defaultHandoverMessage', "I'll pass this to our front desk. They will reply soon."));
