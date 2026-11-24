@@ -29,14 +29,14 @@ import {
     InputGroupButton,
     InputGroupInput,
     InputGroupText,
+    InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { update as updateHandover } from '@/routes/settings/ai-assistant/handover-message';
 import { destroy, update } from '@/routes/settings/ai-assistant/key';
 import { update as updateCap } from '@/routes/settings/ai-assistant/monthly-cap';
 
-/** The submit button at the end of a single input. */
+/** The submit button inside a single input or text box. */
 function SaveButton({
     label,
     processing,
@@ -211,24 +211,36 @@ export default function AiAssistantGeneral({
                         description="Guests see this when the assistant cannot help and passes the chat to staff."
                         headerClassName="ps-2 pt-2"
                         submitLabel="Save message"
+                        submitInField
                         contentClassName="grid gap-5"
                     >
-                        {(errors) => (
+                        {(errors, { processing }) => (
                             <Field data-invalid={!!errors.handover_message}>
                                 <FieldLabel htmlFor="handover_message">
                                     Message
                                 </FieldLabel>
-                                <Textarea
-                                    id="handover_message"
-                                    name="handover_message"
-                                    rows={3}
-                                    maxLength={2000}
-                                    defaultValue={
-                                        settings.handoverMessage ?? ''
-                                    }
-                                    placeholder={`e.g. ${settings.defaultHandoverMessage}`}
-                                    aria-invalid={!!errors.handover_message}
-                                />
+                                <InputGroup>
+                                    <InputGroupTextarea
+                                        id="handover_message"
+                                        name="handover_message"
+                                        rows={3}
+                                        maxLength={2000}
+                                        defaultValue={
+                                            settings.handoverMessage ?? ''
+                                        }
+                                        placeholder={`e.g. ${settings.defaultHandoverMessage}`}
+                                        aria-invalid={!!errors.handover_message}
+                                    />
+                                    <InputGroupAddon
+                                        align="block-end"
+                                        className="justify-end"
+                                    >
+                                        <SaveButton
+                                            label="Save message"
+                                            processing={processing}
+                                        />
+                                    </InputGroupAddon>
+                                </InputGroup>
                                 <FieldDescription>
                                     Leave it empty to use the text in the
                                     example.
