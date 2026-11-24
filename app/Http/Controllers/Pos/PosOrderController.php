@@ -225,7 +225,7 @@ class PosOrderController extends Controller
     {
         $model = $this->order($property, $order);
         $actor = $this->actor($request);
-        $approval = $resolveApproval($request, $property, $model->outlet, $actor, PermissionEnum::PosSell, 'room charge limit', ['order' => $model->id]);
+        $approval = $resolveApproval($request, $property, $model->outlet, $actor, PermissionEnum::PosVoid, 'room charge limit', ['order' => $model->id]);
 
         if ($approval['error'] !== null) {
             $this->error($approval['error']);
