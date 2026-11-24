@@ -15,7 +15,11 @@ export default function AiAssistantCapabilities({
         <>
             <Head title="AI assistant" />
             <AiAssistantShell activeTab="capabilities">
-                <AiScopeSwitches kind="capability" scopes={settings.scopes} />
+                <AiScopeSwitches
+                    kind="capability"
+                    scopes={settings.scopes}
+                    hasKey={settings.hasKey}
+                />
             </AiAssistantShell>
         </>
     );

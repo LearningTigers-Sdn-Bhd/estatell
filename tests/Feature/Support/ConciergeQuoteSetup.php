@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__.'/AiKeySetup.php';
 require_once __DIR__.'/KioskSetup.php';
 require_once __DIR__.'/ConciergeSetup.php';
 
@@ -35,6 +36,7 @@ function conciergeQuoteSetup(): array
     Feature::for($property)->activate(AiAssistant::class);
     PropertyAiScope::factory()->for($property)->create(['scope' => AiScope::Concierge]);
     PropertyAiScope::factory()->for($property)->create(['scope' => AiScope::RoomQuotes]);
+    giveAiKey($property);
     $property->settings->forceFill(['concierge_walk_in_enabled' => false, 'security_deposit_amount' => '0.00', 'auto_assign_rooms' => true, 'card_required_for_check_in' => false])->save();
 
     $type = $setup['unit']->roomType;

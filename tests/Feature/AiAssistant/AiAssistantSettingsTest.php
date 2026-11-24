@@ -12,6 +12,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
+require_once __DIR__.'/../Support/AiKeySetup.php';
+
 /**
  * An owner of a property with the AI assistant feature on.
  *
@@ -131,11 +133,12 @@ test('the hotel saves the handover message, and blank clears it', function () {
         ->and(Activity::query()->where('event', 'ai-assistant.handover-message-saved')->count())->toBe(2);
 });
 
-test('a scope is on only with the feature, its required feature and place, and both layers', function () {
+test('a scope is on only with the feature, its required feature and place, both layers, and a key', function () {
     ['property' => $property] = aiAssistantSetup();
     $scopes = app(AiScopes::class);
     $concierge = aiScopeRow($property, AiScope::Concierge);
     aiScopeRow($property, AiScope::StayDetails);
+    giveAiKey($property);
 
     expect($scopes->isOn($property, AiScope::Concierge))->toBeFalse()
         ->and($scopes->isOn($property, AiScope::StayDetails))->toBeFalse();
@@ -154,6 +157,10 @@ test('a scope is on only with the feature, its required feature and place, and b
     Feature::for($property)->deactivate(AiAssistant::class);
     expect($scopes->isOn($property, AiScope::Concierge))->toBeFalse()
         ->and($scopes->isOn($property, AiScope::RoomQuotes))->toBeFalse();
+
+    Feature::for($property)->activate(AiAssistant::class);
+    $property->settings->forceFill(['ai_openai_key' => null])->save();
+    expect($scopes->isOn($property->refresh(), AiScope::Concierge))->toBeFalse();
 });
 
 test('admins allow and stop a scope, and stopping keeps the hotel switch', function () {
@@ -186,34 +193,29 @@ test('admins cannot allow a scope while the AI assistant feature is off', functi
     expect($property->aiScopes()->exists())->toBeFalse();
 });
 
-test('admins set the monthly cap in US dollars, and empty is no cap', function () {
+test('admins see whether the hotel has a working key, never the key', function () {
     $admin = User::factory()->admin()->withTwoFactor()->create();
     ['property' => $property] = aiAssistantSetup();
-    $url = route('admin.properties.ai-cap.update', $property->code);
+    $features = route('admin.properties.features', $property->code);
 
-    $this->actingAs($admin)->put($url, ['cap_usd' => '20.50'])
-        ->assertRedirect()
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'AI assistant monthly cap saved.']);
-    expect($property->settings()->first()->ai_monthly_cap_micros)->toBe(20_500_000);
-
-    $this->actingAs($admin)->get(route('admin.properties.features', $property->code))
+    $this->actingAs($admin)->get($features)
         ->assertInertia(fn (Assert $page) => $page
-            ->where('aiAssistant.capUsd', '20.50')
+            ->where('aiAssistant.keyStatus.value', 'none')
             ->has('aiAssistant.scopes', count(AiScope::cases())));
 
-    $this->actingAs($admin)->put($url, ['cap_usd' => ''])->assertRedirect();
-    expect($property->settings()->first()->ai_monthly_cap_micros)->toBeNull();
+    giveAiKey($property);
 
-    $this->actingAs($admin)->put($url, ['cap_usd' => '0'])->assertSessionHasErrors('cap_usd');
+    $this->actingAs($admin)->get($features)
+        ->assertInertia(fn (Assert $page) => $page->where('aiAssistant.keyStatus.value', 'working'))
+        ->assertDontSee('sk-test-hotel-1234');
 });
 
-test('only platform admins set the scope and the cap', function () {
+test('only platform admins set the scope', function () {
     ['owner' => $owner, 'property' => $property] = aiAssistantSetup();
 
     $this->actingAs($owner)
         ->put(route('admin.properties.ai-scopes.update', ['property' => $property->code, 'scope' => 'staff']), ['allowed' => true])
         ->assertNotFound();
-    $this->actingAs($owner)->put(route('admin.properties.ai-cap.update', $property->code), ['cap_usd' => '20'])->assertNotFound();
 
     expect($property->aiScopes()->exists())->toBeFalse();
 });

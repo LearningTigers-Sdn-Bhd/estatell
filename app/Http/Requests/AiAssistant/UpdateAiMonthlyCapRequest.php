@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Admin;
+namespace App\Http\Requests\AiAssistant;
 
 use App\Services\AiAssistant\AiMonthlyCap;
 use Illuminate\Contracts\Validation\ValidationRule;

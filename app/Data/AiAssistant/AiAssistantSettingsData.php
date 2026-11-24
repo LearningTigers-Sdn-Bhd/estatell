@@ -5,12 +5,13 @@ namespace App\Data\AiAssistant;
 use App\Enums\AiScope;
 use App\Enums\AiScopeKind;
 use App\Models\Property;
+use App\Services\AiAssistant\AiKeyProvider;
 use App\Services\AiAssistant\AiScopes;
 use Spatie\LaravelData\Data;
 
 /**
  * The Places or the Capabilities tab of Settings › AI assistant: the hotel's switch for each scope of that kind the
- * admin allows.
+ * admin allows, and whether the hotel has saved its OpenAI key (without one, every place is off).
  */
 class AiAssistantSettingsData extends Data
 {
@@ -19,6 +20,7 @@ class AiAssistantSettingsData extends Data
      */
     public function __construct(
         public array $scopes,
+        public bool $hasKey,
     ) {}
 
     public static function forProperty(Property $property, AiScopeKind $kind): self
@@ -37,6 +39,7 @@ class AiAssistantSettingsData extends Data
                 },
                 $visible,
             ),
+            hasKey: app(AiKeyProvider::class)->hasKey($property),
         );
     }
 }

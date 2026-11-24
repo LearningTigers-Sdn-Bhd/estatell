@@ -3,6 +3,7 @@
 use App\Ai\Agents\PropertyAssistant;
 use App\Ai\Tools\HandOver;
 use App\Ai\Tools\PropertyFacts;
+use App\Enums\AiKeyStatus;
 use App\Enums\AiOutcome;
 use App\Enums\AiPlace;
 use App\Enums\AiScope;
@@ -22,6 +23,8 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Ai\Exceptions\InsufficientCreditsException;
+use Laravel\Ai\Exceptions\ProviderOverloadedException;
 use Laravel\Ai\Exceptions\StreamErrorException;
 use Laravel\Ai\Models\ConversationMessage;
 use Laravel\Ai\Responses\Data\TextUsage;
@@ -29,10 +32,11 @@ use Laravel\Ai\Streaming\Events\Error as StreamError;
 use Laravel\Ai\Tools\Request as ToolRequest;
 use Laravel\Pennant\Feature;
 
+require_once __DIR__.'/../Support/AiKeySetup.php';
 require_once __DIR__.'/../Support/ConciergeSetup.php';
 
 /**
- * A Concierge property with the AI assistant on and its Concierge scope allowed and enabled.
+ * A Concierge property with the AI assistant on, its Concierge scope allowed and enabled, and a working OpenAI key.
  *
  * @return array{property: Property, unit: ReservationUnit, token: string}
  */
@@ -41,6 +45,7 @@ function conciergeChatSetup(): array
     $setup = conciergeSetup();
     Feature::for($setup['property'])->activate(AiAssistant::class);
     PropertyAiScope::factory()->for($setup['property'])->create(['scope' => AiScope::Concierge]);
+    giveAiKey($setup['property']);
 
     return $setup;
 }
@@ -75,13 +80,16 @@ test('the chat routes answer 404 while the AI assistant or its Concierge scope i
     PropertyAssistant::assertNeverPrompted();
 });
 
-test('the lobby and stay pages show the chat only while its scope is on', function () {
+test('the lobby and stay pages show the chat only while its scope is on and the hotel has a key', function () {
     ['property' => $property, 'token' => $token] = conciergeSetup();
 
     $this->get("/stay/{$property->code}")->assertInertia(fn (Assert $page) => $page->where('aiChat', false));
 
     Feature::for($property)->activate(AiAssistant::class);
     PropertyAiScope::factory()->for($property)->create(['scope' => AiScope::Concierge]);
+    $this->get("/stay/{$property->code}")->assertInertia(fn (Assert $page) => $page->where('aiChat', false));
+
+    giveAiKey($property);
 
     $this->get("/stay/{$property->code}")->assertInertia(fn (Assert $page) => $page->where('aiChat', true));
     $this->get("/c/{$token}")->assertInertia(fn (Assert $page) => $page->where('aiChat', true));
@@ -121,7 +129,43 @@ test('a reply the provider fails is reported and logged as a Failed turn', funct
 
     expect($response->streamedContent())->toContain('"type":"error"');
     Exceptions::assertReported(StreamErrorException::class);
-    expect(AiTurn::query()->sole())->outcome->toBe(AiOutcome::Failed)->input_tokens->toBe(0);
+    expect(AiTurn::query()->sole())->outcome->toBe(AiOutcome::Failed)->input_tokens->toBe(0)
+        ->and($property->settings()->first()->ai_key_status)->toBe(AiKeyStatus::Failing);
+});
+
+test('a provider error that is not about the key keeps the key Working', function () {
+    ['property' => $property] = conciergeChatSetup();
+    Exceptions::fake();
+    PropertyAssistant::fake([fn () => throw ProviderOverloadedException::forProvider('openai')]);
+
+    lobbyChat($property, 'When is breakfast?')->assertOk()->streamedContent();
+
+    expect(AiTurn::query()->sole()->outcome)->toBe(AiOutcome::Failed)
+        ->and($property->settings()->first()->ai_key_status)->toBe(AiKeyStatus::Working);
+});
+
+test('a key OpenAI refuses for credit goes Failing', function () {
+    ['property' => $property] = conciergeChatSetup();
+    PropertyAssistant::fake([fn () => throw InsufficientCreditsException::forProvider('openai')]);
+
+    lobbyChat($property, 'Hi')->assertOk()->streamedContent();
+
+    expect($property->settings()->first()->ai_key_status)->toBe(AiKeyStatus::Failing);
+});
+
+test('while the key fails the model is not called and the guest gets the handover message', function () {
+    ['property' => $property] = conciergeChatSetup();
+    giveAiKey($property, AiKeyStatus::Failing);
+    $property->settings->forceFill(['ai_handover_message' => 'Our team will reply soon.'])->save();
+    PropertyAssistant::fake();
+
+    $response = lobbyChat($property, 'Hello')->assertOk();
+
+    expect(chatReply($response))->toBe('Our team will reply soon.');
+    PropertyAssistant::assertNeverPrompted();
+    expect(AiTurn::query()->latest('id')->first())
+        ->outcome->toBe(AiOutcome::Failed)
+        ->input_tokens->toBe(0);
 });
 
 test('a second lobby message continues the same thread', function () {

@@ -2,21 +2,30 @@
 
 namespace App\Http\Controllers\AiAssistant;
 
+use App\Actions\AiAssistant\RemoveAiKey;
 use App\Actions\AiAssistant\SaveAiHandoverMessage;
+use App\Actions\AiAssistant\SaveAiKey;
+use App\Actions\AiAssistant\SetAiMonthlyCap;
 use App\Actions\AiAssistant\SetAiScopesEnabled;
+use App\Actions\AiAssistant\TestAiKey;
 use App\Data\AiAssistant\AiAssistantSettingsData;
 use App\Data\AiAssistant\AiHandoverSettingsData;
+use App\Data\AiAssistant\AiKeySettingsData;
+use App\Enums\AiKeyStatus;
 use App\Enums\AiScopeKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AiAssistant\UpdateAiHandoverMessageRequest;
+use App\Http\Requests\AiAssistant\UpdateAiKeyRequest;
+use App\Http\Requests\AiAssistant\UpdateAiMonthlyCapRequest;
 use App\Http\Requests\AiAssistant\UpdateAiScopesRequest;
 use App\Models\Property;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Settings › AI assistant: the Places, Capabilities and Handover tabs. Each tab is its own URL and sends only its own
+ * Settings › AI assistant: the Places, Capabilities, Handover and API key tabs. Each tab is its own URL and sends only its own
  * data. See docs/34-ai-assistant/01-overview.md#settings.
  */
 class AiAssistantSettingsController extends Controller
@@ -51,6 +60,48 @@ class AiAssistantSettingsController extends Controller
         ]);
     }
 
+    /**
+     * API key tab: the hotel's own OpenAI key and the monthly cap.
+     */
+    public function key(Property $property): Response
+    {
+        return Inertia::render('settings/ai-assistant/key', [
+            'settings' => AiKeySettingsData::forProperty($property),
+        ]);
+    }
+
+    public function saveKey(UpdateAiKeyRequest $request, Property $property, SaveAiKey $saveAiKey): RedirectResponse
+    {
+        Inertia::flash('toast', $this->keyToast($saveAiKey($request->user(), $property, $request->string('key')->toString())));
+
+        return back();
+    }
+
+    public function testKey(Property $property, TestAiKey $testAiKey): RedirectResponse
+    {
+        Inertia::flash('toast', $this->keyToast($testAiKey($property)));
+
+        return back();
+    }
+
+    public function removeKey(Request $request, Property $property, RemoveAiKey $removeAiKey): RedirectResponse
+    {
+        if ($removeAiKey($request->user(), $property)) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('OpenAI key removed. The assistant is off.')]);
+        }
+
+        return back();
+    }
+
+    public function monthlyCap(UpdateAiMonthlyCapRequest $request, Property $property, SetAiMonthlyCap $setAiMonthlyCap): RedirectResponse
+    {
+        if ($setAiMonthlyCap($request->user(), $property, $request->capMicros())) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Monthly cap saved.')]);
+        }
+
+        return back();
+    }
+
     public function scopes(UpdateAiScopesRequest $request, Property $property, SetAiScopesEnabled $setAiScopesEnabled): RedirectResponse
     {
         Inertia::flash('toast', $setAiScopesEnabled($request->user(), $property, $request->scopes())
@@ -67,5 +118,19 @@ class AiAssistantSettingsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Handover message saved.')]);
 
         return back();
+    }
+
+    /**
+     * The toast after a key test: it works, OpenAI refused it, or OpenAI could not be reached.
+     *
+     * @return array{type: string, message: string}
+     */
+    private function keyToast(?AiKeyStatus $status): array
+    {
+        return match ($status) {
+            AiKeyStatus::Working => ['type' => 'success', 'message' => __('Your OpenAI key works.')],
+            AiKeyStatus::Failing => ['type' => 'error', 'message' => __('OpenAI refused this key. Check the key and your OpenAI credit.')],
+            null => ['type' => 'error', 'message' => __('We could not reach OpenAI. Try again in a minute.')],
+        };
     }
 }

@@ -1,4 +1,4 @@
-import { Form, Link, router, useForm } from '@inertiajs/react';
+import { Form, Link, router } from '@inertiajs/react';
 import {
     AppWindow,
     BedSingle,
@@ -13,7 +13,6 @@ import {
     FileText,
     Globe,
     Lock,
-    Pencil,
     Ship,
     Utensils,
     Tablet,
@@ -32,18 +31,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { FormOverlay } from '@/components/pms/form-overlay';
-import { MoneyInput } from '@/components/pms/money-input';
 import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldLabel,
-} from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -56,7 +47,6 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
-import { update as updateAiCap } from '@/routes/admin/properties/ai-cap';
 import { update as updateAiScope } from '@/routes/admin/properties/ai-scopes';
 import { update as updateMode } from '@/routes/admin/properties/booking-engine-mode';
 import { eInvoiceGuide } from '@/routes/admin';
@@ -81,13 +71,6 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     pos: Utensils,
     facilities: Tent,
     'ai-assistant': Bot,
-};
-
-/** OpenAI bills in US dollars, so the AI assistant's cap is in US dollars, not the property currency. */
-const usDollar: App.Data.Property.CurrencyData = {
-    code: 'USD',
-    name: 'US dollar',
-    decimals: 2,
 };
 
 /** On and Off for the partner's read-only rows. */
@@ -224,83 +207,6 @@ function BookingEngineModeControl({
                     )}
                 </AlertDialogContent>
             </AlertDialog>
-        </>
-    );
-}
-
-/**
- * The AI assistant's monthly cap in the Setting column, with a Dialog to change it. One field, so a Dialog, not an
- * inline form in the table.
- */
-function AiCapControl({
-    code,
-    capUsd,
-    readOnly,
-}: {
-    code: string;
-    capUsd: string | null;
-    readOnly: boolean;
-}) {
-    const [open, setOpen] = useState(false);
-    const form = useForm({ cap_usd: capUsd ?? '' });
-    const text = capUsd === null ? 'No cap' : `US$ ${capUsd}`;
-
-    if (readOnly) {
-        return <span className="text-sm tabular-nums">{text}</span>;
-    }
-
-    return (
-        <>
-            <div className="flex items-center justify-end gap-2">
-                <span className="text-sm tabular-nums">{text}</span>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Edit the monthly cap"
-                    onClick={() => {
-                        form.setDefaults({ cap_usd: capUsd ?? '' });
-                        form.reset();
-                        form.clearErrors();
-                        setOpen(true);
-                    }}
-                >
-                    <Pencil />
-                </Button>
-            </div>
-            <FormOverlay
-                variant="dialog"
-                size="sm"
-                open={open}
-                onOpenChange={setOpen}
-                title="Monthly cap"
-                errors={form.errors}
-                dirty={form.isDirty}
-                onSubmit={() =>
-                    form.put(updateAiCap.url({ property: code }), {
-                        preserveScroll: true,
-                        onSuccess: () => setOpen(false),
-                    })
-                }
-                submitLabel="Save"
-                processing={form.processing}
-            >
-                <Field data-invalid={!!form.errors.cap_usd}>
-                    <FieldLabel htmlFor="ai-cap">Monthly cap</FieldLabel>
-                    <MoneyInput
-                        id="ai-cap"
-                        value={form.data.cap_usd}
-                        onChange={(value) => form.setData('cap_usd', value)}
-                        currency={usDollar}
-                        placeholder="e.g. 20.00"
-                        invalid={!!form.errors.cap_usd}
-                    />
-                    <FieldDescription>
-                        The most this property may spend on OpenAI in a calendar
-                        month. Leave it empty for no cap.
-                    </FieldDescription>
-                    <FieldError>{form.errors.cap_usd}</FieldError>
-                </Field>
-            </FormOverlay>
         </>
     );
 }
@@ -539,7 +445,7 @@ export function PropertyFeatures({
         />
     );
 
-    // Places and capabilities the property may use, and the monthly cap, while the AI assistant is on.
+    // The hotel's key status, and the places and capabilities the property may use, while the AI assistant is on.
     const aiRows = (item: PropertyFeature) =>
         item.feature === 'ai-assistant' &&
         item.active &&
@@ -548,17 +454,11 @@ export function PropertyFeatures({
                 <FeatureRow
                     child
                     readOnly={readOnly}
-                    label="Monthly cap"
-                    description="At the cap, the assistant stops calling OpenAI and hands every chat to staff until the next month."
-                    checked
-                    switchLabel={`The monthly cap applies while ${item.label} is on`}
-                    setting={
-                        <AiCapControl
-                            code={code}
-                            capUsd={aiAssistant.capUsd}
-                            readOnly={readOnly}
-                        />
-                    }
+                    label="OpenAI key"
+                    description="The hotel adds its own key in Settings › AI assistant › API key, pays OpenAI directly, and sets its own monthly cap."
+                    checked={aiAssistant.keyStatus.value !== 'none'}
+                    switchLabel={`The hotel's OpenAI key for ${item.label}`}
+                    setting={<StatusBadge status={aiAssistant.keyStatus} />}
                 />
                 <GroupRow label="Places" />
                 {aiAssistant.scopes

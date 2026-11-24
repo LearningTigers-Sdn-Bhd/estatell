@@ -15,7 +15,11 @@ export default function AiAssistantPlaces({
         <>
             <Head title="AI assistant" />
             <AiAssistantShell activeTab="places">
-                <AiScopeSwitches kind="place" scopes={settings.scopes} />
+                <AiScopeSwitches
+                    kind="place"
+                    scopes={settings.scopes}
+                    hasKey={settings.hasKey}
+                />
             </AiAssistantShell>
         </>
     );

@@ -11,14 +11,17 @@ use Laravel\Pennant\Feature;
 
 /**
  * Answers which AI assistant scopes a property may use. A scope is on when the AI assistant feature is on, the feature
- * the scope needs is on, the place it needs is on, and its row is both allowed (admin) and enabled (hotel).
+ * the scope needs is on, the place it needs is on, its row is both allowed (admin) and enabled (hotel), and the hotel
+ * has saved its own OpenAI key.
  * See docs/34-ai-assistant/01-overview.md#scopes.
  */
 class AiScopes
 {
+    public function __construct(private readonly AiKeyProvider $keys) {}
+
     public function isOn(Property $property, AiScope $scope): bool
     {
-        if (! Feature::for($property)->active(AiAssistant::class)) {
+        if (! Feature::for($property)->active(AiAssistant::class) || ! $this->keys->hasKey($property)) {
             return false;
         }
 

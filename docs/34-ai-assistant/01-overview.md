@@ -1,6 +1,6 @@
 # AI assistant
 
-> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities and Handover tabs, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
+> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities, Handover and API key tabs, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
 
 ## Purpose
 
@@ -110,13 +110,13 @@ property_settings   ai_openai_key (text, nullable, encrypted cast),
                     ai_key_status (AiKeyStatus, nullable), ai_key_checked_at (nullable)
 ```
 
-- `AiKeyStatus`: Working, Failing, with `label()` and `tone()`. Null means not tested yet.
+- `AiKeyStatus`: Working, Failing (shown as "Not working"), with `label()` and `tone()`. Null means not tested yet. `BadgeData::forAiKey` adds Not tested and No key for the badge.
 - **Settings › AI assistant › API key** shows the key masked (`sk-…a1b2`), never in full. The hotel can replace, test or remove it. The same tab holds the [monthly cap](04-usage-and-cost.md#monthly-cap).
-- `SaveAiKey` (an Action) saves the key and tests it. `TestAiKey` makes one small call to OpenAI and sets the status and `ai_key_checked_at`. `RemoveAiKey` clears all three columns.
-- Each turn builds the provider from the hotel's key with the SDK's `Ai::build()` (driver `openai`, the same model and `store: false` as `config/ai.php`), and `ReplyInAiThread` passes it to `stream()`.
-- When OpenAI refuses the key (wrong key, or no credit), the turn is logged as Failed and the status becomes Failing. While the status is Failing, turns make no model call: the guest gets the handover message, and the turn is logged as Failed with no tokens. The hotel fixes the key and taps **Test key**, which sets it back to Working. Other errors (OpenAI is down) do not change the status.
+- `SaveAiKey` (an Action) saves the key and tests it. `TestAiKey` prompts the `OpenAiKeyCheck` agent (a one-word reply, at most 16 tokens) and sets the status and `ai_key_checked_at`; when OpenAI cannot be reached it writes nothing and reports the error. `RemoveAiKey` clears all three columns. Saving and removing are logged, without the key.
+- `AiKeyProvider` (a Service) builds the provider from the hotel's key with the SDK's `Ai::build()`: `ai.providers.openai` (the same model and `store: false`) with the hotel's key, named `openai-property-{id}`. `PropertyAssistant::provider()` returns it, so every turn uses it.
+- When OpenAI refuses the key (the SDK's `InvalidApiKeyException` for a 401, `InsufficientCreditsException` or a stream error of type `insufficient_quota` for no credit), the turn is logged as Failed and `MarkAiKeyFailing` sets the status to Failing. While the status is Failing, turns make no model call: the guest gets the handover message, and the turn is logged as Failed with no tokens. The hotel fixes the key and taps **Test key**, which sets it back to Working. Other errors (OpenAI is down) do not change the status.
 - No key saved means every place is off (see [Scopes](#scopes)).
-- The admin property page shows the status (Working, Failing, Not tested, No key), never the key.
+- The admin property page shows the status (Working, Not working, Not tested, No key) in an OpenAI key row under the AI assistant, never the key.
 
 ## Files
 
@@ -185,8 +185,8 @@ Check these before or during the build. Do not guess.
 6. **User docs for the staff helper**: they live in the `estatell-docs` repo as MDX. Decide how the app reads them (copied at deploy, or fetched).
 7. ~~**Pricing future dates without the microsite**~~: answered 2026-11-24. Concierge quotes price with `KioskWalkIn::quotable`, the same code that books, so the Booking engine feature is not needed. See [Quote links](03-places-and-routes.md#quote-links).
 8. ~~**OpenAI prices**~~: answered 2026-11-24. OpenAI's pricing page lists `gpt-6-luna` at $0.10 input, $0.01 cached input and $0.50 output per million tokens, as in `config/ai-pricing.php`. It is the cheapest current model and supports function calling, so it stays the default. If it calls tools badly in real chats, try `gpt-6.1-terra` ($1.00 / $0.05 / $5.00).
-9. **Testing a key**: the cheapest call the SDK allows for `TestAiKey` (a model list, or a one-token prompt).
-10. **A refused key**: how the SDK reports OpenAI's wrong-key (401) and no-credit (429 `insufficient_quota`) errors, so only these set the key to Failing.
+9. ~~**Testing a key**~~: answered 2026-11-24. The SDK has no model list call, and a model list would not show missing credit, so `TestAiKey` sends one prompt capped at 16 tokens (OpenAI's minimum). It costs the hotel a fraction of a cent.
+10. ~~**A refused key**~~: answered 2026-11-24. The SDK throws `InvalidApiKeyException` for a 401 and `InsufficientCreditsException` for a 402 or a 429 `insufficient_quota`, for prompts and streams alike. A rate limit (`RateLimitedException`) and an outage are other classes, so they leave the key alone.
 
 ## Not in this plan
 

@@ -66,15 +66,22 @@ canRetry: boolean,
 }
 namespace AiAssistant {
 export type AiAssistantAdminData = {
-capUsd: string | null,
+keyStatus: App.Data.Shared.BadgeData,
 scopes: App.Data.AiAssistant.AiScopeData[],
 };
 export type AiAssistantSettingsData = {
 scopes: App.Data.AiAssistant.AiScopeData[],
+hasKey: boolean,
 };
 export type AiHandoverSettingsData = {
 handoverMessage: string | null,
 defaultHandoverMessage: string,
+};
+export type AiKeySettingsData = {
+maskedKey: string | null,
+status: App.Data.Shared.BadgeData,
+checkedAt: string | null,
+capUsd: string | null,
 };
 export type AiScopeData = {
 scope: App.Enums.AiScope,
@@ -6163,6 +6170,7 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type AiKeyStatus = 'working' | 'failing';
 export type AiOutcome = 'answered' | 'quote-sent' | 'booked' | 'escalated' | 'refused' | 'failed' | 'cap-reached';
 export type AiPlace = 'concierge-lobby' | 'concierge-stay' | 'booking-engine' | 'staff' | 'api';
 export type AiScope = 'concierge' | 'booking-engine' | 'staff' | 'api' | 'room-quotes' | 'stay-details' | 'guest-requests' | 'daily-numbers' | 'how-to';

@@ -10,6 +10,7 @@ use App\Ai\Tools\ReadMyStay;
 use App\Ai\Tools\SendQuoteLink;
 use App\Enums\AiTool;
 use App\Models\AiThread;
+use App\Services\AiAssistant\AiKeyProvider;
 use App\Services\AiAssistant\AiScopes;
 use App\Services\AiAssistant\AssistantInstructions;
 use Laravel\Ai\Attributes\MaxSteps;
@@ -20,12 +21,13 @@ use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Promptable;
+use Laravel\Ai\Providers\Provider;
 use Stringable;
 
 /**
  * The AI assistant of one property, for one thread. The thread's place decides the tools, and a tool whose capability
- * scope is off is left out. At most four tool calls and a reply per turn. The provider and model come from
- * `config/ai.php`. See docs/34-ai-assistant/02-agent-and-tools.md.
+ * scope is off is left out. At most four tool calls and a reply per turn. The model comes from `config/ai.php`, and the
+ * provider is OpenAI on the hotel's own key. See docs/34-ai-assistant/02-agent-and-tools.md.
  */
 #[MaxSteps(5)]
 #[Timeout(60)]
@@ -38,6 +40,14 @@ class PropertyAssistant implements Agent, Conversational, HasTools
         private readonly AssistantInstructions $instructions,
         private readonly AiScopes $scopes,
     ) {}
+
+    /**
+     * OpenAI on the hotel's own key. See docs/34-ai-assistant/01-overview.md#api-key.
+     */
+    public function provider(): Provider
+    {
+        return app(AiKeyProvider::class)->for($this->thread->property);
+    }
 
     public function instructions(): Stringable|string
     {

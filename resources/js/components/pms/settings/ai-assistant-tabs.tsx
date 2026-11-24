@@ -1,12 +1,17 @@
-import { MapPin, MessageSquareShare, Sparkles } from 'lucide-react';
+import { KeyRound, MapPin, MessageSquareShare, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import { profile } from '@/routes/settings';
-import { capabilities, handover, index } from '@/routes/settings/ai-assistant';
+import {
+    capabilities,
+    handover,
+    index,
+    key,
+} from '@/routes/settings/ai-assistant';
 
-export type AiAssistantTab = 'places' | 'capabilities' | 'handover';
+export type AiAssistantTab = 'places' | 'capabilities' | 'handover' | 'key';
 
 /** The tabs of Settings › AI assistant. Usage and Connections come with their checklist items. */
 export function aiAssistantTabs(): TabLink[] {
@@ -24,6 +29,7 @@ export function aiAssistantTabs(): TabLink[] {
             icon: MessageSquareShare,
             href: handover(),
         },
+        { value: 'key', label: 'API key', icon: KeyRound, href: key() },
     ];
 }
 

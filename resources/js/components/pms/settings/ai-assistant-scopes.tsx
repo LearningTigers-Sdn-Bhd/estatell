@@ -5,6 +5,7 @@ import {
     ChartNoAxesColumn,
     ConciergeBell,
     Globe,
+    KeyRound,
     MapPin,
     Sparkles,
     ReceiptText,
@@ -13,9 +14,11 @@ import {
     Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PanelHeading } from '@/components/pms/panel-heading';
 import { AutoSaveStatus } from '@/components/pms/settings/auto-save-status';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import {
     Table,
@@ -26,6 +29,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useAutoSave } from '@/hooks/use-auto-save';
+import { key } from '@/routes/settings/ai-assistant';
 import { update } from '@/routes/settings/ai-assistant/scopes';
 
 type AiScope = App.Data.AiAssistant.AiScopeData;
@@ -51,11 +55,13 @@ function AiScopeTable({
     heading,
     scopes,
     enabled,
+    disabled,
     onChange,
 }: {
     heading: string;
     scopes: AiScope[];
     enabled: Record<string, boolean>;
+    disabled: boolean;
     onChange: (scope: App.Enums.AiScope, on: boolean) => void;
 }) {
     return (
@@ -89,6 +95,7 @@ function AiScopeTable({
                                     <Switch
                                         size="sm"
                                         checked={checked}
+                                        disabled={disabled}
                                         aria-label={`Turn ${scope.label} ${checked ? 'off' : 'on'}`}
                                         onCheckedChange={(next) =>
                                             onChange(scope.scope, next)
@@ -124,14 +131,17 @@ function AiScopeTable({
 
 /**
  * The hotel's switches for one kind of scope (places or capabilities) Estatell allows. Each switch saves by itself
- * (`useAutoSave`), and every switch on the tab is sent with each save.
+ * (`useAutoSave`), and every switch on the tab is sent with each save. Without the hotel's OpenAI key, the places are
+ * off, so their switches are disabled under a notice that links to the API key tab.
  */
 export function AiScopeSwitches({
     kind,
     scopes,
+    hasKey,
 }: {
     kind: App.Enums.AiScopeKind;
     scopes: AiScope[];
+    hasKey: boolean;
 }) {
     const form = useAutoSave<Record<string, boolean>>(
         Object.fromEntries(scopes.map((scope) => [scope.scope, scope.enabled])),
@@ -152,10 +162,24 @@ export function AiScopeSwitches({
                 }
                 actions={<AutoSaveStatus saving={form.saving} />}
             />
+            {place && !hasKey && (
+                <Alert>
+                    <KeyRound />
+                    <AlertTitle>
+                        Add your OpenAI key to start the assistant.
+                    </AlertTitle>
+                    <AlertDescription>
+                        <Link href={key()} className="underline">
+                            Add key
+                        </Link>
+                    </AlertDescription>
+                </Alert>
+            )}
             <AiScopeTable
                 heading={place ? 'Place' : 'Capability'}
                 scopes={scopes}
                 enabled={form.value}
+                disabled={place && !hasKey}
                 onChange={(scope, on) =>
                     form.change({ ...form.value, [scope]: on })
                 }

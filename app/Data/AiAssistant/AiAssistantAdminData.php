@@ -2,15 +2,16 @@
 
 namespace App\Data\AiAssistant;
 
+use App\Data\Shared\BadgeData;
 use App\Enums\AiScope;
 use App\Models\Property;
-use App\Services\AiAssistant\AiMonthlyCap;
+use App\Services\AiAssistant\AiKeyProvider;
 use App\Services\AiAssistant\AiScopes;
 use Spatie\LaravelData\Data;
 
 /**
- * The AI assistant's child rows on the admin Features tab: the monthly cap in US dollars and the Allowed switch of each
- * scope.
+ * The AI assistant's child rows on the admin Features tab: the status of the hotel's OpenAI key (never the key) and the
+ * Allowed switch of each scope.
  */
 class AiAssistantAdminData extends Data
 {
@@ -18,7 +19,7 @@ class AiAssistantAdminData extends Data
      * @param  list<AiScopeData>  $scopes
      */
     public function __construct(
-        public ?string $capUsd,
+        public BadgeData $keyStatus,
         public array $scopes,
     ) {}
 
@@ -28,7 +29,7 @@ class AiAssistantAdminData extends Data
         $rows = $aiScopes->rows($property);
 
         return new self(
-            capUsd: app(AiMonthlyCap::class)->toDollars($property->settings?->ai_monthly_cap_micros),
+            keyStatus: BadgeData::forAiKey(app(AiKeyProvider::class)->hasKey($property), $property->settings?->ai_key_status),
             scopes: array_map(
                 fn (AiScope $scope): AiScopeData => AiScopeData::forAdmin($scope, $rows->get($scope->value), $aiScopes->hasRequiredFeature($property, $scope)),
                 AiScope::cases(),

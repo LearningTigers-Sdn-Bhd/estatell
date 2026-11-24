@@ -20,6 +20,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Tools\Request as ToolRequest;
 use Laravel\Pennant\Feature;
 
+require_once __DIR__.'/../Support/AiKeySetup.php';
 require_once __DIR__.'/../Support/ConciergeSetup.php';
 
 /**
@@ -32,6 +33,8 @@ function stayToolsThread(Property $property, ReservationUnit $unit): AiThread
     foreach ([AiScope::Concierge, AiScope::StayDetails, AiScope::GuestRequests] as $scope) {
         PropertyAiScope::factory()->for($property)->create(['scope' => $scope]);
     }
+
+    giveAiKey($property);
 
     return AiThread::factory()->for($property)->create(['place' => AiPlace::ConciergeStay, 'reservation_unit_id' => $unit->id]);
 }
