@@ -1,7 +1,6 @@
 import { Form, Head } from '@inertiajs/react';
 import { Gauge, KeyRound, MessageSquareShare } from 'lucide-react';
 import { useState } from 'react';
-import { SettingsInput } from '@/components/pms/settings/form-fields';
 import {
     AiAssistantShell,
     aiAssistantBreadcrumbs,
@@ -24,11 +23,39 @@ import {
     FieldError,
     FieldLabel,
 } from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+    InputGroupText,
+} from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { update as updateHandover } from '@/routes/settings/ai-assistant/handover-message';
 import { destroy, update } from '@/routes/settings/ai-assistant/key';
 import { update as updateCap } from '@/routes/settings/ai-assistant/monthly-cap';
+
+/** The submit button at the end of a single input. */
+function SaveButton({
+    label,
+    processing,
+}: {
+    label: string;
+    processing: boolean;
+}) {
+    return (
+        <InputGroupButton
+            type="submit"
+            variant="default"
+            disabled={processing}
+            focusableWhenDisabled
+        >
+            {processing && <Spinner data-icon="inline-start" />}
+            {label}
+        </InputGroupButton>
+    );
+}
 
 /** Asks before the key is removed, because every place then stops answering. */
 function RemoveKey() {
@@ -97,19 +124,38 @@ export default function AiAssistantGeneral({
                         description="Your hotel pays OpenAI directly for every chat. We test the key when you save it."
                         headerClassName="ps-2 pt-2"
                         submitLabel="Save key"
+                        submitInField
                         contentClassName="grid gap-5"
                         actions={settings.hasKey ? <RemoveKey /> : undefined}
                     >
-                        {(errors) => (
-                            <SettingsInput
-                                name="key"
-                                label={settings.hasKey ? 'New key' : 'Key'}
-                                type="password"
-                                value=""
-                                placeholder="e.g. sk-proj-4f9a…"
-                                description="Stored encrypted and never shown again. Create one at platform.openai.com › API keys."
-                                error={errors.key}
-                            />
+                        {(errors, { processing }) => (
+                            <Field data-invalid={!!errors.key}>
+                                <FieldLabel htmlFor="key">
+                                    {settings.hasKey ? 'New key' : 'Key'}
+                                </FieldLabel>
+                                <InputGroup>
+                                    <InputGroupInput
+                                        id="key"
+                                        name="key"
+                                        type="password"
+                                        autoComplete="off"
+                                        placeholder="e.g. sk-proj-4f9a…"
+                                        aria-invalid={!!errors.key}
+                                    />
+                                    <InputGroupAddon align="inline-end">
+                                        <SaveButton
+                                            label="Save key"
+                                            processing={processing}
+                                        />
+                                    </InputGroupAddon>
+                                </InputGroup>
+                                <FieldDescription>
+                                    Stored encrypted and never shown again.
+                                    Create one at platform.openai.com › API
+                                    keys.
+                                </FieldDescription>
+                                <FieldError>{errors.key}</FieldError>
+                            </Field>
                         )}
                     </SettingsSection>
 
@@ -120,20 +166,41 @@ export default function AiAssistantGeneral({
                         description="At the cap, the assistant stops calling OpenAI and hands every chat to staff until the next month."
                         headerClassName="ps-2 pt-2"
                         submitLabel="Save cap"
+                        submitInField
                         contentClassName="grid gap-5 md:grid-cols-2"
                     >
-                        {(errors) => (
-                            <SettingsInput
-                                name="cap_usd"
-                                label="Monthly cap (US$)"
-                                type="number"
-                                min={0.01}
-                                step="0.01"
-                                value={settings.capUsd ?? ''}
-                                placeholder="e.g. 20.00"
-                                description="OpenAI bills in US dollars. Leave it empty for no cap."
-                                error={errors.cap_usd}
-                            />
+                        {(errors, { processing }) => (
+                            <Field data-invalid={!!errors.cap_usd}>
+                                <FieldLabel htmlFor="cap_usd">
+                                    Monthly cap
+                                </FieldLabel>
+                                <InputGroup>
+                                    <InputGroupAddon>
+                                        <InputGroupText>US$</InputGroupText>
+                                    </InputGroupAddon>
+                                    <InputGroupInput
+                                        id="cap_usd"
+                                        name="cap_usd"
+                                        type="number"
+                                        min={0.01}
+                                        step="0.01"
+                                        defaultValue={settings.capUsd ?? ''}
+                                        placeholder="e.g. 20.00"
+                                        aria-invalid={!!errors.cap_usd}
+                                    />
+                                    <InputGroupAddon align="inline-end">
+                                        <SaveButton
+                                            label="Save cap"
+                                            processing={processing}
+                                        />
+                                    </InputGroupAddon>
+                                </InputGroup>
+                                <FieldDescription>
+                                    OpenAI bills in US dollars. Leave it empty
+                                    for no cap.
+                                </FieldDescription>
+                                <FieldError>{errors.cap_usd}</FieldError>
+                            </Field>
                         )}
                     </SettingsSection>
 

@@ -27,6 +27,8 @@ type SectionActions = ReactNode | ((state: { isDirty: boolean }) => ReactNode);
  * `actions` sit on the right of the header, and wrap below the description on a phone.
  * `hideHeader` leaves the title and description out when the page header already says them; the title still names
  * the unsaved changes dialog.
+ * `submitInField` leaves the save button out, so the fields render their own submit button (for example an
+ * `InputGroupButton` at the end of a single input); `children` gets `processing` for its spinner.
  * `saveBar` replaces the save button with a bar that floats at the bottom of the window while it has unsaved changes,
  * with Discard and Save. Use it with `guardUnsavedChanges` for a long form.
  */
@@ -45,6 +47,7 @@ export function SettingsSection({
     submitIcon,
     hideHeader = false,
     saveBar = false,
+    submitInField = false,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -67,7 +70,12 @@ export function SettingsSection({
     hideHeader?: boolean;
     /** Shows Discard and Save in a floating bar while the form has unsaved changes. */
     saveBar?: boolean;
-    children: (errors: Record<string, string>) => ReactNode;
+    /** The fields hold their own submit button; no save button below them. */
+    submitInField?: boolean;
+    children: (
+        errors: Record<string, string>,
+        state: { processing: boolean },
+    ) => ReactNode;
 }) {
     const afterSave = useRef<(() => void) | null>(null);
     // Remounting the fields on Discard also resets their React state, such as switches and selects.
@@ -99,6 +107,7 @@ export function SettingsSection({
                     submitIcon={submitIcon}
                     hideHeader={hideHeader}
                     saveBar={saveBar}
+                    submitInField={submitInField}
                     processing={processing}
                     isDirty={isDirty}
                     onSave={(onSaved) => {
@@ -111,7 +120,7 @@ export function SettingsSection({
                     }}
                 >
                     <div key={fieldsKey} className="contents">
-                        {children(errors)}
+                        {children(errors, { processing })}
                     </div>
                 </SettingsSectionContent>
             )}
@@ -164,6 +173,7 @@ function SettingsSectionContent({
     submitIcon: SubmitIcon,
     hideHeader,
     saveBar,
+    submitInField,
     processing,
     isDirty,
     onSave,
@@ -183,6 +193,7 @@ function SettingsSectionContent({
     submitIcon?: LucideIcon;
     hideHeader: boolean;
     saveBar: boolean;
+    submitInField: boolean;
     processing: boolean;
     isDirty: boolean;
     onSave: (onSaved: () => void) => void;
@@ -240,7 +251,7 @@ function SettingsSectionContent({
                 </header>
             )}
             <div className={contentClassName}>{children}</div>
-            {!readOnly && !submitInHeader && !saveBar && (
+            {!readOnly && !submitInHeader && !saveBar && !submitInField && (
                 <footer className="flex justify-end">{saveButton}</footer>
             )}
             {!readOnly && saveBar && isDirty && (
