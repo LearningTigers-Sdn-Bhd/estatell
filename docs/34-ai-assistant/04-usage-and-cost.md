@@ -33,7 +33,7 @@ ai_turn_tools    id, ai_turn_id, tool (AiTool), succeeded (bool)
 - `ai_connection_id` and `external_ref_hash` come with the chat API for n8n. The guest questions item creates the other columns.
 - `cost_micros` is the provider's price in millionths of a US dollar, from the tokens and the model's price in `config/ai-pricing.php`. OpenAI bills in dollars, so the log does too.
 - `reservation_id` is filled when a [quote](03-places-and-routes.md#quote-links) from that turn becomes a booking. The outcome then moves to Booked.
-- The turn row is written by `RecordAiTurn` (an Action), called from the stream's `then()` in `ReplyInAiThread` once the reply ends. The outcome is Failed when a tool failed, Escalated when `HandOver` ran, QuoteSent when `SendQuoteLink` ran, otherwise Answered. A stream that breaks before it ends logs no turn yet.
+- The turn row is written by `RecordAiTurn` (an Action), called from the stream's `then()` in `ReplyInAiThread` once the reply ends. The outcome is Failed when a tool failed, Escalated when `HandOver` ran, QuoteSent when `SendQuoteLink` ran, otherwise Answered. A stream that fails (the provider is down, or the account has no credit) is logged from the stream's `catch()` as Failed with no tokens, and the error is reported to the Laravel log. The guest sees "We could not send that."
 - Message text lives in the SDK's conversation tables and is deleted after 90 days. The same purge sets `ai_threads.handover_summary` to null. `ai_turns` and `ai_turn_tools` keep no text, so they stay.
 
 ## Monthly cap

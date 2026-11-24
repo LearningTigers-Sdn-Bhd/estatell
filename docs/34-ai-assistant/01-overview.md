@@ -164,7 +164,7 @@ Check these before or during the build. Do not guess.
 5. **Streaming through the microsite**: the booking website calls the API from its own server, so its server must pass the stream through.
 6. **User docs for the staff helper**: they live in the `estatell-docs` repo as MDX. Decide how the app reads them (copied at deploy, or fetched).
 7. ~~**Pricing future dates without the microsite**~~: answered 2026-11-24. Concierge quotes price with `KioskWalkIn::quotable`, the same code that books, so the Booking engine feature is not needed. See [Quote links](03-places-and-routes.md#quote-links).
-8. **OpenAI prices**: `config/ai-pricing.php` has `gpt-6-luna` at $0.10 input, $0.01 cached input and $0.50 output per million tokens, from price trackers. Check against OpenAI's pricing page before launch.
+8. ~~**OpenAI prices**~~: answered 2026-11-24. OpenAI's pricing page lists `gpt-6-luna` at $0.10 input, $0.01 cached input and $0.50 output per million tokens, as in `config/ai-pricing.php`. It is the cheapest current model and supports function calling, so it stays the default. If it calls tools badly in real chats, try `gpt-6.1-terra` ($1.00 / $0.05 / $5.00).
 
 ## Not in this plan
 

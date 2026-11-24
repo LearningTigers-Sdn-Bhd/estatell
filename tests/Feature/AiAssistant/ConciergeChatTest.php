@@ -17,12 +17,15 @@ use App\Models\PropertyWifiNetwork;
 use App\Models\ReservationUnit;
 use App\Services\AiAssistant\AiTurnCost;
 use App\Services\AiAssistant\AssistantInstructions;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Ai\Exceptions\StreamErrorException;
 use Laravel\Ai\Models\ConversationMessage;
 use Laravel\Ai\Responses\Data\TextUsage;
+use Laravel\Ai\Streaming\Events\Error as StreamError;
 use Laravel\Ai\Tools\Request as ToolRequest;
 use Laravel\Pennant\Feature;
 
@@ -107,6 +110,18 @@ test('a lobby message starts a thread, streams the reply and logs the turn', fun
     $this->getJson("/stay/{$property->code}/ai/messages?thread={$id}")->assertOk()
         ->assertJsonPath('thread', $id)
         ->assertJsonCount(2, 'messages');
+});
+
+test('a reply the provider fails is reported and logged as a Failed turn', function () {
+    ['property' => $property] = conciergeChatSetup();
+    Exceptions::fake();
+    PropertyAssistant::fake([fn () => throw new StreamErrorException(new StreamError('err_1', 'insufficient_quota', 'You exceeded your current quota.', false, 0))]);
+
+    $response = lobbyChat($property, 'When is breakfast?')->assertOk();
+
+    expect($response->streamedContent())->toContain('"type":"error"');
+    Exceptions::assertReported(StreamErrorException::class);
+    expect(AiTurn::query()->sole())->outcome->toBe(AiOutcome::Failed)->input_tokens->toBe(0);
 });
 
 test('a second lobby message continues the same thread', function () {

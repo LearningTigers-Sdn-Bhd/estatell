@@ -3,7 +3,7 @@
 /*
  * What OpenAI charges per model, in US dollars per million tokens. The AI assistant logs each turn's cost from these
  * (docs/34-ai-assistant/04-usage-and-cost.md). A model missing here costs nothing in the log, so add a row before
- * changing OPENAI_TEXT_MODEL. To verify against https://developers.openai.com/api/docs/pricing before launch.
+ * changing OPENAI_TEXT_MODEL. Checked against https://developers.openai.com/api/docs/pricing on 2026-11-24.
  */
 return [
 
