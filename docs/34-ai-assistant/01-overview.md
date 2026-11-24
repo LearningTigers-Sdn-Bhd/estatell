@@ -163,7 +163,7 @@ Check these before or during the build. Do not guess.
 4. **AI Elements without Next.js**: the components build and type-check in Inertia. Still to check on the real page. `message` and `conversation` needed `asChild` changed to `render`; `prompt-input` is not used (see [Chat UI](03-places-and-routes.md#chat-ui)).
 5. **Streaming through the microsite**: the booking website calls the API from its own server, so its server must pass the stream through.
 6. **User docs for the staff helper**: they live in the `estatell-docs` repo as MDX. Decide how the app reads them (copied at deploy, or fetched).
-7. **Pricing future dates without the microsite**: whether `BookingOffers` works when the Booking engine feature is off.
+7. ~~**Pricing future dates without the microsite**~~: answered 2026-11-24. Concierge quotes price with `KioskWalkIn::quotable`, the same code that books, so the Booking engine feature is not needed. See [Quote links](03-places-and-routes.md#quote-links).
 8. **OpenAI prices**: `config/ai-pricing.php` has `gpt-6-luna` at $0.10 input, $0.01 cached input and $0.50 output per million tokens, from price trackers. Check against OpenAI's pricing page before launch.
 
 ## Not in this plan

@@ -50,7 +50,7 @@ Each tool is one class in `app/Ai/Tools/`. It validates its input, calls a Servi
 | Tool                  | Calls                                                                      | Lobby | Stay | Booking engine | Staff | API |
 | --------------------- | -------------------------------------------------------------------------- | :---: | :--: | :------------: | :---: | :-: |
 | `PropertyFacts`       | One part of the knowledge in full by `topic`, plus the nearby places       |  yes  | yes  |      yes       |  no   | yes |
-| `CheckRoomsAndPrices` | `BookingOffers` for dates and a party                                      |  yes  | yes  |      yes       |  no   | yes |
+| `CheckRoomsAndPrices` | `KioskWalkIn::quotable` (Concierge, API) or `BookingOffers` (microsite)    |  yes  | yes  |      yes       |  no   | yes |
 | `SendQuoteLink`       | `CreateConciergeQuote` (Concierge, API) or a microsite checkout link       |  yes  | yes  |      yes       |  no   | yes |
 | `ReadMyStay`          | The stay of the thread's own `/c/{token}`: dates, room, balance due        |  no   | yes  |       no       |  no   | no  |
 | `MakeGuestRequest`    | `SubmitConciergeRequest` (housekeeping, maintenance, complaint)            |  no   | yes  |       no       |  no   | no  |

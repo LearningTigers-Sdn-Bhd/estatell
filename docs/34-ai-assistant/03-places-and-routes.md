@@ -42,12 +42,13 @@ The browser keeps its thread id: the lobby and the booking engine in local stora
 
 ## Quote links
 
-Decided 2026-11-24: the Concierge page sells future dates itself.
+Decided 2026-11-24: the Concierge page sells future dates itself. Details settled on 2026-11-24.
 
-1. `SendQuoteLink` calls `CreateConciergeQuote`, which saves a `concierge_quotes` row and returns its link.
-2. The guest opens `GET /stay/{code}/quote/{token}`. The page re-prices the stay. If the price changed, it shows the new price first.
-3. The guest sends their details. `ConfirmConciergeQuote` books and holds the room and saves the details in **one transaction**, like [`ConfirmConciergeWalkIn`](../30-concierge/01-overview.md#walk-in). Nothing is booked before this step.
-4. The guest pays on `/c/{token}`, as any other guest. An unpaid hold is released by the same job.
+1. `CheckRoomsAndPrices` calls `KioskWalkIn::quotable`: every room type and plan that is free, nightly and bookable online, priced with `BookingQuote`, the same code that books the stay. The price on the card is the price the folio will charge.
+2. The guest picks one. `SendQuoteLink` calls `CreateConciergeQuote`, which checks the arrival is within `BookingWindow::MONTHS_AHEAD`, saves a `concierge_quotes` row and returns its link and id.
+3. The guest opens `GET /stay/{property:code}/quote/{token}`. The page prices the same room type and plan again with `KioskWalkIn::quotable`. If the price changed, it shows the new price first. The form is the walk-in details form: the returning-guest match, or name, ID and contact.
+4. The guest presses Book and continue. `ConfirmConciergeQuote` locks the quote, then books and holds the room and saves the details in **one transaction** through `ConfirmConciergeWalkIn` with the quote's rate plan. Nothing is booked before this step.
+5. The guest lands on the stay page `/c/{token}` at the Payment step, as any walk-in. An unpaid hold is released after `BookWalkIn::HOLD_MINUTES` by `ReleaseExpiredKioskHolds`.
 
 ```
 concierge_quotes   id, property_id, token (unique), room_type_id, rate_plan_id,
@@ -56,13 +57,25 @@ concierge_quotes   id, property_id, token (unique), room_type_id, rate_plan_id,
                    expires_at, timestamps
 ```
 
-- A quote lasts 24 hours. An expired link sends the guest to a new search.
-- `quoted_total` is what the guest was told; the booking always takes the price at step 3.
-- `reservation_id` is set at step 3, which links the booking back to the AI turn for the [usage log](04-usage-and-cost.md).
-- `ConfirmConciergeQuote` reuses `BookWalkIn::book` with the quote's dates, the walk-in throttles and the open hold limit. The arrival may be any date the booking engine sells (today to 6 months ahead).
-- The Concierge module owns the table, the page and both Actions. The AI module only calls `CreateConciergeQuote`.
+| Rule           | Detail                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Life           | A quote lasts 24 hours. An expired link shows a message and a link back to the chat.                                                                    |
+| Price          | `quoted_total` is what the guest was told. The booking always takes the price at step 4.                                                                |
+| Plans          | Bookable-online plans only. A property with none gets no quotes, and the assistant hands over.                                                          |
+| Party          | Adults only. A guest who mentions children is handed over.                                                                                              |
+| Walk-in switch | Not needed. The RoomQuotes scope is the hotel's switch for quotes. `BookConciergeWalkIn` skips the walk-in switch for a quote.                          |
+| Hold limit     | Shared with walk-ins: `BookConciergeWalkIn::MAX_OPEN_HOLDS` counts both.                                                                                |
+| Used twice     | Once `reservation_id` is set, the link opens the stay page instead of booking again.                                                                    |
+| Rate plan      | `BookWalkIn::book` and `ConfirmConciergeWalkIn` take an optional rate plan. Without one they keep the cheapest plan, as the kiosk and walk-in do today. |
+| Wording        | The Payment and Hold expired steps say "Pay to confirm your booking" and "Ask us again in the chat" when the stay came from a quote.                    |
 
-On the **booking engine**, `SendQuoteLink` returns a link to the microsite's checkout with the room, plan and dates filled in. The microsite makes the hold as today.
+**Link to the AI turn.** A turn is written only after the stream ends, so `CreateConciergeQuote` cannot know it. `SendQuoteLink` returns the quote id. `RecordAiTurn` sets the outcome to QuoteSent and calls the Concierge Action `AttachConciergeQuoteToAiTurn` to fill `ai_turn_id`. On confirm, Concierge fires `ConciergeQuoteBooked`. An AI listener calls `MarkAiTurnBooked`, which sets `ai_turns.reservation_id` and the outcome Booked. Each module writes only its own tables.
+
+**In the chat.** The room options and the quote link are cards drawn from the tool output (`tool-CheckRoomsAndPrices`, `tool-SendQuoteLink` parts), not from the model's text. So the price on screen always comes from the tool.
+
+The Concierge module owns the table, the page and the quote Actions. The AI module only calls `CreateConciergeQuote` and `AttachConciergeQuoteToAiTurn`.
+
+On the **booking engine**, `SendQuoteLink` returns a link to the microsite's checkout with the room, plan and dates filled in. The microsite makes the hold as today, priced with `BookingOffers`.
 
 ## Booking engine
 
