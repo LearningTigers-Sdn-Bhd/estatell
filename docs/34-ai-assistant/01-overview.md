@@ -12,12 +12,12 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | 1   | One **AI assistant** module, not a part of the Concierge page. The places share the same knowledge, handover and usage log; only the tools change.            | 2026-11-20 |
 | 2   | The package is `laravel/ai` (the Laravel AI SDK).                                                                                                             | 2026-11-24 |
-| 3   | The provider is **OpenAI**, on Estatell's own key. Hotels do not need an AI account or a key.                                                                 | 2026-11-24 |
+| 3   | The provider is **OpenAI**, on **each hotel's own key** (BYOK). The hotel pays OpenAI. There is no Estatell key and no fallback. See [API key](#api-key).     | 2026-11-24 |
 | 4   | The chat UI uses **shadcn AI Elements**, which needs the npm packages `ai` and `@ai-sdk/react`.                                                               | 2026-11-24 |
 | 5   | The Concierge page books **future dates** itself, through a quote link. No microsite is needed. See [Quote links](03-places-and-routes.md#quote-links).       | 2026-11-24 |
 | 6   | No MCP server. Outside tools such as n8n use the [chat API](03-places-and-routes.md#chat-api-for-n8n).                                                        | 2026-11-20 |
 | 7   | The AI never sets a price, cancels, refunds, or changes a folio. The staff helper is **read only**.                                                           | 2026-11-20 |
-| 8   | Every AI turn is a row in the [usage log](04-usage-and-cost.md), for analysis, the monthly cap and the add-on bill.                                           | 2026-11-20 |
+| 8   | Every AI turn is a row in the [usage log](04-usage-and-cost.md), for analysis, the monthly cap and the hotel's spend.                                         | 2026-11-24 |
 | 9   | The platform admin decides the [scope](#scopes): which places and capabilities each property may use. The hotel then turns on what it wants. Both must be on. | 2026-11-24 |
 
 ## Terms
@@ -47,7 +47,7 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 
 Pennant feature `AiAssistant` (`App\Features\AiAssistant`, `#[Name('ai-assistant')]`), off by default, like [Facilities](../33-facilities/01-overview.md#feature-flag). A platform admin turns it on per property. `PlatformFeature::AiAssistant` lists it. With the feature off, the settings item, every chat and every AI route are hidden, and the routes return 404 through an `ai-assistant` middleware. Turning it off keeps all data.
 
-On the same admin page, under the AI assistant row, the platform admin also sets the property's **monthly cap** (see [Monthly cap](04-usage-and-cost.md#monthly-cap)) and allows each [scope](#scopes).
+On the same admin page, under the AI assistant row, the platform admin allows each [scope](#scopes) and sees the status of the hotel's [API key](#api-key) (never the key). The hotel sets its own [monthly cap](04-usage-and-cost.md#monthly-cap).
 
 ## Scopes
 
@@ -80,7 +80,7 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
                      unique (property_id, scope)
 ```
 
-- A scope is on only when the `AiAssistant` feature is on, the features it needs are on, and the row is both allowed and enabled. `AiScopes` (a Service) answers this.
+- A scope is on only when the `AiAssistant` feature is on, the features it needs are on, the row is both allowed and enabled, and the hotel has saved an [API key](#api-key). `AiScopes` (a Service) answers this.
 - A missing row means off. A new scope is a new enum case, with no migration.
 - When the admin stops allowing a scope, the hotel's `enabled` stays, so allowing it again brings back the hotel's choice.
 
@@ -93,12 +93,30 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
 | Places       | The switch for each allowed place (`settings/ai-assistant`)                                                           |
 | Capabilities | The switch for each allowed capability (`settings/ai-assistant/capabilities`)                                         |
 | Handover     | The handover message the guest sees (`settings/ai-assistant/handover`)                                                |
-| Usage        | The [usage report](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`)                        |
+| API key      | The hotel's OpenAI key, its status and the monthly cap (`settings/ai-assistant/key`). See [API key](#api-key)         |
+| Usage        | The hotel's [spend and usage](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`)             |
 | Connections  | The AI connections for the [chat API](03-places-and-routes.md#chat-api-for-n8n) (`settings/ai-assistant/connections`) |
 
-Each tab is its own URL and sends only its own data. Usage and Connections come with their checklist items. Decided 2026-11-24: tabs by kind of setting, not one General tab.
+Each tab is its own URL and sends only its own data. API key, Usage and Connections come with their checklist items. Decided 2026-11-24: tabs by kind of setting, not one General tab.
 
-The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
+The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. With no key saved, the Places tab shows "Add your OpenAI key to start the assistant." with a link to the API key tab, and its switches are disabled. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
+
+## API key
+
+Decided 2026-11-24: each hotel brings its own OpenAI key (BYOK) and pays OpenAI directly. Estatell has no key of its own for the assistant.
+
+```
+property_settings   ai_openai_key (text, nullable, encrypted cast),
+                    ai_key_status (AiKeyStatus, nullable), ai_key_checked_at (nullable)
+```
+
+- `AiKeyStatus`: Working, Failing, with `label()` and `tone()`. Null means not tested yet.
+- **Settings › AI assistant › API key** shows the key masked (`sk-…a1b2`), never in full. The hotel can replace, test or remove it. The same tab holds the [monthly cap](04-usage-and-cost.md#monthly-cap).
+- `SaveAiKey` (an Action) saves the key and tests it. `TestAiKey` makes one small call to OpenAI and sets the status and `ai_key_checked_at`. `RemoveAiKey` clears all three columns.
+- Each turn builds the provider from the hotel's key with the SDK's `Ai::build()` (driver `openai`, the same model and `store: false` as `config/ai.php`), and `ReplyInAiThread` passes it to `stream()`.
+- When OpenAI refuses the key (wrong key, or no credit), the turn is logged as Failed and the status becomes Failing. While the status is Failing, turns make no model call: the guest gets the handover message, and the turn is logged as Failed with no tokens. The hotel fixes the key and taps **Test key**, which sets it back to Working. Other errors (OpenAI is down) do not change the status.
+- No key saved means every place is off (see [Scopes](#scopes)).
+- The admin property page shows the status (Working, Failing, Not tested, No key), never the key.
 
 ## Files
 
@@ -110,15 +128,17 @@ The Places and Capabilities tabs show a switch only for a scope the admin allows
 
 ## Permissions
 
-| Permission        | Allows                                                      |
-| ----------------- | ----------------------------------------------------------- |
-| `settings.manage` | Settings › AI assistant, including the Usage tab (existing) |
+| Permission        | Allows                                                                   |
+| ----------------- | ------------------------------------------------------------------------ |
+| `settings.manage` | Settings › AI assistant, including the API key and Usage tabs (existing) |
 
 The staff helper needs no new permission. Its tools run as the signed-in staff member and check that member's permissions, so it never shows what the member could not open.
 
 ## Personal data
 
-Guest messages go to OpenAI. Before launch, check Malaysia's PDPA (see [To verify](#to-verify)).
+Guest messages go to OpenAI, on the hotel's own OpenAI account. Before launch, check Malaysia's PDPA (see [To verify](#to-verify)).
+
+- The OpenAI key is stored encrypted, is never sent to the browser in full, and is never logged.
 
 - Every chat shows a line saying the guest is talking to an AI assistant.
 - Tools never send ID numbers, dates of birth, payment details, door PINs or Wi-Fi passwords to the model.
@@ -133,7 +153,7 @@ Guest messages go to OpenAI. Before launch, check Malaysia's PDPA (see [To verif
 | Understanding | Ruby matchers first, then the model with 2 tools            | The model picks the tool                   |
 | Booking       | Saved steps in `prospect_conversation_states` (jsonb slots) | Chat history and the quote link Actions    |
 | Knowledge     | Uploaded documents, chunks and vector search                | The Concierge content in the instructions  |
-| Provider      | Each hotel enters its own key (Claude, Gemini or OpenAI)    | OpenAI on Estatell's key                   |
+| Provider      | Each hotel enters its own key (Claude, Gemini or OpenAI)    | Each hotel's own OpenAI key                |
 | Usage         | No usage table                                              | One row per turn                           |
 | Staff         | None                                                        | A read-only helper                         |
 
@@ -149,7 +169,7 @@ These came with the plan. The user confirmed all of them on 2026-11-24.
 | A quote link lasts 24 hours                                                | [Quote links](03-places-and-routes.md#quote-links) |
 | Chat throttles (lobby 10, stay and booking engine 20, API 60 a minute)     | [Routes](03-places-and-routes.md#routes)           |
 | A quiet thread closes after 7 days                                         | [Data model](04-usage-and-cost.md#data-model)      |
-| Platform admins are told at 80% of the cap                                 | [Monthly cap](04-usage-and-cost.md#monthly-cap)    |
+| Staff with `settings.manage` are told at 80% of the cap                    | [Monthly cap](04-usage-and-cost.md#monthly-cap)    |
 | `OPENAI_STORE=false`: OpenAI keeps no copy of guest messages               | [Personal data](#personal-data)                    |
 | One model for all properties: `OPENAI_TEXT_MODEL`, `gpt-6-luna` by default | [The agent](02-agent-and-tools.md#the-agent)       |
 
@@ -165,11 +185,13 @@ Check these before or during the build. Do not guess.
 6. **User docs for the staff helper**: they live in the `estatell-docs` repo as MDX. Decide how the app reads them (copied at deploy, or fetched).
 7. ~~**Pricing future dates without the microsite**~~: answered 2026-11-24. Concierge quotes price with `KioskWalkIn::quotable`, the same code that books, so the Booking engine feature is not needed. See [Quote links](03-places-and-routes.md#quote-links).
 8. ~~**OpenAI prices**~~: answered 2026-11-24. OpenAI's pricing page lists `gpt-6-luna` at $0.10 input, $0.01 cached input and $0.50 output per million tokens, as in `config/ai-pricing.php`. It is the cheapest current model and supports function calling, so it stays the default. If it calls tools badly in real chats, try `gpt-6.1-terra` ($1.00 / $0.05 / $5.00).
+9. **Testing a key**: the cheapest call the SDK allows for `TestAiKey` (a model list, or a one-token prompt).
+10. **A refused key**: how the SDK reports OpenAI's wrong-key (401) and no-credit (429 `insufficient_quota`) errors, so only these set the key to Failing.
 
 ## Not in this plan
 
 - Write actions for staff (move a room, post a charge). The SDK can ask for approval before a tool runs; come back to it later.
 - Our own WhatsApp channel. n8n uses the chat API first.
 - Embeddings or vector search. One property's content is a few KB.
-- A choice of provider per property.
+- A choice of provider per property (Claude, Gemini). OpenAI only for now; another provider needs its own price table.
 - Voice.

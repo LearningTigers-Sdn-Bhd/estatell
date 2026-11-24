@@ -25,10 +25,12 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 | `POST /p/{property:code}/ai-chats/{thread}/resolve`                                   | AI chats inbox  | `front-desk.view`                                   |
 | `GET /p/{property:code}/settings/ai-assistant` (Places), `/capabilities`, `/handover` | Settings        | `settings.manage`                                   |
 | `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`            | Settings        | `settings.manage`                                   |
+| `GET`, `PUT`, `DELETE /p/{property:code}/settings/ai-assistant/key`                   | Settings        | `settings.manage`                                   |
+| `POST /p/{property:code}/settings/ai-assistant/key/test`, `PUT .../monthly-cap`       | Settings        | `settings.manage`                                   |
 | `GET /p/{property:code}/settings/ai-assistant/connections`                            | Settings        | `settings.manage`                                   |
 | `GET /p/{property:code}/settings/ai-assistant/usage`                                  | Settings        | `settings.manage`                                   |
 
-Every chat route sits behind the `ai-assistant` middleware and checks its place [scope](01-overview.md#scopes) through `AiScopes`. A scope that is off returns 404. A cap that is reached returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap)).
+Every chat route sits behind the `ai-assistant` middleware and checks its place [scope](01-overview.md#scopes) through `AiScopes`. A scope that is off returns 404. A cap that is reached, or a key that is Failing, returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap) and [API key](01-overview.md#api-key)).
 
 Throttles: lobby 10 messages a minute per address and property; stay and booking engine 20 a minute per thread; API 60 a minute per connection.
 

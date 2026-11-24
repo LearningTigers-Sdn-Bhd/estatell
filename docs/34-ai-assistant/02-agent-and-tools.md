@@ -9,7 +9,7 @@ How the assistant thinks: one agent class, its instructions, what it knows and t
 `App\Ai\Agents\PropertyAssistant` implements the SDK's `Agent` with `Promptable` and `RemembersConversations`.
 
 - One agent for every place. The place decides which tools it gets (`tools()` reads the thread's `AiPlace`), and a tool whose capability [scope](01-overview.md#scopes) is off is left out.
-- The model and the provider come from `config/ai.php`: OpenAI, one model for all properties. The model name is set in config, not per property.
+- The model and the provider come from `config/ai.php`: OpenAI, one model for all properties. The model name is set in config, not per property. The key is the hotel's own, built per turn with `Ai::build()` (see [API key](01-overview.md#api-key)).
 - At most 4 tool calls per turn. A turn that needs more has misunderstood the guest; it hands over instead.
 - Each thread stores its SDK conversation id in `ai_threads.agent_conversation_id`. `OpenAiThread` creates the conversation when the thread starts, with no participant (the SDK's `participant_id` is a number and the thread id is a UUID). Each turn resumes it with `continue()`. The browser sends our thread id, never a conversation id.
 - Fakes from the SDK are used in tests. Tests never call OpenAI.
