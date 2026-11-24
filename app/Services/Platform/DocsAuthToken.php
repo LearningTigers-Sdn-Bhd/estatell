@@ -13,11 +13,13 @@ class DocsAuthToken
     {
         $secret ??= self::secret();
 
+        $issuedAt = now()->getTimestamp();
+
         $payload = [
             'sub' => $user->id,
             'email' => $user->email,
-            'iat' => now()->timestamp,
-            'exp' => now()->timestamp + $ttlSeconds,
+            'iat' => $issuedAt,
+            'exp' => $issuedAt + $ttlSeconds,
         ];
 
         $encoded = self::base64UrlEncode(json_encode($payload, JSON_THROW_ON_ERROR));
@@ -50,11 +52,21 @@ class DocsAuthToken
             $json = self::base64UrlDecode($encoded);
             $payload = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
 
-            if (! is_array($payload) || ! isset($payload['exp']) || $payload['exp'] < now()->timestamp) {
+            if (! is_array($payload)
+                || ! is_int($payload['sub'] ?? null)
+                || ! is_string($payload['email'] ?? null)
+                || ! is_int($payload['iat'] ?? null)
+                || ! is_int($payload['exp'] ?? null)
+                || $payload['exp'] < now()->getTimestamp()) {
                 return null;
             }
 
-            return $payload;
+            return [
+                'sub' => $payload['sub'],
+                'email' => $payload['email'],
+                'iat' => $payload['iat'],
+                'exp' => $payload['exp'],
+            ];
         } catch (\Throwable) {
             return null;
         }
