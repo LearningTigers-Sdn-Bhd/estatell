@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BedDouble, Clock, ExternalLink } from 'lucide-react';
+import { BedDouble, CircleCheck, Clock, ExternalLink } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 
 type Room = {
@@ -27,6 +27,12 @@ type Quote = {
     adults: number;
     total: string;
     currency: string;
+};
+
+type SentRequest = {
+    sent: boolean;
+    type: string;
+    details: string;
 };
 
 /** A tool's output, which the server sends as a JSON string. Null when it is not there yet or is not JSON. */
@@ -153,6 +159,53 @@ export function QuoteLinkCard({ output }: { output: unknown }) {
                 Open quote
                 <ExternalLink data-icon="inline-end" />
             </Link>
+        </section>
+    );
+}
+
+/**
+ * The request `MakeGuestRequest` sent for the guest's stay, drawn from its output. With `requestsUrl` (the stay page), it
+ * links to the stay's requests.
+ */
+export function GuestRequestCard({
+    output,
+    requestsUrl,
+}: {
+    output: unknown;
+    requestsUrl?: string;
+}) {
+    const request = toolOutput<SentRequest>(output);
+
+    if (!request?.sent) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-label="Request sent"
+            className="flex flex-col gap-3 rounded-xl border bg-card p-4"
+        >
+            <div className="flex items-start gap-3">
+                <CircleCheck
+                    className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                    aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                    <p className="font-medium">Request sent</p>
+                    <p className="text-sm text-muted-foreground">
+                        {request.type}
+                    </p>
+                    <p className="text-sm text-pretty">{request.details}</p>
+                </div>
+            </div>
+            {requestsUrl && (
+                <Link
+                    href={requestsUrl}
+                    className={buttonVariants({ variant: 'outline' })}
+                >
+                    View my requests
+                </Link>
+            )}
         </section>
     );
 }

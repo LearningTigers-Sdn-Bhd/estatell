@@ -38,7 +38,7 @@ The browser keeps its thread id: the lobby and the booking engine in local stora
 
 - An **Ask us** button on the lobby hub and the stay screen opens the chat in a Sheet. It shows only while the Concierge scope is on (`aiChat` prop).
 - Lobby: questions and quotes. No stay is known, so no stay tools.
-- Stay: the same, plus `ReadMyStay` and `MakeGuestRequest`. The thread is tied to the stay's reservation unit when it starts.
+- Stay: the same, plus `ReadMyStay` and `MakeGuestRequest`. The thread is tied to the stay's reservation unit when it starts. A sent request shows as a Request sent card that links to the stay's requests.
 
 ## Quote links
 

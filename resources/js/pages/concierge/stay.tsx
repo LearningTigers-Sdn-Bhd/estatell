@@ -9,7 +9,7 @@ import { PaymentStep } from '@/components/concierge/payment-step';
 import { StayHome } from '@/components/concierge/stay-home';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { SAVED_STAY_DAYS, removeStay, saveStay } from '@/lib/concierge-stays';
-import { identity, lobby, stayContact } from '@/routes/concierge';
+import { identity, lobby, requests, stayContact } from '@/routes/concierge';
 import chat from '@/routes/concierge/chat';
 import {
     CheckInStep,
@@ -170,6 +170,7 @@ export default function ConciergeStay({
                     messagesUrl={chat.stay.url({ token: stay.token })}
                     sendUrl={chat.stay.send.url({ token: stay.token })}
                     contactUrl={stayContact.url({ token: stay.token })}
+                    requestsUrl={requests.url({ token: stay.token })}
                 />
             )}
         </GuestFrame>

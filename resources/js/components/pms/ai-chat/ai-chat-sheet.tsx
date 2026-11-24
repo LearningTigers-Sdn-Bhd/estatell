@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/message';
 import { Button } from '@/components/ui/button';
 import {
+    GuestRequestCard,
     QuoteLinkCard,
     RoomOptionsCard,
 } from '@/components/pms/ai-chat/ai-chat-cards';
@@ -95,12 +96,15 @@ export function AiChatSheet({
     sendUrl,
     storageKey,
     contactUrl,
+    requestsUrl,
 }: {
     messagesUrl: string;
     sendUrl: string;
     storageKey?: string;
     /** The Concierge contact page of this lobby or stay. */
     contactUrl: string;
+    /** The stay's requests page, linked from a sent request. Only the stay chat has one. */
+    requestsUrl?: string;
 }) {
     const [open, setOpen] = useState(false);
     const [loaded, setLoaded] = useState<{
@@ -167,6 +171,7 @@ export function AiChatSheet({
                             id={loaded.id}
                             initialMessages={loaded.messages}
                             sendUrl={sendUrl}
+                            requestsUrl={requestsUrl}
                             onThreadEnded={() => {
                                 const id = crypto.randomUUID();
                                 writeStored(storageKey, id);
@@ -188,11 +193,13 @@ function ChatBody({
     id,
     initialMessages,
     sendUrl,
+    requestsUrl,
     onThreadEnded,
 }: {
     id: string;
     initialMessages: UIMessage[];
     sendUrl: string;
+    requestsUrl?: string;
     onThreadEnded: () => void;
 }) {
     const [text, setText] = useState('');
@@ -303,6 +310,17 @@ function ChatBody({
                                                     <QuoteLinkCard
                                                         key={part.toolCallId}
                                                         output={part.output}
+                                                    />
+                                                ) : part.type ===
+                                                      'tool-MakeGuestRequest' &&
+                                                  part.state ===
+                                                      'output-available' ? (
+                                                    <GuestRequestCard
+                                                        key={part.toolCallId}
+                                                        output={part.output}
+                                                        requestsUrl={
+                                                            requestsUrl
+                                                        }
                                                     />
                                                 ) : null,
                                             )}
