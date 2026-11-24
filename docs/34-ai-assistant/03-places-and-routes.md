@@ -23,7 +23,7 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 | `POST /api/ai/v1/messages`                                                           | API             | AI connection token (`ai:chat`)                     |
 | `GET /p/{property:code}/ai-chats` (`?thread={id}` opens one)                         | AI chats inbox  | `front-desk.view`                                   |
 | `POST /p/{property:code}/ai-chats/{thread}/resolve`                                  | AI chats inbox  | `front-desk.view`                                   |
-| `GET /p/{property:code}/settings/ai-assistant` (Places), `/capabilities`, `/general` | Settings        | `settings.manage`                                   |
+| `GET /p/{property:code}/settings/ai-assistant` (General), `/places`, `/capabilities` | Settings        | `settings.manage`                                   |
 | `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`           | Settings        | `settings.manage`                                   |
 | `PUT`, `DELETE /p/{property:code}/settings/ai-assistant/key`                         | Settings        | `settings.manage`                                   |
 | `POST /p/{property:code}/settings/ai-assistant/key/test`, `PUT .../monthly-cap`      | Settings        | `settings.manage`                                   |

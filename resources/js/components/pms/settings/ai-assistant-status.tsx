@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import { general } from '@/routes/settings/ai-assistant';
+import { index as general } from '@/routes/settings/ai-assistant';
 import { test } from '@/routes/settings/ai-assistant/key';
 
 /** Date and time of the last test, in the viewer's locale. */

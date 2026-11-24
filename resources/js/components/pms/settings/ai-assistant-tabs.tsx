@@ -6,7 +6,7 @@ import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import { profile } from '@/routes/settings';
-import { capabilities, general, index } from '@/routes/settings/ai-assistant';
+import { capabilities, index, places } from '@/routes/settings/ai-assistant';
 
 export type AiAssistantTab = 'places' | 'capabilities' | 'general';
 
@@ -17,9 +17,9 @@ export function aiAssistantTabs(): TabLink[] {
             value: 'general',
             label: 'General',
             icon: Settings2,
-            href: general(),
+            href: index(),
         },
-        { value: 'places', label: 'Places', icon: MapPin, href: index() },
+        { value: 'places', label: 'Places', icon: MapPin, href: places() },
         {
             value: 'capabilities',
             label: 'Capabilities',

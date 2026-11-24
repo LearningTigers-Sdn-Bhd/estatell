@@ -25,7 +25,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Settings › AI assistant: the Places, Capabilities and General tabs. Each tab is its own URL and sends only its own
+ * Settings › AI assistant: the General, Places and Capabilities tabs. Each tab is its own URL and sends only its own
  * data, plus the status rail every tab shows. See docs/34-ai-assistant/01-overview.md#settings.
  */
 class AiAssistantSettingsController extends Controller
@@ -33,9 +33,9 @@ class AiAssistantSettingsController extends Controller
     /**
      * Places tab: the switch for each place the admin allows.
      */
-    public function index(Property $property): Response
+    public function places(Property $property): Response
     {
-        return $this->renderTab('settings/ai-assistant/index', $property, AiAssistantSettingsData::forProperty($property, AiScopeKind::Place));
+        return $this->renderTab('settings/ai-assistant/places', $property, AiAssistantSettingsData::forProperty($property, AiScopeKind::Place));
     }
 
     /**
@@ -47,9 +47,9 @@ class AiAssistantSettingsController extends Controller
     }
 
     /**
-     * General tab: the hotel's own OpenAI key, the monthly cap and the handover message.
+     * General tab, the first one: the hotel's own OpenAI key, the monthly cap and the handover message.
      */
-    public function general(Property $property): Response
+    public function index(Property $property): Response
     {
         return $this->renderTab('settings/ai-assistant/general', $property, AiGeneralSettingsData::forProperty($property));
     }

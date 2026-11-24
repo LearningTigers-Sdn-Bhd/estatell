@@ -201,8 +201,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
 
     Route::middleware(['ai-assistant', 'can:'.PermissionEnum::SettingsManage->value])->prefix('ai-assistant')->name('ai-assistant.')->group(function () {
         Route::get('/', [AiAssistantSettingsController::class, 'index'])->name('index');
+        Route::get('places', [AiAssistantSettingsController::class, 'places'])->name('places');
         Route::get('capabilities', [AiAssistantSettingsController::class, 'capabilities'])->name('capabilities');
-        Route::get('general', [AiAssistantSettingsController::class, 'general'])->name('general');
         Route::put('scopes', [AiAssistantSettingsController::class, 'scopes'])->name('scopes.update');
         Route::put('handover-message', [AiAssistantSettingsController::class, 'handoverMessage'])->name('handover-message.update');
         Route::put('key', [AiAssistantSettingsController::class, 'saveKey'])->name('key.update');

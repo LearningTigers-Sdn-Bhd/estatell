@@ -36,9 +36,9 @@ test('the settings page and its routes answer 404 while the AI assistant feature
     $owner = User::factory()->owner()->create();
     $code = $owner->property->code;
 
-    $this->actingAs($owner)->get(route('settings.ai-assistant.index', $code))->assertNotFound();
+    $this->actingAs($owner)->get(route('settings.ai-assistant.places', $code))->assertNotFound();
     $this->actingAs($owner)->get(route('settings.ai-assistant.capabilities', $code))->assertNotFound();
-    $this->actingAs($owner)->get(route('settings.ai-assistant.general', $code))->assertNotFound();
+    $this->actingAs($owner)->get(route('settings.ai-assistant.index', $code))->assertNotFound();
     $this->actingAs($owner)->put(route('settings.ai-assistant.scopes.update', $code), ['scopes' => ['staff' => true]])->assertNotFound();
     $this->actingAs($owner)->put(route('settings.ai-assistant.handover-message.update', $code), ['handover_message' => 'Hi'])->assertNotFound();
 });
@@ -47,11 +47,11 @@ test('the settings page needs settings.manage and is scoped to the property', fu
     ['property' => $property] = aiAssistantSetup();
     $staff = User::factory()->for($property)->withPermissions([PermissionEnum::ReservationsView])->create();
 
-    $this->actingAs($staff)->get(route('settings.ai-assistant.index', $property->code))->assertForbidden();
+    $this->actingAs($staff)->get(route('settings.ai-assistant.places', $property->code))->assertForbidden();
 
     $other = Property::factory()->create();
     Feature::for($other)->activate(AiAssistant::class);
-    $this->actingAs(aiAssistantSetup()['owner'])->get(route('settings.ai-assistant.index', $other->code))->assertNotFound();
+    $this->actingAs(aiAssistantSetup()['owner'])->get(route('settings.ai-assistant.places', $other->code))->assertNotFound();
 });
 
 test('each tab shows only its own allowed scopes whose feature is on', function () {
@@ -61,9 +61,9 @@ test('each tab shows only its own allowed scopes whose feature is on', function 
     aiScopeRow($property, AiScope::Concierge);
     aiScopeRow($property, AiScope::RoomQuotes, allowed: false);
 
-    $this->actingAs($owner)->get(route('settings.ai-assistant.index', $property->code))
+    $this->actingAs($owner)->get(route('settings.ai-assistant.places', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/ai-assistant/index')
+            ->component('settings/ai-assistant/places')
             ->has('settings.scopes', 1)
             ->where('settings.scopes.0.scope', 'staff')
             ->where('settings.scopes.0.enabled', false));
@@ -75,7 +75,7 @@ test('each tab shows only its own allowed scopes whose feature is on', function 
             ->where('settings.scopes.0.scope', 'how-to')
             ->where('settings.scopes.0.note', 'Works only while Staff (Ask Estatell) is on.'));
 
-    $this->actingAs($owner)->get(route('settings.ai-assistant.general', $property->code))
+    $this->actingAs($owner)->get(route('settings.ai-assistant.index', $property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/ai-assistant/general')
             ->missing('settings.scopes')
