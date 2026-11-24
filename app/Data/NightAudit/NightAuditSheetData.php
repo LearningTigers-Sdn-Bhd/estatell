@@ -13,6 +13,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\DueAudits;
 use App\Services\NightAudit\ReadinessAdvice;
 use App\Services\NightAudit\ReadinessItem;
+use App\Services\Pos\NativePosReview;
 use App\Services\Pos\PendingPosReview;
 use Spatie\LaravelData\Data;
 
@@ -33,6 +34,7 @@ class NightAuditSheetData extends Data
      * @param  LastAuditData|null  $lastAudit  The last Completed audit of the property. Null before the first one.
      * @param  NextAutoAuditData|null  $nextAutoAudit  When the automatic audit closes the current date. Null when it is off.
      * @param  PosReviewData|null  $posReview  POS receipts waiting for review. A note only: it never blocks the audit.
+     * @param  NativePosReviewData|null  $nativePosReview  Native POS shifts and orders still open. A note only: it never blocks the audit.
      */
     public function __construct(
         public ?string $date,
@@ -48,6 +50,7 @@ class NightAuditSheetData extends Data
         public ?LastAuditData $lastAudit,
         public ?NextAutoAuditData $nextAutoAudit,
         public ?PosReviewData $posReview = null,
+        public ?NativePosReviewData $nativePosReview = null,
     ) {}
 
     public static function forProperty(Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice, DueAudits $dueAudits, User $user): self
@@ -75,6 +78,7 @@ class NightAuditSheetData extends Data
             lastAudit: $lastAudit === null ? null : LastAuditData::fromAudit($lastAudit, $property->settings->time_zone ?? config('app.timezone')),
             nextAutoAudit: $nextAutoAudit === null ? null : NextAutoAuditData::fromMoment($nextAutoAudit),
             posReview: app(PendingPosReview::class)->for($property, $user),
+            nativePosReview: app(NativePosReview::class)->for($property, $user),
         );
     }
 
