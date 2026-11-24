@@ -31,6 +31,7 @@ export function AreaSwitcher() {
                     <SidebarMenuItem key={context.key}>
                         <SidebarMenuButton
                             isActive={isActive}
+                            className="rounded-none group-data-[collapsible=icon]:rounded-md hover:bg-sidebar active:bg-sidebar data-active:bg-sidebar"
                             tooltip={{ children: context.label }}
                             render={
                                 isActive ? (
