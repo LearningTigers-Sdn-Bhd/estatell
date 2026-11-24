@@ -11,6 +11,7 @@ use App\Actions\DoorLocks\RetryStayPasscodes;
 use App\Actions\Kiosk\AnnounceWalkInBooking;
 use App\Actions\Kiosk\SignStayRegistrationCard;
 use App\Data\Property\PropertySummaryData;
+use App\Enums\AiScope;
 use App\Enums\Gender;
 use App\Enums\Locale;
 use App\Enums\UnitStatus;
@@ -21,6 +22,7 @@ use App\Http\Requests\Concierge\SaveIdentityRequest;
 use App\Http\Requests\Concierge\SignCardRequest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\AiAssistant\AiScopes;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Concierge\ConciergePageBuilder;
 use App\Services\FrontDesk\SelfCheckInPayment;
@@ -43,7 +45,7 @@ use Inertia\Response;
  */
 class ConciergeController extends Controller
 {
-    public function lobby(Property $property, ConciergeGuide $guide): Response
+    public function lobby(Property $property, ConciergeGuide $guide, AiScopes $aiScopes): Response
     {
         $property->loadMissing('settings');
 
@@ -52,6 +54,7 @@ class ConciergeController extends Controller
             'heroUrl' => $property->heroUrl(),
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'bookingUrl' => $guide->bookingUrl($property),
+            'aiChat' => $aiScopes->isOn($property, AiScope::Concierge),
         ]);
     }
 
@@ -81,7 +84,7 @@ class ConciergeController extends Controller
         }]);
     }
 
-    public function show(Request $request, string $token, ConciergePageBuilder $builder, CountryOptions $countries): Response
+    public function show(Request $request, string $token, ConciergePageBuilder $builder, CountryOptions $countries, AiScopes $aiScopes): Response
     {
         $locale = Locale::tryFrom((string) $request->query('locale'));
         $stay = $builder->build($token, $this->stay($request), $locale);
@@ -91,6 +94,7 @@ class ConciergeController extends Controller
             'identityKinds' => [['value' => 'my_kad', 'label' => __('MyKad')], ['value' => 'passport', 'label' => __('Passport')]],
             'genders' => Gender::options(),
             'countries' => $countries->optionsWithMalaysiaFirst($locale?->value),
+            'aiChat' => $aiScopes->isOn($this->stay($request)->property, AiScope::Concierge),
         ]);
     }
 

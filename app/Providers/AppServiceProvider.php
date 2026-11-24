@@ -147,6 +147,13 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(20)->by('concierge-write:'.(is_string($token) ? $token : $request->ip()).'|'.$request->route()?->getName());
         });
+        RateLimiter::for('concierge-chat', function (Request $request): Limit {
+            $token = $request->route('token');
+
+            return is_string($token)
+                ? Limit::perMinute(20)->by('concierge-chat:'.$token)
+                : Limit::perMinute(10)->by('concierge-chat:'.$request->ip().'|'.(($property = $request->route('property')) instanceof Property ? $property->code : (string) $property));
+        });
         RateLimiter::for('concierge-lookup', fn (Request $request): Limit => Limit::perMinute(30)->by('concierge-lookup:'.$request->ip()));
         RateLimiter::for('concierge-returning', fn (Request $request): array => [
             // The limiter runs before route binding, so the property is still its code; a bound one has its code on the model.

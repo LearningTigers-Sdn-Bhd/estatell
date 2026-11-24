@@ -9,12 +9,14 @@ import { PaymentStep } from '@/components/concierge/payment-step';
 import { StayHome } from '@/components/concierge/stay-home';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { SAVED_STAY_DAYS, removeStay, saveStay } from '@/lib/concierge-stays';
-import { identity, lobby } from '@/routes/concierge';
+import { identity, lobby, stayContact } from '@/routes/concierge';
+import chat from '@/routes/concierge/chat';
 import {
     CheckInStep,
     FrontDeskStep,
     MessageStep,
 } from '@/components/concierge/status-steps';
+import { AiChatSheet } from '@/components/pms/ai-chat/ai-chat-sheet';
 import type { EnumOption } from '@/components/pms/enum-select';
 
 type Stay = App.Data.Concierge.ConciergeStayData;
@@ -33,11 +35,13 @@ export default function ConciergeStay({
     identityKinds,
     genders,
     countries,
+    aiChat,
 }: {
     stay: Stay;
     identityKinds: EnumOption[];
     genders: EnumOption[];
     countries: EnumOption[];
+    aiChat: boolean;
 }) {
     // Remember the stay on this phone, so the lobby can offer "Continue your stay". A family can open several rooms on one
     // phone, so each stay is kept in a list. It stays on the phone and is never sent.
@@ -151,6 +155,13 @@ export default function ConciergeStay({
             )}
             {stay.step === 'desk' && (
                 <FrontDeskStep propertyCode={stay.property.code} />
+            )}
+            {aiChat && (
+                <AiChatSheet
+                    messagesUrl={chat.stay.url({ token: stay.token })}
+                    sendUrl={chat.stay.send.url({ token: stay.token })}
+                    contactUrl={stayContact.url({ token: stay.token })}
+                />
             )}
         </GuestFrame>
     );

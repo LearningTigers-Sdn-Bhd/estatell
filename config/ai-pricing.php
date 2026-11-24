@@ -1,0 +1,14 @@
+<?php
+
+/*
+ * What OpenAI charges per model, in US dollars per million tokens. The AI assistant logs each turn's cost from these
+ * (docs/34-ai-assistant/04-usage-and-cost.md). A model missing here costs nothing in the log, so add a row before
+ * changing OPENAI_TEXT_MODEL. To verify against https://developers.openai.com/api/docs/pricing before launch.
+ */
+return [
+
+    'models' => [
+        'gpt-6-luna' => ['input' => '0.10', 'cached_input' => '0.01', 'output' => '0.50'],
+    ],
+
+];

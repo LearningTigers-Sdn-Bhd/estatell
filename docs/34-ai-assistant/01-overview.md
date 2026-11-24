@@ -141,27 +141,30 @@ Guest messages go to OpenAI. Before launch, check Malaysia's PDPA (see [To verif
 
 These came with the plan. The user confirmed all of them on 2026-11-24.
 
-| Default                                                                | Used by                                            |
-| ---------------------------------------------------------------------- | -------------------------------------------------- |
-| New top-level folder `app/Ai/` for the agent, tools and middleware     | [The agent](02-agent-and-tools.md#the-agent)       |
-| Message text kept 90 days                                              | [Personal data](#personal-data)                    |
-| At most 4 tool calls per turn                                          | [The agent](02-agent-and-tools.md#the-agent)       |
-| A quote link lasts 24 hours                                            | [Quote links](03-places-and-routes.md#quote-links) |
-| Chat throttles (lobby 10, stay and booking engine 20, API 60 a minute) | [Routes](03-places-and-routes.md#routes)           |
-| A quiet thread closes after 7 days                                     | [Data model](04-usage-and-cost.md#data-model)      |
-| Platform admins are told at 80% of the cap                             | [Monthly cap](04-usage-and-cost.md#monthly-cap)    |
+| Default                                                                    | Used by                                            |
+| -------------------------------------------------------------------------- | -------------------------------------------------- |
+| New top-level folder `app/Ai/` for the agent, tools and middleware         | [The agent](02-agent-and-tools.md#the-agent)       |
+| Message text kept 90 days                                                  | [Personal data](#personal-data)                    |
+| At most 4 tool calls per turn                                              | [The agent](02-agent-and-tools.md#the-agent)       |
+| A quote link lasts 24 hours                                                | [Quote links](03-places-and-routes.md#quote-links) |
+| Chat throttles (lobby 10, stay and booking engine 20, API 60 a minute)     | [Routes](03-places-and-routes.md#routes)           |
+| A quiet thread closes after 7 days                                         | [Data model](04-usage-and-cost.md#data-model)      |
+| Platform admins are told at 80% of the cap                                 | [Monthly cap](04-usage-and-cost.md#monthly-cap)    |
+| `OPENAI_STORE=false`: OpenAI keeps no copy of guest messages               | [Personal data](#personal-data)                    |
+| One model for all properties: `OPENAI_TEXT_MODEL`, `gpt-6-luna` by default | [The agent](02-agent-and-tools.md#the-agent)       |
 
 ## To verify
 
 Check these before or during the build. Do not guess.
 
 1. **PDPA**: sending guest messages to OpenAI, and the notice wording. Before launch.
-2. **Conversation storage**: `laravel/ai` stores each message's steps as JSON text in `agent_conversation_messages`. Confirm this fits the [jsonb allowlist](../overview.md#jsonb-allowlist) as a raw provider payload, or keep our own message table.
-3. **Usage events**: whether the `AgentPrompted` and `AgentStreamed` events carry the token usage of the whole run. Agent middleware wraps each step, not the run.
-4. **AI Elements without Next.js**: its docs list a Next.js project; the components are plain React and should work in Inertia.
+2. ~~**Conversation storage**~~: answered 2026-11-24. The SDK's tables are on the [jsonb allowlist](../overview.md#jsonb-allowlist) as raw AI provider messages.
+3. ~~**Usage events**~~: answered 2026-11-24. A streamed response adds up the usage of every step, so the turn's usage is the whole run.
+4. **AI Elements without Next.js**: the components build and type-check in Inertia. Still to check on the real page. `message` and `conversation` needed `asChild` changed to `render`; `prompt-input` is not used (see [Chat UI](03-places-and-routes.md#chat-ui)).
 5. **Streaming through the microsite**: the booking website calls the API from its own server, so its server must pass the stream through.
 6. **User docs for the staff helper**: they live in the `estatell-docs` repo as MDX. Decide how the app reads them (copied at deploy, or fetched).
 7. **Pricing future dates without the microsite**: whether `BookingOffers` works when the Booking engine feature is off.
+8. **OpenAI prices**: `config/ai-pricing.php` has `gpt-6-luna` at $0.10 input, $0.01 cached input and $0.50 output per million tokens, from price trackers. Check against OpenAI's pricing page before launch.
 
 ## Not in this plan
 

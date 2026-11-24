@@ -6,7 +6,9 @@ Where the chat appears, the routes behind it, how a quote becomes a booking, the
 
 ## Chat UI
 
-The guest and staff chats use **shadcn AI Elements** (Conversation, Message, Prompt input) with `useChat` from `@ai-sdk/react`. The server streams the reply with the SDK's `usingVercelDataProtocol()`. The components go in `components/ui/` through the shadcn CLI, and one shared `components/pms/ai-chat` wraps them for the three web places.
+The guest and staff chats use **shadcn AI Elements** (Conversation, Message) with `useChat` from `@ai-sdk/react`. The server streams the reply with the SDK's Vercel data protocol. The components are in `components/ui/` (`conversation.tsx`, `message.tsx`), changed from `asChild` to `render` for Base UI. The message box is our own `InputGroup` with a textarea, not AI Elements' Prompt input: that one uses `asChild` and adds attachments, which the chat does not take. One shared `components/pms/ai-chat/ai-chat-sheet.tsx` wraps them for the web places.
+
+The browser sends each message as `{ id, text }`: text only, so no file reaches the model. The server builds the SDK message from it.
 
 Every chat shows "You are chatting with an AI assistant" and a link to contact the front desk.
 
@@ -14,8 +16,8 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 
 | Route                                                                                 | Place           | Auth                                                |
 | ------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------- |
-| `POST /stay/{code}/ai/messages`                                                       | Concierge lobby | None; throttled by address and property             |
-| `POST /c/{token}/ai/messages`                                                         | Concierge stay  | The stay token                                      |
+| `GET`, `POST /stay/{code}/ai/messages`                                                | Concierge lobby | None; throttled by address and property             |
+| `GET`, `POST /c/{token}/ai/messages`                                                  | Concierge stay  | The stay token                                      |
 | `POST /api/booking/v1/properties/{code}/ai/messages`                                  | Booking engine  | Booking client token (`booking:*`) and `X-Guest-IP` |
 | `POST /p/{property:code}/ai/messages`                                                 | Staff           | Staff session                                       |
 | `POST /api/ai/v1/messages`                                                            | API             | AI connection token (`ai:chat`)                     |
@@ -28,11 +30,11 @@ Every chat route sits behind the `ai-assistant` middleware and checks its place 
 
 Throttles: lobby 10 messages a minute per address and property; stay and booking engine 20 a minute per thread; API 60 a minute per connection.
 
-The browser keeps its thread id: the lobby and the booking engine in local storage, the stay with the token, staff per user.
+The browser keeps its thread id: the lobby and the booking engine in local storage, the stay with the token, staff per user. `GET` returns `{ thread, messages }` so the Sheet shows the history when it opens. A lobby id that belongs to another property, place or a closed thread gets 409, and the browser starts a new id.
 
 ## Concierge lobby and stay
 
-- A **chat** button on the lobby hub and the stay screen opens the chat in a Sheet.
+- An **Ask us** button on the lobby hub and the stay screen opens the chat in a Sheet. It shows only while the Concierge scope is on (`aiChat` prop).
 - Lobby: questions and quotes. No stay is known, so no stay tools.
 - Stay: the same, plus `ReadMyStay` and `MakeGuestRequest`. The thread is tied to the stay's reservation unit when it starts.
 

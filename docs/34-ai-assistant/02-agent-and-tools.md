@@ -11,7 +11,7 @@ How the assistant thinks: one agent class, its instructions, what it knows and t
 - One agent for every place. The place decides which tools it gets (`tools()` reads the thread's `AiPlace`), and a tool whose capability [scope](01-overview.md#scopes) is off is left out.
 - The model and the provider come from `config/ai.php`: OpenAI, one model for all properties. The model name is set in config, not per property.
 - At most 4 tool calls per turn. A turn that needs more has misunderstood the guest; it hands over instead.
-- The conversation participant is the `AiThread`, so the SDK's conversation store keeps one history per thread.
+- Each thread stores its SDK conversation id in `ai_threads.agent_conversation_id`. `OpenAiThread` creates the conversation when the thread starts, with no participant (the SDK's `participant_id` is a number and the thread id is a UUID). Each turn resumes it with `continue()`. The browser sends our thread id, never a conversation id.
 - Fakes from the SDK are used in tests. Tests never call OpenAI.
 
 A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, where the SDK's generators put agents. The user approved this new top-level folder on 2026-11-24 (see [Confirmed defaults](01-overview.md#confirmed-defaults)).
@@ -49,7 +49,7 @@ Each tool is one class in `app/Ai/Tools/`. It validates its input, calls a Servi
 
 | Tool                  | Calls                                                                      | Lobby | Stay | Booking engine | Staff | API |
 | --------------------- | -------------------------------------------------------------------------- | :---: | :--: | :------------: | :---: | :-: |
-| `PropertyFacts`       | Answers from the knowledge. Used when the instructions are not enough      |  yes  | yes  |      yes       |  no   | yes |
+| `PropertyFacts`       | One part of the knowledge in full by `topic`, plus the nearby places       |  yes  | yes  |      yes       |  no   | yes |
 | `CheckRoomsAndPrices` | `BookingOffers` for dates and a party                                      |  yes  | yes  |      yes       |  no   | yes |
 | `SendQuoteLink`       | `CreateConciergeQuote` (Concierge, API) or a microsite checkout link       |  yes  | yes  |      yes       |  no   | yes |
 | `ReadMyStay`          | The stay of the thread's own `/c/{token}`: dates, room, balance due        |  no   | yes  |       no       |  no   | no  |
@@ -70,7 +70,7 @@ Rules for every tool:
 
 ## Handover
 
-`EscalateAiThread` (an Action) marks the thread Escalated, sends the staff notification `AiThreadEscalated` (to staff who get front desk notifications) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, but staff now see it in the list. See [Handover](03-places-and-routes.md#handover).
+`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff who get front desk notifications) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, but staff now see it in the list. See [Handover](03-places-and-routes.md#handover).
 
 ## Safety in the instructions is not enough
 
