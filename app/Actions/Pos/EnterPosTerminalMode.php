@@ -13,6 +13,6 @@ class EnterPosTerminalMode
     public function __invoke(Session $session): void
     {
         $session->put('pos_terminal_locked', true);
-        $session->forget('pos_active_actor_id');
+        $session->forget(['pos_active_actor_id', 'pos_terminal_unlocked']);
     }
 }

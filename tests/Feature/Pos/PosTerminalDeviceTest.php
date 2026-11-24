@@ -21,6 +21,9 @@ it('registers the browser as a terminal device with a signed HttpOnly cookie and
         ->and($device->device_token_hash)->toHaveLength(64)
         ->and(Activity::query()->where('event', 'pos.device_registered')->count())->toBe(1);
 
+    // The manager who set the tablet up keeps back office access in this session.
+    expect(session('pos_terminal_unlocked'))->toBeTrue();
+
     // The cookie value is encrypted, so it never equals the stored hash or the plain token.
     expect($cookie->getValue())->not->toBe($device->device_token_hash);
 });

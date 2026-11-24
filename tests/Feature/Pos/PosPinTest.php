@@ -217,3 +217,24 @@ it('lets a staff member set their own PIN from their account with their password
     expect($response->getSession()->get('inertia.flash_data.toast.type'))->toBe('success');
     expect(app(VerifyPosPin::class)($setup['property'], $setup['device'], $user, '4455')->isVerified())->toBeTrue();
 });
+
+it('counts the attempt before checking the hash, so a burst of guesses cannot pass the limit', function () {
+    $setup = nativePosSetup();
+    $verify = app(VerifyPosPin::class);
+
+    // Six wrong guesses in a row, then the right PIN: the sixth and later never reach the hash check.
+    foreach (range(1, 6) as $_) {
+        $verify($setup['property'], $setup['device'], $setup['cashier'], '0000');
+    }
+
+    expect($verify($setup['property'], $setup['device'], $setup['cashier'], '1234')->outcome)->toBe(PosPinOutcome::Locked);
+});
+
+it('does not count a correct PIN toward the lock', function () {
+    $setup = nativePosSetup();
+    $verify = app(VerifyPosPin::class);
+
+    foreach (range(1, 20) as $_) {
+        expect($verify($setup['property'], $setup['device'], $setup['cashier'], '1234')->isVerified())->toBeTrue();
+    }
+});

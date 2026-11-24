@@ -17,7 +17,7 @@ Route::middleware('native-pos')->group(function () {
         Route::post('terminal-mode', [PosTerminalModeController::class, 'enter'])->middleware('can:'.PermissionEnum::PosSell->value)->name('terminal-mode.enter');
         Route::post('terminal-mode/exit', [PosTerminalModeController::class, 'exit'])->middleware('throttle:6,1')->name('terminal-mode.exit');
 
-        Route::post('pin/switch', [PosPinController::class, 'switch'])->middleware(['pos.actor', 'pos.device'])->name('pin.switch');
+        Route::post('pin/switch', [PosPinController::class, 'switch'])->middleware(['throttle:30,1', 'pos.actor', 'pos.device'])->name('pin.switch');
     });
 
     Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosManage->value)->group(function () {

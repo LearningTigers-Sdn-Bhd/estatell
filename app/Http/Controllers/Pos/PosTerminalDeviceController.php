@@ -27,6 +27,9 @@ class PosTerminalDeviceController extends Controller
             return back();
         }
 
+        // The manager doing the setup keeps back office access in this session. A later session on this browser starts locked.
+        $request->session()->put('pos_terminal_unlocked', true);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('This browser is now a POS terminal.')]);
 
         return back()->withCookie(cookie(

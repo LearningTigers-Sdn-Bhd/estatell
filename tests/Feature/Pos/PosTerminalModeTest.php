@@ -98,7 +98,7 @@ it('refuses PIN routes from a browser without a registered device cookie', funct
 it('refuses a PIN switch outside Terminal Mode', function () {
     $setup = nativePosSetup();
 
-    $response = $this->actingAs($setup['manager'])->withCookie(PosTerminalDevice::COOKIE, $setup['token'])
+    $response = $this->actingAs($setup['manager'])->withSession(['pos_terminal_unlocked' => true])->withCookie(PosTerminalDevice::COOKIE, $setup['token'])
         ->post(route('pos.pin.switch', $setup['property']->code), ['user_id' => $setup['cashier']->id, 'pin' => '1234']);
 
     expect($response->getSession()->get('inertia.flash_data.toast.type'))->toBe('error')
@@ -180,4 +180,50 @@ it('drops the actor when their PIN is revoked, their account is deactivated or t
     $setup['cashier']->forceFill(['deactivated_at' => null])->save();
     PosStaffPin::query()->where('user_id', $setup['cashier']->id)->delete();
     $as($setup['cashier']->id)->assertForbidden();
+});
+
+it('keeps a registered device locked after the session is lost, until a password-confirmed exit', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+    posProbeRoutes();
+    $device = fn () => $this->actingAs($setup['manager'])->withCookie(PosTerminalDevice::COOKIE, $setup['token']);
+
+    // A fresh session on a registered device (an expired session, a remember-me login): no lock flag in it.
+    $device()->get(route('dashboard', $code))->assertForbidden();
+    $device()->get(route('settings.pos-outlets.index', $code))->assertForbidden();
+
+    // The manager's own permissions do not leak to the till: no PIN actor yet.
+    $device()->get(route('pos.probe.sell', $code))->assertForbidden();
+
+    $device()->post(route('pos.terminal-mode.exit', $code), ['password' => 'nope']);
+    $device()->get(route('dashboard', $code))->assertForbidden();
+
+    $device()->post(route('pos.terminal-mode.exit', $code), ['password' => 'password'])->assertRedirect(route('dashboard', $code));
+    expect(session('pos_terminal_unlocked'))->toBeTrue();
+
+    $this->actingAs($setup['manager'])->withSession(['pos_terminal_unlocked' => true])->withCookie(PosTerminalDevice::COOKIE, $setup['token'])->get(route('dashboard', $code))->assertOk();
+});
+
+it('lets the PIN switch work on a registered device with no lock flag in the session', function () {
+    $setup = nativePosSetup();
+
+    $this->actingAs($setup['manager'])->withCookie(PosTerminalDevice::COOKIE, $setup['token'])
+        ->post(route('pos.pin.switch', $setup['property']->code), ['user_id' => $setup['cashier']->id, 'pin' => '1234']);
+
+    expect(session('pos_active_actor_id'))->toBe($setup['cashier']->id);
+});
+
+it('stops locking a browser once its device is revoked', function () {
+    $setup = nativePosSetup();
+    $setup['device']->forceFill(['revoked_at' => now()])->save();
+
+    $this->actingAs($setup['manager'])->withCookie(PosTerminalDevice::COOKIE, $setup['token'])->get(route('dashboard', $setup['property']->code))->assertOk();
+});
+
+it('starts Terminal Mode again after a password-confirmed unlock', function () {
+    $setup = nativePosSetup();
+
+    $this->actingAs($setup['manager'])->withSession(['pos_terminal_unlocked' => true])->post(route('pos.terminal-mode.enter', $setup['property']->code));
+
+    expect(session('pos_terminal_locked'))->toBeTrue()->and(session()->has('pos_terminal_unlocked'))->toBeFalse();
 });

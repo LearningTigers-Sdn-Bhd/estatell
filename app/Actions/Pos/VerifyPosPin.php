@@ -50,44 +50,61 @@ class VerifyPosPin
             return PosPinResult::refused(PosPinOutcome::NoPin);
         }
 
+        $limits = config('pos.throttle');
+
+        // Count the attempt before checking the hash, so concurrent guesses cannot all slip past the limit.
+        $deviceAttempts = RateLimiter::hit($deviceKey, $limits['device_window_minutes'] * 60);
+        $userAttempts = RateLimiter::hit($userKey, $limits['user_window_minutes'] * 60);
+
+        if ($deviceAttempts > $limits['device_attempts'] || $userAttempts > $limits['user_attempts']) {
+            $this->lock($property, $device, $target, $deviceKey, $userKey, $deviceAttempts > $limits['device_attempts'], $userAttempts > $limits['user_attempts']);
+
+            return PosPinResult::refused(PosPinOutcome::Locked);
+        }
+
         if (! $this->hasher->check($pin, $staffPin->pin_hash)) {
-            return PosPinResult::refused($this->recordFailure($property, $device, $target, $deviceKey, $userKey));
+            $lockDevice = $deviceAttempts >= $limits['device_attempts'];
+            $lockUser = $userAttempts >= $limits['user_attempts'];
+
+            if ($lockDevice || $lockUser) {
+                $this->lock($property, $device, $target, $deviceKey, $userKey, $lockDevice, $lockUser);
+
+                return PosPinResult::refused(PosPinOutcome::Locked);
+            }
+
+            return PosPinResult::refused(PosPinOutcome::InvalidPin);
         }
 
         if ($staffPin->pin_length < $this->policy->minimumLength($target)) {
+            // A right PIN is not a guess: give back the attempt it used.
+            RateLimiter::decrement($deviceKey);
+            RateLimiter::decrement($userKey);
+
             return PosPinResult::refused(PosPinOutcome::PinUpgradeRequired);
         }
 
         RateLimiter::clear($deviceKey);
+        RateLimiter::decrement($userKey);
         $device->forceFill(['last_seen_at' => now()])->save();
 
         return PosPinResult::verified($target);
     }
 
-    private function recordFailure(Property $property, PosTerminalDevice $device, User $target, string $deviceKey, string $userKey): PosPinOutcome
+    private function lock(Property $property, PosTerminalDevice $device, User $target, string $deviceKey, string $userKey, bool $lockDevice, bool $lockUser): void
     {
         $limits = config('pos.throttle');
 
-        RateLimiter::hit($deviceKey, $limits['device_window_minutes'] * 60);
-        RateLimiter::hit($userKey, $limits['user_window_minutes'] * 60);
-
-        $locked = false;
-
-        if (RateLimiter::attempts($deviceKey) >= $limits['device_attempts']) {
+        if ($lockDevice) {
             Cache::put("{$deviceKey}:lock", true, now()->addMinutes($limits['device_lock_minutes']));
             RateLimiter::clear($deviceKey);
-            $locked = true;
             $this->logLock($property, $target, 'device', $device);
         }
 
-        if (RateLimiter::attempts($userKey) >= $limits['user_attempts']) {
+        if ($lockUser) {
             Cache::put("{$userKey}:lock", true, now()->addMinutes($limits['user_lock_minutes']));
             RateLimiter::clear($userKey);
-            $locked = true;
             $this->logLock($property, $target, 'user', $device);
         }
-
-        return $locked ? PosPinOutcome::Locked : PosPinOutcome::InvalidPin;
     }
 
     private function logLock(Property $property, User $target, string $scope, PosTerminalDevice $device): void
