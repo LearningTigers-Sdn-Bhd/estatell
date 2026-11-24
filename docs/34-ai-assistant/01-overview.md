@@ -100,7 +100,7 @@ Each tab is its own URL and sends only its own data, plus `status` for the rail.
 
 **Status rail.** Every tab shows the same 20rem rail (`AiAssistantStatusData`): a warning when no key is saved or OpenAI refused it (with a link to General on the other tabs), the masked key, its status and last test, how many places are on, this month's estimated spend against the cap with a bar, and **Test key**. The spend is `AiMonthlyUsage`, the same sum the cap check uses; the [Usage tab](04-usage-and-cost.md#usage-tab) adds the breakdown.
 
-The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. With no key saved, the Places switches are disabled and the rail says why. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
+The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. With no key saved, the Places switches are disabled and the rail says why. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "Good question! I've passed this to our front desk so they can help you personally. You can also contact them directly." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
 
 ## API key
 

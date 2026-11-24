@@ -272,7 +272,7 @@ test('the HandOver tool hands its own thread over once', function () {
     $thread = AiThread::factory()->for($property)->create();
     $tool = app(HandOver::class, ['thread' => $thread]);
 
-    expect((string) $tool->handle(new ToolRequest(['reason' => 'Refund'])))->toContain("I'll pass this to our front desk.");
+    expect((string) $tool->handle(new ToolRequest(['reason' => 'Refund'])))->toContain("I've passed this to our front desk");
     $firstAt = $thread->fresh()->escalated_at;
     $this->travel(5)->minutes();
     $tool->handle(new ToolRequest(['reason' => 'Again']));

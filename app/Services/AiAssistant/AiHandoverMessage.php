@@ -11,7 +11,7 @@ class AiHandoverMessage
 {
     public function default(): string
     {
-        return __("I'll pass this to our front desk. They will reply soon.");
+        return __("Good question! I've passed this to our front desk so they can help you personally. You can also contact them directly.");
     }
 
     public function forProperty(Property $property): string

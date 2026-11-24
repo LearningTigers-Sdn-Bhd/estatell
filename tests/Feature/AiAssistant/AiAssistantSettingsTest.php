@@ -80,7 +80,7 @@ test('each tab shows only its own allowed scopes whose feature is on', function 
             ->component('settings/ai-assistant/general')
             ->missing('settings.scopes')
             ->where('settings.handoverMessage', null)
-            ->where('settings.defaultHandoverMessage', "I'll pass this to our front desk. They will reply soon."));
+            ->where('settings.defaultHandoverMessage', "Good question! I've passed this to our front desk so they can help you personally. You can also contact them directly."));
 });
 
 test('the hotel turns its allowed scopes on and off, and the change is logged', function () {
