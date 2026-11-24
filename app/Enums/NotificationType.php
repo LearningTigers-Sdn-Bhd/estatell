@@ -25,6 +25,7 @@ enum NotificationType: string
     case OnlineRefundNeedsAttention = 'online_refund_needs_attention';
     case OnlineBookingCancelled = 'online_booking_cancelled';
     case AiThreadEscalated = 'ai_thread_escalated';
+    case AiCapNearlyReached = 'ai_cap_nearly_reached';
 
     public function label(): string
     {
@@ -50,6 +51,7 @@ enum NotificationType: string
             self::OnlineRefundNeedsAttention => __('Online refund needs attention'),
             self::OnlineBookingCancelled => __('Online booking cancelled'),
             self::AiThreadEscalated => __('AI chat handed over'),
+            self::AiCapNearlyReached => __('AI assistant near its monthly cap'),
         };
     }
 
@@ -92,6 +94,7 @@ enum NotificationType: string
             self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled, self::OnlineBookingReceived, self::OnlineBookingCancelled => 'reservations.manage',
             self::OnlineRefundNeedsAttention => 'payment.refund',
             self::AiThreadEscalated => 'front-desk.view',
+            self::AiCapNearlyReached => 'settings.manage',
             default => null,
         };
     }

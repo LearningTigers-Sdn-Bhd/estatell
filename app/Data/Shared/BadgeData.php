@@ -6,6 +6,7 @@ use App\Enums\AccountingDocumentStatus;
 use App\Enums\AccountingSetupStatus;
 use App\Enums\AccountingSyncStatus;
 use App\Enums\AiKeyStatus;
+use App\Enums\AiOutcome;
 use App\Enums\AiThreadStatus;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArrivalImportOutcome;
@@ -53,6 +54,11 @@ class BadgeData extends Data
         public string $label,
         public Tone $tone,
     ) {}
+
+    public static function fromAiOutcome(AiOutcome $outcome): self
+    {
+        return new self($outcome->value, $outcome->label(), $outcome->tone());
+    }
 
     public static function fromAiThreadStatus(AiThreadStatus $status): self
     {

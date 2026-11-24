@@ -75,6 +75,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $ai_openai_key The hotel's own OpenAI key for the AI assistant, encrypted. Never sent to the browser in full.
  * @property AiKeyStatus|null $ai_key_status Whether the key works. Null is not tested yet.
  * @property CarbonImmutable|null $ai_key_checked_at
+ * @property CarbonImmutable|null $ai_cap_warned_at When staff were last told the AI assistant reached 80% of its monthly cap.
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -88,7 +89,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'front_desk_whatsapp', 'after_hours_message', 'duty_manager_phone', 'emergency_phone', 'emergency_services_number', 'emergency_instructions',
     'room_policy', 'payment_policy', 'other_policies', 'front_desk_phone', 'front_desk_email', 'front_desk_extension',
     'concierge_location_check_enabled', 'concierge_test_payments_enabled', 'ai_handover_message', 'ai_monthly_cap_micros',
-    'ai_openai_key', 'ai_key_status', 'ai_key_checked_at',
+    'ai_openai_key', 'ai_key_status', 'ai_key_checked_at', 'ai_cap_warned_at',
 ])]
 class PropertySetting extends Model
 {
@@ -130,6 +131,7 @@ class PropertySetting extends Model
             'ai_openai_key' => 'encrypted',
             'ai_key_status' => AiKeyStatus::class,
             'ai_key_checked_at' => 'immutable_datetime',
+            'ai_cap_warned_at' => 'immutable_datetime',
         ];
     }
 

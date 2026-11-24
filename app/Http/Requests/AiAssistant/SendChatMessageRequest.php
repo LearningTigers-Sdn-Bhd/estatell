@@ -9,7 +9,8 @@ use Laravel\Ai\Vercel\Vercel;
 
 /**
  * One guest message for the AI assistant: text only, so no file a guest sends reaches the model. `id` is the browser's
- * thread id; a stay route ignores it and uses the stay's own thread.
+ * thread id; a stay route ignores it and uses the stay's own thread. `language` is the browser's language (ISO 639-1),
+ * kept on the thread for the Usage tab.
  */
 class SendChatMessageRequest extends FormRequest
 {
@@ -21,12 +22,18 @@ class SendChatMessageRequest extends FormRequest
         return [
             'id' => [Rule::requiredIf($this->route('token') === null), 'nullable', 'uuid'],
             'text' => ['required', 'string', 'max:2000'],
+            'language' => ['nullable', 'string', 'regex:/^[a-z]{2}$/'],
         ];
     }
 
     public function threadId(): ?string
     {
         return $this->filled('id') ? $this->string('id')->toString() : null;
+    }
+
+    public function language(): ?string
+    {
+        return $this->filled('language') ? $this->string('language')->toString() : null;
     }
 
     /**

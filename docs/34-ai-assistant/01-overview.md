@@ -1,6 +1,6 @@
 # AI assistant
 
-> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities and General tabs with the status rail, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
+> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities, General and Usage tabs with the status rail, the 80% cap notice, the 90-day purge, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
 
 ## Purpose
 
@@ -96,7 +96,7 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
 | Usage        | The hotel's [spend and usage](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`)             |
 | Connections  | The AI connections for the [chat API](03-places-and-routes.md#chat-api-for-n8n) (`settings/ai-assistant/connections`) |
 
-Each tab is its own URL and sends only its own data, plus `status` for the rail. Usage and Connections come with their checklist items. Decided 2026-11-24: one General tab for the key, the cap and the handover message, replacing the earlier Handover and API key tabs (the earlier rule was "tabs by kind of setting, not one General tab").
+Each tab is its own URL and sends only its own data, plus `status` for the rail. Connections comes with its checklist item. Decided 2026-11-24: one General tab for the key, the cap and the handover message, replacing the earlier Handover and API key tabs (the earlier rule was "tabs by kind of setting, not one General tab").
 
 **Status rail.** Every tab shows the same 20rem rail (`AiAssistantStatusData`): a warning when no key is saved or OpenAI refused it (with a link to General on the other tabs), the masked key, its status and last test, how many places are on, this month's estimated spend against the cap with a bar, and **Test key**. The spend is `AiMonthlyUsage`, the same sum the cap check uses; the [Usage tab](04-usage-and-cost.md#usage-tab) adds the breakdown.
 

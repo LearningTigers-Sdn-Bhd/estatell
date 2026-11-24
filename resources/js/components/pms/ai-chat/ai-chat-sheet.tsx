@@ -79,6 +79,13 @@ function writeStored(key: string | undefined, value: string | null): void {
     }
 }
 
+/** The browser's language as an ISO 639-1 code (`ms` from `ms-MY`), for the Usage tab. Null when it is not two letters. */
+function browserLanguage(): string | null {
+    const code = navigator.language.split('-')[0]?.toLowerCase() ?? '';
+
+    return /^[a-z]{2}$/.test(code) ? code : null;
+}
+
 function textOf(message: UIMessage): string {
     return message.parts
         .map((part) => (part.type === 'text' ? part.text : ''))
@@ -221,6 +228,7 @@ function ChatBody({
                         body: {
                             id: threadId,
                             text: last ? textOf(last) : '',
+                            language: browserLanguage(),
                         },
                     };
                 },

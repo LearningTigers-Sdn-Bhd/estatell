@@ -11,21 +11,24 @@ use App\Actions\AiAssistant\TestAiKey;
 use App\Data\AiAssistant\AiAssistantSettingsData;
 use App\Data\AiAssistant\AiAssistantStatusData;
 use App\Data\AiAssistant\AiGeneralSettingsData;
+use App\Data\AiAssistant\AiUsageData;
 use App\Enums\AiKeyStatus;
 use App\Enums\AiScopeKind;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AiAssistant\ShowAiUsageRequest;
 use App\Http\Requests\AiAssistant\UpdateAiHandoverMessageRequest;
 use App\Http\Requests\AiAssistant\UpdateAiKeyRequest;
 use App\Http\Requests\AiAssistant\UpdateAiMonthlyCapRequest;
 use App\Http\Requests\AiAssistant\UpdateAiScopesRequest;
 use App\Models\Property;
+use App\Services\AiAssistant\AiUsageReport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Settings › AI assistant: the General, Places and Capabilities tabs. Each tab is its own URL and sends only its own
+ * Settings › AI assistant: the General, Places, Capabilities and Usage tabs. Each tab is its own URL and sends only its own
  * data, plus the status rail every tab shows. See docs/34-ai-assistant/01-overview.md#settings.
  */
 class AiAssistantSettingsController extends Controller
@@ -52,6 +55,14 @@ class AiAssistantSettingsController extends Controller
     public function index(Property $property): Response
     {
         return $this->renderTab('settings/ai-assistant/general', $property, AiGeneralSettingsData::forProperty($property));
+    }
+
+    /**
+     * Usage tab: what the assistant did and cost in one month, this month by default.
+     */
+    public function usage(ShowAiUsageRequest $request, Property $property, AiUsageReport $report): Response
+    {
+        return $this->renderTab('settings/ai-assistant/usage', $property, AiUsageData::forMonth($property, $report->monthStart($property, $request->month())));
     }
 
     public function saveKey(UpdateAiKeyRequest $request, Property $property, SaveAiKey $saveAiKey): RedirectResponse
@@ -121,7 +132,7 @@ class AiAssistantSettingsController extends Controller
     /**
      * One tab of Settings › AI assistant: its own data and the status rail.
      */
-    private function renderTab(string $component, Property $property, AiAssistantSettingsData|AiGeneralSettingsData $settings): Response
+    private function renderTab(string $component, Property $property, AiAssistantSettingsData|AiGeneralSettingsData|AiUsageData $settings): Response
     {
         return Inertia::render($component, [
             'settings' => $settings,

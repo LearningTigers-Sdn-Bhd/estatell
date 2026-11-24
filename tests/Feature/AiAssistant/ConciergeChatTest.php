@@ -50,9 +50,9 @@ function conciergeChatSetup(): array
     return $setup;
 }
 
-function lobbyChat(Property $property, string $text, ?string $thread = null): TestResponse
+function lobbyChat(Property $property, string $text, ?string $thread = null, ?string $language = null): TestResponse
 {
-    return test()->post("/stay/{$property->code}/ai/messages", ['id' => $thread ?? (string) Str::uuid(), 'text' => $text]);
+    return test()->post("/stay/{$property->code}/ai/messages", ['id' => $thread ?? (string) Str::uuid(), 'text' => $text, 'language' => $language]);
 }
 
 /**
@@ -297,4 +297,18 @@ test('a turn costs its tokens at the model\'s price in micros', function () {
 
     expect(app(AiTurnCost::class)->micros('test-model', $usage))->toBe(600 + 40 + 500)
         ->and(app(AiTurnCost::class)->micros('unknown-model', $usage))->toBe(0);
+});
+
+test('a thread keeps the browser language it first learns, and a bad code is refused', function () {
+    ['property' => $property] = conciergeChatSetup();
+    PropertyAssistant::fake(['Hi.', 'Hi again.']);
+    $id = (string) Str::uuid();
+
+    chatReply(lobbyChat($property, 'Hello', $id, 'ms')->assertOk());
+    chatReply(lobbyChat($property, 'Hello again', $id, 'en')->assertOk());
+
+    expect(AiThread::query()->findOrFail($id)->language)->toBe('ms')
+        ->and(AiTurn::query()->latest('id')->first()->language)->toBe('ms');
+
+    lobbyChat($property, 'Hello', language: 'ms-MY')->assertSessionHasErrors('language');
 });

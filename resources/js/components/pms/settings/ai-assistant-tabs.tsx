@@ -1,4 +1,4 @@
-import { MapPin, Settings2, Sparkles } from 'lucide-react';
+import { ChartColumn, MapPin, Settings2, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { AiAssistantStatusRail } from '@/components/pms/settings/ai-assistant-status';
@@ -6,11 +6,16 @@ import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import { profile } from '@/routes/settings';
-import { capabilities, index, places } from '@/routes/settings/ai-assistant';
+import {
+    capabilities,
+    index,
+    places,
+    usage,
+} from '@/routes/settings/ai-assistant';
 
-export type AiAssistantTab = 'places' | 'capabilities' | 'general';
+export type AiAssistantTab = 'places' | 'capabilities' | 'general' | 'usage';
 
-/** The tabs of Settings › AI assistant. Usage and Connections come with their checklist items. */
+/** The tabs of Settings › AI assistant. Connections comes with its checklist item. */
 export function aiAssistantTabs(): TabLink[] {
     return [
         {
@@ -26,6 +31,7 @@ export function aiAssistantTabs(): TabLink[] {
             icon: Sparkles,
             href: capabilities(),
         },
+        { value: 'usage', label: 'Usage', icon: ChartColumn, href: usage() },
     ];
 }
 

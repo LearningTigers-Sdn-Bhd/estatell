@@ -14,12 +14,17 @@ use Laravel\Ai\Responses\Data\ToolResult;
 
 /**
  * Log one turn of a thread: its tokens, its cost, how it ended and the tools it called. No message text is kept here.
- * A quote link the turn sent is linked to it here, as the quote is made before the turn exists.
+ * A quote link the turn sent is linked to it here, as the quote is made before the turn exists. A turn that cost
+ * something may tell staff the month reached 80% of the cap.
  * See docs/34-ai-assistant/04-usage-and-cost.md#data-model.
  */
 class RecordAiTurn
 {
-    public function __construct(private readonly AiTurnCost $cost, private readonly AttachConciergeQuoteToAiTurn $attachQuote) {}
+    public function __construct(
+        private readonly AiTurnCost $cost,
+        private readonly AttachConciergeQuoteToAiTurn $attachQuote,
+        private readonly WarnAiCapNearlyReached $warnCap,
+    ) {}
 
     /**
      * @param  iterable<int, ToolResult>  $toolResults
@@ -48,7 +53,7 @@ class RecordAiTurn
             default => AiOutcome::Answered,
         };
 
-        return DB::transaction(function () use ($thread, $model, $usage, $durationMs, $tools, $quoteIds, $outcome): AiTurn {
+        $turn = DB::transaction(function () use ($thread, $model, $usage, $durationMs, $tools, $quoteIds, $outcome): AiTurn {
             $turn = AiTurn::query()->create([
                 'property_id' => $thread->property_id,
                 'ai_thread_id' => $thread->id,
@@ -74,6 +79,12 @@ class RecordAiTurn
 
             return $turn;
         });
+
+        if ($turn->cost_micros > 0) {
+            ($this->warnCap)($thread->loadMissing('property')->property);
+        }
+
+        return $turn;
     }
 
     /**

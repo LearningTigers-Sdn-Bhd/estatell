@@ -32,7 +32,7 @@ class ConciergeChatController extends Controller
 
     public function lobbySend(SendChatMessageRequest $request, Property $property, OpenAiThread $open, ReplyInAiThread $reply): StreamableAgentResponse|JsonResponse
     {
-        $thread = $open($property, AiPlace::ConciergeLobby, threadId: $request->threadId());
+        $thread = $open($property, AiPlace::ConciergeLobby, threadId: $request->threadId(), language: $request->language());
 
         if ($thread === null) {
             return response()->json(['message' => __('This chat has ended. Start a new one.')], 409);
@@ -54,7 +54,7 @@ class ConciergeChatController extends Controller
         $stay = $this->stay($request);
 
         /** @var AiThread $thread A stay always gets a thread. */
-        $thread = $open($stay->property, AiPlace::ConciergeStay, $stay);
+        $thread = $open($stay->property, AiPlace::ConciergeStay, $stay, language: $request->language());
 
         return $reply($thread, $request->chat());
     }

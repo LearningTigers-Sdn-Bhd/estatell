@@ -203,6 +203,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [AiAssistantSettingsController::class, 'index'])->name('index');
         Route::get('places', [AiAssistantSettingsController::class, 'places'])->name('places');
         Route::get('capabilities', [AiAssistantSettingsController::class, 'capabilities'])->name('capabilities');
+        Route::get('usage', [AiAssistantSettingsController::class, 'usage'])->name('usage');
         Route::put('scopes', [AiAssistantSettingsController::class, 'scopes'])->name('scopes.update');
         Route::put('handover-message', [AiAssistantSettingsController::class, 'handoverMessage'])->name('handover-message.update');
         Route::put('key', [AiAssistantSettingsController::class, 'saveKey'])->name('key.update');
