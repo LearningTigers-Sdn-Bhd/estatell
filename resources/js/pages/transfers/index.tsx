@@ -1,10 +1,13 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Bus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bus, ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import { useState } from 'react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
+import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,11 +19,12 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { transfers as reservationTransfers } from '@/routes/reservations';
-import { assign, index } from '@/routes/transfers';
+import { assign, index, pdf, spreadsheet } from '@/routes/transfers';
 
 type Row = App.Data.Transfers.TransferRunRowData;
 type Vehicle = App.Data.Transfers.TransferVehicleData;
 type Driver = App.Data.Transfers.TransferDriverData;
+type Layout = App.Data.Reports.ReportLayoutData;
 
 /** The Select value for "Not set". */
 const NOT_SET = '';
@@ -48,6 +52,7 @@ function pickOptions(
 
 /**
  * Front desk › Transfers: every road transfer of one date, by pick-up time, with the vehicle and driver of each.
+ * Export Transfer Manifest prints or downloads the same transfers for the drivers, with the saved column layout.
  * See docs/35-transfers/01-land-transfers.md#run-sheet.
  */
 export default function TransfersIndex({
@@ -55,6 +60,9 @@ export default function TransfersIndex({
     today,
     rows,
     canAssign,
+    canEditColumns,
+    layout,
+    orientationOptions,
     vehicles,
     drivers,
 }: {
@@ -62,6 +70,9 @@ export default function TransfersIndex({
     today: string;
     rows: Row[];
     canAssign: boolean;
+    canEditColumns: boolean;
+    layout: Layout;
+    orientationOptions: EnumOption[];
     vehicles: Vehicle[];
     drivers: Driver[];
 }) {
@@ -111,6 +122,7 @@ export default function TransfersIndex({
             );
 
     const pax = rows.reduce((sum, row) => sum + row.pax, 0);
+    const [layoutDraft, setLayoutDraft] = useState<Layout | null>(null);
 
     return (
         <>
@@ -157,6 +169,27 @@ export default function TransfersIndex({
                                 >
                                     Today
                                 </Button>
+                            )}
+                            {canEditColumns && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setLayoutDraft(layout)}
+                                >
+                                    <Settings2 data-icon="inline-start" />
+                                    Columns
+                                </Button>
+                            )}
+                            {rows.length > 0 && (
+                                <ReportExportMenu
+                                    report="transfer-manifest"
+                                    label="Export Transfer Manifest"
+                                    dates={{ date }}
+                                    sort="pickup"
+                                    rowKeys={[]}
+                                    pdfUrl={pdf.url()}
+                                    spreadsheetUrl={spreadsheet.url()}
+                                />
                             )}
                         </div>
                     }
@@ -314,6 +347,26 @@ export default function TransfersIndex({
                     </div>
                 )}
             </div>
+
+            {canEditColumns && layoutDraft && (
+                <ReportLayoutSheet
+                    open
+                    onOpenChange={(next) => {
+                        if (!next) {
+                            setLayoutDraft(null);
+                        }
+                    }}
+                    report="transfer-manifest"
+                    reportLabel="Transfer manifest"
+                    saved={layout}
+                    draft={layoutDraft}
+                    onDraftChange={setLayoutDraft}
+                    orientations={orientationOptions}
+                    dates={{ date }}
+                    onDone={() => setLayoutDraft(null)}
+                    description="Choose the columns of the Transfer manifest, in the order they show, and how each aligns. Columns change the PDF, Excel and CSV. The run sheet on screen stays the same."
+                />
+            )}
         </>
     );
 }

@@ -119,6 +119,39 @@ Pick-up  Direction     Route                      Guest (booking)          Pax  
 - Rows are units arriving (In) or departing (Out) that day with status Confirmed, CheckedIn or CheckedOut. Cancelled and no-show units are left out.
 - Pax is adults plus children.
 - With `reservations.manage`, the Vehicle and Driver selects save at once (`AssignTransfer`, `PUT /transfers/{transfer}/assign`, logs `reservation.transfer_assigned`). They list available vehicles and drivers. Without it, they are text.
+- **Export Transfer Manifest ▾** (PDF, CSV, Excel) shows when the date has transfers. **Columns** opens the shared Columns Sheet with `settings.manage`. See [Transfer manifest](#transfer-manifest).
+
+## Transfer manifest
+
+The run sheet for the drivers, as a file. It is **not a page**: staff export it from the run sheet, like the [Boat manifest](../24-boats/03-boat-manifest.md) from the Boat Trips board.
+
+`ReportKey::TransferManifest` (`transfer-manifest`) sits in the [core reports](../22-reports/01-core-reports.md) registry with no page and no Reports menu entry, so the shared column layout (`ReportLayoutResolver`), PDF (`ReportPdf`, the shared `pdf/report.blade.php` with the letterhead) and spreadsheet (`ReportSpreadsheet`) serve it. One date, Landscape by default, needs the `Transfers` feature.
+
+- **Rows** are the run sheet's transfers (`TransferRunSheet::query()`), in the same order: pick-up time, then id. The browser sends only the date (and row keys); the server reads the rows again.
+- **Sections:** one per vehicle and driver, in the order of their first pick-up, titled "Van 1 · SA 1234 B · Ali" ("Vehicle not set" or "Driver not set" for a missing half). Transfers with neither set come last in **Vehicle and driver not set** (warning tone). Each subtotal reads "2 transfers · 7 pax". The PDF prints each section as its own table; the spreadsheet is flat.
+- The total row sums adults, children and pax.
+- **Guests:** Lead guest and Phone are the unit's primary guest, else its first guest, else the booker (the Boat manifest rule). They are empty for a user without `guests.view`, as on the run sheet.
+
+| Column          | Key           | Default visible | Content                                                                |
+| --------------- | ------------- | --------------- | ---------------------------------------------------------------------- |
+| Pick-up         | `pickup`      | Yes             | "10:30"                                                                |
+| Direction       | `direction`   | Yes             | Transfer in, Transfer out                                              |
+| Route           | `route`       | Yes             | The route name                                                         |
+| Place           | `place`       | Yes             | Where the guest is picked up (In) or dropped (Out)                     |
+| Room            | `unit`        | Yes             | Room number or bed (first night for In, last night for Out), else type |
+| Lead guest      | `lead_guest`  | Yes             | See Guests above                                                       |
+| Phone           | `phone`       | Yes             | The lead guest's phone                                                 |
+| Adults          | `adults`      | No              |                                                                        |
+| Children        | `children`    | No              |                                                                        |
+| Pax             | `total`       | Yes             | Adults + children                                                      |
+| Flight          | `flight`      | Yes             | The flight number                                                      |
+| Type            | `mode`        | Yes             | Shared, Private vehicle, In package                                    |
+| Vehicle         | `vehicle`     | Yes             | "Van 1 · SA 1234 B"                                                    |
+| Driver          | `driver`      | Yes             | "Ah Seng (Kinabatangan Tours)" for a subcontractor                     |
+| Reservation no. | `reservation` | Yes             | Reservation number                                                     |
+| Note            | `note`        | Yes             | The transfer note                                                      |
+
+`TransferExportController` (`transfers.pdf`, `transfers.spreadsheet`) calls the shared services behind `transfers` and `reservations.view`, so front desk staff need no `reports.view`. The spreadsheet needs `format` (`csv` or `xlsx`). A transfer id of another property in `rowKeys` is dropped. The shared `reports.transfer-manifest` export routes also work, behind `reports.view`, and return 404 with the feature off (`EnsureReportIsAvailable`).
 
 ## Routes
 
@@ -132,11 +165,12 @@ Pick-up  Direction     Route                      Guest (booking)          Pax  
 | `PUT, DELETE …/reservations/{reservation}/units/{unit}/transfers/{direction}` | `reservations.units.transfers.set`, `.clear` | `reservations.manage` |
 | `GET /p/{code}/transfers`                                                     | `transfers.index`                            | `reservations.view`   |
 | `PUT /p/{code}/transfers/{transfer}/assign`                                   | `transfers.assign`                           | `reservations.manage` |
+| `POST /p/{code}/transfers/pdf`, `POST …/transfers/spreadsheet`                | `transfers.pdf`, `transfers.spreadsheet`     | `reservations.view`   |
 
 A route, vehicle, driver, unit or transfer of another property is a 404.
 
 ## Not built yet
 
 - Transfers on the booking form and the company portal (set them on the reservation page after booking).
-- Shared vans grouped into runs, seat counts per van, and a printed or exported run sheet.
+- Shared vans grouped into runs, and seat counts per van.
 - Subcontractor payables.

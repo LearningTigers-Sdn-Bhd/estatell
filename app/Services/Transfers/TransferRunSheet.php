@@ -22,9 +22,24 @@ class TransferRunSheet
      */
     public function rows(Property $property, CarbonImmutable $date, bool $canViewGuest): array
     {
+        return array_values($this->query($property, $date)
+            ->with(['transferRoute', 'reservationUnit.reservation.booker'])
+            ->get()
+            ->map(fn (UnitTransfer $transfer): TransferRunRowData => TransferRunRowData::fromModel($transfer, $canViewGuest))
+            ->all());
+    }
+
+    /**
+     * The transfers of the date in run sheet order (pick-up time, then id). The Transfer manifest reads the same query,
+     * so the sheet and its exports always list the same transfers.
+     *
+     * @return Builder<UnitTransfer>
+     */
+    public function query(Property $property, CarbonImmutable $date): Builder
+    {
         $statuses = [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value];
 
-        return array_values(UnitTransfer::query()
+        return UnitTransfer::query()
             ->where('property_id', $property->id)
             ->whereHas('reservationUnit', fn (Builder $unit) => $unit->whereIn('status', $statuses))
             ->where(fn (Builder $query) => $query
@@ -34,11 +49,7 @@ class TransferRunSheet
                 ->orWhere(fn (Builder $out) => $out
                     ->where('direction', TransferDirection::Out->value)
                     ->whereHas('reservationUnit', fn (Builder $unit) => $unit->whereDate('departure_date', $date))))
-            ->with(['transferRoute', 'reservationUnit.reservation.booker'])
             ->orderBy('pickup_time')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (UnitTransfer $transfer): TransferRunRowData => TransferRunRowData::fromModel($transfer, $canViewGuest))
-            ->all());
+            ->orderBy('id');
     }
 }
