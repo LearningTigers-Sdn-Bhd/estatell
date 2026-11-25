@@ -3,6 +3,11 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import {
+    FacilitySettingsTabs,
+    facilitySettingsTabs,
+} from '@/components/pms/settings/facility-settings-tabs';
+import { withTabCrumb } from '@/components/pms/tab-links';
+import {
     FacilitySheet,
     facilityValues,
 } from '@/components/pms/settings/facility-sheet';
@@ -97,7 +102,7 @@ export default function FacilitiesIndex({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title="Facilities"
-                    description="Halls, equipment and activities guests can book."
+                    description="Halls, equipment and activities guests can book, and the guides and boats of the activities."
                     actions={
                         <Button onClick={() => setAdding(true)}>
                             <Plus data-icon="inline-start" />
@@ -106,13 +111,15 @@ export default function FacilitiesIndex({
                     }
                 />
 
-                <FacilityTable
-                    facilities={facilities}
-                    currency={currency}
-                    busyIds={busyIds}
-                    onMove={move}
-                    onToggleActive={toggleActive}
-                />
+                <FacilitySettingsTabs activeTab="facilities">
+                    <FacilityTable
+                        facilities={facilities}
+                        currency={currency}
+                        busyIds={busyIds}
+                        onMove={move}
+                        onToggleActive={toggleActive}
+                    />
+                </FacilitySettingsTabs>
             </div>
 
             <FacilitySheet
@@ -127,5 +134,9 @@ export default function FacilitiesIndex({
 }
 
 FacilitiesIndex.layout = {
-    breadcrumbs: [{ title: 'Facilities', href: index() }],
+    breadcrumbs: withTabCrumb(
+        [{ title: 'Facilities', href: index() }],
+        facilitySettingsTabs(),
+        'facilities',
+    ),
 };

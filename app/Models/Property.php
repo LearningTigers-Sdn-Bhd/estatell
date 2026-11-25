@@ -293,6 +293,18 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(TransferDriver::class);
     }
 
+    /** @return HasMany<FacilityGuide, $this> */
+    public function facilityGuides(): HasMany
+    {
+        return $this->hasMany(FacilityGuide::class);
+    }
+
+    /** @return HasMany<FacilityBoat, $this> */
+    public function facilityBoats(): HasMany
+    {
+        return $this->hasMany(FacilityBoat::class);
+    }
+
     /** @return HasMany<UnitTransfer, $this> */
     public function unitTransfers(): HasMany
     {

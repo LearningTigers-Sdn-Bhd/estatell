@@ -71,6 +71,12 @@ class FrontDeskNavigation
                     icon: 'bus',
                     active: request()->routeIs('transfers.*'),
                 ) : null,
+                $user->can(PermissionEnum::FrontDeskView->value) && Feature::for($property)->active(Facilities::class) ? new NavItemData(
+                    title: __('Activities'),
+                    href: route('activities.index', ['property' => $property->code], absolute: false),
+                    icon: 'tent',
+                    active: request()->routeIs('activities.*'),
+                ) : null,
                 $user->can(PermissionEnum::ReportsView->value) ? new NavItemData(
                     title: __('House status'),
                     href: route('reports.house-status', ['property' => $property->code], absolute: false),

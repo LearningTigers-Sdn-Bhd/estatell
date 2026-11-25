@@ -11,8 +11,10 @@ use App\Enums\RemarkKind;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Models\FacilityBooking;
+use App\Models\FacilitySlotCrew;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Facilities\ActivityRunSheet;
 use App\Services\Reservations\ReservationRoomBox;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -26,7 +28,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class FacilityBookingsReport implements HasSections, Report
 {
-    public function __construct(private ReservationRoomBox $roomBox) {}
+    public function __construct(private ReservationRoomBox $roomBox, private ActivityRunSheet $runSheet) {}
 
     /**
      * @param  list<int|string>|null  $rowKeys  Booking ids.
@@ -54,8 +56,9 @@ class FacilityBookingsReport implements HasSections, Report
             ->reject(fn (ReservationUnit $unit): bool => in_array($unit->status, [UnitStatus::Cancelled, UnitStatus::NoShow], true))
             ->modelKeys())->all();
         $rooms = $unitIds === [] ? [] : $this->roomBox->assignmentsForUnits(array_values($unitIds));
+        $crews = $this->runSheet->crews($property, CarbonImmutable::parse($filters->from), CarbonImmutable::parse($filters->to));
 
-        return array_values($bookings->map(fn (FacilityBooking $booking): FacilityBookingRow => $this->row($booking, $rooms))->all());
+        return array_values($bookings->map(fn (FacilityBooking $booking): FacilityBookingRow => $this->row($booking, $rooms, $crews))->all());
     }
 
     /**
@@ -78,7 +81,7 @@ class FacilityBookingsReport implements HasSections, Report
             $booked = array_sum(array_map(fn (FacilityBookingRow $row): int => $row->counts ? $row->quantity : 0, $group));
 
             return new ReportSection(
-                title: $first->facility.' · '.CarbonImmutable::parse($first->date)->format('j M').' · '.$first->time,
+                title: $first->facility.' · '.CarbonImmutable::parse($first->date)->format('j M').' · '.$first->time.($first->crew === null ? '' : ' · '.$first->crew),
                 rowKeys: array_map(fn (FacilityBookingRow $row): int => $row->key, $group),
                 subtotal: $booked.' / '.$first->capacity.' '.$first->unit,
                 tone: $booked > $first->capacity ? Tone::Warning : null,
@@ -88,9 +91,15 @@ class FacilityBookingsReport implements HasSections, Report
 
     /**
      * @param  array<int, string>  $rooms  The first night room of each live unit, by unit id.
+     * @param  array<string, FacilitySlotCrew>  $crews  The guide and boat of each slot (`ActivityRunSheet::crews()`).
      */
-    private function row(FacilityBooking $booking, array $rooms): FacilityBookingRow
+    private function row(FacilityBooking $booking, array $rooms, array $crews): FacilityBookingRow
     {
+        $slotCrew = $crews[$booking->booking_date->toDateString().'|'.$booking->facility_id.'|'.$booking->starts_at.'|'.$booking->ends_at] ?? null;
+        $crew = $slotCrew === null ? [] : array_values(array_filter([
+            $slotCrew->guide === null ? null : __('Guide: :name', ['name' => $slotCrew->guide->name]),
+            $slotCrew->boat === null ? null : __('Boat: :name', ['name' => $slotCrew->boat->name]),
+        ]));
         $facility = $booking->facility;
         $event = $booking->event;
         $reservation = $booking->reservation;
@@ -119,6 +128,7 @@ class FacilityBookingsReport implements HasSections, Report
             capacity: $facility->capacity,
             unit: $facility->booked_by->unit($facility->capacity),
             counts: $booking->status !== FacilityBookingStatus::Cancelled,
+            crew: $crew === [] ? null : implode(' · ', $crew),
         );
     }
 }

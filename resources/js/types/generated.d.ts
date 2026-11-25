@@ -1745,6 +1745,20 @@ balance: string,
 };
 }
 namespace Facilities {
+export type ActivitySlotData = {
+facilityId: number,
+facility: string,
+startsAt: string,
+endsAt: string,
+booked: number,
+bookings: number,
+capacity: number,
+unit: string,
+isSession: boolean,
+guideId: number | null,
+boatId: number | null,
+boatSeats: number | null,
+};
 export type ChargeToOptionData = {
 value: string,
 label: string,
@@ -1754,6 +1768,12 @@ lines: App.Data.Facilities.FacilityBookingQuoteData[],
 amount: string,
 tax: string,
 total: string,
+};
+export type FacilityBoatData = {
+id: number,
+name: string,
+seats: number | null,
+active: boolean,
 };
 export type FacilityBookingInputData = {
 facilityId: number,
@@ -1834,6 +1854,12 @@ reservationId: number | null,
 quantity: number,
 quantityUnit: string,
 status: App.Data.Shared.BadgeData,
+};
+export type FacilityGuideData = {
+id: number,
+name: string,
+phone: string | null,
+active: boolean,
 };
 export type FacilityOptionData = {
 id: number,
@@ -4874,6 +4900,7 @@ section: string,
 capacity: number,
 unit: string,
 counts: boolean,
+crew: string | null,
 };
 export type FolioLedgerRow = {
 key: number,

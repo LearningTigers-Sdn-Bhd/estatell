@@ -33,6 +33,7 @@ class FacilityBookingRow extends Data implements ReportRow
         public int $capacity,
         public string $unit,
         public bool $counts,
+        public ?string $crew = null,
     ) {}
 
     /**

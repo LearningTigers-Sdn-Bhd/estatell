@@ -46,12 +46,13 @@ Pennant feature `Facilities` (`App\Features\Facilities`, `#[Name('facilities')]`
 
 ## Files
 
-| File                                                     | Covers                                                              |
-| -------------------------------------------------------- | ------------------------------------------------------------------- |
-| [Facility settings](02-facility-settings.md)             | `facilities`, Item and Person, the price, the settings page         |
-| [Events and event folios](03-events-and-event-folios.md) | `events`, the event folio, the Events list and the event page       |
-| [Facility bookings](04-facility-bookings.md)             | `facility_bookings`, the clash check, Charge to, posting, the Sheet |
-| [Timeline and report](05-timeline-and-report.md)         | The Facilities section on the Timeline View and the report          |
+| File                                                     | Covers                                                                   |
+| -------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [Facility settings](02-facility-settings.md)             | `facilities`, Item and Person, the price, the settings page              |
+| [Events and event folios](03-events-and-event-folios.md) | `events`, the event folio, the Events list and the event page            |
+| [Facility bookings](04-facility-bookings.md)             | `facility_bookings`, the clash check, Charge to, posting, the Sheet      |
+| [Timeline and report](05-timeline-and-report.md)         | The Facilities section on the Timeline View and the report               |
+| [Guides and boats](06-guides-and-boats.md)               | Guides and boats, a guide and boat per session, the Activities run sheet |
 
 ## Permissions
 
@@ -70,7 +71,7 @@ The client is a prospect, not a signed customer, so we decided these ourselves o
 
 | #   | Decision                                                                                                                                                                                                                        |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Activities (River Safari, Night Walk) are Person facilities. Assigning a guide or a boat to a session is not in this plan.                                                                                                      |
+| 1   | Activities (River Safari, Night Walk) are Person facilities. A guide and a boat per session came later: see [Guides and boats](06-guides-and-boats.md).                                                                         |
 | 3   | A Person facility can be booked privately (a charter) at one private price, taking the whole session (decided by the owner on 2026-11-23). See [Private bookings](02-facility-settings.md#private-bookings-decided-2026-11-23). |
 | 2   | Halls can be held as **Tentative** before the deposit is paid. Tentative does not block; Confirmed does.                                                                                                                        |
 
@@ -79,6 +80,5 @@ The client is a prospect, not a signed customer, so we decided these ourselves o
 - Linking a facility to an amenity.
 - Automatic cancellation fees for events. Staff refund or keep a deposit by hand.
 - Auto-expiry of Tentative holds.
-- Guides, boats or crew per activity session.
 - Adult and child prices on one booking. A Per person rate counts heads at one price. For a mix, staff change the booking's price.
 - Selling facilities on the booking engine or channels.

@@ -23,7 +23,9 @@ use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\Concierge\ConciergeSettingsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\DoorLocks\KeyportSettingsController;
+use App\Http\Controllers\Facilities\FacilityBoatController;
 use App\Http\Controllers\Facilities\FacilityController;
+use App\Http\Controllers\Facilities\FacilityGuideController;
 use App\Http\Controllers\Facilities\FacilitySessionController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
@@ -240,6 +242,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [FacilityController::class, 'index'])->name('index');
         Route::post('/', [FacilityController::class, 'store'])->name('store');
         Route::put('order', [FacilityController::class, 'reorder'])->name('reorder');
+        Route::prefix('guides')->name('guides.')->group(function () {
+            Route::get('/', [FacilityGuideController::class, 'index'])->name('index');
+            Route::post('/', [FacilityGuideController::class, 'store'])->name('store');
+            Route::put('{facilityGuide}', [FacilityGuideController::class, 'update'])->name('update');
+        });
+        Route::prefix('boats')->name('boats.')->group(function () {
+            Route::get('/', [FacilityBoatController::class, 'index'])->name('index');
+            Route::post('/', [FacilityBoatController::class, 'store'])->name('store');
+            Route::put('{facilityBoat}', [FacilityBoatController::class, 'update'])->name('update');
+        });
         Route::get('{facility}', [FacilityController::class, 'show'])->whereNumber('facility')->name('show');
         Route::put('{facility}', [FacilityController::class, 'update'])->whereNumber('facility')->name('update');
         Route::prefix('{facility}/sessions')->whereNumber('facility')->name('sessions.')->group(function () {
