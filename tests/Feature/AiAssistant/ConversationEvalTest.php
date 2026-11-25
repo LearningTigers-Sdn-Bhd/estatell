@@ -121,7 +121,7 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => 'Family Suite from 12 to 14 November 2026 for 4 adults.', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Says the Family Suite, or any room for 4 adults, is not free on those dates. Offers other dates, a smaller room choice or staff help. Does not invent a free room or a price.'],
     ]],
     'compare room types' => ['Booking flow', 'lobby', [
-        ['guest' => 'What is the difference between the Garden Room and the Sea View Room?', 'judge' => 'Does not invent room features such as size, bed type, a balcony or what the room looks out on, beyond the room names and the guide. It may compare prices from a room search, say it does not know the details, or hand over.'],
+        ['guest' => 'What is the difference between the Garden Room and the Sea View Room?', 'saysAny' => ['patio', 'balcony'], 'judge' => 'Compares the two rooms using their descriptions in the guide (bed, size, the garden patio, the sea-facing balcony). Invents nothing that the descriptions do not say.'],
     ]],
 
     // Tone: sell the stay without pushing.

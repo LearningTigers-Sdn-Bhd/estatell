@@ -76,13 +76,13 @@ function aiEvalLobby(): array
     $setup = conciergeQuoteSetup();
     $property = $setup['property'];
     $plans = ['roomOnly' => $setup['roomOnly'], 'breakfast' => $setup['breakfast']];
-    $setup['type']->forceFill(['name' => 'Sea View Room', 'max_adults' => 3, 'position' => 2])->save();
+    $setup['type']->forceFill(['name' => 'Sea View Room', 'max_adults' => 3, 'position' => 2, 'description' => 'Queen bed and a sofa bed, 28 m², with a private balcony facing the sea. Second and third floors.'])->save();
     aiEvalRates($setup['type'], $plans, ['2026-11-12', '2026-11-13', '2026-11-14'], '100.00', '130.00');
 
-    $garden = aiEvalRoomType($property, 'Garden Room', 2, 1, '102', $plans);
+    $garden = aiEvalRoomType($property, 'Garden Room', 2, 1, '102', $plans, 'Queen bed or two single beds, 24 m², on the ground floor with a patio onto the tropical garden.');
     aiEvalRates($garden, $plans, ['2026-11-02', '2026-11-03', '2026-11-12', '2026-11-13', '2026-11-14'], '85.00', '110.00');
 
-    $suite = aiEvalRoomType($property, 'Family Suite', 4, 3, '103', $plans);
+    $suite = aiEvalRoomType($property, 'Family Suite', 4, 3, '103', $plans, 'One king bed and two single beds in two rooms, 45 m², with a sea view from the living room.');
     aiEvalRates($suite, $plans, ['2026-11-02', '2026-11-03'], '180.00', '230.00');
 
     aiEvalResort($property);
@@ -91,13 +91,13 @@ function aiEvalLobby(): array
 }
 
 /**
- * A room type with one room, sold on the given plans.
+ * A room type with one room and a guest description, sold on the given plans.
  *
  * @param  array<string, RatePlan>  $plans
  */
-function aiEvalRoomType(Property $property, string $name, int $maxAdults, int $position, string $roomNumber, array $plans): RoomType
+function aiEvalRoomType(Property $property, string $name, int $maxAdults, int $position, string $roomNumber, array $plans, string $description): RoomType
 {
-    $type = RoomType::factory()->for($property)->create(['name' => $name, 'max_adults' => $maxAdults, 'max_children' => 2, 'position' => $position]);
+    $type = RoomType::factory()->for($property)->create(['name' => $name, 'max_adults' => $maxAdults, 'max_children' => 2, 'position' => $position, 'description' => $description]);
     Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => $roomNumber]);
 
     foreach ($plans as $plan) {
