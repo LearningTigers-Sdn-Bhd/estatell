@@ -18,7 +18,7 @@ declare module '@inertiajs/core' {
             docsUrl: string;
             property: App.Data.Property.PropertySummaryData | null;
             businessDate: App.Data.NightAudit.BusinessDateData | null;
-            adminNavigation: App.Data.Navigation.NavItemData[] | null;
+            adminNavigation: App.Data.Navigation.NavGroupData[] | null;
             partnerNavigation: App.Data.Navigation.NavItemData[] | null;
             portalNavigation: App.Data.Navigation.NavItemData[] | null;
             portalCompany: {

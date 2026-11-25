@@ -117,7 +117,7 @@ class ViewAsController extends Controller
     {
         return match (true) {
             $supportUser === null => [],
-            $supportUser->is_admin => ['adminNavigation' => app(AdminNavigation::class)->items()],
+            $supportUser->is_admin => ['adminNavigation' => app(AdminNavigation::class)->groups()],
             default => ['partnerNavigation' => app(PartnerNavigation::class)->items()],
         };
     }

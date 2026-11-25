@@ -125,7 +125,7 @@ test('staff and guests cannot use the admin partner routes', function () {
 test('the admin navigation lists Partners', function () {
     $this->actingAs($this->admin)
         ->get(route('admin.dashboard'))
-        ->assertInertia(fn (Assert $page) => $page->where('adminNavigation.2.title', 'Partners'));
+        ->assertInertia(fn (Assert $page) => $page->where('adminNavigation.1.items.1.title', 'Partners'));
 });
 
 test('suspending an Active partner is logged and leaves its properties alone', function () {
