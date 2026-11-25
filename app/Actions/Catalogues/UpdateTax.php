@@ -22,6 +22,7 @@ class UpdateTax
             $tax->fill([
                 'name' => $data->name,
                 'code' => $data->code,
+                'lhdn_tax_type' => $data->lhdnTaxType,
                 'rate_type' => $data->rateType,
                 'rate' => $data->rate,
                 'is_inclusive' => $data->isInclusive,

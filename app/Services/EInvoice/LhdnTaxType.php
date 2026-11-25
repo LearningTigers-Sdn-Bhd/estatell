@@ -8,9 +8,9 @@ use App\Models\Tax;
 use Brick\Math\BigDecimal;
 
 /**
- * The LHDN tax type of a posted tax line, from the property's tax catalogue (`taxes.code`), not from its wording:
- * `02` Service Tax for SST, `03` Tourism Tax for TTX, and `06` Not applicable for any other levy, such as a council
- * heritage fee. A line whose tax is not in the catalogue falls back to its name. See
+ * The LHDN tax type of a posted tax line, from the property's tax catalogue, not from its wording: the tax's own
+ * `lhdn_tax_type` when set, otherwise by `taxes.code`: `02` Service Tax for SST, `03` Tourism Tax for TTX, and `06` Not
+ * applicable for any other levy, such as a council heritage fee. A line whose tax is not in the catalogue falls back to its name. See
  * docs/31-einvoice/01-lhdn-myinvois.md#tax.
  */
 class LhdnTaxType
@@ -21,14 +21,28 @@ class LhdnTaxType
 
     public const string NOT_APPLICABLE = '06';
 
-    /** @var array<int, array{code: string|null, percent: BigDecimal|null}> The tax behind each transaction code id. */
+    /** @var array<int, array{code: string|null, type: string|null, percent: BigDecimal|null}> The tax behind each transaction code id. */
     private array $taxes = [];
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public static function options(): array
+    {
+        return [
+            ['value' => self::SERVICE_TAX, 'label' => __('Service Tax (SST)')],
+            ['value' => self::TOURISM_TAX, 'label' => __('Tourism Tax')],
+            ['value' => self::NOT_APPLICABLE, 'label' => __('Not applicable')],
+        ];
+    }
 
     public function for(FolioLine $taxLine): string
     {
-        $code = $this->taxCode($taxLine->transaction_code_id);
+        $tax = $this->tax($taxLine->transaction_code_id);
+        $code = $tax['code'];
 
         return match (true) {
+            $tax['type'] !== null => $tax['type'],
             $code === 'SST' => self::SERVICE_TAX,
             $code === 'TTX' => self::TOURISM_TAX,
             $code !== null => self::NOT_APPLICABLE,
@@ -45,24 +59,20 @@ class LhdnTaxType
         return $this->tax($taxLine->transaction_code_id)['percent'];
     }
 
-    private function taxCode(?int $transactionCodeId): ?string
-    {
-        return $this->tax($transactionCodeId)['code'];
-    }
-
     /**
-     * @return array{code: string|null, percent: BigDecimal|null}
+     * @return array{code: string|null, type: string|null, percent: BigDecimal|null}
      */
     private function tax(?int $transactionCodeId): array
     {
         if ($transactionCodeId === null) {
-            return ['code' => null, 'percent' => null];
+            return ['code' => null, 'type' => null, 'percent' => null];
         }
 
         if (! array_key_exists($transactionCodeId, $this->taxes)) {
-            $tax = Tax::query()->where('transaction_code_id', $transactionCodeId)->first(['code', 'rate_type', 'rate']);
+            $tax = Tax::query()->where('transaction_code_id', $transactionCodeId)->first(['code', 'lhdn_tax_type', 'rate_type', 'rate']);
             $this->taxes[$transactionCodeId] = [
                 'code' => $tax === null ? null : strtoupper((string) $tax->code),
+                'type' => $tax?->lhdn_tax_type,
                 'percent' => $tax !== null && $tax->rate_type === TaxRateType::Percent ? BigDecimal::of($tax->rate)->toScale(2) : null,
             ];
         }

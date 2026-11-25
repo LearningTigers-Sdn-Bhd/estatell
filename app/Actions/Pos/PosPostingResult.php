@@ -12,6 +12,8 @@ class PosPostingResult
 {
     public const REFUSAL_NOT_PENDING = 'not_pending';
 
+    public const REFUSAL_OUTLET_NOT_EXTERNAL = 'outlet_not_external';
+
     public const REFUSAL_NOTE_REQUIRED = 'note_required';
 
     public const REFUSAL_UNIT_NOT_FOUND = 'unit_not_found';

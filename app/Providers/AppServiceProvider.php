@@ -10,6 +10,7 @@ use App\Actions\Concierge\QueueStayWelcome;
 use App\Actions\DoorLocks\QueueStayKeyCards;
 use App\Actions\DoorLocks\QueueStayPasscodeSync;
 use App\Actions\EInvoice\QueueFolioEInvoiceOnClose;
+use App\Actions\EInvoice\ReleasePosOrdersFromEInvoice;
 use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\NotifySupportMoneyCorrection;
 use App\Actions\Platform\RecordImpersonationEnd;
@@ -30,6 +31,7 @@ use App\Events\StayRoomChanged;
 use App\Jobs\RemoveLoyverseGuestJob;
 use App\Jobs\SyncLoyverseGuestJob;
 use App\Models\BookingClient;
+use App\Models\EInvoiceSubmission;
 use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -199,6 +201,8 @@ class AppServiceProvider extends ServiceProvider
                 Context::addHidden(TriggerWebhook::MUTED, true);
             }
         });
+
+        EInvoiceSubmission::updated(fn (EInvoiceSubmission $submission) => app(ReleasePosOrdersFromEInvoice::class)($submission));
 
         RatePlan::saved(function (RatePlan $ratePlan): void {
             $restored = $ratePlan->wasChanged('archived_at') && $ratePlan->archived_at === null;

@@ -48,7 +48,9 @@ class SupplierDetails
     public function missing(Property $property, ?PropertyEInvoiceSetting $setting = null): array
     {
         $details = $this->for($property, $setting);
-        $taxCodes = Tax::query()->where('property_id', $property->id)->where('enabled', true)->pluck('code')->map(fn (string $code): string => strtoupper($code));
+        $taxes = Tax::query()->where('property_id', $property->id)->where('enabled', true)->get(['code', 'lhdn_tax_type']);
+        $chargesSst = $taxes->contains(fn (Tax $tax): bool => ($tax->lhdn_tax_type ?? (strtoupper($tax->code) === 'SST' ? LhdnTaxType::SERVICE_TAX : null)) === LhdnTaxType::SERVICE_TAX);
+        $chargesTtx = $taxes->contains(fn (Tax $tax): bool => ($tax->lhdn_tax_type ?? (strtoupper($tax->code) === 'TTX' ? LhdnTaxType::TOURISM_TAX : null)) === LhdnTaxType::TOURISM_TAX);
 
         $problems = [
             'supplier_name' => $details['name'] === '' ? __('Enter the registered business name.') : null,
@@ -62,8 +64,8 @@ class SupplierDetails
                 preg_match('/^\d{12}$/', $details['brn']) !== 1 && preg_match('/^[A-Z0-9]{5,12}-?[A-Z]$/', $details['brn']) !== 1 => __('Enter the 12-digit company registration number, such as 202001012345.'),
                 default => null,
             },
-            'supplier_sst_registration' => $taxCodes->contains('SST') && $details['sst'] === '' ? __('The hotel charges SST, so enter its SST registration number.') : null,
-            'supplier_ttx_registration' => $taxCodes->contains('TTX') && $details['ttx'] === '' ? __('The hotel charges tourism tax, so enter its tourism tax registration number.') : null,
+            'supplier_sst_registration' => $chargesSst && $details['sst'] === '' ? __('The hotel charges SST, so enter its SST registration number.') : null,
+            'supplier_ttx_registration' => $chargesTtx && $details['ttx'] === '' ? __('The hotel charges tourism tax, so enter its tourism tax registration number.') : null,
             'supplier_msic_code' => preg_match('/^\d{5}$/', $details['msic']) !== 1 ? __('Enter the 5-digit MSIC code, such as 55101 for hotels.') : null,
             'supplier_email' => filter_var($details['email'], FILTER_VALIDATE_EMAIL) === false ? __('Enter an email for e-invoice matters.') : null,
             'supplier_phone' => preg_match('/\d{7,}/', (string) preg_replace('/\D/', '', $details['phone'])) !== 1 ? __("Enter the hotel's phone number.") : null,

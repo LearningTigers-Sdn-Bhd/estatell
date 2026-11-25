@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalogues\TaxRequest;
 use App\Models\Property;
 use App\Models\Tax;
+use App\Services\EInvoice\LhdnTaxType;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,6 +30,7 @@ class TaxController extends Controller
         return Inertia::render('settings/taxes/index', [
             'taxes' => $taxes->map(fn (Tax $tax): TaxData => TaxData::fromModel($tax)),
             'rateTypes' => TaxRateType::options(),
+            'lhdnTaxTypes' => LhdnTaxType::options(),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }

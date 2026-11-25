@@ -43,7 +43,14 @@ class PosRefusalMessages
             'not_entitled' => __('This booking does not include that meal today.'),
             'exceeds_entitlement' => __('That is more guests than the booking includes for this meal.'),
             'already_undone' => __('That check-in was already undone.'),
+            'redeemed_in_pos' => __('This meal was used on a POS order. Refund that order line to give it back.'),
             'service_date_closed' => __('That meal is on a closed business date and cannot be undone.'),
+            'outlet_not_external' => __('This outlet is not connected to an external POS.'),
+            'native_pos_disabled' => __('Native POS is not turned on for this property.'),
+            'pin_invalid' => __('Use 4 to 6 digits for the PIN.'),
+            'pin_too_short_for_role' => __('Your role needs a PIN of 6 digits.'),
+            'open_pos_shifts_exist' => __('Close every open register shift before turning Native POS off.'),
+            'cash_payment_method_required' => __('Add a cash payment method to this outlet first.'),
             default => $code,
         };
     }

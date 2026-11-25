@@ -616,3 +616,31 @@ html:has(.concierge-editorial-shell) {
     [data-slot='select-trigger'][data-placeholder] {
     color: var(--concierge-placeholder);
 }
+
+/* The browser 80 mm receipt and Z-report: only the `.pos-print-area` prints. */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .pos-print-area,
+    .pos-print-area * {
+        visibility: visible;
+    }
+
+    .pos-print-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 80mm;
+        padding: 4mm;
+        background: #fff;
+        color: #000;
+        font-size: 11px;
+    }
+
+    @page {
+        size: 80mm auto;
+        margin: 0;
+    }
+}

@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property StayType $stay_type
  * @property int|null $discount_id
  * @property bool $late_arrival_expected
+ * @property bool $no_post Staff blocked room charges on this stay (cash only), so POS cannot post to it.
  * @property CarbonImmutable|null $checked_in_at
  * @property CarbonImmutable|null $welcome_sent_at
  * @property CarbonImmutable|null $checked_out_at
@@ -59,6 +60,7 @@ class ReservationUnit extends Model
             'status' => UnitStatus::class,
             'stay_type' => StayType::class,
             'late_arrival_expected' => 'boolean',
+            'no_post' => 'boolean',
             'checked_in_at' => 'datetime',
             'welcome_sent_at' => 'datetime',
             'checked_out_at' => 'datetime',

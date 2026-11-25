@@ -6,6 +6,7 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Features\EInvoicing;
+use App\Features\NativePos;
 use App\Features\PosIntegration;
 use App\Models\Property;
 use App\Models\User;
@@ -55,6 +56,7 @@ class FinanceNavigation
             ),
         ] : [];
 
+        $nativePos = Feature::for($property)->active(NativePos::class);
         $pos = Feature::for($property)->active(PosIntegration::class) && $user->can(PermissionEnum::PosView->value) ? [
             new NavItemData(
                 title: __('POS postings'),
@@ -63,6 +65,21 @@ class FinanceNavigation
                 active: request()->routeIs('finance.pos-postings.*'),
             ),
         ] : [];
+
+        $pos = [...$pos, ...array_values(array_filter([
+            $nativePos && $user->can(PermissionEnum::PosView->value) ? new NavItemData(
+                title: __('POS receipts'),
+                href: route('finance.pos-orders.index', ['property' => $property->code], absolute: false),
+                icon: 'receipt',
+                active: request()->routeIs('finance.pos-orders.*'),
+            ) : null,
+            $nativePos && $user->can(PermissionEnum::PosReports->value) ? new NavItemData(
+                title: __('POS shifts'),
+                href: route('finance.pos-shifts.index', ['property' => $property->code], absolute: false),
+                icon: 'banknote',
+                active: request()->routeIs('finance.pos-shifts.*'),
+            ) : null,
+        ]))];
 
         return [
             new NavGroupData(label: __('City ledger'), items: $cityLedger),

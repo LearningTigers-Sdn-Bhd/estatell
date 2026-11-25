@@ -7,6 +7,7 @@ use App\Enums\PlatformFeature;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdatePropertyFeatureRequest;
 use App\Models\Property;
+use App\Services\Pos\PosRefusalMessages;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
@@ -21,7 +22,13 @@ class PropertyFeatureController extends Controller
 
         $providers = $request->has('providers') ? array_values($request->array('providers')) : null;
 
-        $setPropertyFeature($request->user(), $property, $feature, $active, $providers);
+        $refusal = $setPropertyFeature($request->user(), $property, $feature, $active, $providers);
+
+        if ($refusal !== null) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => PosRefusalMessages::message($refusal)]);
+
+            return back(fallback: route('admin.properties.features', $property));
+        }
 
         Inertia::flash('toast', [
             'type' => 'success',

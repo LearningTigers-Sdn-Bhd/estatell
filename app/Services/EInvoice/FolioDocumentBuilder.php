@@ -5,6 +5,7 @@ namespace App\Services\EInvoice;
 use App\Actions\EInvoice\EInvoiceResult;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\PosOrder;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -89,7 +90,7 @@ class FolioDocumentBuilder
     /**
      * @param  array<string, mixed>  $buyer
      */
-    private function checkBuyer(Folio $folio, array $buyer): void
+    public function checkBuyer(Folio|PosOrder $subject, array $buyer): void
     {
         $isCompany = strtoupper((string) ($buyer['id_type'] ?? '')) === 'BRN';
         $hasId = ! in_array(strtoupper((string) ($buyer['id_value'] ?? '')), ['', 'NA'], true);
@@ -104,7 +105,7 @@ class FolioDocumentBuilder
         if ($isDomestic && empty($buyer['tin'])) {
             throw new MissingEInvoiceDetails(EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED, match (true) {
                 $isCompany => __("Add the company's tax number (TIN) on the company record, then send again."),
-                $this->staysNeedingOwnEInvoice->isOverLimit($folio) => __("This stay is over RM10,000, so LHDN needs its own e-invoice with the guest's own tax number. Enter the IC and press Check with LHDN to find it."),
+                $subject instanceof Folio && $this->staysNeedingOwnEInvoice->isOverLimit($subject) => __("This stay is over RM10,000, so LHDN needs its own e-invoice with the guest's own tax number. Enter the IC and press Check with LHDN to find it."),
                 default => __("Enter the guest's tax number (TIN). A guest who has none does not need their own e-invoice: the stay goes into the monthly summary."),
             });
         }
@@ -127,10 +128,10 @@ class FolioDocumentBuilder
      * @param  array<string, mixed>|null  $buyerSnapshot
      * @return array<string, mixed>
      */
-    private function buyer(Folio $folio, ?array $buyerSnapshot): array
+    public function buyer(?Folio $folio, ?array $buyerSnapshot): array
     {
         $optionalFields = ['tin' => '', 'sst_registration' => null, 'email' => '', 'phone' => '', 'address_line1' => 'NA', 'address_line2' => '', 'postal_code' => '', 'state_code' => ''];
-        $buyer = array_merge($optionalFields, array_filter($buyerSnapshot ?? BuyerResolver::forFolio($folio), fn ($value): bool => $value !== null));
+        $buyer = array_merge($optionalFields, array_filter($buyerSnapshot ?? BuyerResolver::forFolio($folio ?? throw new \LogicException('A buyer snapshot or a folio is required.')), fn ($value): bool => $value !== null));
         $countryCode = BuyerResolver::lhdnCountryCode($buyer['country_code'] ?? null);
 
         $tin = trim((string) ($buyer['tin'] ?? ''));
@@ -164,7 +165,7 @@ class FolioDocumentBuilder
      * @param  array<string, mixed>  $buyer
      * @return array<string, mixed>
      */
-    private function buyerParty(array $buyer): array
+    public function buyerParty(array $buyer): array
     {
         $partyIdentifications = [
             ['ID' => [['_' => $buyer['tin'], 'schemeID' => 'TIN']]],

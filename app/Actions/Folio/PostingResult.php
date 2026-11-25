@@ -13,6 +13,12 @@ class PostingResult
 {
     public const REFUSAL_NO_BUSINESS_DATE = 'no_business_date';
 
+    public const REFUSAL_POS_LINE_MANAGED = 'pos_line_managed_in_pos';
+
+    public const REFUSAL_ROOM_NO_POST = 'room_no_post';
+
+    public const REFUSAL_REFUND_EXCEEDS_CHARGE = 'exceeds_refundable_balance';
+
     public const REFUSAL_UNIT_NOT_POSTABLE = 'unit_not_postable';
 
     public const REFUSAL_CHARGE_NOT_FOUND = 'charge_not_found';

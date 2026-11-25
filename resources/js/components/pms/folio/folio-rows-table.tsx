@@ -18,6 +18,7 @@ import {
     X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { PosFolioReceiptSheet } from '@/components/pms/pos-receipt-sheet';
 import { Link } from '@inertiajs/react';
 import { Fragment, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
@@ -170,6 +171,7 @@ export function FolioRowsTable({
     const canCorrectMoney = useCanCorrectMoney();
     const [scheduledOpen, setScheduledOpen] = useState(true);
     const [oldOpen, setOldOpen] = useState(false);
+    const [posReceipt, setPosReceipt] = useState<number | null>(null);
     const scheduledCount = rows.filter(
         (row) => row.state === 'scheduled' && row.onFolio === null,
     ).length;
@@ -181,335 +183,412 @@ export function FolioRowsTable({
     const columns = 3 + (showUnit ? 1 : 0) + (showActions ? 1 : 0);
 
     return (
-        <div className="overflow-hidden rounded-xl border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Description</TableHead>
-                        {showUnit && <TableHead>Unit</TableHead>}
-                        <TableHead className="text-right">Amount</TableHead>
-                        {showActions && (
-                            <TableHead className="w-10">
-                                <span className="sr-only">Actions</span>
-                            </TableHead>
-                        )}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {rows.map((row, index) => (
-                        <Fragment key={row.key}>
-                            {row.state !== rows[index - 1]?.state && (
-                                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                    <TableCell
-                                        colSpan={columns}
-                                        className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                                    >
-                                        {row.state === 'old' ? (
-                                            <div className="flex items-center justify-between gap-3">
+        <>
+            <div className="overflow-hidden rounded-xl border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Description</TableHead>
+                            {showUnit && <TableHead>Unit</TableHead>}
+                            <TableHead className="text-right">Amount</TableHead>
+                            {showActions && (
+                                <TableHead className="w-10">
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
+                            )}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.map((row, index) => (
+                            <Fragment key={row.key}>
+                                {row.state !== rows[index - 1]?.state && (
+                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                        <TableCell
+                                            colSpan={columns}
+                                            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                        >
+                                            {row.state === 'old' ? (
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <button
+                                                        type="button"
+                                                        aria-expanded={oldOpen}
+                                                        onClick={() =>
+                                                            setOldOpen(
+                                                                (open) => !open,
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-2 uppercase"
+                                                    >
+                                                        <ChevronDown
+                                                            aria-hidden
+                                                            className={cn(
+                                                                'size-4 transition-transform motion-reduce:transition-none',
+                                                                !oldOpen &&
+                                                                    '-rotate-90',
+                                                            )}
+                                                        />
+                                                        {oldSystem?.title ??
+                                                            'OLD SYSTEM'}
+                                                        {!oldOpen && (
+                                                            <span className="font-normal normal-case">
+                                                                {oldCount} rows
+                                                                hidden
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                    <span className="flex items-center gap-4 font-normal normal-case">
+                                                        {oldSystem?.editUrl && (
+                                                            <Link
+                                                                href={
+                                                                    oldSystem.editUrl
+                                                                }
+                                                                className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
+                                                            >
+                                                                <Pencil className="size-3.5" />
+                                                                Edit old folio
+                                                            </Link>
+                                                        )}
+                                                        {oldSystem?.total && (
+                                                            <span className="text-foreground tabular-nums">
+                                                                <MoneyText
+                                                                    amount={
+                                                                        oldSystem.total
+                                                                    }
+                                                                    currency={
+                                                                        currency
+                                                                    }
+                                                                    plain
+                                                                />
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            ) : row.state === 'scheduled' ? (
                                                 <button
                                                     type="button"
-                                                    aria-expanded={oldOpen}
+                                                    aria-expanded={
+                                                        scheduledOpen
+                                                    }
                                                     onClick={() =>
-                                                        setOldOpen(
+                                                        setScheduledOpen(
                                                             (open) => !open,
                                                         )
                                                     }
-                                                    className="flex items-center gap-2 uppercase"
+                                                    className="flex w-full items-center gap-2 uppercase"
                                                 >
                                                     <ChevronDown
                                                         aria-hidden
                                                         className={cn(
                                                             'size-4 transition-transform motion-reduce:transition-none',
-                                                            !oldOpen &&
+                                                            !scheduledOpen &&
                                                                 '-rotate-90',
                                                         )}
                                                     />
-                                                    {oldSystem?.title ??
-                                                        'OLD SYSTEM'}
-                                                    {!oldOpen && (
+                                                    {SECTIONS.scheduled}
+                                                    {!scheduledOpen && (
                                                         <span className="font-normal normal-case">
-                                                            {oldCount} rows
-                                                            hidden
+                                                            {scheduledCount}{' '}
+                                                            rows hidden
                                                         </span>
                                                     )}
                                                 </button>
-                                                <span className="flex items-center gap-4 font-normal normal-case">
-                                                    {oldSystem?.editUrl && (
-                                                        <Link
-                                                            href={
-                                                                oldSystem.editUrl
-                                                            }
-                                                            className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
-                                                        >
-                                                            <Pencil className="size-3.5" />
-                                                            Edit old folio
-                                                        </Link>
-                                                    )}
-                                                    {oldSystem?.total && (
-                                                        <span className="text-foreground tabular-nums">
-                                                            <MoneyText
-                                                                amount={
-                                                                    oldSystem.total
-                                                                }
-                                                                currency={
-                                                                    currency
-                                                                }
-                                                                plain
-                                                            />
-                                                        </span>
-                                                    )}
-                                                </span>
-                                            </div>
-                                        ) : row.state === 'scheduled' ? (
-                                            <button
-                                                type="button"
-                                                aria-expanded={scheduledOpen}
-                                                onClick={() =>
-                                                    setScheduledOpen(
-                                                        (open) => !open,
-                                                    )
-                                                }
-                                                className="flex w-full items-center gap-2 uppercase"
-                                            >
-                                                <ChevronDown
-                                                    aria-hidden
-                                                    className={cn(
-                                                        'size-4 transition-transform motion-reduce:transition-none',
-                                                        !scheduledOpen &&
-                                                            '-rotate-90',
-                                                    )}
-                                                />
-                                                {SECTIONS.scheduled}
-                                                {!scheduledOpen && (
-                                                    <span className="font-normal normal-case">
-                                                        {scheduledCount} rows
-                                                        hidden
-                                                    </span>
-                                                )}
-                                            </button>
-                                        ) : (
-                                            SECTIONS[row.state as Row['state']]
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                            {(row.state === 'scheduled' && !scheduledOpen) ||
-                            (row.state === 'old' && !oldOpen) ? null : (
-                                <TableRow
-                                    className={cn(
-                                        (row.state === 'scheduled' ||
-                                            row.onFolio !== null ||
+                                            ) : (
+                                                SECTIONS[
+                                                    row.state as Row['state']
+                                                ]
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {(row.state === 'scheduled' &&
+                                    !scheduledOpen) ||
+                                (row.state === 'old' && !oldOpen) ? null : (
+                                    <TableRow
+                                        className={cn(
+                                            (row.state === 'scheduled' ||
+                                                row.onFolio !== null ||
+                                                row.tags.some(
+                                                    (tag) =>
+                                                        tag.value ===
+                                                            'reversed' ||
+                                                        tag.value ===
+                                                            'reversal',
+                                                )) &&
+                                                'text-muted-foreground',
                                             row.tags.some(
                                                 (tag) =>
-                                                    tag.value === 'reversed' ||
-                                                    tag.value === 'reversal',
-                                            )) &&
-                                            'text-muted-foreground',
-                                        row.tags.some(
-                                            (tag) => tag.value === 'reversed',
-                                        ) && 'line-through',
-                                        rowTint(row),
-                                    )}
-                                >
-                                    <TableCell>
-                                        {row.level === 0 && (
-                                            <DateText date={row.date} />
+                                                    tag.value === 'reversed',
+                                            ) && 'line-through',
+                                            rowTint(row),
                                         )}
-                                        {row.level === 0 &&
-                                            row.postedDate !== null && (
-                                                <div className="text-xs text-muted-foreground">
-                                                    posted{' '}
-                                                    <DateText
-                                                        date={row.postedDate}
-                                                    />
-                                                </div>
+                                    >
+                                        <TableCell>
+                                            {row.level === 0 && (
+                                                <DateText date={row.date} />
                                             )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <span
-                                            className={cn(
-                                                'flex flex-wrap items-center gap-2',
-                                                row.level === 1 && 'pl-4',
-                                                row.level >= 2 && 'pl-8',
-                                            )}
-                                        >
-                                            {row.level > 0 && (
-                                                <span aria-hidden>↳</span>
-                                            )}
-                                            {row.pairFolio !== null ? (
-                                                <PairFolioText
-                                                    row={row}
-                                                    pairFolio={row.pairFolio}
-                                                    owner={owner}
-                                                />
-                                            ) : (
-                                                row.description
-                                            )}
-                                            {row.onFolio !== null && (
-                                                <Link
-                                                    href={folioRoutes(
-                                                        owner,
-                                                    ).page(
-                                                        String(row.onFolio.id),
-                                                    )}
-                                                    preserveScroll
-                                                    preserveState
-                                                    className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
-                                                >
-                                                    · on {row.onFolio.label}
-                                                    <ArrowRightLeft
-                                                        aria-hidden
-                                                        className="size-3.5"
-                                                    />
-                                                </Link>
-                                            )}
-                                            {row.tags.map((tag) => (
-                                                <RowTag
-                                                    key={tag.value}
-                                                    tag={tag}
-                                                    row={row}
-                                                />
-                                            ))}
-                                        </span>
-                                        {(row.note || row.receivedOn) && (
-                                            <span className="block text-xs text-muted-foreground">
-                                                {row.note && (
-                                                    <>Ref {row.note}</>
-                                                )}
-                                                {row.note &&
-                                                    row.receivedOn &&
-                                                    ' · '}
-                                                {row.receivedOn && (
-                                                    <>
-                                                        Received{' '}
+                                            {row.level === 0 &&
+                                                row.postedDate !== null && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        posted{' '}
                                                         <DateText
                                                             date={
-                                                                row.receivedOn
+                                                                row.postedDate
                                                             }
                                                         />
-                                                    </>
+                                                    </div>
                                                 )}
-                                            </span>
-                                        )}
-                                        {row.notes && (
-                                            <span className="block text-xs text-muted-foreground">
-                                                {row.notes}
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    {showUnit && (
-                                        <TableCell>{row.unit}</TableCell>
-                                    )}
-                                    <TableCell className="text-right">
-                                        {row.onFolio !== null ? (
-                                            <span aria-label="Not on this folio">
-                                                —
-                                            </span>
-                                        ) : (
-                                            <MoneyText
-                                                amount={row.amount}
-                                                currency={currency}
-                                            />
-                                        )}
-                                    </TableCell>
-                                    {showActions && (
+                                        </TableCell>
                                         <TableCell>
-                                            {hasMenu(row) && (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        render={
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon-sm"
-                                                                aria-label={`Actions for ${row.description}`}
-                                                            />
+                                            <span
+                                                className={cn(
+                                                    'flex flex-wrap items-center gap-2',
+                                                    row.level === 1 && 'pl-4',
+                                                    row.level >= 2 && 'pl-8',
+                                                )}
+                                            >
+                                                {row.level > 0 && (
+                                                    <span aria-hidden>↳</span>
+                                                )}
+                                                {row.pairFolio !== null ? (
+                                                    <PairFolioText
+                                                        row={row}
+                                                        pairFolio={
+                                                            row.pairFolio
+                                                        }
+                                                        owner={owner}
+                                                    />
+                                                ) : (
+                                                    row.description
+                                                )}
+                                                {row.posOrderId !== null && (
+                                                    <button
+                                                        type="button"
+                                                        className="underline underline-offset-4 hover:text-foreground"
+                                                        onClick={() =>
+                                                            setPosReceipt(
+                                                                row.posOrderId,
+                                                            )
                                                         }
                                                     >
-                                                        <MoreHorizontal />
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent
-                                                        align="end"
-                                                        className="min-w-52"
-                                                    >
-                                                        {row.hasReceipt &&
-                                                            row.paymentId !==
-                                                                null && (
-                                                                <DropdownMenuItem
-                                                                    render={
-                                                                        <a
-                                                                            href={
-                                                                                folioRoutes(
-                                                                                    owner,
-                                                                                ).receipt(
-                                                                                    folioId,
-                                                                                    row.paymentId,
-                                                                                )
-                                                                                    .url
-                                                                            }
-                                                                            target="_blank"
-                                                                            rel="noopener"
-                                                                        />
-                                                                    }
-                                                                >
-                                                                    <FileText />
-                                                                    Download
-                                                                    receipt
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                        {row.printable && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    onPrintVoucher(
-                                                                        row,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Printer />
-                                                                Print voucher
-                                                            </DropdownMenuItem>
+                                                        · POS receipt
+                                                    </button>
+                                                )}
+                                                {row.onFolio !== null && (
+                                                    <Link
+                                                        href={folioRoutes(
+                                                            owner,
+                                                        ).page(
+                                                            String(
+                                                                row.onFolio.id,
+                                                            ),
                                                         )}
-                                                        {canCorrectMoney &&
-                                                            row.actions.includes(
-                                                                'refund',
-                                                            ) && (
+                                                        preserveScroll
+                                                        preserveState
+                                                        className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
+                                                    >
+                                                        · on {row.onFolio.label}
+                                                        <ArrowRightLeft
+                                                            aria-hidden
+                                                            className="size-3.5"
+                                                        />
+                                                    </Link>
+                                                )}
+                                                {row.tags.map((tag) => (
+                                                    <RowTag
+                                                        key={tag.value}
+                                                        tag={tag}
+                                                        row={row}
+                                                    />
+                                                ))}
+                                            </span>
+                                            {(row.note || row.receivedOn) && (
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {row.note && (
+                                                        <>Ref {row.note}</>
+                                                    )}
+                                                    {row.note &&
+                                                        row.receivedOn &&
+                                                        ' · '}
+                                                    {row.receivedOn && (
+                                                        <>
+                                                            Received{' '}
+                                                            <DateText
+                                                                date={
+                                                                    row.receivedOn
+                                                                }
+                                                            />
+                                                        </>
+                                                    )}
+                                                </span>
+                                            )}
+                                            {row.notes && (
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {row.notes}
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        {showUnit && (
+                                            <TableCell>{row.unit}</TableCell>
+                                        )}
+                                        <TableCell className="text-right">
+                                            {row.onFolio !== null ? (
+                                                <span aria-label="Not on this folio">
+                                                    —
+                                                </span>
+                                            ) : (
+                                                <MoneyText
+                                                    amount={row.amount}
+                                                    currency={currency}
+                                                />
+                                            )}
+                                        </TableCell>
+                                        {showActions && (
+                                            <TableCell>
+                                                {hasMenu(row) && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger
+                                                            render={
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon-sm"
+                                                                    aria-label={`Actions for ${row.description}`}
+                                                                />
+                                                            }
+                                                        >
+                                                            <MoreHorizontal />
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent
+                                                            align="end"
+                                                            className="min-w-52"
+                                                        >
+                                                            {row.hasReceipt &&
+                                                                row.paymentId !==
+                                                                    null && (
+                                                                    <DropdownMenuItem
+                                                                        render={
+                                                                            <a
+                                                                                href={
+                                                                                    folioRoutes(
+                                                                                        owner,
+                                                                                    ).receipt(
+                                                                                        folioId,
+                                                                                        row.paymentId,
+                                                                                    )
+                                                                                        .url
+                                                                                }
+                                                                                target="_blank"
+                                                                                rel="noopener"
+                                                                            />
+                                                                        }
+                                                                    >
+                                                                        <FileText />
+                                                                        Download
+                                                                        receipt
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            {row.printable && (
                                                                 <DropdownMenuItem
                                                                     onClick={() =>
-                                                                        onAction(
+                                                                        onPrintVoucher(
                                                                             row,
-                                                                            'refund',
                                                                         )
                                                                     }
                                                                 >
-                                                                    <RotateCcw />
-                                                                    Refund
+                                                                    <Printer />
+                                                                    Print
+                                                                    voucher
                                                                 </DropdownMenuItem>
                                                             )}
-                                                        {canCorrectMoney &&
-                                                            row.actions.includes(
-                                                                'void',
+                                                            {canCorrectMoney &&
+                                                                row.actions.includes(
+                                                                    'refund',
+                                                                ) && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            onAction(
+                                                                                row,
+                                                                                'refund',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <RotateCcw />
+                                                                        Refund
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            {canCorrectMoney &&
+                                                                row.actions.includes(
+                                                                    'void',
+                                                                ) && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            onAction(
+                                                                                row,
+                                                                                'void',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Ban />
+                                                                        Void
+                                                                        payment
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            {canCorrectMoney &&
+                                                                row.actions.includes(
+                                                                    'undo_credit_move',
+                                                                ) && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            onAction(
+                                                                                row,
+                                                                                'undo_credit_move',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Undo2 />
+                                                                        Undo
+                                                                        move
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            {row.actions.includes(
+                                                                'correct_price',
                                                             ) && (
                                                                 <DropdownMenuItem
                                                                     onClick={() =>
                                                                         onAction(
                                                                             row,
-                                                                            'void',
+                                                                            'correct_price',
                                                                         )
                                                                     }
                                                                 >
-                                                                    <Ban />
-                                                                    Void payment
+                                                                    <Tag />
+                                                                    Correct
+                                                                    price…
                                                                 </DropdownMenuItem>
                                                             )}
-                                                        {canCorrectMoney &&
-                                                            row.actions.includes(
-                                                                'undo_credit_move',
+                                                            {row.actions.includes(
+                                                                'edit',
                                                             ) && (
                                                                 <DropdownMenuItem
                                                                     onClick={() =>
                                                                         onAction(
                                                                             row,
-                                                                            'undo_credit_move',
+                                                                            'edit',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Pencil />
+                                                                    Edit line…
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {row.actions.includes(
+                                                                'undo_tax_move',
+                                                            ) && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'undo_tax_move',
                                                                         )
                                                                     }
                                                                 >
@@ -517,188 +596,151 @@ export function FolioRowsTable({
                                                                     Undo move
                                                                 </DropdownMenuItem>
                                                             )}
-                                                        {row.actions.includes(
-                                                            'correct_price',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'correct_price',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Tag />
-                                                                Correct price…
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'edit',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'edit',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Pencil />
-                                                                Edit line…
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'undo_tax_move',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'undo_tax_move',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Undo2 />
-                                                                Undo move
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'move',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'move',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <ArrowRightLeft />
-                                                                Move…
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'change_opening_balance',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'change_opening_balance',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Pencil />
-                                                                Change opening
-                                                                balance…
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'split',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'split',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Scissors />
-                                                                Split…
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'add_tax',
-                                                        ) && (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                {row.actions.includes(
-                                                                    'remove_tax',
-                                                                ) && (
+                                                            {row.actions.includes(
+                                                                'move',
+                                                            ) && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'move',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <ArrowRightLeft />
+                                                                    Move…
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {row.actions.includes(
+                                                                'change_opening_balance',
+                                                            ) && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'change_opening_balance',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Pencil />
+                                                                    Change
+                                                                    opening
+                                                                    balance…
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {row.actions.includes(
+                                                                'split',
+                                                            ) && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'split',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Scissors />
+                                                                    Split…
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {row.actions.includes(
+                                                                'add_tax',
+                                                            ) && (
+                                                                <>
+                                                                    <DropdownMenuSeparator />
+                                                                    {row.actions.includes(
+                                                                        'remove_tax',
+                                                                    ) && (
+                                                                        <DropdownMenuItem
+                                                                            onClick={() =>
+                                                                                onAction(
+                                                                                    row,
+                                                                                    'remove_tax',
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <CircleMinus />
+                                                                            Remove
+                                                                            tax…
+                                                                        </DropdownMenuItem>
+                                                                    )}
                                                                     <DropdownMenuItem
                                                                         onClick={() =>
                                                                             onAction(
                                                                                 row,
-                                                                                'remove_tax',
+                                                                                'add_tax',
                                                                             )
                                                                         }
                                                                     >
-                                                                        <CircleMinus />
-                                                                        Remove
-                                                                        tax…
+                                                                        <CirclePlus />
+                                                                        Add tax…
                                                                     </DropdownMenuItem>
-                                                                )}
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            onAction(
+                                                                                row,
+                                                                                'recalculate_tax',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <RefreshCw />
+                                                                        Recalculate
+                                                                        tax
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                </>
+                                                            )}
+                                                            {row.actions.includes(
+                                                                'remove_discount',
+                                                            ) && (
                                                                 <DropdownMenuItem
+                                                                    variant="destructive"
                                                                     onClick={() =>
                                                                         onAction(
                                                                             row,
-                                                                            'add_tax',
+                                                                            'remove_discount',
                                                                         )
                                                                     }
                                                                 >
-                                                                    <CirclePlus />
-                                                                    Add tax…
+                                                                    <X />
+                                                                    Remove
+                                                                    discount
                                                                 </DropdownMenuItem>
+                                                            )}
+                                                            {row.actions.includes(
+                                                                'reverse',
+                                                            ) && (
                                                                 <DropdownMenuItem
+                                                                    variant="destructive"
                                                                     onClick={() =>
                                                                         onAction(
                                                                             row,
-                                                                            'recalculate_tax',
+                                                                            'reverse',
                                                                         )
                                                                     }
                                                                 >
-                                                                    <RefreshCw />
-                                                                    Recalculate
-                                                                    tax
+                                                                    <Undo2 />
+                                                                    Reverse
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                            </>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'remove_discount',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                variant="destructive"
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'remove_discount',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <X />
-                                                                Remove discount
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {row.actions.includes(
-                                                            'reverse',
-                                                        ) && (
-                                                            <DropdownMenuItem
-                                                                variant="destructive"
-                                                                onClick={() =>
-                                                                    onAction(
-                                                                        row,
-                                                                        'reverse',
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Undo2 />
-                                                                Reverse
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            )}
-                                        </TableCell>
-                                    )}
-                                </TableRow>
-                            )}
-                        </Fragment>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
+                                            </TableCell>
+                                        )}
+                                    </TableRow>
+                                )}
+                            </Fragment>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+            <PosFolioReceiptSheet
+                orderId={posReceipt}
+                currency={currency}
+                onClose={() => setPosReceipt(null)}
+            />
+        </>
     );
 }
 

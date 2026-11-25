@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Http\Requests\Pos;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+/**
+ * The route's middleware (`pos.can:` or `can:`) checks the permission; the Action checks what the data may do.
+ */
+class OpenPosShiftRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'register_id' => ['required', 'integer'],
+            'opening_cash' => ['nullable', 'decimal:0,2', 'min:0'],
+        ];
+    }
+}
