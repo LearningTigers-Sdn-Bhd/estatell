@@ -12,6 +12,7 @@ use App\Http\Requests\Reports\ReportFiltersRequest;
 use App\Models\Property;
 use App\Services\Reports\ReportLayoutResolver;
 use App\Services\Reports\ReportPage;
+use App\Services\Reports\RoomStatsChart;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
@@ -22,7 +23,7 @@ class HistoryForecastReportController extends Controller
      * The History & forecast page: one row for each date from `?from` to `?to`, past and future, sorted and paged on the
      * server. It opens on the business date's month. See docs/22-reports/04-history-and-forecast.md.
      */
-    public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver): Response
+    public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver, RoomStatsChart $roomStatsChart): Response
     {
         $key = ReportKey::HistoryForecast;
         $filters = $request->filters();
@@ -41,6 +42,7 @@ class HistoryForecastReportController extends Controller
         return Inertia::render('reports/history-forecast', [
             'rows' => HistoryForecastRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
             'totals' => $key->totals($allRows),
+            'chart' => $roomStatsChart->historyForecast($allRows, $filters),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

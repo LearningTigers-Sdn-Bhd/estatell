@@ -216,3 +216,26 @@ test('the rows cost the same number of queries however many bookings the dates h
 
     expect($many)->toBe($few);
 });
+
+test('the chart marks the forecast days, and a month that holds today is Today', function () {
+    [$user, $property] = reportSetup();
+    $setup = historyForecastSetup($property);
+    historyForecastUnit($property, $setup, '2026-10-11', '2026-10-13');
+
+    $this->actingAs($user)->get(historyForecastUrl($property, '?from=2026-10-10&to=2026-10-12'))->assertInertia(fn (Assert $page) => $page
+        ->where('chart.step', 'day')
+        ->where('chart.points', fn ($points) => collect($points)->map(fn ($point) => [$point['date'], $point['basis'], $point['occupancy'], $point['revenue']])->all() === [
+            ['2026-10-10', 'today', '0.00', '0.00'],
+            ['2026-10-11', 'forecast', '20.00', '100.00'],
+            ['2026-10-12', 'forecast', '20.00', '100.00'],
+        ]));
+
+    $this->actingAs($user)->get(historyForecastUrl($property, '?from=2026-10-10&to=2026-12-31'))->assertInertia(fn (Assert $page) => $page
+        ->where('chart.step', 'month')
+        ->where('chart.points', fn ($points) => collect($points)->map(fn ($point) => [$point['date'], $point['basis']])->all() === [
+            ['2026-10', 'today'],
+            ['2026-11', 'forecast'],
+            ['2026-12', 'forecast'],
+        ])
+        ->where('chart.points.0.revenue', '200.00'));
+});

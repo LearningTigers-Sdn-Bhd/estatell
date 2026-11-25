@@ -4,6 +4,7 @@ import { MoneyText } from '@/components/pms/money-text';
 import { ReportCellLink } from '@/components/pms/reports/report-cell-link';
 import { ReportPeriod } from '@/components/pms/reports/report-period';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
+import { RevenueChart } from '@/components/pms/reports/revenue-chart';
 import type {
     ReportCells,
     ReportTotalCells,
@@ -16,6 +17,7 @@ type Layout = App.Data.Reports.ReportLayoutData;
 type Props = {
     rows: Illuminate.LengthAwarePaginator<number, Row>;
     totals: App.Data.Reports.ReportTotals;
+    chart: App.Data.Reports.RevenueChartData;
     sort: string;
     layout: Layout;
     canEditLayout: boolean;
@@ -52,6 +54,9 @@ export default function RevenueReport(props: Props) {
     return (
         <ReportScreen
             {...props}
+            chart={
+                <RevenueChart chart={props.chart} currency={props.currency} />
+            }
             report="revenue"
             title="Revenue"
             description="Revenue by transaction code, live from the folio ledger by posting date. Payments are not revenue."

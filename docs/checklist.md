@@ -1174,6 +1174,7 @@ Staff feedback: a 02:00 to 12:00 walk-in entered at 15:00 could not be booked, a
     - 6 new tests, the Reports tests and the dashboard performance tests pass, with Pint, PHPStan, TypeScript, lint/format checks and the production build. Browser review and the full suite are still open.
 - [x] `feat(reports): put housekeeping items and log on one page` — `TabbedReport::Housekeeping` with the Items (`HousekeepingItems`, the default) and Log (`HousekeepingLog`) tabs, `HousekeepingReportController` (`show`, and `items` and `log` redirecting the old pages to their tab with the query), `reports/housekeeping.tsx` with `TabLinks`, one Housekeeping entry in Reports › Front desk. The two old controllers and pages are removed. Docs: [Housekeeping page](22-reports/03-house-status-and-items.md#housekeeping-page).
     - The Reports and Housekeeping tests pass, with TypeScript, lint/format checks and the production build. Browser review is still open.
+- [x] `feat(reports): chart occupancy, history & forecast and revenue` — a `chart` prop from every row of the range (`RoomStatsChart`, `RevenueChart`), one point per day or per month past 62 days with the month from the report's `totals()`, codes ranked with "Other codes", the `chart` slot on `ReportScreen`, forecast bars lighter, below-zero bars in `warning`. Screen only. Docs: [Report charts](22-reports/06-report-charts.md).
 
 ### 23 Company portal
 

@@ -197,3 +197,47 @@ test('migrated lines and the opening balance code are not revenue', function () 
     $this->actingAs($user)->get(revenueUrl($property, '?from=2026-10-09&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
         ->where('rows.data', fn ($rows) => collect($rows)->pluck('amount', 'code')->sortKeys()->all() === ['MEAL' => '30.00', 'ROOM' => '250.00']));
 });
+
+test('the chart ranks the codes and totals every day of the range, the empty days at zero, adding up to the table', function () {
+    [$user, $property] = reportSetup();
+    revenueLines($property);
+    $bar = TransactionCode::factory()->for($property)->create(['code' => '100', 'name' => 'Bar']);
+    revenueLine($property, $bar, '-20.00', '2026-10-10', TransactionKind::Adjustment);
+    revenueLine($property, $bar, '60.00', '2026-10-10');
+
+    $this->actingAs($user)->get(revenueUrl($property, '?from=2026-10-08&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('chart.group', 'day')
+        ->where('chart.codes', [
+            ['code' => 'ROOM', 'description' => 'Room revenue', 'amount' => '370.00'],
+            ['code' => '100', 'description' => 'Bar', 'amount' => '40.00'],
+            ['code' => 'MEAL', 'description' => 'Meals', 'amount' => '30.00'],
+        ])
+        ->where('chart.periods', [
+            ['period' => '2026-10-08', 'amount' => '0.00'],
+            ['period' => '2026-10-09', 'amount' => '280.00'],
+            ['period' => '2026-10-10', 'amount' => '160.00'],
+        ])
+        ->where('totals.figures.amount', '440.00'));
+
+    $this->actingAs($user)->get(revenueUrl($property, '?from=2026-09-30&to=2026-10-10&group=month'))->assertInertia(fn (Assert $page) => $page
+        ->where('chart.group', 'month')
+        ->where('chart.periods', [
+            ['period' => '2026-09', 'amount' => '100.00'],
+            ['period' => '2026-10', 'amount' => '440.00'],
+        ]));
+});
+
+test('the chart names the eight highest codes and sums the rest as Other codes', function () {
+    [$user, $property] = reportSetup();
+
+    foreach (range(1, 10) as $index) {
+        $code = TransactionCode::factory()->for($property)->create(['code' => "C{$index}", 'name' => "Code {$index}"]);
+        revenueLine($property, $code, ($index * 10).'.00', '2026-10-09');
+    }
+
+    $this->actingAs($user)->get(revenueUrl($property, '?from=2026-10-09&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
+        ->has('chart.codes', 9)
+        ->where('chart.codes.0.code', 'C10')
+        ->where('chart.codes.7.code', 'C3')
+        ->where('chart.codes.8', ['code' => '', 'description' => 'Other codes', 'amount' => '30.00']));
+});

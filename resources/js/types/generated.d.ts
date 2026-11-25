@@ -5163,6 +5163,20 @@ printedByDefault: boolean,
 export type ReportTotals = {
 figures: Record<string, number | string | null>,
 };
+export type RevenueChartCodeData = {
+code: string,
+description: string,
+amount: string,
+};
+export type RevenueChartData = {
+group: App.Enums.ReportGroup,
+codes: App.Data.Reports.RevenueChartCodeData[],
+periods: App.Data.Reports.RevenueChartPeriodData[],
+};
+export type RevenueChartPeriodData = {
+period: string,
+amount: string,
+};
 export type RevenueRow = {
 key: string,
 group: App.Enums.ReportGroup,
@@ -5174,6 +5188,18 @@ quantity: number,
 amount: string,
 from: string,
 to: string,
+};
+export type RoomStatsChartData = {
+step: App.Enums.ReportGroup,
+points: App.Data.Reports.RoomStatsChartPointData[],
+};
+export type RoomStatsChartPointData = {
+date: string,
+basis: App.Enums.ForecastBasis,
+occupancy: string,
+adr: string,
+revpar: string,
+revenue: string,
 };
 export type RoomsOnBooksImpactData = {
 kind: string | null,

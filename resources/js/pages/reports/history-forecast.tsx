@@ -3,6 +3,7 @@ import { DateText } from '@/components/pms/date-text';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
+import { RoomStatsChart } from '@/components/pms/reports/room-stats-chart';
 import type {
     ReportCells,
     ReportTotalCells,
@@ -17,6 +18,7 @@ type MoneyKey = 'adr' | 'revpar' | 'room_charges' | 'extra_charges' | 'tax';
 type Props = {
     rows: Illuminate.LengthAwarePaginator<number, Row>;
     totals: App.Data.Reports.ReportTotals;
+    chart: App.Data.Reports.RoomStatsChartData;
     sort: string;
     layout: Layout;
     canEditLayout: boolean;
@@ -74,6 +76,13 @@ export default function HistoryForecastReport(props: Props) {
     return (
         <ReportScreen
             {...props}
+            chart={
+                <RoomStatsChart
+                    chart={props.chart}
+                    currency={props.currency}
+                    revenueLabel="Room charges"
+                />
+            }
             report="history-forecast"
             title="History & forecast"
             description="Rooms, pax and charges for each date. Closed dates come from the night audit and the ledger; today and later dates from the bookings on hand, at today's prices and taxes."

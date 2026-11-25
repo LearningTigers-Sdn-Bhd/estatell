@@ -33,6 +33,7 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | Daily charges                 | `DailyCharges`       | `folio_lines` through `DailyRevenueQuery`                                        | Range    | Landscape           | 31 days       |
 | Booking performance           | `BookingPerformance` | reservations by booking date                                                     | Range    | Landscape           | 366 days      |
 
+- Occupancy, History & forecast and Revenue by transaction code show a chart of the whole range above the table. See [Report charts](06-report-charts.md).
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
 - **Boat manifest** belongs to the Boats module and is exported from the [Boat Trips board](../24-boats/05-boats-board.md#export-boat-manifest), not from the Reports menu. It has no report page. Its export routes sit under `reservations.view`, and its Columns Sheet uses the shared layout routes. See [Boat manifest](../24-boats/03-boat-manifest.md).
 - **Transfer manifest** belongs to the Transfers module and is exported from the [run sheet](../35-transfers/01-land-transfers.md#transfer-manifest), not from the Reports menu. It has no report page. Its export routes sit under `reservations.view`, and its Columns Sheet uses the shared layout routes.
