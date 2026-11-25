@@ -4,6 +4,7 @@ namespace App\Services\AiAssistant;
 
 use App\Enums\AiPlace;
 use App\Models\AiThread;
+use App\Models\Amenity;
 use App\Models\Property;
 use App\Models\RoomType;
 use App\Services\BookingEngine\BookingContent;
@@ -66,15 +67,15 @@ class AssistantInstructions
      */
     private function rooms(Property $property): array
     {
-        return $this->booking->roomTypes($property)->map(fn (RoomType $type): array => [
+        return array_values($this->booking->roomTypes($property)->map(fn (RoomType $type): array => [
             'name' => $type->name,
             'description' => $type->description,
             'max_adults' => $type->max_adults,
             'max_children' => $type->max_children,
             'smoking_allowed' => (bool) $type->smoking_allowed,
             'pets_allowed' => (bool) $type->pets_allowed,
-            'amenities' => $type->amenities->pluck('name')->values()->all(),
-        ])->values()->all();
+            'amenities' => array_values($type->amenities->map(fn (Amenity $amenity): string => $amenity->name)->all()),
+        ])->all());
     }
 
     private function rules(Property $property): string
