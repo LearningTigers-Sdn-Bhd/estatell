@@ -5,12 +5,17 @@ use App\Actions\Pos\CountPosStocktakeLine;
 use App\Actions\Pos\FireOrderLines;
 use App\Actions\Pos\ReceiveStockPurchase;
 use App\Actions\Pos\RecordStockWaste;
+use App\Actions\Pos\RefundPosOrder;
 use App\Actions\Pos\SavePosIngredient;
 use App\Actions\Pos\SavePosRecipe;
+use App\Actions\Pos\SettlePosOrder;
 use App\Actions\Pos\StartPosStocktake;
 use App\Actions\Pos\TransferStock;
 use App\Actions\Pos\VoidOrderLine;
+use App\Data\Pos\PosRefundLineInputData;
+use App\Data\Pos\PosTenderInputData;
 use App\Enums\PosStockMovementKind;
+use App\Enums\PosTenderType;
 use App\Models\PosIngredient;
 use App\Models\PosOutlet;
 use App\Models\PosStockMovement;
@@ -18,6 +23,7 @@ use App\Models\PosVoidReason;
 use App\Models\User;
 use App\Services\Pos\PosStockBalances;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
 require_once __DIR__.'/../Support/PosOrderSetup.php';
@@ -65,6 +71,49 @@ it('returns the recipe to stock only when a fired line is voided with stock retu
     app(VoidOrderLine::class)($s['manager'], $s['property'], $order, $keep, $reason, null, true, $s['manager']);
     expect($s['balances']->onHand($s['outlet']->id, $s['rice']->id))->toBe('1820.0000')
         ->and(PosStockMovement::query()->where('kind', PosStockMovementKind::VoidReturn->value)->count())->toBe(1);
+});
+
+it('returns the recipe to stock only when a settled refund opts into returning stock', function () {
+    $s = posInventorySetup();
+    posReceiveRice($s, '2', '5.00');
+    $order = posNewOrder($s);
+    $line = posAddLine($s, $order, $s['steak'], 2);
+    $settled = app(SettlePosOrder::class)(
+        $s['manager'],
+        $s['property'],
+        $order,
+        [new PosTenderInputData(PosTenderType::Cash, (string) $order->refresh()->grand_total, tenderedAmount: '300.00')],
+    );
+    expect($settled->isRefused())->toBeFalse()
+        ->and($s['balances']->onHand($s['outlet']->id, $s['rice']->id))->toBe('1640.0000');
+
+    // Refund 1 without returning stock: ledger stays at 1640 g.
+    $noReturn = app(RefundPosOrder::class)(
+        $s['manager'],
+        $s['property'],
+        $order->refresh(),
+        [new PosRefundLineInputData($line->id, 1, returnStock: false)],
+        'Spilled',
+        (string) Str::uuid(),
+        $s['manager'],
+    );
+    expect($noReturn->isRefused())->toBeFalse()
+        ->and($s['balances']->onHand($s['outlet']->id, $s['rice']->id))->toBe('1640.0000')
+        ->and(PosStockMovement::query()->where('kind', PosStockMovementKind::RefundReturn->value)->count())->toBe(0);
+
+    // Refund the second with returnStock = true: +180 g RefundReturn posted.
+    $withReturn = app(RefundPosOrder::class)(
+        $s['manager'],
+        $s['property'],
+        $order->refresh(),
+        [new PosRefundLineInputData($line->id, 1, returnStock: true)],
+        'Unopened',
+        (string) Str::uuid(),
+        $s['manager'],
+    );
+    expect($withReturn->isRefused())->toBeFalse()
+        ->and($s['balances']->onHand($s['outlet']->id, $s['rice']->id))->toBe('1820.0000')
+        ->and(PosStockMovement::query()->where('kind', PosStockMovementKind::RefundReturn->value)->sole()->quantity_delta)->toBe('180.0000');
 });
 
 it('keeps a moving average cost across deliveries, in base units', function () {

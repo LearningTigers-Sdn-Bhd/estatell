@@ -1,6 +1,6 @@
 # Kitchen routing, Web KDS/ODS, QR self-ordering and walk-in offline mode
 
-> **Planned (Phase 3).** Part of [Native POS](01-overview.md). Defines kitchen stations, Web KDS (`version` hash polling — no Reverb dependency), ODS pickup boards, per-stay Room QR + PIN ordering, dynamic Table QR ordering, and walk-in-only IndexedDB PWA offline mode.
+> **Built (Phase 3).** Part of [Native POS](01-overview.md). Defines kitchen stations, Web KDS (`version` hash polling — no Reverb dependency), ODS pickup boards, per-stay Room QR + PIN ordering, dynamic Table QR ordering, and walk-in-only IndexedDB PWA offline mode.
 
 ## Build status (Phase 3, step 11)
 
@@ -13,7 +13,8 @@
 | Void dockets on the screen (struck through, 30 minutes)                     | Built on screen. Printed void docket not built                 |
 | ODS pickup board                                                            | Built (`pos/ods`), staff route, not public (see below)         |
 | Browser kitchen docket print                                                | Not built, waits for the print step                            |
-| Cooking guide popover                                                       | Guide sent to the screen, popover not built yet                |
+| Cooking guide popover                                                       | Built (`Popover` on KDS ticket lines when a dish has a guide)  |
+| Front desk sidebar link to Kitchen Display (`/p/{code}/pos/kds`)            | Built (`FrontDeskNavigation`, gated on `pos.kds`)              |
 
 ## Build status (Phase 3, step 12)
 
@@ -29,7 +30,7 @@
 
 Deviations and open items:
 
-- **No QR picture.** The table link is printed as text. A QR image needs a library, which needs approval first.
+- **Table QR image:** Rendered as an inline SVG via `PosReceiptClaimQr::svg()` inside `.pos-print-area` on `pos/table-qr` for 80 mm thermal/browser printing.
 - **No auto-accept.** Every guest order waits as Draft lines until the cashier fires them. The outlet's `allow_qr_customer_remark` controls the note. `allow_anonymous_qr` is not used yet.
 - **Room PIN is not on the welcome slip.** Front desk regenerate is the only way to get the PIN for now.
 - **Last name check** compares with the last word of the primary guest's full name, because a guest has no separate last-name column.

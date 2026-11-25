@@ -1,7 +1,16 @@
 import { router } from '@inertiajs/react';
+import { BookOpen } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Popover,
+    PopoverContent,
+    PopoverHeader,
+    PopoverTitle,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 export type KitchenLine = {
@@ -128,6 +137,33 @@ export function KitchenTicketCard({
                             )}
                             {line.note !== null && (
                                 <span className="text-sm">{line.note}</span>
+                            )}
+                            {line.cookingGuide !== null && !line.voided && (
+                                <Popover>
+                                    <PopoverTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="mt-1 w-fit px-2"
+                                            />
+                                        }
+                                    >
+                                        <BookOpen data-icon="inline-start" />
+                                        Guide
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start">
+                                        <PopoverHeader>
+                                            <PopoverTitle>
+                                                {line.name}
+                                            </PopoverTitle>
+                                        </PopoverHeader>
+                                        <p className="whitespace-pre-line text-muted-foreground">
+                                            {line.cookingGuide}
+                                        </p>
+                                    </PopoverContent>
+                                </Popover>
                             )}
                         </div>
                         {!line.voided && actions(line)}

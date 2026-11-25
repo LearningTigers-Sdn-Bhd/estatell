@@ -233,4 +233,11 @@ it('lets only a staff member who can sell issue a table link from the register',
 
     $this->actingAs($cashier)->post(route('pos.tables.qr', [$s['property']->code, $s['table']->id]))->assertForbidden();
     expect(PosQrSession::query()->count())->toBe(0);
+
+    $this->actingAs($s['manager'])->post(route('pos.tables.qr', [$s['property']->code, $s['table']->id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('pos/table-qr')
+            ->where('table', 'A01')
+            ->where('qrSvg', fn (string $svg): bool => str_contains($svg, '<svg')));
 });

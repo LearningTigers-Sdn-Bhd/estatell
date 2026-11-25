@@ -10,11 +10,11 @@
 | Recipes for an item variant, deducted when a line is fired (`PostRecipeStock`)                             | Built. Modifier-option recipes are deducted too, but the settings page only edits variant recipes |
 | Line cost stamped on the first fire, so later cost changes do not rewrite history                          | Built                                                                                             |
 | Void with stock returned puts the recipe back (`void_return`)                                              | Built                                                                                             |
-| Refund with stock returned (`refund_return`)                                                               | Not built. `RefundPosOrder` does not return stock yet                                             |
+| Refund with stock returned (`refund_return`)                                                               | Built (`RefundPosOrder` posts `RefundReturn` via `PostRecipeStock` when `return_stock` is set)    |
 | Delivery at a moving-average cost, in purchase units (`ReceiveStockPurchase`)                              | Built                                                                                             |
 | Waste with a reason, transfer as a pair of rows                                                            | Built                                                                                             |
 | Closing count: each line compares with the ledger as it stood when it was counted, and posts an adjustment | Built (`ClosePosStocktake`)                                                                       |
-| Low-stock alerts                                                                                           | Not built. The threshold is saved and shown only                                                  |
+| Low-stock alerts                                                                                           | Low-stock badge shown on `settings/pos/inventory` when on-hand ≤ threshold (no push alerts yet)   |
 | Settings page with ingredients, recipes, stock and the count (`settings/pos/inventory`, `pos.inventory`)   | Built                                                                                             |
 
 Deviations and open items:

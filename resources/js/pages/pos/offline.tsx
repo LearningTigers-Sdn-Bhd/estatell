@@ -106,9 +106,11 @@ export default function PosOffline({
     const refreshQueue = () => listQueue().then(setQueue);
 
     useEffect(() => {
-        navigator.serviceWorker?.register('/sw.js').catch(() => undefined);
-        loadSnapshot(outlet.id).then((stored) => setSnapshot(stored ?? null));
-        refreshQueue();
+        void navigator.serviceWorker?.register('/sw.js').catch(() => undefined);
+        void loadSnapshot(outlet.id).then((stored) =>
+            setSnapshot(stored ?? null),
+        );
+        void refreshQueue();
 
         const up = () => setOnline(true);
         const down = () => setOnline(false);
@@ -144,7 +146,8 @@ export default function PosOffline({
                     version: payload.version,
                     payload,
                 };
-                saveSnapshot(stored).then(() => setSnapshot(stored));
+
+                return saveSnapshot(stored).then(() => setSnapshot(stored));
             })
             .catch(() => undefined);
     }, [online, outlet.id]);
@@ -183,13 +186,14 @@ export default function PosOffline({
             createdAt: new Date().toISOString(),
         };
 
-        enqueueSale(sale).then(() => {
+        void enqueueSale(sale).then(() => {
             setPending(null);
             setTendered('');
             setMessage(
                 `Saved on this device as ${sale.reference}. The official receipt number is given on sync.`,
             );
-            refreshQueue();
+
+            return refreshQueue();
         });
     };
 

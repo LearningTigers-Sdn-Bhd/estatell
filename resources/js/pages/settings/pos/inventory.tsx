@@ -156,6 +156,17 @@ export default function PosInventory({
                                     </TableCell>
                                     <TableCell className="text-end tabular-nums">
                                         {Number(row.onHand).toFixed(2)}
+                                        {row.active &&
+                                            row.threshold !== null &&
+                                            Number(row.onHand) <=
+                                                Number(row.threshold) && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="ms-2 border-warning text-warning"
+                                                >
+                                                    Low stock
+                                                </Badge>
+                                            )}
                                     </TableCell>
                                     <TableCell className="text-end">
                                         <Button
