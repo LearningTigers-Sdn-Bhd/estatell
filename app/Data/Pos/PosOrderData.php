@@ -17,7 +17,7 @@ class PosOrderData extends Data
 {
     /**
      * @param  list<PosOrderLineData>  $lines
-     * @param  list<array{id: int, tender: string, direction: string, amount: string, tendered: string|null, change: string|null, reference: string|null, status: string, paidAt: string}>  $payments
+     * @param  list<array{id: int, tender: string, tenderType: string, direction: string, amount: string, tendered: string|null, change: string|null, reference: string|null, status: string, paidAt: string}>  $payments
      * @param  list<array{name: string, amount: string, reason: string|null}>  $discounts
      */
     public function __construct(
@@ -32,6 +32,7 @@ class PosOrderData extends Data
         public int $diningOptionId,
         public string $diningOptionName,
         public int $guestCount,
+        public ?int $reservationUnitId,
         public ?string $roomLabel,
         public string $subtotal,
         public string $discountTotal,
@@ -80,6 +81,7 @@ class PosOrderData extends Data
             $order->pos_dining_option_id,
             $order->diningOption->name,
             $order->guest_count,
+            $order->reservation_unit_id,
             $order->reservationUnit?->reservation?->reference,
             $order->subtotal,
             $order->discount_total,
@@ -105,6 +107,7 @@ class PosOrderData extends Data
             array_values($order->payments->map(fn (PosOrderPayment $payment): array => [
                 'id' => $payment->id,
                 'tender' => $payment->tender_type->label(),
+                'tenderType' => $payment->tender_type->value,
                 'direction' => $payment->direction->value,
                 'amount' => $payment->amount,
                 'tendered' => $payment->tendered_amount,

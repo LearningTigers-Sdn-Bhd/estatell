@@ -1,13 +1,17 @@
 import { router } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import { cashRoundingAdjustment } from '@/lib/pos-rounding';
 import { inHouseGuests } from '@/routes/pos';
 import { settle } from '@/routes/pos/orders';
 import { PosApprovalFields, noApproval } from './pos-approval-fields';
@@ -20,6 +24,7 @@ type Tender = {
     payment_method_id: string;
     tendered_amount: string;
     reservation_unit_id: string;
+    guest_label: string;
     reference: string;
 };
 
@@ -30,18 +35,154 @@ type Guest = {
     can_post_charges: boolean;
 };
 
-const TENDER_LABELS: Record<string, string> = {
-    cash: 'Cash',
-    card: 'Card',
-    e_wallet: 'E-wallet',
-    duitnow_qr: 'DuitNow QR',
-    payment_voucher: 'Voucher',
-    room_charge: 'Charge to room',
-};
+const QUICK_CASH_BILLS = [10, 20, 50, 100];
+
+/** Per-row debounced in-house guest search with AbortController, loading/error/empty states, and selected badge. */
+function RoomChargeGuestPicker({
+    index,
+    selectedUnitId,
+    selectedLabel,
+    onSelect,
+}: {
+    index: number;
+    selectedUnitId: string;
+    selectedLabel: string;
+    onSelect: (unitId: string, label: string) => void;
+}) {
+    const [term, setTerm] = useState('');
+    const [guests, setGuests] = useState<Guest[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [searched, setSearched] = useState(false);
+
+    useEffect(() => {
+        const trimmed = term.trim();
+
+        if (trimmed.length < 2) {
+            setGuests([]);
+            setLoading(false);
+            setError(null);
+            setSearched(false);
+
+            return;
+        }
+
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            setLoading(true);
+            setError(null);
+            fetch(inHouseGuests.url(undefined, { query: { q: trimmed } }), {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error('guest_lookup_failed');
+                    }
+
+                    return response.json() as Promise<{ guests: Guest[] }>;
+                })
+                .then((body) => {
+                    setGuests(body.guests);
+                    setSearched(true);
+                    setLoading(false);
+                })
+                .catch((err: unknown) => {
+                    if (
+                        err instanceof DOMException &&
+                        err.name === 'AbortError'
+                    ) {
+                        return;
+                    }
+
+                    setError('Could not search in-house guests.');
+                    setLoading(false);
+                });
+        }, 250);
+
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [term]);
+
+    return (
+        <Field>
+            <FieldLabel htmlFor={`tender-room-${index}`}>
+                In-house guest
+            </FieldLabel>
+            {selectedUnitId !== '' && selectedLabel !== '' && (
+                <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                    <span className="font-medium">{selectedLabel}</span>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onSelect('', '')}
+                    >
+                        Change
+                    </Button>
+                </div>
+            )}
+            <Input
+                id={`tender-room-${index}`}
+                placeholder="Type room number or guest name (2+ chars)"
+                value={term}
+                onChange={(event) => setTerm(event.target.value)}
+            />
+            {loading && (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Spinner />
+                    Searching...
+                </p>
+            )}
+            {error !== null && (
+                <p role="alert" className="text-xs text-destructive">
+                    {error}
+                </p>
+            )}
+            {!loading && error === null && searched && guests.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                    No in-house guests found.
+                </p>
+            )}
+            {guests.length > 0 && (
+                <div className="flex flex-col gap-1">
+                    {guests.map((guest) => {
+                        const label = `${guest.room_number} · ${guest.guest_name}`;
+
+                        return (
+                            <Button
+                                key={guest.reservation_unit_id}
+                                type="button"
+                                variant={
+                                    selectedUnitId ===
+                                    String(guest.reservation_unit_id)
+                                        ? 'default'
+                                        : 'outline'
+                                }
+                                className="min-h-11 justify-start"
+                                disabled={!guest.can_post_charges}
+                                onClick={() =>
+                                    onSelect(
+                                        String(guest.reservation_unit_id),
+                                        label,
+                                    )
+                                }
+                            >
+                                {label}
+                                {!guest.can_post_charges && ' (cash only)'}
+                            </Button>
+                        );
+                    })}
+                </div>
+            )}
+        </Field>
+    );
+}
 
 /**
- * Take payment: one or more tenders. The server enforces the exact total; cash may be handed over above it and the
- * change shown here is only for the cashier to read out.
+ * Take payment: one or more tenders with exact BNM 5-sen cash rounding preview and per-row room charge guest lookup.
  */
 export function PosCheckoutSheet({
     open,
@@ -49,8 +190,14 @@ export function PosCheckoutSheet({
     order,
     currency,
     methods,
+    tenderTypes,
     staff,
     hasMealCover,
+    roundingMode,
+    roundingPolicy,
+    roomChargeLimit,
+    requireRoomChargeSignature,
+    requireMealRedemptionConfirmation,
     otherBills = [],
 }: {
     open: boolean;
@@ -58,8 +205,14 @@ export function PosCheckoutSheet({
     order: App.Data.Pos.PosOrderData;
     currency: PosCurrency;
     methods: PosPaymentMethod[];
+    tenderTypes: EnumOption[];
     staff: PosStaff[];
     hasMealCover: boolean;
+    roundingMode: string;
+    roundingPolicy: string;
+    roomChargeLimit: string | null;
+    requireRoomChargeSignature: boolean;
+    requireMealRedemptionConfirmation: boolean;
     otherBills?: {
         id: number;
         label: string;
@@ -73,7 +226,14 @@ export function PosCheckoutSheet({
         amount,
         payment_method_id: '',
         tendered_amount: '',
-        reservation_unit_id: '',
+        reservation_unit_id:
+            type === 'room_charge' && order.reservationUnitId !== null
+                ? String(order.reservationUnitId)
+                : '',
+        guest_label:
+            type === 'room_charge' && order.roomLabel !== null
+                ? order.roomLabel
+                : '',
         reference: '',
     });
     const [tenders, setTenders] = useState<Tender[]>([
@@ -82,13 +242,13 @@ export function PosCheckoutSheet({
     const [signed, setSigned] = useState(false);
     const [meal, setMeal] = useState(false);
     const [approval, setApproval] = useState<ApprovalData>(noApproval);
-    const [guests, setGuests] = useState<Guest[]>([]);
-    const [search, setSearch] = useState('');
     const [processing, setProcessing] = useState(false);
     const [billsChecked, setBillsChecked] = useState(false);
     const [people, setPeople] = useState('2');
     const [errors, setErrors] = useState<Record<string, string>>({});
 
+    const tenderLabel = (value: string) =>
+        tenderTypes.find((option) => option.value === value)?.label ?? value;
     const types = Array.from(
         new Set([...methods.map((method) => method.tenderType), 'room_charge']),
     );
@@ -98,6 +258,23 @@ export function PosCheckoutSheet({
         0,
     );
     const remaining = Math.round((total - paid) * 100) / 100;
+    const cashTotal = tenders
+        .filter((tender) => tender.tender_type === 'cash')
+        .reduce((sum, tender) => sum + (Number(tender.amount) || 0), 0);
+    const totalRounding = cashRoundingAdjustment(
+        roundingMode,
+        roundingPolicy,
+        total,
+        cashTotal,
+    );
+    const firstCashIndex = tenders.findIndex(
+        (tender) => tender.tender_type === 'cash',
+    );
+    const roomTotal = tenders
+        .filter((tender) => tender.tender_type === 'room_charge')
+        .reduce((sum, tender) => sum + (Number(tender.amount) || 0), 0);
+    const overRoomLimit =
+        roomChargeLimit !== null && roomTotal > Number(roomChargeLimit);
 
     function patch(index: number, change: Partial<Tender>) {
         setTenders((current) =>
@@ -107,22 +284,25 @@ export function PosCheckoutSheet({
         );
     }
 
-    async function findGuests(term: string) {
-        setSearch(term);
-
-        if (term.trim().length < 2) {
-            setGuests([]);
-
-            return;
+    const hasRoom = tenders.some(
+        (tender) => tender.tender_type === 'room_charge',
+    );
+    const missingRoomGuest = tenders.some(
+        (tender) =>
+            tender.tender_type === 'room_charge' &&
+            tender.reservation_unit_id === '',
+    );
+    const cashUnderTendered = tenders.some((tender, index) => {
+        if (tender.tender_type !== 'cash' || tender.tendered_amount === '') {
+            return false;
         }
 
-        const response = await fetch(
-            inHouseGuests.url(undefined, { query: { q: term } }),
-            { headers: { Accept: 'application/json' } },
-        );
-        const body = (await response.json()) as { guests: Guest[] };
-        setGuests(body.guests);
-    }
+        const due =
+            (Number(tender.amount) || 0) +
+            (index === firstCashIndex ? totalRounding : 0);
+
+        return Number(tender.tendered_amount) + 0.0001 < due;
+    });
 
     function submit() {
         router.post(
@@ -150,10 +330,6 @@ export function PosCheckoutSheet({
         );
     }
 
-    const hasRoom = tenders.some(
-        (tender) => tender.tender_type === 'room_charge',
-    );
-
     return (
         <FormOverlay
             variant="sheet"
@@ -161,18 +337,34 @@ export function PosCheckoutSheet({
             onOpenChange={onOpenChange}
             title="Take payment"
             description={
-                <>
-                    Total{' '}
-                    <MoneyText amount={order.grandTotal} currency={currency} />
-                </>
+                <span className="flex flex-wrap items-center gap-2">
+                    <span>
+                        Bill{' '}
+                        <MoneyText
+                            amount={order.grandTotal}
+                            currency={currency}
+                        />
+                    </span>
+                    {totalRounding !== 0 && (
+                        <Badge variant="secondary" className="tabular-nums">
+                            Rounding {totalRounding > 0 ? '+' : ''}
+                            {totalRounding.toFixed(2)} · Cash payable{' '}
+                            <MoneyText
+                                amount={(total + totalRounding).toFixed(2)}
+                                currency={currency}
+                            />
+                        </Badge>
+                    )}
+                </span>
             }
             errors={errors}
             processing={processing}
             submitLabel="Complete payment"
             submitDisabled={
                 (otherBills.length > 0 && !billsChecked) ||
-                (remaining !== 0 &&
-                    !tenders.some((tender) => tender.tender_type === 'cash'))
+                Math.abs(remaining) > 0.005 ||
+                missingRoomGuest ||
+                cashUnderTendered
             }
             onSubmit={submit}
         >
@@ -235,6 +427,7 @@ export function PosCheckoutSheet({
                     <Button
                         type="button"
                         variant="outline"
+                        className="min-h-11"
                         onClick={() => {
                             const count = Math.min(
                                 20,
@@ -260,11 +453,21 @@ export function PosCheckoutSheet({
                     </Button>
                 </div>
                 {tenders.map((tender, index) => {
+                    const rowRounding =
+                        tender.tender_type === 'cash' &&
+                        index === firstCashIndex
+                            ? totalRounding
+                            : 0;
+                    const cashDue =
+                        Math.round(
+                            ((Number(tender.amount) || 0) + rowRounding) * 100,
+                        ) / 100;
                     const given = Number(tender.tendered_amount);
                     const change =
                         tender.tender_type === 'cash' &&
-                        given > Number(tender.amount)
-                            ? given - Number(tender.amount)
+                        tender.tendered_amount !== '' &&
+                        given > cashDue
+                            ? Math.round((given - cashDue) * 100) / 100
                             : 0;
                     const typeMethods = methods.filter(
                         (method) => method.tenderType === tender.tender_type,
@@ -275,6 +478,11 @@ export function PosCheckoutSheet({
                             key={index}
                             className="flex flex-col gap-3 rounded-lg border p-3"
                         >
+                            {tenders.length > 1 && (
+                                <p className="text-xs font-medium text-muted-foreground">
+                                    Payment {index + 1} of {tenders.length}
+                                </p>
+                            )}
                             <div className="flex items-end gap-2">
                                 <Field className="flex-1">
                                     <FieldLabel
@@ -287,7 +495,7 @@ export function PosCheckoutSheet({
                                         name={`tenders[${index}][tender_type]`}
                                         options={types.map((type) => ({
                                             value: type,
-                                            label: TENDER_LABELS[type] ?? type,
+                                            label: tenderLabel(type),
                                         }))}
                                         value={tender.tender_type}
                                         onValueChange={(value) =>
@@ -295,6 +503,19 @@ export function PosCheckoutSheet({
                                                 tender_type: value,
                                                 payment_method_id: '',
                                                 tendered_amount: '',
+                                                reservation_unit_id:
+                                                    value === 'room_charge' &&
+                                                    order.reservationUnitId !==
+                                                        null
+                                                        ? String(
+                                                              order.reservationUnitId,
+                                                          )
+                                                        : '',
+                                                guest_label:
+                                                    value === 'room_charge' &&
+                                                    order.roomLabel !== null
+                                                        ? order.roomLabel
+                                                        : '',
                                             })
                                         }
                                     />
@@ -358,11 +579,21 @@ export function PosCheckoutSheet({
                                         htmlFor={`tender-given-${index}`}
                                     >
                                         Cash handed over
+                                        {rowRounding !== 0 && (
+                                            <span className="ms-1 text-muted-foreground">
+                                                (due{' '}
+                                                <MoneyText
+                                                    amount={cashDue.toFixed(2)}
+                                                    currency={currency}
+                                                />
+                                                )
+                                            </span>
+                                        )}
                                     </FieldLabel>
                                     <Input
                                         id={`tender-given-${index}`}
                                         inputMode="decimal"
-                                        className="tabular-nums"
+                                        className="h-11 tabular-nums"
                                         value={tender.tendered_amount}
                                         onChange={(event) =>
                                             patch(index, {
@@ -371,6 +602,37 @@ export function PosCheckoutSheet({
                                             })
                                         }
                                     />
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="min-h-11"
+                                            onClick={() =>
+                                                patch(index, {
+                                                    tendered_amount:
+                                                        cashDue.toFixed(2),
+                                                })
+                                            }
+                                        >
+                                            Exact
+                                        </Button>
+                                        {QUICK_CASH_BILLS.map((bill) => (
+                                            <Button
+                                                key={bill}
+                                                type="button"
+                                                variant="outline"
+                                                className="min-h-11 tabular-nums"
+                                                onClick={() =>
+                                                    patch(index, {
+                                                        tendered_amount:
+                                                            bill.toFixed(2),
+                                                    })
+                                                }
+                                            >
+                                                {currency?.code ?? ''} {bill}
+                                            </Button>
+                                        ))}
+                                    </div>
                                     {change > 0 && (
                                         <p className="text-lg font-semibold">
                                             Change{' '}
@@ -383,53 +645,17 @@ export function PosCheckoutSheet({
                                 </Field>
                             )}
                             {tender.tender_type === 'room_charge' && (
-                                <Field>
-                                    <FieldLabel
-                                        htmlFor={`tender-room-${index}`}
-                                    >
-                                        In-house guest
-                                    </FieldLabel>
-                                    <Input
-                                        id={`tender-room-${index}`}
-                                        placeholder="Room number or guest name"
-                                        value={search}
-                                        onChange={(event) =>
-                                            void findGuests(event.target.value)
-                                        }
-                                    />
-                                    <div className="flex flex-col gap-1">
-                                        {guests.map((guest) => (
-                                            <Button
-                                                key={guest.reservation_unit_id}
-                                                type="button"
-                                                variant={
-                                                    tender.reservation_unit_id ===
-                                                    String(
-                                                        guest.reservation_unit_id,
-                                                    )
-                                                        ? 'default'
-                                                        : 'outline'
-                                                }
-                                                disabled={
-                                                    !guest.can_post_charges
-                                                }
-                                                onClick={() =>
-                                                    patch(index, {
-                                                        reservation_unit_id:
-                                                            String(
-                                                                guest.reservation_unit_id,
-                                                            ),
-                                                    })
-                                                }
-                                            >
-                                                {guest.room_number} ·{' '}
-                                                {guest.guest_name}
-                                                {!guest.can_post_charges &&
-                                                    ' (cash only)'}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </Field>
+                                <RoomChargeGuestPicker
+                                    index={index}
+                                    selectedUnitId={tender.reservation_unit_id}
+                                    selectedLabel={tender.guest_label}
+                                    onSelect={(unitId, label) =>
+                                        patch(index, {
+                                            reservation_unit_id: unitId,
+                                            guest_label: label,
+                                        })
+                                    }
+                                />
                             )}
                             {[
                                 'card',
@@ -455,10 +681,11 @@ export function PosCheckoutSheet({
                         </div>
                     );
                 })}
-                {remaining > 0 && (
+                {remaining > 0.005 && (
                     <Button
                         type="button"
                         variant="outline"
+                        className="min-h-11"
                         onClick={() =>
                             setTenders((current) => [
                                 ...current,
@@ -475,19 +702,29 @@ export function PosCheckoutSheet({
                         left
                     </Button>
                 )}
-                {hasRoom && (
-                    <label className="flex items-center gap-3">
+                {remaining < -0.005 && (
+                    <p role="alert" className="text-sm text-destructive">
+                        Tenders exceed the bill by{' '}
+                        <MoneyText
+                            amount={Math.abs(remaining).toFixed(2)}
+                            currency={currency}
+                        />
+                        .
+                    </p>
+                )}
+                {hasRoom && requireRoomChargeSignature && (
+                    <label className="flex min-h-11 items-center gap-3">
                         <Checkbox
                             checked={signed}
                             onCheckedChange={(value) =>
                                 setSigned(value === true)
                             }
                         />
-                        <span>The guest signed the slip</span>
+                        <span>The guest signed the room charge slip</span>
                     </label>
                 )}
-                {hasMealCover && (
-                    <label className="flex items-center gap-3">
+                {hasMealCover && requireMealRedemptionConfirmation && (
+                    <label className="flex min-h-11 items-center gap-3">
                         <Checkbox
                             checked={meal}
                             onCheckedChange={(value) => setMeal(value === true)}
@@ -495,8 +732,9 @@ export function PosCheckoutSheet({
                         <span>The guest confirmed the included meal</span>
                     </label>
                 )}
-                {hasRoom && (
+                {hasRoom && overRoomLimit && (
                     <PosApprovalFields
+                        required
                         staff={staff}
                         data={approval}
                         onChange={setApproval}

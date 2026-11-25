@@ -6,10 +6,14 @@ use App\Data\Pos\PosOrderData;
 use App\Data\Pos\PosShiftData;
 use App\Data\Property\CurrencyData;
 use App\Enums\PermissionEnum;
+use App\Enums\PosCashMovementKind;
+use App\Enums\PosDiscountType;
 use App\Enums\PosOperationMode;
 use App\Enums\PosShiftStatus;
+use App\Enums\PosTenderType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
+use App\Models\MealPeriod;
 use App\Models\PosOrder;
 use App\Models\PosOutlet;
 use App\Models\PosRegister;
@@ -20,6 +24,8 @@ use App\Models\PosVoidReason;
 use App\Models\Property;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Pos\DailyMealCheckInList;
 use App\Services\Pos\InHouseGuestLookup;
 use App\Services\Pos\OutletMenuSnapshot;
 use App\Services\Pos\PosTerminal;
@@ -66,7 +72,7 @@ class PosRegisterController extends Controller
         ]);
     }
 
-    public function terminal(Request $request, Property $property, int $outlet, OutletMenuSnapshot $snapshot, TableFloorState $floors): Response
+    public function terminal(Request $request, Property $property, int $outlet, OutletMenuSnapshot $snapshot, TableFloorState $floors, CurrentBusinessDate $currentBusinessDate): Response
     {
         $actor = $this->actor($request);
         $model = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail($outlet);
@@ -84,7 +90,22 @@ class PosRegisterController extends Controller
 
         return Inertia::render('pos/terminal', [
             'currency' => CurrencyData::forProperty($property),
-            'outlet' => ['id' => $model->id, 'name' => $model->name, 'printReceiptAfterPayment' => $model->print_receipt_after_payment, 'roomChargeLimited' => $model->room_charge_limit !== null, 'payLater' => $model->operation_mode === PosOperationMode::PayLater],
+            'businessDate' => $currentBusinessDate->date($property)?->toDateString(),
+            'prebill' => $request->boolean('prebill'),
+            'outlet' => [
+                'id' => $model->id,
+                'name' => $model->name,
+                'printReceiptAfterPayment' => $model->print_receipt_after_payment,
+                'roomChargeLimited' => $model->room_charge_limit !== null,
+                'roomChargeLimit' => $model->room_charge_limit,
+                'payLater' => $model->operation_mode === PosOperationMode::PayLater,
+                'roundingMode' => $model->rounding_mode->value,
+                'roundingPolicy' => $model->rounding_policy->value,
+                'safeClearingCodeId' => $model->safe_clearing_transaction_code_id,
+                'requireReprintPin' => $model->require_reprint_pin,
+                'requireRoomChargeSignature' => $model->require_room_charge_signature,
+                'requireMealRedemptionConfirmation' => $model->require_meal_redemption_confirmation,
+            ],
             'clock' => ['required' => $model->require_clock_in, 'clockedIn' => PosTimeClock::query()->where('user_id', $actor->id)->where('pos_outlet_id', $model->id)->whereNull('clocked_out_at')->exists()],
             'floors' => $model->operation_mode === PosOperationMode::PayLater ? $floors->for($model) : [],
             'register' => $register === null ? null : ['id' => $register->id, 'name' => $register->name],
@@ -96,6 +117,9 @@ class PosRegisterController extends Controller
             'openOrders' => $shift === null ? [] : PosOrder::query()->where('pos_shift_id', $shift->id)->where('status', 'open')->orderBy('id')->with('table:id,code')->get(['id', 'order_number', 'grand_total', 'pos_table_id', 'opened_at'])->map(fn (PosOrder $open): array => ['id' => $open->id, 'orderNumber' => $open->order_number, 'grandTotal' => $open->grand_total, 'tableCode' => $open->table?->code, 'tableId' => $open->pos_table_id, 'openedAt' => $open->opened_at->toIso8601String()])->all(),
             'voidReasons' => PosVoidReason::query()->where('property_id', $property->id)->where('active', true)->orderBy('sort_order')->orderBy('label')->get(['id', 'label', 'requires_manager_pin']),
             'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->values()->all(),
+            'cashMovementKinds' => PosCashMovementKind::options(),
+            'tenderTypes' => PosTenderType::options(),
+            'discountTypes' => PosDiscountType::options(),
             'staff' => $this->staff($property),
             'actor' => ['id' => $actor->id, 'name' => $actor->name],
             'can' => collect(['sell' => PermissionEnum::PosSell, 'shift' => PermissionEnum::PosShift, 'void' => PermissionEnum::PosVoid, 'discount' => PermissionEnum::PosDiscount, 'refund' => PermissionEnum::PosRefund])
@@ -104,9 +128,38 @@ class PosRegisterController extends Controller
         ]);
     }
 
-    public function guests(Request $request, Property $property, InHouseGuestLookup $lookup): JsonResponse
+    public function guests(Request $request, Property $property, InHouseGuestLookup $lookup, CurrentBusinessDate $currentBusinessDate, DailyMealCheckInList $mealList): JsonResponse
     {
-        return response()->json(['guests' => $lookup->find($property, $request->query('q') === null ? null : (string) $request->query('q'), $request->query('room') === null ? null : (string) $request->query('room'))]);
+        $guests = $lookup->find($property, $request->query('q') === null ? null : (string) $request->query('q'), $request->query('room') === null ? null : (string) $request->query('room'));
+        $date = $currentBusinessDate->date($property);
+
+        $mealsByUnit = [];
+        if ($date !== null && $guests !== []) {
+            $unitIds = array_column($guests, 'reservation_unit_id');
+            $periods = MealPeriod::query()->where('property_id', $property->id)->active()->ordered()->get();
+
+            foreach ($periods as $period) {
+                $list = $mealList->forPeriod($property, $date, $period);
+
+                foreach ($list->rows as $row) {
+                    if (in_array($row->reservationUnitId, $unitIds, true)) {
+                        $mealsByUnit[$row->reservationUnitId][] = [
+                            'meal_period_id' => $period->id,
+                            'meal_period_name' => $period->name,
+                            'entitled' => $row->entitledGuests,
+                            'remaining' => $row->remainingGuests,
+                        ];
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'guests' => array_map(
+                fn (array $guest): array => [...$guest, 'meals' => $mealsByUnit[$guest['reservation_unit_id']] ?? []],
+                $guests,
+            ),
+        ]);
     }
 
     /**

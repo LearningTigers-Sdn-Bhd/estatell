@@ -58,6 +58,7 @@ export function PosFloorBoard({
     diningOptionId,
     currency,
     trading,
+    onNewCounterOrder,
 }: {
     floors: Floor[];
     outletId: number;
@@ -65,6 +66,7 @@ export function PosFloorBoard({
     diningOptionId: number;
     currency: PosCurrency;
     trading: boolean;
+    onNewCounterOrder?: () => void;
 }) {
     const [active, setActive] = useState(floors[0]?.id ?? 0);
     const [covers, setCovers] = useState('2');
@@ -144,13 +146,24 @@ export function PosFloorBoard({
                 {floors.map((row) => (
                     <Button
                         key={row.id}
-                        size="sm"
+                        className="min-h-11"
                         variant={row.id === floor.id ? 'default' : 'outline'}
                         onClick={() => setActive(row.id)}
                     >
                         {row.name}
                     </Button>
                 ))}
+                {onNewCounterOrder && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11"
+                        disabled={!trading}
+                        onClick={onNewCounterOrder}
+                    >
+                        New counter / takeaway check
+                    </Button>
+                )}
                 <label className="ml-auto flex items-center gap-2 text-sm">
                     Covers for a new check
                     <Input

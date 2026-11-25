@@ -1,8 +1,14 @@
 import { useMemo, useState } from 'react';
-import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -20,7 +26,7 @@ export type LineChoice = {
 };
 
 /**
- * Choose the size, the add-ons and the quantity of one item. The server checks min and max picks and prices the line.
+ * Choose the size, add-ons, combo parts, weight, and quantity of one item. The server checks min/max picks and prices the line.
  */
 export function PosLineDialog({
     item,
@@ -36,28 +42,27 @@ export function PosLineDialog({
     onAdd: (choice: LineChoice) => void;
 }) {
     return (
-        <FormOverlay
-            variant="dialog"
-            open={item !== null}
-            onOpenChange={(open) => !open && onClose()}
-            title={item?.name ?? ''}
-            description={item?.description ?? undefined}
-            errors={{}}
-            processing={false}
-            submitLabel="Add to order"
-            onSubmit={() => undefined}
-            footer={<span />}
-        >
-            {item !== null && (
-                <LineFields
-                    key={item.id}
-                    item={item}
-                    currency={currency}
-                    canCover={canCover}
-                    onAdd={onAdd}
-                />
-            )}
-        </FormOverlay>
+        <Dialog open={item !== null} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{item?.name ?? ''}</DialogTitle>
+                    {item?.description && (
+                        <DialogDescription>
+                            {item.description}
+                        </DialogDescription>
+                    )}
+                </DialogHeader>
+                {item !== null && (
+                    <LineFields
+                        key={item.id}
+                        item={item}
+                        currency={currency}
+                        canCover={canCover && item.mealPeriodId !== null}
+                        onAdd={onAdd}
+                    />
+                )}
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -96,24 +101,38 @@ function LineFields({
     const comboMissing = item.comboSlots.some(
         (slot) => (picks[slot.id]?.length ?? 0) < slot.min,
     );
-    const weightMissing = item.soldByWeight && !(Number(weight) > 0);
+    const weightNumber = Number(weight);
+    const weightMissing = item.soldByWeight && !(weightNumber > 0);
+    const divisor = Number(item.weightUnitDivisor) || 1;
+    const weightPreview =
+        item.soldByWeight && weightNumber > 0 && variant !== undefined
+            ? {
+                  multiplier: weightNumber / divisor,
+                  total: (
+                      (weightNumber / divisor) *
+                      Number(variant.price)
+                  ).toFixed(2),
+              }
+            : null;
 
-    function pickCombo(slotId: number, variantId: number, max: number) {
+    function pickCombo(slotId: number, optionVariantId: number, max: number) {
         setPicks((current) => {
             const chosen = current[slotId] ?? [];
 
-            if (chosen.includes(variantId)) {
+            if (max === 1) {
+                return { ...current, [slotId]: [optionVariantId] };
+            }
+
+            if (chosen.includes(optionVariantId)) {
                 return {
                     ...current,
-                    [slotId]: chosen.filter((id) => id !== variantId),
+                    [slotId]: chosen.filter((id) => id !== optionVariantId),
                 };
             }
 
-            return max === 1
-                ? { ...current, [slotId]: [variantId] }
-                : chosen.length >= max
-                  ? current
-                  : { ...current, [slotId]: [...chosen, variantId] };
+            return chosen.length >= max
+                ? current
+                : { ...current, [slotId]: [...chosen, optionVariantId] };
         });
     }
 
@@ -146,13 +165,17 @@ function LineFields({
                         {item.variants.map((row) => (
                             <label
                                 key={row.id}
-                                className="flex items-center gap-3 rounded-lg border p-3"
+                                className="flex min-h-11 items-center gap-3 rounded-lg border p-3"
                             >
-                                <RadioGroupItem
-                                    value={String(row.id)}
-                                    disabled={row.soldOut}
-                                />
-                                <span className="flex-1">{row.name}</span>
+                                <RadioGroupItem value={String(row.id)} />
+                                <span className="flex-1">
+                                    {row.name}
+                                    {row.soldOut && (
+                                        <span className="ms-2 text-xs text-warning">
+                                            (0 left — override allowed)
+                                        </span>
+                                    )}
+                                </span>
                                 <MoneyText
                                     amount={row.price}
                                     currency={currency}
@@ -168,16 +191,38 @@ function LineFields({
                         Weight ({item.weightUnit})
                     </FieldLabel>
                     <FieldDescription>
-                        The price is for {Number(item.weightUnitDivisor)}{' '}
-                        {item.weightUnit}.
+                        Price is{' '}
+                        {variant && (
+                            <MoneyText
+                                amount={variant.price}
+                                currency={currency}
+                            />
+                        )}{' '}
+                        per {divisor} {item.weightUnit}.
                     </FieldDescription>
                     <Input
                         id="line-weight"
                         inputMode="decimal"
-                        className="tabular-nums"
+                        className="h-11 tabular-nums"
                         value={weight}
                         onChange={(event) => setWeight(event.target.value)}
+                        autoFocus
                     />
+                    {weightPreview !== null && variant !== undefined && (
+                        <p className="text-sm font-medium tabular-nums">
+                            {weightNumber} {item.weightUnit} →{' '}
+                            {weightPreview.multiplier.toFixed(2)} ×{' '}
+                            <MoneyText
+                                amount={variant.price}
+                                currency={currency}
+                            />{' '}
+                            ={' '}
+                            <MoneyText
+                                amount={weightPreview.total}
+                                currency={currency}
+                            />
+                        </p>
+                    )}
                 </Field>
             )}
             {item.comboSlots.map((slot) => (
@@ -188,34 +233,65 @@ function LineFields({
                             ? `Pick ${slot.max}.`
                             : `Pick ${slot.min} to ${slot.max}.`}
                     </FieldDescription>
-                    <div className="flex flex-col gap-2">
-                        {slot.options.map((option) => (
-                            <label
-                                key={option.variantId}
-                                className="flex items-center gap-3 rounded-lg border p-3"
-                            >
-                                <Checkbox
-                                    checked={(picks[slot.id] ?? []).includes(
-                                        option.variantId,
-                                    )}
-                                    onCheckedChange={() =>
-                                        pickCombo(
-                                            slot.id,
-                                            option.variantId,
-                                            slot.max,
-                                        )
-                                    }
-                                />
-                                <span className="flex-1">{option.name}</span>
-                                {Number(option.upcharge) !== 0 && (
-                                    <MoneyText
-                                        amount={option.upcharge}
-                                        currency={currency}
+                    {slot.max === 1 ? (
+                        <RadioGroup
+                            value={String(picks[slot.id]?.[0] ?? '')}
+                            onValueChange={(value) =>
+                                pickCombo(slot.id, Number(value), 1)
+                            }
+                        >
+                            {slot.options.map((option) => (
+                                <label
+                                    key={option.variantId}
+                                    className="flex min-h-11 items-center gap-3 rounded-lg border p-3"
+                                >
+                                    <RadioGroupItem
+                                        value={String(option.variantId)}
                                     />
-                                )}
-                            </label>
-                        ))}
-                    </div>
+                                    <span className="flex-1">
+                                        {option.name}
+                                    </span>
+                                    {Number(option.upcharge) !== 0 && (
+                                        <MoneyText
+                                            amount={option.upcharge}
+                                            currency={currency}
+                                        />
+                                    )}
+                                </label>
+                            ))}
+                        </RadioGroup>
+                    ) : (
+                        <div className="flex flex-col gap-2">
+                            {slot.options.map((option) => (
+                                <label
+                                    key={option.variantId}
+                                    className="flex min-h-11 items-center gap-3 rounded-lg border p-3"
+                                >
+                                    <Checkbox
+                                        checked={(
+                                            picks[slot.id] ?? []
+                                        ).includes(option.variantId)}
+                                        onCheckedChange={() =>
+                                            pickCombo(
+                                                slot.id,
+                                                option.variantId,
+                                                slot.max,
+                                            )
+                                        }
+                                    />
+                                    <span className="flex-1">
+                                        {option.name}
+                                    </span>
+                                    {Number(option.upcharge) !== 0 && (
+                                        <MoneyText
+                                            amount={option.upcharge}
+                                            currency={currency}
+                                        />
+                                    )}
+                                </label>
+                            ))}
+                        </div>
+                    )}
                 </Field>
             ))}
             {needsPrice && (
@@ -224,7 +300,7 @@ function LineFields({
                     <Input
                         id="line-price"
                         inputMode="decimal"
-                        className="tabular-nums"
+                        className="h-11 tabular-nums"
                         value={price}
                         onChange={(event) => setPrice(event.target.value)}
                     />
@@ -246,7 +322,7 @@ function LineFields({
                         {group.options.map((option) => (
                             <label
                                 key={option.id}
-                                className="flex items-center gap-3 rounded-lg border p-3"
+                                className="flex min-h-11 items-center gap-3 rounded-lg border p-3"
                             >
                                 <Checkbox
                                     checked={options.includes(option.id)}
@@ -278,7 +354,7 @@ function LineFields({
                         type="number"
                         min={1}
                         max={999}
-                        className="tabular-nums"
+                        className="h-11 tabular-nums"
                         value={quantity}
                         onChange={(event) =>
                             setQuantity(
@@ -291,6 +367,7 @@ function LineFields({
                     <FieldLabel htmlFor="line-note">Note</FieldLabel>
                     <Input
                         id="line-note"
+                        className="h-11"
                         maxLength={255}
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
@@ -299,7 +376,7 @@ function LineFields({
                 </Field>
             </div>
             {canCover && (
-                <label className="flex items-center gap-3">
+                <label className="flex min-h-11 items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3">
                     <Checkbox
                         checked={cover}
                         onCheckedChange={(value) => setCover(value === true)}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\AddOrderLine;
 use App\Actions\Pos\ApplyPosDiscount;
+use App\Actions\Pos\AttachOrderRoom;
 use App\Actions\Pos\ChangePosDiningOption;
 use App\Actions\Pos\ChangePosPaymentMethod;
 use App\Actions\Pos\CreatePosOrder;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
 use App\Http\Requests\Pos\AddPosOrderLineRequest;
 use App\Http\Requests\Pos\ApplyPosDiscountRequest;
+use App\Http\Requests\Pos\AttachPosOrderRoomRequest;
 use App\Http\Requests\Pos\ChangePosDiningOptionRequest;
 use App\Http\Requests\Pos\ChangePosPaymentRequest;
 use App\Http\Requests\Pos\FirePosOrderRequest;
@@ -320,6 +322,23 @@ class PosOrderController extends Controller
         }
 
         $this->toast($changePosDiningOption($actor, $property, $model, $option, $approval['approver'])->refusal, __('Dining option changed.'));
+
+        return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function attachRoom(AttachPosOrderRoomRequest $request, Property $property, int $order, AttachOrderRoom $attachOrderRoom): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $unitId = $request->validated('reservation_unit_id');
+        $unit = $unitId === null ? null : ReservationUnit::query()->where('property_id', $property->id)->find((int) $unitId);
+
+        if ($unitId !== null && $unit === null) {
+            $this->error(__('Guest stay not found.'));
+
+            return $this->terminal($property, $model->shift, $model);
+        }
+
+        $this->toast($attachOrderRoom($this->actor($request), $property, $model, $unit)->refusal, $unit === null ? __('Room unlinked.') : __('Room linked to order.'));
 
         return $this->terminal($property, $model->shift, $model);
     }

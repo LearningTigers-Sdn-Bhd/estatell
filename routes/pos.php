@@ -95,6 +95,7 @@ Route::middleware('pos')->group(function () {
                     Route::post('discount', [PosOrderController::class, 'discount'])->name('discount');
                     Route::post('prebill', [PosOrderController::class, 'prebill'])->name('prebill');
                     Route::post('dining-option', [PosOrderController::class, 'diningOption'])->name('dining-option');
+                    Route::post('room', [PosOrderController::class, 'attachRoom'])->name('room');
                     Route::post('settle', [PosOrderController::class, 'settle'])->name('settle');
                     Route::post('refund', [PosOrderController::class, 'refund'])->name('refund');
                     Route::post('change-payment', [PosOrderController::class, 'changePayment'])->name('change-payment');

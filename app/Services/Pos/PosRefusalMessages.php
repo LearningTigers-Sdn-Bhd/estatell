@@ -62,6 +62,7 @@ class PosRefusalMessages
             'exceeds_entitlement' => __('That is more guests than the booking includes for this meal.'),
             'already_undone' => __('That check-in was already undone.'),
             'redeemed_in_pos' => __('This meal was used on a POS order. Refund that order line to give it back.'),
+            'meal_lines_require_room' => __('Remove or void included-meal lines before unlinking the room.'),
             'service_date_closed' => __('That meal is on a closed business date and cannot be undone.'),
             'outlet_not_external' => __('This outlet has no default charge item for external POS API room charges.'),
             'pos_disabled' => __('POS is not turned on for this property.'),

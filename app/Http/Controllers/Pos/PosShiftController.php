@@ -54,7 +54,11 @@ class PosShiftController extends Controller
             return back();
         }
 
-        $result = $recordCashMovement($actor, $property, $model, $kind, (string) ($request->validated('amount') ?? '0.00'), (string) $request->validated('reason'), (string) $request->validated('idempotency_key'), $request->validated('counter_transaction_code_id') === null ? null : (int) $request->validated('counter_transaction_code_id'), $approval['approver']);
+        $counterCodeId = $request->validated('counter_transaction_code_id') === null
+            ? (in_array($kind, [PosCashMovementKind::FloatIn, PosCashMovementKind::SafeDrop], true) ? $model->outlet->safe_clearing_transaction_code_id : null)
+            : (int) $request->validated('counter_transaction_code_id');
+
+        $result = $recordCashMovement($actor, $property, $model, $kind, (string) ($request->validated('amount') ?? '0.00'), (string) $request->validated('reason'), (string) $request->validated('idempotency_key'), $counterCodeId, $approval['approver']);
         $this->toast($result->refusal, __('Cash movement saved.'));
 
         return back();
