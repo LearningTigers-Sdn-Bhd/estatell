@@ -20,7 +20,7 @@ A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, wh
 
 Built per turn by `AssistantInstructions` (a Service), from:
 
-1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, never promise a cancel or a refund.
+1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, end a room list with one short line on why the stay is worth it (from the facts only), read a date without a year as the next time it comes, never promise a cancel or a refund.
 2. The place and who is asking (a lobby visitor, a guest with a stay, a staff member).
 3. The [knowledge](#knowledge).
 4. The language rule: reply in the language the person writes in. When unsure, use the property's default language.
@@ -63,7 +63,7 @@ Scopes: `CheckRoomsAndPrices` and `SendQuoteLink` need RoomQuotes, `ReadMyStay` 
 Rules for every tool:
 
 - **Prices and rooms come only from `CheckRoomsAndPrices`.** The model may repeat them, never work them out.
-- **`CheckRoomsAndPrices` needs the number of adults.** When a guest gives only a total ("4 people"), the model asks how many are adults first and never assumes everyone is. A number of adults means no children unless the guest says so. Children still mean a handover. With the rooms, the model adds one short line on why the stay is worth it, from the property's facts only.
+- **`CheckRoomsAndPrices` needs the number of adults.** When a guest gives only a total ("4 people"), the model asks how many are adults first and never assumes everyone is. A number of adults means no children unless the guest says so. Children still mean a handover.
 - **`ReadMyStay` reads only the stay of its own thread.** The thread's `reservation_unit_id` is set from the token; the model cannot pass another id. A lobby or API thread has no stay, so the tool is not given.
 - **`ReadMyStay` takes no input.** It returns the reference, status, dates, nights, room type, guests and the balance due (`ConciergeBill::due`). The room number is given only once the guest is checked in, as on the stay page, and is the room of the latest night so far.
 - **`MakeGuestRequest` sends only housekeeping, maintenance or a complaint**, through `SubmitConciergeRequest`, so the limits of the stay page's request form apply (5 open requests, a checked-in guest for room work). The model repeats the request and sends it only after the guest says yes. A refusal returns its own sentence for the guest. A sent request shows as a card in the chat, with a link to the stay's requests. The turn stays Answered; `ai_turn_tools` records the tool.
