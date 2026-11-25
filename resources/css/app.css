@@ -617,18 +617,24 @@ html:has(.concierge-editorial-shell) {
     color: var(--concierge-placeholder);
 }
 
-/* The browser 80 mm receipt and Z-report: only the `.pos-print-area` prints. */
+/* The browser 80 mm receipt, pre-bill, table QR and Z-report: scoped strictly so non-POS PMS printing stays intact. */
+@page pos-receipt {
+    size: 80mm auto;
+    margin: 0;
+}
+
 @media print {
-    body * {
+    body:has(.pos-print-area) * {
         visibility: hidden;
     }
 
-    .pos-print-area,
-    .pos-print-area * {
+    body:has(.pos-print-area) .pos-print-area,
+    body:has(.pos-print-area) .pos-print-area * {
         visibility: visible;
     }
 
-    .pos-print-area {
+    body:has(.pos-print-area) .pos-print-area {
+        page: pos-receipt;
         position: absolute;
         top: 0;
         left: 0;
@@ -639,8 +645,22 @@ html:has(.concierge-editorial-shell) {
         font-size: 11px;
     }
 
-    @page {
-        size: 80mm auto;
-        margin: 0;
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) * {
+        visibility: hidden;
+    }
+
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) .pos-print-sheet,
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) .pos-print-sheet * {
+        visibility: visible;
+    }
+
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) .pos-print-sheet {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 8mm;
+        background: #fff;
+        color: #000;
     }
 }
