@@ -316,7 +316,7 @@ class ReservationController extends Controller
 
     /**
      * Reservation page, Transfers tab: a row per unit and direction, and the routes for the transfer Dialog.
-     * See docs/34-transfers/01-land-transfers.md#reservation-transfers-tab.
+     * See docs/35-transfers/01-land-transfers.md#reservation-transfers-tab.
      */
     public function transfers(Request $request, Property $property, Reservation $reservation, ReservationTransfers $reservationTransfers): Response
     {

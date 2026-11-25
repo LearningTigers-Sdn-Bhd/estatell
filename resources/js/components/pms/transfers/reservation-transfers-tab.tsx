@@ -253,7 +253,7 @@ function TransferForm({
 
 /**
  * The reservation page Transfers tab: how each room travels in and out by road. A row's edit button opens the transfer
- * Dialog; "No transfer" removes it. See docs/34-transfers/01-land-transfers.md#reservation-transfers-tab.
+ * Dialog; "No transfer" removes it. See docs/35-transfers/01-land-transfers.md#reservation-transfers-tab.
  */
 export function ReservationTransfersTab({
     reservationId,

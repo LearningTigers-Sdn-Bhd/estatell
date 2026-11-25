@@ -22,7 +22,7 @@ class SetUnitTransfer
      * available route of the property in that direction, then writes the one row for the unit and direction. The charge
      * is synced only when the type or the route changes, so a new pick-up time or flight number leaves it alone. A charge
      * refusal rolls everything back. A set that changes nothing writes and logs nothing. Logs `reservation.transfer_set`.
-     * See docs/34-transfers/01-land-transfers.md#setunittransfer.
+     * See docs/35-transfers/01-land-transfers.md#setunittransfer.
      */
     public function __invoke(?User $actor, ReservationUnit $unit, UnitTransferInputData $data): UnitTransferResult
     {

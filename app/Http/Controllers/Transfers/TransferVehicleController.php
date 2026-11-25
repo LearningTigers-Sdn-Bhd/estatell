@@ -14,7 +14,7 @@ use Inertia\Response;
 
 /**
  * Settings › Transfers › Vehicles: picked for each transfer on the run sheet.
- * See docs/34-transfers/01-land-transfers.md#settings.
+ * See docs/35-transfers/01-land-transfers.md#settings.
  */
 class TransferVehicleController extends Controller
 {

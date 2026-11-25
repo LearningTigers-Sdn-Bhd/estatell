@@ -12,7 +12,7 @@ class SaveTransferVehicle
     /**
      * Add a vehicle to the property, or change one (`$vehicle`). It is never deleted, so the transfers that used it keep it;
      * turning it off hides it from the pickers. Logs `transfer_vehicle.created` or `transfer_vehicle.updated`.
-     * See docs/34-transfers/01-land-transfers.md#settings.
+     * See docs/35-transfers/01-land-transfers.md#settings.
      *
      * @param  array<string, mixed>  $attributes
      */

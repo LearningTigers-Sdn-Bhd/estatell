@@ -13,7 +13,7 @@ class AssignTransfer
     /**
      * Pick the vehicle and the driver of one transfer on the run sheet, or none (null). Each must be an available one of
      * the transfer's property. The charge does not change. A pick that changes nothing writes and logs nothing. Logs
-     * `reservation.transfer_assigned`. See docs/34-transfers/01-land-transfers.md#run-sheet.
+     * `reservation.transfer_assigned`. See docs/35-transfers/01-land-transfers.md#run-sheet.
      */
     public function __invoke(User $actor, UnitTransfer $transfer, ?int $vehicleId, ?int $driverId): UnitTransferResult
     {

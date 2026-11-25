@@ -17,7 +17,7 @@ use Inertia\Response;
 
 /**
  * Settings › Transfers › Routes: the one-way road routes and their shared and private prices.
- * See docs/34-transfers/01-land-transfers.md#settings.
+ * See docs/35-transfers/01-land-transfers.md#settings.
  */
 class TransferRouteController extends Controller
 {

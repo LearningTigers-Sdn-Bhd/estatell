@@ -23,7 +23,7 @@ use Inertia\Response;
 
 /**
  * Front desk › Transfers: the run sheet of one date, and picking each transfer's vehicle and driver.
- * See docs/34-transfers/01-land-transfers.md#run-sheet.
+ * See docs/35-transfers/01-land-transfers.md#run-sheet.
  */
 class TransferRunSheetController extends Controller
 {

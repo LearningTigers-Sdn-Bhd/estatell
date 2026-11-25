@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * A one-way road route of the property, such as the airport to the hotel, with its shared and private prices as charge
- * items. Never deleted; turned off instead. See docs/34-transfers/01-land-transfers.md.
+ * items. Never deleted; turned off instead. See docs/35-transfers/01-land-transfers.md.
  *
  * @property int $id
  * @property int $property_id

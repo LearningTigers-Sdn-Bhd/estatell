@@ -22,7 +22,7 @@ Context for the next agent run. Read this first, then only the docs the task nee
 | Dorm beds to channels as one unit per bed (BedAsUnit)          | `docs/21-channels/`                            |
 | Bed-level housekeeping                                         | `docs/19-housekeeping/`                        |
 | Private facility charters, whole-dorm buyout                   | `docs/33-facilities/`, `docs/12-reservations/` |
-| Land transfers (own module, built like Boats)                  | `docs/34-transfers/01-land-transfers.md`       |
+| Land transfers (own module, built like Boats)                  | `docs/35-transfers/01-land-transfers.md`       |
 
 ### Group mode, latest round
 

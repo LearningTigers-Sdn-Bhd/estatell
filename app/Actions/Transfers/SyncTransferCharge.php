@@ -26,7 +26,7 @@ class SyncTransferCharge
      * Then the route's shared item (Shared) or private item (Private) is added as an undated add-on and linked to the
      * transfer, unless the route has no item for that type or the unit's rate plan includes it. Included adds nothing.
      * Pass a null route to only remove (Clear). Call it inside the caller's transaction, with the unit row locked.
-     * See docs/34-transfers/01-land-transfers.md#charge.
+     * See docs/35-transfers/01-land-transfers.md#charge.
      */
     public function __invoke(?User $actor, ReservationUnit $unit, UnitTransfer $transfer, ?TransferRoute $route, ?TransferMode $mode): UnitTransferResult
     {

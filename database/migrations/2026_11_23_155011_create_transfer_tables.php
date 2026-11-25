@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Land transfers: routes, vehicles, drivers and one transfer per unit and direction.
- * See docs/34-transfers/01-land-transfers.md#data-model.
+ * See docs/35-transfers/01-land-transfers.md#data-model.
  */
 return new class extends Migration
 {

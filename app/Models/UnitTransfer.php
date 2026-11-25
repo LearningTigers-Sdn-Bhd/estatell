@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * How one unit travels in or out by road. One row per unit and direction; the date is the unit's arrival (In) or
- * departure (Out) date. See docs/34-transfers/01-land-transfers.md.
+ * departure (Out) date. See docs/35-transfers/01-land-transfers.md.
  *
  * @property int $id
  * @property int $property_id

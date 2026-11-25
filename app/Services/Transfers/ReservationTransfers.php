@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * The reservation page Transfers tab: a row per unit and direction, and the available routes for the Dialog. A cancelled
  * or no-show unit shows only the transfers it kept.
- * See docs/34-transfers/01-land-transfers.md#reservation-transfers-tab.
+ * See docs/35-transfers/01-land-transfers.md#reservation-transfers-tab.
  */
 class ReservationTransfers
 {

@@ -12,7 +12,7 @@ class SaveTransferRoute
     /**
      * Add a transfer route to the property, or change one (`$route`). It is never deleted, so the transfers that used it keep it;
      * turning it off hides it from the pickers. Logs `transfer_route.created` or `transfer_route.updated`.
-     * See docs/34-transfers/01-land-transfers.md#settings.
+     * See docs/35-transfers/01-land-transfers.md#settings.
      *
      * @param  array<string, mixed>  $attributes
      */

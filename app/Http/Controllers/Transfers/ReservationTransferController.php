@@ -17,7 +17,7 @@ use Inertia\Inertia;
 
 /**
  * Set or clear one direction of a unit's land transfer from the reservation Transfers tab.
- * See docs/34-transfers/01-land-transfers.md#reservation-transfers-tab.
+ * See docs/35-transfers/01-land-transfers.md#reservation-transfers-tab.
  */
 class ReservationTransferController extends Controller
 {
