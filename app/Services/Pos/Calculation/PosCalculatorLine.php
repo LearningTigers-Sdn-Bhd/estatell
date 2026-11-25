@@ -15,7 +15,7 @@ final readonly class PosCalculatorLine
     public function __construct(
         public int $key,
         public string $unitPrice,
-        public int $quantity,
+        public int|string $quantity,
         public bool $priceIncludesTax,
         public array $taxes,
         public bool $serviceChargeExempt = false,

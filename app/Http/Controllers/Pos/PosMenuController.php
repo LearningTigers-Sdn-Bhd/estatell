@@ -35,7 +35,7 @@ class PosMenuController extends Controller
                 'colorToken' => $category->color_token, 'sortOrder' => $category->sort_order, 'active' => $category->active,
                 'items' => $category->items->map(fn (PosItem $item): array => [
                     'id' => $item->id, 'name' => $item->name, 'transactionCodeId' => $item->transaction_code_id, 'mealPeriodId' => $item->meal_period_id, 'internalName' => $item->internal_name,
-                    'description' => $item->description, 'priceIncludesTax' => $item->price_includes_tax, 'serviceChargeExempt' => $item->service_charge_exempt, 'sortOrder' => $item->sort_order, 'active' => $item->active,
+                    'description' => $item->description, 'priceIncludesTax' => $item->price_includes_tax, 'serviceChargeExempt' => $item->service_charge_exempt, 'soldByWeight' => $item->sold_by_weight, 'weightUnit' => $item->weight_unit, 'weightUnitDivisor' => $item->weight_unit_divisor, 'sortOrder' => $item->sort_order, 'active' => $item->active,
                     'variants' => $item->variants->map(fn (PosItemVariant $variant): array => ['id' => $variant->id, 'name' => $variant->name, 'price' => $variant->price, 'sku' => $variant->sku, 'active' => $variant->active])->all(),
                 ])->values()->all(),
             ])->values()->all(),
@@ -95,6 +95,9 @@ class PosMenuController extends Controller
             null,
             (int) ($request->validated('sort_order') ?? 0),
             $request->boolean('active'),
+            $request->boolean('sold_by_weight'),
+            $request->validated('weight_unit'),
+            $request->validated('weight_unit_divisor'),
         );
     }
 }

@@ -28,12 +28,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $shared_stock_count
  * @property int|null $daily_shared_stock_reset
  * @property string|null $cooking_guide
+ * @property bool $sold_by_weight
+ * @property string|null $weight_unit
+ * @property string|null $weight_unit_divisor
+ * @property bool $is_combo
  * @property int $sort_order
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['pos_category_id', 'transaction_code_id', 'meal_period_id', 'name', 'internal_name', 'description', 'sku_prefix', 'price_includes_tax', 'service_charge_exempt', 'shared_stock_count', 'daily_shared_stock_reset', 'cooking_guide', 'sort_order', 'active'])]
+#[Fillable(['pos_category_id', 'transaction_code_id', 'meal_period_id', 'name', 'internal_name', 'description', 'sku_prefix', 'price_includes_tax', 'service_charge_exempt', 'shared_stock_count', 'daily_shared_stock_reset', 'cooking_guide', 'sold_by_weight', 'weight_unit', 'weight_unit_divisor', 'is_combo', 'sort_order', 'active'])]
 class PosItem extends Model
 {
     /** @use HasFactory<PosItemFactory> */
@@ -47,8 +51,18 @@ class PosItem extends Model
         return [
             'price_includes_tax' => 'boolean',
             'service_charge_exempt' => 'boolean',
+            'sold_by_weight' => 'boolean',
+            'is_combo' => 'boolean',
             'active' => 'boolean',
         ];
+    }
+
+    /**
+     * @return HasMany<PosComboSlot, $this>
+     */
+    public function comboSlots(): HasMany
+    {
+        return $this->hasMany(PosComboSlot::class, 'pos_item_id')->orderBy('sort_order')->orderBy('id');
     }
 
     /**

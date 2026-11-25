@@ -2,6 +2,7 @@
 
 use App\Actions\Pos\AddOrderLine;
 use App\Actions\Pos\ApplyPosDiscount;
+use App\Actions\Pos\ChangePosPaymentMethod;
 use App\Actions\Pos\FireOrderLines;
 use App\Actions\Pos\PosActionResult;
 use App\Actions\Pos\SettlePosOrder;
@@ -12,6 +13,7 @@ use App\Enums\BusinessDateStatus;
 use App\Enums\PosDiscountType;
 use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderStatus;
+use App\Enums\PosPaymentDirection;
 use App\Enums\PosPaymentStatus;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosTenderType;
@@ -318,4 +320,45 @@ it('counts the cash of settled orders in the shift expected cash', function () {
     posSettle($s, $order, [posCard('116.00')]);
 
     expect(app(PosShiftCashTotals::class)->for($s['shift'])['expected_cash'])->toBe('360.00');
+});
+
+it('swaps a cash tender for card while the shift and business date are open, keeping the replaced row', function () {
+    $s = posOrderSetup();
+    $order = posNewOrder($s);
+    posAddLine($s, $order, $s['mocha']);
+    app(SettlePosOrder::class)($s['manager'], $s['property'], $order, [posCash('16.24', '20.00')]);
+    $payment = $order->refresh()->payments()->sole();
+
+    expect(app(ChangePosPaymentMethod::class)($s['manager'], $s['property'], $order, $payment, PosTenderType::Card)->refusal)->toBe('approval_required');
+
+    $result = app(ChangePosPaymentMethod::class)($s['manager'], $s['property'], $order, $payment, PosTenderType::Card, null, 'AUTH9', $s['manager']);
+    $new = $result->model;
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($payment->refresh()->status)->toBe(PosPaymentStatus::Replaced)->and($payment->replaced_by_payment_id)->toBe($new->id)
+        ->and($new->tender_type)->toBe(PosTenderType::Card)->and($new->amount)->toBe($payment->amount)->and($new->rounding_adjustment)->toBe('0.00')
+        ->and($order->refresh()->rounding_adjustment)->toBe('0.00')
+        ->and(app(ChangePosPaymentMethod::class)($s['manager'], $s['property'], $order, $new, PosTenderType::RoomCharge, null, null, $s['manager'])->refusal)->toBe('tender_swap_not_allowed');
+});
+
+it('refuses a tender swap once the shift is closed or the payment has a refund', function () {
+    $s = posOrderSetup();
+    $order = posNewOrder($s);
+    posAddLine($s, $order, $s['mocha']);
+    app(SettlePosOrder::class)($s['manager'], $s['property'], $order, [posCard('16.24')]);
+    $payment = $order->refresh()->payments()->sole();
+
+    $s['shift']->forceFill(['status' => 'closing_control'])->save();
+
+    expect(app(ChangePosPaymentMethod::class)($s['manager'], $s['property'], $order, $payment, PosTenderType::Cash, null, null, $s['manager'])->refusal)->toBe('tender_swap_not_allowed');
+
+    $s['shift']->forceFill(['status' => 'open'])->save();
+    $refund = $payment->replicate(['idempotency_key', 'status']);
+    $refund->idempotency_key = 'refund-test';
+    $refund->direction = PosPaymentDirection::Out;
+    $refund->refund_of_payment_id = $payment->id;
+    $refund->status = PosPaymentStatus::Captured;
+    $refund->save();
+
+    expect(app(ChangePosPaymentMethod::class)($s['manager'], $s['property'], $order, $payment, PosTenderType::Cash, null, null, $s['manager'])->refusal)->toBe('payment_has_refunds');
 });

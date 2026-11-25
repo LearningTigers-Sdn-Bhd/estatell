@@ -66,7 +66,7 @@ class RecalculatePosOrder
         $calculatorLines = $itemLines->map(fn (PosOrderLine $line): PosCalculatorLine => new PosCalculatorLine(
             key: $line->id,
             unitPrice: $line->unit_price,
-            quantity: (int) $line->quantity,
+            quantity: (string) $line->quantity,
             priceIncludesTax: $line->price_includes_tax,
             taxes: $taxesOf($line->transaction_code_id),
             serviceChargeExempt: $line->service_charge_exempt,

@@ -28,11 +28,24 @@ export type PosModifierGroup = {
     options: PosModifierOption[];
 };
 
+export type PosComboSlot = {
+    id: number;
+    name: string;
+    min: number;
+    max: number;
+    options: { variantId: number; name: string; upcharge: string }[];
+};
+
 export type PosItem = {
     id: number;
     name: string;
     description: string | null;
     mealPeriodId: number | null;
+    soldByWeight: boolean;
+    weightUnit: string | null;
+    weightUnitDivisor: string | null;
+    isCombo: boolean;
+    comboSlots: PosComboSlot[];
     variants: PosVariant[];
     modifierGroups: PosModifierGroup[];
 };

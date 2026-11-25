@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property PosOrderType $order_type
  * @property int|null $refund_for_order_id
  * @property int|null $parent_order_id
+ * @property int|null $pos_table_id
  * @property int $pos_dining_option_id
  * @property int|null $reservation_unit_id
  * @property int $guest_count
@@ -101,6 +102,14 @@ class PosOrder extends Model
     public function outlet(): BelongsTo
     {
         return $this->belongsTo(PosOutlet::class, 'pos_outlet_id');
+    }
+
+    /**
+     * @return BelongsTo<PosTable, $this>
+     */
+    public function table(): BelongsTo
+    {
+        return $this->belongsTo(PosTable::class, 'pos_table_id');
     }
 
     /**

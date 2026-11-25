@@ -24,6 +24,7 @@ class StorePosOrderRequest extends FormRequest
             'pos_dining_option_id' => ['required', 'integer'],
             'guest_count' => ['nullable', 'integer', 'min:1', 'max:99'],
             'reservation_unit_id' => ['nullable', 'integer'],
+            'pos_table_id' => ['nullable', 'integer'],
             'client_uuid' => ['nullable', 'uuid'],
         ];
     }

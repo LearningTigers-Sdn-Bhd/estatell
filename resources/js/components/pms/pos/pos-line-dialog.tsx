@@ -15,6 +15,8 @@ export type LineChoice = {
     note: string;
     unit_price: string;
     cover_with_entitlement: boolean;
+    weight?: string;
+    combo_selections?: Record<number, number[]>;
 };
 
 /**
@@ -75,6 +77,8 @@ function LineFields({
     const [note, setNote] = useState('');
     const [options, setOptions] = useState<number[]>([]);
     const [cover, setCover] = useState(false);
+    const [weight, setWeight] = useState('');
+    const [picks, setPicks] = useState<Record<number, number[]>>({});
     const variant = useMemo(
         () => item.variants.find((row) => row.id === variantId),
         [item.variants, variantId],
@@ -88,6 +92,30 @@ function LineFields({
                 group.options.some((option) => option.id === id),
             ).length < group.minSelect,
     );
+
+    const comboMissing = item.comboSlots.some(
+        (slot) => (picks[slot.id]?.length ?? 0) < slot.min,
+    );
+    const weightMissing = item.soldByWeight && !(Number(weight) > 0);
+
+    function pickCombo(slotId: number, variantId: number, max: number) {
+        setPicks((current) => {
+            const chosen = current[slotId] ?? [];
+
+            if (chosen.includes(variantId)) {
+                return {
+                    ...current,
+                    [slotId]: chosen.filter((id) => id !== variantId),
+                };
+            }
+
+            return max === 1
+                ? { ...current, [slotId]: [variantId] }
+                : chosen.length >= max
+                  ? current
+                  : { ...current, [slotId]: [...chosen, variantId] };
+        });
+    }
 
     function toggle(groupId: number, optionId: number, max: number | null) {
         setOptions((current) => {
@@ -134,6 +162,62 @@ function LineFields({
                     </RadioGroup>
                 </Field>
             )}
+            {item.soldByWeight && (
+                <Field>
+                    <FieldLabel htmlFor="line-weight">
+                        Weight ({item.weightUnit})
+                    </FieldLabel>
+                    <FieldDescription>
+                        The price is for {Number(item.weightUnitDivisor)}{' '}
+                        {item.weightUnit}.
+                    </FieldDescription>
+                    <Input
+                        id="line-weight"
+                        inputMode="decimal"
+                        className="tabular-nums"
+                        value={weight}
+                        onChange={(event) => setWeight(event.target.value)}
+                    />
+                </Field>
+            )}
+            {item.comboSlots.map((slot) => (
+                <Field key={slot.id}>
+                    <FieldLabel>{slot.name}</FieldLabel>
+                    <FieldDescription>
+                        {slot.min === slot.max
+                            ? `Pick ${slot.max}.`
+                            : `Pick ${slot.min} to ${slot.max}.`}
+                    </FieldDescription>
+                    <div className="flex flex-col gap-2">
+                        {slot.options.map((option) => (
+                            <label
+                                key={option.variantId}
+                                className="flex items-center gap-3 rounded-lg border p-3"
+                            >
+                                <Checkbox
+                                    checked={(picks[slot.id] ?? []).includes(
+                                        option.variantId,
+                                    )}
+                                    onCheckedChange={() =>
+                                        pickCombo(
+                                            slot.id,
+                                            option.variantId,
+                                            slot.max,
+                                        )
+                                    }
+                                />
+                                <span className="flex-1">{option.name}</span>
+                                {Number(option.upcharge) !== 0 && (
+                                    <MoneyText
+                                        amount={option.upcharge}
+                                        currency={currency}
+                                    />
+                                )}
+                            </label>
+                        ))}
+                    </div>
+                </Field>
+            ))}
             {needsPrice && (
                 <Field>
                     <FieldLabel htmlFor="line-price">Price</FieldLabel>
@@ -187,7 +271,7 @@ function LineFields({
                 </Field>
             ))}
             <div className="grid grid-cols-2 gap-3">
-                <Field>
+                <Field className={item.soldByWeight ? 'hidden' : undefined}>
                     <FieldLabel htmlFor="line-qty">Quantity</FieldLabel>
                     <Input
                         id="line-qty"
@@ -228,6 +312,8 @@ function LineFields({
                 className="h-11"
                 disabled={
                     missing ||
+                    comboMissing ||
+                    weightMissing ||
                     variant === undefined ||
                     (needsPrice && price === '')
                 }
@@ -239,6 +325,8 @@ function LineFields({
                         note,
                         unit_price: needsPrice ? price : '',
                         cover_with_entitlement: cover,
+                        weight: item.soldByWeight ? weight : undefined,
+                        combo_selections: item.isCombo ? picks : undefined,
                     })
                 }
             >

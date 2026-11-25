@@ -3,13 +3,19 @@ import { FileText, Printer, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { MoneyText } from '@/components/pms/money-text';
+import { PosChangeTenderDialog } from '@/components/pms/pos/pos-change-tender-dialog';
 import { PosEInvoiceDialog } from '@/components/pms/pos/pos-einvoice-dialog';
 import { PosRefundDialog } from '@/components/pms/pos/pos-refund-dialog';
 import { PosReceipt } from '@/components/pms/pos-receipt';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { index, refund, show } from '@/routes/finance/pos-orders';
+import {
+    changePayment,
+    index,
+    refund,
+    show,
+} from '@/routes/finance/pos-orders';
 
 type Props = {
     order: App.Data.Pos.PosOrderData;
@@ -21,6 +27,7 @@ type Props = {
     }[];
     refunds: { id: number; orderNumber: string | null; grandTotal: string }[];
     can: { refund: boolean; einvoice: boolean };
+    tenders: { value: string; label: string }[];
     currency: App.Data.Property.CurrencyData | null;
 };
 
@@ -29,10 +36,12 @@ export default function PosOrdersShow({
     folioLinks,
     refunds,
     can,
+    tenders,
     currency,
 }: Props) {
     const [refunding, setRefunding] = useState(false);
     const [invoicing, setInvoicing] = useState(false);
+    const [swapping, setSwapping] = useState(false);
     const settledSale =
         order.orderType === 'sale' && order.status === 'settled';
     const walkInShare =
@@ -65,6 +74,14 @@ export default function PosOrdersShow({
                                 >
                                     <Undo2 data-icon="inline-start" />
                                     Refund
+                                </Button>
+                            )}
+                            {can.refund && settledSale && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setSwapping(true)}
+                                >
+                                    Change tender
                                 </Button>
                             )}
                             {can.einvoice &&
@@ -160,6 +177,13 @@ export default function PosOrdersShow({
                 onClose={() => setRefunding(false)}
                 order={order}
                 url={refund.url({ order: order.id })}
+            />
+            <PosChangeTenderDialog
+                open={swapping}
+                onClose={() => setSwapping(false)}
+                order={order}
+                tenders={tenders}
+                url={changePayment.url({ order: order.id })}
             />
             <PosEInvoiceDialog
                 open={invoicing}

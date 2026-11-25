@@ -57,19 +57,27 @@ class VoidOrderLine
                     return PosActionResult::refused('approval_required');
                 }
 
+                if ($line->parent_combo_line_id !== null) {
+                    return PosActionResult::refused('combo_part_locked');
+                }
+
                 $return = $returnStock ?? $reason->default_return_stock;
 
-                $line->forceFill([
-                    'kitchen_status' => PosKitchenStatus::Voided,
-                    'void_reason_id' => $reason->id,
-                    'void_reason_text' => $reasonText === null || trim($reasonText) === '' ? null : trim($reasonText),
-                    'voided_by_user_id' => $actor->id,
-                    'void_approved_by_user_id' => $approver?->id,
-                    'return_stock_on_void' => $fired && $return,
-                ])->save();
+                $parts = PosOrderLine::query()->where('parent_combo_line_id', $line->id)->where('kitchen_status', '!=', PosKitchenStatus::Voided->value)->get();
 
-                if ($fired && $return) {
-                    $this->returnStock($order, $line);
+                foreach ([$line, ...$parts->all()] as $row) {
+                    $row->forceFill([
+                        'kitchen_status' => PosKitchenStatus::Voided,
+                        'void_reason_id' => $reason->id,
+                        'void_reason_text' => $reasonText === null || trim($reasonText) === '' ? null : trim($reasonText),
+                        'voided_by_user_id' => $actor->id,
+                        'void_approved_by_user_id' => $approver?->id,
+                        'return_stock_on_void' => $fired && $return,
+                    ])->save();
+
+                    if ($fired && $return) {
+                        $this->returnStock($order, $row);
+                    }
                 }
 
                 $result = ($this->recalculate)($order);

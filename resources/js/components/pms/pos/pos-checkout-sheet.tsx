@@ -51,6 +51,7 @@ export function PosCheckoutSheet({
     methods,
     staff,
     hasMealCover,
+    otherBills = [],
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -59,6 +60,12 @@ export function PosCheckoutSheet({
     methods: PosPaymentMethod[];
     staff: PosStaff[];
     hasMealCover: boolean;
+    otherBills?: {
+        id: number;
+        label: string;
+        openedAt: string;
+        total: string;
+    }[];
 }) {
     const first = methods[0];
     const blank = (type: string, amount: string): Tender => ({
@@ -78,6 +85,8 @@ export function PosCheckoutSheet({
     const [guests, setGuests] = useState<Guest[]>([]);
     const [search, setSearch] = useState('');
     const [processing, setProcessing] = useState(false);
+    const [billsChecked, setBillsChecked] = useState(false);
+    const [people, setPeople] = useState('2');
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const types = Array.from(
@@ -161,12 +170,95 @@ export function PosCheckoutSheet({
             processing={processing}
             submitLabel="Complete payment"
             submitDisabled={
-                remaining !== 0 &&
-                !tenders.some((tender) => tender.tender_type === 'cash')
+                (otherBills.length > 0 && !billsChecked) ||
+                (remaining !== 0 &&
+                    !tenders.some((tender) => tender.tender_type === 'cash'))
             }
             onSubmit={submit}
         >
             <div className="flex flex-col gap-4">
+                {otherBills.length > 0 && (
+                    <div
+                        role="alert"
+                        className="flex flex-col gap-2 rounded-lg border border-warning p-3"
+                    >
+                        <p className="font-medium">
+                            This table has {otherBills.length + 1} open bills.
+                        </p>
+                        <ul className="flex flex-col gap-1 text-sm">
+                            {otherBills.map((bill) => (
+                                <li
+                                    key={bill.id}
+                                    className="flex justify-between gap-2"
+                                >
+                                    <span>
+                                        {bill.label} · opened{' '}
+                                        {new Date(
+                                            bill.openedAt,
+                                        ).toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })}
+                                    </span>
+                                    <MoneyText
+                                        amount={bill.total}
+                                        currency={currency}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                        <label className="flex items-center gap-3">
+                            <Checkbox
+                                checked={billsChecked}
+                                onCheckedChange={(value) =>
+                                    setBillsChecked(value === true)
+                                }
+                            />
+                            <span>I am paying only this bill</span>
+                        </label>
+                    </div>
+                )}
+                <div className="flex items-end gap-2">
+                    <Field className="w-28">
+                        <FieldLabel htmlFor="split-people">
+                            Split evenly
+                        </FieldLabel>
+                        <Input
+                            id="split-people"
+                            type="number"
+                            min={2}
+                            max={20}
+                            value={people}
+                            onChange={(event) => setPeople(event.target.value)}
+                        />
+                    </Field>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                            const count = Math.min(
+                                20,
+                                Math.max(2, Number(people) || 2),
+                            );
+                            const cents = Math.round(total * 100);
+                            const share = Math.floor(cents / count);
+                            setTenders(
+                                Array.from({ length: count }, (_, at) =>
+                                    blank(
+                                        first?.tenderType ?? 'cash',
+                                        (
+                                            (at === count - 1
+                                                ? cents - share * (count - 1)
+                                                : share) / 100
+                                        ).toFixed(2),
+                                    ),
+                                ),
+                            );
+                        }}
+                    >
+                        Share the bill
+                    </Button>
+                </div>
                 {tenders.map((tender, index) => {
                     const given = Number(tender.tendered_amount);
                     const change =

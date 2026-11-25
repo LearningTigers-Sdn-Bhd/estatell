@@ -11,7 +11,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { PosChangeTenderDialog } from '@/components/pms/pos/pos-change-tender-dialog';
+import { PosCheckActionsDialog } from '@/components/pms/pos/pos-check-actions';
 import { PosCheckoutSheet } from '@/components/pms/pos/pos-checkout-sheet';
+import { PosFloorBoard } from '@/components/pms/pos/pos-floor-board';
+import type { Floor } from '@/components/pms/pos/pos-floor-board';
 import {
     PosDiscountDialog,
     PosVoidDialog,
@@ -36,8 +40,9 @@ import type {
 import { PosReceipt } from '@/components/pms/pos-receipt';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { index as posIndex, terminal } from '@/routes/pos';
+import { clock as clockRoute, index as posIndex, terminal } from '@/routes/pos';
 import {
+    changePayment,
     diningOption,
     fire,
     prebill,
@@ -61,7 +66,10 @@ type Props = {
         name: string;
         printReceiptAfterPayment: boolean;
         roomChargeLimited: boolean;
+        payLater: boolean;
     };
+    floors: Floor[];
+    clock: { required: boolean; clockedIn: boolean };
     register: { id: number; name: string } | null;
     registers: { id: number; name: string }[];
     shift: App.Data.Pos.PosShiftData | null;
@@ -72,6 +80,9 @@ type Props = {
         id: number;
         orderNumber: string | null;
         grandTotal: string;
+        tableCode: string | null;
+        tableId: number | null;
+        openedAt: string;
     }[];
     voidReasons: PosVoidReason[];
     transactionCodes: { value: string; label: string }[];
@@ -85,6 +96,8 @@ export default function PosTerminal(props: Props) {
     const {
         currency,
         outlet,
+        floors,
+        clock,
         register,
         shift,
         menu,
@@ -110,6 +123,9 @@ export default function PosTerminal(props: Props) {
         menu.diningOptions[0]?.id ?? 0,
     );
     const [receiptOpen, setReceiptOpen] = useState(true);
+    const [checkActions, setCheckActions] = useState(false);
+    const [swapping, setSwapping] = useState(false);
+    const [course, setCourse] = useState(1);
 
     const trading = shift !== null && shift.status === 'open';
     const hasDraft =
@@ -128,6 +144,9 @@ export default function PosTerminal(props: Props) {
                 note: choice.note || undefined,
                 unit_price: choice.unit_price || undefined,
                 cover_with_entitlement: choice.cover_with_entitlement,
+                weight: choice.weight || undefined,
+                combo_selections: choice.combo_selections,
+                course_number: course > 1 ? course : undefined,
             },
             { preserveScroll: true },
         );
@@ -168,7 +187,9 @@ export default function PosTerminal(props: Props) {
         const simple =
             item.variants.length === 1 &&
             item.modifierGroups.length === 0 &&
-            item.variants[0].pricingType === 'fixed';
+            item.variants[0].pricingType === 'fixed' &&
+            !item.soldByWeight &&
+            !item.isCombo;
 
         if (simple) {
             pick({
@@ -226,6 +247,24 @@ export default function PosTerminal(props: Props) {
                     )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                    {clock.required && (
+                        <Button
+                            variant={clock.clockedIn ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() =>
+                                router.post(
+                                    clockRoute.url(),
+                                    {
+                                        outlet_id: outlet.id,
+                                        action: clock.clockedIn ? 'out' : 'in',
+                                    },
+                                    { preserveScroll: true },
+                                )
+                            }
+                        >
+                            {clock.clockedIn ? 'Clock out' : 'Clock in'}
+                        </Button>
+                    )}
                     <Button
                         variant="outline"
                         size="sm"
@@ -298,12 +337,63 @@ export default function PosTerminal(props: Props) {
                             </Button>
                         ))}
                     </div>
-                    <PosMenuPanel
-                        categories={menu.categories}
-                        currency={currency}
-                        disabled={!trading}
-                        onPick={tap}
-                    />
+                    {outlet.payLater && order === null ? (
+                        <PosFloorBoard
+                            floors={floors}
+                            outletId={outlet.id}
+                            registerId={register.id}
+                            diningOptionId={diningId}
+                            currency={currency}
+                            trading={trading}
+                        />
+                    ) : (
+                        <>
+                            {outlet.payLater && (
+                                <div
+                                    className="flex flex-wrap items-center gap-2"
+                                    role="group"
+                                    aria-label="Course"
+                                >
+                                    <Link
+                                        href={terminal.url(
+                                            { outlet: outlet.id },
+                                            {
+                                                query: {
+                                                    register: register.id,
+                                                },
+                                            },
+                                        )}
+                                        className={buttonVariants({
+                                            variant: 'outline',
+                                            size: 'sm',
+                                        })}
+                                    >
+                                        Tables
+                                    </Link>
+                                    {[1, 2, 3, 4].map((number) => (
+                                        <Button
+                                            key={number}
+                                            size="sm"
+                                            variant={
+                                                course === number
+                                                    ? 'default'
+                                                    : 'outline'
+                                            }
+                                            onClick={() => setCourse(number)}
+                                        >
+                                            Course {number}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                            <PosMenuPanel
+                                categories={menu.categories}
+                                currency={currency}
+                                disabled={!trading}
+                                onPick={tap}
+                            />
+                        </>
+                    )}
                 </section>
 
                 <aside className="flex min-h-0 flex-col gap-3 rounded-xl border p-3">
@@ -335,6 +425,9 @@ export default function PosTerminal(props: Props) {
                                             size: 'sm',
                                         })}
                                     >
+                                        {open.tableCode !== null
+                                            ? `${open.tableCode} · `
+                                            : ''}
                                         {open.orderNumber ?? `#${open.id}`}
                                     </Link>
                                 ))}
@@ -394,6 +487,14 @@ export default function PosTerminal(props: Props) {
                                 <Send data-icon="inline-start" />
                                 Send
                             </Button>
+                            {outlet.payLater && order.status === 'open' && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCheckActions(true)}
+                                >
+                                    Check actions
+                                </Button>
+                            )}
                             <Button
                                 variant="outline"
                                 disabled={!hasLines}
@@ -450,6 +551,20 @@ export default function PosTerminal(props: Props) {
                 onAdd={pick}
             />
 
+            {order !== null && outlet.payLater && (
+                <PosCheckActionsDialog
+                    open={checkActions}
+                    onClose={() => setCheckActions(false)}
+                    order={order}
+                    others={openOrders
+                        .filter((open) => open.id !== order.id)
+                        .map((open) => ({
+                            id: open.id,
+                            label: `${open.tableCode ?? 'No table'} · ${open.orderNumber ?? `#${open.id}`}`,
+                        }))}
+                />
+            )}
+
             {order && (
                 <>
                     {paying && (
@@ -464,6 +579,20 @@ export default function PosTerminal(props: Props) {
                             hasMealCover={order.lines.some(
                                 (row) => row.isEntitlementCovered,
                             )}
+                            otherBills={openOrders
+                                .filter(
+                                    (open) =>
+                                        open.id !== order.id &&
+                                        open.tableId !== null &&
+                                        open.tableId === order.tableId,
+                                )
+                                .map((open) => ({
+                                    id: open.id,
+                                    label:
+                                        open.orderNumber ?? `Check #${open.id}`,
+                                    openedAt: open.openedAt,
+                                    total: open.grandTotal,
+                                }))}
                         />
                     )}
                     <PosVoidDialog
@@ -552,7 +681,32 @@ export default function PosTerminal(props: Props) {
                             Refund items
                         </Button>
                     )}
+                    {can.refund && receipt.orderType === 'sale' && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setSwapping(true)}
+                        >
+                            Change tender
+                        </Button>
+                    )}
                 </FormOverlay>
+            )}
+            {receipt && (
+                <PosChangeTenderDialog
+                    open={swapping}
+                    onClose={() => setSwapping(false)}
+                    order={receipt}
+                    tenders={menu.paymentMethods
+                        .map((method) => method.tenderType)
+                        .filter((type, at, all) => all.indexOf(type) === at)
+                        .map((type) => ({
+                            value: type,
+                            label: type.replace('_', ' '),
+                        }))}
+                    url={changePayment.url({ order: receipt.id })}
+                    staff={staff}
+                />
             )}
             {receipt && (
                 <PosRefundDialog

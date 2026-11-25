@@ -3522,6 +3522,9 @@ serviceChargeExempt: boolean,
 cookingGuide: string | null,
 sortOrder: number,
 active: boolean,
+soldByWeight: boolean,
+weightUnit: string | null,
+weightUnitDivisor: string | null,
 };
 export type PosItemVariantInputData = {
 price: string,
@@ -3532,6 +3535,18 @@ sku: string | null,
 barcode: string | null,
 cost: string | null,
 sortOrder: number,
+active: boolean,
+};
+export type PosMenuScheduleInputData = {
+name: string,
+daysOfWeek: number,
+startTime: string,
+endTime: string,
+categoryIds: number[],
+itemIds: number[],
+effectiveFrom: string | null,
+effectiveUntil: string | null,
+mealPeriodId: number | null,
 active: boolean,
 };
 export type PosModifierGroupInputData = {
@@ -3582,6 +3597,11 @@ cashier: string | null,
 openedAt: string | null,
 settledAt: string | null,
 eInvoiceSubmissionId: number | null,
+tableId: number | null,
+tableCode: string | null,
+parentOrderId: number | null,
+claimUrl: string | null,
+claimQrSvg: string | null,
 lines: App.Data.Pos.PosOrderLineData[],
 payments: {
 id: number,
@@ -3620,6 +3640,10 @@ isVoided: boolean,
 isEntitlementCovered: boolean,
 isPackagingFee: boolean,
 refundableQuantity: string,
+courseNumber: number,
+seatNumber: number | null,
+isWeighed: boolean,
+isComboPart: boolean,
 };
 export type PosOrderLineInputData = {
 variantId: number,
@@ -3628,6 +3652,10 @@ modifierOptionIds: number[],
 note: string | null,
 unitPrice: string | null,
 coverWithEntitlement: boolean,
+courseNumber: number,
+seatNumber: number | null,
+weight: string | null,
+comboSelections: number[][],
 };
 export type PosOrderRowData = {
 id: number,
@@ -3704,6 +3732,17 @@ countedCash: string | null,
 cashVariance: string | null,
 recountCount: number,
 zReport: Record<string, any> | null,
+};
+export type PosTableInputData = {
+readonly code: string,
+readonly label: string | null,
+readonly seats: number,
+readonly shape: App.Enums.PosTableShape,
+readonly x: number,
+readonly y: number,
+readonly width: number,
+readonly height: number,
+readonly active: boolean,
 };
 export type PosTenderInputData = {
 tenderType: App.Enums.PosTenderType,
@@ -6236,6 +6275,7 @@ export type PosReconciliationStatus = 'verified' | 'pending_verification';
 export type PosRoundingMode = 'none' | 'five_sen' | 'ten_sen';
 export type PosRoundingPolicy = 'cash_leg_only' | 'whole_bill_when_cash_present';
 export type PosShiftStatus = 'open' | 'closing_control' | 'closed';
+export type PosTableShape = 'square' | 'round' | 'rect';
 export type PosTenderType = 'cash' | 'card' | 'e_wallet' | 'duitnow_qr' | 'payment_voucher' | 'room_charge';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package' | 'day_use';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';

@@ -9,6 +9,8 @@ use App\Features\NativePos;
 use App\Models\PosDiningOption;
 use App\Models\PosOrder;
 use App\Models\PosShift;
+use App\Models\PosTable;
+use App\Models\PosTimeClock;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -20,15 +22,15 @@ use Laravel\Pennant\Feature;
  * Open a counter or table order on a register's open shift. The client sends a `client_uuid`, so a tap that is sent twice
  * returns the same order and writes nothing twice. The dining option must be the shift outlet's own and active
  * (`dining_option_invalid`). A room may be named up front for meal entitlement and room charge: it must be in house
- * (`unit_not_eligible`). A shift that is not Open takes no orders (`shift_not_open`). A refusal writes nothing.
+ * (`unit_not_eligible`). A table must be active on an active floor of the shift's outlet (`table_invalid`). An outlet that requires clocking in only takes orders from staff clocked in at it (`clock_in_required`). A shift that is not Open takes no orders (`shift_not_open`). A refusal writes nothing.
  */
 class CreatePosOrder
 {
     public function __construct(private CurrentBusinessDate $currentBusinessDate) {}
 
-    public function __invoke(User $actor, Property $property, PosShift $shift, PosDiningOption $diningOption, string $clientUuid, int $guestCount = 1, ?ReservationUnit $unit = null): PosActionResult
+    public function __invoke(User $actor, Property $property, PosShift $shift, PosDiningOption $diningOption, string $clientUuid, int $guestCount = 1, ?ReservationUnit $unit = null, ?PosTable $table = null): PosActionResult
     {
-        return DB::transaction(function () use ($actor, $property, $shift, $diningOption, $clientUuid, $guestCount, $unit): PosActionResult {
+        return DB::transaction(function () use ($actor, $property, $shift, $diningOption, $clientUuid, $guestCount, $unit, $table): PosActionResult {
             if (! Feature::for($property)->active(NativePos::class)) {
                 return PosActionResult::refused('native_pos_disabled');
             }
@@ -57,6 +59,14 @@ class CreatePosOrder
                 return PosActionResult::refused('guest_count_invalid');
             }
 
+            if ($shift->outlet->require_clock_in && ! PosTimeClock::query()->where('user_id', $actor->id)->where('pos_outlet_id', $shift->pos_outlet_id)->whereNull('clocked_out_at')->exists()) {
+                return PosActionResult::refused('clock_in_required');
+            }
+
+            if ($table !== null && ! $this->tableFits($property, $shift, $table)) {
+                return PosActionResult::refused('table_invalid');
+            }
+
             if ($unit !== null && ! $this->eligible($property, $unit)) {
                 return PosActionResult::refused('unit_not_eligible');
             }
@@ -68,6 +78,7 @@ class CreatePosOrder
             $order->client_uuid = $clientUuid;
             $order->pos_dining_option_id = $diningOption->id;
             $order->reservation_unit_id = $unit?->id;
+            $order->pos_table_id = $table?->id;
             $order->status = PosOrderStatus::Open;
             $order->opened_by_user_id = $actor->id;
             $order->opened_at = now();
@@ -79,6 +90,13 @@ class CreatePosOrder
 
             return PosActionResult::saved($order);
         });
+    }
+
+    private function tableFits(Property $property, PosShift $shift, PosTable $table): bool
+    {
+        $table = PosTable::query()->where('property_id', $property->id)->with('floor')->find($table->id);
+
+        return $table !== null && $table->active && $table->floor->active && $table->floor->pos_outlet_id === $shift->pos_outlet_id;
     }
 
     private function eligible(Property $property, ReservationUnit $unit): bool

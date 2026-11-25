@@ -6,6 +6,7 @@ use App\Data\Pos\PosOrderData;
 use App\Data\Pos\PosShiftData;
 use App\Data\Property\CurrencyData;
 use App\Enums\PermissionEnum;
+use App\Enums\PosOperationMode;
 use App\Enums\PosShiftStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
@@ -14,6 +15,7 @@ use App\Models\PosOutlet;
 use App\Models\PosRegister;
 use App\Models\PosShift;
 use App\Models\PosStaffPin;
+use App\Models\PosTimeClock;
 use App\Models\PosVoidReason;
 use App\Models\Property;
 use App\Models\TransactionCode;
@@ -21,6 +23,7 @@ use App\Models\User;
 use App\Services\Pos\InHouseGuestLookup;
 use App\Services\Pos\OutletMenuSnapshot;
 use App\Services\Pos\PosTerminal;
+use App\Services\Pos\TableFloorState;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -63,7 +66,7 @@ class PosRegisterController extends Controller
         ]);
     }
 
-    public function terminal(Request $request, Property $property, int $outlet, OutletMenuSnapshot $snapshot): Response
+    public function terminal(Request $request, Property $property, int $outlet, OutletMenuSnapshot $snapshot, TableFloorState $floors): Response
     {
         $actor = $this->actor($request);
         $model = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->findOrFail($outlet);
@@ -81,14 +84,16 @@ class PosRegisterController extends Controller
 
         return Inertia::render('pos/terminal', [
             'currency' => CurrencyData::forProperty($property),
-            'outlet' => ['id' => $model->id, 'name' => $model->name, 'printReceiptAfterPayment' => $model->print_receipt_after_payment, 'roomChargeLimited' => $model->room_charge_limit !== null],
+            'outlet' => ['id' => $model->id, 'name' => $model->name, 'printReceiptAfterPayment' => $model->print_receipt_after_payment, 'roomChargeLimited' => $model->room_charge_limit !== null, 'payLater' => $model->operation_mode === PosOperationMode::PayLater],
+            'clock' => ['required' => $model->require_clock_in, 'clockedIn' => PosTimeClock::query()->where('user_id', $actor->id)->where('pos_outlet_id', $model->id)->whereNull('clocked_out_at')->exists()],
+            'floors' => $model->operation_mode === PosOperationMode::PayLater ? $floors->for($model) : [],
             'register' => $register === null ? null : ['id' => $register->id, 'name' => $register->name],
             'registers' => PosRegister::query()->where('pos_outlet_id', $model->id)->where('active', true)->orderBy('name')->get(['id', 'name']),
             'shift' => $shift === null ? null : PosShiftData::fromModel($shift),
             'menu' => $snapshot($model),
             'order' => $order === null ? null : PosOrderData::fromModel($order),
             'receipt' => $receipt === null ? null : PosOrderData::fromModel($receipt),
-            'openOrders' => $shift === null ? [] : PosOrder::query()->where('pos_shift_id', $shift->id)->where('status', 'open')->orderBy('id')->get(['id', 'order_number', 'grand_total'])->map(fn (PosOrder $open): array => ['id' => $open->id, 'orderNumber' => $open->order_number, 'grandTotal' => $open->grand_total])->all(),
+            'openOrders' => $shift === null ? [] : PosOrder::query()->where('pos_shift_id', $shift->id)->where('status', 'open')->orderBy('id')->with('table:id,code')->get(['id', 'order_number', 'grand_total', 'pos_table_id', 'opened_at'])->map(fn (PosOrder $open): array => ['id' => $open->id, 'orderNumber' => $open->order_number, 'grandTotal' => $open->grand_total, 'tableCode' => $open->table?->code, 'tableId' => $open->pos_table_id, 'openedAt' => $open->opened_at->toIso8601String()])->all(),
             'voidReasons' => PosVoidReason::query()->where('property_id', $property->id)->where('active', true)->orderBy('sort_order')->orderBy('label')->get(['id', 'label', 'requires_manager_pin']),
             'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->values()->all(),
             'staff' => $this->staff($property),
@@ -109,7 +114,7 @@ class PosRegisterController extends Controller
      */
     public static function orderRelations(): array
     {
-        return ['outlet', 'shift.register', 'diningOption', 'reservationUnit.reservation', 'refundFor', 'openedBy', 'lines.modifiers', 'payments', 'discounts'];
+        return ['outlet', 'shift.register', 'diningOption', 'reservationUnit.reservation', 'refundFor', 'openedBy', 'table', 'lines.modifiers', 'lines.variant.item', 'payments', 'discounts'];
     }
 
     /**

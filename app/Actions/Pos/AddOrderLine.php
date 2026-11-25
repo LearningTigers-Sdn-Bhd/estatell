@@ -19,7 +19,9 @@ use App\Models\PosOrderLineModifier;
 use App\Models\PosOutletItem;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Pos\PosMenuAvailability;
 use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -28,14 +30,15 @@ use Illuminate\Support\Facades\DB;
  * outlet's override or the variant's (an item priced at the register needs `unitPrice`: `price_required`). Names, price and
  * cost are copied onto the line. The first `free_included_count` choices of a group, cheapest first, cost nothing. Choices
  * must fit each group (`modifier_invalid`, `modifier_selection_invalid`). An item the outlet switched off is refused
- * (`item_unavailable`); a stock count that ran out only warns on the register. An item covered by the guest's included
+ * (`item_unavailable`), as is one outside its menu schedule (`item_not_scheduled`); a stock count that ran out only warns on the register. An item covered by the guest's included
  * meal (`coverWithEntitlement`) becomes one line for each portion, so each can be given back on its own. If the order
  * cannot be priced the line is not added (`sst_registration_missing` and the other calculator refusals). A shift that is
- * not Open takes no new lines. A refusal writes nothing. See docs/34-native-pos/03-floors-and-orders.md.
+ * not Open takes no new lines. An item sold by weight takes `weight` instead of a count and prices it per unit of weight
+ * (`weight_invalid`); it is never covered by an included meal. A refusal writes nothing. See docs/34-native-pos/03-floors-and-orders.md.
  */
 class AddOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private PosMenuAvailability $availability) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLineInputData $data): PosActionResult
     {
@@ -72,6 +75,10 @@ class AddOrderLine
                     return PosActionResult::refused('item_unavailable');
                 }
 
+                if (! $this->availability->sellable($order->outlet, $item)) {
+                    return PosActionResult::refused('item_not_scheduled');
+                }
+
                 $unitPrice = $this->unitPrice($variant, $outletItem, $data);
 
                 if ($unitPrice === null) {
@@ -88,11 +95,36 @@ class AddOrderLine
                     return PosActionResult::refused($modifiers);
                 }
 
+                $parts = [];
+
+                if ($item->is_combo) {
+                    $parts = $data->coverWithEntitlement ? 'not_entitled' : $this->comboParts($order, $item, $data->comboSelections);
+
+                    if (is_string($parts)) {
+                        return PosActionResult::refused($parts);
+                    }
+                }
+
                 $portions = $data->coverWithEntitlement ? $data->quantity : 1;
                 $lines = [];
+                $quantity = $data->quantity.'.000';
+
+                if ($item->sold_by_weight) {
+                    $weighed = $this->weighedQuantity($item, $data);
+
+                    if ($weighed === null || $data->coverWithEntitlement) {
+                        return PosActionResult::refused('weight_invalid');
+                    }
+
+                    $quantity = $weighed;
+                }
 
                 for ($i = 0; $i < $portions; $i++) {
-                    $lines[] = $this->createLine($order, $item, $variant, $unitPrice, $data, $modifiers, $data->coverWithEntitlement ? 1 : $data->quantity);
+                    $lines[] = $this->createLine($order, $item, $variant, $unitPrice, $data, $modifiers, $data->coverWithEntitlement ? '1.000' : $quantity);
+                }
+
+                foreach ($parts as $part) {
+                    $this->createComponent($order, $lines[0], $part['variant'], $part['upcharge'], $quantity, $data);
                 }
 
                 $result = ($this->recalculate)($order);
@@ -110,6 +142,92 @@ class AddOrderLine
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }
+    }
+
+    /**
+     * Check a guest's picks against the combo's slots, one entry for each picked variant with its upcharge.
+     *
+     * @param  array<int, list<int>>  $selections
+     * @return list<array{variant: PosItemVariant, upcharge: string}>|string A refusal code when the picks do not fit.
+     */
+    private function comboParts(PosOrder $order, PosItem $item, array $selections): array|string
+    {
+        $slots = $item->comboSlots()->with(['options.variant.item.category'])->get();
+
+        if ($slots->isEmpty() || array_diff(array_keys($selections), $slots->pluck('id')->all()) !== []) {
+            return 'combo_selection_invalid';
+        }
+
+        $parts = [];
+
+        foreach ($slots as $slot) {
+            $picked = $selections[$slot->id] ?? [];
+
+            if (count($picked) < $slot->min_select || count($picked) > $slot->max_select || count(array_unique($picked)) !== count($picked)) {
+                return 'combo_selection_invalid';
+            }
+
+            foreach ($picked as $variantId) {
+                $option = $slot->options->firstWhere('pos_item_variant_id', $variantId);
+                $variant = $option?->variant;
+
+                if ($option === null || ! $variant->active || ! $variant->item->active || ! $variant->item->category->active) {
+                    return 'combo_selection_invalid';
+                }
+
+                if (PosOutletItem::query()->where('pos_outlet_id', $order->pos_outlet_id)->where('pos_item_variant_id', $variant->id)->first()?->availability === PosAvailability::None) {
+                    return 'item_unavailable';
+                }
+
+                $parts[] = ['variant' => $variant, 'upcharge' => $option->upcharge];
+            }
+        }
+
+        return $parts;
+    }
+
+    /**
+     * A part of a combo as its own line under the combo line, priced at its upcharge, so each part books to its own account
+     * and tax and reaches the kitchen on its own.
+     */
+    private function createComponent(PosOrder $order, PosOrderLine $parent, PosItemVariant $variant, string $upcharge, string $quantity, PosOrderLineInputData $data): void
+    {
+        $item = $variant->item;
+        $line = new PosOrderLine;
+        $line->property_id = $order->property_id;
+        $line->pos_order_id = $order->id;
+        $line->pos_item_variant_id = $variant->id;
+        $line->line_kind = PosOrderLineKind::ComboComponent;
+        $line->parent_combo_line_id = $parent->id;
+        $line->price_includes_tax = $item->price_includes_tax;
+        $line->service_charge_exempt = $item->service_charge_exempt;
+        $line->transaction_code_id = $item->transaction_code_id ?? $item->category->transaction_code_id;
+        $line->is_entitlement_covered = false;
+        $line->item_name = $item->name;
+        $line->variant_name = $variant->name;
+        $line->internal_name = $item->internal_name;
+        $line->quantity = $quantity;
+        $line->unit_price = $upcharge;
+        $line->unit_cost = $variant->cost;
+        $line->kitchen_status = PosKitchenStatus::Draft;
+        $line->course_number = $parent->course_number;
+        $line->seat_number = $parent->seat_number;
+        $line->save();
+    }
+
+    /**
+     * What an item sold by weight comes to in price units: the weighed amount over the unit the price is quoted for, so
+     * 260 g at RM 10.90 per 50 g is 5.200 units. Null when no usable weight was given.
+     */
+    private function weighedQuantity(PosItem $item, PosOrderLineInputData $data): ?string
+    {
+        if ($data->weight === null || preg_match('/^\d{1,7}(\.\d{1,3})?$/', $data->weight) !== 1 || $item->weight_unit_divisor === null) {
+            return null;
+        }
+
+        $quantity = BigDecimal::of($data->weight)->dividedBy($item->weight_unit_divisor, 3, RoundingMode::HalfUp);
+
+        return $quantity->isPositive() && $quantity->isLessThanOrEqualTo('99999') ? (string) $quantity : null;
     }
 
     private function unitPrice(PosItemVariant $variant, ?PosOutletItem $outletItem, PosOrderLineInputData $data): ?string
@@ -174,7 +292,7 @@ class AddOrderLine
     /**
      * @param  list<array{option: PosModifierOption, charged: string}>  $modifiers
      */
-    private function createLine(PosOrder $order, PosItem $item, PosItemVariant $variant, string $unitPrice, PosOrderLineInputData $data, array $modifiers, int $quantity): PosOrderLine
+    private function createLine(PosOrder $order, PosItem $item, PosItemVariant $variant, string $unitPrice, PosOrderLineInputData $data, array $modifiers, string $quantity): PosOrderLine
     {
         $line = new PosOrderLine(['note' => $data->note === null || trim($data->note) === '' ? null : trim($data->note)]);
         $line->property_id = $order->property_id;
@@ -188,10 +306,12 @@ class AddOrderLine
         $line->item_name = $item->name;
         $line->variant_name = $variant->name;
         $line->internal_name = $item->internal_name;
-        $line->quantity = (string) $quantity.'.000';
+        $line->quantity = $quantity;
         $line->unit_price = $unitPrice;
         $line->unit_cost = $variant->cost;
         $line->kitchen_status = PosKitchenStatus::Draft;
+        $line->course_number = min(9, max(1, $data->courseNumber));
+        $line->seat_number = $data->seatNumber !== null && $data->seatNumber >= 1 ? min(99, $data->seatNumber) : null;
         $line->save();
 
         foreach ($modifiers as $row) {

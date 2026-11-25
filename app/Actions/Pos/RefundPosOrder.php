@@ -211,7 +211,15 @@ class RefundPosOrder
     {
         return $lines->every(fn (PosOrderLine $line): bool => $line->line_kind === PosOrderLineKind::PackagingFee
             || $line->kitchen_status === PosKitchenStatus::Voided
-            || (int) $line->quantity - $this->refundedQuantity($line) - ($plan[$line->id]['quantity'] ?? 0) <= 0);
+            || $this->units($line) - $this->refundedQuantity($line) - ($plan[$line->id]['quantity'] ?? 0) <= 0);
+    }
+
+    /**
+     * Refundable units of a line: its count, or one for a line sold by weight, which is refunded whole.
+     */
+    private function units(PosOrderLine $line): int
+    {
+        return $line->variant?->item?->sold_by_weight === true ? 1 : (int) $line->quantity;
     }
 
     private function refundedQuantity(PosOrderLine $line): int
@@ -224,7 +232,7 @@ class RefundPosOrder
      */
     private function planLine(PosOrderLine $line, int $quantity): array|string
     {
-        $total = (int) $line->quantity;
+        $total = $this->units($line);
         $before = $this->refundedQuantity($line);
 
         if ($quantity < 1 || $before + $quantity > $total) {

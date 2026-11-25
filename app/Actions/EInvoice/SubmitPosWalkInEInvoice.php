@@ -29,11 +29,12 @@ class SubmitPosWalkInEInvoice
     /**
      * Send the walk-in share of one settled POS sale as an e-invoice to a named buyer (a bill over RM10,000, or a diner
      * who asks at the counter). Every check and the Pending record run under the property's e-invoice lock
-     * (`LockEInvoiceRecords`), so a click and the monthly summary cannot both take the order. A refund is not sent here.
+     * (`LockEInvoiceRecords`), so a click and the monthly summary cannot both take the order. A refund is not sent here. A guest
+     * claiming their own receipt has no staff `$actor` and sets `$requestedByGuest`.
      *
      * @param  array<string, mixed>  $buyerSnapshot
      */
-    public function __invoke(PosOrder $order, User $actor, array $buyerSnapshot): EInvoiceResult
+    public function __invoke(PosOrder $order, ?User $actor, array $buyerSnapshot, bool $requestedByGuest = false): EInvoiceResult
     {
         $property = $order->property;
         $setting = $property->eInvoiceSetting;
@@ -46,7 +47,7 @@ class SubmitPosWalkInEInvoice
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_CREDENTIALS_MISSING, __('MyInvois credentials are not configured.'));
         }
 
-        $prepared = ($this->lockEInvoiceRecords)($property, function () use ($order, $buyerSnapshot): EInvoiceResult|array {
+        $prepared = ($this->lockEInvoiceRecords)($property, function () use ($order, $buyerSnapshot, $requestedByGuest): EInvoiceResult|array {
             $order = PosOrder::query()->lockForUpdate()->findOrFail($order->id);
 
             if ($order->e_invoice_submission_id !== null) {
@@ -76,7 +77,7 @@ class SubmitPosWalkInEInvoice
                 'buyer_snapshot' => $built['buyer'],
                 'document_payload' => $built['payload'],
                 'is_consolidated' => false,
-                'requested_by_guest' => false,
+                'requested_by_guest' => $requestedByGuest,
             ]);
             $submission->posOrders()->attach($order->id, ['line_number' => 1, 'is_active' => true]);
             $order->forceFill(['e_invoice_submission_id' => $submission->id])->save();

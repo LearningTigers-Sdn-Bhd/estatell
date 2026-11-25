@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\SavePosOutletSettings;
 use App\Actions\Pos\SavePosRegister;
+use App\Enums\PosOperationMode;
 use App\Enums\PosRoundingMode;
 use App\Enums\PosRoundingPolicy;
 use App\Http\Controllers\Controller;
@@ -34,12 +35,13 @@ class PosOutletSettingsController extends Controller
                 'id' => $outlet->id, 'name' => $outlet->name,
                 'serviceChargeTransactionCodeId' => $outlet->service_charge_transaction_code_id, 'packagingTransactionCodeId' => $outlet->packaging_transaction_code_id,
                 'roundingTransactionCodeId' => $outlet->rounding_transaction_code_id, 'cashVarianceTransactionCodeId' => $outlet->cash_variance_transaction_code_id, 'safeClearingTransactionCodeId' => $outlet->safe_clearing_transaction_code_id,
-                'sstRegistrationNumber' => $outlet->sst_registration_number, 'roundingMode' => $outlet->rounding_mode->value, 'roundingPolicy' => $outlet->rounding_policy->value, 'roomChargeLimit' => $outlet->room_charge_limit,
+                'sstRegistrationNumber' => $outlet->sst_registration_number, 'operationMode' => $outlet->operation_mode->value, 'roundingMode' => $outlet->rounding_mode->value, 'roundingPolicy' => $outlet->rounding_policy->value, 'roomChargeLimit' => $outlet->room_charge_limit,
                 'requireRoomChargeSignature' => $outlet->require_room_charge_signature, 'requireMealRedemptionConfirmation' => $outlet->require_meal_redemption_confirmation, 'requireReprintPin' => $outlet->require_reprint_pin,
-                'requireDualControl' => $outlet->require_dual_control, 'printReceiptAfterPayment' => $outlet->print_receipt_after_payment, 'printDrawerSlip' => $outlet->print_drawer_slip,
+                'requireDualControl' => $outlet->require_dual_control, 'printReceiptAfterPayment' => $outlet->print_receipt_after_payment, 'printDrawerSlip' => $outlet->print_drawer_slip, 'requireClockIn' => $outlet->require_clock_in,
             ],
             'registers' => $outlet === null ? [] : PosRegister::query()->where('pos_outlet_id', $outlet->id)->orderBy('name')->get(['id', 'name', 'active'])->all(),
             'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->all(),
+            'operationModes' => PosOperationMode::options(),
             'roundingModes' => PosRoundingMode::options(),
             'roundingPolicies' => PosRoundingPolicy::options(),
         ]);

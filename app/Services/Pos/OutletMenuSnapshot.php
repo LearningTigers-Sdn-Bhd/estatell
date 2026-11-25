@@ -4,12 +4,15 @@ namespace App\Services\Pos;
 
 use App\Enums\PosAvailability;
 use App\Models\PosCategory;
+use App\Models\PosComboSlot;
+use App\Models\PosComboSlotOption;
 use App\Models\PosItem;
 use App\Models\PosItemVariant;
 use App\Models\PosModifierGroup;
 use App\Models\PosModifierOption;
 use App\Models\PosOutlet;
 use App\Models\PosOutletItem;
+use Closure;
 use Illuminate\Support\Collection;
 
 /**
@@ -22,6 +25,8 @@ use Illuminate\Support\Collection;
  */
 class OutletMenuSnapshot
 {
+    public function __construct(private PosMenuAvailability $availability) {}
+
     /**
      * @return array<string, mixed> `version`, `outlet`, `categories`, `diningOptions` and `paymentMethods`.
      */
@@ -32,6 +37,7 @@ class OutletMenuSnapshot
             ->where('active', true)
             ->with([
                 'items' => fn ($query) => $query->where('active', true)->orderBy('sort_order')->orderBy('name')->with([
+                    'comboSlots.options.variant.item',
                     'variants' => fn ($variants) => $variants->where('active', true)->orderBy('sort_order')->orderBy('id'),
                     'modifierGroups' => fn ($groups) => $groups->where('pos_modifier_groups.active', true)->orderBy('pos_item_modifier_group.sort_order')->with([
                         'options' => fn ($options) => $options->where('active', true)->where('availability', '!=', PosAvailability::None->value)->orderBy('sort_order')->orderBy('id'),
@@ -42,12 +48,13 @@ class OutletMenuSnapshot
             ->orderBy('name')
             ->get();
 
+        $sellable = $this->availability->checker($outlet);
         $outletItems = PosOutletItem::query()->where('pos_outlet_id', $outlet->id)->get()->keyBy('pos_item_variant_id');
 
         $payload = [
             'outlet' => ['id' => $outlet->id, 'name' => $outlet->name, 'code' => $outlet->code],
             'categories' => $categories
-                ->map(fn (PosCategory $category): array => $this->category($category, $outletItems))
+                ->map(fn (PosCategory $category): array => $this->category($category, $outletItems, $sellable))
                 ->filter(fn (array $category): bool => $category['items'] !== [])
                 ->values()
                 ->all(),
@@ -79,13 +86,14 @@ class OutletMenuSnapshot
      * @param  Collection<int, PosOutletItem>  $outletItems
      * @return array<string, mixed>
      */
-    private function category(PosCategory $category, $outletItems): array
+    private function category(PosCategory $category, $outletItems, Closure $sellable): array
     {
         return [
             'id' => $category->id,
             'name' => $category->name,
             'colorToken' => $category->color_token,
             'items' => $category->items
+                ->filter(fn (PosItem $item): bool => $sellable($item))
                 ->map(fn (PosItem $item): array => $this->item($item, $outletItems))
                 ->filter(fn (array $item): bool => $item['variants'] !== [])
                 ->values()
@@ -107,6 +115,21 @@ class OutletMenuSnapshot
             'mealPeriodId' => $item->meal_period_id,
             'priceIncludesTax' => $item->price_includes_tax,
             'serviceChargeExempt' => $item->service_charge_exempt,
+            'soldByWeight' => $item->sold_by_weight,
+            'weightUnit' => $item->weight_unit,
+            'weightUnitDivisor' => $item->weight_unit_divisor,
+            'isCombo' => $item->is_combo,
+            'comboSlots' => $item->is_combo ? $item->comboSlots->map(fn (PosComboSlot $slot): array => [
+                'id' => $slot->id,
+                'name' => $slot->name,
+                'min' => $slot->min_select,
+                'max' => $slot->max_select,
+                'options' => $slot->options->filter(fn (PosComboSlotOption $option): bool => $option->variant->active && $option->variant->item->active)->map(fn (PosComboSlotOption $option): array => [
+                    'variantId' => $option->pos_item_variant_id,
+                    'name' => $option->variant->item->name.($option->variant->name === 'Regular' ? '' : ' ('.$option->variant->name.')'),
+                    'upcharge' => $option->upcharge,
+                ])->values()->all(),
+            ])->values()->all() : [],
             'sharedStockCount' => $item->shared_stock_count,
             'variants' => $item->variants
                 ->map(fn (PosItemVariant $variant): ?array => $this->variant($item, $variant, $outletItems->get($variant->id)))
