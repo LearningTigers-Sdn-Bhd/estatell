@@ -14,9 +14,12 @@ use Illuminate\Support\Facades\DB;
  */
 class TransferOrderTable
 {
+    public function __construct(private BumpCfdVersion $bumpCfdVersion) {}
+
     public function __invoke(User $actor, Property $property, PosOrder $order, PosTable $table): PosActionResult
     {
-        return DB::transaction(function () use ($actor, $property, $order, $table): PosActionResult {
+        $registerId = null;
+        $result = DB::transaction(function () use ($actor, $property, $order, $table, &$registerId): PosActionResult {
             $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
 
             if ($order === null || $order->status !== PosOrderStatus::Open) {
@@ -40,7 +43,15 @@ class TransferOrderTable
                 ->withProperties(['property_id' => $property->id, 'from_table_id' => $previousTableId, 'to_table_id' => $target->id])
                 ->log('POS order transferred to table '.$target->code);
 
+            $registerId = $order->shift?->pos_register_id;
+
             return PosActionResult::saved($order);
         });
+
+        if (! $result->isRefused() && $registerId !== null) {
+            ($this->bumpCfdVersion)($registerId);
+        }
+
+        return $result;
     }
 }

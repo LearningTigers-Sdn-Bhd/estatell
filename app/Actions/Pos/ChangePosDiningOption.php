@@ -21,7 +21,8 @@ class ChangePosDiningOption
     public function __invoke(User $actor, Property $property, PosOrder $order, PosDiningOption $option, ?User $approver = null): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $option, $approver): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $option, $approver, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
 
                 if ($order === null) {
@@ -56,12 +57,14 @@ class ChangePosDiningOption
 
                 $registerId = $order->shift?->pos_register_id;
 
-                if ($registerId !== null) {
-                    ($this->bumpCfdVersion)($registerId);
-                }
-
                 return PosActionResult::saved($order->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

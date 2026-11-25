@@ -64,6 +64,9 @@ it('shows idle for a register with no active order', function () {
 it('shows the open check with server totals and no voided lines, notes or cost', function () {
     $s = posOrderSetup();
     $order = posNewOrder($s);
+    $order->forceFill(['order_note' => 'VIP_SECRET_NOTE'])->save();
+    $s['steak']->forceFill(['cost' => '43.21'])->save();
+    $s['steak']->item->forceFill(['internal_name' => 'KITCHEN_SECRET_ALIAS'])->save();
     posAddLine($s, $order, $s['steak']);
     $voided = posAddLine($s, $order, $s['mocha']);
     app(VoidOrderLine::class)($s['manager'], $s['property'], $order, $voided, PosVoidReason::factory()->create(['property_id' => $s['property']->id, 'requires_manager_pin' => false]));
@@ -74,7 +77,25 @@ it('shows the open check with server totals and no voided lines, notes or cost',
         ->and($state['order']['grandTotal'])->toBe($order->fresh()->grand_total)
         ->and($state['order']['lines'])->toHaveCount(1)
         ->and($state['order']['lines'][0]['itemName'])->toBe('Steak')
-        ->and(json_encode($state))->not->toContain('unit_cost')->not->toContain('order_note')->not->toContain('internal_name');
+        ->and(json_encode($state))
+        ->not->toContain('VIP_SECRET_NOTE')
+        ->not->toContain('KITCHEN_SECRET_ALIAS')
+        ->not->toContain('43.21')
+        ->not->toContain('unit_cost')
+        ->not->toContain('order_note')
+        ->not->toContain('internal_name');
+});
+
+it('falls back to idle when every line on an open order has been voided', function () {
+    $s = posOrderSetup();
+    $order = posNewOrder($s);
+    $line = posAddLine($s, $order, $s['steak']);
+    app(UpdateRegisterDisplayState::class)($s['property'], $s['register'], $order->id, false);
+    app(VoidOrderLine::class)($s['manager'], $s['property'], $order, $line, PosVoidReason::factory()->create(['property_id' => $s['property']->id, 'requires_manager_pin' => false]));
+
+    $state = app(CustomerDisplay::class)->stateFor($s['property'], $s['register']->refresh());
+
+    expect($state['mode'])->toBe('idle')->and($state['order'])->toBeNull();
 });
 
 it('switches to checkout on the state endpoint and bumps the version', function () {
@@ -159,6 +180,15 @@ it('stores, serves and removes the outlet static DuitNow QR and the welcome mess
     expect($path)->not->toBeNull();
     Storage::disk(config('filesystems.public_media'))->assertExists($path);
 
+    // Replacing the QR generates a fresh cache-busting filename and deletes the previous file.
+    $this->actingAs($s['manager'])->post($url, ['qr' => UploadedFile::fake()->image('qr-new.png', 300, 300)])
+        ->assertRedirect();
+
+    $replacedPath = $s['outlet']->fresh()->cfd_duitnow_qr_path;
+    expect($replacedPath)->not->toBeNull()->not->toBe($path);
+    Storage::disk(config('filesystems.public_media'))->assertMissing($path);
+    Storage::disk(config('filesystems.public_media'))->assertExists($replacedPath);
+
     $this->actingAs($s['manager'])->put(route('settings.pos.outlets.update', [$s['property']->code, $s['outlet']->id]), [
         'operation_mode' => 'pay_first', 'rounding_mode' => 'five_sen', 'rounding_policy' => 'cash_leg_only',
         'require_room_charge_signature' => true, 'require_meal_redemption_confirmation' => true, 'require_reprint_pin' => true,
@@ -172,5 +202,5 @@ it('stores, serves and removes the outlet static DuitNow QR and the welcome mess
         ->assertRedirect();
 
     expect($s['outlet']->fresh()->cfd_duitnow_qr_path)->toBeNull();
-    Storage::disk(config('filesystems.public_media'))->assertMissing($path);
+    Storage::disk(config('filesystems.public_media'))->assertMissing($replacedPath);
 });

@@ -198,8 +198,6 @@ export default function PosTerminal(props: Props) {
         orderId: number | null,
         checkoutActive: boolean,
     ) {
-        cfdChannel.current?.postMessage({ orderId, checkoutActive });
-
         if (register === null) {
             return;
         }
@@ -223,16 +221,25 @@ export default function PosTerminal(props: Props) {
                 order_id: orderId,
                 checkout_active: checkoutActive,
             }),
-        }).catch(() => undefined);
+        })
+            .then(() => {
+                cfdChannel.current?.postMessage({ orderId, checkoutActive });
+            })
+            .catch(() => undefined);
     }
 
     const activeOrderId = order?.id ?? null;
+    const cfdSignature = `${order?.id ?? 'none'}|${order?.lines.length ?? 0}|${order?.grandTotal ?? ''}|${order?.discountTotal ?? ''}|${order?.diningOptionId ?? ''}|${receipt?.id ?? ''}`;
 
     useEffect(() => {
         if (activeOrderId !== null) {
             syncCustomerDisplay(activeOrderId, paying);
         }
     }, [activeOrderId, paying]);
+
+    useEffect(() => {
+        cfdChannel.current?.postMessage({ signature: cfdSignature });
+    }, [cfdSignature]);
     const hasDraft =
         order?.lines.some((row) => row.isDraft && !row.isVoided) ?? false;
     const hasSent =

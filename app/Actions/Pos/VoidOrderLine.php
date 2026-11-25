@@ -30,7 +30,8 @@ class VoidOrderLine
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line, PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $line, $reason, $reasonText, $returnStock, $approver): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $line, $reason, $reasonText, $returnStock, $approver, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
                 $line = $order === null ? null : PosOrderLine::query()->where('pos_order_id', $order->id)->lockForUpdate()->find($line->id);
 
@@ -98,12 +99,14 @@ class VoidOrderLine
 
                 $registerId = $order->shift?->pos_register_id;
 
-                if ($registerId !== null) {
-                    ($this->bumpCfdVersion)($registerId);
-                }
-
                 return PosActionResult::saved($line->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

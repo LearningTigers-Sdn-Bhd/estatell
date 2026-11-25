@@ -24,7 +24,8 @@ class RemoveDraftLine
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $line): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $line, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
                 $line = $order === null ? null : PosOrderLine::query()->where('pos_order_id', $order->id)->find($line->id);
 
@@ -66,12 +67,14 @@ class RemoveDraftLine
 
                 $registerId = $order->shift?->pos_register_id;
 
-                if ($registerId !== null) {
-                    ($this->bumpCfdVersion)($registerId);
-                }
-
                 return PosActionResult::saved($order->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

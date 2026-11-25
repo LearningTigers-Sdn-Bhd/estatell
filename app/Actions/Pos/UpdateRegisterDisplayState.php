@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Point a register's customer-facing display at the order the cashier is working on, or clear it. The order must belong to
- * the register's outlet, so a tablet never shows another outlet's check. Bumps the display version so it reloads. A refusal
- * writes nothing. See docs/34-native-pos/10-customer-facing-display.md.
+ * the register's outlet, so a tablet never shows another outlet's check. Bumps the display version after commit so a
+ * polling screen never reads pre-commit state. A refusal writes nothing.
+ * See docs/34-native-pos/10-customer-facing-display.md.
  */
 class UpdateRegisterDisplayState
 {
@@ -18,7 +19,7 @@ class UpdateRegisterDisplayState
 
     public function __invoke(Property $property, PosRegister $register, ?int $orderId, bool $checkoutActive): PosActionResult
     {
-        return DB::transaction(function () use ($property, $register, $orderId, $checkoutActive): PosActionResult {
+        $result = DB::transaction(function () use ($property, $register, $orderId, $checkoutActive): PosActionResult {
             $register = PosRegister::query()->where('property_id', $property->id)->whereKey($register->id)->lockForUpdate()->first();
 
             if ($register === null) {
@@ -42,9 +43,13 @@ class UpdateRegisterDisplayState
                 'cfd_checkout_active' => $orderId === null ? false : $checkoutActive,
             ])->save();
 
-            ($this->bumpCfdVersion)($register->id);
-
             return PosActionResult::saved($register);
         });
+
+        if (! $result->isRefused()) {
+            ($this->bumpCfdVersion)($register->id);
+        }
+
+        return $result;
     }
 }

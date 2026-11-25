@@ -5,6 +5,7 @@ namespace App\Services\Pos;
 use App\Data\Property\CurrencyData;
 use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderStatus;
+use App\Enums\PosPaymentStatus;
 use App\Features\EInvoicing;
 use App\Models\PosOrder;
 use App\Models\PosOrderLine;
@@ -67,8 +68,12 @@ class CustomerDisplay
             return 'idle';
         }
 
+        $hasLiveLines = $order->lines->contains(
+            fn (PosOrderLine $line): bool => $line->kitchen_status !== PosKitchenStatus::Voided,
+        );
+
         return match ($order->status) {
-            PosOrderStatus::Open => $order->lines->isEmpty() ? 'idle' : ($register->cfd_checkout_active ? 'checkout' : 'active'),
+            PosOrderStatus::Open => ! $hasLiveLines ? 'idle' : ($register->cfd_checkout_active ? 'checkout' : 'active'),
             PosOrderStatus::Settled => $order->settled_at === null || $order->settled_at->diffInSeconds(now()) > self::THANK_YOU_SECONDS ? 'idle' : 'settled',
             default => 'idle',
         };
@@ -83,7 +88,13 @@ class CustomerDisplay
         return PosOrder::query()
             ->where('property_id', $property->id)
             ->where('pos_outlet_id', $register->pos_outlet_id)
-            ->with(['diningOption', 'table', 'lines.modifiers', 'lines.variant.item', 'payments'])
+            ->with([
+                'diningOption',
+                'table',
+                'lines.modifiers',
+                'lines.variant.item',
+                'payments' => fn ($query) => $query->where('status', PosPaymentStatus::Captured->value),
+            ])
             ->find($register->active_pos_order_id);
     }
 

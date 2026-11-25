@@ -90,6 +90,11 @@ export default function PosCfd({
             )}
             {mode === 'settled' && (
                 <CfdSettledView
+                    key={
+                        state.order?.orderNumber ??
+                        state.order?.settledAt ??
+                        'settled'
+                    }
                     state={state}
                     onExpire={() => setSettledExpired(true)}
                 />
