@@ -163,6 +163,23 @@ it('serves the floor plan settings and saves floors, tables and a dragged table 
 
     expect($table->refresh()->pos_x)->toBe(240)->and($table->shape->value)->toBe('round')
         ->and($this->actingAs($s['manager'])->get(route('settings.pos.floors.index', $code))->assertOk()->viewData('page')['props']['floors'][0]['tables'])->toHaveCount(3);
+
+    $this->actingAs($s['manager'])->post(route('settings.pos.tables.store', [$code, $floor->id]), ['code' => 'VIP1', 'label' => 'Window', 'seats' => 6, 'shape' => 'rect', 'x' => 40, 'y' => 40, 'width' => 140, 'height' => 100, 'active' => true])->assertRedirect();
+    expect(PosTable::query()->where('code', 'VIP1')->sole()->label)->toBe('Window');
+});
+
+it('transfers an open check to a vacant table and reports floor version changes', function () {
+    $s = posFloorSetup();
+    $code = $s['property']->code;
+    $vacant = PosTable::factory()->create(['property_id' => $s['property']->id, 'pos_floor_id' => $s['table']->pos_floor_id, 'code' => 'B01']);
+    $order = posTableOrder($s);
+
+    $before = $this->actingAs($s['manager'])->getJson(route('pos.floor-version', [$code, $s['outlet']->id]))->assertOk()->json('version');
+
+    $this->actingAs($s['manager'])->post(route('pos.orders.table', [$code, $order->id]), ['pos_table_id' => $vacant->id])->assertRedirect();
+
+    expect($order->refresh()->pos_table_id)->toBe($vacant->id)
+        ->and($before)->toBeString();
 });
 
 it('opens an order on a table, splits and merges it through the routes', function () {

@@ -86,7 +86,6 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}']
         require __DIR__.'/registration.php';
         require __DIR__.'/reports.php';
         require __DIR__.'/pos.php';
-        require __DIR__.'/native-pos.php';
         require __DIR__.'/reservations.php';
     });
 });

@@ -45,6 +45,8 @@ export default function PosOrdersIndex({
     filters,
     currency,
 }: Props) {
+    const currencyCode = currency?.code ?? 'MYR';
+
     const columns = useMemo(
         () => [
             column.accessor('orderNumber', {
@@ -74,23 +76,40 @@ export default function PosOrdersIndex({
                 header: 'Status',
                 enableSorting: false,
                 cell: (info) => (
-                    <Badge variant="secondary">{info.getValue()}</Badge>
+                    <Badge
+                        variant={
+                            info.row.original.status === 'voided'
+                                ? 'destructive'
+                                : 'secondary'
+                        }
+                    >
+                        {info.getValue()}
+                    </Badge>
                 ),
             }),
             column.accessor('grandTotal', {
-                header: 'Total',
+                header: `Total (${currencyCode})`,
                 enableSorting: false,
                 cell: (info) => (
-                    <MoneyText amount={info.getValue()} currency={currency} />
+                    <MoneyText
+                        amount={info.getValue()}
+                        currency={currency}
+                        plain
+                    />
                 ),
             }),
             column.accessor('onEInvoice', {
                 header: 'E-invoice',
                 enableSorting: false,
-                cell: (info) => (info.getValue() ? 'Filed' : '—'),
+                cell: (info) =>
+                    info.getValue() ? (
+                        <Badge variant="secondary">Filed</Badge>
+                    ) : (
+                        <span className="text-muted-foreground">Not filed</span>
+                    ),
             }),
         ],
-        [currency],
+        [currency, currencyCode],
     );
 
     function visit(change: Partial<Filters>) {
@@ -113,10 +132,11 @@ export default function PosOrdersIndex({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title="POS receipts"
-                    description="Settled and voided sales from your native POS, with refunds."
+                    description="Settled and voided POS sales and refunds."
                 />
                 <div className="flex flex-wrap items-center gap-2">
                     <EnumSelect
+                        name="outlet"
                         options={outlets.map((outlet) => ({
                             value: String(outlet.id),
                             label: outlet.name,
@@ -127,6 +147,7 @@ export default function PosOrdersIndex({
                         aria-label="Outlet"
                     />
                     <EnumSelect
+                        name="status"
                         options={[
                             { value: 'settled', label: 'Settled' },
                             { value: 'voided', label: 'Voided' },

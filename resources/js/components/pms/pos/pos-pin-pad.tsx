@@ -1,14 +1,15 @@
 import { router } from '@inertiajs/react';
 import { Delete } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { switchMethod } from '@/routes/pos/pin';
 import type { PosStaff } from './pos-types';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 /**
- * Pick-Name + PIN: the cashier taps their name, then keys their PIN. The server checks it and switches the active actor.
+ * Pick-Name + PIN: supports both touch keypad and physical keyboard / USB numpad (`0-9`, `Backspace`, `Enter`, `Escape`).
  */
 export function PosPinPad({
     staff,
@@ -21,25 +22,59 @@ export function PosPinPad({
     const [pin, setPin] = useState('');
     const [processing, setProcessing] = useState(false);
 
-    function submit(value: string) {
-        if (person === null || value.length < 4) {
+    const submit = useCallback(
+        (value: string) => {
+            if (person === null || value.length < 4 || processing) {
+                return;
+            }
+
+            router.post(
+                switchMethod.url(),
+                { user_id: person.id, pin: value },
+                {
+                    preserveScroll: true,
+                    onStart: () => setProcessing(true),
+                    onFinish: () => {
+                        setProcessing(false);
+                        setPin('');
+                    },
+                    onSuccess: () => onDone?.(),
+                },
+            );
+        },
+        [person, processing, onDone],
+    );
+
+    useEffect(() => {
+        if (person === null) {
             return;
         }
 
-        router.post(
-            switchMethod.url(),
-            { user_id: person.id, pin: value },
-            {
-                preserveScroll: true,
-                onStart: () => setProcessing(true),
-                onFinish: () => {
-                    setProcessing(false);
-                    setPin('');
-                },
-                onSuccess: () => onDone?.(),
-            },
-        );
-    }
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (processing) {
+                return;
+            }
+
+            if (/^[0-9]$/.test(event.key)) {
+                event.preventDefault();
+                setPin((current) => (current + event.key).slice(0, 6));
+            } else if (event.key === 'Backspace') {
+                event.preventDefault();
+                setPin((current) => current.slice(0, -1));
+            } else if (event.key === 'Enter' && pin.length >= 4) {
+                event.preventDefault();
+                submit(pin);
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                setPerson(null);
+                setPin('');
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [person, pin, processing, submit]);
 
     if (person === null) {
         return (
@@ -66,7 +101,7 @@ export function PosPinPad({
                 <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
+                    className="min-h-11"
                     onClick={() => {
                         setPerson(null);
                         setPin('');
@@ -124,6 +159,7 @@ export function PosPinPad({
                     focusableWhenDisabled
                     onClick={() => submit(pin)}
                 >
+                    {processing && <Spinner data-icon="inline-start" />}
                     Sign in
                 </Button>
             </div>

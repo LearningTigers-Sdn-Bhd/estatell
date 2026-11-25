@@ -13,8 +13,7 @@ use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Facilities;
 use App\Features\Kiosks;
-use App\Features\NativePos;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Notifications\GuestEmailText;
@@ -69,11 +68,11 @@ class SettingsNavigation
                     icon: 'tablet',
                     active: request()->routeIs('settings.kiosks.*'),
                 ) : null,
-                $user->can(PermissionEnum::PosManage->value) && (Feature::for($property)->active(PosIntegration::class) || Feature::for($property)->active(NativePos::class)) ? new NavItemData(
+                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
                     title: __('POS'),
                     href: route('settings.pos-outlets.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',
-                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-integrations.*', 'settings.pos-api-clients.*', 'settings.pos.*'),
+                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-api-clients.*', 'settings.pos.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Concierge::class) ? new NavItemData(
                     title: __('Concierge'),

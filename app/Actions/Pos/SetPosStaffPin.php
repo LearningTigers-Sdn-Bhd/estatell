@@ -2,7 +2,7 @@
 
 namespace App\Actions\Pos;
 
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosStaffPin;
 use App\Models\User;
 use App\Services\Pos\PosPinHasher;
@@ -23,8 +23,8 @@ class SetPosStaffPin
     {
         $property = $user->property;
 
-        if ($property === null || ! Feature::for($property)->active(NativePos::class)) {
-            return 'native_pos_disabled';
+        if ($property === null || ! Feature::for($property)->active(Pos::class)) {
+            return 'pos_disabled';
         }
 
         if (! $this->policy->isWellFormed($pin)) {

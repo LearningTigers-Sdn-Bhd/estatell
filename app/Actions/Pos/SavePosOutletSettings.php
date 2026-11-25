@@ -23,7 +23,7 @@ class SavePosOutletSettings
     public function __invoke(User $actor, Property $property, PosOutlet $outlet, array $values): PosActionResult
     {
         return DB::transaction(function () use ($actor, $property, $outlet, $values): PosActionResult {
-            if ($outlet->property_id !== $property->id || ! $outlet->native_pos_enabled) {
+            if ($outlet->property_id !== $property->id || ! $outlet->pos_enabled) {
                 return PosActionResult::refused('outlet_invalid');
             }
 
@@ -33,7 +33,7 @@ class SavePosOutletSettings
                 return PosActionResult::refused('transaction_code_invalid');
             }
 
-            $outlet->fill(array_intersect_key($values, array_flip([...self::CODES, 'sst_registration_number', 'operation_mode', 'rounding_mode', 'rounding_policy', 'room_charge_limit', 'require_room_charge_signature', 'require_meal_redemption_confirmation', 'require_reprint_pin', 'require_dual_control', 'print_receipt_after_payment', 'print_drawer_slip', 'require_clock_in'])))->save();
+            $outlet->fill(array_intersect_key($values, array_flip([...self::CODES, 'sst_registration_number', 'operation_mode', 'rounding_mode', 'rounding_policy', 'room_charge_limit', 'require_room_charge_signature', 'require_meal_redemption_confirmation', 'require_reprint_pin', 'require_dual_control', 'print_receipt_after_payment', 'print_drawer_slip', 'require_clock_in', 'allow_anonymous_qr', 'allow_qr_customer_remark'])))->save();
 
             activity()->performedOn($outlet)->causedBy($actor)->event('pos.outlet_settings_updated')->withProperties(['property_id' => $property->id])->log('POS outlet settings updated');
 

@@ -1,10 +1,10 @@
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { TaxNumberCheck } from '@/components/pms/folio/issue-folio-e-invoice-dialog';
 import {
     ID_TYPES,
     MALAYSIA_STATES,
-} from '@/components/pms/folio/issue-folio-e-invoice-dialog';
+    TaxNumberCheck,
+} from '@/components/pms/e-invoice-fields';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { Field, FieldLabel } from '@/components/ui/field';

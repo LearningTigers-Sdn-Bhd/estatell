@@ -66,19 +66,29 @@ class PosOrderReportLines
         foreach ($lines as $line) {
             $lineNet = $scale(BigDecimal::of($line->net_amount)->plus($line->service_charge_amount));
             $net = $net->plus($lineNet);
-            $lineTaxed = false;
+            $lineTaxedBase = BigDecimal::zero();
 
             /** @var PosOrderLineTax $tax */
             foreach ($line->taxes as $tax) {
                 $type = $tax->lhdn_tax_type ?? LhdnTaxType::SERVICE_TAX;
+                $scaledBase = $scale($tax->taxable_base);
                 $taxes[$type] = ($taxes[$type] ?? BigDecimal::zero())->plus($scale($tax->tax_amount));
-                $taxable[$type] = ($taxable[$type] ?? BigDecimal::zero())->plus($scale($tax->taxable_base));
+                $taxable[$type] = ($taxable[$type] ?? BigDecimal::zero())->plus($scaledBase);
                 $percent[$type] ??= $tax->rate_type === TaxRateType::Percent ? BigDecimal::of($tax->tax_rate)->toScale(2) : null;
-                $lineTaxed = true;
+
+                if ($scaledBase->abs()->isGreaterThan($lineTaxedBase->abs())) {
+                    $lineTaxedBase = $scaledBase;
+                }
             }
 
-            if ($lineTaxed) {
-                $taxed = $taxed->plus($lineNet);
+            if ($line->taxes->isNotEmpty()) {
+                if ($lineTaxedBase->isZero()) {
+                    $lineTaxedBase = $lineNet;
+                } elseif ($lineTaxedBase->abs()->isGreaterThan($lineNet->abs())) {
+                    $lineTaxedBase = $lineNet;
+                }
+
+                $taxed = $taxed->plus($lineTaxedBase);
             }
         }
 

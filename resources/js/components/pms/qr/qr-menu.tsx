@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { MoneyText } from '@/components/pms/money-text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 
 export type QrVariant = {
     id: number;
@@ -34,14 +36,16 @@ type CartRow = {
  */
 export function QrMenu({
     categories,
+    currency,
     allowRemark,
     sending,
     onSend,
 }: {
     categories: QrCategory[];
+    currency: App.Data.Property.CurrencyData | null;
     allowRemark: boolean;
     sending: boolean;
-    onSend: (lines: QrLine[]) => void;
+    onSend: (lines: QrLine[], clearCart: () => void) => void;
 }) {
     const [categoryId, setCategoryId] = useState<number | null>(
         categories[0]?.id ?? null,
@@ -56,6 +60,11 @@ export function QrMenu({
         (sum, row) => sum + Number(row.variant.price) * row.quantity,
         0,
     );
+
+    const clearCart = () => {
+        setCart({});
+        setRemark('');
+    };
 
     const add = (item: QrItem, variant: QrVariant) =>
         setCart((current) => ({
@@ -92,15 +101,17 @@ export function QrMenu({
                           .join(' · ') || null
                     : null,
             })),
+            clearCart,
         );
 
     return (
-        <div className="flex flex-col gap-4 p-4 pb-40">
-            <nav className="flex gap-2 overflow-x-auto">
+        <div className="flex flex-col gap-4 p-4 pb-56">
+            <nav className="flex gap-2 overflow-x-auto pb-1">
                 {categories.map((row) => (
                     <Button
                         key={row.id}
                         size="lg"
+                        className="min-h-11 shrink-0"
                         variant={
                             row.id === category?.id ? 'default' : 'outline'
                         }
@@ -122,14 +133,20 @@ export function QrMenu({
                                 key={variant.id}
                                 size="lg"
                                 variant="outline"
+                                className="min-h-11 gap-2"
                                 disabled={variant.soldOut}
                                 onClick={() => add(item, variant)}
                             >
-                                {variant.name === 'Regular'
-                                    ? item.name
-                                    : variant.name}{' '}
+                                <span>
+                                    {variant.name === 'Regular'
+                                        ? item.name
+                                        : variant.name}
+                                </span>
                                 <span className="tabular-nums">
-                                    RM {Number(variant.price).toFixed(2)}
+                                    <MoneyText
+                                        amount={variant.price}
+                                        currency={currency}
+                                    />
                                 </span>
                                 {variant.soldOut && (
                                     <Badge variant="secondary">Sold out</Badge>
@@ -140,40 +157,60 @@ export function QrMenu({
                 </Card>
             ))}
 
-            <div className="fixed inset-x-0 bottom-0 flex flex-col gap-3 border-t bg-background p-4">
-                {rows.map((row) => (
-                    <div
-                        key={row.variant.id}
-                        className="flex items-center justify-between gap-2"
-                    >
-                        <span className="min-w-0 truncate">{row.item}</span>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                aria-label="Less"
-                                onClick={() =>
-                                    change(row.variant.id, row.quantity - 1)
-                                }
+            <div className="fixed inset-x-0 bottom-0 flex max-h-[45svh] flex-col gap-3 border-t bg-background p-4">
+                {rows.length > 0 && (
+                    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                        {rows.map((row) => (
+                            <div
+                                key={row.variant.id}
+                                className="flex items-center justify-between gap-2"
                             >
-                                −
-                            </Button>
-                            <span className="w-6 text-center tabular-nums">
-                                {row.quantity}
-                            </span>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                aria-label="More"
-                                onClick={() =>
-                                    change(row.variant.id, row.quantity + 1)
-                                }
-                            >
-                                +
-                            </Button>
-                        </div>
+                                <span className="min-w-0 truncate text-sm">
+                                    {row.item}
+                                    {row.variant.name !== 'Regular' && (
+                                        <span className="text-muted-foreground">
+                                            {' '}
+                                            · {row.variant.name}
+                                        </span>
+                                    )}
+                                </span>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <Button
+                                        size="icon"
+                                        variant="outline"
+                                        className="min-h-11 min-w-11"
+                                        aria-label="Less"
+                                        onClick={() =>
+                                            change(
+                                                row.variant.id,
+                                                row.quantity - 1,
+                                            )
+                                        }
+                                    >
+                                        −
+                                    </Button>
+                                    <span className="w-6 text-center tabular-nums">
+                                        {row.quantity}
+                                    </span>
+                                    <Button
+                                        size="icon"
+                                        variant="outline"
+                                        className="min-h-11 min-w-11"
+                                        aria-label="More"
+                                        onClick={() =>
+                                            change(
+                                                row.variant.id,
+                                                row.quantity + 1,
+                                            )
+                                        }
+                                    >
+                                        +
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                )}
                 {allowRemark && rows.length > 0 && (
                     <Input
                         placeholder="Note for the kitchen (optional)"
@@ -184,10 +221,14 @@ export function QrMenu({
                 )}
                 <Button
                     size="lg"
+                    className="min-h-11"
                     disabled={rows.length === 0 || sending}
+                    focusableWhenDisabled
                     onClick={send}
                 >
-                    Send order · RM {total.toFixed(2)}
+                    {sending && <Spinner data-icon="inline-start" />}
+                    Send order ·{' '}
+                    <MoneyText amount={total.toFixed(2)} currency={currency} />
                 </Button>
             </div>
         </div>

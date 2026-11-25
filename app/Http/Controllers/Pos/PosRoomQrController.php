@@ -26,6 +26,7 @@ class PosRoomQrController extends Controller
             return back();
         }
 
+        Inertia::flash('roomQrPin', ['unitId' => $unit, 'pin' => $pin]);
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Room QR PIN: :pin. Give it to the guest now. It is not shown again.', ['pin' => $pin])]);
 
         return back();

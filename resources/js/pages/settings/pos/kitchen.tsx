@@ -20,6 +20,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -102,6 +103,8 @@ export default function PosKitchen({
                     <div className="flex items-center gap-3">
                         {outlets.length > 1 && (
                             <EnumSelect
+                                name="outlet"
+                                aria-label="Outlet"
                                 options={outlets}
                                 value={String(outlet?.id ?? '')}
                                 onValueChange={(value) =>
@@ -124,7 +127,7 @@ export default function PosKitchen({
                 <CardContent>
                     {outlet === null && (
                         <p className="text-muted-foreground">
-                            Turn on Native POS for an outlet first.
+                            Enable POS on an outlet first.
                         </p>
                     )}
                     {outlet !== null && (
@@ -240,6 +243,14 @@ export default function PosKitchen({
                             <div className="flex flex-col gap-2">
                                 <h3 className="font-medium">Categories</h3>
                                 <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Category</TableHead>
+                                            <TableHead className="w-64">
+                                                Station
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
                                     <TableBody>
                                         {categories.map((category) => (
                                             <TableRow key={category.id}>
@@ -248,6 +259,8 @@ export default function PosKitchen({
                                                 </TableCell>
                                                 <TableCell className="w-64">
                                                     <EnumSelect
+                                                        name={`category_station_${category.id}`}
+                                                        aria-label={`${category.name} station`}
                                                         allLabel="Not routed"
                                                         options={stationOptions}
                                                         value={
@@ -283,6 +296,14 @@ export default function PosKitchen({
                             <div className="flex flex-col gap-2">
                                 <h3 className="font-medium">Items</h3>
                                 <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Item</TableHead>
+                                            <TableHead className="w-64">
+                                                Station override
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
                                     <TableBody>
                                         {items.map((item) => (
                                             <TableRow key={item.id}>
@@ -304,6 +325,8 @@ export default function PosKitchen({
                                                 </TableCell>
                                                 <TableCell className="w-64">
                                                     <EnumSelect
+                                                        name={`item_station_${item.id}`}
+                                                        aria-label={`${item.name} station`}
                                                         allLabel="Use category"
                                                         options={stationOptions}
                                                         value={
@@ -337,7 +360,11 @@ export default function PosKitchen({
                                 <Button
                                     type="submit"
                                     disabled={routing.processing}
+                                    focusableWhenDisabled
                                 >
+                                    {routing.processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
                                     Save routing
                                 </Button>
                             </div>

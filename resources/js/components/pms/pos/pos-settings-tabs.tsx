@@ -7,7 +7,6 @@ import {
     Layers,
     CalendarClock,
     LayoutGrid,
-    Plug,
     Store,
     UtensilsCrossed,
     Utensils,
@@ -19,7 +18,6 @@ import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import { profile } from '@/routes/settings';
 import { index as posApiClientsIndex } from '@/routes/settings/pos-api-clients';
-import { index as posIntegrationsIndex } from '@/routes/settings/pos-integrations';
 import { index as posOutletsIndex } from '@/routes/settings/pos-outlets';
 import { index as nativeDiningIndex } from '@/routes/settings/pos/dining-options';
 import { index as nativeFloorsIndex } from '@/routes/settings/pos/floors';
@@ -34,7 +32,6 @@ import type { BreadcrumbItem } from '@/types';
 
 export type PosSettingsTab =
     | 'outlets'
-    | 'integrations'
     | 'api'
     | 'registers'
     | 'menu'
@@ -48,7 +45,6 @@ export type PosSettingsTab =
 
 const tabTitles: Record<PosSettingsTab, string> = {
     outlets: 'POS outlets',
-    integrations: 'POS integrations',
     api: 'POS API access',
     registers: 'Registers and accounts',
     menu: 'Menu',
@@ -68,12 +64,6 @@ export function posSettingsTabs(): TabLink[] {
             label: 'Outlets',
             icon: Utensils,
             href: posOutletsIndex(),
-        },
-        {
-            value: 'integrations',
-            label: 'Integrations',
-            icon: Plug,
-            href: posIntegrationsIndex(),
         },
         {
             value: 'api',
@@ -165,7 +155,7 @@ export function PosSettingsShell({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title="POS"
-                    description="Outlets, menu, registers and staff PINs for the native POS, plus the Loyverse connection and API tokens for charging bills to a guest's room."
+                    description="Outlets, menu, registers, floor plan, kitchen stations, staff PINs and API tokens for charging bills to a guest's room."
                 />
 
                 <TabLinks

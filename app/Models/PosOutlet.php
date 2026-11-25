@@ -22,9 +22,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $property_id
  * @property string $name
  * @property string $code Uppercase, unique per property.
- * @property int|null $default_charge_item_id Required for an outlet the external POS uses. Null only for a native-only outlet.
+ * @property int|null $default_charge_item_id Required for an outlet the external POS API uses. Optional when using built-in POS.
  * @property bool $active
- * @property bool $native_pos_enabled
+ * @property bool $pos_enabled
  * @property int|null $service_charge_transaction_code_id
  * @property int|null $packaging_transaction_code_id
  * @property int|null $rounding_transaction_code_id
@@ -52,7 +52,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
-    'name', 'code', 'default_charge_item_id', 'active', 'native_pos_enabled',
+    'name', 'code', 'default_charge_item_id', 'active', 'pos_enabled',
     'service_charge_transaction_code_id', 'packaging_transaction_code_id', 'rounding_transaction_code_id', 'cash_variance_transaction_code_id', 'safe_clearing_transaction_code_id',
     'operation_mode', 'close_sales_time', 'sst_registration_number', 'rounding_mode', 'rounding_policy', 'room_charge_limit',
     'require_room_charge_signature', 'require_meal_redemption_confirmation', 'require_reprint_pin', 'require_dual_control',
@@ -71,7 +71,7 @@ class PosOutlet extends Model
     {
         return [
             'active' => 'boolean',
-            'native_pos_enabled' => 'boolean',
+            'pos_enabled' => 'boolean',
             'operation_mode' => PosOperationMode::class,
             'rounding_mode' => PosRoundingMode::class,
             'rounding_policy' => PosRoundingPolicy::class,
@@ -112,14 +112,6 @@ class PosOutlet extends Model
     public function postings(): HasMany
     {
         return $this->hasMany(PosPosting::class);
-    }
-
-    /**
-     * @return HasMany<PosOutletMapping, $this>
-     */
-    public function mappings(): HasMany
-    {
-        return $this->hasMany(PosOutletMapping::class);
     }
 
     /**

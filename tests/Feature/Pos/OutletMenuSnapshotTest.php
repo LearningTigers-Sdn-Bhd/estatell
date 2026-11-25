@@ -19,7 +19,7 @@ use App\Models\PosOutletPaymentMethod;
 use App\Services\Pos\OutletMenuSnapshot;
 use Illuminate\Support\Facades\DB;
 
-require_once __DIR__.'/../Support/NativePosSetup.php';
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
 require_once __DIR__.'/PosMenuTest.php';
 
 function posSnapshot(array $s): array

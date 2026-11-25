@@ -1,5 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ChefHat, History } from 'lucide-react';
+import {
+    ChefHat,
+    History,
+    Monitor,
+    Printer,
+    Volume2,
+    VolumeX,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import {
@@ -21,15 +28,25 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { version as kdsVersion, show as kdsShow } from '@/routes/pos/kds';
 import { status as kdsLineStatus } from '@/routes/pos/kds/lines';
 import { bump as kdsBump, recall as kdsRecall } from '@/routes/pos/kds/orders';
+import { show as odsShow } from '@/routes/pos/ods';
 
 type Station = {
     id: number;
+    outletId?: number;
     name: string;
-    outlet: string;
+    outlet?: string;
     warnAfterMinutes: number;
     alertAfterMinutes: number;
 };
@@ -49,6 +66,40 @@ type View = 'kitchen' | 'window' | 'all-day';
 const POLL_MS = 4000;
 const CLOCK_MS = 1000;
 
+function playAlertChime() {
+    try {
+        const AudioCtx =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext?: typeof AudioContext })
+                .webkitAudioContext;
+
+        if (!AudioCtx) {
+            return;
+        }
+
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        [880, 1175].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.08, now + idx * 0.16);
+            gain.gain.exponentialRampToValueAtTime(
+                0.001,
+                now + idx * 0.16 + 0.14,
+            );
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.16);
+            osc.stop(now + idx * 0.16 + 0.15);
+        });
+    } catch {
+        // Ignore audio playback failures when browser autoplay policy blocks sound.
+    }
+}
+
 /**
  * The Web KDS of one station. The Kitchen view tickets cook (tap a dish to start, then to ready, Bump the ticket). The
  * Window view lists ready food for runners, and Served closes a line. All-Day adds up the dishes still to cook. The view
@@ -64,8 +115,11 @@ export default function PosKds({
 }: Props) {
     const [view, setView] = useState<View>('kitchen');
     const [showRecall, setShowRecall] = useState(false);
+    const [muted, setMuted] = useState(false);
+    const [printTicket, setPrintTicket] = useState<KitchenTicket | null>(null);
     const [now, setNow] = useState(() => Date.now());
     const latestVersion = useRef(version);
+    const alertedTickets = useRef<Set<number>>(new Set());
 
     useEffect(() => {
         latestVersion.current = version;
@@ -78,21 +132,30 @@ export default function PosKds({
 
         const stationId = station.id;
         const timer = window.setInterval(async () => {
-            const response = await fetch(
-                kdsVersion.url({ station: stationId }),
-                { headers: { Accept: 'application/json' } },
-            );
+            try {
+                const response = await fetch(
+                    kdsVersion.url({ station: stationId }),
+                    {
+                        headers: { Accept: 'application/json' },
+                        credentials: 'same-origin',
+                    },
+                );
 
-            if (!response.ok) {
-                return;
-            }
+                if (!response.ok) {
+                    return;
+                }
 
-            const { version: current } = (await response.json()) as {
-                version: string;
-            };
+                const { version: current } = (await response.json()) as {
+                    version: string;
+                };
 
-            if (current !== latestVersion.current) {
-                router.reload({ only: ['tickets', 'recallable', 'version'] });
+                if (current !== latestVersion.current) {
+                    router.reload({
+                        only: ['tickets', 'recallable', 'version'],
+                    });
+                }
+            } catch {
+                // Keep polling quietly across transient network blips.
             }
         }, POLL_MS);
 
@@ -104,6 +167,43 @@ export default function PosKds({
 
         return () => window.clearInterval(timer);
     }, []);
+
+    useEffect(() => {
+        if (station === null || muted) {
+            return;
+        }
+
+        let shouldChime = false;
+        const activeIds = new Set<number>();
+
+        for (const ticket of tickets) {
+            activeIds.add(ticket.id);
+            const tone = slaTone(
+                ticket.firedAt,
+                now,
+                station.warnAfterMinutes,
+                station.alertAfterMinutes,
+            );
+
+            if (
+                tone === 'destructive' &&
+                !alertedTickets.current.has(ticket.id)
+            ) {
+                alertedTickets.current.add(ticket.id);
+                shouldChime = true;
+            }
+        }
+
+        for (const id of alertedTickets.current) {
+            if (!activeIds.has(id)) {
+                alertedTickets.current.delete(id);
+            }
+        }
+
+        if (shouldChime) {
+            playAlertChime();
+        }
+    }, [tickets, now, station, muted]);
 
     const allDay = useMemo(() => {
         const totals = new Map<
@@ -185,13 +285,16 @@ export default function PosKds({
                             <Link
                                 key={row.id}
                                 href={kdsShow.url({ station: row.id })}
-                                className={buttonVariants({
-                                    variant:
-                                        row.id === station.id
-                                            ? 'default'
-                                            : 'outline',
-                                    size: 'sm',
-                                })}
+                                className={cn(
+                                    buttonVariants({
+                                        variant:
+                                            row.id === station.id
+                                                ? 'default'
+                                                : 'outline',
+                                        size: 'lg',
+                                    }),
+                                    'min-h-11',
+                                )}
                             >
                                 {row.name}
                             </Link>
@@ -203,6 +306,7 @@ export default function PosKds({
                                 <Button
                                     key={option}
                                     size="lg"
+                                    className="min-h-11"
                                     variant={
                                         view === option ? 'default' : 'outline'
                                     }
@@ -218,6 +322,7 @@ export default function PosKds({
                         )}
                         <Button
                             size="lg"
+                            className="min-h-11"
                             variant="outline"
                             aria-label="Recall a ticket"
                             onClick={() => setShowRecall((open) => !open)}
@@ -225,6 +330,37 @@ export default function PosKds({
                             <History data-icon="inline-start" />
                             Recall
                         </Button>
+                        <Button
+                            size="lg"
+                            className="min-h-11"
+                            variant="outline"
+                            aria-label={muted ? 'Unmute alerts' : 'Mute alerts'}
+                            onClick={() => setMuted((value) => !value)}
+                        >
+                            {muted ? (
+                                <VolumeX data-icon="inline-start" />
+                            ) : (
+                                <Volume2 data-icon="inline-start" />
+                            )}
+                            {muted ? 'Muted' : 'Chime'}
+                        </Button>
+                        {station.outletId !== undefined && (
+                            <Link
+                                href={odsShow.url({ outlet: station.outletId })}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn(
+                                    buttonVariants({
+                                        variant: 'outline',
+                                        size: 'lg',
+                                    }),
+                                    'min-h-11',
+                                )}
+                            >
+                                <Monitor data-icon="inline-start" />
+                                Pickup board
+                            </Link>
+                        )}
                     </div>
                 </header>
 
@@ -273,9 +409,11 @@ export default function PosKds({
                                 ticket={ticket}
                                 tone={slaFor(ticket)}
                                 age={ageLabel(ticket.firedAt, now)}
+                                onPrint={() => setPrintTicket(ticket)}
                                 actions={(line: KitchenLine) => (
                                     <Button
                                         size="lg"
+                                        className="min-h-11"
                                         variant="outline"
                                         onClick={() =>
                                             patchKitchen(
@@ -299,7 +437,7 @@ export default function PosKds({
                                 footer={
                                     <Button
                                         size="lg"
-                                        className={cn('mt-2 w-full')}
+                                        className="mt-2 min-h-11 w-full"
                                         onClick={() =>
                                             postKitchen(
                                                 kdsBump.url({
@@ -330,9 +468,11 @@ export default function PosKds({
                                 ticket={ticket}
                                 tone={slaFor(ticket)}
                                 age={ageLabel(ticket.firedAt, now)}
+                                onPrint={() => setPrintTicket(ticket)}
                                 actions={(line: KitchenLine) => (
                                     <Button
                                         size="lg"
+                                        className="min-h-11"
                                         onClick={() =>
                                             patchKitchen(
                                                 kdsLineStatus.url({
@@ -370,6 +510,7 @@ export default function PosKds({
                                     key={row.id}
                                     variant="outline"
                                     size="lg"
+                                    className="min-h-11"
                                     onClick={() =>
                                         postKitchen(
                                             kdsRecall.url({
@@ -386,6 +527,65 @@ export default function PosKds({
                     </Card>
                 )}
             </div>
+
+            <Dialog
+                open={printTicket !== null}
+                onOpenChange={(open) => !open && setPrintTicket(null)}
+            >
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Kitchen docket</DialogTitle>
+                        <DialogDescription>
+                            80 mm thermal printer formatted docket for{' '}
+                            {station.name}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {printTicket !== null && (
+                        <div className="pos-print-area flex flex-col gap-2 rounded-lg border bg-background p-4 font-mono text-xs">
+                            <div className="text-center text-sm font-semibold">
+                                {station.name}
+                            </div>
+                            <div className="flex justify-between border-t pt-2 font-semibold">
+                                <span>{printTicket.label}</span>
+                                <span>{printTicket.diningKind ?? ''}</span>
+                            </div>
+                            <div className="flex flex-col gap-1.5 border-t pt-2">
+                                {printTicket.lines.map((line) => (
+                                    <div
+                                        key={line.id}
+                                        className="flex flex-col"
+                                    >
+                                        <span className="font-semibold">
+                                            {line.quantity}× {line.name}
+                                            {line.voided ? ' (VOID)' : ''}
+                                        </span>
+                                        {line.modifiers.length > 0 && (
+                                            <span>
+                                                + {line.modifiers.join(', ')}
+                                            </span>
+                                        )}
+                                        {line.note && (
+                                            <span>Note: {line.note}</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setPrintTicket(null)}
+                        >
+                            Close
+                        </Button>
+                        <Button onClick={() => window.print()}>
+                            <Printer data-icon="inline-start" />
+                            Print docket
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

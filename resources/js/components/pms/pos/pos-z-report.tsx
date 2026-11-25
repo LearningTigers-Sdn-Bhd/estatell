@@ -1,4 +1,5 @@
 import { MoneyText } from '@/components/pms/money-text';
+import { cashMovementKindLabel, tenderTypeLabel } from './pos-types';
 import type { PosCurrency } from './pos-types';
 
 type Snapshot = {
@@ -119,7 +120,7 @@ export function PosZReport({
                 {z.tenders.map((tender) => (
                     <Line
                         key={`${tender.tender_type}-${tender.direction}`}
-                        label={`${tender.tender_type}${tender.direction === 'out' ? ' (out)' : ''} ×${tender.payments}`}
+                        label={`${tenderTypeLabel(tender.tender_type)}${tender.direction === 'out' ? ' (refund)' : ''} ×${tender.payments}`}
                         amount={tender.amount}
                         currency={currency}
                     />
@@ -130,7 +131,7 @@ export function PosZReport({
                     {z.cash_movements.map((movement, index) => (
                         <Line
                             key={index}
-                            label={`${movement.kind}: ${movement.reason}`}
+                            label={`${cashMovementKindLabel(movement.kind)}: ${movement.reason}`}
                             amount={movement.amount}
                             currency={currency}
                         />

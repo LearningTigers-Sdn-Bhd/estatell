@@ -3,7 +3,7 @@
 namespace App\Actions\Pos;
 
 use App\Enums\PosOrderStatus;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosOrder;
 use App\Services\EInvoice\PosOrderReportLines;
 use Brick\Math\BigDecimal;
@@ -33,7 +33,7 @@ class ConfirmPosReceiptClaim
         return DB::transaction(function () use ($token, $total, $date): array {
             $order = strlen($token) === 32 ? PosOrder::query()->where('receipt_claim_token', $token)->lockForUpdate()->first() : null;
 
-            if ($order === null || $order->status !== PosOrderStatus::Settled || $order->order_type->value !== 'sale' || ! Feature::for($order->property)->active(NativePos::class)) {
+            if ($order === null || $order->status !== PosOrderStatus::Settled || $order->order_type->value !== 'sale' || ! Feature::for($order->property)->active(Pos::class)) {
                 return ['order' => null, 'refusal' => 'receipt_not_found'];
             }
 
@@ -73,7 +73,11 @@ class ConfirmPosReceiptClaim
             return false;
         }
 
-        return $amount->isEqualTo(BigDecimal::of($order->grand_total))
+        $grand = BigDecimal::of($order->grand_total);
+        $rounded = $grand->plus(BigDecimal::of($order->rounding_adjustment));
+        $totalMatches = $amount->isEqualTo($grand) || $amount->isEqualTo($rounded);
+
+        return $totalMatches
             && in_array(trim($date), [$order->business_date?->toDateString(), $order->settled_at?->toDateString()], true);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\PlaceQrOrder;
+use App\Data\Property\CurrencyData;
 use App\Enums\PosQrSessionKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pos\PlaceQrOrderRequest;
@@ -33,6 +34,7 @@ class QrTableController extends Controller
             'property' => $session->property->name,
             'outlet' => $outlet->name,
             'table' => $session->table->code,
+            'currency' => CurrencyData::forProperty($session->property),
             'allowRemark' => $outlet->allow_qr_customer_remark,
             'categories' => $status === QrSessionState::ACTIVE ? $qrMenu($menu($outlet)['categories']) : [],
         ]);
@@ -57,7 +59,7 @@ class QrTableController extends Controller
         return PosQrSession::query()
             ->where('token', $token)
             ->where('kind', PosQrSessionKind::Table->value)
-            ->with(['property', 'outlet', 'table'])
+            ->with(['property.settings', 'outlet', 'table'])
             ->firstOrFail();
     }
 }

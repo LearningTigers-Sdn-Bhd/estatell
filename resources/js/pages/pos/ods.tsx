@@ -26,23 +26,28 @@ export default function PosOds({ outlet, version, board }: Props) {
 
     useEffect(() => {
         const timer = window.setInterval(async () => {
-            const response = await fetch(
-                odsVersion.url({ outlet: outlet.id }),
-                {
-                    headers: { Accept: 'application/json' },
-                },
-            );
+            try {
+                const response = await fetch(
+                    odsVersion.url({ outlet: outlet.id }),
+                    {
+                        headers: { Accept: 'application/json' },
+                        credentials: 'same-origin',
+                    },
+                );
 
-            if (!response.ok) {
-                return;
-            }
+                if (!response.ok) {
+                    return;
+                }
 
-            const { version: current } = (await response.json()) as {
-                version: string;
-            };
+                const { version: current } = (await response.json()) as {
+                    version: string;
+                };
 
-            if (current !== latestVersion.current) {
-                router.reload({ only: ['board', 'version'] });
+                if (current !== latestVersion.current) {
+                    router.reload({ only: ['board', 'version'] });
+                }
+            } catch {
+                // Keep polling quietly across transient network blips.
             }
         }, POLL_MS);
 

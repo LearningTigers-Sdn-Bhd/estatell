@@ -19,7 +19,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $property_id
  * @property int $pos_outlet_id
- * @property int|null $pos_connection_id
  * @property int|null $reservation_unit_id
  * @property int|null $folio_line_id
  * @property string $external_receipt_id
@@ -36,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['pos_outlet_id', 'pos_connection_id', 'reservation_unit_id', 'folio_line_id', 'external_receipt_id', 'external_receipt_number', 'posting_type', 'status', 'amount', 'failure_reason', 'raw_payload', 'resolved_by_user_id', 'resolved_at', 'resolution_note', 'posted_at'])]
+#[Fillable(['pos_outlet_id', 'reservation_unit_id', 'folio_line_id', 'external_receipt_id', 'external_receipt_number', 'posting_type', 'status', 'amount', 'failure_reason', 'raw_payload', 'resolved_by_user_id', 'resolved_at', 'resolution_note', 'posted_at'])]
 class PosPosting extends Model
 {
     /** @use HasFactory<PosPostingFactory> */

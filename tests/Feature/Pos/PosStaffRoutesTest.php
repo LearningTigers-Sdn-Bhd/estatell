@@ -2,7 +2,7 @@
 
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PosPostingStatus;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\MealRedemption;
 use App\Models\PosApiClient;
 use App\Models\PosOutlet;
@@ -35,7 +35,7 @@ function toast(TestResponse $response): ?array
 
 it('answers 404 on every POS page while the feature is off', function () {
     $setup = posSetup();
-    Feature::for($setup['property'])->deactivate(PosIntegration::class);
+    Feature::for($setup['property'])->deactivate(Pos::class);
 
     foreach (posRoutes($setup) as $url) {
         $this->actingAs($setup['actor'])->get($url)->assertNotFound();
@@ -217,7 +217,7 @@ it('puts a non-blocking POS review note on the night audit sheet', function () {
         ->assertJsonPath('posReview.message', '2 POS postings need review (MYR 142.50)')
         ->assertJsonPath('posReview.url', route('finance.pos-postings.index', ['property' => $setup['property']->code, 'status' => 'pending_review'], false));
 
-    Feature::for($setup['property'])->deactivate(PosIntegration::class);
+    Feature::for($setup['property'])->deactivate(Pos::class);
     $this->actingAs($auditor)->getJson($url)->assertJsonPath('posReview', null);
 });
 

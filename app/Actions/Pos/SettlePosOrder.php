@@ -13,7 +13,7 @@ use App\Enums\PosReconciliationStatus;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosTenderType;
 use App\Enums\UnitStatus;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\Folio;
 use App\Models\PosOrder;
 use App\Models\PosOrderFolioLink;
@@ -91,8 +91,8 @@ class SettlePosOrder
      */
     private function settle(User $actor, Property $property, PosOrder $order, array $tenders, bool $guestSigned, bool $mealConfirmed, ?User $limitApprover): PosActionResult
     {
-        if (! Feature::for($property)->active(NativePos::class)) {
-            return PosActionResult::refused('native_pos_disabled');
+        if (! Feature::for($property)->active(Pos::class)) {
+            return PosActionResult::refused('pos_disabled');
         }
 
         $businessDate = $this->openPosBusinessDate->lock($property);

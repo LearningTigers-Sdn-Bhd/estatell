@@ -98,7 +98,7 @@ class PosKitchenController extends Controller
                 'warnAfterMinutes' => $row->warn_after_minutes,
                 'alertAfterMinutes' => $row->alert_after_minutes,
             ])->values()->all(),
-            'station' => $station === null ? null : ['id' => $station->id, 'name' => $station->name, 'warnAfterMinutes' => $station->warn_after_minutes, 'alertAfterMinutes' => $station->alert_after_minutes],
+            'station' => $station === null ? null : ['id' => $station->id, 'outletId' => $station->pos_outlet_id, 'name' => $station->name, 'warnAfterMinutes' => $station->warn_after_minutes, 'alertAfterMinutes' => $station->alert_after_minutes],
             'version' => $station === null ? '0' : $kitchenDisplay->version($station->id),
             'tickets' => $station === null ? [] : $kitchenDisplay->tickets($station),
             'recallable' => $station === null ? [] : $kitchenDisplay->recallable($station),
@@ -120,6 +120,6 @@ class PosKitchenController extends Controller
 
     private function outlet(Property $property, int $outlet): PosOutlet
     {
-        return PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->findOrFail($outlet);
+        return PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail($outlet);
     }
 }

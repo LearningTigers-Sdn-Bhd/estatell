@@ -3,7 +3,7 @@
 namespace App\Navigation;
 
 use App\Data\Navigation\NavItemData;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Services\Platform\Impersonation;
 use Illuminate\Http\Request;
 use Laravel\Pennant\Feature;
@@ -33,7 +33,7 @@ class AccountNavigation
 
         $property = $request->user()?->property;
 
-        if ($property !== null && Feature::for($property)->active(NativePos::class)) {
+        if ($property !== null && Feature::for($property)->active(Pos::class)) {
             $items[] = new NavItemData(title: __('POS PIN'), href: route('account.pos-pin.edit', absolute: false), icon: 'lock', active: $request->routeIs('account.pos-pin.*'));
         }
 

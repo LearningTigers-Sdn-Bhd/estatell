@@ -24,7 +24,7 @@ use App\Enums\PosOrderStatus;
 use App\Enums\PosPricingType;
 use App\Enums\PosShiftStatus;
 use App\Enums\UnitStatus;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosOrder;
 use App\Models\PosOrderLine;
 use App\Models\PosOrderLineTax;
@@ -65,8 +65,8 @@ it('refuses an order on a closed shift, another outlet dining option or when Nat
     expect($create()->refusal)->toBe('shift_not_open');
 
     $s['shift']->forceFill(['status' => PosShiftStatus::Open])->save();
-    Feature::for($s['property'])->deactivate(NativePos::class);
-    expect($create()->refusal)->toBe('native_pos_disabled');
+    Feature::for($s['property'])->deactivate(Pos::class);
+    expect($create()->refusal)->toBe('pos_disabled');
 });
 
 it('opens an order for an in-house room only', function () {

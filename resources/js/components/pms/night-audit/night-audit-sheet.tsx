@@ -627,11 +627,11 @@ export function NightAuditSheet({
                         </Alert>
                     )}
 
-                    {sheet.nativePosReview && (
+                    {sheet.posShiftReview && (
                         <Alert>
                             <TriangleAlert />
                             <AlertTitle>
-                                {sheet.nativePosReview.message}
+                                {sheet.posShiftReview.message}
                             </AlertTitle>
                             <AlertDescription>
                                 Open POS shifts keep trading through the audit.

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\SavePosDiningOption;
 use App\Data\Pos\PosDiningOptionInputData;
+use App\Data\Property\CurrencyData;
 use App\Enums\PosDiningKind;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
@@ -22,10 +23,13 @@ class PosDiningOptionController extends Controller
 
     public function index(Request $request, Property $property): Response
     {
-        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->orderBy('name')->get(['id', 'name']);
+        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get(['id', 'name']);
         $outlet = $outlets->firstWhere('id', (int) $request->query('outlet')) ?? $outlets->first();
 
+        $property->loadMissing('settings');
+
         return Inertia::render('settings/pos/dining-options', [
+            'currency' => CurrencyData::forProperty($property),
             'outlets' => $outlets->map(fn (PosOutlet $row): array => ['value' => (string) $row->id, 'label' => $row->name])->all(),
             'outletId' => $outlet?->id,
             'kinds' => PosDiningKind::options(),

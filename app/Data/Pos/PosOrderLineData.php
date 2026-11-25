@@ -38,11 +38,14 @@ class PosOrderLineData extends Data
         public ?int $seatNumber = null,
         public bool $isWeighed = false,
         public bool $isComboPart = false,
+        public ?string $weightUnit = null,
+        public ?string $weightUnitDivisor = null,
     ) {}
 
     public static function fromModel(PosOrderLine $line, ?string $refundedQuantity = null): self
     {
         $status = $line->kitchen_status;
+        $item = $line->relationLoaded('variant') && $line->variant?->relationLoaded('item') ? $line->variant->item : null;
 
         return new self(
             $line->id,
@@ -66,8 +69,10 @@ class PosOrderLineData extends Data
             (string) max(0, (float) $line->quantity - (float) ($refundedQuantity ?? 0)),
             $line->course_number,
             $line->seat_number,
-            $line->relationLoaded('variant') && $line->variant?->relationLoaded('item') && $line->variant->item->sold_by_weight,
+            $item !== null && $item->sold_by_weight,
             $line->line_kind->value === 'combo_component',
+            $item?->sold_by_weight ? $item->weight_unit : null,
+            $item?->sold_by_weight ? $item->weight_unit_divisor : null,
         );
     }
 }

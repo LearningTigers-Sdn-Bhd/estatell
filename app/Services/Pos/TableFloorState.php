@@ -60,6 +60,31 @@ class TableFloorState
             'preBilled' => $open->contains(fn (PosOrder $order): bool => $order->prebill_print_count >= 1),
             'multiBill' => $open->count() >= 2,
             'orderIds' => $open->pluck('id')->all(),
+            'checks' => $open->map(fn (PosOrder $order): array => [
+                'id' => $order->id,
+                'orderNumber' => $order->order_number,
+                'openedAt' => $order->opened_at->toIso8601String(),
+                'total' => $order->grand_total,
+            ])->values()->all(),
         ];
+    }
+
+    /**
+     * Lightweight change fingerprint for multi-tablet floor-plan polling.
+     */
+    public function version(PosOutlet $outlet): string
+    {
+        $summary = PosOrder::query()
+            ->where('pos_outlet_id', $outlet->id)
+            ->where('status', PosOrderStatus::Open->value)
+            ->selectRaw('count(*) as cnt, max(updated_at) as latest, coalesce(sum(grand_total), 0) as total, coalesce(sum(prebill_print_count), 0) as prebills')
+            ->first();
+
+        return md5(implode('|', [
+            (string) ($summary->cnt ?? 0),
+            (string) ($summary->latest ?? 'none'),
+            (string) ($summary->total ?? '0'),
+            (string) ($summary->prebills ?? 0),
+        ]));
     }
 }

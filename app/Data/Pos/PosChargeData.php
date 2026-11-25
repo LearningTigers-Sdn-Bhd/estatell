@@ -19,7 +19,6 @@ class PosChargeData extends Data
         public string $amount,
         public ?int $reservationUnitId,
         public array $rawPayload,
-        public ?int $posConnectionId = null,
         public ?string $serviceDate = null,
         public ?string $failureHint = null,
     ) {}

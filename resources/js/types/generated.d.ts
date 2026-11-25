@@ -2560,10 +2560,6 @@ forced: boolean,
 completedDay: string,
 completedTime: string,
 };
-export type NativePosReviewData = {
-message: string,
-url: string | null,
-};
 export type NextAutoAuditData = {
 day: string,
 time: string,
@@ -2597,7 +2593,7 @@ canViewPacket: boolean,
 lastAudit: App.Data.NightAudit.LastAuditData | null,
 nextAutoAudit: App.Data.NightAudit.NextAutoAuditData | null,
 posReview: App.Data.NightAudit.PosReviewData | null,
-nativePosReview: App.Data.NightAudit.NativePosReviewData | null,
+posShiftReview: App.Data.NightAudit.PosShiftReviewData | null,
 };
 export type PackageNightAmountData = {
 id: number,
@@ -2617,6 +2613,10 @@ wholeStay: boolean,
 blockedReason: string | null,
 };
 export type PosReviewData = {
+message: string,
+url: string | null,
+};
+export type PosShiftReviewData = {
 message: string,
 url: string | null,
 };
@@ -3494,7 +3494,6 @@ externalReceiptNumber: string,
 amount: string,
 reservationUnitId: number | null,
 rawPayload: Record<string, any>,
-posConnectionId: number | null,
 serviceDate: string | null,
 failureHint: string | null,
 };
@@ -3581,6 +3580,7 @@ businessDate: string | null,
 diningOptionId: number,
 diningOptionName: string,
 guestCount: number,
+reservationUnitId: number | null,
 roomLabel: string | null,
 subtotal: string,
 discountTotal: string,
@@ -3606,6 +3606,7 @@ lines: App.Data.Pos.PosOrderLineData[],
 payments: {
 id: number,
 tender: string,
+tenderType: string,
 direction: string,
 amount: string,
 tendered: string | null,
@@ -3644,6 +3645,8 @@ courseNumber: number,
 seatNumber: number | null,
 isWeighed: boolean,
 isComboPart: boolean,
+weightUnit: string | null,
+weightUnitDivisor: string | null,
 };
 export type PosOrderLineInputData = {
 variantId: number,
@@ -3656,6 +3659,7 @@ courseNumber: number,
 seatNumber: number | null,
 weight: string | null,
 comboSelections: number[][],
+snapshotPrice: string | null,
 };
 export type PosOrderRowData = {
 id: number,
@@ -3675,7 +3679,7 @@ name: string,
 code: string,
 defaultChargeItemId: number | null,
 active: boolean,
-nativePosEnabled: boolean,
+posEnabled: boolean,
 };
 export type PosOutletRowData = {
 id: number,
@@ -3684,7 +3688,7 @@ code: string,
 defaultChargeItemId: number | null,
 chargeItemName: string | null,
 active: boolean,
-nativePosEnabled: boolean,
+posEnabled: boolean,
 };
 export type PosPostingDetailData = {
 row: App.Data.Pos.PosPostingRowData,
@@ -3758,7 +3762,6 @@ originalExternalReceiptId: string,
 amount: string | null,
 reason: string | null,
 rawPayload: Record<string, any>,
-posConnectionId: number | null,
 };
 export type ResolvePosPostingData = {
 action: string,
@@ -6245,7 +6248,7 @@ export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'events.view' | 'events.manage' | 'facilities.book' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'booking-website.payment-mode' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view' | 'pos.view' | 'pos.manage' | 'pos.resolve' | 'meals.redeem' | 'pos.sell' | 'pos.shift' | 'pos.void' | 'pos.discount' | 'pos.refund' | 'pos.kds' | 'pos.menu' | 'pos.inventory' | 'pos.hardware' | 'pos.reports';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos-integration' | 'facilities' | 'native-pos';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
@@ -6255,7 +6258,6 @@ export type PortalLoginOutcome = 'unchanged' | 'removed' | 'created' | 'invited'
 export type PortalLoginRefusal = 'other_kind_of_account' | 'taken_by_other_company' | 'not_available' | 'company_suspended';
 export type PosAvailability = 'all' | 'pos_only' | 'none';
 export type PosCashMovementKind = 'float_in' | 'safe_drop' | 'payout' | 'no_sale_open';
-export type PosConnectionStatus = 'connected' | 'error' | 'disconnected';
 export type PosDiningKind = 'dine_in' | 'takeaway' | 'room_service' | 'poolside' | 'minibar' | 'delivery';
 export type PosDiscountType = 'fixed_percent' | 'fixed_amount' | 'variable_percent' | 'variable_amount' | 'fixed_price' | 'foc';
 export type PosKitchenStatus = 'draft' | 'held' | 'fired' | 'preparing' | 'ready' | 'served' | 'voided';
@@ -6270,11 +6272,14 @@ export type PosPinOutcome = 'verified' | 'invalid_pin' | 'pin_locked' | 'no_pin'
 export type PosPostingStatus = 'posted' | 'reversed' | 'pending_review' | 'ignored';
 export type PosPostingType = 'charge' | 'void';
 export type PosPricingType = 'fixed' | 'variable';
-export type PosProvider = 'loyverse' | 'generic_api';
+export type PosQrSessionKind = 'table' | 'room';
 export type PosReconciliationStatus = 'verified' | 'pending_verification';
 export type PosRoundingMode = 'none' | 'five_sen' | 'ten_sen';
 export type PosRoundingPolicy = 'cash_leg_only' | 'whole_bill_when_cash_present';
 export type PosShiftStatus = 'open' | 'closing_control' | 'closed';
+export type PosStationMode = 'kds' | 'browser_print' | 'posport_printer' | 'both';
+export type PosStockMovementKind = 'sale' | 'void_return' | 'refund_return' | 'purchase_receive' | 'transfer_in' | 'transfer_out' | 'waste' | 'stocktake_adjustment';
+export type PosStocktakeStatus = 'draft' | 'closed';
 export type PosTableShape = 'square' | 'round' | 'rect';
 export type PosTenderType = 'cash' | 'card' | 'e_wallet' | 'duitnow_qr' | 'payment_voucher' | 'room_charge';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package' | 'day_use';

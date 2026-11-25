@@ -6,7 +6,7 @@ use App\Enums\DocumentType;
 use App\Enums\PosCashMovementKind;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosTenderType;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosCashMovement;
 use App\Models\PosRegister;
 use App\Models\PosShift;
@@ -44,12 +44,12 @@ class OpenPosShift
             $register = PosRegister::query()->where('property_id', $property->id)->whereKey($register->id)->lockForUpdate()->first();
             $outlet = $register?->outlet;
 
-            if ($register === null || ! $register->active || $outlet === null || ! $outlet->active || ! $outlet->native_pos_enabled) {
+            if ($register === null || ! $register->active || $outlet === null || ! $outlet->active || ! $outlet->pos_enabled) {
                 return PosActionResult::refused('register_invalid');
             }
 
-            if (! Feature::for($property)->active(NativePos::class)) {
-                return PosActionResult::refused('native_pos_disabled');
+            if (! Feature::for($property)->active(Pos::class)) {
+                return PosActionResult::refused('pos_disabled');
             }
 
             if ($outlet->cash_variance_transaction_code_id === null) {

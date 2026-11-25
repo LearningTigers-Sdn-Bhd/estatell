@@ -31,7 +31,7 @@ class PosKitchenSettingsController extends Controller
 
     public function index(Request $request, Property $property, KitchenDisplay $kitchenDisplay): Response
     {
-        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->orderBy('name')->get();
+        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get();
         $outlet = $outlets->firstWhere('id', (int) $request->query('outlet')) ?? $outlets->first();
 
         $stations = $outlet === null ? collect() : PosKitchenStation::query()->where('pos_outlet_id', $outlet->id)->orderBy('sort_order')->orderBy('name')->get();

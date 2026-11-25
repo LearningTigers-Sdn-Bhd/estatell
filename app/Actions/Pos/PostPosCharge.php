@@ -97,7 +97,6 @@ class PostPosCharge
 
             $posting = new PosPosting([
                 'pos_outlet_id' => $outlet->id,
-                'pos_connection_id' => $data->posConnectionId,
                 'reservation_unit_id' => $unit?->id,
                 'folio_line_id' => $lineId,
                 'external_receipt_id' => $data->externalReceiptId,

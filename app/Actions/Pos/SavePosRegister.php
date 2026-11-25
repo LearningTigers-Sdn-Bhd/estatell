@@ -17,7 +17,7 @@ class SavePosRegister
     public function __invoke(User $actor, Property $property, PosOutlet $outlet, string $name, bool $active, ?PosRegister $register = null): PosActionResult
     {
         return DB::transaction(function () use ($actor, $property, $outlet, $name, $active, $register): PosActionResult {
-            if ($outlet->property_id !== $property->id || ! $outlet->native_pos_enabled || ($register !== null && $register->pos_outlet_id !== $outlet->id)) {
+            if ($outlet->property_id !== $property->id || ! $outlet->pos_enabled || ($register !== null && $register->pos_outlet_id !== $outlet->id)) {
                 return PosActionResult::refused('outlet_invalid');
             }
 

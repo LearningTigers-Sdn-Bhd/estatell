@@ -30,6 +30,7 @@ class PosShiftCashTotals
             ->where('direction', $direction->value)
             ->where('tender_type', PosTenderType::Cash->value)
             ->where('status', PosPaymentStatus::Captured->value)
+            ->whereHas('order', fn ($query) => $query->where('synced_late', false))
             ->selectRaw('coalesce(sum(amount + rounding_adjustment), 0) as total')
             ->value('total'));
 

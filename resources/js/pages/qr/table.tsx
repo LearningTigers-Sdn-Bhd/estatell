@@ -11,6 +11,7 @@ type Props = {
     property: string;
     outlet: string;
     table: string;
+    currency: App.Data.Property.CurrencyData | null;
     allowRemark: boolean;
     categories: QrCategory[];
 };
@@ -28,6 +29,7 @@ export default function QrTable({
     property,
     outlet,
     table,
+    currency,
     allowRemark,
     categories,
 }: Props) {
@@ -51,14 +53,16 @@ export default function QrTable({
             ) : (
                 <QrMenu
                     categories={categories}
+                    currency={currency}
                     allowRemark={allowRemark}
                     sending={sending}
-                    onSend={(lines: QrLine[]) => {
+                    onSend={(lines: QrLine[], clearCart: () => void) => {
                         setSending(true);
                         router.post(
                             tableOrders.url({ token }),
                             { lines },
                             {
+                                onSuccess: clearCart,
                                 onFinish: () => setSending(false),
                             },
                         );

@@ -21,6 +21,13 @@ export type QueuedSale = {
     snapshotVersion: string;
     shiftId: number | null;
     lines: { variant_id: number; quantity: number }[];
+    lineDetails?: {
+        name: string;
+        variantName: string;
+        quantity: number;
+        unitPrice: string;
+    }[];
+    estimatedSubtotal?: string;
     tenders: OfflineTender[];
     summary: string;
     createdAt: string;

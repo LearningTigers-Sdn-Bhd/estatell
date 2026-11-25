@@ -4,8 +4,9 @@ import { QrMenu } from '@/components/pms/qr/qr-menu';
 import type { QrCategory, QrLine } from '@/components/pms/qr/qr-menu';
 import { buttonVariants, Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import {
     show as roomShow,
     orders as roomOrders,
@@ -17,6 +18,7 @@ type Props = {
     status: 'active' | 'revoked' | 'expired' | 'locked';
     unlocked: boolean;
     property: string;
+    currency: App.Data.Property.CurrencyData | null;
     outlets: { id: number; name: string }[];
     outlet: { id: number; name: string } | null;
     allowRemark: boolean;
@@ -28,6 +30,7 @@ export default function QrRoom({
     status,
     unlocked,
     property,
+    currency,
     outlets,
     outlet,
     allowRemark,
@@ -74,29 +77,36 @@ export default function QrRoom({
                                 Enter the 4-digit PIN from your welcome card and
                                 the last name of the primary guest.
                             </p>
-                            <Field>
+                            <Field data-invalid={!!unlockForm.errors.pin}>
                                 <FieldLabel htmlFor="room-pin">
                                     Stay PIN
                                 </FieldLabel>
                                 <Input
                                     id="room-pin"
+                                    type="password"
                                     inputMode="numeric"
+                                    autoComplete="one-time-code"
                                     maxLength={4}
                                     value={unlockForm.data.pin}
                                     onChange={(event) =>
                                         unlockForm.setData(
                                             'pin',
-                                            event.target.value,
+                                            event.target.value.replace(
+                                                /\D/g,
+                                                '',
+                                            ),
                                         )
                                     }
                                 />
+                                <FieldError>{unlockForm.errors.pin}</FieldError>
                             </Field>
-                            <Field>
+                            <Field data-invalid={!!unlockForm.errors.last_name}>
                                 <FieldLabel htmlFor="room-last">
                                     Last name
                                 </FieldLabel>
                                 <Input
                                     id="room-last"
+                                    autoComplete="family-name"
                                     maxLength={80}
                                     value={unlockForm.data.last_name}
                                     onChange={(event) =>
@@ -106,12 +116,20 @@ export default function QrRoom({
                                         )
                                     }
                                 />
+                                <FieldError>
+                                    {unlockForm.errors.last_name}
+                                </FieldError>
                             </Field>
                             <Button
                                 type="submit"
                                 size="lg"
+                                className="min-h-11"
                                 disabled={unlockForm.processing}
+                                focusableWhenDisabled
                             >
+                                {unlockForm.processing && (
+                                    <Spinner data-icon="inline-start" />
+                                )}
                                 Continue
                             </Button>
                         </form>
@@ -132,11 +150,11 @@ export default function QrRoom({
                             { token },
                             { query: { outlet: row.id } },
                         )}
-                        className={buttonVariants({
+                        className={`${buttonVariants({
                             variant:
                                 outlet?.id === row.id ? 'default' : 'outline',
                             size: 'lg',
-                        })}
+                        })} min-h-11 shrink-0`}
                     >
                         {row.name}
                     </Link>
@@ -145,14 +163,18 @@ export default function QrRoom({
             {outlet !== null && (
                 <QrMenu
                     categories={categories}
+                    currency={currency}
                     allowRemark={allowRemark}
                     sending={sending}
-                    onSend={(lines: QrLine[]) => {
+                    onSend={(lines: QrLine[], clearCart: () => void) => {
                         setSending(true);
                         router.post(
                             roomOrders.url({ token }),
                             { outlet_id: outlet.id, lines },
-                            { onFinish: () => setSending(false) },
+                            {
+                                onSuccess: clearCart,
+                                onFinish: () => setSending(false),
+                            },
                         );
                     }}
                 />

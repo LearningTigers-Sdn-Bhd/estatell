@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Printer } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -86,12 +86,14 @@ export function KitchenTicketCard({
     age,
     actions,
     footer,
+    onPrint,
 }: {
     ticket: KitchenTicket;
     tone: SlaTone;
     age: string;
     actions: (line: KitchenLine) => ReactNode;
     footer?: ReactNode;
+    onPrint?: () => void;
 }) {
     return (
         <Card className={cn('border-2', toneClass[tone])}>
@@ -106,6 +108,18 @@ export function KitchenTicketCard({
                     <span className="font-mono text-sm tabular-nums">
                         {age}
                     </span>
+                    {onPrint !== undefined && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="min-h-11 min-w-11"
+                            aria-label={`Print docket for ${ticket.label}`}
+                            onClick={onPrint}
+                        >
+                            <Printer />
+                        </Button>
+                    )}
                 </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
@@ -123,7 +137,7 @@ export function KitchenTicketCard({
                         >
                             <span className="font-medium">
                                 {line.quantity}× {line.name}
-                                {line.voided && ' — VOID'}
+                                {line.voided && ' (VOID)'}
                             </span>
                             {line.modifiers.length > 0 && (
                                 <span className="text-sm text-muted-foreground">

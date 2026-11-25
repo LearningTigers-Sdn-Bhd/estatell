@@ -8,7 +8,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\ReportCategory;
 use App\Enums\ReportKey;
 use App\Enums\TabbedReport;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\Property;
 use App\Models\User;
 use Laravel\Pennant\Feature;
@@ -58,7 +58,7 @@ class ReportsNavigation
             ReportCategory::cases(),
         );
 
-        if ($user->can(PermissionEnum::PosReports->value) && Feature::for($property)->active(NativePos::class)) {
+        if ($user->can(PermissionEnum::PosReports->value) && Feature::for($property)->active(Pos::class)) {
             $groups[] = new NavGroupData(label: __('POS'), items: [new NavItemData(
                 title: __('POS sales'),
                 href: route('reports.pos-sales', ['property' => $property->code], absolute: false),

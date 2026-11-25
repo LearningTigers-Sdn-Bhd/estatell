@@ -32,7 +32,7 @@ class PosScheduleController extends Controller
 
     public function index(Request $request, Property $property): Response
     {
-        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->orderBy('name')->get();
+        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get();
         $outlet = $outlets->firstWhere('id', (int) $request->query('outlet')) ?? $outlets->first();
         $items = PosItem::query()->where('property_id', $property->id)->with(['variants' => fn ($query) => $query->where('active', true)->orderBy('sort_order')->orderBy('id'), 'comboSlots.options'])->orderBy('name')->get();
 
@@ -68,6 +68,7 @@ class PosScheduleController extends Controller
             'variants' => $items->flatMap(fn (PosItem $item) => $item->variants->map(fn (PosItemVariant $variant): array => [
                 'value' => (string) $variant->id,
                 'label' => $item->name.($variant->name === 'Regular' ? '' : ' ('.$variant->name.')'),
+                'itemId' => $item->id,
             ]))->values()->all(),
         ]);
     }

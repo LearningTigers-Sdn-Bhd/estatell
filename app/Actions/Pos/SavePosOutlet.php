@@ -3,7 +3,7 @@
 namespace App\Actions\Pos;
 
 use App\Data\Pos\PosOutletData;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\ChargeItem;
 use App\Models\PosOutlet;
 use App\Models\Property;
@@ -48,8 +48,8 @@ class SavePosOutlet
                 return PosOutletResult::refused(PosOutletResult::REFUSAL_CODE_TAKEN);
             }
 
-            if ($data->nativePosEnabled && ! Feature::for($property)->active(NativePos::class)) {
-                return PosOutletResult::refused(PosOutletResult::REFUSAL_NATIVE_POS_DISABLED);
+            if ($data->posEnabled && ! Feature::for($property)->active(Pos::class)) {
+                return PosOutletResult::refused(PosOutletResult::REFUSAL_POS_DISABLED);
             }
 
             $item = $data->defaultChargeItemId === null
@@ -57,10 +57,7 @@ class SavePosOutlet
                 : ChargeItem::query()->where('property_id', $property->id)->find($data->defaultChargeItemId);
 
             if ($data->defaultChargeItemId === null) {
-                // Only a native outlet with no live external mapping may go without a charge item.
-                $mapped = $outlet !== null && $outlet->mappings()->where('active', true)->exists();
-
-                if (! $data->nativePosEnabled || $mapped) {
+                if (! $data->posEnabled) {
                     return PosOutletResult::refused(PosOutletResult::REFUSAL_CHARGE_ITEM_INVALID);
                 }
             } elseif ($item === null || ($data->active && ! $item->active)) {
@@ -76,12 +73,12 @@ class SavePosOutlet
                 'code' => $code,
                 'default_charge_item_id' => $item?->id,
                 'active' => $data->active,
-                'native_pos_enabled' => $data->nativePosEnabled,
+                'pos_enabled' => $data->posEnabled,
             ]);
             $outlet->property_id = $property->id;
             $outlet->save();
 
-            if ($outlet->native_pos_enabled) {
+            if ($outlet->pos_enabled) {
                 ($this->seedPosDiningOptions)($outlet);
             }
 

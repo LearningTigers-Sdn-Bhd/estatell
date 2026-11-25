@@ -64,9 +64,8 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     'e-invoicing': FileText,
     concierge: ConciergeBell,
     'bed-room-types': BedSingle,
-    'pos-integration': Utensils,
+    pos: Utensils,
     facilities: Tent,
-    'native-pos': Utensils,
 };
 
 /** On and Off for the partner's read-only rows. */

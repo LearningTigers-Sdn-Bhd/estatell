@@ -241,3 +241,20 @@ it('lets only a staff member who can sell issue a table link from the register',
             ->where('table', 'A01')
             ->where('qrSvg', fn (string $svg): bool => str_contains($svg, '<svg')));
 });
+
+it('exposes the room dining QR card on a checked-in reservation and flashes the one-time PIN when regenerated', function () {
+    $s = posQrRoomSetup();
+    $frontDesk = User::factory()->for($s['property'])->withPermissions(['reservations.view', 'front-desk.check-in'])->create();
+
+    $this->actingAs($frontDesk)
+        ->get(route('reservations.show', ['property' => $s['property']->code, 'reservation' => $s['unit']->reservation_id]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('roomQr.unitId', $s['unit']->id)
+            ->where('roomQr.hasActiveSession', true)
+            ->where('roomQr.qrSvg', fn (string $svg): bool => str_contains($svg, '<svg')));
+
+    $this->actingAs($frontDesk)
+        ->post(route('pos.room-qr.regenerate', ['property' => $s['property']->code, 'unit' => $s['unit']->id]))
+        ->assertRedirect();
+});

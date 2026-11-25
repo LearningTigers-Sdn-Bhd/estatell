@@ -6,7 +6,7 @@ use App\Actions\Pos\VerifyPosApproval;
 use App\Actions\Pos\VerifyPosPin;
 use App\Enums\PermissionEnum;
 use App\Enums\PosPinOutcome;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosStaffPin;
 use App\Models\PosTerminalDevice;
 use App\Models\User;
@@ -16,7 +16,7 @@ use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\PermissionRegistrar;
 
-require_once __DIR__.'/../Support/NativePosSetup.php';
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
 
 beforeEach(fn () => Cache::flush());
 
@@ -68,9 +68,9 @@ it('enforces 4 to 6 digits, and 6 for elevated roles', function (string $pin, st
 
 it('refuses to set a PIN while Native POS is off', function () {
     $setup = nativePosSetup();
-    Feature::for($setup['property'])->deactivate(NativePos::class);
+    Feature::for($setup['property'])->deactivate(Pos::class);
 
-    expect(app(SetPosStaffPin::class)($setup['cashier'], '9999'))->toBe('native_pos_disabled');
+    expect(app(SetPosStaffPin::class)($setup['cashier'], '9999'))->toBe('pos_disabled');
 });
 
 it('lets a manager revoke a PIN but only inside their own property', function () {

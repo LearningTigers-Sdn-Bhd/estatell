@@ -118,3 +118,16 @@ it('closes a receipt at the end of its month', function () {
 
     expect(PosOrder::query()->find($order->id)->e_invoice_submission_id)->toBeNull();
 });
+
+it('accepts either the unrounded bill total or the cash-rounded net payable when confirming a claim', function () {
+    $s = posClaimSetup();
+    $order = $s['order'];
+    $order->forceFill(['grand_total' => '12.34', 'rounding_adjustment' => '0.01'])->save();
+
+    $this->post(route('pos.receipt-claim.confirm', ['token' => $order->receipt_claim_token]), [
+        'total' => '12.35',
+        'date' => $order->business_date->toDateString(),
+    ])->assertRedirect();
+
+    expect($this->get(route('pos.receipt-claim.show', ['token' => $order->receipt_claim_token]))->viewData('page')['props']['step'])->toBe('details');
+});

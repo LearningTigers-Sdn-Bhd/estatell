@@ -17,7 +17,7 @@ class PosOutletResult
 
     public const REFUSAL_EXCLUSIVE_TAX_NOT_ALLOWED = 'exclusive_tax_not_allowed';
 
-    public const REFUSAL_NATIVE_POS_DISABLED = 'native_pos_disabled';
+    public const REFUSAL_POS_DISABLED = 'pos_disabled';
 
     private function __construct(public readonly ?PosOutlet $outlet, public readonly ?string $refusal) {}
 
