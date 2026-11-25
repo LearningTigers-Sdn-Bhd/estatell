@@ -6,9 +6,10 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
+use App\Features\AiAssistant;
 use App\Features\Boats;
 use App\Features\Facilities;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\Property;
 use App\Models\User;
 use Laravel\Pennant\Feature;
@@ -64,6 +65,12 @@ class FrontDeskNavigation
                     icon: 'concierge-bell',
                     active: request()->routeIs('guest-requests.*'),
                 ) : null,
+                $user->can(PermissionEnum::FrontDeskView->value) && Feature::for($property)->active(AiAssistant::class) ? new NavItemData(
+                    title: __('AI chats'),
+                    href: route('ai-chats.index', ['property' => $property->code], absolute: false),
+                    icon: 'bot',
+                    active: request()->routeIs('ai-chats.*'),
+                ) : null,
                 $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
                     title: __('Boat Trips'),
                     href: route('boats.index', ['property' => $property->code], absolute: false),
@@ -106,7 +113,19 @@ class FrontDeskNavigation
                     icon: 'calendar-range',
                     active: request()->routeIs('rates.*'),
                 ) : null,
-                $user->can(PermissionEnum::MealsRedeem->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
+                $user->can(PermissionEnum::PosSell->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
+                    title: __('POS register'),
+                    href: route('pos.index', ['property' => $property->code], absolute: false),
+                    icon: 'receipt',
+                    active: request()->routeIs('pos.*') && ! request()->routeIs('pos.kds.*', 'pos.ods.*'),
+                ) : null,
+                $user->can(PermissionEnum::PosKds->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
+                    title: __('Kitchen display'),
+                    href: route('pos.kds.index', ['property' => $property->code], absolute: false),
+                    icon: 'chef-hat',
+                    active: request()->routeIs('pos.kds.*', 'pos.ods.*'),
+                ) : null,
+                $user->can(PermissionEnum::MealsRedeem->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
                     title: __('Meal check-in'),
                     href: route('restaurant.meal-check-in.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',

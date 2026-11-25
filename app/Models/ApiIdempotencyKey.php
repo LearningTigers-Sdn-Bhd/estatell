@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * The first answer to one `Idempotency-Key` on one path, kept for 24 hours so a retry gets the same answer. It belongs to
- * a kiosk, a booking client or a POS client, never two.
+ * a kiosk, a booking client, a POS client or a chat API connection, never two.
  * See docs/28-api-access/03-kiosk-check-in-endpoints.md.
  *
  * @property int $id
@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $kiosk_id
  * @property int|null $booking_client_id
  * @property int|null $pos_api_client_id
+ * @property int|null $ai_connection_id
  * @property string $key
  * @property string $path
  * @property int $status
@@ -43,11 +44,12 @@ class ApiIdempotencyKey extends Model
      * @param  Builder<$this>  $query
      * @return Builder<$this>
      */
-    public function scopeForOwner(Builder $query, Kiosk|BookingClient|PosApiClient $owner): Builder
+    public function scopeForOwner(Builder $query, Kiosk|BookingClient|PosApiClient|AiConnection $owner): Builder
     {
         return $query->where(match (true) {
             $owner instanceof Kiosk => 'kiosk_id',
             $owner instanceof PosApiClient => 'pos_api_client_id',
+            $owner instanceof AiConnection => 'ai_connection_id',
             default => 'booking_client_id',
         }, $owner->id);
     }

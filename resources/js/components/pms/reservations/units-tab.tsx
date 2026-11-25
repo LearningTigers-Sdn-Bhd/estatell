@@ -23,6 +23,8 @@ import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-nig
 import { DoorCards } from '@/components/pms/reservations/door-cards';
 import { DoorPins } from '@/components/pms/reservations/door-pins';
 import { KeyCards } from '@/components/pms/reservations/key-cards';
+import { RoomQrCard } from '@/components/pms/reservations/room-qr-card';
+import type { RoomQrData } from '@/components/pms/reservations/room-qr-card';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -212,6 +214,7 @@ export function UnitsTab({
     toolbar,
     doorPins,
     keyCards,
+    roomQr = null,
     lockProviders = [],
     autoAssignRooms,
     canWaiveFees,
@@ -226,6 +229,7 @@ export function UnitsTab({
     toolbar?: ReactNode;
     doorPins: App.Data.DoorLocks.UnitDoorPinsData | null;
     keyCards: App.Data.Keyport.UnitKeyCardsData | null;
+    roomQr?: RoomQrData | null;
     lockProviders?: string[];
     autoAssignRooms: boolean;
     canWaiveFees: boolean;
@@ -437,6 +441,7 @@ export function UnitsTab({
                         unitId={unit.id}
                     />
                 )}
+                {roomQr !== null && <RoomQrCard roomQr={roomQr} />}
                 <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
                         <span className="text-muted-foreground">

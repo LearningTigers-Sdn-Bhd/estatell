@@ -6,18 +6,27 @@ use App\Enums\LockProvider;
 use App\Enums\PlatformFeature;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Pos\OpenPosShifts;
 use Laravel\Pennant\Feature;
 
 class SetPropertyFeature
 {
+    public function __construct(private OpenPosShifts $openPosShifts) {}
+
     /**
      * Turn a feature on or off for one property and log the change. Does nothing when the value is unchanged. Door locks also
      * takes the providers the property uses (`ttlock`, `elock`); none given means both. Other features ignore `$providers`.
+     * Native POS cannot be turned off while the property has an unclosed register shift (`open_pos_shifts_exist`): the
+     * call returns that refusal code and changes nothing. Otherwise it returns null.
      *
      * @param  list<string>|null  $providers
      */
-    public function __invoke(User $admin, Property $property, PlatformFeature $feature, bool $active, ?array $providers = null): void
+    public function __invoke(User $admin, Property $property, PlatformFeature $feature, bool $active, ?array $providers = null): ?string
     {
+        if (! $active && $feature === PlatformFeature::Pos && $this->openPosShifts->exist($property)) {
+            return 'open_pos_shifts_exist';
+        }
+
         $features = Feature::for($property);
         $current = $features->value($feature->featureClass());
         $wasActive = $current !== false;
@@ -26,13 +35,13 @@ class SetPropertyFeature
 
         if ($active) {
             if ($current === $value) {
-                return;
+                return null;
             }
 
             $features->activate($feature->featureClass(), $value);
         } else {
             if (! $wasActive) {
-                return;
+                return null;
             }
 
             $features->deactivate($feature->featureClass());
@@ -47,6 +56,8 @@ class SetPropertyFeature
             ->event($event)
             ->withProperties(['feature' => $feature->value] + ($active && $feature === PlatformFeature::DoorLocks ? ['providers' => $value] : []))
             ->log("{$feature->label()} {$verb}");
+
+        return null;
     }
 
     /**

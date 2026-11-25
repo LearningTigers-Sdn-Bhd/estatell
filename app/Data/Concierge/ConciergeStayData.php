@@ -39,5 +39,7 @@ class ConciergeStayData extends Data
         public ?string $eInvoiceUrl = null,
         public ?string $checkInTime = null,
         public bool $checkInOpensLater = false,
+        /** The stay was booked from an AI quote link, so the Payment and Hold expired steps word it as a booking. */
+        public bool $fromQuote = false,
     ) {}
 }

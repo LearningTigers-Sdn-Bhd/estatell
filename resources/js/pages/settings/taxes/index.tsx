@@ -54,6 +54,7 @@ type FormData = {
     collect_at_check_in: boolean;
     can_be_waived: boolean;
     registration_number: string;
+    lhdn_tax_type: string;
     enabled: boolean;
 };
 
@@ -68,6 +69,7 @@ function formValues(tax: Tax | null): FormData {
         collect_at_check_in: tax?.collectAtCheckIn ?? false,
         can_be_waived: tax?.canBeWaived ?? false,
         registration_number: tax?.registrationNumber ?? '',
+        lhdn_tax_type: tax?.lhdnTaxType ?? 'auto',
         enabled: tax?.enabled ?? true,
     };
 }
@@ -75,15 +77,21 @@ function formValues(tax: Tax | null): FormData {
 function TaxForm({
     tax,
     rateTypes,
+    lhdnTaxTypes,
     currency,
     onDone,
 }: {
     tax: Tax | null;
     rateTypes: Option[];
+    lhdnTaxTypes: Option[];
     currency: App.Data.Property.CurrencyData;
     onDone: () => void;
 }) {
     const form = useForm<FormData>(formValues(tax));
+    form.transform((data) => ({
+        ...data,
+        lhdn_tax_type: data.lhdn_tax_type === 'auto' ? '' : data.lhdn_tax_type,
+    }));
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         const options = { preserveScroll: true, onSuccess: onDone };
@@ -194,6 +202,33 @@ function TaxForm({
                     />
                     <FieldDescription>Optional.</FieldDescription>
                     <FieldError>{form.errors.registration_number}</FieldError>
+                </Field>
+                <Field data-invalid={!!form.errors.lhdn_tax_type}>
+                    <FieldLabel htmlFor="tax-lhdn-tax-type">
+                        E-invoice tax type
+                    </FieldLabel>
+                    <EnumSelect
+                        id="tax-lhdn-tax-type"
+                        name="lhdn_tax_type"
+                        options={[
+                            {
+                                value: 'auto',
+                                label: 'Automatic (by short code)',
+                            },
+                            ...lhdnTaxTypes,
+                        ]}
+                        value={form.data.lhdn_tax_type}
+                        onValueChange={(value) =>
+                            form.setData('lhdn_tax_type', value)
+                        }
+                        aria-invalid={!!form.errors.lhdn_tax_type}
+                    />
+                    <FieldDescription>
+                        How LHDN MyInvois and the POS treat this tax. Automatic
+                        reads the short code: SST is Service Tax and TTX is
+                        Tourism Tax.
+                    </FieldDescription>
+                    <FieldError>{form.errors.lhdn_tax_type}</FieldError>
                 </Field>
                 <Field orientation="horizontal">
                     <Switch
@@ -325,10 +360,12 @@ function rateLabel(
 export default function TaxesIndex({
     taxes,
     rateTypes,
+    lhdnTaxTypes,
     currency,
 }: {
     taxes: Tax[];
     rateTypes: Option[];
+    lhdnTaxTypes: Option[];
     currency: App.Data.Property.CurrencyData;
 }) {
     const [editing, setEditing] = useState<Tax | null | undefined>(undefined);
@@ -579,6 +616,7 @@ export default function TaxesIndex({
                             key={editing?.id ?? 'new'}
                             tax={editing}
                             rateTypes={rateTypes}
+                            lhdnTaxTypes={lhdnTaxTypes}
                             currency={currency}
                             onDone={() => setEditing(undefined)}
                         />

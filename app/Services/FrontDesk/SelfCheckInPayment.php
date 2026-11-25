@@ -21,18 +21,25 @@ class SelfCheckInPayment
 {
     public function __construct(private CheckInCollection $collection) {}
 
-    public function isPaidEnough(ReservationUnit $unit): bool
+    /**
+     * `$wholeStay` asks for the whole bill instead of Collect now's taxes, as a stay booked from a quote link pays up front.
+     */
+    public function isPaidEnough(ReservationUnit $unit, bool $wholeStay = false): bool
     {
-        return BigDecimal::of($this->shortfall($unit))->isZero();
+        return BigDecimal::of($this->shortfall($unit, $wholeStay))->isZero();
     }
 
     /**
-     * What is still unpaid of Collect now, as a decimal string with two places. `0.00` when it is covered.
+     * What is still unpaid of Collect now, as a decimal string with two places. `0.00` when it is covered. With
+     * `$wholeStay` the unit's whole bill (every Scheduled row, taxes included) takes the place of the Collect now taxes,
+     * and the deposit is still added. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
      */
-    public function shortfall(ReservationUnit $unit): string
+    public function shortfall(ReservationUnit $unit, bool $wholeStay = false): string
     {
         $collection = $this->collection->for($unit);
-        $required = BigDecimal::of($collection->taxesHidden ? '0' : $collection->taxesTotal)->plus($collection->deposit ?? '0');
+        $taxes = BigDecimal::of($collection->taxesHidden ? '0' : $collection->taxesTotal);
+        $charges = $wholeStay ? BigDecimal::max($taxes, BigDecimal::of($collection->billTotal)->plus($collection->billPaid)) : $taxes;
+        $required = $charges->plus($collection->deposit ?? '0');
 
         if (! $required->isPositive()) {
             return '0.00';

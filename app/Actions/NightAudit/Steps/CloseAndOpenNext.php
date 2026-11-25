@@ -2,6 +2,7 @@
 
 namespace App\Actions\NightAudit\Steps;
 
+use App\Actions\Pos\ResetPosStockCountdowns;
 use App\Enums\AuditStatus;
 use App\Enums\BusinessDateStatus;
 use App\Models\BusinessDate;
@@ -38,6 +39,8 @@ class CloseAndOpenNext implements AuditStepRunner
                 'status' => BusinessDateStatus::Open,
                 'opened_at' => now(),
             ]);
+
+            app(ResetPosStockCountdowns::class)($audit->property);
 
             $audit->forceFill(['status' => AuditStatus::Completed, 'completed_at' => now()])->save();
 

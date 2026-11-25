@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import {
     BedDouble,
     BedSingle,
+    Bot,
     CircleCheck,
     Cloud,
     HardDrive,
@@ -30,8 +31,15 @@ import {
 } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { dashboard } from '@/routes/admin';
-import { channels, commissions, edit, storage } from '@/routes/admin/settings';
+import {
+    ai,
+    channels,
+    commissions,
+    edit,
+    storage,
+} from '@/routes/admin/settings';
 
 type Option<T extends string> = {
     value: T;
@@ -39,7 +47,30 @@ type Option<T extends string> = {
     description: string;
     disabled: boolean;
 };
-type Tab = 'general' | 'channels' | 'storage' | 'commissions';
+type Tab = 'general' | 'channels' | 'storage' | 'ai' | 'commissions';
+
+/** The switches for the experimental AI assistant places. */
+const aiPlaceSwitches: {
+    name: 'ai_booking_website_enabled' | 'ai_staff_helper_enabled';
+    key: 'aiBookingWebsiteEnabled' | 'aiStaffHelperEnabled';
+    label: string;
+    description: string;
+}[] = [
+    {
+        name: 'ai_booking_website_enabled',
+        key: 'aiBookingWebsiteEnabled',
+        label: 'Booking website chat',
+        description:
+            'Visitors chat on the booking microsite. Admins can then allow it per property. Work in progress.',
+    },
+    {
+        name: 'ai_staff_helper_enabled',
+        key: 'aiStaffHelperEnabled',
+        label: 'Staff helper (Ask Estatell)',
+        description:
+            "Staff ask how-to questions and today's numbers. Admins can then allow it per property. Work in progress.",
+    },
+];
 
 const dormIcons: Record<App.Enums.DormStrategy, LucideIcon> = {
     bed_as_unit: BedSingle,
@@ -70,6 +101,12 @@ function platformSettingsTabs(): TabLink[] {
             label: 'File storage',
             icon: HardDrive,
             href: storage(),
+        },
+        {
+            value: 'ai',
+            label: 'AI assistant',
+            icon: Bot,
+            href: ai(),
         },
         {
             value: 'commissions',
@@ -150,7 +187,10 @@ export default function PlatformSettings({
             })),
         },
     };
-    const section = activeTab === 'commissions' ? null : sections[activeTab];
+    const section =
+        activeTab === 'commissions' || activeTab === 'ai'
+            ? null
+            : sections[activeTab];
 
     return (
         <>
@@ -163,7 +203,91 @@ export default function PlatformSettings({
                 />
 
                 <TabLinks activeTab={activeTab} tabs={platformSettingsTabs()}>
-                    {section === null ? (
+                    {activeTab === 'ai' ? (
+                        <Form
+                            {...PlatformSettingsController.updateAi.form()}
+                            options={{ preserveScroll: true }}
+                            className="flex max-w-xl flex-col gap-8"
+                        >
+                            {({ processing, errors }) => (
+                                <>
+                                    <FieldSet>
+                                        <FieldLegend>
+                                            Experimental AI places
+                                        </FieldLegend>
+                                        <FieldDescription>
+                                            Places still being built. While a
+                                            switch is off, admins cannot allow
+                                            the place and it stays off for every
+                                            property. Turning it off keeps each
+                                            property's choices.
+                                        </FieldDescription>
+                                        <div className="flex flex-col gap-4">
+                                            {aiPlaceSwitches.map((option) => (
+                                                <Field
+                                                    key={option.name}
+                                                    orientation="horizontal"
+                                                    className="items-start"
+                                                    data-invalid={Boolean(
+                                                        errors[option.name],
+                                                    )}
+                                                >
+                                                    <Switch
+                                                        id={option.name}
+                                                        name={option.name}
+                                                        value="1"
+                                                        uncheckedValue="0"
+                                                        defaultChecked={
+                                                            settings[
+                                                                option.key
+                                                            ] ?? false
+                                                        }
+                                                        aria-describedby={`${option.name}-description`}
+                                                        aria-invalid={Boolean(
+                                                            errors[option.name],
+                                                        )}
+                                                        className="mt-0.5"
+                                                    />
+                                                    <FieldContent>
+                                                        <FieldLabel
+                                                            htmlFor={
+                                                                option.name
+                                                            }
+                                                        >
+                                                            {option.label}
+                                                        </FieldLabel>
+                                                        <FieldDescription
+                                                            id={`${option.name}-description`}
+                                                        >
+                                                            {option.description}
+                                                        </FieldDescription>
+                                                        <FieldError>
+                                                            {
+                                                                errors[
+                                                                    option.name
+                                                                ]
+                                                            }
+                                                        </FieldError>
+                                                    </FieldContent>
+                                                </Field>
+                                            ))}
+                                        </div>
+                                    </FieldSet>
+
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && <Spinner />}
+                                            Save changes
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </Form>
+                    ) : section === null ? (
                         <CommissionSettings
                             rates={commissionRates}
                             services={commissionServices}

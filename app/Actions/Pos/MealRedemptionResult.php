@@ -21,6 +21,8 @@ class MealRedemptionResult
 
     public const REFUSAL_ALREADY_UNDONE = 'already_undone';
 
+    public const REFUSAL_REDEEMED_IN_POS = 'redeemed_in_pos';
+
     public const REFUSAL_SERVICE_DATE_CLOSED = 'service_date_closed';
 
     private function __construct(public readonly ?MealRedemption $redemption, public readonly ?string $refusal) {}

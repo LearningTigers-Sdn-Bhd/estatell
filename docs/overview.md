@@ -125,6 +125,7 @@ jsonb is allowed only for:
 - Audit diffs (activity log).
 - Frozen snapshots on issued documents (registration cards, invoices).
 - The framework `notifications.data` column.
+- Raw AI provider messages: the `laravel/ai` conversation tables (`agent_conversation_messages` keeps steps, usage and meta as JSON text). Deleted after 90 days. Reports read `ai_turns`, never these. See [AI assistant](35-ai-assistant/04-usage-and-cost.md#data-model).
 
 ## Approved dependencies
 
@@ -132,37 +133,40 @@ Installed versions. All are in `composer.json` and `package.json`.
 
 Composer:
 
-| Package                                 | Version | Setup                                                                                                                            |
-| --------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `laravel/pennant`                       | 1.26    | Database store (`features` table)                                                                                                |
-| `laravel/horizon`                       | 5.50    | See [Deployment](#deployment)                                                                                                    |
-| `spatie/laravel-permission`             | 8.3     | Teams mode: `teams => true`, `team_foreign_key => property_id` in `config/permission.php`                                        |
-| `spatie/laravel-data`                   | 4.23    | Default config                                                                                                                   |
-| `spatie/laravel-typescript-transformer` | 3.3     | `TypeScriptTransformerServiceProvider` writes `resources/js/types/generated.d.ts`                                                |
-| `spatie/laravel-ciphersweet`            | 1.9     | `CIPHERSWEET_KEY` env, `blind_indexes` table                                                                                     |
-| `barryvdh/laravel-dompdf`               | 3.1     | None                                                                                                                             |
-| `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                             |
-| `spatie/period`                         | 2.4     | None                                                                                                                             |
-| `brick/money`                           | 0.15    | None                                                                                                                             |
-| `brick/math`                            | 1.0     | Direct use of `BigDecimal` for ledger sums. 1.0 rejects floats                                                                   |
-| `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage). |
-| `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                              |
-| `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                             |
-| `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                             |
-| `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                |
+| Package                                 | Version | Setup                                                                                                                                                                                                                                       |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `laravel/pennant`                       | 1.26    | Database store (`features` table)                                                                                                                                                                                                           |
+| `laravel/horizon`                       | 5.50    | See [Deployment](#deployment)                                                                                                                                                                                                               |
+| `spatie/laravel-permission`             | 8.3     | Teams mode: `teams => true`, `team_foreign_key => property_id` in `config/permission.php`                                                                                                                                                   |
+| `spatie/laravel-data`                   | 4.23    | Default config                                                                                                                                                                                                                              |
+| `spatie/laravel-typescript-transformer` | 3.3     | `TypeScriptTransformerServiceProvider` writes `resources/js/types/generated.d.ts`                                                                                                                                                           |
+| `spatie/laravel-ciphersweet`            | 1.9     | `CIPHERSWEET_KEY` env, `blind_indexes` table                                                                                                                                                                                                |
+| `barryvdh/laravel-dompdf`               | 3.1     | None                                                                                                                                                                                                                                        |
+| `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                                                                                                                                        |
+| `spatie/period`                         | 2.4     | None                                                                                                                                                                                                                                        |
+| `brick/money`                           | 0.15    | None                                                                                                                                                                                                                                        |
+| `brick/math`                            | 1.0     | Direct use of `BigDecimal` for ledger sums. 1.0 rejects floats                                                                                                                                                                              |
+| `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage).                                                                                                            |
+| `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                                                                                                                                         |
+| `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                                                                                                                                        |
+| `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                                                                                                                                        |
+| `laravel/ai`                            | 1.4     | `config/ai.php`, OpenAI by default, each hotel's own key (`OPENAI_API_KEY` is not used by the assistant), `OPENAI_TEXT_MODEL`, `OPENAI_STORE=false`. Conversation migrations published. See [AI assistant](35-ai-assistant/01-overview.md). |
+| `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                                                                                                                           |
 
 npm:
 
-| Package                    | Version    | Note                                                                        |
-| -------------------------- | ---------- | --------------------------------------------------------------------------- |
-| `@tanstack/react-table`    | 9.2        | v9 API: `useTable` + `tableFeatures`. shadcn examples use v8.               |
-| `@tanstack/react-virtual`  | 3.14       | `pms/grid` engine                                                           |
-| `date-fns`, `@date-fns/tz` | 4.4 / 1.5  | Property time zone                                                          |
-| `signature_pad`            | 5.1        | Registration signing                                                        |
-| `canvas-confetti`          | 1.9        | Go-live                                                                     |
-| `@base-ui/react`           | 1.8        | Base UI primitives for shadcn                                               |
-| `cn`, `shadcn`             | 0.4 / 4.21 | `cn` is used by shadcn components. `shadcn` provides `shadcn/tailwind.css`. |
-| `react-day-picker`, `cmdk` | 10.0 / 1.1 | Added by shadcn `calendar` and `command`                                    |
+| Package                             | Version    | Note                                                                        |
+| ----------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| `@tanstack/react-table`             | 9.2        | v9 API: `useTable` + `tableFeatures`. shadcn examples use v8.               |
+| `@tanstack/react-virtual`           | 3.14       | `pms/grid` engine                                                           |
+| `date-fns`, `@date-fns/tz`          | 4.4 / 1.5  | Property time zone                                                          |
+| `signature_pad`                     | 5.1        | Registration signing                                                        |
+| `canvas-confetti`                   | 1.9        | Go-live                                                                     |
+| `@base-ui/react`                    | 1.8        | Base UI primitives for shadcn                                               |
+| `cn`, `shadcn`                      | 0.4 / 4.21 | `cn` is used by shadcn components. `shadcn` provides `shadcn/tailwind.css`. |
+| `react-day-picker`, `cmdk`          | 10.0 / 1.1 | Added by shadcn `calendar` and `command`                                    |
+| `ai`, `@ai-sdk/react`               | 7.0 / 4.0  | `useChat` for the AI assistant chat                                         |
+| `streamdown`, `use-stick-to-bottom` | 2.7 / 1.1  | Added by AI Elements `message` and `conversation`                           |
 
 TypeScript types are generated with `php artisan typescript:transform`. The generated file is committed. `composer run dev` has no watcher for it: a long-running watcher keeps the classes it loaded at start and writes stale types after a pull or branch switch. Instead the git hooks in `.githooks/` run a fresh transform: `post-merge` and `post-checkout` after a pull or branch switch, and `pre-commit` when a commit stages `app/Data`, `app/Enums` or the generated file, which stops the commit until the new types are staged. Run it yourself after editing a Data class or enum.
 
@@ -207,38 +211,41 @@ Modules are numbered in build order. Each folder in `docs/` holds one module. Ea
 
 The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
-| #   | Module                                 | Summary                                                                                                                             |
-| --- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 01  | [Platform](01-platform/)               | Platform admins, platform settings, feature flags, impersonation, demo properties, sign-in log, contact enquiries, new-device check |
-| 02  | [Property](02-property/)               | Properties, settings, defaults seeding, age groups, printing settings                                                               |
-| 03  | [Staff](03-staff/)                     | Staff invitations, roles and permissions                                                                                            |
-| 04  | [Notifications](04-notifications/)     | Notification types and opt-out                                                                                                      |
-| 05  | [Rooms](05-rooms/)                     | Room types, rooms, beds, groups, blocks                                                                                             |
-| 06  | [Catalogues](06-catalogues/)           | Transaction codes, charge items, taxes, payment methods, discounts, room revenue, bank accounts                                     |
-| 07  | [Meals](07-meals/)                     | Meal periods and entitlements                                                                                                       |
-| 08  | [Rates](08-rates/)                     | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts                                                     |
-| 09  | [Packages](09-packages/)               | Inclusions and package prices                                                                                                       |
-| 10  | [Availability](10-availability/)       | Availability calculation                                                                                                            |
-| 11  | [Guests](11-guests/)                   | Guest CRM, identity documents, privacy                                                                                              |
-| 12  | [Reservations](12-reservations/)       | Shape, groups, beds, add-ons, booking form, reservation page, booking summary, booking sources                                      |
-| 13  | [Folio](13-folio/)                     | Folios, ledger lines, routing, posting, folio invoice                                                                               |
-| 14  | [Payments](14-payments/)               | Payments and refunds                                                                                                                |
-| 15  | [City ledger](15-city-ledger/)         | Companies, invoices, payments received, statements, aging                                                                           |
-| 16  | [Registration](16-registration/)       | Registration cards and terms                                                                                                        |
-| 17  | [Onboarding](17-onboarding/)           | Account creation, partners, wizard, go-live and approval                                                                            |
-| 18  | [Front desk](18-front-desk/)           | Check-in, check-out, assignment, dashboard, group check-out                                                                         |
-| 19  | [Housekeeping](19-housekeeping/)       | Room status board, printed work sheet and property column layout                                                                    |
-| 20  | [Night audit](20-night-audit/)         | Business dates, readiness, audit run                                                                                                |
-| 21  | [Channels](21-channels/)               | Channex connection, mapping, sync                                                                                                   |
-| 22  | [Reports](22-reports/)                 | Core reports, column layouts, row export (PDF, CSV, Excel)                                                                          |
-| 23  | [Company portal](23-company-portal/)   | Company users book and view their own stays across linked properties                                                                |
-| 24  | [Boats](24-boats/)                     | Boat departures, fares, boats and crew, trips per room, sailings, the Boat Trips board and the manifest (feature flag)              |
-| 25  | [Guest requests](25-guest-requests/)   | Housekeeping, maintenance and complaint requests, and their resolution times                                                        |
-| 26  | [Accounting](26-accounting/)           | Daily journal of each closed business date pushed to the accounting software (feature flag)                                         |
-| 27  | [Door locks](27-door-locks/)           | TTLock PINs per stay: generated or custom, issued at check-in, removed at check-out (feature flag)                                  |
-| 28  | [API access](28-api-access/)           | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape                           |
-| 29  | [Booking engine](29-booking-engine/)   | Guests book and pay online, on a microsite or through the API (feature flag, planned)                                               |
-| 30  | [Commission fees](30-commission-fees/) | Commission per service, money held for properties, monthly payout vouchers                                                          |
-| 31  | [E-invoicing](31-einvoice/)            | LHDN MyInvois e-invoicing: folios, AR invoices, monthly consolidation, credit notes (feature flag)                                  |
-| 32  | [Webhooks](32-webhooks/)               | Outgoing webhooks: admins register URLs that receive signed JSON when bookings, stays, payments or guests change                    |
-| 33  | [Facilities](33-facilities/)           | Bookable halls, equipment and activities (booked by Item or Person), events and event folios (feature flag, planned)                |
+| #   | Module                                 | Summary                                                                                                                                                      |
+| --- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 01  | [Platform](01-platform/)               | Platform admins, platform settings, feature flags, impersonation, demo properties, sign-in log, contact enquiries, new-device check                          |
+| 02  | [Property](02-property/)               | Properties, settings, defaults seeding, age groups, printing settings                                                                                        |
+| 03  | [Staff](03-staff/)                     | Staff invitations, roles and permissions                                                                                                                     |
+| 04  | [Notifications](04-notifications/)     | Notification types and opt-out                                                                                                                               |
+| 05  | [Rooms](05-rooms/)                     | Room types, rooms, beds, groups, blocks                                                                                                                      |
+| 06  | [Catalogues](06-catalogues/)           | Transaction codes, charge items, taxes, payment methods, discounts, room revenue, bank accounts                                                              |
+| 07  | [Meals](07-meals/)                     | Meal periods and entitlements                                                                                                                                |
+| 08  | [Rates](08-rates/)                     | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts                                                                              |
+| 09  | [Packages](09-packages/)               | Inclusions and package prices                                                                                                                                |
+| 10  | [Availability](10-availability/)       | Availability calculation                                                                                                                                     |
+| 11  | [Guests](11-guests/)                   | Guest CRM, identity documents, privacy                                                                                                                       |
+| 12  | [Reservations](12-reservations/)       | Shape, groups, beds, add-ons, booking form, reservation page, booking summary, booking sources                                                               |
+| 13  | [Folio](13-folio/)                     | Folios, ledger lines, routing, posting, folio invoice                                                                                                        |
+| 14  | [Payments](14-payments/)               | Payments and refunds                                                                                                                                         |
+| 15  | [City ledger](15-city-ledger/)         | Companies, invoices, payments received, statements, aging                                                                                                    |
+| 16  | [Registration](16-registration/)       | Registration cards and terms                                                                                                                                 |
+| 17  | [Onboarding](17-onboarding/)           | Account creation, partners, wizard, go-live and approval                                                                                                     |
+| 18  | [Front desk](18-front-desk/)           | Check-in, check-out, assignment, dashboard, group check-out                                                                                                  |
+| 19  | [Housekeeping](19-housekeeping/)       | Room status board, printed work sheet and property column layout                                                                                             |
+| 20  | [Night audit](20-night-audit/)         | Business dates, readiness, audit run                                                                                                                         |
+| 21  | [Channels](21-channels/)               | Channex connection, mapping, sync                                                                                                                            |
+| 22  | [Reports](22-reports/)                 | Core reports, column layouts, row export (PDF, CSV, Excel)                                                                                                   |
+| 23  | [Company portal](23-company-portal/)   | Company users book and view their own stays across linked properties                                                                                         |
+| 24  | [Boats](24-boats/)                     | Boat departures, fares, boats and crew, trips per room, sailings, the Boat Trips board and the manifest (feature flag)                                       |
+| 25  | [Guest requests](25-guest-requests/)   | Housekeeping, maintenance and complaint requests, and their resolution times                                                                                 |
+| 26  | [Accounting](26-accounting/)           | Daily journal of each closed business date pushed to the accounting software (feature flag)                                                                  |
+| 27  | [Door locks](27-door-locks/)           | TTLock PINs per stay: generated or custom, issued at check-in, removed at check-out (feature flag)                                                           |
+| 28  | [API access](28-api-access/)           | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape                                                    |
+| 29  | [Booking engine](29-booking-engine/)   | Guests book and pay online, on a microsite or through the API (feature flag, planned)                                                                        |
+| 30  | [Commission fees](30-commission-fees/) | Commission per service, money held for properties, monthly payout vouchers                                                                                   |
+| 31  | [E-invoicing](31-einvoice/)            | LHDN MyInvois e-invoicing: folios, AR invoices, monthly consolidation, credit notes (feature flag)                                                           |
+| 32  | [Webhooks](32-webhooks/)               | Outgoing webhooks: admins register URLs that receive signed JSON when bookings, stays, payments or guests change                                             |
+| 33  | [Facilities](33-facilities/)           | Bookable halls, equipment and activities (booked by Item or Person), events and event folios (feature flag, planned)                                         |
+| 33  | [POS integration](33-pos/)             | External POS outlets, room-charge postings, restaurant meal check-in, inbound `/api/pos/v1` and Loyverse adapter (feature flag)                              |
+| 34  | [Native POS](34-native-pos/)           | Built-in hospitality POS: menu, floor plan, shifts, MY SST/5-sen/LHDN, live room charge & meals, KDS, QR ordering and Posport bridge (feature flag, planned) |
+| 35  | [AI assistant](35-ai-assistant/)       | An AI chat on the Concierge page and through an API for n8n, with a usage log (feature flag). Booking website chat and staff helper are WIP                  |

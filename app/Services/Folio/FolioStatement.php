@@ -36,6 +36,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioManualBatch;
 use App\Models\GatewayRefund;
+use App\Models\PosOrder;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\UnitGuest;
@@ -571,6 +572,7 @@ class FolioStatement
     private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false, ?Closure $businessDate = null, bool $canUndoCreditMove = false): array
     {
         $nightMorph = (new UnitNight)->getMorphClass();
+        $posMorph = (new PosOrder)->getMorphClass();
         $today = false;
         $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
         $manualBatchIds = $viewManual ? $lines->pluck('manual_batch_id')->filter()->unique()->values() : collect();
@@ -581,7 +583,7 @@ class FolioStatement
         $rows = collect();
         $sourceUnits = $this->lineSourceUnits->for($lines);
 
-        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches, &$today, $businessDate, $canUndoCreditMove): void {
+        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $posMorph, $priceUnitIds, $manualBatches, &$today, $businessDate, $canUndoCreditMove): void {
             $tags = [];
             $unitId = $line->source_id === null ? $parentUnitId : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? $parentUnitId);
 
@@ -628,7 +630,7 @@ class FolioStatement
             $purpose = $payment?->purpose->folioRowLabel();
             $description = $purpose === null ? $line->description : $line->description.' · '.$purpose;
 
-            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value, $payment !== null && ! $payment->received_on->isSameDay($line->posting_date) ? $payment->received_on->toDateString() : null, $payment->notes ?? $line->notes));
+            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value, $payment !== null && ! $payment->received_on->isSameDay($line->posting_date) ? $payment->received_on->toDateString() : null, $payment->notes ?? $line->notes, posOrderId: $level === 0 && $line->source_type === $posMorph ? (int) $line->source_id : null));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);

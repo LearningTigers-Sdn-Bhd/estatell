@@ -18,6 +18,5 @@ class PosVoidData extends Data
         public ?string $amount = null,
         public ?string $reason = null,
         public array $rawPayload = [],
-        public ?int $posConnectionId = null,
     ) {}
 }

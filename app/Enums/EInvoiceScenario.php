@@ -7,6 +7,7 @@ enum EInvoiceScenario: string
     case Folio = 'folio';
     case ArInvoice = 'ar_invoice';
     case Consolidation = 'consolidation';
+    case PosOrder = 'pos_order';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum EInvoiceScenario: string
             self::Folio => __('Guest Folio'),
             self::ArInvoice => __('AR City Ledger'),
             self::Consolidation => __('Monthly Consolidation'),
+            self::PosOrder => __('POS walk-in sale'),
         };
     }
 

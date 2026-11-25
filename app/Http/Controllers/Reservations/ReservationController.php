@@ -29,6 +29,7 @@ use App\Enums\ManualFolioReason;
 use App\Enums\PaymentMode;
 use App\Enums\PaymentProofStatus;
 use App\Enums\PermissionEnum;
+use App\Enums\PosQrSessionKind;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
@@ -39,10 +40,12 @@ use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Features\DoorLocks;
 use App\Features\Facilities;
+use App\Features\Pos;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
 use App\Models\PaymentProof;
+use App\Models\PosQrSession;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -72,6 +75,7 @@ use App\Services\Keyport\UnitKeyCards;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Payments\ProofPaymentMethods;
 use App\Services\Platform\Impersonation;
+use App\Services\Pos\PosReceiptClaimQr;
 use App\Services\Property\MigrationWindow;
 use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\BookingSourceOptions;
@@ -164,6 +168,7 @@ class ReservationController extends Controller
                 'canChangePrice' => $request->user()->can(PermissionEnum::ReservationsChangePrice->value),
                 'doorPins' => $this->doorPins($request->user(), $property, $selected),
                 'keyCards' => $this->keyCards($request->user(), $property, $selected),
+                'roomQr' => $this->roomQr($request->user(), $property, $selected, $data),
                 'lockProviders' => $this->lockProviders($request->user(), $property, $selected),
                 'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $property, $reservation, $single, $activityLog, $actionMenu)),
             ];
@@ -213,6 +218,40 @@ class ReservationController extends Controller
         }
 
         return app(UnitDoorPins::class)->forUnit($unit);
+    }
+
+    /**
+     * In-room dining QR status and printable welcome QR for a checked-in unit when POS is active.
+     *
+     * @return array{unitId: int, roomLabel: string, primaryGuest: ?string, hasActiveSession: bool, roomUrl: ?string, qrSvg: ?string}|null
+     */
+    private function roomQr(User $user, Property $property, ReservationUnit $unit, ReservationUnitData $data): ?array
+    {
+        if (! Feature::for($property)->active(Pos::class)
+            || $unit->status !== UnitStatus::CheckedIn
+            || $unit->no_post
+            || ! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
+            return null;
+        }
+
+        $session = PosQrSession::query()
+            ->where('property_id', $property->id)
+            ->where('kind', PosQrSessionKind::Room->value)
+            ->where('reservation_unit_id', $unit->id)
+            ->whereNull('revoked_at')
+            ->latest('id')
+            ->first();
+
+        $url = $session !== null ? route('qr.room.show', ['token' => $session->token]) : null;
+
+        return [
+            'unitId' => $unit->id,
+            'roomLabel' => $data->assigned !== [] ? implode(', ', $data->assigned) : $data->roomType,
+            'primaryGuest' => $data->primaryGuest,
+            'hasActiveSession' => $session !== null,
+            'roomUrl' => $url,
+            'qrSvg' => $url !== null ? app(PosReceiptClaimQr::class)->svg($url) : null,
+        ];
     }
 
     /**

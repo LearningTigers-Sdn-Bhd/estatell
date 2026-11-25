@@ -6,6 +6,7 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Features\AccountingIntegration;
+use App\Features\AiAssistant;
 use App\Features\Boats;
 use App\Features\BookingEngine;
 use App\Features\Concierge;
@@ -13,7 +14,7 @@ use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Facilities;
 use App\Features\Kiosks;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Notifications\GuestEmailText;
@@ -68,11 +69,11 @@ class SettingsNavigation
                     icon: 'tablet',
                     active: request()->routeIs('settings.kiosks.*'),
                 ) : null,
-                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(PosIntegration::class) ? new NavItemData(
+                $user->can(PermissionEnum::PosManage->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
                     title: __('POS'),
                     href: route('settings.pos-outlets.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',
-                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-integrations.*', 'settings.pos-api-clients.*'),
+                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-api-clients.*', 'settings.pos.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Concierge::class) ? new NavItemData(
                     title: __('Concierge'),
@@ -103,6 +104,12 @@ class SettingsNavigation
                     href: route('settings.facilities.index', ['property' => $property->code], absolute: false),
                     icon: 'tent',
                     active: request()->routeIs('settings.facilities.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(AiAssistant::class) ? new NavItemData(
+                    title: __('AI assistant'),
+                    href: route('settings.ai-assistant.index', ['property' => $property->code], absolute: false),
+                    icon: 'bot',
+                    active: request()->routeIs('settings.ai-assistant.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([

@@ -41,6 +41,8 @@ Define every notification once, with its channels, defaults and recipients.
 | OnlineBookingReceived       | On   | On            | Both       | Reservation staff (module 12 permission) |
 | OnlineRefundNeedsAttention  | On   | On            | Both       | Staff with `payment.refund`              |
 | OnlineBookingCancelled      | On   | On            | Both       | Reservation staff (module 12 permission) |
+| AiThreadEscalated           | On   | On            | Both       | Staff with `front-desk.view`             |
+| AiCapNearlyReached          | On   | On            | Both       | Staff with `settings.manage`             |
 
 `PortalBookingCreated`, `PortalBookingCancelled` and `PortalCancellationRequested` are built (`PortalReservationNotification`, sent by `NotifyReservationStaff` after the save). The recipients are the active staff of the property with `reservations.manage`; each message names the company and the reference and links to the reservation. The matrix check constraints list the three types.
 
@@ -55,6 +57,12 @@ Define every notification once, with its channels, defaults and recipients.
 `OnlineBookingReceived` is built (`NotifyOnlineBooking`, run by `ConfirmBookingHold` after its transaction commits, once per order). The recipients are the active staff of the property with `reservations.manage`; the message names the guest and the reference and links to the reservation. The matrix check constraints list it. The guest's confirmation email, `OnlineBookingConfirmed`, is a plain notification class, not a `NotificationType` case: a guest is not a user, so it skips the preference matrix and always goes by mail to the address on the hold. It shows the reference, dates, rooms and amount paid, with a **Manage booking** button. See [Confirmation](../29-booking-engine/04-payment.md#confirmation).
 
 `OnlineBookingCancelled` is built (`OnlineBookingCancelledByGuest`, sent by `NotifyOnlineCancellation` after `CancelBookingOnline` commits). The recipients are the active staff of the property with `reservations.manage`. The guest's email (`OnlineBookingCancelled`) skips the preference matrix. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#flow).
+
+`AiThreadEscalated` (label "AI chat handed over") is built (`EscalateAiThread`, run by the AI assistant's `HandOver` tool). The recipients are the active staff of the property with `front-desk.view`. The message names the place, the guest of the stay when there is one, and the model's short summary, never the chat. It opens the chat in the AI chats inbox. The matrix check constraints list it. See [Handover](../35-ai-assistant/03-places-and-routes.md#handover).
+
+`AiCapNearlyReached` (label "AI assistant near its monthly cap") is built (`WarnAiCapNearlyReached`, called by `RecordAiTurn`). The recipients are the active staff of the property with `settings.manage`, once a month when the AI assistant's estimated spend reaches 80% of the cap. It opens Settings › AI assistant › Usage. The matrix check constraints list it. See [Monthly cap](../35-ai-assistant/04-usage-and-cost.md#monthly-cap).
+
+`PaymentSlipReceived` is in the matrix check constraints since 2026-11-24; before that, saving a preference for it failed. A test saves a preference for every type, so a type missing from the constraints fails the suite.
 
 `OnlineRefundNeedsAttention` is built (`AlertOnlineRefundProblem`). It is sent when an online refund fails and when a late payment is refunded automatically. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#refund-status).
 

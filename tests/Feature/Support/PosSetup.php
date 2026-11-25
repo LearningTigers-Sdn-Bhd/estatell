@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\UnitStatus;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\MealPeriod;
@@ -27,14 +27,14 @@ function posSetup(bool $inclusiveTax = true): array
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id]);
-    Feature::for($property)->activate(PosIntegration::class);
+    Feature::for($property)->activate(Pos::class);
 
     $reservation = Reservation::factory()->create(['property_id' => $property->id]);
     $unit = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $reservation->id]);
     $item = ChargeItem::factory()->create(['property_id' => $property->id, 'default_amount' => null, 'allow_override' => true]);
     $tax = Tax::factory()->for($property)->create(['rate' => '8.00', 'is_inclusive' => $inclusiveTax]);
     $tax->applicableTransactionCodes()->attach($item->transactionCode);
-    $outlet = PosOutlet::factory()->create(['property_id' => $property->id, 'default_charge_item_id' => $item->id]);
+    $outlet = PosOutlet::factory()->create(['property_id' => $property->id, 'default_charge_item_id' => $item->id, 'pos_enabled' => false]);
     $actor = User::factory()->for($property)->withPermissions(['pos.view', 'pos.manage', 'pos.resolve', 'meals.redeem'])->create();
 
     return ['property' => $property, 'actor' => $actor, 'unit' => $unit, 'outlet' => $outlet, 'item' => $item];

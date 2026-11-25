@@ -119,7 +119,7 @@ test('owners view and update the property notification matrix', function () {
     $this->actingAs($owner)->get($route)
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/notifications')
-            ->has('preferences', 20)
+            ->has('preferences', 22)
             ->where('preferences.0.type', 'night_audit_completed')
             ->where('preferences.0.channels.0', [
                 'channel' => 'mail',
@@ -157,7 +157,7 @@ test('verified staff manage only their own account preferences', function () {
     $this->actingAs($staff)->get(route('account.notifications.edit'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('account/notifications')
-            ->has('preferences', 20)
+            ->has('preferences', 22)
             ->where('property.code', $staff->property->code));
 
     $this->put(route('account.notifications.update', ['night_audit_completed', 'database']), ['enabled' => false])
@@ -176,4 +176,15 @@ test('account notification routes exclude admins and unverified users', function
 
     $this->actingAs($unverified)->get(route('account.notifications.edit'))->assertRedirect(route('verification.notice'));
     $this->put(route('account.notifications.update', ['night_audit_completed', 'mail']), ['enabled' => false])->assertRedirect(route('verification.notice'));
+});
+
+test('every notification type can be saved as a property setting and a user preference', function () {
+    $user = User::factory()->create();
+
+    foreach (NotificationType::cases() as $type) {
+        PropertyNotificationSetting::factory()->for($user->property)->create(['type' => $type, 'channel' => NotificationChannel::Mail, 'enabled' => false]);
+        UserNotificationPreference::factory()->for($user)->create(['type' => $type, 'channel' => NotificationChannel::Mail, 'enabled' => false]);
+    }
+
+    expect(UserNotificationPreference::query()->count())->toBe(count(NotificationType::cases()));
 });

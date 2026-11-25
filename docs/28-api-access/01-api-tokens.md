@@ -2,7 +2,7 @@
 
 ## Purpose
 
-One credential layer for everything that calls Estatell without a staff session. It uses Laravel Sanctum API tokens. Staff pages stay Inertia and use the session. [Kiosks](02-kiosks.md) are the first token owner. [Booking clients](04-booking-engine-microsite.md) are the second.
+One credential layer for everything that calls Estatell without a staff session. It uses Laravel Sanctum API tokens. Staff pages stay Inertia and use the session. [Kiosks](02-kiosks.md) are the first token owner. [Booking clients](04-booking-engine-microsite.md) are the second. [AI connections](../35-ai-assistant/03-places-and-routes.md#chat-api-for-n8n) own `ai:chat` tokens for `/api/ai/v1`, set up by Estatell for a hotel's n8n.
 
 ## Decision
 
@@ -27,7 +27,7 @@ New tokens look like `12|est_live_` plus 40 random characters and a checksum. Cl
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Middleware  | `api.token:{scope}` (`AuthenticateApiToken`): the Sanctum guard finds the token, then this class checks the owner, its property and ability                                                                                                                                                                                    |
 | Ability     | The route names the ability. A kiosk token has `kiosk:*`, so it never passes a `booking:*` route, and the reverse                                                                                                                                                                                                              |
-| Property    | Kiosk: read from the owner (`$request->attributes->get('kiosk')->property`), never from the URL or body. Booking client: taken from the path and checked for [reach](04-booking-engine-microsite.md#on-each-request)                                                                                                           |
+| Property    | Kiosk: read from the owner (`$request->attributes->get('kiosk')->property`), never from the URL or body. Booking client: taken from the path and checked for [reach](04-booking-engine-microsite.md#on-each-request). AI connection: read from the owner (the `ai_connection` attribute), and only an `ai:` route passes       |
 | Rate limits | `api-pair`: 10 per minute per IP. `api-token`: 120 per minute per kiosk. Walk-in quote and book also share 20 per minute per kiosk and 40 per IP (`api-walk-in`), after authentication. Failed token checks share 120 per minute per IP (`rate_limited`). Booking clients: see [Limits](04-booking-engine-microsite.md#limits) |
 | Format      | JSON, snake_case, Eloquent API Resources without the `data` wrapper                                                                                                                                                                                                                                                            |
 

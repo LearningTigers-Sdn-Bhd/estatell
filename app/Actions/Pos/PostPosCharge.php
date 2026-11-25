@@ -21,7 +21,8 @@ use Illuminate\Support\Facades\DB;
  * does the locking, folio routing, tax extraction and ledger write; the outlet's charge item has only inclusive taxes
  * (see `SavePosOutlet`), so the folio gross equals the receipt. A receipt that cannot post now (no business date, inactive
  * outlet, no matched room, unit not checked in, folio closed, ...) is kept as PendingReview with the reason and the
- * raw receipt, never dropped. See docs/33-pos/01-outlets-and-postings.md#postposcharge.
+ * raw receipt, never dropped. An outlet with no charge item is native-only and is refused (`outlet_not_external`), so the
+ * external POS API can never crash on it. See docs/33-pos/01-outlets-and-postings.md#postposcharge.
  */
 class PostPosCharge
 {
@@ -33,6 +34,10 @@ class PostPosCharge
 
     public function __invoke(PosOutlet $outlet, PosChargeData $data): PosPostingResult
     {
+        if ($outlet->default_charge_item_id === null) {
+            return PosPostingResult::refused(PosPostingResult::REFUSAL_OUTLET_NOT_EXTERNAL);
+        }
+
         try {
             return $this->post($outlet, $data);
         } catch (UniqueConstraintViolationException $exception) {
@@ -92,7 +97,6 @@ class PostPosCharge
 
             $posting = new PosPosting([
                 'pos_outlet_id' => $outlet->id,
-                'pos_connection_id' => $data->posConnectionId,
                 'reservation_unit_id' => $unit?->id,
                 'folio_line_id' => $lineId,
                 'external_receipt_id' => $data->externalReceiptId,

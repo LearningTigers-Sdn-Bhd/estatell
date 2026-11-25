@@ -7,6 +7,7 @@ use App\Enums\TaxRateType;
 use App\Models\Property;
 use App\Models\Tax;
 use App\Models\TransactionCode;
+use App\Services\EInvoice\LhdnTaxType;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,6 +49,7 @@ class TaxRequest extends FormRequest
             canBeWaived: $this->boolean('can_be_waived'),
             registrationNumber: $this->filled('registration_number') ? $this->string('registration_number')->toString() : null,
             enabled: $this->boolean('enabled'),
+            lhdnTaxType: $this->filled('lhdn_tax_type') ? $this->string('lhdn_tax_type')->toString() : null,
         );
     }
 
@@ -99,6 +101,7 @@ class TaxRequest extends FormRequest
             'can_be_waived' => ['required', 'boolean'],
             'registration_number' => ['nullable', 'string', 'max:100'],
             'enabled' => ['required', 'boolean'],
+            'lhdn_tax_type' => ['nullable', Rule::in(array_column(LhdnTaxType::options(), 'value'))],
         ];
     }
 

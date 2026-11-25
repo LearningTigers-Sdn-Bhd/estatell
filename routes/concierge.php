@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\AiAssistant\ConciergeChatController;
 use App\Http\Controllers\Concierge\ConciergeController;
 use App\Http\Controllers\Concierge\ConciergeDocumentController;
 use App\Http\Controllers\Concierge\ConciergeEInvoiceController;
 use App\Http\Controllers\Concierge\ConciergeGuideController;
+use App\Http\Controllers\Concierge\ConciergeQuoteController;
 use App\Http\Controllers\Concierge\ConciergeStayController;
 use App\Http\Controllers\Concierge\ConciergeWalkInController;
 use App\Http\Controllers\Property\PropertyLogoController;
@@ -27,6 +29,13 @@ Route::middleware(['concierge', 'throttle:concierge'])->group(function () {
     Route::get('stay/{property:code}/walk-in/details', [ConciergeWalkInController::class, 'details'])->name('concierge.walk-in.details');
     Route::post('stay/{property:code}/walk-in', [ConciergeWalkInController::class, 'book'])->middleware('throttle:concierge-walk-in')->name('concierge.walk-in.book');
     Route::post('stay/{property:code}/walk-in/returning', [ConciergeWalkInController::class, 'returning'])->middleware('throttle:concierge-returning')->name('concierge.walk-in.returning');
+
+    // A quote link the AI assistant sent. It needs the AI assistant feature and its RoomQuotes scope, not the walk-in switch.
+    Route::middleware('ai-assistant:room-quotes')->group(function () {
+        Route::get('stay/{property:code}/quote/{quote}', [ConciergeQuoteController::class, 'show'])->name('concierge.quote');
+        Route::post('stay/{property:code}/quote/{quote}', [ConciergeQuoteController::class, 'book'])->middleware('throttle:concierge-walk-in')->name('concierge.quote.book');
+        Route::post('stay/{property:code}/quote/{quote}/returning', [ConciergeQuoteController::class, 'returning'])->middleware('throttle:concierge-returning')->name('concierge.quote.returning');
+    });
 
     Route::prefix('c/{token}')->name('concierge.')->group(function () {
         Route::get('/', [ConciergeController::class, 'show'])->name('show');
@@ -59,4 +68,15 @@ Route::middleware(['concierge:checked-out', 'throttle:concierge'])->prefix('c/{t
     Route::post('refund', [ConciergeStayController::class, 'requestRefund'])->middleware('throttle:concierge-write')->name('refund');
     Route::get('e-invoice', [ConciergeEInvoiceController::class, 'show'])->name('e-invoice');
     Route::post('e-invoice', [ConciergeEInvoiceController::class, 'store'])->middleware('throttle:concierge-write')->name('e-invoice.store');
+});
+
+/*
+ * The AI assistant chat on the Concierge page. It needs the AI assistant feature and its Concierge scope on top of the
+ * Concierge guard. A message is limited per stay link, or per address and property in the lobby. See docs/35-ai-assistant/03-places-and-routes.md.
+ */
+Route::middleware(['concierge', 'ai-assistant:concierge', 'throttle:concierge'])->group(function () {
+    Route::get('stay/{property:code}/ai/messages', [ConciergeChatController::class, 'lobbyMessages'])->name('concierge.chat.lobby');
+    Route::post('stay/{property:code}/ai/messages', [ConciergeChatController::class, 'lobbySend'])->middleware('throttle:concierge-chat')->name('concierge.chat.lobby.send');
+    Route::get('c/{token}/ai/messages', [ConciergeChatController::class, 'stayMessages'])->name('concierge.chat.stay');
+    Route::post('c/{token}/ai/messages', [ConciergeChatController::class, 'staySend'])->middleware('throttle:concierge-chat')->name('concierge.chat.stay.send');
 });

@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use App\Features\AccountingIntegration;
+use App\Features\AiAssistant;
 use App\Features\BedRoomTypes;
 use App\Features\Boats;
 use App\Features\BookingEngine;
@@ -12,7 +13,7 @@ use App\Features\DoorLocks;
 use App\Features\EInvoicing;
 use App\Features\Facilities;
 use App\Features\Kiosks;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 
 /**
  * Per-property features that platform admins turn on or off. Each case maps to a Pennant feature class.
@@ -28,8 +29,9 @@ enum PlatformFeature: string
     case BookingEngine = 'booking-engine';
     case Concierge = 'concierge';
     case BedRoomTypes = 'bed-room-types';
-    case PosIntegration = 'pos-integration';
+    case Pos = 'pos';
     case Facilities = 'facilities';
+    case AiAssistant = 'ai-assistant';
 
     public function label(): string
     {
@@ -43,8 +45,9 @@ enum PlatformFeature: string
             self::BookingEngine => __('Booking engine'),
             self::Concierge => __('Concierge page'),
             self::BedRoomTypes => __('Dormitory features'),
-            self::PosIntegration => __('POS integration'),
+            self::Pos => __('Point of sale'),
             self::Facilities => __('Facilities and events'),
+            self::AiAssistant => __('AI assistant'),
         };
     }
 
@@ -60,8 +63,9 @@ enum PlatformFeature: string
             self::BookingEngine => __('Let guests book and pay online, on a booking website or through the API.'),
             self::Concierge => __('Guest self check-in on the guest\'s own phone, from a lobby QR code or the pre-check-in link.'),
             self::BedRoomTypes => __('Create room types sold by bed, for dorms. Room types that already sell beds keep working while this is off.'),
-            self::PosIntegration => __('Outlets, restaurant meal check-in and room charges from a POS (Loyverse or the POS API).'),
+            self::Pos => __('Built-in point of sale (registers, shifts, menu, orders, KDS, QR ordering, inventory), restaurant meal check-in and POS API room charges.'),
             self::Facilities => __('Halls, equipment and activities staff book by date and time, and event folios for guests who do not stay.'),
+            self::AiAssistant => __('A chat that answers guests and staff, and hands over to staff when it cannot help. Choose its places and capabilities below.'),
         };
     }
 
@@ -80,8 +84,9 @@ enum PlatformFeature: string
             self::BookingEngine => BookingEngine::class,
             self::Concierge => Concierge::class,
             self::BedRoomTypes => BedRoomTypes::class,
-            self::PosIntegration => PosIntegration::class,
+            self::Pos => Pos::class,
             self::Facilities => Facilities::class,
+            self::AiAssistant => AiAssistant::class,
         };
     }
 }

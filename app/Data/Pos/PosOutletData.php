@@ -5,14 +5,15 @@ namespace App\Data\Pos;
 use Spatie\LaravelData\Data;
 
 /**
- * The fields of an outlet form. `SavePosOutlet` uppercases the code.
+ * The fields of an outlet form. `SavePosOutlet` uppercases the code. A built-in POS outlet needs no default charge item.
  */
 class PosOutletData extends Data
 {
     public function __construct(
         public string $name,
         public string $code,
-        public int $defaultChargeItemId,
+        public ?int $defaultChargeItemId,
         public bool $active = true,
+        public bool $posEnabled = true,
     ) {}
 }

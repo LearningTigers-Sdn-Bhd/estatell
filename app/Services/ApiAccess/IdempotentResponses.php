@@ -2,6 +2,7 @@
 
 namespace App\Services\ApiAccess;
 
+use App\Models\AiConnection;
 use App\Models\ApiIdempotencyKey;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
@@ -12,7 +13,7 @@ use App\Models\PosApiClient;
  */
 class IdempotentResponses
 {
-    public function find(Kiosk|BookingClient|PosApiClient $owner, string $key, string $path): ?ApiIdempotencyKey
+    public function find(Kiosk|BookingClient|PosApiClient|AiConnection $owner, string $key, string $path): ?ApiIdempotencyKey
     {
         return ApiIdempotencyKey::query()
             ->forOwner($owner)

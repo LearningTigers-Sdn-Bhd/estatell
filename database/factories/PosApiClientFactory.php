@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\PosApiClient;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -14,11 +14,11 @@ use Laravel\Pennant\Feature;
 class PosApiClientFactory extends Factory
 {
     /**
-     * A client only exists while its property has POS integration, so creating one turns the feature on.
+     * A client only exists while its property has POS on, so creating one turns the feature on.
      */
     public function configure(): static
     {
-        return $this->afterCreating(fn (PosApiClient $client) => Feature::for($client->property)->activate(PosIntegration::class));
+        return $this->afterCreating(fn (PosApiClient $client) => Feature::for($client->property)->activate(Pos::class));
     }
 
     /**

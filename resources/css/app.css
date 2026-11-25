@@ -5,6 +5,7 @@
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../node_modules/streamdown/dist/*.js';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -615,4 +616,52 @@ html:has(.concierge-editorial-shell) {
 :root:has(.concierge-editorial-shell)
     [data-slot='select-trigger'][data-placeholder] {
     color: var(--concierge-placeholder);
+}
+
+/* The browser 80 mm receipt, pre-bill, table QR and Z-report: scoped strictly so non-POS PMS printing stays intact. */
+@page pos-receipt {
+    size: 80mm auto;
+    margin: 0;
+}
+
+@media print {
+    body:has(.pos-print-area) * {
+        visibility: hidden;
+    }
+
+    body:has(.pos-print-area) .pos-print-area,
+    body:has(.pos-print-area) .pos-print-area * {
+        visibility: visible;
+    }
+
+    body:has(.pos-print-area) .pos-print-area {
+        page: pos-receipt;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 80mm;
+        padding: 4mm;
+        background: #fff;
+        color: #000;
+        font-size: 11px;
+    }
+
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) * {
+        visibility: hidden;
+    }
+
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) .pos-print-sheet,
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) .pos-print-sheet * {
+        visibility: visible;
+    }
+
+    body:has(.pos-print-sheet):not(:has(.pos-print-area)) .pos-print-sheet {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 8mm;
+        background: #fff;
+        color: #000;
+    }
 }

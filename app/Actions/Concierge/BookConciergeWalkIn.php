@@ -20,13 +20,15 @@ class BookConciergeWalkIn
      * Book a room for a guest who has no booking, with the kiosk's walk-in rules: the server prices it, the booking is
      * held for `BookWalkIn::HOLD_MINUTES`, and a hold nobody pays is released by `ReleaseExpiredKioskHold`. The room is
      * the guest's only after the payment step. Refused, writing nothing, with `walk_in_disabled` while the property
-     * has the switch off, `busy` while `MAX_OPEN_HOLDS` holds are open, or `no_room_available`.
+     * has the switch off, `busy` while `MAX_OPEN_HOLDS` holds are open, or `no_room_available`. A quote link passes its
+     * `$ratePlanId` and `$quoted`: the RoomQuotes scope is its switch, so the walk-in switch is not checked, but the hold
+     * limit is shared. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
      */
-    public function __invoke(Property $property, KioskWalkInData $search, int $roomTypeId, ?Guest $guest = null): KioskWalkInResult
+    public function __invoke(Property $property, KioskWalkInData $search, int $roomTypeId, ?Guest $guest = null, ?int $ratePlanId = null, bool $quoted = false): KioskWalkInResult
     {
         $property->loadMissing('settings');
 
-        if (! $property->settings->concierge_walk_in_enabled) {
+        if (! $quoted && ! $property->settings->concierge_walk_in_enabled) {
             return new KioskWalkInResult(refusal: 'walk_in_disabled');
         }
 
@@ -36,6 +38,6 @@ class BookConciergeWalkIn
             return new KioskWalkInResult(refusal: 'busy');
         }
 
-        return $this->bookWalkIn->book($property, null, $search, $roomTypeId, $guest);
+        return $this->bookWalkIn->book($property, null, $search, $roomTypeId, $guest, $ratePlanId);
     }
 }

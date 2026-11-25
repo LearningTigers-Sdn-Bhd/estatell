@@ -20,6 +20,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { AiChatSheet } from '@/components/pms/ai-chat/ai-chat-sheet';
 import { SAVED_STAY_DAYS, readStays } from '@/lib/concierge-stays';
 import type { SavedStay } from '@/lib/concierge-stays';
 import {
@@ -30,6 +31,7 @@ import {
     show,
     walkIn,
 } from '@/routes/concierge';
+import chat from '@/routes/concierge/chat';
 
 type Tile = {
     title: string;
@@ -46,11 +48,13 @@ export default function ConciergeLobby({
     heroUrl,
     walkInEnabled,
     bookingUrl,
+    aiChat,
 }: {
     property: App.Data.Property.PropertySummaryData;
     walkInEnabled: boolean;
     bookingUrl: string | null;
     heroUrl: string | null;
+    aiChat: boolean;
 }) {
     const code = { property: property.code };
     const [savedStays, setSavedStays] = useState<SavedStay[]>([]);
@@ -361,6 +365,14 @@ export default function ConciergeLobby({
                     </ul>
                 </DialogContent>
             </Dialog>
+            {aiChat && (
+                <AiChatSheet
+                    messagesUrl={chat.lobby.url(code)}
+                    sendUrl={chat.lobby.send.url(code)}
+                    storageKey={`estatell:ai-thread:${property.code}`}
+                    contactUrl={contact.url(code)}
+                />
+            )}
         </>
     );
 }

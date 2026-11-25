@@ -8,8 +8,10 @@ use App\Enums\PermissionEnum;
 use App\Enums\ReportCategory;
 use App\Enums\ReportKey;
 use App\Enums\TabbedReport;
+use App\Features\Pos;
 use App\Models\Property;
 use App\Models\User;
+use Laravel\Pennant\Feature;
 
 /**
  * Sidebar groups for the Reports context: the tabbed report pages first in their group, the registered reports listed
@@ -55,6 +57,15 @@ class ReportsNavigation
             ),
             ReportCategory::cases(),
         );
+
+        if ($user->can(PermissionEnum::PosReports->value) && Feature::for($property)->active(Pos::class)) {
+            $groups[] = new NavGroupData(label: __('POS'), items: [new NavItemData(
+                title: __('POS sales'),
+                href: route('reports.pos-sales', ['property' => $property->code], absolute: false),
+                icon: 'receipt',
+                active: request()->routeIs('reports.pos-sales'),
+            )]);
+        }
 
         return array_values(array_filter($groups, fn (NavGroupData $group): bool => $group->items !== []));
     }

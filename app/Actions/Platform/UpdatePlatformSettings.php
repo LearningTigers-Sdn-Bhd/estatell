@@ -23,6 +23,8 @@ class UpdatePlatformSettings
                 'require_go_live_approval' => $data->requireGoLiveApproval,
                 'default_dorm_strategy' => $data->defaultDormStrategy,
                 'media_disk' => $data->mediaDisk,
+                'ai_booking_website_enabled' => $data->aiBookingWebsiteEnabled,
+                'ai_staff_helper_enabled' => $data->aiStaffHelperEnabled,
             ], fn (mixed $value): bool => $value !== null));
 
             $changed = Arr::except($settings->getDirty(), ['updated_at']);

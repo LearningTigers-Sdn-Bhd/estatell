@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\FolioLine;
 use App\Models\Kiosk;
 use App\Models\PosApiClient;
@@ -71,7 +71,7 @@ it('does not let a pos token reach the kiosk api', function () {
 it('answers 403 pos_disabled when the feature is off', function () {
     $setup = posSetup();
     PosApiClient::factory()->for($setup['property'])->withToken(POS_TOKEN)->create();
-    Feature::for($setup['property'])->deactivate(PosIntegration::class);
+    Feature::for($setup['property'])->deactivate(Pos::class);
 
     $this->getJson('/api/pos/v1/outlets', ['Authorization' => 'Bearer '.POS_TOKEN])
         ->assertForbidden()

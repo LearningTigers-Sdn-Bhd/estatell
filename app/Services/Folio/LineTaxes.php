@@ -9,6 +9,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
+use App\Services\Pos\PosFolioLinkGuard;
 use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
@@ -32,6 +33,7 @@ class LineTaxes
     public function chargeRefusal(FolioLine $line, Folio $folio): ?string
     {
         return match (true) {
+            app(PosFolioLinkGuard::class)->isManagedInPos($line) => PostingResult::REFUSAL_POS_LINE_MANAGED,
             $line->payment()->exists() => PostingResult::REFUSAL_PAYMENT_LINE,
             $line->reversal_of_id !== null => PostingResult::REFUSAL_LINE_IS_REVERSAL,
             $line->parent_line_id !== null => PostingResult::REFUSAL_LINE_IS_CHILD,

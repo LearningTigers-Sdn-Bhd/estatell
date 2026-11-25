@@ -23,6 +23,7 @@ class TaxData extends Data
         public bool $canBeWaived,
         public ?string $registrationNumber,
         public bool $enabled,
+        public ?string $lhdnTaxType,
         public array $appliesTo,
         public string $postingTransactionCode,
     ) {}
@@ -41,6 +42,7 @@ class TaxData extends Data
             canBeWaived: $tax->can_be_waived,
             registrationNumber: $tax->registration_number,
             enabled: $tax->enabled,
+            lhdnTaxType: $tax->lhdn_tax_type,
             appliesTo: self::appliesTo($tax),
             postingTransactionCode: $tax->transactionCode->code,
         );

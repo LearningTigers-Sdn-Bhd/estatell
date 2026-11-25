@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Services\Webhooks\Payloads\AiThreadWebhookPayload;
 use App\Services\Webhooks\Payloads\BookingWebhookPayload;
 use App\Services\Webhooks\Payloads\ChannelAlertWebhookPayload;
 use App\Services\Webhooks\Payloads\FolioWebhookPayload;
@@ -35,6 +36,7 @@ enum WebhookEvent: string
     case RoomMaintenanceFlagged = 'room.maintenance_flagged';
     case NightAuditCompleted = 'night_audit.completed';
     case ChannelAlert = 'channel.alert';
+    case AiEscalated = 'ai.escalated';
 
     public function label(): string
     {
@@ -57,6 +59,7 @@ enum WebhookEvent: string
             self::RoomMaintenanceFlagged => __('Room needs maintenance'),
             self::NightAuditCompleted => __('Night audit completed'),
             self::ChannelAlert => __('Channel alert'),
+            self::AiEscalated => __('AI chat handed over'),
         };
     }
 
@@ -72,6 +75,7 @@ enum WebhookEvent: string
             self::GuestCreated, self::GuestUpdated, self::GuestMerged, self::GuestAnonymized => __('Guest'),
             self::RoomCleaned, self::RoomMaintenanceFlagged => __('Housekeeping'),
             self::NightAuditCompleted, self::ChannelAlert => __('Operations'),
+            self::AiEscalated => __('AI assistant'),
         };
     }
 
@@ -90,6 +94,7 @@ enum WebhookEvent: string
             self::RoomCleaned, self::RoomMaintenanceFlagged => RoomWebhookPayload::class,
             self::NightAuditCompleted => NightAuditWebhookPayload::class,
             self::ChannelAlert => ChannelAlertWebhookPayload::class,
+            self::AiEscalated => AiThreadWebhookPayload::class,
         };
     }
 

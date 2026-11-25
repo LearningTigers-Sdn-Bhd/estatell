@@ -11,6 +11,8 @@ enum DocumentType: string
     case Receipt = 'receipt';
     case RegistrationCard = 'registration_card';
     case Event = 'event';
+    case PosOrder = 'pos_order';
+    case PosShift = 'pos_shift';
 
     public function label(): string
     {
@@ -22,11 +24,13 @@ enum DocumentType: string
             self::Receipt => __('Receipt'),
             self::RegistrationCard => __('Registration card'),
             self::Event => __('Event'),
+            self::PosOrder => __('POS order'),
+            self::PosShift => __('POS shift'),
         };
     }
 
     /**
-     * The one-digit type code in a document reference. It matches wastays; codes 4 and 6 stay unused. Event (9) is estatell's own.
+     * The type code in a document reference: one digit for the wastays types (codes 4 and 6 stay unused), Event (9) is estatell's own, and the Native POS types take two digits (10, 11).
      */
     public function code(): int
     {
@@ -38,6 +42,8 @@ enum DocumentType: string
             self::Invoice => 7,
             self::CreditNote => 8,
             self::Event => 9,
+            self::PosOrder => 10,
+            self::PosShift => 11,
         };
     }
 

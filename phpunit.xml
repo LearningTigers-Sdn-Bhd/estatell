@@ -16,6 +16,12 @@
             <directory>tests/Browser</directory>
         </testsuite>
     </testsuites>
+    <groups>
+        <!-- The AI eval calls OpenAI. Run it by hand only, never in CI. See docs/35-ai-assistant/05-eval.md. -->
+        <exclude>
+            <group>ai-eval</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>
@@ -36,6 +42,7 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="POS_PIN_PEPPER" value="test-pos-pin-pepper"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

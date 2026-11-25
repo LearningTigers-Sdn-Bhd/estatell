@@ -107,6 +107,7 @@ An Action that causes an event calls `TriggerWebhook` with the event, the proper
 |              | `room.maintenance_flagged` | A room is marked as needing maintenance.                                                                                     |
 | Operations   | `night_audit.completed`    | A night audit completes.                                                                                                     |
 |              | `channel.alert`            | The channel manager reports a problem.                                                                                       |
+| AI assistant | `ai.escalated`             | The AI assistant hands a chat over to staff. Once per thread.                                                                |
 
 A walk-in from the kiosk is held with an empty booker before the ID step, so `BookWalkIn` sends no `booking.created`. A walk-in from the Concierge page is booked together with the guest's details (`ConfirmConciergeWalkIn`), so it is never nameless, but it is announced by the same rule. `AnnounceWalkInBooking` sends it once the hold is kept: at the first payment (`RecordPayment`) or the check-in (`CheckInUnit`), whichever comes first. By then the ID step has filled the booker's name, email and phone. `kiosk_walk_in_holds.announced_at` makes sure it is sent once. A hold nobody pays is released and sends nothing (decided 2026-11-18).
 
@@ -143,6 +144,7 @@ Where each event is sent from is listed in [Build order](#build-order).
 | Housekeeping | `room`: id, number, room type, housekeeping status, needs maintenance, remark.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Night audit  | `night_audit`: id, business date, status, trigger, forced.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Channel      | `alert`: id, event, label, external booking id, revision id, created at. The raw provider payload is not sent.                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| AI assistant | `thread`: id (a UUID), place, status, reservation id (null for a lobby chat), escalated at. `summary`: the model's one or two sentences. The chat itself is never sent.                                                                                                                                                                                                                                                                                                                                                             |
 
 A guest row in a payload never holds identity document numbers, scans, tax details, notes or the blacklist reason. Anonymized guests are left out of a unit's `guests`.
 
@@ -247,6 +249,7 @@ One PR on `feat/webhooks`:
     | `room.maintenance_flagged` | `SetNeedsMaintenance`, only when the flag is set                                            |
     | `night_audit.completed`    | `RunNightAudit`                                                                             |
     | `channel.alert`            | `RecordChannelAlert`, only for a new alert                                                  |
+    | `ai.escalated`             | `EscalateAiThread`, only when the thread changes to Escalated                               |
 
     `UndoCheckIn` sends nothing, although it fires `StayCheckedOut` for door locks.
 

@@ -33,6 +33,7 @@ import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-uni
 import { Workspace } from '@/components/pms/workspace';
 import { SummaryToggle } from '@/components/pms/summary-toggle';
 import { UnitsAllTable } from '@/components/pms/reservations/units-all-table';
+import type { RoomQrData } from '@/components/pms/reservations/room-qr-card';
 import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
 import { useViewChoice } from '@/components/pms/use-view-choice';
 import { ViewChoiceToggle } from '@/components/pms/view-choice-toggle';
@@ -102,6 +103,7 @@ type Props = {
     canChangePrice?: boolean;
     doorPins?: App.Data.DoorLocks.UnitDoorPinsData | null;
     keyCards?: App.Data.Keyport.UnitKeyCardsData | null;
+    roomQr?: RoomQrData | null;
     lockProviders?: string[];
     guests?: App.Data.Reservations.ReservationGuestData[];
     canManageGuests?: boolean;
@@ -230,6 +232,7 @@ export default function ReservationShow({
     canChangePrice = false,
     doorPins = null,
     keyCards = null,
+    roomQr = null,
     lockProviders = [],
     guests = [],
     canManageGuests = false,
@@ -567,6 +570,7 @@ export default function ReservationShow({
                                 }
                                 doorPins={doorPins}
                                 keyCards={keyCards}
+                                roomQr={roomQr}
                                 lockProviders={lockProviders}
                                 autoAssignRooms={autoAssignRooms}
                                 canWaiveFees={canWaiveFees}

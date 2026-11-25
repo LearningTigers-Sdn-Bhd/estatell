@@ -2,6 +2,7 @@ import { Form, Link, router } from '@inertiajs/react';
 import {
     AppWindow,
     BedSingle,
+    Bot,
     Cable,
     Calculator,
     CircleCheck,
@@ -32,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
@@ -46,12 +47,16 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import { update as updateAiScope } from '@/routes/admin/properties/ai-scopes';
 import { update as updateMode } from '@/routes/admin/properties/booking-engine-mode';
 import { eInvoiceGuide } from '@/routes/admin';
 import { update as updateFeature } from '@/routes/admin/properties/features';
+import { chatApi as chatApiTab } from '@/routes/admin/properties';
 
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type BookingEngineMode = App.Data.Platform.BookingEngineModeData;
+type AiAssistantAdmin = App.Data.AiAssistant.AiAssistantAdminData;
+type AiScope = App.Data.AiAssistant.AiScopeData;
 
 /** Each feature's icon: the one its module uses in the staff Settings menu (Channels tab for the channel manager). */
 const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
@@ -64,8 +69,9 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     'e-invoicing': FileText,
     concierge: ConciergeBell,
     'bed-room-types': BedSingle,
-    'pos-integration': Utensils,
+    pos: Utensils,
     facilities: Tent,
+    'ai-assistant': Bot,
 };
 
 /** On and Off for the partner's read-only rows. */
@@ -206,6 +212,21 @@ function BookingEngineModeControl({
     );
 }
 
+/** A heading row inside the features table, for the AI assistant's Places and Capabilities groups. */
+function GroupRow({ label }: { label: string }) {
+    return (
+        <TableRow className="hover:bg-transparent">
+            <TableCell />
+            <TableCell
+                colSpan={2}
+                className="ps-8 text-xs font-medium text-muted-foreground uppercase"
+            >
+                {label}
+            </TableCell>
+        </TableRow>
+    );
+}
+
 /**
  * One row of the features table. A child row (a lock provider, the booking engine mode) starts with a corner arrow.
  * `onChange` missing means the switch is on and disabled: the setting is on while its parent is on.
@@ -279,11 +300,13 @@ export function PropertyFeatures({
     code,
     features,
     bookingEngineMode,
+    aiAssistant,
     readOnly = false,
 }: {
     code: string;
     features: PropertyFeature[];
     bookingEngineMode?: BookingEngineMode;
+    aiAssistant?: AiAssistantAdmin;
     readOnly?: boolean;
 }) {
     const toggle = (
@@ -384,6 +407,87 @@ export function PropertyFeatures({
             />
         );
 
+    const allowScope = (scope: AiScope, allowed: boolean) =>
+        router
+            .optimistic<{ aiAssistant: AiAssistantAdmin }>((props) => ({
+                aiAssistant: {
+                    ...props.aiAssistant,
+                    scopes: props.aiAssistant.scopes.map((entry) =>
+                        entry.scope === scope.scope
+                            ? { ...entry, allowed }
+                            : entry,
+                    ),
+                },
+            }))
+            .put(
+                updateAiScope.url({ property: code, scope: scope.scope }),
+                { allowed },
+                { preserveScroll: true },
+            );
+
+    // The Chat API row links to its own tab while it is on: Estatell sets up the connections there.
+    const chatApiLink = (scope: AiScope) =>
+        scope.scope === 'api' &&
+        scope.allowed &&
+        !readOnly &&
+        aiAssistant?.chatApiConnections !== null &&
+        aiAssistant?.chatApiConnections !== undefined && (
+            <Link
+                href={chatApiTab(code)}
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+                Manage ({aiAssistant.chatApiConnections} active)
+            </Link>
+        );
+
+    const scopeRow = (scope: AiScope) => (
+        <FeatureRow
+            key={scope.scope}
+            child
+            readOnly={readOnly}
+            label={scope.label}
+            description={
+                scope.note === null
+                    ? scope.description
+                    : `${scope.description} ${scope.note}`
+            }
+            checked={scope.allowed}
+            switchLabel={`${scope.allowed ? 'Stop' : 'Allow'} ${scope.label}`}
+            onChange={
+                scope.available || scope.allowed
+                    ? (allowed) => allowScope(scope, allowed)
+                    : undefined
+            }
+            setting={chatApiLink(scope) || undefined}
+        />
+    );
+
+    // The hotel's key status, and the places and capabilities the property may use, while the AI assistant is on.
+    const aiRows = (item: PropertyFeature) =>
+        item.feature === 'ai-assistant' &&
+        item.active &&
+        aiAssistant && (
+            <>
+                <FeatureRow
+                    child
+                    readOnly={readOnly}
+                    label="OpenAI key"
+                    description="The hotel adds its own key in Settings › AI assistant › API key, pays OpenAI directly, and sets its own monthly cap."
+                    checked={aiAssistant.keyStatus.value !== 'none'}
+                    switchLabel={`The hotel's OpenAI key for ${item.label}`}
+                    setting={<StatusBadge status={aiAssistant.keyStatus} />}
+                />
+                <GroupRow label="Places" />
+                {aiAssistant.scopes
+                    .filter((scope) => scope.kind === 'place')
+                    .map(scopeRow)}
+                <GroupRow label="Capabilities" />
+                {aiAssistant.scopes
+                    .filter((scope) => scope.kind === 'capability')
+                    .map(scopeRow)}
+            </>
+        );
+
     return (
         <div className="flex flex-col gap-4">
             <PanelHeading
@@ -436,6 +540,7 @@ export function PropertyFeatures({
                                 />
                                 {providerRows(item)}
                                 {modeRow(item)}
+                                {aiRows(item)}
                             </Fragment>
                         ))}
                     </TableBody>

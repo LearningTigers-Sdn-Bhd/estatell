@@ -5,7 +5,7 @@ namespace App\Services\Pos;
 use App\Data\NightAudit\PosReviewData;
 use App\Enums\PermissionEnum;
 use App\Enums\PosPostingStatus;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\PosPosting;
 use App\Models\Property;
 use App\Models\User;
@@ -21,7 +21,7 @@ class PendingPosReview
 {
     public function for(Property $property, User $user): ?PosReviewData
     {
-        if (! Feature::for($property)->active(PosIntegration::class)) {
+        if (! Feature::for($property)->active(Pos::class)) {
             return null;
         }
 

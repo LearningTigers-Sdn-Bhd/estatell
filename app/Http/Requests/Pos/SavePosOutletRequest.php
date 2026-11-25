@@ -22,7 +22,8 @@ class SavePosOutletRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:100'],
             'code' => ['required', 'string', 'max:30'],
-            'default_charge_item_id' => ['required', 'integer'],
+            'pos_enabled' => ['sometimes', 'boolean'],
+            'default_charge_item_id' => ['nullable', 'integer', 'required_if:pos_enabled,false'],
             'active' => ['required', 'boolean'],
         ];
     }

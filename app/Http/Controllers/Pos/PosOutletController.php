@@ -39,11 +39,17 @@ class PosOutletController extends Controller
 
     private function save(SavePosOutletRequest $request, Property $property, SavePosOutlet $savePosOutlet, ?PosOutlet $outlet, string $success): RedirectResponse
     {
+        $chargeItemId = $request->validated('default_charge_item_id');
+        $posEnabled = $request->has('pos_enabled')
+            ? $request->boolean('pos_enabled')
+            : ($outlet !== null && $outlet->pos_enabled);
+
         $result = $savePosOutlet($request->user(), $property, new PosOutletData(
             (string) $request->validated('name'),
             (string) $request->validated('code'),
-            (int) $request->validated('default_charge_item_id'),
+            $chargeItemId === null ? null : (int) $chargeItemId,
             $request->boolean('active'),
+            $posEnabled,
         ), $outlet);
 
         Inertia::flash('toast', $result->isRefused()

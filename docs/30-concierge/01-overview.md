@@ -241,6 +241,10 @@ A property that sells day use (an active room type sold per room and an active D
 - The arrival is always the business date. A search is 1 to 8 adults and 1 to 14 nights, with no children.
 - At most `BookConciergeWalkIn::MAX_OPEN_HOLDS` (10) holds can be open at once, and a booking is throttled to 6 per 10 minutes per address.
 
+### Quote links
+
+A guest the AI assistant quoted books a future stay on `GET /stay/{code}/quote/{quote}`, with the walk-in details form and the walk-in booking code (`ConfirmConciergeWalkIn` with the quote's rate plan). The walk-in switch is not needed: the AI assistant's RoomQuotes scope is the switch. A quote stay pays the **whole stay** on its Payment step: the unit's whole bill with its taxes, plus the security deposit (`SelfCheckInPayment::shortfall` with `wholeStay`, decided 2026-11-24). Its Payment and Hold expired steps say "confirm your booking" and "ask us again in the chat". See [Quote links](../35-ai-assistant/03-places-and-routes.md#quote-links).
+
 ## Safety
 
 The page can issue a door PIN to someone who holds a QR code, so it is stricter than the kiosk, which stands in the lobby.
@@ -274,3 +278,4 @@ New: the `Concierge` feature, `ConciergeStays`, `ConciergeLookupLockout`, `Conci
 - **ID photo reading.** The guest types the ID fields. A photo is stored for staff to see and fills nothing.
 - **Sending the stay link by WhatsApp.** The email is built.
 - **Telling staff** when a request arrives. The request shows in the staff list, with no notification yet.
+- **AI chat and future-date booking.** Planned in [AI assistant](../35-ai-assistant/01-overview.md): a chat on the lobby and stay pages, and [quote links](../35-ai-assistant/03-places-and-routes.md#quote-links) that book future dates without the microsite.

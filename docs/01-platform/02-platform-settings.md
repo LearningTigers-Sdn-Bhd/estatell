@@ -9,7 +9,9 @@ One place for platform-wide switches that admins can change without a deploy.
 ```
 platform_settings    id (always 1), require_go_live_approval (bool, default false),
                      default_dorm_strategy (DormStrategy, default BedAsUnit),
-                     media_disk (MediaDisk, default Local), timestamps
+                     media_disk (MediaDisk, default Local),
+                     ai_booking_website_enabled (bool, default false),
+                     ai_staff_helper_enabled (bool, default false), timestamps
 ```
 
 - A **single-row table with typed columns**. Not key-value, not jsonb.
@@ -31,8 +33,10 @@ platform_settings    id (always 1), require_go_live_approval (bool, default fals
 | `PUT /admin/settings/channels` | `admin.settings.channels.update` | auth, can:admin, support.2fa |
 | `GET /admin/settings/storage`  | `admin.settings.storage`         | auth, can:admin              |
 | `PUT /admin/settings/storage`  | `admin.settings.storage.update`  | auth, can:admin, support.2fa |
+| `GET /admin/settings/ai`       | `admin.settings.ai`              | auth, can:admin              |
+| `PUT /admin/settings/ai`       | `admin.settings.ai.update`       | auth, can:admin, support.2fa |
 
-Page: `pages/admin/settings/edit.tsx`, in the admin layout. General, Channel manager and File storage are `TabLinks`, each with an icon and its own URL. Tabs scroll horizontally on narrow screens. The page header has no extra bottom margin; a 16px gap separates it from the tabs.
+Page: `pages/admin/settings/edit.tsx`, in the admin layout. General, Channel manager, File storage, AI assistant and Commissions are `TabLinks`, each with an icon and its own URL. Tabs scroll horizontally on narrow screens. The page header has no extra bottom margin; a 16px gap separates it from the tabs.
 
 The server sends only the selected tab's setting and choices. Each tab has its own form and a right-aligned **Save changes** button. Saving stays on that tab. A section cannot write fields from another section, even if they are added to its request. All admin save controls remain visible; `support.2fa` enforces the configured requirement on every write route.
 
@@ -43,13 +47,19 @@ The server sends only the selected tab's setting and choices. Each tab has its o
 - **Channel manager:** Bed as unit or Native dorm. Labels and descriptions come from `DormStrategy`. Native dorm is disabled pending verification and is rejected on save. Existing Native dorm defaults are not changed by saving another section.
 - **File storage:** This server or Cloudflare R2. Labels and descriptions come from `MediaDisk`. R2 shows **Not set up** until configured and is rejected on save while unavailable.
 
+### AI assistant tab
+
+Two switches under **Experimental AI places**, saved together with one **Save changes** button: **Booking website chat** and **Staff helper (Ask Estatell)**. Each switch sends an explicit 1 or 0. See [Experimental places](../35-ai-assistant/01-overview.md#experimental-places).
+
 ## Settings
 
-| Column                     | Effect                                                                                                                                                                                                                                                                                                                         |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `require_go_live_approval` | When true, owners **Send for approval** and an admin approves or sends it back. The checkbox help: "Owners send their setup for review. You approve it or send it back from Properties, under Waiting for approval." Switching it off leaves pending requests pending. See [Go live](../17-onboarding/03-go-live.md#approval). |
-| `default_dorm_strategy`    | Default Channex strategy for Bed room types. See [Dorm strategies](../21-channels/03-dorm-strategies.md).                                                                                                                                                                                                                      |
-| `media_disk`               | Where new uploads are stored. See [Media storage](#media-storage).                                                                                                                                                                                                                                                             |
+| Column                       | Effect                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `require_go_live_approval`   | When true, owners **Send for approval** and an admin approves or sends it back. The checkbox help: "Owners send their setup for review. You approve it or send it back from Properties, under Waiting for approval." Switching it off leaves pending requests pending. See [Go live](../17-onboarding/03-go-live.md#approval). |
+| `default_dorm_strategy`      | Default Channex strategy for Bed room types. See [Dorm strategies](../21-channels/03-dorm-strategies.md).                                                                                                                                                                                                                      |
+| `media_disk`                 | Where new uploads are stored. See [Media storage](#media-storage).                                                                                                                                                                                                                                                             |
+| `ai_booking_website_enabled` | Releases the experimental booking website chat. Off hides the `BookingEngine` scope everywhere. See [Experimental places](../35-ai-assistant/01-overview.md#experimental-places).                                                                                                                                              |
+| `ai_staff_helper_enabled`    | Releases the experimental staff helper. Off hides the `Staff`, `DailyNumbers` and `HowTo` scopes everywhere. See [Experimental places](../35-ai-assistant/01-overview.md#experimental-places).                                                                                                                                 |
 
 ## Media storage
 

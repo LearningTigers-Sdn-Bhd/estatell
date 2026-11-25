@@ -3,6 +3,7 @@ import {
     Cable,
     Hourglass,
     Info,
+    MessagesSquare,
     Percent,
     Store,
     ToggleRight,
@@ -12,6 +13,7 @@ import { useState } from 'react';
 import { PropertyCommissions } from '@/components/pms/commissions/property-commissions';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import { PropertyChatApi } from '@/components/pms/properties/property-chat-api';
 import { MovePropertyPartner } from '@/components/pms/properties/move-property-partner';
 import {
     ChannelSectionList,
@@ -45,6 +47,7 @@ import { show as goLive } from '@/routes/admin/properties/go-live';
 import { show as viewAs } from '@/routes/view-as';
 import {
     channels as channelsTab,
+    chatApi as chatApiTab,
     commissions as commissionsTab,
     features as featuresTab,
     index,
@@ -60,18 +63,24 @@ type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type StaffMember = App.Data.Platform.AdminPropertyStaffData;
 type OtaListRow = App.Data.Platform.AdminOtaListRowData;
 type Channel = App.Data.Channels.ChannelTabData;
+type ChatApi = App.Data.AiAssistant.ChatApiTabData;
 type Tab =
     | 'overview'
     | 'staff'
     | 'features'
     | 'ota-lists'
     | 'channels'
-    | 'commissions';
+    | 'commissions'
+    | 'chat-api';
 
-/** The tabs of the property page. Channels shows only when the channel manager is on. */
+/**
+ * The tabs of the property page. Channels shows only when the channel manager is on, and Chat API only while the AI
+ * assistant and its Chat API switch are on.
+ */
 function propertyTabs(
     property: Property,
     channelManagerOn: boolean,
+    chatApiOn: boolean,
 ): TabLink[] {
     return [
         {
@@ -115,6 +124,16 @@ function propertyTabs(
             icon: Percent,
             href: commissionsTab(property.code),
         },
+        ...(chatApiOn
+            ? [
+                  {
+                      value: 'chat-api' as const,
+                      label: 'Chat API',
+                      icon: MessagesSquare,
+                      href: chatApiTab(property.code),
+                  },
+              ]
+            : []),
     ];
 }
 
@@ -124,10 +143,13 @@ export default function PropertyShow({
     staff = [],
     features = [],
     bookingEngineMode,
+    aiAssistant,
     otaLists = [],
     otaChannels = [],
     channel,
     channelManagerOn,
+    chatApi,
+    chatApiOn,
     partnerOptions,
     commissionServices = [],
     commissionHistory = [],
@@ -138,10 +160,13 @@ export default function PropertyShow({
     staff?: StaffMember[];
     features?: PropertyFeature[];
     bookingEngineMode?: App.Data.Platform.BookingEngineModeData;
+    aiAssistant?: App.Data.AiAssistant.AiAssistantAdminData;
     otaLists?: OtaListRow[];
     otaChannels?: App.Data.Onboarding.OnboardingOtaChannelData[];
     channel?: Channel;
     channelManagerOn: boolean;
+    chatApi?: ChatApi;
+    chatApiOn: boolean;
     partnerOptions: EnumOption[];
     commissionServices?: App.Data.Commissions.PropertyCommissionServiceData[];
     commissionHistory?: App.Data.Commissions.PropertyCommissionPeriodData[];
@@ -277,7 +302,7 @@ export default function PropertyShow({
                     panelWidth="full"
                     className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
                     panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
-                    tabs={propertyTabs(property, channelManagerOn)}
+                    tabs={propertyTabs(property, channelManagerOn, chatApiOn)}
                 >
                     <Workspace
                         list={
@@ -308,6 +333,7 @@ export default function PropertyShow({
                                 code={property.code}
                                 features={features}
                                 bookingEngineMode={bookingEngineMode}
+                                aiAssistant={aiAssistant}
                             />
                         )}
                         {tab === 'ota-lists' && (
@@ -322,6 +348,12 @@ export default function PropertyShow({
                                 code={property.code}
                                 services={commissionServices}
                                 history={commissionHistory}
+                            />
+                        )}
+                        {tab === 'chat-api' && chatApi && (
+                            <PropertyChatApi
+                                code={property.code}
+                                chatApi={chatApi}
                             />
                         )}
                         {tab === 'channels' && channel && (
@@ -343,6 +375,7 @@ PropertyShow.layout = (props: {
     property: Property;
     tab: Tab;
     channelManagerOn: boolean;
+    chatApiOn: boolean;
 }) => ({
     variant: 'fixed' as const,
     breadcrumbs: withTabCrumb(
@@ -351,7 +384,7 @@ PropertyShow.layout = (props: {
             { title: 'Properties', href: index() },
             { title: props.property.name, href: show(props.property.code) },
         ],
-        propertyTabs(props.property, props.channelManagerOn),
+        propertyTabs(props.property, props.channelManagerOn, props.chatApiOn),
         props.tab,
     ),
 });

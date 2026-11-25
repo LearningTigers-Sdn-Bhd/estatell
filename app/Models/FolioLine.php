@@ -113,6 +113,16 @@ class FolioLine extends Model
     }
 
     /**
+     * The POS order link of a charge a restaurant room charge posted. Front desk cannot change such a line.
+     *
+     * @return HasOne<PosOrderFolioLink, $this>
+     */
+    public function posOrderFolioLink(): HasOne
+    {
+        return $this->hasOne(PosOrderFolioLink::class);
+    }
+
+    /**
      * @return HasMany<self, $this>
      */
     public function children(): HasMany
