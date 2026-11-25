@@ -37,7 +37,7 @@ class AdminDashboardTrends
             ->get()
             ->groupBy('month');
 
-        return collect(range(0, self::MONTHS - 1))
+        return array_values(collect(range(0, self::MONTHS - 1))
             ->map(function (int $offset) use ($first, $signUps, $goLives, $income): AdminDashboardMonthData {
                 $month = $first->addMonths($offset)->format('Y-m');
                 /** @var Collection<int, CommissionEntry> $entries */
@@ -51,11 +51,11 @@ class AdminDashboardTrends
                     channelManager: $this->income($entries, CommissionService::ChannelManager),
                 );
             })
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
+     * @param  literal-string  $column
      * @return Collection<string, int>
      */
     private function countByMonth(string $column, mixed $since): Collection
@@ -69,6 +69,9 @@ class AdminDashboardTrends
 
     /**
      * The `Y-m` month of a UTC timestamp column in Malaysia time.
+     *
+     * @param  literal-string  $column
+     * @return literal-string
      */
     private function monthSql(string $column): string
     {

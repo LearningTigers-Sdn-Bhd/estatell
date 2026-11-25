@@ -21,7 +21,6 @@ use App\Models\SignInEvent;
 use App\Models\WebhookDelivery;
 use App\Services\Property\PropertyToday;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * What needs a platform admin now. Each row counts one problem and links to the list filtered to it. Rows with
@@ -114,9 +113,9 @@ class AdminDashboardTodo
      */
     private function nightAuditRows(): array
     {
-        return Property::query()
+        return array_values(Property::query()
             ->where('status', PropertyStatus::Live)
-            ->with(['settings', 'businessDates' => fn (HasMany $query) => $query->current()])
+            ->with(['settings', 'businessDates' => fn ($query) => $query->current()])
             ->orderBy('name')
             ->get()
             ->map(function (Property $property): ?AdminDashboardTodoRowData {
@@ -142,8 +141,7 @@ class AdminDashboardTodo
                 );
             })
             ->filter()
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -155,7 +153,7 @@ class AdminDashboardTodo
     {
         $since = now()->subDays(self::QUIET_DAYS);
 
-        return Property::query()
+        return array_values(Property::query()
             ->where('status', PropertyStatus::Live)
             ->where('went_live_at', '<=', $since)
             ->whereDoesntHave('reservations', fn (Builder $query) => $query->where('created_at', '>=', $since))
@@ -169,8 +167,7 @@ class AdminDashboardTodo
                 href: route('admin.properties.show', $property->code, absolute: false),
                 tone: Tone::Warning,
             ))
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -187,7 +184,7 @@ class AdminDashboardTodo
             ->groupBy('channel_properties.property_id')
             ->pluck('errors', 'property_id');
 
-        return Property::query()
+        return array_values(Property::query()
             ->where(fn (Builder $query) => $query
                 ->whereIn('id', $errors->keys())
                 ->orWhereHas('channelProperty', fn (Builder $channel) => $channel->where('status', ChannelPropertyStatus::Error)))
@@ -205,8 +202,7 @@ class AdminDashboardTodo
                     tone: Tone::Danger,
                 );
             })
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**

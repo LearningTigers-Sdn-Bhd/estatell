@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Actions\Platform\StartImpersonation;
+use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\ImpersonationReason;
 use App\Http\Controllers\Controller;
@@ -107,11 +108,11 @@ class ViewAsController extends Controller
     }
 
     /**
-     * While a session is open the shared sidebar items are empty (the signed-in user is staff), so the page brings
+     * While a session is open the shared sidebar navigation is empty (the signed-in user is staff), so the page brings
      * the support user's own. They replace the shared props on this page only and make the page choose the admin or
      * partner layout.
      *
-     * @return array<string, list<NavItemData>>
+     * @return array{}|array{adminNavigation: list<NavGroupData>}|array{partnerNavigation: list<NavItemData>}
      */
     private function supportNavigation(?User $supportUser): array
     {

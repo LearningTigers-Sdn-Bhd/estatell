@@ -48,13 +48,12 @@ class AdminDashboardSummary
      */
     private function recent(): array
     {
-        return Property::query()
+        return array_values(Property::query()
             ->orderByRaw('greatest(created_at, coalesce(went_live_at, created_at)) desc')
             ->orderByDesc('id')
             ->limit(self::RECENT)
             ->get(['id', 'code', 'name', 'status', 'created_at', 'went_live_at'])
             ->map(fn (Property $property): AdminRecentPropertyData => AdminRecentPropertyData::fromModel($property))
-            ->values()
-            ->all();
+            ->all());
     }
 }
