@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Transfers;
 
 use App\Actions\Transfers\AssignTransfer;
+use App\Actions\Transfers\AssignTransferRun;
 use App\Data\Transfers\TransferDriverData;
 use App\Data\Transfers\TransferVehicleData;
 use App\Enums\PageOrientation;
@@ -59,6 +60,35 @@ class TransferRunSheetController extends Controller
                 ->map(fn (TransferDriver $driver): TransferDriverData => TransferDriverData::fromModel($driver))
                 ->all(),
         ]);
+    }
+
+    /**
+     * Put the picked transfers on one van run (Assign van on the run sheet). See docs/35-transfers/01-land-transfers.md#vans-board.
+     */
+    public function assignRun(Request $request, Property $property, AssignTransferRun $assignRun, TransferRefusals $refusals): RedirectResponse
+    {
+        $validated = $request->validate([
+            'transfer_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'transfer_ids.*' => ['integer', 'distinct'],
+            'transfer_vehicle_id' => ['nullable', 'integer'],
+            'transfer_driver_id' => ['nullable', 'integer'],
+            'pickup_time' => ['nullable', 'date_format:H:i'],
+        ]);
+
+        $result = $assignRun(
+            $request->user(),
+            $property,
+            array_values(array_map(intval(...), $validated['transfer_ids'])),
+            isset($validated['transfer_vehicle_id']) ? (int) $validated['transfer_vehicle_id'] : null,
+            isset($validated['transfer_driver_id']) ? (int) $validated['transfer_driver_id'] : null,
+            $validated['pickup_time'] ?? null,
+        );
+
+        Inertia::flash('toast', $result->isRefused()
+            ? ['type' => 'error', 'message' => (string) current($refusals->errors((string) $result->refusal))]
+            : ['type' => 'success', 'message' => trans_choice(':count transfer put on the run.|:count transfers put on the run.', count($validated['transfer_ids']))]);
+
+        return back();
     }
 
     public function assign(Request $request, Property $property, UnitTransfer $transfer, AssignTransfer $assign, TransferRefusals $refusals): RedirectResponse

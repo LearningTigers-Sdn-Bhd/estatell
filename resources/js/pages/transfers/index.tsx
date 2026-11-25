@@ -8,8 +8,11 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
+import { VanRunDialog } from '@/components/pms/transfers/van-run-dialog';
+import { VansBoard } from '@/components/pms/transfers/vans-board';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Table,
     TableBody,
@@ -18,6 +21,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { transfers as reservationTransfers } from '@/routes/reservations';
 import { assign, index, pdf, spreadsheet } from '@/routes/transfers';
 
@@ -52,7 +56,8 @@ function pickOptions(
 
 /**
  * Front desk › Transfers: every road transfer of one date, by pick-up time, with the vehicle and driver of each.
- * Export Transfer Manifest prints or downloads the same transfers for the drivers, with the saved column layout.
+ * Export Transfer Manifest prints or downloads the same transfers for the drivers, with the saved column layout. Ticked
+ * transfers go on one van run with Put on a van, and the Vans view shows each van's runs. See #vans-board too.
  * See docs/35-transfers/01-land-transfers.md#run-sheet.
  */
 export default function TransfersIndex({
@@ -123,6 +128,22 @@ export default function TransfersIndex({
 
     const pax = rows.reduce((sum, row) => sum + row.pax, 0);
     const [layoutDraft, setLayoutDraft] = useState<Layout | null>(null);
+    const [view, setView] = useState<'list' | 'vans'>('list');
+    const [selected, setSelected] = useState<Set<number>>(new Set());
+    const [runOpen, setRunOpen] = useState(false);
+    const picked = rows.filter((row) => selected.has(row.id));
+    const toggleRow = (id: number, on: boolean) =>
+        setSelected((current) => {
+            const next = new Set(current);
+
+            if (on) {
+                next.add(id);
+            } else {
+                next.delete(id);
+            }
+
+            return next;
+        });
 
     return (
         <>
@@ -195,7 +216,58 @@ export default function TransfersIndex({
                     }
                 />
 
-                {rows.length === 0 ? (
+                {rows.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ToggleGroup
+                            variant="outline"
+                            spacing={0}
+                            aria-label="View"
+                            value={[view]}
+                            onValueChange={(values) => {
+                                if (values[0]) {
+                                    setView(values[0] as 'list' | 'vans');
+                                }
+                            }}
+                        >
+                            <ToggleGroupItem value="list">List</ToggleGroupItem>
+                            <ToggleGroupItem value="vans">Vans</ToggleGroupItem>
+                        </ToggleGroup>
+                        {view === 'list' && canAssign && picked.length > 0 && (
+                            <>
+                                <span className="text-sm text-muted-foreground">
+                                    {picked.length} selected ·{' '}
+                                    {picked.reduce(
+                                        (sum, row) => sum + row.pax,
+                                        0,
+                                    )}{' '}
+                                    pax
+                                </span>
+                                <Button
+                                    type="button"
+                                    onClick={() => setRunOpen(true)}
+                                >
+                                    <Bus data-icon="inline-start" />
+                                    Put on a van
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => setSelected(new Set())}
+                                >
+                                    Clear
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {rows.length > 0 && view === 'vans' ? (
+                    <VansBoard
+                        rows={rows}
+                        vehicles={vehicles}
+                        drivers={drivers}
+                    />
+                ) : rows.length === 0 ? (
                     <EmptyState
                         icon={Bus}
                         title="No transfers on this day."
@@ -206,6 +278,33 @@ export default function TransfersIndex({
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    {canAssign && (
+                                        <TableHead className="w-10">
+                                            <Checkbox
+                                                aria-label="Select every transfer"
+                                                checked={
+                                                    picked.length ===
+                                                    rows.length
+                                                }
+                                                indeterminate={
+                                                    picked.length > 0 &&
+                                                    picked.length < rows.length
+                                                }
+                                                onCheckedChange={(on) =>
+                                                    setSelected(
+                                                        on
+                                                            ? new Set(
+                                                                  rows.map(
+                                                                      (row) =>
+                                                                          row.id,
+                                                                  ),
+                                                              )
+                                                            : new Set(),
+                                                    )
+                                                }
+                                            />
+                                        </TableHead>
+                                    )}
                                     <TableHead>Pick-up</TableHead>
                                     <TableHead>Direction</TableHead>
                                     <TableHead>Route</TableHead>
@@ -222,6 +321,19 @@ export default function TransfersIndex({
                             <TableBody>
                                 {rows.map((row) => (
                                     <TableRow key={row.id}>
+                                        {canAssign && (
+                                            <TableCell>
+                                                <Checkbox
+                                                    aria-label={`Select ${row.reference}`}
+                                                    checked={selected.has(
+                                                        row.id,
+                                                    )}
+                                                    onCheckedChange={(on) =>
+                                                        toggleRow(row.id, on)
+                                                    }
+                                                />
+                                            </TableCell>
+                                        )}
                                         <TableCell className="font-medium tabular-nums">
                                             {row.pickupTime}
                                         </TableCell>
@@ -347,6 +459,22 @@ export default function TransfersIndex({
                     </div>
                 )}
             </div>
+
+            {canAssign && runOpen && (
+                <VanRunDialog
+                    open
+                    onOpenChange={setRunOpen}
+                    transferIds={picked.map((row) => row.id)}
+                    pax={picked.reduce((sum, row) => sum + row.pax, 0)}
+                    seatsOf={(id) =>
+                        vehicles.find((vehicle) => vehicle.id === id)?.seats ??
+                        null
+                    }
+                    vehicleOptions={pickOptions(vehicleItems, null)}
+                    driverOptions={pickOptions(driverItems, null)}
+                    onDone={() => setSelected(new Set())}
+                />
+            )}
 
             {canEditColumns && layoutDraft && (
                 <ReportLayoutSheet

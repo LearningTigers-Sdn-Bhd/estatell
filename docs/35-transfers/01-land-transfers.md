@@ -153,6 +153,14 @@ The run sheet for the drivers, as a file. It is **not a page**: staff export it 
 
 `TransferExportController` (`transfers.pdf`, `transfers.spreadsheet`) calls the shared services behind `transfers` and `reservations.view`, so front desk staff need no `reports.view`. The spreadsheet needs `format` (`csv` or `xlsx`). A transfer id of another property in `rowKeys` is dropped. The shared `reports.transfer-manifest` export routes also work, behind `reports.view`, and return 404 with the feature off (`EnsureReportIsAvailable`).
 
+## Vans board
+
+Built 2026-11-25 (Tanini 5.3 and 5.5). A **run** is the transfers that share a vehicle, a pick-up time and a route: one van trip. There is no runs table; a run follows from each transfer's vehicle and pick-up time.
+
+- **Put on a van.** On the run sheet (List view), staff with `reservations.manage` tick transfers and press **Put on a van**. The Dialog sets one **Vehicle**, one **Driver** and, optionally, one **Pick-up time** for all of them, and warns "11 pax on 10 seats" before saving. `AssignTransferRun` runs `AssignTransfer` on each, so the same availability checks apply; a new time keeps the charge and logs `reservation.transfer_time_changed` ("Transfer in pick-up time 09:40 → 10:00."). One refusal rolls every change back. An id of another property is refused as `transfer_not_found`.
+- **Vans view.** A List / Vans toggle on the run sheet. Vans shows one card per available vehicle (and any turned-off vehicle with a run): its runs by time with the end time (pick-up plus the longest route time), the route, pax against seats, the driver and the guests. A run over the seats shows its pax in `warning`. Two runs of one van that overlap in time each show "Overlaps another run of this van"; a run with no route time overlaps only a run at the same minute. A **No van yet** card lists the transfers without a vehicle. A van with no run reads "Free all day".
+- The grouping is display only, in the browser (`resources/js/lib/transfer-runs.ts`, with unit tests). The Transfer manifest already prints one section per vehicle and driver.
+
 ## Routes
 
 | Route                                                                         | Name                                         | Permission            |
@@ -164,6 +172,7 @@ The run sheet for the drivers, as a file. It is **not a page**: staff export it 
 | `GET /p/{code}/reservations/{reservation}/transfers`                          | `reservations.transfers`                     | `reservations.view`   |
 | `PUT, DELETE …/reservations/{reservation}/units/{unit}/transfers/{direction}` | `reservations.units.transfers.set`, `.clear` | `reservations.manage` |
 | `GET /p/{code}/transfers`                                                     | `transfers.index`                            | `reservations.view`   |
+| `PUT /p/{code}/transfers/run`                                                 | `transfers.run`                              | `reservations.manage` |
 | `PUT /p/{code}/transfers/{transfer}/assign`                                   | `transfers.assign`                           | `reservations.manage` |
 | `POST /p/{code}/transfers/pdf`, `POST …/transfers/spreadsheet`                | `transfers.pdf`, `transfers.spreadsheet`     | `reservations.view`   |
 
@@ -172,5 +181,4 @@ A route, vehicle, driver, unit or transfer of another property is a 404.
 ## Not built yet
 
 - Transfers on the booking form and the company portal (set them on the reservation page after booking).
-- Shared vans grouped into runs, and seat counts per van.
 - Subcontractor payables.

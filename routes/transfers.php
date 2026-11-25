@@ -13,5 +13,6 @@ Route::prefix('transfers')->name('transfers.')->middleware('transfers')->group(f
         Route::post('spreadsheet', [TransferExportController::class, 'spreadsheet'])->name('spreadsheet');
     });
 
+    Route::put('run', [TransferRunSheetController::class, 'assignRun'])->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('run');
     Route::put('{transfer}/assign', [TransferRunSheetController::class, 'assign'])->whereNumber('transfer')->middleware('can:'.PermissionEnum::ReservationsManage->value)->name('assign');
 });

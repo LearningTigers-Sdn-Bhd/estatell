@@ -20,6 +20,7 @@ class TransferRefusals
             UnitTransferResult::REFUSAL_CHARGE_NOT_FOUND => ['mode' => __('This route\'s price is not available. Turn its charge item on or change the route\'s price.')],
             UnitTransferResult::REFUSAL_VEHICLE_NOT_FOUND => ['transfer_vehicle_id' => __('Pick an available vehicle.')],
             UnitTransferResult::REFUSAL_DRIVER_NOT_FOUND => ['transfer_driver_id' => __('Pick an available driver.')],
+            'transfer_not_found' => ['form' => __('A transfer is no longer on the run sheet. Reload the page.')],
             default => ['form' => __('The transfer could not be saved.')],
         };
     }
