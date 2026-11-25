@@ -1,9 +1,4 @@
-import {
-    ArrowDown,
-    ArrowLeftRight,
-    ArrowRight,
-    MessageCircle,
-} from 'lucide-react';
+import { ArrowLeftRight, MessageCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Fragment } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +17,32 @@ type Node = {
     description: string;
     fields: [string, string][];
 };
+
+/**
+ * A line with a solid head that runs from one card's edge to the next. It points down on small screens and right from md.
+ */
+function Connector() {
+    return (
+        <div
+            aria-hidden
+            className="flex h-6 flex-col items-center text-muted-foreground md:h-auto md:w-8 md:flex-row"
+        >
+            <span className="w-px flex-1 bg-current md:h-px md:w-auto" />
+            <svg
+                viewBox="0 0 8 6"
+                className="h-1.5 w-2 shrink-0 fill-current md:hidden"
+            >
+                <path d="M0 0h8L4 6z" />
+            </svg>
+            <svg
+                viewBox="0 0 6 8"
+                className="hidden h-2 w-1.5 shrink-0 fill-current md:block"
+            >
+                <path d="M0 0l6 4-6 4z" />
+            </svg>
+        </div>
+    );
+}
 
 /**
  * An example n8n workflow for the chat API, as three cards. Only the Estatell card is ours to fill in, so it alone has
@@ -62,18 +83,10 @@ export function ChatApiWorkflow({ endpointPath }: { endpointPath: string }) {
     ];
 
     return (
-        <div className="flex flex-col items-stretch gap-2 md:flex-row">
+        <div className="flex flex-col items-stretch rounded-xl border bg-muted p-4 md:flex-row">
             {nodes.map((node, index) => (
                 <Fragment key={node.title}>
-                    {index > 0 && (
-                        <div
-                            aria-hidden
-                            className="flex items-center justify-center text-muted-foreground"
-                        >
-                            <ArrowDown className="size-4 md:hidden" />
-                            <ArrowRight className="hidden size-4 md:block" />
-                        </div>
-                    )}
+                    {index > 0 && <Connector />}
                     <Card size="sm" className="flex-1">
                         <CardHeader>
                             <Badge

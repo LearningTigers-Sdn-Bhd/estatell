@@ -2,6 +2,7 @@ import { Form, router, useForm } from '@inertiajs/react';
 import {
     Check,
     Copy,
+    KeyRound,
     MessagesSquare,
     MoreHorizontal,
     Plus,
@@ -23,7 +24,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    Alert,
+    AlertAction,
+    AlertDescription,
+    AlertTitle,
+} from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -246,7 +252,7 @@ export function PropertyChatApi({
                     icon={MessagesSquare}
                     title="Chat API"
                     description="n8n or another tool sends guest messages to this hotel's assistant. Estatell sets it up for the hotel."
-                    actions={chatApi.connections.length > 0 && addButton}
+                    actions={addButton}
                 />
 
                 {chatApi.keyBlocksReplies ? (
@@ -262,92 +268,100 @@ export function PropertyChatApi({
                         </AlertDescription>
                     </Alert>
                 ) : (
-                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                        Needs the hotel's OpenAI key.
-                        <StatusBadge status={chatApi.keyStatus} />
-                    </p>
+                    <Alert>
+                        <KeyRound />
+                        <AlertTitle>The hotel's OpenAI key</AlertTitle>
+                        <AlertDescription>
+                            The chat API answers with the hotel's own key.
+                        </AlertDescription>
+                        <AlertAction>
+                            <StatusBadge status={chatApi.keyStatus} />
+                        </AlertAction>
+                    </Alert>
                 )}
 
-                {chatApi.connections.length === 0 ? (
-                    <EmptyState
-                        icon={MessagesSquare}
-                        title="No connections yet"
-                        description="Add one to get a token for n8n."
-                        action={addButton}
-                    />
-                ) : (
-                    <div className="overflow-x-auto rounded-xl border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Last used</TableHead>
-                                    <TableHead className="w-10">
-                                        <span className="sr-only">Actions</span>
-                                    </TableHead>
+                <div className="overflow-x-auto rounded-xl border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Last used</TableHead>
+                                <TableHead className="w-10">
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {chatApi.connections.length === 0 && (
+                                <TableRow className="hover:bg-transparent">
+                                    <TableCell colSpan={4}>
+                                        <EmptyState
+                                            icon={MessagesSquare}
+                                            title="No connections yet"
+                                            description="Add one to get a token for n8n."
+                                        />
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {chatApi.connections.map((connection) => (
-                                    <TableRow key={connection.id}>
-                                        <TableCell className="font-medium">
-                                            {connection.name}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge
-                                                variant={
-                                                    connection.canRevoke
-                                                        ? 'default'
-                                                        : 'secondary'
-                                                }
-                                            >
-                                                {connection.canRevoke
-                                                    ? 'Active'
-                                                    : 'Revoked'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DateText
-                                                date={connection.lastUsedAt}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            {connection.canRevoke && (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        render={
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon-sm"
-                                                                aria-label={`Actions for ${connection.name}`}
-                                                            />
+                            )}
+                            {chatApi.connections.map((connection) => (
+                                <TableRow key={connection.id}>
+                                    <TableCell className="font-medium">
+                                        {connection.name}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant={
+                                                connection.canRevoke
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {connection.canRevoke
+                                                ? 'Active'
+                                                : 'Revoked'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <DateText
+                                            date={connection.lastUsedAt}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        {connection.canRevoke && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger
+                                                    render={
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                            aria-label={`Actions for ${connection.name}`}
+                                                        />
+                                                    }
+                                                >
+                                                    <MoreHorizontal />
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            setRevoking(
+                                                                connection,
+                                                            )
                                                         }
                                                     >
-                                                        <MoreHorizontal />
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem
-                                                            variant="destructive"
-                                                            onClick={() =>
-                                                                setRevoking(
-                                                                    connection,
-                                                                )
-                                                            }
-                                                        >
-                                                            Revoke connection
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
+                                                        Revoke connection
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
             <section className="flex flex-col gap-4">
