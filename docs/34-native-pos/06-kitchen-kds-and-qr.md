@@ -2,6 +2,21 @@
 
 > **Planned (Phase 3).** Part of [Native POS](01-overview.md). Defines kitchen stations, Web KDS (`version` hash polling — no Reverb dependency), ODS pickup boards, per-stay Room QR + PIN ordering, dynamic Table QR ordering, and walk-in-only IndexedDB PWA offline mode.
 
+## Build status (Phase 3, step 11)
+
+| Part                                                                        | State                                                          |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `pos_kitchen_stations`, `kitchen_station_id` on categories, items and lines | Built                                                          |
+| Routing: item station, else category station; combo parents route nowhere   | Built (`KitchenDisplay::stationIdFor`)                         |
+| Web KDS: Kitchen, Window and All day views, Bump, Recall, Served            | Built (`pos/kds`)                                              |
+| Version polling (`/kds/{station}/version`, `/ods/{outlet}/version`)         | Built, random token in the cache, not a Redis hash key by hand |
+| Void dockets on the screen (struck through, 30 minutes)                     | Built on screen. Printed void docket not built                 |
+| ODS pickup board                                                            | Built (`pos/ods`), staff route, not public (see below)         |
+| Browser kitchen docket print                                                | Not built, waits for the print step                            |
+| Cooking guide popover                                                       | Guide sent to the screen, popover not built yet                |
+
+Deviation: the ODS board sits behind the terminal actor and `pos.kds`, so a pickup monitor needs a signed-in kitchen session. A public board needs its own token, which is not built.
+
 ## Purpose
 
 Route fired dishes across multi-station hotel kitchens without paper bottlenecks, let guests self-order safely from dining tables or hotel rooms via revocable QR sessions, and keep walk-in Cash/DuitNow counter checkout working through brief Wi-Fi dropouts.

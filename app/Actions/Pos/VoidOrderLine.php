@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  */
 class VoidOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpKitchenVersion $bumpKitchenVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line, PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
     {
@@ -78,6 +78,10 @@ class VoidOrderLine
                     if ($fired && $return) {
                         $this->returnStock($order, $row);
                     }
+                }
+
+                if ($fired) {
+                    ($this->bumpKitchenVersion)($line->kitchenStation);
                 }
 
                 $result = ($this->recalculate)($order);

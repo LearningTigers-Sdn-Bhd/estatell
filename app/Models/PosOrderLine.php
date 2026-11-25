@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $price_includes_tax
  * @property bool $service_charge_exempt
  * @property int|null $parent_combo_line_id
+ * @property int|null $kitchen_station_id
  * @property int|null $refund_of_order_line_id
  * @property int $transaction_code_id
  * @property bool $is_entitlement_covered
@@ -120,6 +121,22 @@ class PosOrderLine extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(PosItemVariant::class, 'pos_item_variant_id');
+    }
+
+    /**
+     * @return BelongsTo<PosKitchenStation, $this>
+     */
+    public function kitchenStation(): BelongsTo
+    {
+        return $this->belongsTo(PosKitchenStation::class, 'kitchen_station_id');
+    }
+
+    /**
+     * @return BelongsTo<PosOrderLine, $this>
+     */
+    public function parentComboLine(): BelongsTo
+    {
+        return $this->belongsTo(PosOrderLine::class, 'parent_combo_line_id');
     }
 
     /**

@@ -6,11 +6,13 @@ use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderLineKind;
 use App\Enums\PosOrderStatus;
 use App\Models\PosItem;
+use App\Models\PosKitchenStation;
 use App\Models\PosOrder;
 use App\Models\PosOrderLine;
 use App\Models\PosOutletItem;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Pos\KitchenDisplay;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -18,10 +20,12 @@ use Illuminate\Support\Facades\DB;
  * variant's stock countdown and the item's shared count when they are set. Counts may go below zero, the register only
  * warns. A line that is not Draft is skipped, so firing twice changes nothing. Give line ids to fire some, or none to fire
  * every Draft line. `SettlePosOrder` and `PrintPreBill` call it too, so a paid or billed line can no longer be deleted
- * quietly. Returns the order. A refusal writes nothing. See docs/34-native-pos/03-floors-and-orders.md.
+ * quietly. A fired line goes to the kitchen station of its item or category, and that station's screens are told. Returns the order. A refusal writes nothing. See docs/34-native-pos/03-floors-and-orders.md.
  */
 class FireOrderLines
 {
+    public function __construct(private KitchenDisplay $kitchenDisplay, private BumpKitchenVersion $bumpKitchenVersion) {}
+
     /**
      * @param  list<int>|null  $lineIds
      */
@@ -45,9 +49,20 @@ class FireOrderLines
                 ->lockForUpdate()
                 ->get();
 
+            $stationIds = [];
+
             foreach ($lines as $line) {
-                $line->forceFill(['kitchen_status' => PosKitchenStatus::Fired, 'fired_at' => now()])->save();
+                $stationId = $this->kitchenDisplay->stationIdFor($line);
+                $line->forceFill(['kitchen_status' => PosKitchenStatus::Fired, 'fired_at' => now(), 'kitchen_station_id' => $stationId])->save();
                 $this->takeStock($order, $line);
+
+                if ($stationId !== null) {
+                    $stationIds[$stationId] = true;
+                }
+            }
+
+            foreach (array_keys($stationIds) as $stationId) {
+                ($this->bumpKitchenVersion)(PosKitchenStation::query()->find($stationId));
             }
 
             if ($lines->isNotEmpty()) {

@@ -4,6 +4,8 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Pos\PosClockController;
 use App\Http\Controllers\Pos\PosDiningOptionController;
 use App\Http\Controllers\Pos\PosFloorController;
+use App\Http\Controllers\Pos\PosKitchenController;
+use App\Http\Controllers\Pos\PosKitchenSettingsController;
 use App\Http\Controllers\Pos\PosMenuController;
 use App\Http\Controllers\Pos\PosModifierController;
 use App\Http\Controllers\Pos\PosOrderController;
@@ -64,6 +66,17 @@ Route::middleware('native-pos')->group(function () {
                 });
             });
 
+            Route::middleware('pos.can:'.PermissionEnum::PosKds->value)->group(function () {
+                Route::get('kds', [PosKitchenController::class, 'index'])->name('kds.index');
+                Route::get('kds/{station}', [PosKitchenController::class, 'show'])->whereNumber('station')->name('kds.show');
+                Route::get('kds/{station}/version', [PosKitchenController::class, 'version'])->whereNumber('station')->name('kds.version');
+                Route::patch('kds/lines/{line}/status', [PosKitchenController::class, 'updateLine'])->whereNumber('line')->name('kds.lines.status');
+                Route::post('kds/{station}/orders/{order}/bump', [PosKitchenController::class, 'bump'])->whereNumber(['station', 'order'])->name('kds.orders.bump');
+                Route::post('kds/{station}/orders/{order}/recall', [PosKitchenController::class, 'recall'])->whereNumber(['station', 'order'])->name('kds.orders.recall');
+                Route::get('ods/{outlet}', [PosKitchenController::class, 'pickup'])->whereNumber('outlet')->name('ods.show');
+                Route::get('ods/{outlet}/version', [PosKitchenController::class, 'pickupVersion'])->whereNumber('outlet')->name('ods.version');
+            });
+
             Route::middleware('pos.can:'.PermissionEnum::PosShift->value)->group(function () {
                 Route::post('orders/{order}/transfer-register', [PosOrderController::class, 'transfer'])->whereNumber('order')->name('orders.transfer-register');
                 Route::post('shifts/open', [PosShiftController::class, 'open'])->name('shifts.open');
@@ -110,6 +123,10 @@ Route::middleware('native-pos')->group(function () {
     });
 
     Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosMenu->value)->group(function () {
+        Route::get('kitchen', [PosKitchenSettingsController::class, 'index'])->name('kitchen.index');
+        Route::post('outlets/{outlet}/kitchen-stations', [PosKitchenSettingsController::class, 'storeStation'])->whereNumber('outlet')->name('kitchen-stations.store');
+        Route::put('kitchen-stations/{station}', [PosKitchenSettingsController::class, 'updateStation'])->whereNumber('station')->name('kitchen-stations.update');
+        Route::put('outlets/{outlet}/kitchen-routing', [PosKitchenSettingsController::class, 'updateRouting'])->whereNumber('outlet')->name('kitchen-routing.update');
         Route::get('menu', [PosMenuController::class, 'index'])->name('menu.index');
         Route::post('categories', [PosMenuController::class, 'storeCategory'])->name('categories.store');
         Route::put('categories/{category}', [PosMenuController::class, 'updateCategory'])->whereNumber('category')->name('categories.update');
