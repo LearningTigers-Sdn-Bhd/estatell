@@ -36,6 +36,8 @@ class PosOrderLineData extends Data
         public string $refundableQuantity,
         public int $courseNumber = 1,
         public ?int $seatNumber = null,
+        public bool $isWeighed = false,
+        public bool $isComboPart = false,
     ) {}
 
     public static function fromModel(PosOrderLine $line, ?string $refundedQuantity = null): self
@@ -64,6 +66,8 @@ class PosOrderLineData extends Data
             (string) max(0, (float) $line->quantity - (float) ($refundedQuantity ?? 0)),
             $line->course_number,
             $line->seat_number,
+            $line->relationLoaded('variant') && $line->variant?->relationLoaded('item') && $line->variant->item->sold_by_weight,
+            $line->line_kind->value === 'combo_component',
         );
     }
 }

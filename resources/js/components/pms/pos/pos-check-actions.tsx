@@ -4,7 +4,7 @@ import { FormOverlay } from '@/components/pms/form-overlay';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { course, merge, move, split } from '@/routes/pos/orders';
 import { place, split as splitLine } from '@/routes/pos/orders/lines';
@@ -70,6 +70,9 @@ export function PosCheckActionsDialog({
         >
             <Field>
                 <FieldLabel>Lines</FieldLabel>
+                <FieldDescription>
+                    Each line has a course box, then a seat box.
+                </FieldDescription>
                 <ul className="flex flex-col gap-2">
                     {live.map((line) => (
                         <li

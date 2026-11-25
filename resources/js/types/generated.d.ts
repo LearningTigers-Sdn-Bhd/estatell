@@ -3642,6 +3642,8 @@ isPackagingFee: boolean,
 refundableQuantity: string,
 courseNumber: number,
 seatNumber: number | null,
+isWeighed: boolean,
+isComboPart: boolean,
 };
 export type PosOrderLineInputData = {
 variantId: number,

@@ -40,6 +40,7 @@ export function PosOrderTicket({
                         key={line.id}
                         className={cn(
                             'flex flex-col gap-1 rounded-lg border p-3',
+                            line.isComboPart && 'ml-4 border-dashed',
                             line.isVoided && 'opacity-50',
                         )}
                     >
@@ -102,52 +103,59 @@ export function PosOrderTicket({
                             </div>
                             {!line.isVoided && !line.isPackagingFee && (
                                 <div className="flex items-center gap-1">
-                                    {line.isDraft && (
-                                        <>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="icon-sm"
-                                                aria-label={`One less ${line.itemName}`}
-                                                disabled={
-                                                    Number(line.quantity) <= 1
-                                                }
-                                                onClick={() =>
-                                                    onQuantity(
-                                                        line,
-                                                        Number(line.quantity) -
-                                                            1,
-                                                    )
-                                                }
-                                            >
-                                                <Minus />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="icon-sm"
-                                                aria-label={`One more ${line.itemName}`}
-                                                onClick={() =>
-                                                    onQuantity(
-                                                        line,
-                                                        Number(line.quantity) +
-                                                            1,
-                                                    )
-                                                }
-                                            >
-                                                <Plus />
-                                            </Button>
-                                        </>
+                                    {line.isDraft &&
+                                        !line.isWeighed &&
+                                        !line.isComboPart && (
+                                            <>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon-sm"
+                                                    aria-label={`One less ${line.itemName}`}
+                                                    disabled={
+                                                        Number(line.quantity) <=
+                                                        1
+                                                    }
+                                                    onClick={() =>
+                                                        onQuantity(
+                                                            line,
+                                                            Number(
+                                                                line.quantity,
+                                                            ) - 1,
+                                                        )
+                                                    }
+                                                >
+                                                    <Minus />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon-sm"
+                                                    aria-label={`One more ${line.itemName}`}
+                                                    onClick={() =>
+                                                        onQuantity(
+                                                            line,
+                                                            Number(
+                                                                line.quantity,
+                                                            ) + 1,
+                                                        )
+                                                    }
+                                                >
+                                                    <Plus />
+                                                </Button>
+                                            </>
+                                        )}
+                                    {!line.isComboPart && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            aria-label={`Remove ${line.itemName}`}
+                                            onClick={() => onRemove(line)}
+                                        >
+                                            <X />
+                                        </Button>
                                     )}
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        aria-label={`Remove ${line.itemName}`}
-                                        onClick={() => onRemove(line)}
-                                    >
-                                        <X />
-                                    </Button>
                                 </div>
                             )}
                         </div>

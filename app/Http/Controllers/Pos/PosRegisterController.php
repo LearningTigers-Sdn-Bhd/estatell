@@ -114,7 +114,7 @@ class PosRegisterController extends Controller
      */
     public static function orderRelations(): array
     {
-        return ['outlet', 'shift.register', 'diningOption', 'reservationUnit.reservation', 'refundFor', 'openedBy', 'table', 'lines.modifiers', 'payments', 'discounts'];
+        return ['outlet', 'shift.register', 'diningOption', 'reservationUnit.reservation', 'refundFor', 'openedBy', 'table', 'lines.modifiers', 'lines.variant.item', 'payments', 'discounts'];
     }
 
     /**

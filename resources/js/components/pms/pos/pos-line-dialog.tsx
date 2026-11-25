@@ -168,7 +168,7 @@ function LineFields({
                         Weight ({item.weightUnit})
                     </FieldLabel>
                     <FieldDescription>
-                        The price is for {item.weightUnitDivisor}{' '}
+                        The price is for {Number(item.weightUnitDivisor)}{' '}
                         {item.weightUnit}.
                     </FieldDescription>
                     <Input

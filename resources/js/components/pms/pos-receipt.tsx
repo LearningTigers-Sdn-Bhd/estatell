@@ -138,7 +138,7 @@ export function PosReceipt({
                 <div className="flex flex-col items-center gap-1 pt-2 text-center">
                     <p>Need an e-invoice? Scan within the month.</p>
                     <div
-                        className="size-32"
+                        className="size-32 shrink-0 [&>svg]:size-full"
                         role="img"
                         aria-label="QR code to claim an e-invoice"
                         dangerouslySetInnerHTML={{ __html: order.claimQrSvg }}
