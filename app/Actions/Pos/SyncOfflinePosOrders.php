@@ -19,6 +19,7 @@ use App\Models\PosOutletPaymentMethod;
 use App\Models\PosShift;
 use App\Models\Property;
 use App\Models\User;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -62,20 +63,21 @@ class SyncOfflinePosOrders
             return 'replayed';
         }
 
-        $snapshot = PosMenuSnapshot::query()
-            ->where('pos_outlet_id', $outlet->id)
-            ->where('version', $order['snapshot_version'])
-            ->where('issued_at', '>=', now()->subDays(IssuePosMenuSnapshot::RETENTION_DAYS))
-            ->first();
-
-        if ($snapshot === null) {
-            throw new PosRefusedException('snapshot_expired');
-        }
-
         $shift = PosShift::query()->where('property_id', $property->id)->where('pos_outlet_id', $outlet->id)->where('status', PosShiftStatus::Open->value)->first();
 
         if ($shift === null) {
             throw new PosRefusedException('outlet_closed');
+        }
+
+        // A sale may only be priced from a menu issued during the open shift, so an earlier menu cannot be replayed.
+        $snapshot = PosMenuSnapshot::query()
+            ->where('pos_outlet_id', $outlet->id)
+            ->where('version', $order['snapshot_version'])
+            ->where('issued_at', '>=', max(now()->subDays(IssuePosMenuSnapshot::RETENTION_DAYS), $shift->opened_at))
+            ->first();
+
+        if ($snapshot === null) {
+            throw new PosRefusedException('snapshot_expired');
         }
 
         $diningOption = PosDiningOption::query()->where('pos_outlet_id', $outlet->id)->where('active', true)->orderByDesc('is_default')->firstOrFail();
@@ -96,8 +98,13 @@ class SyncOfflinePosOrders
         foreach ($order['lines'] as $line) {
             $price = $prices[$line['variant_id']] ?? throw new PosRefusedException('variant_not_in_snapshot');
 
-            if ($price['pricing_type'] === PosPricingType::Variable->value) {
-                throw new PosRefusedException('variable_price_offline');
+            if ($price['blocked'] !== null) {
+                throw new PosRefusedException($price['blocked']);
+            }
+
+            // A snapshot price below the live price would give the guest a discount no manager approved, so it waits for one.
+            if ($this->livePriceAbove($posOrder, $line['variant_id'], $price['amount'])) {
+                throw new PosRefusedException('price_drift_approval_required');
             }
 
             $this->logDriftIfAny($property, $posOrder, $line['variant_id'], $price['amount']);
@@ -152,8 +159,10 @@ class SyncOfflinePosOrders
     }
 
     /**
+     * What each variant of the snapshot sold for, and why it cannot be sold offline (`blocked`), as the server reads it.
+     *
      * @param  array<string, mixed>  $payload
-     * @return array<int, array{amount: string, pricing_type: string}>
+     * @return array<int, array{amount: string, blocked: ?string}>
      */
     private function snapshotPrices(array $payload): array
     {
@@ -161,13 +170,35 @@ class SyncOfflinePosOrders
 
         foreach ($payload['categories'] ?? [] as $category) {
             foreach ($category['items'] ?? [] as $item) {
+                $requiresChoice = false;
+
+                foreach ($item['modifierGroups'] ?? [] as $group) {
+                    $requiresChoice = $requiresChoice || (int) $group['minSelect'] > 0;
+                }
+
                 foreach ($item['variants'] ?? [] as $variant) {
-                    $prices[(int) $variant['id']] = ['amount' => (string) $variant['price'], 'pricing_type' => (string) $variant['pricingType']];
+                    $blocked = match (true) {
+                        (bool) $item['isCombo'] => 'combo_offline',
+                        $requiresChoice => 'modifier_offline',
+                        (bool) $variant['soldOut'] => 'sold_out',
+                        (string) $variant['pricingType'] === PosPricingType::Variable->value => 'variable_price_offline',
+                        default => null,
+                    };
+
+                    $prices[(int) $variant['id']] = ['amount' => (string) $variant['price'], 'blocked' => $blocked];
                 }
             }
         }
 
         return $prices;
+    }
+
+    private function livePriceAbove(PosOrder $order, int $variantId, string $snapshotPrice): bool
+    {
+        $live = PosOutletItem::query()->where('pos_outlet_id', $order->pos_outlet_id)->where('pos_item_variant_id', $variantId)->value('price_override')
+            ?? PosItemVariant::query()->whereKey($variantId)->value('price');
+
+        return $live !== null && BigDecimal::of((string) $live)->isGreaterThan(BigDecimal::of($snapshotPrice));
     }
 
     private function logDriftIfAny(Property $property, PosOrder $order, int $variantId, string $snapshotPrice): void

@@ -5,6 +5,7 @@ namespace App\Actions\Pos;
 use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderLineKind;
 use App\Enums\PosOrderStatus;
+use App\Enums\PosStockMovementKind;
 use App\Models\PosItem;
 use App\Models\PosKitchenStation;
 use App\Models\PosOrder;
@@ -24,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 class FireOrderLines
 {
-    public function __construct(private KitchenDisplay $kitchenDisplay, private BumpKitchenVersion $bumpKitchenVersion) {}
+    public function __construct(private KitchenDisplay $kitchenDisplay, private BumpKitchenVersion $bumpKitchenVersion, private PostRecipeStock $postRecipeStock) {}
 
     /**
      * @param  list<int>|null  $lineIds
@@ -55,6 +56,7 @@ class FireOrderLines
                 $stationId = $this->kitchenDisplay->stationIdFor($line);
                 $line->forceFill(['kitchen_status' => PosKitchenStatus::Fired, 'fired_at' => now(), 'kitchen_station_id' => $stationId])->save();
                 $this->takeStock($order, $line);
+                ($this->postRecipeStock)($line, PosStockMovementKind::Sale);
 
                 if ($stationId !== null) {
                     $stationIds[$stationId] = true;

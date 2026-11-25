@@ -1,6 +1,27 @@
 # Inventory, recipes and stock closing
 
-> **Planned (Phase 3).** Part of [Native POS](01-overview.md). Defines optional back-of-house F&B ingredient tracking, simple vs recipe BOM deductions, immutable stock movement ledger, printable closing stock count sheets and item cost/margin reporting.
+> **Built (Phase 3).** Part of [Native POS](01-overview.md). Defines optional back-of-house F&B ingredient tracking, simple vs recipe BOM deductions, immutable stock movement ledger, printable closing stock count sheets and item cost/margin reporting.
+
+## Build status (Phase 3, step 14)
+
+| Part                                                                                                       | State                                                                                             |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `pos_ingredients`, `pos_recipes`, `pos_stock_movements`, `pos_stocktakes`, `pos_stocktake_lines`           | Built, with the CHECK and unique rules of the spec                                                |
+| Recipes for an item variant, deducted when a line is fired (`PostRecipeStock`)                             | Built. Modifier-option recipes are deducted too, but the settings page only edits variant recipes |
+| Line cost stamped on the first fire, so later cost changes do not rewrite history                          | Built                                                                                             |
+| Void with stock returned puts the recipe back (`void_return`)                                              | Built                                                                                             |
+| Refund with stock returned (`refund_return`)                                                               | Not built. `RefundPosOrder` does not return stock yet                                             |
+| Delivery at a moving-average cost, in purchase units (`ReceiveStockPurchase`)                              | Built                                                                                             |
+| Waste with a reason, transfer as a pair of rows                                                            | Built                                                                                             |
+| Closing count: each line compares with the ledger as it stood when it was counted, and posts an adjustment | Built (`ClosePosStocktake`)                                                                       |
+| Low-stock alerts                                                                                           | Not built. The threshold is saved and shown only                                                  |
+| Settings page with ingredients, recipes, stock and the count (`settings/pos/inventory`, `pos.inventory`)   | Built                                                                                             |
+
+Deviations and open items:
+
+- **Balances are summed from the ledger on each read.** No cached balance table yet.
+- **Printed closing list** is the browser print of the count panel, not a dedicated sheet.
+- **Cooking guide and station** are unchanged by this step.
 
 ## Purpose
 

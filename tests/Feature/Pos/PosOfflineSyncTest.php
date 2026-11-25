@@ -99,12 +99,12 @@ it('replays an order already synced without writing it twice', function () {
     expect($again)->toBe([$sale['client_uuid'] => 'replayed'])->and(PosOrder::query()->count())->toBe($count);
 });
 
-it('charges the price of the snapshot it was sold from, and logs the drift to the live price', function () {
+it('honours a higher snapshot price and logs the drift to the live price', function () {
     $s = posOfflineSetup();
     $sale = posOfflineSale($s, $s['steak']);
     $snapshotTotal = $sale['tenders'][0]['amount'];
 
-    $s['steak']->forceFill(['price' => '120.00'])->save();
+    $s['steak']->forceFill(['price' => '80.00'])->save();
     $results = app(SyncOfflinePosOrders::class)($s['manager'], $s['property'], $s['outlet'], [$sale]);
 
     $order = PosOrder::query()->where('client_uuid', $sale['client_uuid'])->sole();
@@ -112,6 +112,27 @@ it('charges the price of the snapshot it was sold from, and logs the drift to th
     expect($results[$sale['client_uuid']])->toBe('synced')
         ->and((string) $order->grand_total)->toBe($snapshotTotal)
         ->and(Activity::query()->where('event', 'pos.offline_price_drift')->exists())->toBeTrue();
+});
+
+it('holds a sale whose snapshot price is below the live price until a manager approves it', function () {
+    $s = posOfflineSetup();
+    $sale = posOfflineSale($s, $s['steak']);
+
+    $s['steak']->forceFill(['price' => '120.00'])->save();
+    $results = app(SyncOfflinePosOrders::class)($s['manager'], $s['property'], $s['outlet'], [$sale]);
+
+    expect($results[$sale['client_uuid']])->toBe('price_drift_approval_required')
+        ->and(PosOrder::query()->where('client_uuid', $sale['client_uuid'])->count())->toBe(0);
+});
+
+it('refuses a menu issued before the open shift, so an earlier menu cannot be replayed', function () {
+    $s = posOfflineSetup();
+    $sale = posOfflineSale($s, $s['steak']);
+    $s['shift']->forceFill(['opened_at' => now()->addMinute()])->save();
+
+    $results = app(SyncOfflinePosOrders::class)($s['manager'], $s['property'], $s['outlet'], [$sale]);
+
+    expect($results[$sale['client_uuid']])->toBe('snapshot_expired');
 });
 
 it('refuses a sale from a snapshot older than seven days, and a card tender', function () {

@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import {
     BookOpen,
     ChefHat,
+    Boxes,
     KeyRound,
     Layers,
     CalendarClock,
@@ -23,6 +24,7 @@ import { index as posOutletsIndex } from '@/routes/settings/pos-outlets';
 import { index as nativeDiningIndex } from '@/routes/settings/pos/dining-options';
 import { index as nativeFloorsIndex } from '@/routes/settings/pos/floors';
 import { index as nativeKitchenIndex } from '@/routes/settings/pos/kitchen';
+import { index as nativeInventoryIndex } from '@/routes/settings/pos/inventory';
 import { index as nativeSchedulesIndex } from '@/routes/settings/pos/schedules';
 import { index as nativeMenuIndex } from '@/routes/settings/pos/menu';
 import { index as nativeModifiersIndex } from '@/routes/settings/pos/modifiers';
@@ -40,6 +42,7 @@ export type PosSettingsTab =
     | 'dining'
     | 'floors'
     | 'kitchen'
+    | 'inventory'
     | 'schedules'
     | 'staff';
 
@@ -53,6 +56,7 @@ const tabTitles: Record<PosSettingsTab, string> = {
     dining: 'Dining options',
     floors: 'Floor plan',
     kitchen: 'Kitchen stations',
+    inventory: 'Inventory and recipes',
     schedules: 'Menu schedules and combos',
     staff: 'Staff PINs and terminals',
 };
@@ -118,6 +122,12 @@ export function posSettingsTabs(): TabLink[] {
             label: 'Kitchen stations',
             icon: ChefHat,
             href: nativeKitchenIndex(),
+        },
+        {
+            value: 'inventory',
+            label: 'Inventory',
+            icon: Boxes,
+            href: nativeInventoryIndex(),
         },
         {
             value: 'staff',

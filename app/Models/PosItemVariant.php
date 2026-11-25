@@ -70,4 +70,12 @@ class PosItemVariant extends Model
     {
         return $this->hasMany(PosOutletItem::class, 'pos_item_variant_id');
     }
+
+    /**
+     * @return HasMany<PosRecipe, $this>
+     */
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(PosRecipe::class, 'pos_item_variant_id');
+    }
 }

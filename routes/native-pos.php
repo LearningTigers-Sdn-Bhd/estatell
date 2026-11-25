@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Pos\PosClockController;
 use App\Http\Controllers\Pos\PosDiningOptionController;
 use App\Http\Controllers\Pos\PosFloorController;
+use App\Http\Controllers\Pos\PosInventoryController;
 use App\Http\Controllers\Pos\PosKitchenController;
 use App\Http\Controllers\Pos\PosKitchenSettingsController;
 use App\Http\Controllers\Pos\PosMenuController;
@@ -132,6 +133,19 @@ Route::middleware('native-pos')->group(function () {
         Route::put('outlets/{outlet}', [PosOutletSettingsController::class, 'update'])->whereNumber('outlet')->name('outlets.update');
         Route::post('outlets/{outlet}/registers', [PosOutletSettingsController::class, 'storeRegister'])->whereNumber('outlet')->name('registers.store');
         Route::put('outlets/{outlet}/registers/{register}', [PosOutletSettingsController::class, 'updateRegister'])->whereNumber(['outlet', 'register'])->name('registers.update');
+    });
+
+    Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosInventory->value)->group(function () {
+        Route::get('inventory', [PosInventoryController::class, 'index'])->name('inventory.index');
+        Route::post('ingredients', [PosInventoryController::class, 'storeIngredient'])->name('ingredients.store');
+        Route::put('ingredients/{ingredient}', [PosInventoryController::class, 'updateIngredient'])->whereNumber('ingredient')->name('ingredients.update');
+        Route::put('variants/{variant}/recipe', [PosInventoryController::class, 'saveRecipe'])->whereNumber('variant')->name('recipes.update');
+        Route::post('outlets/{outlet}/purchases', [PosInventoryController::class, 'receive'])->whereNumber('outlet')->name('purchases.store');
+        Route::post('outlets/{outlet}/waste', [PosInventoryController::class, 'waste'])->whereNumber('outlet')->name('waste.store');
+        Route::post('transfers', [PosInventoryController::class, 'transfer'])->name('transfers.store');
+        Route::post('outlets/{outlet}/stocktakes', [PosInventoryController::class, 'startStocktake'])->whereNumber('outlet')->name('stocktakes.store');
+        Route::put('stocktakes/{stocktake}/ingredients/{ingredient}', [PosInventoryController::class, 'count'])->whereNumber(['stocktake', 'ingredient'])->name('stocktakes.count');
+        Route::post('stocktakes/{stocktake}/close', [PosInventoryController::class, 'closeStocktake'])->whereNumber('stocktake')->name('stocktakes.close');
     });
 
     Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosMenu->value)->group(function () {
