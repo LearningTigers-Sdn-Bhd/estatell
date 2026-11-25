@@ -466,7 +466,9 @@ function CfdQrField({
 
     return (
         <Field>
-            <FieldLabel htmlFor="cfd-qr">Customer display DuitNow QR</FieldLabel>
+            <FieldLabel htmlFor="cfd-qr">
+                Customer display DuitNow QR
+            </FieldLabel>
             <div className="flex flex-wrap items-center gap-4">
                 <div className="flex h-28 w-28 items-center justify-center rounded-md border bg-muted/40 p-2">
                     {qrUrl ? (

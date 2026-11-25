@@ -17,6 +17,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/PosOrderSetup.php';
@@ -50,9 +51,10 @@ it('forbids staff without pos.sell and 404s another property register', function
 it('shows idle for a register with no active order', function () {
     $s = posOrderSetup();
 
-    $props = $this->actingAs($s['manager'])->get(route('pos.cfd.show', [$s['property']->code, $s['register']->id]))
+    $page = $this->actingAs($s['manager'])->get(route('pos.cfd.show', [$s['property']->code, $s['register']->id]))
         ->assertOk()
-        ->viewData('page')['props'];
+        ->assertInertia(fn (Assert $inertia) => $inertia->component('pos/cfd')->where('state.mode', 'idle'));
+    $props = $page->viewData('page')['props'];
 
     expect($props['state']['mode'])->toBe('idle')
         ->and($props['state']['outletName'])->toBe($s['outlet']->name)
