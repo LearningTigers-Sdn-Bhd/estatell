@@ -15,6 +15,27 @@
 | Browser kitchen docket print                                                | Not built, waits for the print step                            |
 | Cooking guide popover                                                       | Guide sent to the screen, popover not built yet                |
 
+## Build status (Phase 3, step 12)
+
+| Part                                                                                                    | State                                                  |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `pos_qr_sessions` with kind shape checks, token, hashed stay PIN, failed-try count and lock             | Built                                                  |
+| Dynamic table QR: long-press a table on the floor board, one live token per table, revoked on settle    | Built (`IssueTableQrSession`, `RevokeTableQrSessions`) |
+| Table QR menu and orders at `/q/table/{token}` (30 views a minute, 10 orders in 15 minutes per IP)      | Built (`qr/table`)                                     |
+| Per-stay room QR: issued on `StayCheckedIn`, revoked on `StayCheckedOut` and `StayCheckInUndone`        | Built (`IssueRoomQrSession`, `RevokeRoomQrSessions`)   |
+| Room QR at `/q/room/{token}`: stay PIN and primary guest's last name, lock after 5 tries for 15 minutes | Built (`qr/room`, `UnlockRoomQrSession`)               |
+| Front desk regenerate room PIN (`front-desk.check-in`)                                                  | Built, the PIN is shown once in the toast              |
+| Guest orders become Draft lines through `AddOrderLine`; staff Fire approves them                        | Built                                                  |
+
+Deviations and open items:
+
+- **No QR picture.** The table link is printed as text. A QR image needs a library, which needs approval first.
+- **No auto-accept.** Every guest order waits as Draft lines until the cashier fires them. The outlet's `allow_qr_customer_remark` controls the note. `allow_anonymous_qr` is not used yet.
+- **Room PIN is not on the welcome slip.** Front desk regenerate is the only way to get the PIN for now.
+- **Last name check** compares with the last word of the primary guest's full name, because a guest has no separate last-name column.
+- **Guest menu** hides combos and items with a modifier the guest must pick. Those still need staff.
+- **Sessions with no open check** expire by time. A table with another open check keeps its link.
+
 Deviation: the ODS board sits behind the terminal actor and `pos.kds`, so a pickup monitor needs a signed-in kitchen session. A public board needs its own token, which is not built.
 
 ## Purpose

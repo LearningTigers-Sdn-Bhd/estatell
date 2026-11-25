@@ -1,6 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import { Users } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MoneyText } from '@/components/pms/money-text';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { terminal } from '@/routes/pos';
 import { store as storeOrder } from '@/routes/pos/orders';
+import { qr as tableQr } from '@/routes/pos/tables';
 import type { PosCurrency } from './pos-types';
 
 export type FloorTable = {
@@ -68,6 +69,8 @@ export function PosFloorBoard({
     const [active, setActive] = useState(floors[0]?.id ?? 0);
     const [covers, setCovers] = useState('2');
     const [choosing, setChoosing] = useState<FloorTable | null>(null);
+    const pressTimer = useRef<number | null>(null);
+    const longPressed = useRef(false);
     const floor = floors.find((row) => row.id === active) ?? floors[0];
 
     if (floor === undefined) {
@@ -79,7 +82,33 @@ export function PosFloorBoard({
         );
     }
 
+    /** A long press on a table prints its ordering link, and the click that would open the table is skipped. */
+    const startPress = (table: FloorTable) => {
+        longPressed.current = false;
+        pressTimer.current = window.setTimeout(() => {
+            longPressed.current = true;
+            router.post(
+                tableQr.url({ table: table.id }),
+                {},
+                { preserveScroll: true },
+            );
+        }, 600);
+    };
+
+    const endPress = () => {
+        if (pressTimer.current !== null) {
+            window.clearTimeout(pressTimer.current);
+            pressTimer.current = null;
+        }
+    };
+
     const open = (table: FloorTable) => {
+        if (longPressed.current) {
+            longPressed.current = false;
+
+            return;
+        }
+
         if (!table.occupied) {
             router.post(
                 storeOrder.url(),
@@ -142,6 +171,10 @@ export function PosFloorBoard({
                         type="button"
                         disabled={!trading}
                         onClick={() => open(table)}
+                        onPointerDown={() => startPress(table)}
+                        onPointerUp={endPress}
+                        onPointerLeave={endPress}
+                        onPointerCancel={endPress}
                         style={{
                             left: table.x,
                             top: table.y,

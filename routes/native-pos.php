@@ -13,12 +13,14 @@ use App\Http\Controllers\Pos\PosOrderReceiptController;
 use App\Http\Controllers\Pos\PosOutletSettingsController;
 use App\Http\Controllers\Pos\PosPinController;
 use App\Http\Controllers\Pos\PosRegisterController;
+use App\Http\Controllers\Pos\PosRoomQrController;
 use App\Http\Controllers\Pos\PosSalesReportController;
 use App\Http\Controllers\Pos\PosScheduleController;
 use App\Http\Controllers\Pos\PosShiftController;
 use App\Http\Controllers\Pos\PosShiftReportController;
 use App\Http\Controllers\Pos\PosStaffPinController;
 use App\Http\Controllers\Pos\PosStaffSettingsController;
+use App\Http\Controllers\Pos\PosTableQrController;
 use App\Http\Controllers\Pos\PosTerminalDeviceController;
 use App\Http\Controllers\Pos\PosTerminalModeController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +68,10 @@ Route::middleware('native-pos')->group(function () {
                 });
             });
 
+            Route::middleware('pos.can:'.PermissionEnum::PosSell->value)->group(function () {
+                Route::post('tables/{table}/qr', [PosTableQrController::class, 'issue'])->whereNumber('table')->name('tables.qr');
+            });
+
             Route::middleware('pos.can:'.PermissionEnum::PosKds->value)->group(function () {
                 Route::get('kds', [PosKitchenController::class, 'index'])->name('kds.index');
                 Route::get('kds/{station}', [PosKitchenController::class, 'show'])->whereNumber('station')->name('kds.show');
@@ -90,6 +96,8 @@ Route::middleware('native-pos')->group(function () {
             });
         });
     });
+
+    Route::post('pos/room-qr/{unit}/regenerate', [PosRoomQrController::class, 'regenerate'])->whereNumber('unit')->middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->name('pos.room-qr.regenerate');
 
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('pos-orders', [PosOrderReceiptController::class, 'index'])->middleware('can:'.PermissionEnum::PosView->value)->name('pos-orders.index');

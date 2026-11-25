@@ -64,6 +64,7 @@ class SettlePosOrder
         private OpenPosBusinessDate $openPosBusinessDate,
         private RecalculatePosOrder $recalculate,
         private FireOrderLines $fireOrderLines,
+        private RevokeTableQrSessions $revokeTableQrSessions,
         private MalaysiaCashRounding $cashRounding,
         private PosAmountAllocator $allocator,
         private NextDocumentNumber $nextDocumentNumber,
@@ -167,6 +168,10 @@ class SettlePosOrder
             'settled_on_folio' => $folioPosted->isEqualTo($grandTotal),
             'receipt_claim_token' => Str::random(32),
         ])->save();
+
+        if ($order->pos_table_id !== null) {
+            ($this->revokeTableQrSessions)($property->id, $order->pos_table_id);
+        }
 
         activity()->performedOn($order)->causedBy($actor)->event('pos.order_settled')
             ->withProperties([

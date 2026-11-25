@@ -40,7 +40,10 @@ class AddOrderLine
 {
     public function __construct(private RecalculatePosOrder $recalculate, private PosMenuAvailability $availability) {}
 
-    public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLineInputData $data): PosActionResult
+    /**
+     * A guest adding a line by QR has no staff actor, so `$actor` may be null and the log names no one.
+     */
+    public function __invoke(?User $actor, Property $property, PosOrder $order, PosOrderLineInputData $data): PosActionResult
     {
         try {
             return DB::transaction(function () use ($actor, $property, $order, $data): PosActionResult {
