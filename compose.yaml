@@ -52,6 +52,8 @@ x-app: &app
         CURLEC_WEBHOOK_SECRET: ${CURLEC_WEBHOOK_SECRET:-}
         BOOKING_SITE_URL: ${BOOKING_SITE_URL:-https://booking.estatell.com}
         BOOKING_API_DOCS_URL: ${BOOKING_API_DOCS_URL:-https://docs.estatell.com/en/docs/developers/booking-api}
+        # Hashes POS staff and room QR PINs. Never change it once set. See docs/deployment/production_environment.md.
+        POS_PIN_PEPPER: ${POS_PIN_PEPPER:-}
         AUTORUN_ENABLED: 'false'
     volumes:
         # Media stored on "This server" (ID scans, signatures, photos). Shared by all services.

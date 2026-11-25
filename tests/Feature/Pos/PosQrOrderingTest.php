@@ -11,6 +11,7 @@ use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderSource;
 use App\Enums\PosQrSessionKind;
 use App\Enums\PosShiftStatus;
+use App\Features\Pos;
 use App\Models\Guest;
 use App\Models\PosOrder;
 use App\Models\PosQrSession;
@@ -21,6 +22,7 @@ use App\Services\Pos\QrSessionState;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/PosOrderSetup.php';
 
@@ -142,6 +144,17 @@ it('gives a room QR a fresh PIN and revokes the old token when the PIN is regene
     expect($newPin)->toMatch('/^\d{4}$/')
         ->and($old->refresh()->revoked_at)->not->toBeNull()
         ->and(PosQrSession::query()->where('kind', PosQrSessionKind::Room->value)->whereNull('revoked_at')->count())->toBe(1);
+});
+
+it('gives no room QR, and needs no PIN pepper, when the property does not use the point of sale', function () {
+    $s = posOrderSetup();
+    Feature::for($s['property'])->deactivate(Pos::class);
+    config(['pos.pin_pepper' => null]);
+
+    $pin = app(IssueRoomQrSession::class)($s['property']->id, $s['unit']->id);
+
+    expect($pin)->toBeNull()
+        ->and(PosQrSession::query()->count())->toBe(0);
 });
 
 it('revokes a room QR for good after its third lock', function () {
