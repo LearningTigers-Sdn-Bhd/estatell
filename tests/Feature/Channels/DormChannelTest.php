@@ -85,7 +85,7 @@ test('a dorm sends the bed price at occupancy one and its free beds', function (
         ->and($values->availability([$setup['dorm']], $from, $from)[$setup['dorm']->id]['2026-10-14'])->toBe(['availability' => 5]);
 });
 
-test('a room of an OTA booking for a dorm is one bed for one guest', function () {
+test('a dorm room of an OTA booking with several guests is one bed per guest, sharing the price and the names', function () {
     $setup = dormChannelSetup();
     $channelProperty = channelSyncedProperty($setup['property']);
     ChannelRatePlanMapping::factory()->create([
@@ -94,22 +94,69 @@ test('a room of an OTA booking for a dorm is one bed for one guest', function ()
         'rate_plan_id' => $setup['plan']->id,
         'external_rate_plan_id' => 'plan-dorm',
     ]);
+    $payload = ['rooms' => [
+        [
+            'room_type_id' => 'room-dorm',
+            'rate_plan_id' => 'plan-dorm',
+            'checkin_date' => '2026-10-20',
+            'checkout_date' => '2026-10-22',
+            'amount' => '100.00',
+            'days' => ['2026-10-20' => '50.00', '2026-10-21' => '50.00'],
+            'guests' => [['name' => 'Ana', 'surname' => 'Lee'], ['name' => 'Ben', 'surname' => 'Lee'], ['name' => 'Cai', 'surname' => 'Lee']],
+            'occupancy' => ['adults' => 2, 'children' => 1, 'infants' => 1],
+        ],
+        [
+            'room_type_id' => 'room-dorm',
+            'rate_plan_id' => 'plan-dorm',
+            'checkin_date' => '2026-10-20',
+            'checkout_date' => '2026-10-22',
+            'amount' => '76.00',
+            'occupancy' => ['adults' => 1, 'children' => 0, 'infants' => 0],
+        ],
+    ]];
+    $mapper = app(ChannelRevisionMapper::class);
 
-    $units = app(ChannelRevisionMapper::class)->units($channelProperty, ['rooms' => [[
-        'room_type_id' => 'room-dorm',
-        'rate_plan_id' => 'plan-dorm',
+    $rooms = $mapper->rooms($channelProperty, $payload);
+    $units = $mapper->units($channelProperty, $payload, 'Hostelworld');
+
+    expect($units)->toHaveCount(4)
+        ->and(array_map(fn ($unit): int => $unit->adults, $units))->toBe([1, 1, 1, 1])
+        ->and(array_map(fn ($unit): array => $unit->childAges, $units))->toBe([[], [], [], []])
+        ->and(array_map(fn ($unit): string => $unit->overrideTotal, $units))->toBe(['33.34', '33.33', '33.33', '76.00'])
+        ->and(array_map(fn (array $room): array => $room['days'], array_slice($rooms, 0, 3)))->toBe([
+            ['2026-10-20' => '16.67', '2026-10-21' => '16.67'],
+            ['2026-10-20' => '16.67', '2026-10-21' => '16.67'],
+            ['2026-10-20' => '16.66', '2026-10-21' => '16.66'],
+        ])
+        ->and(array_map(fn (array $room): string => $room['guests'][0]['name'] ?? '', $rooms))->toBe(['Ana', 'Ben', 'Cai', ''])
+        ->and($rooms[3])->toBe($payload['rooms'][1]);
+});
+
+test('a room of a room type keeps its guests in one unit', function () {
+    $setup = dormChannelSetup();
+    $channelProperty = channelSyncedProperty($setup['property']);
+    $double = RoomType::factory()->for($setup['property'])->create(['name' => 'Double', 'max_adults' => 2]);
+    $plan = channelRatePlan($setup['property'], [$double], 'Room only');
+    ChannelRatePlanMapping::factory()->create([
+        'channel_property_id' => $channelProperty->id,
+        'room_type_id' => $double->id,
+        'rate_plan_id' => $plan->id,
+        'external_rate_plan_id' => 'plan-double',
+    ]);
+    $payload = ['rooms' => [[
+        'room_type_id' => 'room-double',
+        'rate_plan_id' => 'plan-double',
         'checkin_date' => '2026-10-20',
         'checkout_date' => '2026-10-22',
-        'amount' => '90.00',
-        'occupancy' => ['adults' => 2, 'children' => 1, 'infants' => 0],
-    ]]], 'Hostelworld');
+        'amount' => '300.00',
+        'occupancy' => ['adults' => 2, 'children' => 0, 'infants' => 0],
+    ]]];
+
+    $units = app(ChannelRevisionMapper::class)->units($channelProperty, $payload, 'Booking.com');
 
     expect($units)->toHaveCount(1)
-        ->and($units[0]->roomTypeId)->toBe($setup['dorm']->id)
-        ->and($units[0]->adults)->toBe(1)
-        ->and($units[0]->childAges)->toBe([])
-        ->and($units[0]->beds)->toBe(1)
-        ->and($units[0]->overrideTotal)->toBe('90.00');
+        ->and($units[0]->adults)->toBe(2)
+        ->and($units[0]->overrideTotal)->toBe('300.00');
 });
 
 test('native dorm stays off until it is verified, whatever the platform default says', function () {

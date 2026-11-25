@@ -29,9 +29,9 @@ class ChannelRevisionMapper
      */
     public function units(ChannelProperty $channelProperty, array $payload, string $channelName): array
     {
-        $rooms = $payload['rooms'] ?? [];
+        $rooms = $this->rooms($channelProperty, $payload);
 
-        if (! is_array($rooms) || $rooms === []) {
+        if ($rooms === []) {
             throw new ChannelRevisionRefused(__('The booking has no rooms.'));
         }
 
@@ -59,7 +59,8 @@ class ChannelRevisionMapper
             $ages = array_values(array_map('intval', is_array($occupancy['ages'] ?? null) ? $occupancy['ages'] : []));
             // A child with no age counts as 5 (the child price); an infant as 0, so it is free and still on the manifest.
             $childAges = [...(count($ages) === $children ? $ages : array_fill(0, $children, 5)), ...array_fill(0, $infants, 0)];
-            // A dorm goes to the channel one bed per room for one guest (BedAsUnit), so a room of the booking is one bed.
+            // A dorm goes to the channel one bed per room for one guest (BedAsUnit); `rooms()` has split a room with more
+            // guests into one room per guest, so each room here is one bed.
             $isBed = $mapping->roomType->sell_unit === SellUnit::Bed;
 
             return new NewUnitData(
@@ -76,6 +77,79 @@ class ChannelRevisionMapper
     }
 
     /**
+     * The rooms of the revision, with each room of a dorm (a rate plan mapped to a Bed room type) split into one room
+     * per guest: an OTA may send three backpackers as one room with three adults, while BedAsUnit sells one bed per
+     * room. Adults and children each take a bed; infants share one. Each bed gets one guest name, when the room has
+     * it, and an equal share of the amount and of each night's price, a cent more on the first beds until it adds up.
+     * Every other room is returned as it is, in order. `units()`, a modification and the OTA payment shares all read
+     * this list, so a room keeps its place across revisions. See docs/21-channels/03-dorm-strategies.md.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return list<array<string, mixed>>
+     */
+    public function rooms(ChannelProperty $channelProperty, array $payload): array
+    {
+        $rooms = is_array($payload['rooms'] ?? null) ? array_values(array_filter($payload['rooms'], is_array(...))) : [];
+        $bedPlans = ChannelRatePlanMapping::query()
+            ->where('channel_property_id', $channelProperty->id)
+            ->whereIn('external_rate_plan_id', array_values(array_filter(array_column($rooms, 'rate_plan_id'))))
+            ->whereHas('roomType', fn ($query) => $query->where('sell_unit', SellUnit::Bed->value))
+            ->pluck('external_rate_plan_id')
+            ->all();
+        $split = [];
+
+        foreach ($rooms as $room) {
+            $occupancy = is_array($room['occupancy'] ?? null) ? $room['occupancy'] : [];
+            $beds = max(1, (int) ($occupancy['adults'] ?? 1) + (int) ($occupancy['children'] ?? 0));
+
+            if ($beds === 1 || ! in_array($room['rate_plan_id'] ?? null, $bedPlans, true)) {
+                $split[] = $room;
+
+                continue;
+            }
+
+            $guests = is_array($room['guests'] ?? null) ? array_values($room['guests']) : [];
+            $amounts = $this->shares($room['amount'] ?? null, $beds);
+            $days = [];
+
+            foreach (is_array($room['days'] ?? null) ? $room['days'] : [] as $date => $price) {
+                $days[$date] = $this->shares($price, $beds);
+            }
+
+            for ($bed = 0; $bed < $beds; $bed++) {
+                $split[] = [
+                    ...$room,
+                    'occupancy' => ['adults' => 1, 'children' => 0, 'infants' => 0, 'ages' => []],
+                    'guests' => isset($guests[$bed]) ? [$guests[$bed]] : [],
+                    'amount' => $amounts === null ? ($room['amount'] ?? null) : $amounts[$bed],
+                    'days' => array_map(fn (?array $shares): mixed => $shares[$bed] ?? null, $days),
+                ];
+            }
+        }
+
+        return $split;
+    }
+
+    /**
+     * An amount split into `$parts` equal two-decimal shares that add up to it, a cent more on the first shares. Null
+     * when the amount does not read as a number.
+     *
+     * @return list<string>|null
+     */
+    private function shares(mixed $amount, int $parts): ?array
+    {
+        if (! is_numeric($amount)) {
+            return null;
+        }
+
+        $cents = BigDecimal::of((string) $amount)->multipliedBy(100)->toScale(0, RoundingMode::HalfUp)->toBigInteger()->toInt();
+        $base = intdiv($cents, $parts);
+        $extra = $cents - $base * $parts;
+
+        return array_map(fn (int $part): string => number_format(($base + ($part < $extra ? 1 : 0)) / 100, 2, '.', ''), range(0, $parts - 1));
+    }
+
+    /**
      * The money the guest paid the OTA, when `payment_collect` is `ota`: the booking amount, the amount of each room
      * in the order of the rooms (null when a room has none), and a reference that tells staff how the OTA pays the
      * property. A virtual card gives "Virtual card · charge from {date}" (or "Virtual card" with no date), a bank
@@ -85,7 +159,7 @@ class ChannelRevisionMapper
      * @param  array<string, mixed>  $payload
      * @return array{amount: string, roomAmounts: list<string|null>, reference: string|null}|null
      */
-    public function otaPayment(array $payload): ?array
+    public function otaPayment(array $payload, ?ChannelProperty $channelProperty = null): ?array
     {
         if (($payload['payment_collect'] ?? null) !== 'ota') {
             return null;
@@ -97,7 +171,7 @@ class ChannelRevisionMapper
             return null;
         }
 
-        $rooms = is_array($payload['rooms'] ?? null) ? array_values($payload['rooms']) : [];
+        $rooms = $channelProperty === null ? (is_array($payload['rooms'] ?? null) ? array_values($payload['rooms']) : []) : $this->rooms($channelProperty, $payload);
 
         return [
             'amount' => $amount,

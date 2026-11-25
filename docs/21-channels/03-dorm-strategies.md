@@ -17,7 +17,7 @@ Channex has no per-bed sell mode. It has `room_kind: dorm` with `capacity` (beds
 | Channex room type | `room_kind: room`, `count_of_rooms = total beds`, `occ_adults = 1`, `default_occupancy = 1` | `room_kind: dorm`, `capacity = beds per room` |
 | Rate plan         | `per_room`, occupancy 1, price = bed price                                                  | Price for 1 person                            |
 | Availability sent | Free beds                                                                                   | Per staging results                           |
-| Incoming booking  | 1 room entry = 1 unit                                                                       | Per staging results                           |
+| Incoming booking  | 1 bed per guest of a room entry (a room of 3 guests is 3 units)                             | Per staging results                           |
 | Works on          | All OTAs                                                                                    | Verified OTAs only                            |
 
 Interface `DormChannelStrategy` (`app/Services/Channels/Dorm/`): `refusal()`, `roomKind()`, `adults()`, `children()`. Implementations: `BedAsUnitStrategy`, `NativeDormStrategy`, chosen by `DormStrategy::strategy()` and `DormStrategyResolver`.
