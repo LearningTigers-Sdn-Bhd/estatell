@@ -20,7 +20,7 @@ A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, wh
 
 Built per turn by `AssistantInstructions` (a Service), from:
 
-1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, end a room list with one short line on why the stay is worth it (from the facts only), read a date without a year as the next time it comes, never promise a cancel or a refund.
+1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, number a room list, one room and plan per line, so a number picks a line, end it with one short line on why the stay is worth it (from the facts only), read a date without a year as the next time it comes and write that year, never promise a cancel or a refund.
 2. The place and who is asking (a lobby visitor, a guest with a stay, a staff member).
 3. The [knowledge](#knowledge).
 4. The language rule: reply in the language the person writes in. When unsure, use the property's default language.

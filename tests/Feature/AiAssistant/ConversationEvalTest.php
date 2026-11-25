@@ -53,7 +53,7 @@ test('the assistant handles', function (string $case, string $group, string $pla
     ]],
     'a bare number picks a row' => ['Interruptions', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices]],
-        ['guest' => '1', 'judge' => 'Treats "1" as the first option it listed: it sends that quote link, confirms that option, or asks which plan of that room. It does not say it does not understand.'],
+        ['guest' => '1', 'judge' => 'Treats "1" as the first numbered option it listed (a room and plan): it sends that quote link or confirms that option. It does not ask the guest to choose again.'],
     ]],
     'a second yes does not send twice' => ['Interruptions', 'lobby', [
         ['guest' => 'Sea View Room from 2 to 4 November 2026 for 2 adults, with breakfast. Send me the link.', 'tools' => [AiTool::SendQuoteLink]],
@@ -69,7 +69,7 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => 'Room for 4 people from 2 to 4 November 2026.', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Asks how many of the 4 are adults (and may ask about children) before checking prices. Does not assume all 4 are adults.'],
     ]],
     'a passed month is not refused as past' => ['Vague input', 'lobby', [
-        ['guest' => 'Can I book a room on 28 August?', 'judge' => 'Does not refuse because 28 August has passed. It treats it as 28 August 2027, asks which year, or says it can only check up to 6 months ahead.'],
+        ['guest' => 'Can I book a room on 28 August?', 'says' => ['2027'], 'judge' => 'Does not refuse because 28 August has passed. It writes 28 August 2027 in the reply, or says it can only check up to 6 months ahead.'],
     ]],
     'guest keeps missing the number' => ['Vague input', 'lobby', [
         ['guest' => 'I want a room from 2 to 4 November 2026.'],
