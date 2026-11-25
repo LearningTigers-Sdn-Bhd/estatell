@@ -73,7 +73,7 @@ class SettingsNavigation
                     title: __('POS'),
                     href: route('settings.pos-outlets.index', ['property' => $property->code], absolute: false),
                     icon: 'utensils',
-                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-integrations.*', 'settings.pos-api-clients.*', 'settings.pos.*'),
+                    active: request()->routeIs('settings.pos-outlets.*', 'settings.pos-api-clients.*', 'settings.pos.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Concierge::class) ? new NavItemData(
                     title: __('Concierge'),

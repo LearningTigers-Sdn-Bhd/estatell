@@ -57,10 +57,7 @@ class SavePosOutlet
                 : ChargeItem::query()->where('property_id', $property->id)->find($data->defaultChargeItemId);
 
             if ($data->defaultChargeItemId === null) {
-                // Only a native outlet with no live external mapping may go without a charge item.
-                $mapped = $outlet !== null && $outlet->mappings()->where('active', true)->exists();
-
-                if (! $data->nativePosEnabled || $mapped) {
+                if (! $data->nativePosEnabled) {
                     return PosOutletResult::refused(PosOutletResult::REFUSAL_CHARGE_ITEM_INVALID);
                 }
             } elseif ($item === null || ($data->active && ! $item->active)) {

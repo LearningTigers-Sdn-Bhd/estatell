@@ -99,7 +99,6 @@ class VoidPosCharge
 
             $posting = new PosPosting([
                 'pos_outlet_id' => $outlet->id,
-                'pos_connection_id' => $data->posConnectionId,
                 'reservation_unit_id' => $original?->reservation_unit_id,
                 'folio_line_id' => $reversalId,
                 'external_receipt_id' => $data->externalReceiptId,

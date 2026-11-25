@@ -5,17 +5,13 @@ use App\Actions\Pos\SavePosOutlet;
 use App\Actions\Pos\SeedPosDiningOptions;
 use App\Data\Pos\PosChargeData;
 use App\Data\Pos\PosOutletData;
-use App\Enums\PosConnectionStatus;
 use App\Enums\PosDiningKind;
 use App\Enums\PosOperationMode;
-use App\Enums\PosProvider;
 use App\Enums\PosRoundingMode;
 use App\Enums\PosRoundingPolicy;
 use App\Features\NativePos;
-use App\Models\PosConnection;
 use App\Models\PosDiningOption;
 use App\Models\PosOutlet;
-use App\Models\PosOutletMapping;
 use Illuminate\Database\QueryException;
 use Laravel\Pennant\Feature;
 
@@ -75,25 +71,6 @@ it('keeps the charge item mandatory for an outlet that is not native', function 
     $result = app(SavePosOutlet::class)($setup['manager'], $setup['property'], new PosOutletData('Cafe', 'CAFE', null, true, false));
 
     expect($result->refusal)->toBe('charge_item_invalid');
-});
-
-it('keeps the charge item mandatory while an external mapping is live', function () {
-    $setup = posSetup();
-    $property = $setup['property'];
-    Feature::for($property)->activate(NativePos::class);
-    $connection = new PosConnection(['provider' => PosProvider::Loyverse, 'status' => PosConnectionStatus::Connected]);
-    $connection->property_id = $property->id;
-    $connection->save();
-    $mapping = new PosOutletMapping(['external_store_id' => 's1', 'external_payment_type_id' => 'p1', 'active' => true]);
-    $mapping->property_id = $property->id;
-    $mapping->pos_connection_id = $connection->id;
-    $mapping->pos_outlet_id = $setup['outlet']->id;
-    $mapping->save();
-
-    $result = app(SavePosOutlet::class)($setup['actor'], $property, new PosOutletData('Main', $setup['outlet']->code, null, true, true), $setup['outlet']);
-
-    expect($result->refusal)->toBe('charge_item_invalid')
-        ->and($setup['outlet']->fresh()->default_charge_item_id)->not->toBeNull();
 });
 
 it('lets an external outlet turn native on and keep its charge item', function () {

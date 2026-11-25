@@ -3494,7 +3494,6 @@ externalReceiptNumber: string,
 amount: string,
 reservationUnitId: number | null,
 rawPayload: Record<string, any>,
-posConnectionId: number | null,
 serviceDate: string | null,
 failureHint: string | null,
 };
@@ -3656,6 +3655,7 @@ courseNumber: number,
 seatNumber: number | null,
 weight: string | null,
 comboSelections: number[][],
+snapshotPrice: string | null,
 };
 export type PosOrderRowData = {
 id: number,
@@ -3758,7 +3758,6 @@ originalExternalReceiptId: string,
 amount: string | null,
 reason: string | null,
 rawPayload: Record<string, any>,
-posConnectionId: number | null,
 };
 export type ResolvePosPostingData = {
 action: string,
@@ -6255,7 +6254,6 @@ export type PortalLoginOutcome = 'unchanged' | 'removed' | 'created' | 'invited'
 export type PortalLoginRefusal = 'other_kind_of_account' | 'taken_by_other_company' | 'not_available' | 'company_suspended';
 export type PosAvailability = 'all' | 'pos_only' | 'none';
 export type PosCashMovementKind = 'float_in' | 'safe_drop' | 'payout' | 'no_sale_open';
-export type PosConnectionStatus = 'connected' | 'error' | 'disconnected';
 export type PosDiningKind = 'dine_in' | 'takeaway' | 'room_service' | 'poolside' | 'minibar' | 'delivery';
 export type PosDiscountType = 'fixed_percent' | 'fixed_amount' | 'variable_percent' | 'variable_amount' | 'fixed_price' | 'foc';
 export type PosKitchenStatus = 'draft' | 'held' | 'fired' | 'preparing' | 'ready' | 'served' | 'voided';
@@ -6270,11 +6268,14 @@ export type PosPinOutcome = 'verified' | 'invalid_pin' | 'pin_locked' | 'no_pin'
 export type PosPostingStatus = 'posted' | 'reversed' | 'pending_review' | 'ignored';
 export type PosPostingType = 'charge' | 'void';
 export type PosPricingType = 'fixed' | 'variable';
-export type PosProvider = 'loyverse' | 'generic_api';
+export type PosQrSessionKind = 'table' | 'room';
 export type PosReconciliationStatus = 'verified' | 'pending_verification';
 export type PosRoundingMode = 'none' | 'five_sen' | 'ten_sen';
 export type PosRoundingPolicy = 'cash_leg_only' | 'whole_bill_when_cash_present';
 export type PosShiftStatus = 'open' | 'closing_control' | 'closed';
+export type PosStationMode = 'kds' | 'browser_print' | 'posport_printer' | 'both';
+export type PosStockMovementKind = 'sale' | 'void_return' | 'refund_return' | 'purchase_receive' | 'transfer_in' | 'transfer_out' | 'waste' | 'stocktake_adjustment';
+export type PosStocktakeStatus = 'draft' | 'closed';
 export type PosTableShape = 'square' | 'round' | 'rect';
 export type PosTenderType = 'cash' | 'card' | 'e_wallet' | 'duitnow_qr' | 'payment_voucher' | 'room_charge';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package' | 'day_use';

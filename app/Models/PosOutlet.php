@@ -115,14 +115,6 @@ class PosOutlet extends Model
     }
 
     /**
-     * @return HasMany<PosOutletMapping, $this>
-     */
-    public function mappings(): HasMany
-    {
-        return $this->hasMany(PosOutletMapping::class);
-    }
-
-    /**
      * @return HasMany<PosFloor, $this>
      */
     public function floors(): HasMany
