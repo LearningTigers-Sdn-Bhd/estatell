@@ -20,7 +20,7 @@ class VoidPosOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'void_reason_id' => ['required', 'integer'],
+            'void_reason_id' => ['nullable', 'integer'],
             'reason_text' => ['nullable', 'string', 'max:255'],
             'return_stock' => ['nullable', 'boolean'],
             'approver_id' => ['nullable', 'integer'],

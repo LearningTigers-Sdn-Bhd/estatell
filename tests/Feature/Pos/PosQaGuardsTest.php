@@ -1,17 +1,25 @@
 <?php
 
 use App\Actions\Pos\ApplyPosDiscount;
+use App\Actions\Pos\BatchCreatePosTables;
+use App\Actions\Pos\FireOrderLines;
+use App\Actions\Pos\IssueTableQrSession;
 use App\Actions\Pos\PosActionResult;
+use App\Actions\Pos\SavePosFloor;
+use App\Actions\Pos\SavePosKitchenRouting;
 use App\Actions\Pos\SavePosOutlet;
 use App\Actions\Pos\SavePosOutletSettings;
 use App\Actions\Pos\SettlePosOrder;
+use App\Actions\Pos\VoidPosOrder;
 use App\Data\Pos\PosOutletData;
 use App\Data\Pos\PosTenderInputData;
 use App\Enums\PosDiscountType;
 use App\Enums\PosOrderStatus;
 use App\Enums\PosTenderType;
 use App\Enums\TransactionKind;
+use App\Models\PosKitchenStation;
 use App\Models\PosOrderPayment;
+use App\Models\PosTable;
 use App\Models\PosVoidReason;
 use App\Models\TransactionCode;
 
@@ -88,6 +96,48 @@ it('still refuses a zero tender on a check that has something to pay', function 
     $result = app(SettlePosOrder::class)($s['manager'], $s['property'], $order, [new PosTenderInputData(PosTenderType::Cash, '0.00')]);
 
     expect($result->refusal)->toBe('tender_invalid');
+});
+
+it('discards a check with nothing on it without a reason and still asks a reason for a check with lines', function () {
+    $s = posOrderSetup();
+    $empty = posNewOrder($s);
+    $filled = posNewOrder($s);
+    posAddLine($s, $filled, $s['steak']);
+
+    $discarded = app(VoidPosOrder::class)($s['manager'], $s['property'], $empty, null);
+    $refused = app(VoidPosOrder::class)($s['manager'], $s['property'], $filled, null);
+
+    expect($discarded->isRefused())->toBeFalse()
+        ->and($empty->fresh()->status)->toBe(PosOrderStatus::Voided)
+        ->and($empty->fresh()->void_reason_id)->toBeNull()
+        ->and($refused->refusal)->toBe('void_reason_invalid')
+        ->and($filled->fresh()->status)->toBe(PosOrderStatus::Open);
+});
+
+it('routes lines sent before a kitchen station existed once the routing is saved', function () {
+    $s = posOrderSetup();
+    $order = posNewOrder($s);
+    $line = posAddLine($s, $order, $s['steak']);
+    app(FireOrderLines::class)($s['manager'], $s['property'], $order);
+    $hot = PosKitchenStation::factory()->create(['property_id' => $s['property']->id, 'pos_outlet_id' => $s['outlet']->id, 'name' => 'Hot Kitchen']);
+
+    expect($line->fresh()->kitchen_station_id)->toBeNull();
+
+    app(SavePosKitchenRouting::class)($s['manager'], $s['property'], $s['outlet'], [$s['category']->id => $hot->id], []);
+
+    expect($line->fresh()->kitchen_station_id)->toBe($hot->id);
+});
+
+it('shows a guest the table QR total with the service charge of a dine-in check', function () {
+    $s = posOrderSetup();
+    $floor = app(SavePosFloor::class)($s['manager'], $s['property'], $s['outlet'], null, 'Indoor')->model;
+    app(BatchCreatePosTables::class)($s['manager'], $s['property'], $floor, 'a', 1, 4, 4);
+    $table = PosTable::query()->where('pos_floor_id', $floor->id)->where('code', 'A01')->sole();
+    $link = app(IssueTableQrSession::class)($s['manager'], $s['property'], $table)->model;
+
+    $this->get(route('qr.table.show', $link->token))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('serviceChargeRate', '10.00'));
 });
 
 it('names a service charge code that is not a charge when a room charge cannot post', function () {

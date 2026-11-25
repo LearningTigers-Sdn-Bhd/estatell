@@ -7,6 +7,7 @@ use App\Models\PosOrder;
 use App\Models\PosOrderPayment;
 use App\Services\EInvoice\PosOrderReportLines;
 use App\Services\Pos\PosReceiptClaimQr;
+use App\Services\Reservations\ReservationRoomBox;
 use Spatie\LaravelData\Data;
 
 /**
@@ -60,6 +61,26 @@ class PosOrderData extends Data
     ) {}
 
     /**
+     * The room and primary guest staff recognise ("V4 · Lee Chong Wei Ming"), or the booking reference when the room is unknown.
+     */
+    private static function roomLabel(PosOrder $order): ?string
+    {
+        $unit = $order->reservationUnit;
+
+        if ($unit === null) {
+            return null;
+        }
+
+        $date = ($order->business_date ?? now())->toDateString();
+        $room = app(ReservationRoomBox::class)->currentAssignmentsForUnitsOn([$unit->id], $date)[$unit->id] ?? null;
+        $primary = $unit->guests()->where('is_primary', true)->with('guest')->first();
+        $guest = $primary === null ? $unit->reservation->booker->full_name : $primary->guest->full_name;
+        $label = implode(' · ', array_filter([$room, $guest]));
+
+        return $label !== '' ? $label : $unit->reservation->reference;
+    }
+
+    /**
      * Expects `outlet`, `shift.register`, `diningOption`, `reservationUnit.reservation`, `refundFor`, `openedBy`, `table`, `lines.modifiers`,
      * `payments` and `discounts` loaded.
      *
@@ -82,7 +103,7 @@ class PosOrderData extends Data
             $order->diningOption->name,
             $order->guest_count,
             $order->reservation_unit_id,
-            $order->reservationUnit?->reservation?->reference,
+            self::roomLabel($order),
             $order->subtotal,
             $order->discount_total,
             $order->service_charge_total,

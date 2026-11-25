@@ -63,6 +63,7 @@ import {
     prebill as prebillRoute,
     refund,
     store as storeOrder,
+    voidMethod as voidEmptyOrder,
 } from '@/routes/pos/orders';
 import {
     store as storeLine,
@@ -855,10 +856,20 @@ export default function PosTerminal(props: Props) {
                             <Button
                                 variant="outline"
                                 className="min-h-11"
-                                onClick={() => setVoiding({ line: null })}
+                                onClick={() =>
+                                    hasLines
+                                        ? setVoiding({ line: null })
+                                        : router.post(
+                                              voidEmptyOrder.url({
+                                                  order: order.id,
+                                              }),
+                                              {},
+                                              { preserveScroll: true },
+                                          )
+                                }
                             >
                                 <Trash2 data-icon="inline-start" />
-                                Void order
+                                {hasLines ? 'Void order' : 'Discard check'}
                             </Button>
                             <Button
                                 className="col-span-2 h-14 text-base"

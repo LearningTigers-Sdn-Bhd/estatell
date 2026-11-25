@@ -21,6 +21,7 @@ import {
     table as transferTableRoute,
 } from '@/routes/pos/orders';
 import { place, split as splitLine } from '@/routes/pos/orders/lines';
+import { qr as tableQr } from '@/routes/pos/tables';
 
 type Order = App.Data.Pos.PosOrderData;
 type Line = App.Data.Pos.PosOrderLineData;
@@ -115,6 +116,28 @@ export function PosCheckActionsDialog({
                     </SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-5 p-4">
+                    {order.tableId !== null && (
+                        <Field>
+                            <FieldLabel>Guest ordering</FieldLabel>
+                            <FieldDescription>
+                                Print a QR slip so guests at {order.tableCode}{' '}
+                                can order from their phone.
+                            </FieldDescription>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="min-h-11 self-start"
+                                disabled={busy}
+                                onClick={() =>
+                                    router.post(
+                                        tableQr.url({ table: order.tableId! }),
+                                    )
+                                }
+                            >
+                                Show table QR
+                            </Button>
+                        </Field>
+                    )}
                     {vacantTables.length > 0 && (
                         <Field>
                             <FieldLabel htmlFor="transfer-table-select">

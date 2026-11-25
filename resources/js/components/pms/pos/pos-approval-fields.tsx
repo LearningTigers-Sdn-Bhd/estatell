@@ -60,6 +60,11 @@ export function PosApprovalFields({
                         })
                     }
                 />
+                <FieldDescription>
+                    {staff.length === 0
+                        ? 'No manager has a POS PIN yet. A manager sets it under Account, POS PIN.'
+                        : 'A PIN approval only works on a registered till (Settings, POS, Staff and terminals). A manager without a PIN is not listed.'}
+                </FieldDescription>
             </Field>
         </div>
     );

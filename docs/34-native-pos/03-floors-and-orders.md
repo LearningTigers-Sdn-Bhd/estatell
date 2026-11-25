@@ -188,6 +188,7 @@ stateDiagram-v2
 
 ## Anti-fraud controls
 
+- **Empty checks:** a check with no lines left is discarded with one tap (`VoidPosOrder` with no reason, no manager). A check with lines still needs a reason, and a manager when it has a fired line or a printed pre-bill.
 - **Default void reasons:** the first time an outlet is turned on for a property that has no void reasons, `SeedPosVoidReasons` creates four: _Wrong item entered_ and _Out of stock_ (no manager, stock goes back), _Kitchen error_ (no manager) and _Guest changed mind_ (manager PIN). A property that already has reasons is left alone.
 
 1. **Pre-Bill Locks Lines, Discounts, Dining Options & Splits (`PrintPreBill` — closes all pre-bill skimming paths!)**:

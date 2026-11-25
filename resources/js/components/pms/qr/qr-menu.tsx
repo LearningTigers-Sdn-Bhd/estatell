@@ -38,12 +38,14 @@ export function QrMenu({
     categories,
     currency,
     allowRemark,
+    serviceChargeRate,
     sending,
     onSend,
 }: {
     categories: QrCategory[];
     currency: App.Data.Property.CurrencyData | null;
     allowRemark: boolean;
+    serviceChargeRate?: string | null;
     sending: boolean;
     onSend: (lines: QrLine[], clearCart: () => void) => void;
 }) {
@@ -60,6 +62,9 @@ export function QrMenu({
         (sum, row) => sum + Number(row.variant.price) * row.quantity,
         0,
     );
+
+    // What the cashier will bill: the cart plus the service charge of the order type, so the guest is not surprised.
+    const payable = total * (1 + Number(serviceChargeRate ?? 0) / 100);
 
     const clearCart = () => {
         setCart({});
@@ -228,7 +233,14 @@ export function QrMenu({
                 >
                     {sending && <Spinner data-icon="inline-start" />}
                     Send order ·{' '}
-                    <MoneyText amount={total.toFixed(2)} currency={currency} />
+                    <MoneyText
+                        amount={payable.toFixed(2)}
+                        currency={currency}
+                    />
+                    {serviceChargeRate !== null &&
+                    serviceChargeRate !== undefined
+                        ? ` (incl. ${Number(serviceChargeRate)}% service charge)`
+                        : ''}
                 </Button>
             </div>
         </div>

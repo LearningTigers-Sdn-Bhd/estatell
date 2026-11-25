@@ -23,7 +23,7 @@ class VoidPosOrder
 {
     public function __construct(private OpenPosBusinessDate $openPosBusinessDate, private BumpCfdVersion $bumpCfdVersion) {}
 
-    public function __invoke(User $actor, Property $property, PosOrder $order, PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
+    public function __invoke(User $actor, Property $property, PosOrder $order, ?PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
     {
         $registerId = null;
         $saved = DB::transaction(function () use ($actor, $property, $order, $reason, $reasonText, $returnStock, $approver, &$registerId): PosActionResult {
@@ -43,27 +43,29 @@ class VoidPosOrder
                 return PosActionResult::refused('order_not_open');
             }
 
-            $reason = PosVoidReason::query()->where('property_id', $property->id)->where('active', true)->find($reason->id);
+            $lines = $order->lines()->where('kitchen_status', '!=', PosKitchenStatus::Voided->value)->lockForUpdate()->get();
 
-            if ($reason === null) {
+            // A check with no lines left is only discarded, so it needs no reason.
+            $reason = $reason === null ? null : PosVoidReason::query()->where('property_id', $property->id)->where('active', true)->find($reason->id);
+
+            if ($reason === null && $lines->isNotEmpty()) {
                 return PosActionResult::refused('void_reason_invalid');
             }
 
-            $lines = $order->lines()->where('kitchen_status', '!=', PosKitchenStatus::Voided->value)->lockForUpdate()->get();
             $fired = $lines->contains(fn ($line): bool => $line->kitchen_status->isLocked() && $line->pos_item_variant_id !== null);
 
             if (($fired || $order->prebill_print_count >= 1) && $approver === null) {
                 return PosActionResult::refused('approval_required');
             }
 
-            $return = $returnStock ?? $reason->default_return_stock;
+            $return = $returnStock ?? ($reason !== null && $reason->default_return_stock);
             $text = $reasonText === null || trim($reasonText) === '' ? null : trim($reasonText);
 
             foreach ($lines as $line) {
                 $wasFired = $line->kitchen_status->isLocked() && $line->pos_item_variant_id !== null;
                 $line->forceFill([
                     'kitchen_status' => PosKitchenStatus::Voided,
-                    'void_reason_id' => $reason->id,
+                    'void_reason_id' => $reason?->id,
                     'void_reason_text' => $text,
                     'voided_by_user_id' => $actor->id,
                     'void_approved_by_user_id' => $approver?->id,
@@ -81,7 +83,7 @@ class VoidPosOrder
                 'status' => PosOrderStatus::Voided,
                 'business_date' => $businessDate->date,
                 'voided_at' => now(),
-                'void_reason_id' => $reason->id,
+                'void_reason_id' => $reason?->id,
                 'void_reason_text' => $text,
                 'voided_by_user_id' => $actor->id,
                 'void_approved_by_user_id' => $approver?->id,
@@ -89,7 +91,7 @@ class VoidPosOrder
             ])->save();
 
             activity()->performedOn($order)->causedBy($actor)->event('pos.order_voided')
-                ->withProperties(['property_id' => $property->id, 'reason' => $reason->label, 'lines' => $lines->count(), 'approved_by_user_id' => $approver?->id, 'business_date' => $businessDate->date->toDateString()])
+                ->withProperties(['property_id' => $property->id, 'reason' => $reason?->label, 'lines' => $lines->count(), 'approved_by_user_id' => $approver?->id, 'business_date' => $businessDate->date->toDateString()])
                 ->log('POS order voided');
 
             $registerId = $order->shift?->pos_register_id;

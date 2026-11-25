@@ -238,6 +238,14 @@ class PosOrderController extends Controller
     {
         $model = $this->order($property, $order);
         $actor = $this->actor($request);
+
+        // A check with nothing on it is only discarded: no reason and no manager.
+        if (! $model->lines()->where('kitchen_status', '!=', PosKitchenStatus::Voided->value)->exists()) {
+            $this->toast($voidPosOrder($actor, $property, $model, null)->refusal, __('Check discarded.'));
+
+            return $this->terminal($property, $model->shift, null);
+        }
+
         $approval = $resolveApproval($request, $property, $model->outlet, $actor, PermissionEnum::PosVoid, 'void order', ['order' => $model->id]);
         $reason = PosVoidReason::query()->where('property_id', $property->id)->find((int) $request->validated('void_reason_id'));
 

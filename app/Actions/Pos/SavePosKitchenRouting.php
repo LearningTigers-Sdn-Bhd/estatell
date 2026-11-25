@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\DB;
  */
 class SavePosKitchenRouting
 {
+    public function __construct(private RouteFiredKitchenLines $routeFiredKitchenLines) {}
+
     /**
      * @param  array<int|string, int|null>  $categoryStations  category id to station id, null to unroute
      * @param  array<int|string, int|null>  $itemStations  item id to station id, null to unroute
@@ -46,6 +48,9 @@ class SavePosKitchenRouting
                 PosItem::query()->where('property_id', $property->id)->whereKey((int) $itemId)
                     ->update(['kitchen_station_id' => $stationId === null ? null : (int) $stationId]);
             }
+
+            // Lines sent before this routing existed now reach the screen of their station.
+            ($this->routeFiredKitchenLines)($outlet);
 
             activity()->causedBy($actor)->event('pos.kitchen_routing_saved')
                 ->withProperties(['property_id' => $property->id, 'pos_outlet_id' => $outlet->id])
