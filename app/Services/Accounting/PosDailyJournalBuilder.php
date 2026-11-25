@@ -20,13 +20,16 @@ use Brick\Math\BigDecimal;
 use LogicException;
 
 /**
- * The Native POS part of one business date's journal, as rows by transaction code with the net sign of the folio rows
+ * The POS part of one business date's journal, as rows by transaction code with the net sign of the folio rows
  * (positive credits, negative debits). It is double entry on its own: the rows add up to zero, so a POS error never lands in
  * the guest ledger, and a cafe with no room activity still has a journal. It reads recorded POS activity whether or not
- * Native POS is still on, so turning it off never loses a past day.
+ * POS is still on, so turning it off never loses a past day.
  *
  * - Walk-in sale: debit the payment method clearing for what was paid (with the cash rounding), credit each revenue, service
  *   charge, packaging and tax code with the walk-in share of the bill, in whole sen. The room-charged share is the folio's.
+ *   For a late-synced cash sale (`synced_late = true`), cash was physically counted in the prior shift (creating an overage in
+ *   cash variance), so debit cash variance instead of cash clearing to offset that overage without creating a shortage on the
+ *   current shift.
  * - Walk-in refund: the same in reverse, with the rounding sign inverted.
  * - Cash shortage or overage on shifts closed on the date: against the outlet's cash variance code and cash clearing.
  * - Payout, safe drop and float in: against the movement's counter code and cash clearing. A no-sale opening moves nothing.
@@ -109,8 +112,11 @@ class PosDailyJournalBuilder
                     continue;
                 }
 
-                $clearing = $payment->paymentMethod->transaction_code_id
-                    ?? throw AccountingException::unmappedCodes(['payment method of order '.$order->order_number]);
+                $clearing = $order->synced_late && $payment->tender_type === PosTenderType::Cash
+                    ? ($order->outlet->cash_variance_transaction_code_id
+                        ?? throw AccountingException::unmappedCodes(['cash variance of '.$order->outlet->name]))
+                    : ($payment->paymentMethod->transaction_code_id
+                        ?? throw AccountingException::unmappedCodes(['payment method of order '.$order->order_number]));
                 $direction = $payment->direction === PosPaymentDirection::In ? 1 : -1;
                 $this->add($nets, $clearing, BigDecimal::of($payment->amount)->plus($payment->rounding_adjustment)->multipliedBy($direction)->negated());
 

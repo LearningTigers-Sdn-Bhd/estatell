@@ -39,13 +39,13 @@ class SyncOfflinePosOrders
      * @param  list<array{client_uuid: string, snapshot_version: string, shift_id: ?int, lines: list<array{variant_id: int, quantity: int}>, tenders: list<array{tender_type: string, amount: ?string, tendered_amount: ?string}>}>  $orders
      * @return array<string, string> Each client uuid mapped to `synced`, `replayed` or a refusal code.
      */
-    public function __invoke(User $actor, Property $property, PosOutlet $outlet, array $orders): array
+    public function __invoke(User $actor, Property $property, PosOutlet $outlet, array $orders, ?User $approver = null): array
     {
         $results = [];
 
         foreach ($orders as $order) {
             try {
-                $results[$order['client_uuid']] = DB::transaction(fn (): string => $this->sync($actor, $property, $outlet, $order));
+                $results[$order['client_uuid']] = DB::transaction(fn (): string => $this->sync($actor, $property, $outlet, $order, $approver));
             } catch (PosRefusedException $refused) {
                 $results[$order['client_uuid']] = (string) $refused->refusal;
             }
@@ -57,7 +57,7 @@ class SyncOfflinePosOrders
     /**
      * @param  array{client_uuid: string, snapshot_version: string, shift_id: ?int, lines: list<array{variant_id: int, quantity: int}>, tenders: list<array{tender_type: string, amount: ?string, tendered_amount: ?string}>}  $order
      */
-    private function sync(User $actor, Property $property, PosOutlet $outlet, array $order): string
+    private function sync(User $actor, Property $property, PosOutlet $outlet, array $order, ?User $approver): string
     {
         if (PosOrder::query()->where('property_id', $property->id)->where('client_uuid', $order['client_uuid'])->exists()) {
             return 'replayed';
@@ -69,12 +69,22 @@ class SyncOfflinePosOrders
             throw new PosRefusedException('outlet_closed');
         }
 
-        // A sale may only be priced from a menu issued during the open shift, so an earlier menu cannot be replayed.
-        $snapshot = PosMenuSnapshot::query()
+        $syncedLate = $order['shift_id'] !== null && $order['shift_id'] !== $shift->id;
+
+        // Same-shift sales must use a snapshot issued during the open shift. Late-shift sales (taken during an earlier closed shift)
+        // may use any snapshot within the 7-day retention window, and a manager override can approve an older snapshot.
+        $snapshotQuery = PosMenuSnapshot::query()
             ->where('pos_outlet_id', $outlet->id)
-            ->where('version', $order['snapshot_version'])
-            ->where('issued_at', '>=', max(now()->subDays(IssuePosMenuSnapshot::RETENTION_DAYS), $shift->opened_at))
-            ->first();
+            ->where('version', $order['snapshot_version']);
+
+        if ($approver === null) {
+            $cutoff = $syncedLate
+                ? now()->subDays(IssuePosMenuSnapshot::RETENTION_DAYS)
+                : max(now()->subDays(IssuePosMenuSnapshot::RETENTION_DAYS), $shift->opened_at);
+            $snapshotQuery->where('issued_at', '>=', $cutoff);
+        }
+
+        $snapshot = $snapshotQuery->first();
 
         if ($snapshot === null) {
             throw new PosRefusedException('snapshot_expired');
@@ -92,7 +102,7 @@ class SyncOfflinePosOrders
         $posOrder = $created->model instanceof PosOrder ? $created->model : throw new PosRefusedException('order_invalid');
         $posOrder->forceFill([
             'snapshot_version' => $snapshot->version,
-            'synced_late' => $order['shift_id'] !== null && $order['shift_id'] !== $shift->id,
+            'synced_late' => $syncedLate,
         ])->save();
 
         foreach ($order['lines'] as $line) {
@@ -103,11 +113,11 @@ class SyncOfflinePosOrders
             }
 
             // A snapshot price below the live price would give the guest a discount no manager approved, so it waits for one.
-            if ($this->livePriceAbove($posOrder, $line['variant_id'], $price['amount'])) {
+            if ($approver === null && $this->livePriceAbove($posOrder, $line['variant_id'], $price['amount'])) {
                 throw new PosRefusedException('price_drift_approval_required');
             }
 
-            $this->logDriftIfAny($property, $posOrder, $line['variant_id'], $price['amount']);
+            $this->logDriftIfAny($property, $posOrder, $line['variant_id'], $price['amount'], $approver);
 
             $added = ($this->addOrderLine)($actor, $property, $posOrder, new PosOrderLineInputData(variantId: $line['variant_id'], quantity: $line['quantity'], snapshotPrice: $price['amount']));
 
@@ -152,7 +162,13 @@ class SyncOfflinePosOrders
             ->update(['reconciliation_status' => PosReconciliationStatus::PendingVerification->value]);
 
         activity()->performedOn($posOrder)->causedBy($actor)->event('pos.offline_order_synced')
-            ->withProperties(['property_id' => $property->id, 'snapshot_version' => $snapshot->version, 'synced_late' => $posOrder->synced_late, 'synced_at' => CarbonImmutable::now()->toIso8601String()])
+            ->withProperties([
+                'property_id' => $property->id,
+                'snapshot_version' => $snapshot->version,
+                'synced_late' => $posOrder->synced_late,
+                'synced_at' => CarbonImmutable::now()->toIso8601String(),
+                ...($approver === null ? [] : ['approved_by_user_id' => $approver->id]),
+            ])
             ->log('POS offline order synced');
 
         return 'synced';
@@ -201,7 +217,7 @@ class SyncOfflinePosOrders
         return $live !== null && BigDecimal::of((string) $live)->isGreaterThan(BigDecimal::of($snapshotPrice));
     }
 
-    private function logDriftIfAny(Property $property, PosOrder $order, int $variantId, string $snapshotPrice): void
+    private function logDriftIfAny(Property $property, PosOrder $order, int $variantId, string $snapshotPrice, ?User $approver = null): void
     {
         $live = PosOutletItem::query()->where('pos_outlet_id', $order->pos_outlet_id)->where('pos_item_variant_id', $variantId)->value('price_override')
             ?? PosItemVariant::query()->whereKey($variantId)->value('price');
@@ -211,7 +227,13 @@ class SyncOfflinePosOrders
         }
 
         activity()->performedOn($order)->event('pos.offline_price_drift')
-            ->withProperties(['property_id' => $property->id, 'pos_item_variant_id' => $variantId, 'snapshot_price' => $snapshotPrice, 'live_price' => (string) $live])
+            ->withProperties([
+                'property_id' => $property->id,
+                'pos_item_variant_id' => $variantId,
+                'snapshot_price' => $snapshotPrice,
+                'live_price' => (string) $live,
+                ...($approver === null ? [] : ['approved_by_user_id' => $approver->id]),
+            ])
             ->log('Offline price differs from the live price');
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\PlaceQrOrder;
 use App\Actions\Pos\UnlockRoomQrSession;
+use App\Data\Property\CurrencyData;
 use App\Enums\PosDiningKind;
 use App\Enums\PosQrSessionKind;
 use App\Http\Controllers\Controller;
@@ -42,6 +43,7 @@ class QrRoomController extends Controller
             'status' => $status,
             'unlocked' => $unlocked,
             'property' => $session->property->name,
+            'currency' => CurrencyData::forProperty($session->property),
             'outlets' => $outlets->map(fn (PosOutlet $row): array => ['id' => $row->id, 'name' => $row->name])->values()->all(),
             'outlet' => $live ? ['id' => $outlet->id, 'name' => $outlet->name] : null,
             'allowRemark' => $live && $outlet->allow_qr_customer_remark,
@@ -93,7 +95,7 @@ class QrRoomController extends Controller
         return PosQrSession::query()
             ->where('token', $token)
             ->where('kind', PosQrSessionKind::Room->value)
-            ->with(['property', 'reservationUnit'])
+            ->with(['property.settings', 'reservationUnit'])
             ->firstOrFail();
     }
 

@@ -11,7 +11,11 @@ use App\Models\PosOrder;
 use App\Models\PosOrderLine;
 use App\Models\PosOrderPayment;
 use App\Models\PosOutletPaymentMethod;
+use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Accounting\PosDailyJournalBuilder;
+use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Pos\PosShiftCashTotals;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
@@ -158,6 +162,37 @@ it('marks a sale from a closed shift as synced late, on the open shift', functio
     $order = PosOrder::query()->where('client_uuid', $sale['client_uuid'])->sole();
     expect($order->synced_late)->toBeTrue()->and($order->pos_shift_id)->toBe($s['shift']->id)
         ->and(PosOrderLine::query()->where('pos_order_id', $order->id)->count())->toBe(1);
+});
+
+it('allows a late-synced sale to use a snapshot issued before the new shift opened, excludes it from the new shift cash, and offsets cash variance in the journal', function () {
+    $s = posOfflineSetup();
+    $sale = posOfflineSale($s, $s['steak'], 'cash', $s['shift']->id + 1000);
+    // Shift B opened after the snapshot was issued during Shift A.
+    $s['shift']->forceFill(['opened_at' => now()->addMinute()])->save();
+
+    $results = app(SyncOfflinePosOrders::class)($s['manager'], $s['property'], $s['outlet'], [$sale]);
+
+    expect($results[$sale['client_uuid']])->toBe('synced');
+
+    $totals = app(PosShiftCashTotals::class)->for($s['shift']->refresh());
+    expect($totals['cash_payments'])->toBe('0.00');
+
+    $date = app(CurrentBusinessDate::class)->get($s['property']);
+    $rows = app(PosDailyJournalBuilder::class)->rows($s['property'], $date);
+    $varianceCode = TransactionCode::query()->findOrFail($s['outlet']->cash_variance_transaction_code_id)->code;
+    expect(collect($rows)->firstWhere('code', $varianceCode))->not->toBeNull();
+});
+
+it('lets a manager approve overriding offline price drift and expired snapshots', function () {
+    $s = posOfflineSetup();
+    $sale = posOfflineSale($s, $s['steak']);
+    $s['steak']->forceFill(['price' => '120.00'])->save();
+    PosMenuSnapshot::query()->update(['issued_at' => now()->subDays(9)]);
+
+    $results = app(SyncOfflinePosOrders::class)($s['manager'], $s['property'], $s['outlet'], [$sale], $s['manager']);
+
+    expect($results[$sale['client_uuid']])->toBe('synced')
+        ->and(Activity::query()->where('event', 'pos.offline_order_synced')->latest('id')->first()?->properties['approved_by_user_id'])->toBe($s['manager']->id);
 });
 
 it('lets a staff member sync and get the snapshot only for an outlet of this property', function () {

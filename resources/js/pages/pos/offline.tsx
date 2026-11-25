@@ -1,5 +1,13 @@
 import { Head } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Printer } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { MoneyText } from '@/components/pms/money-text';
+import {
+    noApproval,
+    PosApprovalFields,
+} from '@/components/pms/pos/pos-approval-fields';
+import type { ApprovalData } from '@/components/pms/pos/pos-approval-fields';
+import type { PosStaff } from '@/components/pms/pos/pos-types';
 import { QrMenu } from '@/components/pms/qr/qr-menu';
 import type { QrCategory, QrLine } from '@/components/pms/qr/qr-menu';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +19,17 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import {
     enqueueSale,
     listQueue,
@@ -31,6 +48,8 @@ type Props = {
     shiftId: number | null;
     registerId: number | null;
     registerName: string | null;
+    currency: App.Data.Property.CurrencyData | null;
+    staff: PosStaff[];
 };
 
 type Snapshot = { version: string; categories: SnapshotCategory[] };
@@ -93,6 +112,8 @@ export default function PosOffline({
     shiftId,
     registerId,
     registerName,
+    currency,
+    staff,
 }: Props) {
     const [snapshot, setSnapshot] = useState<StoredSnapshot | null>(null);
     const [queue, setQueue] = useState<QueuedSale[]>([]);
@@ -102,6 +123,9 @@ export default function PosOffline({
     const [tendered, setTendered] = useState('');
     const [message, setMessage] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
+    const [needsApproval, setNeedsApproval] = useState(false);
+    const [approval, setApproval] = useState<ApprovalData>(noApproval);
+    const [slipSale, setSlipSale] = useState<QueuedSale | null>(null);
 
     const refreshQueue = () => listQueue().then(setQueue);
 
@@ -155,6 +179,53 @@ export default function PosOffline({
     const payload = snapshot?.payload as Snapshot | undefined;
     const menu = payload ? offlineMenu(payload.categories) : [];
 
+    const variantLookup = useMemo(() => {
+        const map = new Map<
+            number,
+            { itemName: string; variantName: string; price: string }
+        >();
+
+        for (const category of payload?.categories ?? []) {
+            for (const item of category.items) {
+                for (const variant of item.variants) {
+                    map.set(variant.id, {
+                        itemName: item.name,
+                        variantName: variant.name,
+                        price: variant.price,
+                    });
+                }
+            }
+        }
+
+        return map;
+    }, [payload]);
+
+    const pendingDetails = useMemo(
+        () =>
+            (pending ?? []).map((line) => {
+                const info = variantLookup.get(line.variant_id);
+
+                return {
+                    name: info?.itemName ?? `Item #${line.variant_id}`,
+                    variantName: info?.variantName ?? 'Regular',
+                    quantity: line.quantity,
+                    unitPrice: info?.price ?? '0.00',
+                };
+            }),
+        [pending, variantLookup],
+    );
+
+    const estimatedSubtotal = useMemo(
+        () =>
+            pendingDetails
+                .reduce(
+                    (sum, row) => sum + Number(row.unitPrice) * row.quantity,
+                    0,
+                )
+                .toFixed(2),
+        [pendingDetails],
+    );
+
     const takeSale = () => {
         if (pending === null || payload === undefined || shiftId === null) {
             setMessage('Open a shift on this register before selling offline.');
@@ -172,6 +243,8 @@ export default function PosOffline({
                 variant_id: line.variant_id,
                 quantity: line.quantity,
             })),
+            lineDetails: pendingDetails,
+            estimatedSubtotal,
             tenders: [
                 {
                     tender_type: tender,
@@ -189,6 +262,7 @@ export default function PosOffline({
         void enqueueSale(sale).then(() => {
             setPending(null);
             setTendered('');
+            setSlipSale(sale);
             setMessage(
                 `Saved on this device as ${sale.reference}. The official receipt number is given on sync.`,
             );
@@ -197,7 +271,7 @@ export default function PosOffline({
         });
     };
 
-    const sync = async () => {
+    const sync = async (withApproval = false) => {
         if (queue.length === 0) {
             return;
         }
@@ -222,8 +296,27 @@ export default function PosOffline({
                         lines: sale.lines,
                         tenders: sale.tenders,
                     })),
+                    ...(withApproval
+                        ? {
+                              approve: true,
+                              approver_id: approval.approver_id || null,
+                              approver_pin: approval.approver_pin || null,
+                          }
+                        : {}),
                 }),
             });
+
+            if (!response.ok) {
+                const body = (await response.json().catch(() => ({}))) as {
+                    error?: string;
+                };
+                setMessage(
+                    body.error ??
+                        'The sync was refused. Check manager approval details and try again.',
+                );
+
+                return;
+            }
 
             const { results } = (await response.json()) as {
                 results: Record<string, string>;
@@ -237,6 +330,16 @@ export default function PosOffline({
             const refused = Object.entries(results).filter(
                 ([, outcome]) => outcome !== 'synced' && outcome !== 'replayed',
             );
+
+            const approvalNeeded = refused.some(
+                ([, outcome]) =>
+                    outcome === 'price_drift_approval_required' ||
+                    outcome === 'snapshot_expired',
+            );
+            setNeedsApproval(approvalNeeded);
+            if (!approvalNeeded) {
+                setApproval(noApproval);
+            }
 
             await removeSales(done);
             await refreshQueue();
@@ -253,6 +356,8 @@ export default function PosOffline({
             setSyncing(false);
         }
     };
+
+    const currencyCode = currency?.code ?? 'MYR';
 
     return (
         <>
@@ -294,20 +399,58 @@ export default function PosOffline({
                 ) : pending === null ? (
                     <QrMenu
                         categories={menu}
+                        currency={currency}
                         allowRemark={false}
                         sending={false}
-                        onSend={(lines) => setPending(lines)}
+                        onSend={(lines, clearCart) => {
+                            setPending(lines);
+                            clearCart();
+                        }}
                     />
                 ) : (
                     <Card>
                         <CardHeader>
                             <CardTitle>Take payment</CardTitle>
                             <CardDescription>
-                                The total is worked out with tax when the sale
-                                is synced. Cash needs the amount handed over.
+                                Estimated item subtotal below. Taxes and service
+                                charge are finalised when the sale is synced.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-sm">
+                                {pendingDetails.map((row, index) => (
+                                    <div
+                                        key={`${row.name}-${row.variantName}-${index}`}
+                                        className="flex items-center justify-between gap-2"
+                                    >
+                                        <span>
+                                            {row.quantity} × {row.name}
+                                            {row.variantName !== 'Regular'
+                                                ? ` (${row.variantName})`
+                                                : ''}
+                                        </span>
+                                        <span className="tabular-nums">
+                                            <MoneyText
+                                                amount={(
+                                                    Number(row.unitPrice) *
+                                                    row.quantity
+                                                ).toFixed(2)}
+                                                currency={currency}
+                                            />
+                                        </span>
+                                    </div>
+                                ))}
+                                <div className="mt-2 flex items-center justify-between border-t pt-2 font-medium">
+                                    <span>Estimated subtotal</span>
+                                    <span className="tabular-nums">
+                                        <MoneyText
+                                            amount={estimatedSubtotal}
+                                            currency={currency}
+                                        />
+                                    </span>
+                                </div>
+                            </div>
+
                             <div className="flex gap-2">
                                 <Button
                                     variant={
@@ -316,6 +459,7 @@ export default function PosOffline({
                                             : 'outline'
                                     }
                                     size="lg"
+                                    className="min-h-11"
                                     onClick={() => setTender('cash')}
                                 >
                                     Cash
@@ -327,6 +471,7 @@ export default function PosOffline({
                                             : 'outline'
                                     }
                                     size="lg"
+                                    className="min-h-11"
                                     onClick={() => setTender('duitnow_qr')}
                                 >
                                     DuitNow QR
@@ -335,7 +480,7 @@ export default function PosOffline({
                             {tender === 'cash' && (
                                 <Field>
                                     <FieldLabel htmlFor="offline-tendered">
-                                        Cash handed over (RM)
+                                        Cash handed over ({currencyCode})
                                     </FieldLabel>
                                     <Input
                                         id="offline-tendered"
@@ -351,11 +496,16 @@ export default function PosOffline({
                                 <Button
                                     variant="outline"
                                     size="lg"
+                                    className="min-h-11"
                                     onClick={() => setPending(null)}
                                 >
                                     Back
                                 </Button>
-                                <Button size="lg" onClick={takeSale}>
+                                <Button
+                                    size="lg"
+                                    className="min-h-11"
+                                    onClick={takeSale}
+                                >
                                     Save sale
                                 </Button>
                             </div>
@@ -373,31 +523,177 @@ export default function PosOffline({
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3">
-                        <ul className="flex flex-col gap-1 text-sm">
+                        <ul className="flex flex-col gap-2 text-sm">
                             {queue.map((sale) => (
                                 <li
                                     key={sale.clientUuid}
-                                    className="flex justify-between gap-2"
+                                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
                                 >
-                                    <span className="font-mono">
-                                        {sale.reference}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {sale.summary}
-                                    </span>
+                                    <div className="flex flex-col">
+                                        <span className="font-mono font-medium">
+                                            {sale.reference}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {sale.summary}
+                                            {sale.estimatedSubtotal !==
+                                                undefined && (
+                                                <>
+                                                    {' · est. '}
+                                                    <MoneyText
+                                                        amount={
+                                                            sale.estimatedSubtotal
+                                                        }
+                                                        currency={currency}
+                                                    />
+                                                </>
+                                            )}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="min-h-11"
+                                        onClick={() => setSlipSale(sale)}
+                                    >
+                                        <Printer data-icon="inline-start" />
+                                        Print slip
+                                    </Button>
                                 </li>
                             ))}
                         </ul>
+
+                        {needsApproval && queue.length > 0 && (
+                            <div className="flex flex-col gap-3 rounded-lg border border-warning-border bg-warning-bg/20 p-3">
+                                <p className="text-sm font-medium text-warning-text">
+                                    Manager approval required to override price
+                                    drift or an expired snapshot.
+                                </p>
+                                <PosApprovalFields
+                                    staff={staff}
+                                    data={approval}
+                                    onChange={setApproval}
+                                    required
+                                />
+                                <Button
+                                    size="lg"
+                                    className="min-h-11"
+                                    disabled={
+                                        !online || queue.length === 0 || syncing
+                                    }
+                                    focusableWhenDisabled
+                                    onClick={() => void sync(true)}
+                                >
+                                    {syncing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Approve and sync
+                                </Button>
+                            </div>
+                        )}
+
                         <Button
                             size="lg"
+                            className="min-h-11"
                             disabled={!online || queue.length === 0 || syncing}
-                            onClick={sync}
+                            focusableWhenDisabled
+                            onClick={() => void sync(false)}
                         >
+                            {syncing && <Spinner data-icon="inline-start" />}
                             Sync now
                         </Button>
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog
+                open={slipSale !== null}
+                onOpenChange={(open) => !open && setSlipSale(null)}
+            >
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Provisional offline slip</DialogTitle>
+                        <DialogDescription>
+                            Official receipt number is issued when this sale
+                            syncs.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {slipSale !== null && (
+                        <div className="pos-print-area flex flex-col gap-2 rounded-lg border bg-background p-4 font-mono text-xs">
+                            <div className="text-center font-semibold">
+                                {outlet.name}
+                            </div>
+                            <div className="text-center text-muted-foreground">
+                                PROVISIONAL OFFLINE SLIP
+                            </div>
+                            <div className="flex justify-between border-t pt-2">
+                                <span>Ref</span>
+                                <span>{slipSale.reference}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Time</span>
+                                <span>
+                                    {new Date(
+                                        slipSale.createdAt,
+                                    ).toLocaleString()}
+                                </span>
+                            </div>
+                            <div className="flex flex-col gap-1 border-t pt-2">
+                                {(slipSale.lineDetails ?? []).map(
+                                    (row, index) => (
+                                        <div
+                                            key={`${row.name}-${index}`}
+                                            className="flex justify-between gap-2"
+                                        >
+                                            <span>
+                                                {row.quantity} × {row.name}
+                                                {row.variantName !== 'Regular'
+                                                    ? ` (${row.variantName})`
+                                                    : ''}
+                                            </span>
+                                            <span className="tabular-nums">
+                                                <MoneyText
+                                                    amount={(
+                                                        Number(row.unitPrice) *
+                                                        row.quantity
+                                                    ).toFixed(2)}
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                            {slipSale.estimatedSubtotal !== undefined && (
+                                <div className="flex justify-between border-t pt-2 font-semibold">
+                                    <span>Est. subtotal</span>
+                                    <span className="tabular-nums">
+                                        <MoneyText
+                                            amount={slipSale.estimatedSubtotal}
+                                            currency={currency}
+                                        />
+                                    </span>
+                                </div>
+                            )}
+                            <p className="border-t pt-2 text-center text-muted-foreground">
+                                Not an official tax invoice. Official receipt
+                                issued on sync.
+                            </p>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setSlipSale(null)}
+                        >
+                            Close
+                        </Button>
+                        <Button onClick={() => window.print()}>
+                            <Printer data-icon="inline-start" />
+                            Print slip
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

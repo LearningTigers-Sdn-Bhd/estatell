@@ -33,6 +33,9 @@ class SyncOfflinePosOrdersRequest extends FormRequest
             'orders.*.tenders.*.tender_type' => ['required', 'string', Rule::in(['cash', 'duitnow_qr'])],
             'orders.*.tenders.*.amount' => ['nullable', 'regex:/^\d{1,10}(\.\d{1,2})?$/'],
             'orders.*.tenders.*.tendered_amount' => ['nullable', 'regex:/^\d{1,10}(\.\d{1,2})?$/'],
+            'approve' => ['sometimes', 'boolean'],
+            'approver_id' => ['nullable', 'integer'],
+            'approver_pin' => ['nullable', 'string', 'max:12'],
         ];
     }
 }
