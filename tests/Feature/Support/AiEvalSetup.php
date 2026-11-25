@@ -13,6 +13,10 @@ use App\Models\AmenityCategory;
 use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Models\PropertyAiScope;
+use App\Models\Rate;
+use App\Models\RatePlan;
+use App\Models\Room;
+use App\Models\RoomType;
 use App\Services\AiAssistant\AiHandoverMessage;
 use App\Services\AiAssistant\AiTurnCost;
 use App\Services\AiAssistant\AssistantInstructions;
@@ -49,18 +53,63 @@ function aiEvalSkipWithoutKey(): void
 }
 
 /**
- * The lobby: the resort with the RoomQuotes scope on and one free Sea View Room for 2026-11-02 to 2026-11-04, on Room
- * only (RM 100 a night) and With breakfast (RM 130 a night), both sold online, and a Staff rate (RM 80) that is not.
+ * The lobby: the resort with the RoomQuotes scope on and three room types sold online on Room only and With breakfast
+ * (a night), plus a Staff rate (RM 80) on the Sea View Room that is not sold online:
+ *
+ * - Garden Room, up to 2 adults: RM 85 / RM 110, free 2026-11-02 to 11-04 and 11-12 to 11-15
+ * - Sea View Room, up to 3 adults: RM 100 / RM 130, free on the same dates
+ * - Family Suite, up to 4 adults: RM 180 / RM 230, free 2026-11-02 to 11-04 only (no rates from 11-12: sold out)
  *
  * @return array{property: Property}
  */
 function aiEvalLobby(): array
 {
     $setup = conciergeQuoteSetup();
-    $setup['type']->forceFill(['name' => 'Sea View Room'])->save();
-    aiEvalResort($setup['property']);
+    $property = $setup['property'];
+    $plans = ['roomOnly' => $setup['roomOnly'], 'breakfast' => $setup['breakfast']];
+    $setup['type']->forceFill(['name' => 'Sea View Room', 'max_adults' => 3, 'position' => 2])->save();
+    aiEvalRates($setup['type'], $plans, ['2026-11-12', '2026-11-13', '2026-11-14'], '100.00', '130.00');
+
+    $garden = aiEvalRoomType($property, 'Garden Room', 2, 1, '102', $plans);
+    aiEvalRates($garden, $plans, ['2026-11-02', '2026-11-03', '2026-11-12', '2026-11-13', '2026-11-14'], '85.00', '110.00');
+
+    $suite = aiEvalRoomType($property, 'Family Suite', 4, 3, '103', $plans);
+    aiEvalRates($suite, $plans, ['2026-11-02', '2026-11-03'], '180.00', '230.00');
+
+    aiEvalResort($property);
 
     return ['property' => $setup['property']];
+}
+
+/**
+ * A room type with one room, sold on the given plans.
+ *
+ * @param  array<string, RatePlan>  $plans
+ */
+function aiEvalRoomType(Property $property, string $name, int $maxAdults, int $position, string $roomNumber, array $plans): RoomType
+{
+    $type = RoomType::factory()->for($property)->create(['name' => $name, 'max_adults' => $maxAdults, 'max_children' => 2, 'position' => $position]);
+    Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => $roomNumber]);
+
+    foreach ($plans as $plan) {
+        $type->ratePlans()->attach($plan);
+    }
+
+    return $type;
+}
+
+/**
+ * Nightly rates for a room type: Room only at `$roomOnly` and With breakfast at `$breakfast`.
+ *
+ * @param  array{roomOnly: RatePlan, breakfast: RatePlan}  $plans
+ * @param  list<string>  $dates
+ */
+function aiEvalRates(RoomType $type, array $plans, array $dates, string $roomOnly, string $breakfast): void
+{
+    foreach ($dates as $date) {
+        Rate::factory()->create(['rate_plan_id' => $plans['roomOnly']->id, 'room_type_id' => $type->id, 'date' => $date, 'amount' => $roomOnly]);
+        Rate::factory()->create(['rate_plan_id' => $plans['breakfast']->id, 'room_type_id' => $type->id, 'date' => $date, 'amount' => $breakfast]);
+    }
 }
 
 /**

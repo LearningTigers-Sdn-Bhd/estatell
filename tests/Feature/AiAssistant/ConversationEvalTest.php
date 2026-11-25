@@ -6,7 +6,8 @@ require_once __DIR__.'/../Support/AiEvalSetup.php';
 
 /*
  * Opt-in live eval: multi-turn edge cases, adapted from the wastays concierge eval
- * (spec/fixtures/ai_concierge/conversations). The only free room is a Sea View Room from 2 to 4 November 2026. Run with
+ * (spec/fixtures/ai_concierge/conversations). Rooms and rates are in aiEvalLobby(): Garden Room, Sea View Room and Family
+ * Suite, free 2 to 4 November 2026, and Garden and Sea View also 12 to 15 November. Run with
  * `php artisan test --group=ai-eval`. See docs/34-ai-assistant/05-eval.md.
  */
 
@@ -38,13 +39,13 @@ test('the assistant handles', function (string $case, string $group, string $pla
     'question mid booking then resume' => ['Interruptions', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices]],
         ['guest' => 'Wait, is parking free?', 'saysAny' => ['free']],
-        ['guest' => 'Ok, send me the link for the room only option.', 'tools' => [AiTool::SendQuoteLink], 'judge' => 'Sends a quote link for 2 to 4 November 2026 for 2 adults on Room only, without asking for the dates again.'],
+        ['guest' => 'Ok, send me the link for the Sea View Room, room only.', 'tools' => [AiTool::SendQuoteLink], 'judge' => 'Sends a quote link for the Sea View Room, Room only, 2 to 4 November 2026 for 2 adults, without asking for the dates again.'],
     ]],
     'two questions mid booking' => ['Interruptions', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices]],
         ['guest' => 'What time is breakfast?', 'saysAny' => ['6 am', '6am', '6:00', '06:00']],
         ['guest' => 'And is there a pool?', 'judge' => 'Says yes and gives the pool hours.'],
-        ['guest' => 'Ok, the one with breakfast please. Send the link.', 'tools' => [AiTool::SendQuoteLink], 'judge' => 'Sends a quote link for 2 to 4 November 2026 for 2 adults With breakfast.'],
+        ['guest' => 'Ok, the Sea View Room with breakfast please. Send the link.', 'tools' => [AiTool::SendQuoteLink], 'judge' => 'Sends a quote link for the Sea View Room With breakfast, 2 to 4 November 2026 for 2 adults.'],
     ]],
     'changed search searches again' => ['Interruptions', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices]],
@@ -52,10 +53,10 @@ test('the assistant handles', function (string $case, string $group, string $pla
     ]],
     'a bare number picks a row' => ['Interruptions', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices]],
-        ['guest' => '1', 'judge' => 'Treats "1" as the first option it listed: it sends that quote link or confirms that option. It does not say it does not understand.'],
+        ['guest' => '1', 'judge' => 'Treats "1" as the first option it listed: it sends that quote link, confirms that option, or asks which plan of that room. It does not say it does not understand.'],
     ]],
     'a second yes does not send twice' => ['Interruptions', 'lobby', [
-        ['guest' => 'Room from 2 to 4 November 2026 for 2 adults, with breakfast. Send me the link.', 'tools' => [AiTool::SendQuoteLink]],
+        ['guest' => 'Sea View Room from 2 to 4 November 2026 for 2 adults, with breakfast. Send me the link.', 'tools' => [AiTool::SendQuoteLink]],
         ['guest' => 'Is breakfast included in that one?', 'judge' => 'Says yes, the quote is With breakfast.'],
         ['guest' => 'Great, yes.', 'noTools' => [AiTool::SendQuoteLink], 'judge' => 'Does not send a second quote link. It may point to the link already sent.'],
     ]],
@@ -91,6 +92,38 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => 'Ok terima kasih', 'judge' => 'Replies in Malay.'],
     ]],
 
+    // Booking flow: gather the dates, the nights and the guests before a search, then book the room the guest picks.
+    'arrival date only asks for the rest' => ['Booking flow', 'lobby', [
+        ['guest' => 'I want to book on 12 November.', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Asks for the check-out date or the number of nights, and the number of guests (asking for adults is enough). Does not quote a price yet.'],
+    ]],
+    'booking step by step' => ['Booking flow', 'lobby', [
+        ['guest' => 'I want to book on 12 November.', 'noTools' => [AiTool::CheckRoomsAndPrices]],
+        ['guest' => '2 nights.', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Asks for the number of guests or adults. Keeps 12 November as the arrival and does not ask for the date again.'],
+        ['guest' => '2 adults.', 'tools' => [AiTool::CheckRoomsAndPrices], 'says' => ['Garden', 'Sea View'], 'judge' => 'Lists the Garden Room and the Sea View Room for 12 to 14 November 2026 with their prices. Does not offer the Family Suite.'],
+    ]],
+    'never assumes one night' => ['Booking flow', 'lobby', [
+        ['guest' => 'Room on 12 November for 2 adults.', 'noTools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Asks how many nights or the check-out date. Does not assume one night.'],
+    ]],
+    'full booking path' => ['Booking flow', 'lobby', [
+        ['guest' => "Hi, I'd like a room from 12 to 14 November.", 'noTools' => [AiTool::CheckRoomsAndPrices]],
+        ['guest' => '2 adults.', 'tools' => [AiTool::CheckRoomsAndPrices]],
+        ['guest' => 'The garden one.', 'noTools' => [AiTool::SendQuoteLink], 'judge' => 'Asks whether the guest wants Room only or With breakfast for the Garden Room. Does not send a link yet.'],
+        ['guest' => 'With breakfast.', 'tools' => [AiTool::SendQuoteLink], 'says' => ['Garden'], 'judge' => 'Says the booking link for the Garden Room With breakfast was sent or is ready. It need not repeat the dates or the guests.'],
+    ]],
+    'pick a room by name' => ['Booking flow', 'lobby', [
+        ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices]],
+        ['guest' => 'Sea view with breakfast please.', 'tools' => [AiTool::SendQuoteLink], 'says' => ['Sea View'], 'judge' => 'Sends the link for the Sea View Room With breakfast, not another room or plan.'],
+    ]],
+    'a big group gets the room that fits' => ['Booking flow', 'lobby', [
+        ['guest' => 'Room from 2 to 4 November 2026 for 4 adults.', 'tools' => [AiTool::CheckRoomsAndPrices], 'says' => ['Family Suite'], 'judge' => 'Offers only the Family Suite with its prices. Does not offer the Garden Room or the Sea View Room.'],
+    ]],
+    'a sold-out room type' => ['Booking flow', 'lobby', [
+        ['guest' => 'Family Suite from 12 to 14 November 2026 for 4 adults.', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Says no room for 4 adults is free on those dates. Offers other dates, a smaller room choice or staff help. Does not invent a free room or a price.'],
+    ]],
+    'compare room types' => ['Booking flow', 'lobby', [
+        ['guest' => 'What is the difference between the Garden Room and the Sea View Room?', 'judge' => 'Does not invent room features such as size, bed type, a balcony or what the room looks out on, beyond the room names and the guide. It may compare prices from a room search, say it does not know the details, or hand over.'],
+    ]],
+
     // Tone: sell the stay without pushing.
     'room options sell the stay' => ['Tone', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Lists the options with their prices and adds one short line on why the stay is worth it (for example breakfast, the sea view or the pool), using only facts from the guide. Friendly, not pushy.'],
@@ -109,6 +142,6 @@ test('the assistant handles', function (string $case, string $group, string $pla
     'question on the way out' => ['Ending', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices]],
         ['guest' => 'Thanks. Before I go, what time does breakfast start?', 'saysAny' => ['6 am', '6am', '6:00', '06:00']],
-        ['guest' => 'Ok, send me the link for the breakfast option.', 'tools' => [AiTool::SendQuoteLink]],
+        ['guest' => 'Ok, send me the link for the Sea View Room with breakfast.', 'tools' => [AiTool::SendQuoteLink]],
     ]],
 ]))->group('ai-eval')->repeat(3);
