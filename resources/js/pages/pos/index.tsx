@@ -252,9 +252,11 @@ export default function PosIndex({
                                             ) : null}
                                             {register.shiftNumber ? (
                                                 <Link
-                                                    className={`${buttonVariants({
-                                                        variant: 'outline',
-                                                    })} min-h-11`}
+                                                    className={`${buttonVariants(
+                                                        {
+                                                            variant: 'outline',
+                                                        },
+                                                    )} min-h-11`}
                                                     href={offlineShow.url(
                                                         undefined,
                                                         {

@@ -415,8 +415,8 @@ export function PosFloorBoard({
                 <div className="flex flex-col gap-2 rounded-lg border p-3">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium">
-                            Table {choosing.code} has{' '}
-                            {choosing.orderIds.length} open checks:
+                            Table {choosing.code} has {choosing.orderIds.length}{' '}
+                            open checks:
                         </span>
                         <Button
                             className="min-h-11"
@@ -427,12 +427,17 @@ export function PosFloorBoard({
                         </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {(choosing.checks ?? choosing.orderIds.map((id) => ({
-                            id,
-                            orderNumber: null,
-                            openedAt: choosing.openedAt ?? new Date().toISOString(),
-                            total: '0.00',
-                        }))).map((check) => (
+                        {(
+                            choosing.checks ??
+                            choosing.orderIds.map((id) => ({
+                                id,
+                                orderNumber: null,
+                                openedAt:
+                                    choosing.openedAt ??
+                                    new Date().toISOString(),
+                                total: '0.00',
+                            }))
+                        ).map((check) => (
                             <Link
                                 key={check.id}
                                 href={terminal.url(

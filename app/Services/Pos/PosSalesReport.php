@@ -102,8 +102,8 @@ class PosSalesReport
             ->get()
             ->map(fn (PosTimeClock $row): array => [
                 'id' => $row->id,
-                'staffName' => $row->user?->name ?? __('Staff'),
-                'outletName' => $row->outlet?->name ?? '',
+                'staffName' => $row->user->name,
+                'outletName' => $row->outlet->name,
                 'clockedInAt' => $row->clocked_in_at->toIso8601String(),
                 'clockedOutAt' => $row->clocked_out_at?->toIso8601String(),
                 'minutes' => $row->clocked_out_at === null ? null : (int) $row->clocked_in_at->diffInMinutes($row->clocked_out_at),
@@ -112,15 +112,15 @@ class PosSalesReport
             ->all();
 
         return [
-            'byOutlet' => $byOutlet,
-            'byCategory' => $byCategory,
+            'byOutlet' => array_values($byOutlet),
+            'byCategory' => array_values($byCategory),
             'audit' => [
                 'voidedOrders' => $orders()->where('pos_orders.status', PosOrderStatus::Voided->value)->count(),
                 'voidedLines' => $voidedLines,
                 'refunds' => $orders()->where('pos_orders.order_type', 'refund')->count(),
             ],
-            'redeemedMeals' => $redeemedMeals,
-            'timeClocks' => $timeClocks,
+            'redeemedMeals' => array_values($redeemedMeals),
+            'timeClocks' => array_values($timeClocks),
         ];
     }
 }

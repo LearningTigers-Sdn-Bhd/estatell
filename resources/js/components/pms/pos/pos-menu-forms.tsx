@@ -542,7 +542,9 @@ export function PosItemForm({
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <Field>
-                                <FieldLabel htmlFor={`variant-pricing-${index}`}>
+                                <FieldLabel
+                                    htmlFor={`variant-pricing-${index}`}
+                                >
                                     Pricing
                                 </FieldLabel>
                                 <EnumSelect
@@ -591,7 +593,9 @@ export function PosItemForm({
                                 />
                             </Field>
                             <Field>
-                                <FieldLabel htmlFor={`variant-barcode-${index}`}>
+                                <FieldLabel
+                                    htmlFor={`variant-barcode-${index}`}
+                                >
                                     Barcode
                                 </FieldLabel>
                                 <Input

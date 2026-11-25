@@ -563,7 +563,7 @@ export default function PosOffline({
                         </ul>
 
                         {needsApproval && queue.length > 0 && (
-                            <div className="flex flex-col gap-3 rounded-lg border border-warning-border bg-warning-bg/20 p-3">
+                            <div className="border-warning-border bg-warning-bg/20 flex flex-col gap-3 rounded-lg border p-3">
                                 <p className="text-sm font-medium text-warning-text">
                                     Manager approval required to override price
                                     drift or an expired snapshot.

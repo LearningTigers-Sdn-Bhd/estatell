@@ -431,7 +431,9 @@ export function AddTablesForm({
                 <FieldError>{form.errors.prefix}</FieldError>
             </Field>
             <Field className="w-24" data-invalid={!!form.errors.start}>
-                <FieldLabel htmlFor={`batch-start-${floor.id}`}>From</FieldLabel>
+                <FieldLabel htmlFor={`batch-start-${floor.id}`}>
+                    From
+                </FieldLabel>
                 <Input
                     id={`batch-start-${floor.id}`}
                     type="number"

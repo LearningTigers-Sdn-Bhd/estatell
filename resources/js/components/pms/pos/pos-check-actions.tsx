@@ -353,8 +353,7 @@ export function PosCheckActionsDialog({
                                         (line) => line.courseNumber === number,
                                     );
                                     const heldCount = courseLines.filter(
-                                        (line) =>
-                                            line.kitchenStatus === 'held',
+                                        (line) => line.kitchenStatus === 'held',
                                     ).length;
 
                                     return (

@@ -130,8 +130,8 @@ export default function PosMenuSettings({
                                         <TableRow>
                                             <TableHead>Item</TableHead>
                                             <TableHead>
-                                                Prices ({currency?.code ?? 'MYR'}
-                                                )
+                                                Prices (
+                                                {currency?.code ?? 'MYR'})
                                             </TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead className="w-40">

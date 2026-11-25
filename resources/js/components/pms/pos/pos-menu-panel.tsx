@@ -163,7 +163,8 @@ export function PosMenuPanel({
                             className={cn(
                                 'relative flex min-h-20 flex-col items-start justify-between gap-1.5 overflow-hidden rounded-lg border bg-card p-3 pl-4 text-left transition-colors',
                                 'hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50',
-                                soldOut && 'border-warning-border/70 opacity-80',
+                                soldOut &&
+                                    'border-warning-border/70 opacity-80',
                             )}
                         >
                             <span

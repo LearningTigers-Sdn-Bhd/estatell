@@ -98,13 +98,9 @@ export default function QrRoom({
                                         )
                                     }
                                 />
-                                <FieldError>
-                                    {unlockForm.errors.pin}
-                                </FieldError>
+                                <FieldError>{unlockForm.errors.pin}</FieldError>
                             </Field>
-                            <Field
-                                data-invalid={!!unlockForm.errors.last_name}
-                            >
+                            <Field data-invalid={!!unlockForm.errors.last_name}>
                                 <FieldLabel htmlFor="room-last">
                                     Last name
                                 </FieldLabel>

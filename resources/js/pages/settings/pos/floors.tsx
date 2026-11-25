@@ -190,7 +190,9 @@ export default function PosFloors({ outlets, outlet, floors, shapes }: Props) {
 
             {editingTable !== null && (
                 <TableFormSheet
-                    key={editingTable.table?.id ?? `new-${editingTable.floorId}`}
+                    key={
+                        editingTable.table?.id ?? `new-${editingTable.floorId}`
+                    }
                     floorId={editingTable.floorId}
                     table={editingTable.table}
                     shapes={shapes}

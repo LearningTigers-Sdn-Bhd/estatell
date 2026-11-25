@@ -228,10 +228,7 @@ export function QrMenu({
                 >
                     {sending && <Spinner data-icon="inline-start" />}
                     Send order ·{' '}
-                    <MoneyText
-                        amount={total.toFixed(2)}
-                        currency={currency}
-                    />
+                    <MoneyText amount={total.toFixed(2)} currency={currency} />
                 </Button>
             </div>
         </div>

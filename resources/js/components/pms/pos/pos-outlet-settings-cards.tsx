@@ -463,7 +463,9 @@ export function OutletPaymentMethodsCard({
                                     </TableCell>
                                     <TableCell>{row.tenderLabel}</TableCell>
                                     <TableCell>
-                                        {row.pulseDrawer ? 'Opens drawer' : 'No'}
+                                        {row.pulseDrawer
+                                            ? 'Opens drawer'
+                                            : 'No'}
                                     </TableCell>
                                     <TableCell>
                                         <Badge
@@ -497,9 +499,7 @@ export function OutletPaymentMethodsCard({
                 open={editing !== null}
                 onOpenChange={(value) => !value && setEditing(null)}
                 title={
-                    editing?.row
-                        ? 'Edit payment method'
-                        : 'Add payment method'
+                    editing?.row ? 'Edit payment method' : 'Add payment method'
                 }
                 description="Choose how this tender clears to your property payment method in the daily journal."
                 errors={form.errors}

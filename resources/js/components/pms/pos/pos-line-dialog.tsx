@@ -42,7 +42,10 @@ export function PosLineDialog({
     onAdd: (choice: LineChoice) => void;
 }) {
     return (
-        <Dialog open={item !== null} onOpenChange={(open) => !open && onClose()}>
+        <Dialog
+            open={item !== null}
+            onOpenChange={(open) => !open && onClose()}
+        >
             <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{item?.name ?? ''}</DialogTitle>

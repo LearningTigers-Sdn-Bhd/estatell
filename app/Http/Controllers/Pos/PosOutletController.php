@@ -42,7 +42,7 @@ class PosOutletController extends Controller
         $chargeItemId = $request->validated('default_charge_item_id');
         $posEnabled = $request->has('pos_enabled')
             ? $request->boolean('pos_enabled')
-            : ($outlet?->pos_enabled ?? false);
+            : ($outlet !== null && $outlet->pos_enabled);
 
         $result = $savePosOutlet($request->user(), $property, new PosOutletData(
             (string) $request->validated('name'),

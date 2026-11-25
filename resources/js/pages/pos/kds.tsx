@@ -185,7 +185,10 @@ export default function PosKds({
                 station.alertAfterMinutes,
             );
 
-            if (tone === 'destructive' && !alertedTickets.current.has(ticket.id)) {
+            if (
+                tone === 'destructive' &&
+                !alertedTickets.current.has(ticket.id)
+            ) {
                 alertedTickets.current.add(ticket.id);
                 shouldChime = true;
             }
@@ -548,7 +551,10 @@ export default function PosKds({
                             </div>
                             <div className="flex flex-col gap-1.5 border-t pt-2">
                                 {printTicket.lines.map((line) => (
-                                    <div key={line.id} className="flex flex-col">
+                                    <div
+                                        key={line.id}
+                                        className="flex flex-col"
+                                    >
                                         <span className="font-semibold">
                                             {line.quantity}× {line.name}
                                             {line.voided ? ' (VOID)' : ''}

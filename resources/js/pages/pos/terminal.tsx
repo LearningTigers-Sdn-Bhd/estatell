@@ -438,7 +438,7 @@ export default function PosTerminal(props: Props) {
             </header>
 
             {pendingQrOrders.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 border-b bg-warning-bg/30 px-4 py-2 text-sm">
+                <div className="bg-warning-bg/30 flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm">
                     <span className="font-medium text-warning-text">
                         Incoming QR orders ({pendingQrOrders.length}) — review
                         and send to kitchen:

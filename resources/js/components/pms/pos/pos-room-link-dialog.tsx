@@ -84,7 +84,10 @@ export function PosRoomLinkDialog({
                     setLoading(false);
                 })
                 .catch((err: unknown) => {
-                    if (err instanceof DOMException && err.name === 'AbortError') {
+                    if (
+                        err instanceof DOMException &&
+                        err.name === 'AbortError'
+                    ) {
                         return;
                     }
 

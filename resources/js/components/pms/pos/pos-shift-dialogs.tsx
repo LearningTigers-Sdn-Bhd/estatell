@@ -306,7 +306,10 @@ export function PosCloseShiftDialog({
                     <div>
                         <Link
                             href={offlineShow.url(undefined, {
-                                query: { outlet: outletId, register: registerId },
+                                query: {
+                                    outlet: outletId,
+                                    register: registerId,
+                                },
                             })}
                             className={buttonVariants({
                                 variant: 'outline',

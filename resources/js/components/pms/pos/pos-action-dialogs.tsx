@@ -145,7 +145,9 @@ export function PosDiscountDialog({
 }) {
     const standingLines = lines.filter(
         (line) =>
-            !line.isVoided && !line.isPackagingFee && !line.isEntitlementCovered,
+            !line.isVoided &&
+            !line.isPackagingFee &&
+            !line.isEntitlementCovered,
     );
     const form = useForm({
         line_id: '',

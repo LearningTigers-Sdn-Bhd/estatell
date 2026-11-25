@@ -428,7 +428,9 @@ export function PosTransferForm({
         >
             <h3 className="font-medium">Transfer out</h3>
             <Field data-invalid={!!form.errors.ingredient_id}>
-                <FieldLabel htmlFor="transfer-ingredient">Ingredient</FieldLabel>
+                <FieldLabel htmlFor="transfer-ingredient">
+                    Ingredient
+                </FieldLabel>
                 <EnumSelect
                     id="transfer-ingredient"
                     name="ingredient_id"
@@ -528,9 +530,7 @@ export function PosStocktakePanel({
     return (
         <div className="pos-print-sheet flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="font-medium">
-                    Closing count · {outletName}
-                </h3>
+                <h3 className="font-medium">Closing count · {outletName}</h3>
                 <div className="flex gap-2 print:hidden">
                     <Button variant="outline" onClick={() => window.print()}>
                         <Printer data-icon="inline-start" />

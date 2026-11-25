@@ -22,8 +22,7 @@ export function cashRoundingAdjustment(
     }
 
     const remainder = ((sen % step) + step) % step;
-    const roundUp =
-        mode === 'five_sen' ? remainder >= 3 : remainder >= 5;
+    const roundUp = mode === 'five_sen' ? remainder >= 3 : remainder >= 5;
     const roundedSen = roundUp ? sen + step - remainder : sen - remainder;
 
     return Math.round(roundedSen - sen) / 100;
