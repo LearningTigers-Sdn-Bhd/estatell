@@ -64,7 +64,7 @@ class SetUnitTransfer
 
         $chargeChanges = $existing === null || $existing->mode !== $data->mode || $existing->transfer_route_id !== $route->id;
 
-        if (! $chargeChanges && substr($existing->pickup_time, 0, 5) === substr($time, 0, 5) && $existing->flight_number === $flightNumber && $existing->note === $note) {
+        if (! $chargeChanges && substr($existing->pickup_time, 0, 5) === substr($time, 0, 5) && $existing->flight_number === $flightNumber && $existing->note === $note && $existing->bags === $data->bags) {
             return UnitTransferResult::done();
         }
 
@@ -77,6 +77,7 @@ class SetUnitTransfer
                 'pickup_time' => $time,
                 'flight_number' => $flightNumber,
                 'note' => $note,
+                'bags' => $data->bags,
             ],
         );
 

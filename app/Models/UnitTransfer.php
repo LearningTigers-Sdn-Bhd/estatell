@@ -24,13 +24,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $transfer_route_id
  * @property string $pickup_time `H:i:s`
  * @property string|null $flight_number
+ * @property int|null $bags
  * @property string|null $note
  * @property int|null $transfer_vehicle_id
  * @property int|null $transfer_driver_id
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'reservation_unit_id', 'direction', 'mode', 'transfer_route_id', 'pickup_time', 'flight_number', 'note', 'transfer_vehicle_id', 'transfer_driver_id'])]
+#[Fillable(['property_id', 'reservation_unit_id', 'direction', 'mode', 'transfer_route_id', 'pickup_time', 'flight_number', 'bags', 'note', 'transfer_vehicle_id', 'transfer_driver_id'])]
 class UnitTransfer extends Model
 {
     /** @use HasFactory<UnitTransferFactory> */

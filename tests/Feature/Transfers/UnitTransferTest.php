@@ -230,3 +230,15 @@ test('assigning refuses a vehicle of another property and a transfer of another 
     $otherTransfer = UnitTransfer::factory()->create(['property_id' => $other['property']->id, 'reservation_unit_id' => $other['unit']->id, 'transfer_route_id' => $other['in']->id]);
     $this->put(route('transfers.assign', [$fixture['property']->code, $otherTransfer->id]), [])->assertNotFound();
 });
+
+test('the bags are saved with the transfer, and a change of bags alone is saved and logged', function () {
+    $fixture = transferFixture();
+    $this->actingAs($fixture['owner']);
+
+    $this->put(transferSetUrl($fixture, $fixture['unit'], 'in'), transferBody($fixture, overrides: ['bags' => '3']))->assertSessionHasNoErrors();
+    $this->put(transferSetUrl($fixture, $fixture['unit'], 'in'), transferBody($fixture, overrides: ['bags' => '4']))->assertSessionHasNoErrors();
+    $this->put(transferSetUrl($fixture, $fixture['unit'], 'in'), transferBody($fixture, overrides: ['bags' => '100']))->assertSessionHasErrors('bags');
+
+    expect(UnitTransfer::query()->sole()->bags)->toBe(4)
+        ->and(Activity::query()->where('event', 'reservation.transfer_set')->count())->toBe(2);
+});

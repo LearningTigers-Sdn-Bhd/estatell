@@ -19,5 +19,6 @@ class UnitTransferInputData extends Data
         public string $pickupTime,
         public ?string $flightNumber = null,
         public ?string $note = null,
+        public ?int $bags = null,
     ) {}
 }

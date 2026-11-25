@@ -32,7 +32,7 @@ transfer_drivers   id, property_id, name ≤ 60, phone ≤ 30 null, subcontracto
 unit_transfers     id, property_id, reservation_unit_id → reservation_units (cascade),
                    direction (TransferDirection), mode (TransferMode),
                    transfer_route_id → transfer_routes (restrict), pickup_time time,
-                   flight_number ≤ 10 null, note ≤ 200 null,
+                   flight_number ≤ 10 null, bags 0–99 null (added 2026-11-25), note ≤ 200 null,
                    transfer_vehicle_id null → transfer_vehicles (restrict),
                    transfer_driver_id null → transfer_drivers (restrict), timestamps
                    UNIQUE (reservation_unit_id, direction)
@@ -78,7 +78,7 @@ Double · 104    Transfer in    Shared           Sandakan Airport → Hotel 10:3
 Double · 104    Transfer out   Not set                                                                         ✎
 ```
 
-- **✎** opens a Dialog: Type, Route (available routes of that direction), Pick-up time, Flight number and Note. Each Type option shows the price it adds on the picked route. Type **No transfer** removes the transfer (`ClearUnitTransfer`).
+- **✎** opens a Dialog: Type, Route (available routes of that direction), Pick-up time, Flight number, Bags and Note. Each Type option shows the price it adds on the picked route. Type **No transfer** removes the transfer (`ClearUnitTransfer`).
 - A cancelled or no-show room shows only the transfers it kept.
 - The flight number is stored in capitals and takes letters, digits and spaces ("AK 6231").
 - Edit shows only with `reservations.manage` while the unit is open: In while Confirmed; Out while Confirmed or CheckedIn (`TransferAccess`).
@@ -129,7 +129,8 @@ The run sheet for the drivers, as a file. It is **not a page**: staff export it 
 
 - **Rows** are the run sheet's transfers (`TransferRunSheet::query()`), in the same order: pick-up time, then id. The browser sends only the date (and row keys); the server reads the rows again.
 - **Sections:** one per vehicle and driver, in the order of their first pick-up, titled "Van 1 · SA 1234 B · Ali" ("Vehicle not set" or "Driver not set" for a missing half). Transfers with neither set come last in **Vehicle and driver not set** (warning tone). Each subtotal reads "2 transfers · 7 pax". The PDF prints each section as its own table; the spreadsheet is flat.
-- The total row sums adults, children and pax.
+- The total row sums adults, children, pax and bags.
+- **Emergency phones** (added 2026-11-25, Tanini's "emergency contact"): the PDF prints "In an emergency, call: Duty manager +60 12 111 2222 · Emergency 999" under the title, from the duty manager and emergency phones in the hotel information settings (`HasNote`). Nothing prints when neither is set. No guest emergency contact is stored.
 - **Guests:** Lead guest and Phone are the unit's primary guest, else its first guest, else the booker (the Boat manifest rule). They are empty for a user without `guests.view`, as on the run sheet.
 
 | Column          | Key           | Default visible | Content                                                                |
@@ -144,6 +145,7 @@ The run sheet for the drivers, as a file. It is **not a page**: staff export it 
 | Adults          | `adults`      | No              |                                                                        |
 | Children        | `children`    | No              |                                                                        |
 | Pax             | `total`       | Yes             | Adults + children                                                      |
+| Bags            | `bags`        | Yes             | The bags set on the transfer, empty when not set                       |
 | Flight          | `flight`      | Yes             | The flight number                                                      |
 | Type            | `mode`        | Yes             | Shared, Private vehicle, In package                                    |
 | Vehicle         | `vehicle`     | Yes             | "Van 1 · SA 1234 B"                                                    |

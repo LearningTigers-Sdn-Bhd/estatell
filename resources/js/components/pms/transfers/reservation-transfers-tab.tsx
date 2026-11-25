@@ -100,6 +100,7 @@ function TransferForm({
                 : String(row.routeId),
         pickup_time: row.pickupTime ?? '',
         flight_number: row.flightNumber ?? '',
+        bags: row.bags === null ? '' : String(row.bags),
         note: row.note ?? '',
     });
     const route = directionRoutes.find(
@@ -227,6 +228,24 @@ function TransferForm({
                                 aria-invalid={!!form.errors.flight_number}
                             />
                             <FieldError>{form.errors.flight_number}</FieldError>
+                        </Field>
+                        <Field data-invalid={!!form.errors.bags}>
+                            <FieldLabel htmlFor="transfer-bags">
+                                Bags (optional)
+                            </FieldLabel>
+                            <Input
+                                id="transfer-bags"
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={99}
+                                value={form.data.bags}
+                                onChange={(event) =>
+                                    form.setData('bags', event.target.value)
+                                }
+                                aria-invalid={!!form.errors.bags}
+                            />
+                            <FieldError>{form.errors.bags}</FieldError>
                         </Field>
                     </div>
                     <Field data-invalid={!!form.errors.note}>

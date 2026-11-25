@@ -54,6 +54,7 @@ Plan: `docs/estatell/tanini/2026-11-18-tanini-system-requirements-plan.md` (outs
 - [ ] `feat(transfers): transfers on the booking form and the company portal` — set a room's transfers while booking. Needs: the item above.
 - [x] `feat(transfers): export the transfer manifest` — a PDF, CSV and Excel of the run sheet for drivers, like the boat manifest: `ReportKey::TransferManifest` (no report page), `TransferManifestReport` (one section per vehicle and driver, Vehicle and driver not set last), `transfers.pdf` and `transfers.spreadsheet` under `reservations.view`, and a Columns Sheet on the run sheet.
 - [x] `feat(transfers): put transfers on van runs and add the Vans board` — Tanini 5.3 and 5.5: tick transfers and **Put on a van** (`AssignTransferRun`, `transfers.run`) with one vehicle, driver and optional pick-up time; the run sheet's **Vans** view with each van's runs, pax against seats and overlapping runs. Docs: [Vans board](35-transfers/01-land-transfers.md#vans-board). Tests: `tests/Feature/Transfers/TransferRunTest.php`, `resources/js/lib/transfer-runs.test.ts`.
+- [x] `feat(transfers): print bags and the lodge's emergency phones on the manifest` — `unit_transfers.bags` (0–99) on the Transfers tab, a Bags column with its total, and the duty manager and emergency phones under the PDF title (`HasNote`). Docs: [Transfer manifest](35-transfers/01-land-transfers.md#transfer-manifest).
 
 ## Next
 

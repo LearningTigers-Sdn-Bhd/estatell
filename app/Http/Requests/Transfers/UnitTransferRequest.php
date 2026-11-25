@@ -31,6 +31,7 @@ class UnitTransferRequest extends FormRequest
             'pickup_time' => ['required', 'date_format:H:i'],
             'flight_number' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9 ]+$/'],
             'note' => ['nullable', 'string', 'max:200'],
+            'bags' => ['nullable', 'integer', 'min:0', 'max:99'],
         ];
     }
 
@@ -51,6 +52,7 @@ class UnitTransferRequest extends FormRequest
             pickupTime: (string) $this->validated('pickup_time'),
             flightNumber: $this->validated('flight_number'),
             note: $this->validated('note'),
+            bags: $this->validated('bags') === null ? null : (int) $this->validated('bags'),
         );
     }
 }

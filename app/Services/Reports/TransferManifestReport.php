@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Auth;
  * and phones need `guests.view`, as on the run sheet.
  * See docs/35-transfers/01-land-transfers.md#transfer-manifest.
  */
-class TransferManifestReport implements HasSections, HasTotals, Report
+class TransferManifestReport implements HasNote, HasSections, HasTotals, Report
 {
     public function __construct(
         private TransferRunSheet $runSheet,
@@ -98,7 +98,22 @@ class TransferManifestReport implements HasSections, HasTotals, Report
     }
 
     /**
-     * The adults, children and total guests of the rows.
+     * Whom the driver calls: the lodge's duty manager and emergency phones from the hotel information settings, or null
+     * when neither is set. Printed under the title of the PDF.
+     */
+    public function note(Property $property, ReportFilters $filters): ?string
+    {
+        $settings = $property->loadMissing('settings')->settings;
+        $phones = array_filter([
+            $settings?->duty_manager_phone === null ? null : __('Duty manager :phone', ['phone' => $settings->duty_manager_phone]),
+            $settings?->emergency_phone === null ? null : __('Emergency :phone', ['phone' => $settings->emergency_phone]),
+        ]);
+
+        return $phones === [] ? null : __('In an emergency, call: :phones', ['phones' => implode(' · ', $phones)]);
+    }
+
+    /**
+     * The adults, children, total guests and bags of the rows.
      *
      * @param  list<TransferManifestRow>  $rows
      */
@@ -115,6 +130,7 @@ class TransferManifestReport implements HasSections, HasTotals, Report
             'adults' => array_sum(array_map(fn (TransferManifestRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (TransferManifestRow $row): int => $row->children, $rows)),
             'total' => array_sum(array_map(fn (TransferManifestRow $row): int => $row->total, $rows)),
+            'bags' => array_sum(array_map(fn (TransferManifestRow $row): int => $row->bags ?? 0, $rows)),
             'flight' => null,
             'mode' => null,
             'vehicle' => null,

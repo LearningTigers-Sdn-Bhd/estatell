@@ -163,3 +163,25 @@ test('the export query count does not grow with the number of transfers', functi
 
     expect($count())->toBe($few);
 });
+
+test('the manifest prints the bags with their total, and the lodge\'s duty and emergency phones under the title', function () {
+    $fixture = transferManifestFixture();
+    $fixture['afternoon']->update(['bags' => 3]);
+    $fixture['leaving']->update(['bags' => 2]);
+    $filters = new ReportFilters(from: '2026-10-20', to: '2026-10-20');
+    $report = ReportKey::TransferManifest;
+
+    expect($report->note($fixture['property'], $filters))->toBeNull();
+
+    $fixture['property']->settings->update(['duty_manager_phone' => '+60 12 111 2222', 'emergency_phone' => '999']);
+    $this->actingAs($fixture['owner']);
+    setPermissionsTeamId($fixture['property']->id);
+    $rows = $report->report()->rows($fixture['property']->fresh(), $filters);
+
+    expect($report->note($fixture['property']->fresh(), $filters))->toBe('In an emergency, call: Duty manager +60 12 111 2222 · Emergency 999')
+        ->and($report->totals($rows)->figures['bags'])->toBe(5)
+        ->and($rows[0]->cells()['bags'])->toBe('');
+
+    $csv = $this->post(transferManifestUrl($fixture, 'spreadsheet'), ['date' => '2026-10-20', 'format' => 'csv'])->assertOk();
+    expect(file_get_contents($csv->getFile()->getPathname()))->toContain('Bags');
+});

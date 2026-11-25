@@ -469,6 +469,7 @@ enum ReportKey: string
                 new ReportColumn('adults', __('Adults'), ColumnAlign::Right, false),
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, false),
                 new ReportColumn('total', __('Pax'), ColumnAlign::Right, true),
+                new ReportColumn('bags', __('Bags'), ColumnAlign::Right, true),
                 new ReportColumn('flight', __('Flight'), ColumnAlign::Left, true),
                 new ReportColumn('mode', __('Type'), ColumnAlign::Left, true),
                 new ReportColumn('vehicle', __('Vehicle'), ColumnAlign::Left, true),
