@@ -21,11 +21,12 @@ use Illuminate\Support\Facades\DB;
  */
 class VoidPosOrder
 {
-    public function __construct(private OpenPosBusinessDate $openPosBusinessDate) {}
+    public function __construct(private OpenPosBusinessDate $openPosBusinessDate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
     {
-        return DB::transaction(function () use ($actor, $property, $order, $reason, $reasonText, $returnStock, $approver): PosActionResult {
+        $registerId = null;
+        $saved = DB::transaction(function () use ($actor, $property, $order, $reason, $reasonText, $returnStock, $approver, &$registerId): PosActionResult {
             $businessDate = $this->openPosBusinessDate->lock($property);
 
             if (is_string($businessDate)) {
@@ -91,7 +92,15 @@ class VoidPosOrder
                 ->withProperties(['property_id' => $property->id, 'reason' => $reason->label, 'lines' => $lines->count(), 'approved_by_user_id' => $approver?->id, 'business_date' => $businessDate->date->toDateString()])
                 ->log('POS order voided');
 
+            $registerId = $order->shift?->pos_register_id;
+
             return PosActionResult::saved($order->refresh());
         });
+
+        if (! $saved->isRefused() && $registerId !== null) {
+            ($this->bumpCfdVersion)($registerId);
+        }
+
+        return $saved;
     }
 }

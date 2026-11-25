@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class MovePosOrderItems
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     /**
      * @param  list<int>  $lineIds
@@ -29,7 +29,20 @@ class MovePosOrderItems
     public function __invoke(User $actor, Property $property, PosOrder $source, PosOrder $target, array $lineIds): PosActionResult
     {
         try {
-            return DB::transaction(fn (): PosActionResult => $this->move($actor, $property, $source, $target, $lineIds));
+            $result = DB::transaction(fn (): PosActionResult => $this->move($actor, $property, $source, $target, $lineIds));
+
+            if (! $result->isRefused()) {
+                $registerIds = array_values(array_unique(array_filter([
+                    $source->shift?->pos_register_id,
+                    $target->shift?->pos_register_id,
+                ])));
+
+                foreach ($registerIds as $registerId) {
+                    ($this->bumpCfdVersion)((int) $registerId);
+                }
+            }
+
+            return $result;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

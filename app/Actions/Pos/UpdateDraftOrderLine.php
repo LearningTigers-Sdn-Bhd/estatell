@@ -18,12 +18,13 @@ use Illuminate\Support\Facades\DB;
  */
 class UpdateDraftOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line, ?int $quantity, ?string $note = null): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $line, $quantity, $note): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $line, $quantity, $note, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
                 $line = $order === null ? null : PosOrderLine::query()->where('pos_order_id', $order->id)->find($line->id);
 
@@ -71,8 +72,16 @@ class UpdateDraftOrderLine
                     ->withProperties(['property_id' => $property->id, 'pos_order_line_id' => $line->id, 'quantity' => $quantity])
                     ->log('POS line updated');
 
+                $registerId = $order->shift?->pos_register_id;
+
                 return PosActionResult::saved($line->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

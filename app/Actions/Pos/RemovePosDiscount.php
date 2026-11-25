@@ -16,12 +16,13 @@ use Illuminate\Support\Facades\DB;
  */
 class RemovePosDiscount
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, ?PosOrderLine $line = null, ?User $approver = null): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $line, $approver): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $line, $approver, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
 
                 if ($order === null) {
@@ -58,8 +59,16 @@ class RemovePosDiscount
                     ->withProperties(['property_id' => $property->id, 'pos_order_line_id' => $line?->id, 'approved_by_user_id' => $approver?->id])
                     ->log('POS discount removed');
 
+                $registerId = $order->shift?->pos_register_id;
+
                 return PosActionResult::saved($order->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

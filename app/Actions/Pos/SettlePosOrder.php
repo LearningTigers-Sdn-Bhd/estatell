@@ -20,6 +20,7 @@ use App\Models\PosOrderFolioLink;
 use App\Models\PosOrderLine;
 use App\Models\PosOrderPayment;
 use App\Models\PosOutletPaymentMethod;
+use App\Models\PosRegister;
 use App\Models\PosShift;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -72,6 +73,7 @@ class SettlePosOrder
         private CreateFolio $createFolio,
         private PostPrecalculatedCharge $postPrecalculatedCharge,
         private RedeemMeal $redeemMeal,
+        private BumpCfdVersion $bumpCfdVersion,
     ) {}
 
     /**
@@ -80,7 +82,17 @@ class SettlePosOrder
     public function __invoke(User $actor, Property $property, PosOrder $order, array $tenders, bool $guestSigned = false, bool $mealConfirmed = false, ?User $limitApprover = null): PosActionResult
     {
         try {
-            return DB::transaction(fn (): PosActionResult => $this->settle($actor, $property, $order, $tenders, $guestSigned, $mealConfirmed, $limitApprover));
+            $result = DB::transaction(fn (): PosActionResult => $this->settle($actor, $property, $order, $tenders, $guestSigned, $mealConfirmed, $limitApprover));
+
+            if (! $result->isRefused() && $result->model instanceof PosOrder) {
+                $registerId = $result->model->shift?->pos_register_id;
+
+                if ($registerId !== null) {
+                    ($this->bumpCfdVersion)($registerId);
+                }
+            }
+
+            return $result;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }
@@ -171,6 +183,12 @@ class SettlePosOrder
 
         if ($order->pos_table_id !== null) {
             ($this->revokeTableQrSessions)($property->id, $order->pos_table_id);
+        }
+
+        $registerId = $order->shift?->pos_register_id;
+
+        if ($registerId !== null) {
+            PosRegister::query()->whereKey($registerId)->update(['active_pos_order_id' => $order->id, 'active_order_updated_at' => now(), 'cfd_checkout_active' => false]);
         }
 
         activity()->performedOn($order)->causedBy($actor)->event('pos.order_settled')

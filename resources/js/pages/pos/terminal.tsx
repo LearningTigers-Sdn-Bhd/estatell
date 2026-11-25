@@ -3,6 +3,7 @@ import {
     ArrowLeftRight,
     Banknote,
     BedDouble,
+    Monitor,
     Percent,
     Plus,
     Printer,
@@ -12,7 +13,7 @@ import {
     Trash2,
     UserRound,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import {
@@ -54,6 +55,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { clock as clockRoute, index as posIndex, terminal } from '@/routes/pos';
+import { show as cfdShow, state as cfdState } from '@/routes/pos/cfd';
 import {
     changePayment,
     diningOption,
@@ -174,6 +176,70 @@ export default function PosTerminal(props: Props) {
     } | null>(null);
 
     const trading = shift !== null && shift.status === 'open';
+    const cfdChannel = useRef<BroadcastChannel | null>(null);
+
+    // The customer display of this register: tell it which check is on screen and whether the checkout sheet is open. A
+    // same-PC display also gets an instant BroadcastChannel poke; a separate tablet picks the change up on its poll.
+    useEffect(() => {
+        if (typeof BroadcastChannel === 'undefined' || register === null) {
+            return;
+        }
+
+        const channel = new BroadcastChannel(`pos-cfd-${register.id}`);
+        cfdChannel.current = channel;
+
+        return () => {
+            channel.close();
+            cfdChannel.current = null;
+        };
+    }, [register]);
+
+    function syncCustomerDisplay(
+        orderId: number | null,
+        checkoutActive: boolean,
+    ) {
+        if (register === null) {
+            return;
+        }
+
+        const token = document.cookie
+            .split('; ')
+            .find((cookie) => cookie.startsWith('XSRF-TOKEN='))
+            ?.slice('XSRF-TOKEN='.length);
+
+        void fetch(cfdState.url({ register: register.id }), {
+            method: 'POST',
+            credentials: 'same-origin',
+            keepalive: true,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {}),
+            },
+            body: JSON.stringify({
+                order_id: orderId,
+                checkout_active: checkoutActive,
+            }),
+        })
+            .then(() => {
+                cfdChannel.current?.postMessage({ orderId, checkoutActive });
+            })
+            .catch(() => undefined);
+    }
+
+    const activeOrderId = order?.id ?? null;
+    const cfdSignature = `${order?.id ?? 'none'}|${order?.lines.length ?? 0}|${order?.grandTotal ?? ''}|${order?.discountTotal ?? ''}|${order?.diningOptionId ?? ''}|${receipt?.id ?? ''}`;
+
+    useEffect(() => {
+        if (activeOrderId !== null) {
+            syncCustomerDisplay(activeOrderId, paying);
+        }
+    }, [activeOrderId, paying]);
+
+    useEffect(() => {
+        cfdChannel.current?.postMessage({ signature: cfdSignature });
+    }, [cfdSignature]);
     const hasDraft =
         order?.lines.some((row) => row.isDraft && !row.isVoided) ?? false;
     const hasSent =
@@ -388,6 +454,18 @@ export default function PosTerminal(props: Props) {
                     )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                        href={cfdShow.url({ register: register.id })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonVariants({
+                            variant: 'outline',
+                            className: 'min-h-11',
+                        })}
+                    >
+                        <Monitor data-icon="inline-start" />
+                        Customer display
+                    </Link>
                     {clock.required && (
                         <Button
                             variant={clock.clockedIn ? 'secondary' : 'outline'}
