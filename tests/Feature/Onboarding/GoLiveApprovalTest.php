@@ -263,7 +263,7 @@ test('the admin sidebar counts the properties waiting for approval', function ()
 
     $this->actingAs(approvalAdmin())
         ->get(route('admin.properties.index'))
-        ->assertInertia(fn (Assert $page) => $page->where('adminNavigation.1.badge', 2));
+        ->assertInertia(fn (Assert $page) => $page->where('adminNavigation.1.items.0.badge', 2));
 });
 
 test('support two factor is required to approve or send back', function () {

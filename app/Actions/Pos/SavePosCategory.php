@@ -3,6 +3,7 @@
 namespace App\Actions\Pos;
 
 use App\Data\Pos\PosCategoryInputData;
+use App\Enums\TransactionKind;
 use App\Models\PosCategory;
 use App\Models\Property;
 use App\Models\TransactionCode;
@@ -23,7 +24,7 @@ class SavePosCategory
                 return PosActionResult::refused('category_invalid');
             }
 
-            if (! TransactionCode::query()->where('property_id', $property->id)->whereKey($data->transactionCodeId)->exists()) {
+            if (! TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge->value)->whereKey($data->transactionCodeId)->exists()) {
                 return PosActionResult::refused('transaction_code_invalid');
             }
 

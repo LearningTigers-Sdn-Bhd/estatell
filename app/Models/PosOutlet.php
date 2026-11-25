@@ -48,6 +48,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $allow_anonymous_qr
  * @property bool $allow_qr_customer_remark
  * @property bool $qr_ignore_stock
+ * @property string|null $cfd_welcome_message Optional message on the customer-facing display when idle.
+ * @property string|null $cfd_duitnow_qr_path Static DuitNow QR image path on the public media disk.
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
@@ -57,7 +59,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'operation_mode', 'close_sales_time', 'sst_registration_number', 'rounding_mode', 'rounding_policy', 'room_charge_limit',
     'require_room_charge_signature', 'require_meal_redemption_confirmation', 'require_reprint_pin', 'require_dual_control',
     'print_receipt_after_payment', 'print_drawer_slip', 'require_clock_in', 'dynamic_qr_single_use', 'dynamic_qr_ttl_minutes',
-    'allow_anonymous_qr', 'allow_qr_customer_remark', 'qr_ignore_stock',
+    'allow_anonymous_qr', 'allow_qr_customer_remark', 'qr_ignore_stock', 'cfd_welcome_message',
 ])]
 class PosOutlet extends Model
 {

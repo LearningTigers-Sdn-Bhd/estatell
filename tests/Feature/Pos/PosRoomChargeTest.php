@@ -150,10 +150,10 @@ it('allows a stay checking out on the day, and refuses one that left earlier or 
     $late = posNewOrder($s);
     posAddLine($s, $late, $s['mocha']);
     $s['unit']->forceFill(['departure_date' => '2026-10-13'])->save();
-    expect(posSettleRoom($s, $late, [posRoomTender($s, '16.24')])->refusal)->toBe('folio_not_postable');
+    expect(posSettleRoom($s, $late, [posRoomTender($s, '16.24')])->refusal)->toBe('unit_not_postable');
 
     $s['unit']->forceFill(['status' => UnitStatus::Confirmed, 'checked_in_at' => null, 'checked_out_at' => null, 'arrival_date' => '2026-10-12', 'departure_date' => '2026-10-16'])->save();
-    expect(posSettleRoom($s, $late, [posRoomTender($s, '16.24')])->refusal)->toBe('folio_not_postable');
+    expect(posSettleRoom($s, $late, [posRoomTender($s, '16.24')])->refusal)->toBe('unit_not_postable');
 });
 
 it('refuses a room blocked for room charges and rolls everything back', function () {
@@ -180,7 +180,7 @@ it('refuses a closed folio', function () {
     $order = posNewOrder($s);
     posAddLine($s, $order, $s['mocha']);
 
-    expect(posSettleRoom($s, $order, [posRoomTender($s, '16.24')])->refusal)->toBe('folio_not_postable')
+    expect(posSettleRoom($s, $order, [posRoomTender($s, '16.24')])->refusal)->toBe('folio_not_open')
         ->and($order->fresh()->status)->toBe(PosOrderStatus::Open);
 });
 

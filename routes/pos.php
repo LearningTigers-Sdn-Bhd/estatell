@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Pos\MealCheckInController;
 use App\Http\Controllers\Pos\PosApiClientController;
+use App\Http\Controllers\Pos\PosCfdController;
 use App\Http\Controllers\Pos\PosClockController;
 use App\Http\Controllers\Pos\PosDiningOptionController;
 use App\Http\Controllers\Pos\PosFloorController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Pos\PosStaffSettingsController;
 use App\Http\Controllers\Pos\PosTableQrController;
 use App\Http\Controllers\Pos\PosTerminalDeviceController;
 use App\Http\Controllers\Pos\PosTerminalModeController;
+use App\Http\Middleware\KeepInertiaFlash;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -103,6 +105,10 @@ Route::middleware('pos')->group(function () {
                     Route::post('change-payment', [PosOrderController::class, 'changePayment'])->name('change-payment');
                 });
 
+                Route::get('cfd/{register}', [PosCfdController::class, 'show'])->whereNumber('register')->middleware(KeepInertiaFlash::class)->name('cfd.show');
+                Route::get('cfd/{register}/version', [PosCfdController::class, 'version'])->whereNumber('register')->name('cfd.version');
+                Route::post('cfd/{register}/state', [PosCfdController::class, 'state'])->whereNumber('register')->name('cfd.state');
+
                 Route::post('tables/{table}/qr', [PosTableQrController::class, 'issue'])->whereNumber('table')->name('tables.qr');
                 Route::get('offline', [PosOfflineController::class, 'show'])->name('offline.show');
                 Route::get('offline/snapshot', [PosOfflineController::class, 'snapshot'])->name('offline.snapshot');
@@ -153,11 +159,14 @@ Route::middleware('pos')->group(function () {
         Route::post('devices', [PosTerminalDeviceController::class, 'store'])->name('devices.store');
         Route::post('devices/{device}/revoke', [PosTerminalDeviceController::class, 'revoke'])->whereNumber('device')->name('devices.revoke');
         Route::post('staff-pins/{user}/revoke', [PosStaffPinController::class, 'revoke'])->whereNumber('user')->name('staff-pins.revoke');
+        Route::post('staff-pins/{user}/invite', [PosStaffPinController::class, 'invite'])->whereNumber('user')->middleware('throttle:10,1')->name('staff-pins.invite');
         Route::get('staff-pins', [PosStaffSettingsController::class, 'index'])->name('staff-pins.index');
         Route::post('void-reasons', [PosStaffSettingsController::class, 'storeVoidReason'])->name('void-reasons.store');
         Route::put('void-reasons/{reason}', [PosStaffSettingsController::class, 'updateVoidReason'])->whereNumber('reason')->name('void-reasons.update');
         Route::get('outlets', [PosOutletSettingsController::class, 'index'])->name('outlets.index');
         Route::put('outlets/{outlet}', [PosOutletSettingsController::class, 'update'])->whereNumber('outlet')->name('outlets.update');
+        Route::post('outlets/{outlet}/cfd-qr', [PosOutletSettingsController::class, 'storeCfdQr'])->whereNumber('outlet')->name('outlets.cfd-qr.store');
+        Route::delete('outlets/{outlet}/cfd-qr', [PosOutletSettingsController::class, 'destroyCfdQr'])->whereNumber('outlet')->name('outlets.cfd-qr.destroy');
         Route::post('outlets/{outlet}/registers', [PosOutletSettingsController::class, 'storeRegister'])->whereNumber('outlet')->name('registers.store');
         Route::put('outlets/{outlet}/registers/{register}', [PosOutletSettingsController::class, 'updateRegister'])->whereNumber(['outlet', 'register'])->name('registers.update');
         Route::post('outlets/{outlet}/payment-methods', [PosOutletSettingsController::class, 'storePaymentMethod'])->whereNumber('outlet')->name('payment-methods.store');

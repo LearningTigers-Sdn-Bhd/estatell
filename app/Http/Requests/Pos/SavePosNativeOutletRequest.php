@@ -43,6 +43,7 @@ class SavePosNativeOutletRequest extends FormRequest
             'require_clock_in' => ['required', 'boolean'],
             'allow_anonymous_qr' => ['sometimes', 'boolean'],
             'allow_qr_customer_remark' => ['sometimes', 'boolean'],
+            'cfd_welcome_message' => ['nullable', 'string', 'max:160'],
         ];
     }
 }

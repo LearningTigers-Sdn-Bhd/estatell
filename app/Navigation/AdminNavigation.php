@@ -2,6 +2,7 @@
 
 namespace App\Navigation;
 
+use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\ContactEnquiryStatus;
 use App\Enums\PropertyStatus;
@@ -9,30 +10,41 @@ use App\Models\ContactEnquiry;
 use App\Models\Property;
 
 /**
- * Sidebar items for the platform admin layout.
+ * Sidebar groups for the platform admin layout. Horizon (external) shows in the sidebar footer.
+ * See docs/design-system/09-app-shell.md.
  */
 class AdminNavigation
 {
     /**
-     * @return list<NavItemData>
+     * @return list<NavGroupData>
      */
-    public function items(): array
+    public function groups(): array
     {
         return [
-            new NavItemData(title: __('Dashboard'), href: route('admin.dashboard', absolute: false), icon: 'layout-grid'),
-            new NavItemData(title: __('Properties'), href: route('admin.properties.index', absolute: false), icon: 'building', badge: $this->waitingForApproval()),
-            new NavItemData(title: __('Partners'), href: route('admin.partners.index', absolute: false), icon: 'handshake'),
-            new NavItemData(title: __('Commissions'), href: route('admin.commissions.index', absolute: false), icon: 'percent', active: request()->routeIs('admin.commissions.*')),
-            new NavItemData(title: __('Settings'), href: route('admin.settings.edit', absolute: false), icon: 'settings', active: request()->routeIs('admin.settings.*')),
-            new NavItemData(title: __('Channels'), href: route('admin.channels.index', absolute: false), icon: 'waypoints', active: request()->routeIs('admin.channels.*')),
-            new NavItemData(title: __('Webhooks'), href: route('admin.webhooks.index', absolute: false), icon: 'webhook', active: request()->routeIs('admin.webhooks.*')),
-            new NavItemData(title: __('Amenities'), href: route('admin.amenities.index', absolute: false), icon: 'sparkles', active: request()->routeIs('admin.amenities.*')),
-            new NavItemData(title: __('Nearby places'), href: route('admin.nearby-places.index', absolute: false), icon: 'map-pin', active: request()->routeIs('admin.nearby-places.*')),
-            new NavItemData(title: __('Website templates'), href: route('admin.site-templates.index', absolute: false), icon: 'layout-template', active: request()->routeIs('admin.site-templates.*')),
-            new NavItemData(title: __('Enquiries'), href: route('admin.enquiries.index', absolute: false), icon: 'inbox', badge: $this->newEnquiries(), active: request()->routeIs('admin.enquiries.*')),
-            new NavItemData(title: __('Mail log'), href: route('admin.mail-events.index', absolute: false), icon: 'mail', active: request()->routeIs('admin.mail-events.*')),
-            new NavItemData(title: __('Sign-in log'), href: route('admin.sign-in-events.index', absolute: false), icon: 'shield', active: request()->routeIs('admin.sign-in-events.*')),
-            new NavItemData(title: __('Horizon'), href: route('horizon.index', absolute: false), icon: 'activity', external: true),
+            new NavGroupData(label: __('Overview'), items: [
+                new NavItemData(title: __('Dashboard'), href: route('admin.dashboard', absolute: false), icon: 'layout-grid'),
+            ]),
+            new NavGroupData(label: __('Business'), items: [
+                new NavItemData(title: __('Properties'), href: route('admin.properties.index', absolute: false), icon: 'building', badge: $this->waitingForApproval()),
+                new NavItemData(title: __('Partners'), href: route('admin.partners.index', absolute: false), icon: 'handshake'),
+                new NavItemData(title: __('Commissions'), href: route('admin.commissions.index', absolute: false), icon: 'percent', active: request()->routeIs('admin.commissions.*')),
+                new NavItemData(title: __('Enquiries'), href: route('admin.enquiries.index', absolute: false), icon: 'inbox', badge: $this->newEnquiries(), active: request()->routeIs('admin.enquiries.*')),
+            ]),
+            new NavGroupData(label: __('Content'), items: [
+                new NavItemData(title: __('Amenities'), href: route('admin.amenities.index', absolute: false), icon: 'sparkles', active: request()->routeIs('admin.amenities.*')),
+                new NavItemData(title: __('Nearby places'), href: route('admin.nearby-places.index', absolute: false), icon: 'map-pin', active: request()->routeIs('admin.nearby-places.*')),
+                new NavItemData(title: __('Website templates'), href: route('admin.site-templates.index', absolute: false), icon: 'layout-template', active: request()->routeIs('admin.site-templates.*')),
+            ]),
+            new NavGroupData(label: __('Integrations'), items: [
+                new NavItemData(title: __('Channels'), href: route('admin.channels.index', absolute: false), icon: 'waypoints', active: request()->routeIs('admin.channels.*')),
+                new NavItemData(title: __('Webhooks'), href: route('admin.webhooks.index', absolute: false), icon: 'webhook', active: request()->routeIs('admin.webhooks.*')),
+            ]),
+            new NavGroupData(label: __('System'), items: [
+                new NavItemData(title: __('Settings'), href: route('admin.settings.edit', absolute: false), icon: 'settings', active: request()->routeIs('admin.settings.*')),
+                new NavItemData(title: __('Mail log'), href: route('admin.mail-events.index', absolute: false), icon: 'mail', active: request()->routeIs('admin.mail-events.*')),
+                new NavItemData(title: __('Sign-in log'), href: route('admin.sign-in-events.index', absolute: false), icon: 'shield', active: request()->routeIs('admin.sign-in-events.*')),
+                new NavItemData(title: __('Horizon'), href: route('horizon.index', absolute: false), icon: 'activity', external: true),
+            ]),
         ];
     }
 

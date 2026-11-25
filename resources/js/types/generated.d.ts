@@ -3136,6 +3136,34 @@ roomCount: number,
 message: string,
 status: App.Data.Shared.BadgeData,
 };
+export type AdminDashboardMonthData = {
+month: string,
+signUps: number,
+goLives: number,
+bookingEngine: string,
+channelManager: string,
+};
+export type AdminDashboardSummaryData = {
+live: number,
+onboarding: number,
+pendingApproval: number,
+suspended: number,
+commissions: App.Data.Commissions.CommissionTotalsData,
+months: App.Data.Platform.AdminDashboardMonthData[],
+recent: App.Data.Platform.AdminRecentPropertyData[],
+};
+export type AdminDashboardTodoData = {
+total: number,
+rows: App.Data.Platform.AdminDashboardTodoRowData[],
+};
+export type AdminDashboardTodoRowData = {
+key: string,
+count: number,
+label: string,
+detail: string | null,
+href: string,
+tone: App.Enums.Tone,
+};
 export type AdminGoLiveReviewData = {
 code: string,
 name: string,
@@ -3255,6 +3283,13 @@ verified: boolean,
 deactivated: boolean,
 canSendSetupLink: boolean,
 createdAt: string,
+};
+export type AdminRecentPropertyData = {
+code: string,
+name: string,
+status: App.Data.Shared.BadgeData,
+event: string,
+at: string,
 };
 export type AdminSignInEventRowData = {
 id: number,

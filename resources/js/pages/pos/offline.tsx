@@ -52,7 +52,15 @@ type Props = {
     staff: PosStaff[];
 };
 
-type Snapshot = { version: string; categories: SnapshotCategory[] };
+type SnapshotDiningOption = {
+    applyServiceCharge: boolean;
+    serviceChargeRate: string;
+};
+type Snapshot = {
+    version: string;
+    categories: SnapshotCategory[];
+    diningOptions?: SnapshotDiningOption[];
+};
 
 type SnapshotVariant = {
     id: number;
@@ -225,6 +233,23 @@ export default function PosOffline({
                 .toFixed(2),
         [pendingDetails],
     );
+
+    // The snapshot lists the default dining option first. Its service charge is only an estimate: the server prices the sale at sync.
+    const defaultOption = payload?.diningOptions?.[0];
+    const serviceChargeRate = defaultOption?.applyServiceCharge
+        ? Number(defaultOption.serviceChargeRate)
+        : 0;
+    const estimatedServiceCharge = (
+        Number(estimatedSubtotal) *
+        (serviceChargeRate / 100)
+    ).toFixed(2);
+    const estimatedTotal = (
+        Number(estimatedSubtotal) + Number(estimatedServiceCharge)
+    ).toFixed(2);
+    const estimatedChange =
+        tender === 'cash' && tendered.trim() !== ''
+            ? Number(tendered) - Number(estimatedTotal)
+            : null;
 
     const takeSale = () => {
         if (pending === null || payload === undefined || shiftId === null) {
@@ -449,6 +474,47 @@ export default function PosOffline({
                                         />
                                     </span>
                                 </div>
+                                {serviceChargeRate > 0 && (
+                                    <>
+                                        <div className="flex items-center justify-between">
+                                            <span>
+                                                Estimated service charge (
+                                                {serviceChargeRate}%)
+                                            </span>
+                                            <span className="tabular-nums">
+                                                <MoneyText
+                                                    amount={
+                                                        estimatedServiceCharge
+                                                    }
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between font-medium">
+                                            <span>Estimated total</span>
+                                            <span className="tabular-nums">
+                                                <MoneyText
+                                                    amount={estimatedTotal}
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+                                {estimatedChange !== null &&
+                                    estimatedChange > 0 && (
+                                        <div className="flex items-center justify-between">
+                                            <span>Estimated change</span>
+                                            <span className="tabular-nums">
+                                                <MoneyText
+                                                    amount={estimatedChange.toFixed(
+                                                        2,
+                                                    )}
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </div>
+                                    )}
                             </div>
 
                             <div className="flex gap-2">

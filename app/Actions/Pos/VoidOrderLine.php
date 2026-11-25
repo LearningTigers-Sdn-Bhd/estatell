@@ -25,12 +25,13 @@ use Illuminate\Support\Facades\DB;
  */
 class VoidOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate, private BumpKitchenVersion $bumpKitchenVersion, private PostRecipeStock $postRecipeStock) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpKitchenVersion $bumpKitchenVersion, private PostRecipeStock $postRecipeStock, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line, PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $line, $reason, $reasonText, $returnStock, $approver): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $line, $reason, $reasonText, $returnStock, $approver, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
                 $line = $order === null ? null : PosOrderLine::query()->where('pos_order_id', $order->id)->lockForUpdate()->find($line->id);
 
@@ -96,8 +97,16 @@ class VoidOrderLine
                     ->withProperties(['property_id' => $property->id, 'pos_order_line_id' => $line->id, 'item_name' => $line->item_name, 'quantity' => $line->quantity, 'reason' => $reason->label, 'approved_by_user_id' => $approver?->id, 'return_stock' => $fired && $return])
                     ->log('POS line voided');
 
+                $registerId = $order->shift?->pos_register_id;
+
                 return PosActionResult::saved($line->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

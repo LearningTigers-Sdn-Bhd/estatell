@@ -1,6 +1,6 @@
-import { useForm } from '@inertiajs/react';
-import { CreditCard, Plus, Store } from 'lucide-react';
-import { useState } from 'react';
+import { Form, router, useForm } from '@inertiajs/react';
+import { CreditCard, ImageOff, Plus, Store, Upload } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -21,6 +21,16 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -32,6 +42,10 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { update as updateOutlet } from '@/routes/settings/pos/outlets';
+import {
+    destroy as destroyCfdQr,
+    store as storeCfdQr,
+} from '@/routes/settings/pos/outlets/cfd-qr';
 import {
     store as storePaymentMethod,
     update as updatePaymentMethod,
@@ -63,6 +77,8 @@ export type OutletSettingsRecord = {
     requireClockIn: boolean;
     allowAnonymousQr: boolean;
     allowQrCustomerRemark: boolean;
+    cfdWelcomeMessage: string | null;
+    cfdDuitnowQrUrl: string | null;
 };
 
 export type OutletPaymentMethodRow = {
@@ -151,12 +167,15 @@ const SWITCHES = [
 export function OutletSettingsForm({
     outlet,
     codes,
+    chargeCodes,
     operationModes,
     roundingModes,
     roundingPolicies,
 }: {
     outlet: OutletSettingsRecord;
     codes: EnumOption[];
+    /** Room charges post the service charge and packaging codes on a guest folio, so only charge codes can be picked for them. */
+    chargeCodes: EnumOption[];
     operationModes: EnumOption[];
     roundingModes: EnumOption[];
     roundingPolicies: EnumOption[];
@@ -192,6 +211,7 @@ export function OutletSettingsForm({
         require_clock_in: outlet.requireClockIn,
         allow_anonymous_qr: outlet.allowAnonymousQr,
         allow_qr_customer_remark: outlet.allowQrCustomerRemark,
+        cfd_welcome_message: outlet.cfdWelcomeMessage ?? '',
     });
 
     return (
@@ -223,6 +243,8 @@ export function OutletSettingsForm({
                             sst_registration_number:
                                 data.sst_registration_number || null,
                             room_charge_limit: data.room_charge_limit || null,
+                            cfd_welcome_message:
+                                data.cfd_welcome_message || null,
                         }));
                         form.put(updateOutlet.url({ outlet: outlet.id }), {
                             preserveScroll: true,
@@ -239,7 +261,13 @@ export function OutletSettingsForm({
                                 <EnumSelect
                                     id={name}
                                     name={name}
-                                    options={codes}
+                                    options={
+                                        name ===
+                                            'service_charge_transaction_code_id' ||
+                                        name === 'packaging_transaction_code_id'
+                                            ? chargeCodes
+                                            : codes
+                                    }
                                     value={form.data[name]}
                                     onValueChange={(value) =>
                                         form.setData(name, value)
@@ -348,6 +376,30 @@ export function OutletSettingsForm({
                             </FieldError>
                         </Field>
                     </div>
+                    <Field data-invalid={!!form.errors.cfd_welcome_message}>
+                        <FieldLabel htmlFor="cfd-welcome">
+                            Customer display welcome message
+                        </FieldLabel>
+                        <Input
+                            id="cfd-welcome"
+                            maxLength={160}
+                            value={form.data.cfd_welcome_message}
+                            onChange={(event) =>
+                                form.setData(
+                                    'cfd_welcome_message',
+                                    event.target.value,
+                                )
+                            }
+                            aria-invalid={!!form.errors.cfd_welcome_message}
+                        />
+                        <FieldDescription>
+                            Shown on the guest-facing screen when no order is
+                            open.
+                        </FieldDescription>
+                        <FieldError>
+                            {form.errors.cfd_welcome_message}
+                        </FieldError>
+                    </Field>
                     <div className="flex flex-col gap-3">
                         {SWITCHES.map(([name, label]) => (
                             <Field key={name} orientation="horizontal">
@@ -362,6 +414,10 @@ export function OutletSettingsForm({
                             </Field>
                         ))}
                     </div>
+                    <CfdQrField
+                        outletId={outlet.id}
+                        qrUrl={outlet.cfdDuitnowQrUrl}
+                    />
                     <div>
                         <Button
                             type="submit"
@@ -377,6 +433,144 @@ export function OutletSettingsForm({
                 </form>
             </CardContent>
         </Card>
+    );
+}
+
+/**
+ * The outlet's static DuitNow QR, shown on the customer display at checkout. It uploads as soon as a file is picked and is
+ * not part of the settings Save.
+ */
+function CfdQrField({
+    outletId,
+    qrUrl,
+}: {
+    outletId: number;
+    qrUrl: string | null;
+}) {
+    const fileInput = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState<string>();
+    const [removeOpen, setRemoveOpen] = useState(false);
+
+    const upload = (file: File) => {
+        setError(undefined);
+        router.post(
+            storeCfdQr.url({ outlet: outletId }),
+            { qr: file },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onStart: () => setUploading(true),
+                onError: (errors) => setError(errors.qr),
+                onFinish: () => {
+                    setUploading(false);
+
+                    if (fileInput.current) {
+                        fileInput.current.value = '';
+                    }
+                },
+            },
+        );
+    };
+
+    return (
+        <Field>
+            <FieldLabel htmlFor="cfd-qr">
+                Customer display DuitNow QR
+            </FieldLabel>
+            <div className="flex flex-wrap items-center gap-4">
+                <div className="flex h-28 w-28 items-center justify-center rounded-md border bg-muted/40 p-2">
+                    {qrUrl ? (
+                        <img
+                            src={qrUrl}
+                            alt="Static DuitNow QR"
+                            className="max-h-full max-w-full object-contain"
+                        />
+                    ) : (
+                        <ImageOff className="size-5 text-muted-foreground" />
+                    )}
+                </div>
+                <input
+                    ref={fileInput}
+                    id="cfd-qr"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(event) => {
+                        const file = event.target.files?.[0];
+
+                        if (file) {
+                            upload(file);
+                        }
+                    }}
+                />
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploading}
+                    focusableWhenDisabled
+                    onClick={() => fileInput.current?.click()}
+                >
+                    {uploading ? (
+                        <Spinner data-icon="inline-start" />
+                    ) : (
+                        <Upload data-icon="inline-start" />
+                    )}
+                    {qrUrl ? 'Replace QR' : 'Upload QR'}
+                </Button>
+                {qrUrl && (
+                    <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
+                        <AlertDialogTrigger
+                            render={<Button type="button" variant="ghost" />}
+                        >
+                            Remove
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    Remove the DuitNow QR?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    The customer display stops showing a QR at
+                                    checkout. You can upload one again later.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <Form
+                                {...destroyCfdQr.form({
+                                    outlet: outletId,
+                                })}
+                                options={{ preserveScroll: true }}
+                                onSuccess={() => setRemoveOpen(false)}
+                            >
+                                {({ processing }) => (
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                            Cancel
+                                        </AlertDialogCancel>
+                                        <Button
+                                            type="submit"
+                                            variant="destructive"
+                                            disabled={processing}
+                                            focusableWhenDisabled
+                                        >
+                                            {processing && (
+                                                <Spinner data-icon="inline-start" />
+                                            )}
+                                            Remove QR
+                                        </Button>
+                                    </AlertDialogFooter>
+                                )}
+                            </Form>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            </div>
+            <FieldDescription>
+                PNG, JPEG or WebP, up to 1 MB. Shown beside the total at
+                checkout so guests can scan it from the counter screen.
+            </FieldDescription>
+            <FieldError>{error}</FieldError>
+        </Field>
     );
 }
 

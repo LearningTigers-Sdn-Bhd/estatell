@@ -20,7 +20,7 @@ class SettlePosOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tenders' => ['required', 'array', 'min:1', 'max:8'],
+            'tenders' => ['present', 'array', 'max:8'],
             'tenders.*.tender_type' => ['required', 'string', 'in:cash,card,e_wallet,duitnow_qr,payment_voucher,room_charge'],
             'tenders.*.amount' => ['required', 'decimal:0,2', 'min:0'],
             'tenders.*.payment_method_id' => ['nullable', 'integer'],

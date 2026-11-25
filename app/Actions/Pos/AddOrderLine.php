@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\DB;
  */
 class AddOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate, private PosMenuAvailability $availability) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private PosMenuAvailability $availability, private BumpCfdVersion $bumpCfdVersion) {}
 
     /**
      * A guest adding a line by QR has no staff actor, so `$actor` may be null and the log names no one.
@@ -46,7 +46,8 @@ class AddOrderLine
     public function __invoke(?User $actor, Property $property, PosOrder $order, PosOrderLineInputData $data): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $data): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $data, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
 
                 if ($order === null) {
@@ -140,8 +141,16 @@ class AddOrderLine
                     ->withProperties(['property_id' => $property->id, 'pos_order_line_id' => $lines[0]->id, 'pos_item_variant_id' => $variant->id, 'quantity' => $data->quantity])
                     ->log('POS line added');
 
+                $registerId = $order->shift?->pos_register_id;
+
                 return PosActionResult::saved($lines[0]->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }

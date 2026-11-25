@@ -5,6 +5,7 @@ namespace App\Actions\Pos;
 use App\Data\Pos\PosItemInputData;
 use App\Data\Pos\PosItemVariantInputData;
 use App\Enums\PosPricingType;
+use App\Enums\TransactionKind;
 use App\Models\MealPeriod;
 use App\Models\PosCategory;
 use App\Models\PosItem;
@@ -75,7 +76,7 @@ class SavePosItem
             return 'category_invalid';
         }
 
-        if ($data->transactionCodeId !== null && ! TransactionCode::query()->where('property_id', $property->id)->whereKey($data->transactionCodeId)->exists()) {
+        if ($data->transactionCodeId !== null && ! TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge->value)->whereKey($data->transactionCodeId)->exists()) {
             return 'transaction_code_invalid';
         }
 

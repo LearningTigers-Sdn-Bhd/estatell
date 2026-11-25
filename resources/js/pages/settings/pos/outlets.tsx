@@ -24,6 +24,7 @@ type Props = {
     paymentMethods: EnumOption[];
     tenderTypes: EnumOption[];
     transactionCodes: EnumOption[];
+    chargeCodes: EnumOption[];
     operationModes: EnumOption[];
     roundingModes: EnumOption[];
     roundingPolicies: EnumOption[];
@@ -37,6 +38,7 @@ export default function PosOutletSettingsPage({
     paymentMethods,
     tenderTypes,
     transactionCodes,
+    chargeCodes,
     operationModes,
     roundingModes,
     roundingPolicies,
@@ -69,6 +71,7 @@ export default function PosOutletSettingsPage({
                             key={outlet.id}
                             outlet={outlet}
                             codes={transactionCodes}
+                            chargeCodes={chargeCodes}
                             operationModes={operationModes}
                             roundingModes={roundingModes}
                             roundingPolicies={roundingPolicies}

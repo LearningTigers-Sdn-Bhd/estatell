@@ -180,7 +180,17 @@ Front desk staff must always know which business date they are posting to. After
 | ⌘K palette                  | Not built.                                                                                                                                          |
 
 - Labels are plain words. Section names match the table above.
-- Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its items come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` with admins only (null for staff). Items marked `external` (Horizon) open in a new tab. The admin two-factor banner lives in this layout and remains available in the account shell.
+- Admin pages use `layouts/admin-layout.tsx` with `AdminSidebar`. Its groups come from `App\Navigation\AdminNavigation`, shared as `adminNavigation` (a list of `NavGroupData`) with admins only (null for staff). Group labels are plain, never collapsible:
+
+    | Group        | Items                                        |
+    | ------------ | -------------------------------------------- |
+    | Overview     | Dashboard                                    |
+    | Business     | Properties, Partners, Commissions, Enquiries |
+    | Content      | Amenities, Nearby places, Website templates  |
+    | Integrations | Channels, Webhooks                           |
+    | System       | Settings, Mail log, Sign-in log, Horizon     |
+
+- Items marked `external` (Horizon) show in the sidebar footer and open in a new tab. The ⌘K palette lists admin pages as `Admin › {group}`. The admin two-factor banner lives in this layout and remains available in the account shell.
 
 ### Account shell
 

@@ -101,6 +101,8 @@ _(Phase 3 migration also adds nullable `kitchen_station_id → pos_kitchen_stati
 
 ## Kitchen stations & ticket routing
 
+Saving a station routing also gives the lines that were already sent (fired, on an open check, with no station) the station of their item or category, so an order sent before the kitchen was set up still reaches its screen (`RouteFiredKitchenLines`). Sending with no station shows a warning toast instead of a plain success.
+
 When `FireOrderLines` executes:
 
 1. Non-voided `Draft` lines (matching the fired course) group by resolved `kitchen_station_id` (`item.kitchen_station_id ?? category.kitchen_station_id`).
@@ -125,6 +127,8 @@ Runs in fullscreen browser mode on any kitchen tablet or wall monitor without re
 
 ### 1. Dynamic Table QR (`/q/table/{token}`)
 
+The guest's cart total includes the Dine-In option's service charge (`serviceChargeRate`), so it matches the cashier's bill. Staff can open the table QR slip from the Check actions sheet ("Show table QR") as well as by long-pressing a table.
+
 - Long-press a table on the Floor Plan → **Dynamic QR Code**: creates a `pos_qr_sessions` row (`kind = Table`, TTL = `dynamic_qr_ttl_minutes`, `single_use = true`, revoking any previous open session for that table) and prints a thermal/browser slip.
 - **`single_use` semantics**: The token stays active for the table's dining session (allowing the table to submit multiple rounds of orders) and is **automatically revoked upon settlement (`SettlePosOrder`)** or when `expires_at` passes — preventing out-of-store prank orders!
 - Static table QR codes (`pos_tables.static_qr_token`) are disabled by default and opt-in per outlet.
@@ -132,7 +136,7 @@ Runs in fullscreen browser mode on any kitchen tablet or wall monitor without re
 ### 2. Per-Stay In-Room Dining QR (`/q/room/{token}` — closes wrong-guest room-charge risk!)
 
 - **Never print a static billable token on a permanent room tent card!** A photographed permanent card could charge the next guest checking into that room.
-- Instead, **on `StayCheckedIn`**, Estatell generates a **property-wide per-stay `pos_qr_sessions` row** (`kind = Room`, `pos_outlet_id = null`, `reservation_unit_id`, random `token`, and a **4-digit stay PIN** stored hashed in `stay_pin_hash`; the plaintext PIN is shown **once** on the check-in welcome slip / guest portal, and front desk can click **Regenerate Room QR PIN** anytime if lost — never reprinting from hash!). Once authenticated, the guest chooses any outlet offering `RoomService` / `Poolside` ordering.
+- Instead, **on `StayCheckedIn`** (only when the property has the `pos` feature on; otherwise check-in issues nothing and never needs `POS_PIN_PEPPER`), Estatell generates a **property-wide per-stay `pos_qr_sessions` row** (`kind = Room`, `pos_outlet_id = null`, `reservation_unit_id`, random `token`, and a **4-digit stay PIN** stored hashed in `stay_pin_hash`; the plaintext PIN is shown **once** on the check-in welcome slip / guest portal, and front desk can click **Regenerate Room QR PIN** anytime if lost — never reprinting from hash!). Once authenticated, the guest chooses any outlet offering `RoomService` / `Poolside` ordering.
 - **On `StayCheckedOut` or `StayCheckInUndone`**: The listener immediately revokes the session (`revoked_at = now()`). **On `StayRoomChanged`**: Because the session references `reservation_unit_id` (never a copied room string), orders automatically display the guest's new room number!
 - **Mandatory guest verification**: Scanning `/q/room/{token}` always requires entering the **4-digit stay PIN + primary guest's last name** (throttled: 5 failed attempts → 15-minute lock on the session) before viewing/submitting a room-charged order.
 - Verifies `CheckedIn` status, `reservation_units.no_post === false`, and `FolioPostability` before accepting. Fires to KDS/Kitchen with header **`ROOM 301 — IN-ROOM DINING`**. _(Unaccepted QR orders sit with `pos_shift_id = null` until accepted into an open shift, or auto-attach to the outlet's active shift when online.)_

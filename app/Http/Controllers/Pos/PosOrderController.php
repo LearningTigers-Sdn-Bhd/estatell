@@ -32,6 +32,8 @@ use App\Data\Pos\PosRefundLineInputData;
 use App\Data\Pos\PosTenderInputData;
 use App\Enums\PermissionEnum;
 use App\Enums\PosDiscountType;
+use App\Enums\PosKitchenStatus;
+use App\Enums\PosOrderLineKind;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosTenderType;
 use App\Http\Controllers\Controller;
@@ -69,6 +71,7 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class PosOrderController extends Controller
 {
@@ -161,7 +164,17 @@ class PosOrderController extends Controller
     {
         $model = $this->order($property, $order);
         $ids = $request->validated('line_ids');
-        $this->toast($fireOrderLines($this->actor($request), $property, $model, $ids === null ? null : array_values(array_map(intval(...), $ids)))->refusal, __('Sent to the kitchen.'));
+        $worked = $this->toast($fireOrderLines($this->actor($request), $property, $model, $ids === null ? null : array_values(array_map(intval(...), $ids)))->refusal, __('Sent to the kitchen.'));
+
+        $unrouted = $worked ? $model->lines()
+            ->where('kitchen_status', PosKitchenStatus::Fired->value)
+            ->where('line_kind', '!=', PosOrderLineKind::PackagingFee->value)
+            ->whereNull('kitchen_station_id')
+            ->count() : 0;
+
+        if ($unrouted > 0) {
+            Inertia::flash('toast', ['type' => 'warning', 'message' => __('Sent, but no kitchen screen shows :count item(s). Add a kitchen station and route the menu to it in the POS settings.', ['count' => $unrouted])]);
+        }
 
         return $this->terminal($property, $model->shift, $model);
     }
@@ -225,6 +238,14 @@ class PosOrderController extends Controller
     {
         $model = $this->order($property, $order);
         $actor = $this->actor($request);
+
+        // A check with nothing on it is only discarded: no reason and no manager.
+        if (! $model->lines()->where('kitchen_status', '!=', PosKitchenStatus::Voided->value)->exists()) {
+            $this->toast($voidPosOrder($actor, $property, $model, null)->refusal, __('Check discarded.'));
+
+            return $this->terminal($property, $model->shift, null);
+        }
+
         $approval = $resolveApproval($request, $property, $model->outlet, $actor, PermissionEnum::PosVoid, 'void order', ['order' => $model->id]);
         $reason = PosVoidReason::query()->where('property_id', $property->id)->find((int) $request->validated('void_reason_id'));
 
@@ -397,6 +418,11 @@ class PosOrderController extends Controller
         $lines = array_values(array_map(fn (array $row): PosRefundLineInputData => new PosRefundLineInputData((int) $row['order_line_id'], (int) $row['quantity'], (bool) ($row['return_stock'] ?? false), (bool) ($row['restore_meal_entitlement'] ?? false)), $request->validated('lines')));
         $result = $refundPosOrder($actor, $property, $original, $lines, (string) $request->validated('reason'), (string) ($request->validated('client_uuid') ?? Str::uuid()), $approval['approver']);
         $this->toast($result->refusal, __('Refund recorded.'));
+
+        // Show the refund slip, not the paid receipt it came from.
+        if (! $result->isRefused() && $result->model !== null) {
+            return $this->terminal($property, $original->shift, null, ['receipt' => $result->model->getKey()]);
+        }
 
         return back();
     }

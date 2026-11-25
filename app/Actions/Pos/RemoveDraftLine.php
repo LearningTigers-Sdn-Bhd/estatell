@@ -19,12 +19,13 @@ use Illuminate\Support\Facades\DB;
  */
 class RemoveDraftLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line): PosActionResult
     {
         try {
-            return DB::transaction(function () use ($actor, $property, $order, $line): PosActionResult {
+            $registerId = null;
+            $saved = DB::transaction(function () use ($actor, $property, $order, $line, &$registerId): PosActionResult {
                 $order = PosOrder::query()->where('property_id', $property->id)->whereKey($order->id)->lockForUpdate()->first();
                 $line = $order === null ? null : PosOrderLine::query()->where('pos_order_id', $order->id)->find($line->id);
 
@@ -64,8 +65,16 @@ class RemoveDraftLine
                     ->withProperties(['property_id' => $property->id, 'item_name' => $line->item_name])
                     ->log('POS draft line removed');
 
+                $registerId = $order->shift?->pos_register_id;
+
                 return PosActionResult::saved($order->refresh());
             });
+
+            if (! $saved->isRefused() && $registerId !== null) {
+                ($this->bumpCfdVersion)($registerId);
+            }
+
+            return $saved;
         } catch (PosRefusedException $refused) {
             return PosActionResult::refused($refused->refusal);
         }
