@@ -1,6 +1,6 @@
 # UI screens, routes, testing and build plan
 
-> **Planned.** Part of [Native POS](01-overview.md). Defines all staff, public QR and Posport routes, `DESIGN.md`-compliant screen layouts, Pest test coverage and the lean phased build plan (7-commit Phase 1 MVP inside `estatell`).
+> **Built (phases 1 to 3).** Part of [Native POS](01-overview.md). Defines all staff, public QR and Posport routes, `DESIGN.md`-compliant screen layouts, Pest test coverage and the lean phased build plan (7-commit Phase 1 MVP inside `estatell`).
 
 ## Routes
 

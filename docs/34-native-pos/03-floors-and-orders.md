@@ -1,6 +1,6 @@
 # Floors, tables, orders, splits and anti-fraud controls
 
-> **Planned.** Part of [Native POS](01-overview.md). Defines `PayFirst` / `PayLater` outlet workflows, visual floor plans (Phase 2), order and kitchen line state machines, coursing, quantity splits, multi-bill ("AA") splits, discounts vs payment vouchers, and anti-fraud pre-bill & void controls.
+> **Built (phases 1 to 3).** Part of [Native POS](01-overview.md). Defines `PayFirst` / `PayLater` outlet workflows, visual floor plans (Phase 2), order and kitchen line state machines, coursing, quantity splits, multi-bill ("AA") splits, discounts vs payment vouchers, and anti-fraud pre-bill & void controls.
 
 ## Purpose
 
@@ -187,6 +187,8 @@ stateDiagram-v2
 | **Payment Voucher** (`PosTenderType::PaymentVoucher`)                                                                          | **Post-tax** (applied as tender against `grand_total`; preserves full SST taxable base)                         | Payment Summary | External/partner voucher tender (optional unique `reference` check per property). An internal prepaid voucher issuance/balance liability ledger is out of scope for Phases 1–3. |
 
 ## Anti-fraud controls
+
+- **Default void reasons:** the first time an outlet is turned on for a property that has no void reasons, `SeedPosVoidReasons` creates four: _Wrong item entered_ and _Out of stock_ (no manager, stock goes back), _Kitchen error_ (no manager) and _Guest changed mind_ (manager PIN). A property that already has reasons is left alone.
 
 1. **Pre-Bill Locks Lines, Discounts, Dining Options & Splits (`PrintPreBill` — closes all pre-bill skimming paths!)**:
     - Printing the first pre-bill automatically **fires and locks all remaining `Draft` lines** on the order (`FireOrderLines`) before incrementing `prebill_print_count` to `1`.

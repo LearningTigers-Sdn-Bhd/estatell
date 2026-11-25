@@ -1,6 +1,6 @@
 # Menu, catalog, pricing and availability
 
-> **Planned.** Part of [Native POS](01-overview.md). Defines the normalized product catalog, variants, modifier rules, meal-entitlement eligibility, combos, multilingual kitchen names, availability states, stock countdown, menu schedules and dining options.
+> **Built (phases 1 to 3).** Part of [Native POS](01-overview.md). Defines the normalized product catalog, variants, modifier rules, meal-entitlement eligibility, combos, multilingual kitchen names, availability states, stock countdown, menu schedules and dining options.
 
 ## Purpose
 

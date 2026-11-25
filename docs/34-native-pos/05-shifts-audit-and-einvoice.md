@@ -1,6 +1,6 @@
 # Shifts, 2 AM rollover, accounting journal and LHDN e-invoicing
 
-> **Planned.** Part of [Native POS](01-overview.md). Defines register shifts (`Open → ClosingControl → Closed` with cancel/recount), deadlock-free 2 AM rollover, balanced double-entry Daily Accounting Journal (including cash variance, payouts, refunds and a complete worked cross-midnight acceptance example), and Phase-1 LHDN consolidation + individual issuance + Phase-2 receipt QR self-claim.
+> **Built (phases 1 to 3).** Part of [Native POS](01-overview.md). Defines register shifts (`Open → ClosingControl → Closed` with cancel/recount), deadlock-free 2 AM rollover, balanced double-entry Daily Accounting Journal (including cash variance, payouts, refunds and a complete worked cross-midnight acceptance example), and Phase-1 LHDN consolidation + individual issuance + Phase-2 receipt QR self-claim.
 
 ## Data model
 
@@ -100,6 +100,7 @@ Because `CurrentBusinessDate::date()` intentionally returns either `Open` or `Au
 - When `rounding_mode !== None`: **`rounding_transaction_code_id`** is required.
 - When any dining option has `apply_service_charge = true`: **`service_charge_transaction_code_id`** is required.
 - When any dining option has `packaging_fee > 0`: **`packaging_transaction_code_id`** is required.
+- The service charge and packaging fee codes must be **charge** codes (`charge_code_required`): a room charge posts them on the guest folio, and the folio only takes charge codes. The menu category and item accounts follow the same rule (`transaction_code_invalid`). The settings pickers list charge codes only for these fields. The cash rounding, cash variance and safe clearing accounts reach the daily journal only and may be any code.
 - Every `pos_outlet_payment_methods` row requires a `payment_method_id` linked to an active `TransactionCode`.
 - Every `FloatIn`, `SafeDrop`, and `Payout` requires a non-null `counter_transaction_code_id`.
 

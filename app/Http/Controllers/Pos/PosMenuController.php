@@ -13,6 +13,7 @@ use App\Data\Pos\PosItemVariantInputData;
 use App\Data\Property\CurrencyData;
 use App\Enums\PosAvailability;
 use App\Enums\PosPricingType;
+use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
 use App\Http\Requests\Pos\SavePosCategoryRequest;
@@ -103,7 +104,7 @@ class PosMenuController extends Controller
                     ])->all(),
                 ])->values()->all(),
             ])->values()->all(),
-            'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->all(),
+            'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge->value)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->all(),
             'mealPeriods' => MealPeriod::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (MealPeriod $period): array => ['value' => (string) $period->id, 'label' => $period->name])->all(),
         ]);
     }

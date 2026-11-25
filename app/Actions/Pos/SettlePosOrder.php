@@ -149,6 +149,11 @@ class SettlePosOrder
         $grandTotal = BigDecimal::of($order->grand_total);
         $lines = $order->lines()->where('kitchen_status', '!=', 'voided')->with('taxes')->orderBy('id')->get();
 
+        if ($grandTotal->isZero()) {
+            // A check fully covered by included meals has nothing to pay, so any zero tender the register sent is dropped.
+            $tenders = [];
+        }
+
         $this->checkTenderTotal($tenders, $grandTotal);
         $payments = $this->buildPayments($actor, $order, $shift, $outlet->id, $tenders, $units, $grandTotal);
 
@@ -177,7 +182,7 @@ class SettlePosOrder
             'closed_by_user_id' => $actor->id,
             'rounding_adjustment' => array_reduce($payments, fn (BigDecimal $sum, array $row): BigDecimal => $sum->plus($row['payment']->rounding_adjustment), BigDecimal::zero())->toScale(2)->__toString(),
             'folio_posted_amount' => $folioPosted->toScale(2)->__toString(),
-            'settled_on_folio' => $folioPosted->isEqualTo($grandTotal),
+            'settled_on_folio' => $grandTotal->isPositive() && $folioPosted->isEqualTo($grandTotal),
             'receipt_claim_token' => Str::random(32),
         ])->save();
 
@@ -343,12 +348,24 @@ class SettlePosOrder
         }
     }
 
+    /**
+     * The sentence code for a folio posting refusal. The reasons staff can fix keep their own code; anything else stays generic.
+     */
+    private function folioRefusal(string $refusal): string
+    {
+        return match ($refusal) {
+            'no_business_date', 'unit_not_postable', 'room_no_post', 'folio_not_open', 'folio_settled_to_city_ledger' => $refusal,
+            'charge_not_found' => 'charge_code_not_chargeable',
+            default => 'folio_not_postable',
+        };
+    }
+
     private function checkRoomCharge(Property $property, PosOrder $order, PosOrderPayment $payment, ?ReservationUnit $unit, bool $guestSigned, ?User $limitApprover): void
     {
         $outlet = $order->outlet;
 
         if ($unit === null || ! in_array($unit->status, [UnitStatus::CheckedIn, UnitStatus::CheckedOut], true)) {
-            throw new PosRefusedException('folio_not_postable');
+            throw new PosRefusedException('unit_not_postable');
         }
 
         if ($unit->no_post) {
@@ -453,7 +470,7 @@ class SettlePosOrder
             );
 
             if ($result->isRefused()) {
-                throw new PosRefusedException(in_array($result->refusal, ['room_no_post'], true) ? 'room_no_post' : 'folio_not_postable');
+                throw new PosRefusedException($this->folioRefusal((string) $result->refusal));
             }
 
             $root = $result->line() ?? throw new PosRefusedException('folio_not_postable');

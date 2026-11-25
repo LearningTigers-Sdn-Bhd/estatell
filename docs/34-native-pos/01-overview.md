@@ -1,6 +1,6 @@
 # Native POS
 
-> **Planned.** Full specification for Estatell's built-in hospitality Point of Sale system, designed for hotel restaurants, cafes, bars, pool decks, mini-marts and room service across Malaysia and Southeast Asia. Audited against Estatell's codebase and RMCD Service Tax Policy No. 3/2024 (Amendment No. 1).
+> **Built (phases 1 to 3).** Full specification for Estatell's built-in hospitality Point of Sale system, designed for hotel restaurants, cafes, bars, pool decks, mini-marts and room service across Malaysia and Southeast Asia. Audited against Estatell's codebase and RMCD Service Tax Policy No. 3/2024 (Amendment No. 1).
 
 ## Purpose
 

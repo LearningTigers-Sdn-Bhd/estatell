@@ -23,7 +23,7 @@ use Laravel\Pennant\Feature;
  */
 class SavePosOutlet
 {
-    public function __construct(private PosOutletTaxCheck $taxCheck, private SeedPosDiningOptions $seedPosDiningOptions) {}
+    public function __construct(private PosOutletTaxCheck $taxCheck, private SeedPosDiningOptions $seedPosDiningOptions, private SeedPosVoidReasons $seedPosVoidReasons) {}
 
     public function __invoke(User $actor, Property $property, PosOutletData $data, ?PosOutlet $outlet = null): PosOutletResult
     {
@@ -80,6 +80,7 @@ class SavePosOutlet
 
             if ($outlet->pos_enabled) {
                 ($this->seedPosDiningOptions)($outlet);
+                ($this->seedPosVoidReasons)($property);
             }
 
             activity()

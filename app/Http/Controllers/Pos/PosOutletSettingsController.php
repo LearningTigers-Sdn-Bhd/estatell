@@ -10,6 +10,7 @@ use App\Enums\PosOperationMode;
 use App\Enums\PosRoundingMode;
 use App\Enums\PosRoundingPolicy;
 use App\Enums\PosTenderType;
+use App\Enums\TransactionKind;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
 use App\Http\Requests\Pos\SavePosNativeOutletRequest;
@@ -69,6 +70,7 @@ class PosOutletSettingsController extends Controller
             'paymentMethods' => PaymentMethod::query()->where('property_id', $property->id)->where('active', true)->orderBy('name')->get(['id', 'name'])->map(fn (PaymentMethod $method): array => ['value' => (string) $method->id, 'label' => $method->name])->all(),
             'tenderTypes' => PosTenderType::outletOptions(),
             'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->all(),
+            'chargeCodes' => TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge->value)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->all(),
             'operationModes' => PosOperationMode::options(),
             'roundingModes' => PosRoundingMode::options(),
             'roundingPolicies' => PosRoundingPolicy::options(),

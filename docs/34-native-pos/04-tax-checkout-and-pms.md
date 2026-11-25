@@ -1,6 +1,6 @@
 # Tax engine, checkout, PMS room charge, meal redemption and refunds
 
-> **Planned.** Part of [Native POS](01-overview.md). Defines Malaysian RMCD Service Tax Policy No. 3/2024 (Amendment No. 1) tax & service charge math (with exclusive and nett worked examples), BNM cash rounding, exact tender enforcement, guarded `PostPrecalculatedCharge` room posting, 1:1 reversible meal redemption, open-shift/open-date tender swaps and lineage-safe refunds.
+> **Built (phases 1 to 3).** Part of [Native POS](01-overview.md). Defines Malaysian RMCD Service Tax Policy No. 3/2024 (Amendment No. 1) tax & service charge math (with exclusive and nett worked examples), BNM cash rounding, exact tender enforcement, guarded `PostPrecalculatedCharge` room posting, 1:1 reversible meal redemption, open-shift/open-date tender swaps and lineage-safe refunds.
 
 ## Purpose
 
@@ -128,6 +128,8 @@ Pure, stateless service (`App\Services\Pos\PosOrderCalculator`) using `Brick\Mat
     - $D = 1.16$ → `net_amount = 100.00`, `service_charge_amount = 10.00`, `tax_amount = 6.00` → **`grand_total = RM 116.00`**.
 
 ### Exact tender enforcement & BNM 5-sen cash rounding (`MalaysiaCashRounding`)
+
+A check with a grand total of 0.00 (fully covered by included meals or a 100% discount) has nothing to pay: `SettlePosOrder` settles it with no tender and drops any zero tender the register sends. It never counts as settled on the folio. A zero tender on a check with something to pay is still refused (`tender_invalid`).
 
 - `SettlePosOrder` enforces **`SUM(payments[].amount) === order.grand_total`** (refusing `< grand_total` with `insufficient_payment` AND `> grand_total` with `overpayment_not_allowed`).
 - Cash handed over (`tendered_amount`) and `change_amount` stay separate: RM 40.00 bill paid with RM 100.00 note → `amount = 40.00`, `tendered_amount = 100.00`, `change_amount = 60.00`.
