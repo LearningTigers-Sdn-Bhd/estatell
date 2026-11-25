@@ -19,6 +19,17 @@ export function PosReceipt({
     const refund = order.orderType === 'refund';
     const rounding = Number(order.roundingAdjustment);
     const netPayable = (Number(order.grandTotal) + rounding).toFixed(2);
+    // The order subtotal is already net of discounts, so the receipt adds them back to make the rows add up.
+    const grossSubtotal = (
+        Number(order.subtotal) + Number(order.discountTotal)
+    ).toFixed(2);
+    // The cash rounding belongs to the first cash payment, so that row shows what the till actually took.
+    const roundedCashId = order.payments.find(
+        (payment) =>
+            payment.status === 'captured' &&
+            payment.direction === 'in' &&
+            payment.tenderType === 'cash',
+    )?.id;
 
     return (
         <div className="pos-print-area mx-auto flex w-full max-w-[80mm] flex-col gap-2 font-mono text-xs">
@@ -49,7 +60,7 @@ export function PosReceipt({
                     <li key={line.id}>
                         <div className="flex justify-between gap-2">
                             <span>
-                                {line.quantity} × {line.itemName}
+                                {Number(line.quantity)} × {line.itemName}
                                 {line.variantName !== 'Regular'
                                     ? ` (${line.variantName})`
                                     : ''}
@@ -85,7 +96,7 @@ export function PosReceipt({
             <dl className="flex flex-col gap-0.5">
                 <Row
                     label="Subtotal"
-                    amount={order.subtotal}
+                    amount={grossSubtotal}
                     currency={currency}
                 />
                 {Number(order.discountTotal) > 0 && (
@@ -153,11 +164,32 @@ export function PosReceipt({
                                             {payment.tender}
                                         </span>
                                         <MoneyText
-                                            amount={payment.amount}
+                                            amount={
+                                                payment.id === roundedCashId &&
+                                                rounding !== 0
+                                                    ? (
+                                                          Number(
+                                                              payment.amount,
+                                                          ) + rounding
+                                                      ).toFixed(2)
+                                                    : payment.amount
+                                            }
                                             currency={currency}
                                             plain
                                         />
                                     </div>
+                                    {payment.tendered &&
+                                        Number(payment.tendered) > 0 &&
+                                        payment.direction === 'in' && (
+                                            <div className="flex justify-between gap-2">
+                                                <span>Handed over</span>
+                                                <MoneyText
+                                                    amount={payment.tendered}
+                                                    currency={currency}
+                                                    plain
+                                                />
+                                            </div>
+                                        )}
                                     {payment.change &&
                                         Number(payment.change) > 0 && (
                                             <div className="flex justify-between gap-2">

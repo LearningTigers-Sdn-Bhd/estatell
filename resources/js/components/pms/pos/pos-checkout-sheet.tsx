@@ -308,15 +308,21 @@ export function PosCheckoutSheet({
         router.post(
             settle.url({ order: order.id }),
             {
-                tenders: tenders.map((tender) => ({
-                    tender_type: tender.tender_type,
-                    amount: tender.amount,
-                    payment_method_id: tender.payment_method_id || undefined,
-                    tendered_amount: tender.tendered_amount || undefined,
-                    reservation_unit_id:
-                        tender.reservation_unit_id || undefined,
-                    reference: tender.reference || undefined,
-                })),
+                // A check fully covered by included meals has nothing to pay, so it sends no tender.
+                tenders:
+                    total === 0
+                        ? []
+                        : tenders.map((tender) => ({
+                              tender_type: tender.tender_type,
+                              amount: tender.amount,
+                              payment_method_id:
+                                  tender.payment_method_id || undefined,
+                              tendered_amount:
+                                  tender.tendered_amount || undefined,
+                              reservation_unit_id:
+                                  tender.reservation_unit_id || undefined,
+                              reference: tender.reference || undefined,
+                          })),
                 guest_signed: signed,
                 meal_confirmed: meal,
                 ...approval,

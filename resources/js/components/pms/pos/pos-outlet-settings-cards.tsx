@@ -167,12 +167,15 @@ const SWITCHES = [
 export function OutletSettingsForm({
     outlet,
     codes,
+    chargeCodes,
     operationModes,
     roundingModes,
     roundingPolicies,
 }: {
     outlet: OutletSettingsRecord;
     codes: EnumOption[];
+    /** Room charges post the service charge and packaging codes on a guest folio, so only charge codes can be picked for them. */
+    chargeCodes: EnumOption[];
     operationModes: EnumOption[];
     roundingModes: EnumOption[];
     roundingPolicies: EnumOption[];
@@ -258,7 +261,13 @@ export function OutletSettingsForm({
                                 <EnumSelect
                                     id={name}
                                     name={name}
-                                    options={codes}
+                                    options={
+                                        name ===
+                                            'service_charge_transaction_code_id' ||
+                                        name === 'packaging_transaction_code_id'
+                                            ? chargeCodes
+                                            : codes
+                                    }
                                     value={form.data[name]}
                                     onValueChange={(value) =>
                                         form.setData(name, value)
