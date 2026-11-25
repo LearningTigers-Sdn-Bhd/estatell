@@ -113,7 +113,7 @@ export default function PosShiftsShow({ shift, movements, currency }: Props) {
                                         <TableHead>Kind</TableHead>
                                         <TableHead>Reason</TableHead>
                                         <TableHead className="text-right">
-                                            Amount
+                                            Amount ({currency?.code ?? 'MYR'})
                                         </TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -130,6 +130,7 @@ export default function PosShiftsShow({ shift, movements, currency }: Props) {
                                                 <MoneyText
                                                     amount={movement.amount}
                                                     currency={currency}
+                                                    plain
                                                 />
                                             </TableCell>
                                         </TableRow>

@@ -13,6 +13,7 @@ use App\Models\EInvoiceSubmission;
 use App\Models\PosItemVariant;
 use App\Models\PosOrder;
 use App\Models\PropertyEInvoiceSetting;
+use App\Services\EInvoice\PosOrderReportLines;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use Laravel\Pennant\Feature;
@@ -135,4 +136,15 @@ it('issues an individual e-invoice for a walk-in sale', function () {
 
     $order->refresh();
     expect(EInvoiceSubmission::query()->where('scenario', EInvoiceScenario::PosOrder)->count())->toBe(1);
+});
+
+it('separates untaxed service charge into the untaxed e-invoice subtotal when service charge is not taxed', function () {
+    $s = posLhdnSetup();
+    $s['dineIn']->forceFill(['service_charge_taxable' => false])->save();
+    $order = posLhdnSale($s, $s['steak']);
+
+    $split = app(PosOrderReportLines::class)->split($order);
+
+    expect($split['net']->toScale(2)->__toString())->toBe('110.00')
+        ->and($split['untaxed']->toScale(2)->__toString())->toBe('10.00');
 });

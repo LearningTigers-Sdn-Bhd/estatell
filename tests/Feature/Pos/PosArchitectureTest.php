@@ -2,7 +2,7 @@
 
 use App\Models\FolioLine;
 
-arch('Native POS actions are invokable classes')
+arch('POS actions are invokable classes')
     ->expect('App\Actions\Pos')
     ->classes()
     ->toHaveMethod('__invoke')
@@ -16,27 +16,63 @@ arch('Native POS actions are invokable classes')
         'App\Actions\Pos\Casts',
     ]);
 
-arch('Native POS services never write through Eloquent models or actions')
+arch('POS services never write through actions')
     ->expect('App\Services\Pos')
     ->not->toUse(['App\Actions']);
 
-arch('POS models hold relations, casts and scopes only')
-    ->expect(['App\Models\PosStaffPin', 'App\Models\PosTerminalDevice'])
+arch('POS models never depend on actions, services, DB or Hash')
+    ->expect([
+        'App\Models\PosApiClient',
+        'App\Models\PosCashMovement',
+        'App\Models\PosCategory',
+        'App\Models\PosComboSlot',
+        'App\Models\PosComboSlotOption',
+        'App\Models\PosDiningOption',
+        'App\Models\PosFloor',
+        'App\Models\PosIngredient',
+        'App\Models\PosItem',
+        'App\Models\PosItemVariant',
+        'App\Models\PosKitchenStation',
+        'App\Models\PosMenuSchedule',
+        'App\Models\PosMenuScheduleTarget',
+        'App\Models\PosMenuSnapshot',
+        'App\Models\PosModifierGroup',
+        'App\Models\PosModifierOption',
+        'App\Models\PosOrder',
+        'App\Models\PosOrderFolioLink',
+        'App\Models\PosOrderLine',
+        'App\Models\PosOrderLineModifier',
+        'App\Models\PosOrderLineTax',
+        'App\Models\PosOrderPayment',
+        'App\Models\PosOutlet',
+        'App\Models\PosOutletItem',
+        'App\Models\PosOutletPaymentMethod',
+        'App\Models\PosPosting',
+        'App\Models\PosQrSession',
+        'App\Models\PosRecipe',
+        'App\Models\PosRegister',
+        'App\Models\PosShift',
+        'App\Models\PosStaffPin',
+        'App\Models\PosStockMovement',
+        'App\Models\PosStocktake',
+        'App\Models\PosStocktakeLine',
+        'App\Models\PosTable',
+        'App\Models\PosTerminalDevice',
+        'App\Models\PosTimeClock',
+        'App\Models\PosVoidReason',
+    ])
     ->not->toUse(['App\Actions', 'App\Services', 'Illuminate\Support\Facades\DB', 'Illuminate\Support\Facades\Hash']);
 
-arch('PIN and terminal actions never touch the folio ledger')
-    ->expect([
-        'App\Actions\Pos\VerifyPosPin',
-        'App\Actions\Pos\VerifyPosApproval',
-        'App\Actions\Pos\SetPosStaffPin',
-        'App\Actions\Pos\RevokePosStaffPin',
-        'App\Actions\Pos\RegisterPosTerminalDevice',
-        'App\Actions\Pos\RevokePosTerminalDevice',
-        'App\Actions\Pos\SwitchPosActor',
-    ])
-    ->not->toUse([FolioLine::class, 'App\Actions\Payments\RecordPayment']);
+arch('POS actions never touch the folio ledger or payment recording directly')
+    ->expect('App\Actions\Pos')
+    ->not->toUse([FolioLine::class])
+    ->ignoring(['App\Actions\Pos\RefundPosOrder']);
 
-arch('Native POS middleware are plain classes with a handle method')
+arch('POS actions never record payments directly')
+    ->expect('App\Actions\Pos')
+    ->not->toUse(['App\Actions\Payments\RecordPayment']);
+
+arch('POS middleware are plain classes with a handle method')
     ->expect([
         'App\Http\Middleware\EnsurePosIsActive',
         'App\Http\Middleware\BlockBackOfficeInTerminalMode',
@@ -46,6 +82,6 @@ arch('Native POS middleware are plain classes with a handle method')
     ])
     ->toHaveMethod('handle');
 
-arch('Native POS controllers stay thin: no models written, no DB facade')
-    ->expect(['App\Http\Controllers\Pos\PosPinController', 'App\Http\Controllers\Pos\PosTerminalModeController', 'App\Http\Controllers\Pos\PosStaffPinController', 'App\Http\Controllers\Pos\PosTerminalDeviceController', 'App\Http\Controllers\Account\PosPinController'])
+arch('POS controllers stay thin: no DB facade')
+    ->expect('App\Http\Controllers\Pos')
     ->not->toUse('Illuminate\Support\Facades\DB');

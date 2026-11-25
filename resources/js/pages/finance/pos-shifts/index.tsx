@@ -29,6 +29,8 @@ type Props = {
 const column = dataTableColumns<Row>();
 
 export default function PosShiftsIndex({ shifts, currency }: Props) {
+    const currencyCode = currency?.code ?? 'MYR';
+
     const columns = useMemo(
         () => [
             column.accessor('shiftNumber', {
@@ -56,15 +58,23 @@ export default function PosShiftsIndex({ shifts, currency }: Props) {
                 header: 'Status',
                 enableSorting: false,
                 cell: (info) => (
-                    <Badge variant="secondary">{info.getValue()}</Badge>
+                    <Badge
+                        variant={
+                            info.row.original.status === 'open'
+                                ? 'default'
+                                : 'secondary'
+                        }
+                    >
+                        {info.getValue()}
+                    </Badge>
                 ),
             }),
             column.accessor('cashVariance', {
-                header: 'Cash variance',
+                header: `Cash variance (${currencyCode})`,
                 enableSorting: false,
                 cell: (info) =>
                     info.getValue() === null ? (
-                        '—'
+                        <span className="text-muted-foreground">Open</span>
                     ) : (
                         <span
                             className={
@@ -76,6 +86,7 @@ export default function PosShiftsIndex({ shifts, currency }: Props) {
                             <MoneyText
                                 amount={info.getValue() ?? '0'}
                                 currency={currency}
+                                plain
                             />
                             {Number(info.getValue()) !== 0 &&
                                 (Number(info.getValue()) < 0
@@ -85,7 +96,7 @@ export default function PosShiftsIndex({ shifts, currency }: Props) {
                     ),
             }),
         ],
-        [currency],
+        [currency, currencyCode],
     );
 
     return (

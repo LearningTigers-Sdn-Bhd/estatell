@@ -6,6 +6,7 @@ use App\Actions\Pos\SavePosModifierGroup;
 use App\Actions\Pos\ToggleModifierOptionAvailability;
 use App\Data\Pos\PosModifierGroupInputData;
 use App\Data\Pos\PosModifierOptionInputData;
+use App\Data\Property\CurrencyData;
 use App\Enums\PosAvailability;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
@@ -25,7 +26,11 @@ class PosModifierController extends Controller
 
     public function index(Property $property): Response
     {
+        $property->loadMissing('settings');
+
         return Inertia::render('settings/pos/modifiers', [
+            'currency' => CurrencyData::forProperty($property),
+            'availabilityOptions' => PosAvailability::options(),
             'groups' => PosModifierGroup::query()->where('property_id', $property->id)->with(['options' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'), 'items:id'])->orderBy('sort_order')->orderBy('name')->get()->map(fn (PosModifierGroup $group): array => [
                 'id' => $group->id, 'name' => $group->name, 'minSelect' => $group->min_select, 'maxSelect' => $group->max_select, 'maxPerOption' => $group->max_per_option, 'freeIncludedCount' => $group->free_included_count, 'active' => $group->active,
                 'itemIds' => $group->items->pluck('id')->all(),
