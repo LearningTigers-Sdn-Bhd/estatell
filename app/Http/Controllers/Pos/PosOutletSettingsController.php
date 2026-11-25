@@ -2,16 +2,21 @@
 
 namespace App\Http\Controllers\Pos;
 
+use App\Actions\Pos\SavePosOutletPaymentMethod;
 use App\Actions\Pos\SavePosOutletSettings;
 use App\Actions\Pos\SavePosRegister;
 use App\Enums\PosOperationMode;
 use App\Enums\PosRoundingMode;
 use App\Enums\PosRoundingPolicy;
+use App\Enums\PosTenderType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
 use App\Http\Requests\Pos\SavePosNativeOutletRequest;
+use App\Http\Requests\Pos\SavePosOutletPaymentMethodRequest;
 use App\Http\Requests\Pos\SavePosRegisterRequest;
+use App\Models\PaymentMethod;
 use App\Models\PosOutlet;
+use App\Models\PosOutletPaymentMethod;
 use App\Models\PosRegister;
 use App\Models\Property;
 use App\Models\TransactionCode;
@@ -40,6 +45,24 @@ class PosOutletSettingsController extends Controller
                 'requireDualControl' => $outlet->require_dual_control, 'printReceiptAfterPayment' => $outlet->print_receipt_after_payment, 'printDrawerSlip' => $outlet->print_drawer_slip, 'requireClockIn' => $outlet->require_clock_in,
             ],
             'registers' => $outlet === null ? [] : PosRegister::query()->where('pos_outlet_id', $outlet->id)->orderBy('name')->get(['id', 'name', 'active'])->all(),
+            'outletPaymentMethods' => $outlet === null ? [] : PosOutletPaymentMethod::query()
+                ->where('pos_outlet_id', $outlet->id)
+                ->with('paymentMethod:id,name')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+                ->map(fn (PosOutletPaymentMethod $row): array => [
+                    'id' => $row->id,
+                    'paymentMethodId' => $row->payment_method_id,
+                    'paymentMethodName' => $row->paymentMethod->name,
+                    'tenderType' => $row->tender_type->value,
+                    'tenderLabel' => $row->tender_type->label(),
+                    'pulseDrawer' => $row->pulse_drawer,
+                    'active' => $row->active,
+                    'sortOrder' => $row->sort_order,
+                ])->values()->all(),
+            'paymentMethods' => PaymentMethod::query()->where('property_id', $property->id)->where('active', true)->orderBy('name')->get(['id', 'name'])->map(fn (PaymentMethod $method): array => ['value' => (string) $method->id, 'label' => $method->name])->all(),
+            'tenderTypes' => PosTenderType::outletOptions(),
             'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->all(),
             'operationModes' => PosOperationMode::options(),
             'roundingModes' => PosRoundingMode::options(),
@@ -68,6 +91,42 @@ class PosOutletSettingsController extends Controller
         $model = PosOutlet::query()->where('property_id', $property->id)->findOrFail($outlet);
         $row = PosRegister::query()->where('pos_outlet_id', $model->id)->findOrFail($register);
         $this->toast($savePosRegister($request->user(), $property, $model, (string) $request->validated('name'), $request->boolean('active'), $row)->refusal, __('Register saved.'));
+
+        return back();
+    }
+
+    public function storePaymentMethod(SavePosOutletPaymentMethodRequest $request, Property $property, int $outlet, SavePosOutletPaymentMethod $save): RedirectResponse
+    {
+        $model = PosOutlet::query()->where('property_id', $property->id)->findOrFail($outlet);
+        $this->toast($save(
+            $request->user(),
+            $property,
+            $model,
+            (int) $request->validated('payment_method_id'),
+            PosTenderType::from((string) $request->validated('tender_type')),
+            $request->boolean('pulse_drawer'),
+            $request->boolean('active'),
+            (int) ($request->validated('sort_order') ?? 0),
+        )->refusal, __('Payment method added.'));
+
+        return back();
+    }
+
+    public function updatePaymentMethod(SavePosOutletPaymentMethodRequest $request, Property $property, int $outlet, int $method, SavePosOutletPaymentMethod $save): RedirectResponse
+    {
+        $model = PosOutlet::query()->where('property_id', $property->id)->findOrFail($outlet);
+        $row = PosOutletPaymentMethod::query()->where('pos_outlet_id', $model->id)->findOrFail($method);
+        $this->toast($save(
+            $request->user(),
+            $property,
+            $model,
+            (int) $request->validated('payment_method_id'),
+            PosTenderType::from((string) $request->validated('tender_type')),
+            $request->boolean('pulse_drawer'),
+            $request->boolean('active'),
+            (int) ($request->validated('sort_order') ?? 0),
+            $row,
+        )->refusal, __('Payment method saved.'));
 
         return back();
     }

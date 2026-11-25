@@ -9,9 +9,12 @@ use App\Enums\PosDiningKind;
 use App\Enums\PosOperationMode;
 use App\Enums\PosRoundingMode;
 use App\Enums\PosRoundingPolicy;
+use App\Enums\PosTenderType;
 use App\Features\Pos;
+use App\Models\PaymentMethod;
 use App\Models\PosDiningOption;
 use App\Models\PosOutlet;
+use App\Models\PosOutletPaymentMethod;
 use Illuminate\Database\QueryException;
 use Laravel\Pennant\Feature;
 
@@ -107,4 +110,53 @@ it('rejects a native outlet without a charge item at the database level', functi
     $setup = nativePosSetup();
 
     expect(fn () => $setup['outlet']->forceFill(['default_charge_item_id' => null, 'pos_enabled' => false])->save())->toThrow(QueryException::class);
+});
+
+it('creates a built-in POS outlet without a charge item via HTTP and configures outlet payment methods', function () {
+    $setup = nativePosSetup();
+    $property = $setup['property'];
+
+    $this->actingAs($setup['manager'])
+        ->post(route('settings.pos-outlets.store', $property->code), [
+            'name' => 'Pool Bar',
+            'code' => 'POOL',
+            'pos_enabled' => true,
+            'default_charge_item_id' => null,
+            'active' => true,
+        ])
+        ->assertRedirect(route('settings.pos-outlets.index', $property->code));
+
+    $outlet = PosOutlet::query()->where('property_id', $property->id)->where('code', 'POOL')->firstOrFail();
+    expect($outlet->pos_enabled)->toBeTrue()
+        ->and($outlet->default_charge_item_id)->toBeNull();
+
+    $cash = PaymentMethod::factory()->for($property)->create(['name' => 'Cash', 'active' => true]);
+
+    $this->actingAs($setup['manager'])
+        ->post(route('settings.pos.payment-methods.store', [$property->code, $outlet->id]), [
+            'payment_method_id' => $cash->id,
+            'tender_type' => 'cash',
+            'pulse_drawer' => true,
+            'active' => true,
+            'sort_order' => 1,
+        ])
+        ->assertRedirect();
+
+    $row = PosOutletPaymentMethod::query()->where('pos_outlet_id', $outlet->id)->sole();
+    expect($row->payment_method_id)->toBe($cash->id)
+        ->and($row->tender_type)->toBe(PosTenderType::Cash)
+        ->and($row->pulse_drawer)->toBeTrue();
+
+    $this->actingAs($setup['manager'])
+        ->put(route('settings.pos.payment-methods.update', [$property->code, $outlet->id, $row->id]), [
+            'payment_method_id' => $cash->id,
+            'tender_type' => 'cash',
+            'pulse_drawer' => false,
+            'active' => true,
+            'sort_order' => 2,
+        ])
+        ->assertRedirect();
+
+    expect($row->fresh()->pulse_drawer)->toBeFalse()
+        ->and($row->fresh()->sort_order)->toBe(2);
 });

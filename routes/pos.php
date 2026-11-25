@@ -162,6 +162,8 @@ Route::middleware('pos')->group(function () {
         Route::put('outlets/{outlet}', [PosOutletSettingsController::class, 'update'])->whereNumber('outlet')->name('outlets.update');
         Route::post('outlets/{outlet}/registers', [PosOutletSettingsController::class, 'storeRegister'])->whereNumber('outlet')->name('registers.store');
         Route::put('outlets/{outlet}/registers/{register}', [PosOutletSettingsController::class, 'updateRegister'])->whereNumber(['outlet', 'register'])->name('registers.update');
+        Route::post('outlets/{outlet}/payment-methods', [PosOutletSettingsController::class, 'storePaymentMethod'])->whereNumber('outlet')->name('payment-methods.store');
+        Route::put('outlets/{outlet}/payment-methods/{method}', [PosOutletSettingsController::class, 'updatePaymentMethod'])->whereNumber(['outlet', 'method'])->name('payment-methods.update');
     });
 
     Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosInventory->value)->group(function () {

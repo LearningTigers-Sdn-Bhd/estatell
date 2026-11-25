@@ -69,6 +69,8 @@ class PosRefusalMessages
             'pin_too_short_for_role' => __('Your role needs a PIN of 6 digits.'),
             'open_pos_shifts_exist' => __('Close every open register shift before turning POS off.'),
             'cash_payment_method_required' => __('Add a cash payment method to this outlet first.'),
+            'payment_method_duplicate' => __('That payment method is already configured on this outlet.'),
+            'payment_method_invalid' => __('Pick an active payment method of this property.'),
             'floor_name_taken' => __('This outlet already has a floor with that name.'),
             'floor_invalid' => __('Check the floor name and outlet.'),
             'table_code_exists' => __('One of those table codes already exists on this floor.'),

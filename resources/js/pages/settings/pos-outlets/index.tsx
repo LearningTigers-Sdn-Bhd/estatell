@@ -48,6 +48,7 @@ type Option = { value: string; label: string };
 type FormData = {
     name: string;
     code: string;
+    pos_enabled: boolean;
     default_charge_item_id: string;
     active: boolean;
 };
@@ -55,6 +56,7 @@ type FormData = {
 const empty: FormData = {
     name: '',
     code: '',
+    pos_enabled: true,
     default_charge_item_id: '',
     active: true,
 };
@@ -80,9 +82,11 @@ export default function PosOutletsIndex({
                 ? {
                       name: outlet.name,
                       code: outlet.code,
-                      default_charge_item_id: String(
-                          outlet.defaultChargeItemId,
-                      ),
+                      pos_enabled: outlet.posEnabled,
+                      default_charge_item_id:
+                          outlet.defaultChargeItemId !== null
+                              ? String(outlet.defaultChargeItemId)
+                              : '',
                       active: outlet.active,
                   }
                 : empty,
@@ -95,6 +99,14 @@ export default function PosOutletsIndex({
             preserveScroll: true,
             onSuccess: () => setOpen(false),
         };
+
+        form.transform((data) => ({
+            ...data,
+            default_charge_item_id:
+                data.default_charge_item_id === ''
+                    ? null
+                    : Number(data.default_charge_item_id),
+        }));
 
         if (editing) {
             form.put(update.url({ outlet: editing.id }), options);
@@ -118,10 +130,10 @@ export default function PosOutletsIndex({
                         <div className="flex flex-col gap-1">
                             <CardTitle>Outlets</CardTitle>
                             <CardDescription>
-                                Places that bill a guest&apos;s room, such as a
-                                restaurant or bar. Each outlet maps to an
-                                inclusive-tax charge item for its code, GL
-                                account, and taxes.
+                                Restaurants, cafes, bars and retail counters.
+                                Turn on built-in POS to run registers inside
+                                Estatell, or assign an inclusive-tax charge item
+                                to receive room charges from the POS API.
                             </CardDescription>
                         </div>
                         {outlets.length > 0 && addButton}
@@ -131,7 +143,7 @@ export default function PosOutletsIndex({
                             <EmptyState
                                 icon={Utensils}
                                 title="No outlets yet"
-                                description="Add an outlet, then use its code in your POS."
+                                description="Add an outlet to start setting up registers, menu items, or POS API room charges."
                                 action={addButton}
                             />
                         ) : (
@@ -140,7 +152,8 @@ export default function PosOutletsIndex({
                                     <TableRow>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Code</TableHead>
-                                        <TableHead>Charge item</TableHead>
+                                        <TableHead>Mode</TableHead>
+                                        <TableHead>API charge item</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="w-10">
                                             <span className="sr-only">
@@ -159,7 +172,22 @@ export default function PosOutletsIndex({
                                                 {outlet.code}
                                             </TableCell>
                                             <TableCell>
-                                                {outlet.chargeItemName}
+                                                <Badge variant="secondary">
+                                                    {outlet.posEnabled &&
+                                                    outlet.defaultChargeItemId !==
+                                                        null
+                                                        ? 'POS + API'
+                                                        : outlet.posEnabled
+                                                          ? 'Built-in POS'
+                                                          : 'POS API'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {outlet.chargeItemName ?? (
+                                                    <span className="text-muted-foreground">
+                                                        Not set
+                                                    </span>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge
@@ -210,11 +238,11 @@ export default function PosOutletsIndex({
             </PosSettingsShell>
 
             <FormOverlay
-                variant="dialog"
+                variant="sheet"
                 open={open}
                 onOpenChange={setOpen}
                 title={editing ? 'Edit outlet' : 'Add outlet'}
-                description="POS receipts arrive with the outlet code. Taxes on the charge item must be included in the price, because the POS total already has them."
+                description="Built-in POS outlets price and tax items per category. Add a default charge item only if an external POS posts room charges here through the API."
                 errors={form.errors}
                 processing={form.processing}
                 submitLabel={editing ? 'Save outlet' : 'Add outlet'}
@@ -265,19 +293,43 @@ export default function PosOutletsIndex({
                     </FieldDescription>
                     <FieldError>{form.errors.code}</FieldError>
                 </Field>
+                <Field orientation="horizontal">
+                    <Switch
+                        id="outlet-pos-enabled"
+                        checked={form.data.pos_enabled}
+                        onCheckedChange={(checked) =>
+                            form.setData('pos_enabled', checked)
+                        }
+                    />
+                    <FieldLabel htmlFor="outlet-pos-enabled">
+                        Use built-in POS registers &amp; menu
+                    </FieldLabel>
+                </Field>
                 <Field data-invalid={!!form.errors.default_charge_item_id}>
-                    <FieldLabel htmlFor="outlet-item">Charge item</FieldLabel>
+                    <FieldLabel htmlFor="outlet-item">
+                        API charge item
+                        {form.data.pos_enabled ? ' (optional)' : ''}
+                    </FieldLabel>
                     <EnumSelect
                         id="outlet-item"
                         name="default_charge_item_id"
+                        allLabel={
+                            form.data.pos_enabled
+                                ? 'None (built-in POS only)'
+                                : undefined
+                        }
                         options={chargeItems}
                         value={form.data.default_charge_item_id}
                         onValueChange={(value) =>
                             form.setData('default_charge_item_id', value)
                         }
-                        placeholder="Pick a charge item"
+                        placeholder="Pick an inclusive-tax charge item"
                         aria-invalid={!!form.errors.default_charge_item_id}
                     />
+                    <FieldDescription>
+                        Required only for external POS API room charges. Taxes
+                        on this charge item must be inclusive.
+                    </FieldDescription>
                     <FieldError>
                         {form.errors.default_charge_item_id}
                     </FieldError>
