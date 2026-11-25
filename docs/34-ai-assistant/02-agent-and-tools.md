@@ -30,13 +30,14 @@ Built per turn by `AssistantInstructions` (a Service), from:
 
 The Concierge content, read through `ConciergePageBuilder`'s guide data, never by reaching into Concierge models:
 
-| Part         | Source (see [Property guide](../30-concierge/01-overview.md#property-guide-and-contact))        |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| The property | Name, address, check-in and check-out times, About, arrival and departure, getting here, topics |
-| Amenities    | `property_amenities` with their details                                                         |
-| Policies     | House rules, room terms, payment and deposits, the guest wording of the charge policies         |
-| FAQs         | `property_faqs` that are switched on                                                            |
-| Contact      | Front desk phone, hours and email                                                               |
+| Part         | Source (see [Property guide](../30-concierge/01-overview.md#property-guide-and-contact))                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The property | Name, address, check-in and check-out times, About, arrival and departure, getting here, topics                                                                                                             |
+| Amenities    | `property_amenities` with their details                                                                                                                                                                     |
+| Rooms        | Room types sold online (`BookingContent::roomTypes`, as the booking site shows them): description, max adults and children, smoking, pets, room amenities. No prices; those come from `CheckRoomsAndPrices` |
+| Policies     | House rules, room terms, payment and deposits, the guest wording of the charge policies                                                                                                                     |
+| FAQs         | `property_faqs` that are switched on                                                                                                                                                                        |
+| Contact      | Front desk phone, hours and email                                                                                                                                                                           |
 
 - Only what a guest may see goes in. A hidden FAQ, a hidden topic and staff-only Wi-Fi never do.
 - Wi-Fi passwords never go in. The stay page already shows them to a checked-in guest; the assistant points there.

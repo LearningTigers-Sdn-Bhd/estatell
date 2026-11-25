@@ -11,8 +11,10 @@ use App\Enums\AiPlace;
 use App\Enums\AiScope;
 use App\Models\AiThread;
 use App\Models\AiTurn;
+use App\Models\Amenity;
 use App\Models\ConciergeQuote;
 use App\Models\PropertyAiScope;
+use App\Models\RoomType;
 use App\Services\AiAssistant\AssistantInstructions;
 use Illuminate\Validation\ValidationException;
 use Laravel\Ai\Responses\Data\TextUsage;
@@ -38,6 +40,18 @@ test('the lobby agent gets the quote tools only while RoomQuotes is on', functio
 
     PropertyAiScope::query()->where('property_id', $setup['property']->id)->where('scope', AiScope::RoomQuotes)->update(['enabled' => false]);
     expect($tools())->toBe([PropertyFacts::class, HandOver::class]);
+});
+
+test('the knowledge describes the room types sold online, and only those', function () {
+    ['property' => $property, 'type' => $type] = conciergeQuoteSetup();
+    $type->forceFill(['description' => 'Queen bed and a balcony over the bay.', 'smoking_allowed' => false])->save();
+    $type->amenities()->attach(Amenity::factory()->create(['name' => 'Air conditioning'])->id);
+    RoomType::factory()->for($property)->create(['name' => 'Staff Quarters', 'description' => 'Not for guests.']);
+
+    $rooms = app(AssistantInstructions::class)->knowledge($property)['rooms'];
+
+    expect($rooms)->toHaveCount(1)
+        ->and($rooms[0])->toMatchArray(['name' => $type->name, 'description' => 'Queen bed and a balcony over the bay.', 'max_adults' => 4, 'max_children' => 2, 'smoking_allowed' => false, 'amenities' => ['Air conditioning']]);
 });
 
 test('CheckRoomsAndPrices lists each plan sold online with its stay total', function () {

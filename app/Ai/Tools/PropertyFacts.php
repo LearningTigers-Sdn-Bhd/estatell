@@ -16,7 +16,7 @@ use Stringable;
  */
 class PropertyFacts implements Tool
 {
-    private const array TOPICS = ['property', 'amenities', 'policies', 'faqs', 'contact', 'nearby'];
+    private const array TOPICS = ['property', 'amenities', 'rooms', 'policies', 'faqs', 'contact', 'nearby'];
 
     public function __construct(
         private readonly Property $property,
@@ -26,7 +26,7 @@ class PropertyFacts implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Read one part of the property guide in full: property (address, times, getting here), amenities, policies, faqs, contact, or nearby (places near the property).';
+        return 'Read one part of the property guide in full: property (address, times, getting here), amenities, rooms (room types: what each is like and who it fits), policies, faqs, contact, or nearby (places near the property).';
     }
 
     public function handle(Request $request): Stringable|string

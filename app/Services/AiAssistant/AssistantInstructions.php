@@ -5,6 +5,8 @@ namespace App\Services\AiAssistant;
 use App\Enums\AiPlace;
 use App\Models\AiThread;
 use App\Models\Property;
+use App\Models\RoomType;
+use App\Services\BookingEngine\BookingContent;
 use App\Services\Concierge\ConciergeContent;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Property\PropertyToday;
@@ -21,6 +23,7 @@ class AssistantInstructions
         private readonly ConciergeContent $content,
         private readonly AiHandoverMessage $handover,
         private readonly PropertyToday $today,
+        private readonly BookingContent $booking,
     ) {}
 
     public function for(AiThread $thread): string
@@ -48,10 +51,30 @@ class AssistantInstructions
         return [
             'property' => $this->guide->property($property)->toArray(),
             'amenities' => $this->content->amenities($property)->map->toArray()->all(),
+            'rooms' => $this->rooms($property),
             'policies' => $this->guide->policies($property)->toArray(),
             'faqs' => array_map(fn ($faq): array => $faq->toArray(), $this->guide->faqs($property)),
             'contact' => $this->guide->contacts($property)->toArray(),
         ];
+    }
+
+    /**
+     * The room types sold online, as the booking site shows them: what each is like and who it fits. Prices and free
+     * rooms are not here; they come from CheckRoomsAndPrices.
+     *
+     * @return list<array{name: string, description: ?string, max_adults: int, max_children: int, smoking_allowed: bool, pets_allowed: bool, amenities: list<string>}>
+     */
+    private function rooms(Property $property): array
+    {
+        return $this->booking->roomTypes($property)->map(fn (RoomType $type): array => [
+            'name' => $type->name,
+            'description' => $type->description,
+            'max_adults' => $type->max_adults,
+            'max_children' => $type->max_children,
+            'smoking_allowed' => (bool) $type->smoking_allowed,
+            'pets_allowed' => (bool) $type->pets_allowed,
+            'amenities' => $type->amenities->pluck('name')->values()->all(),
+        ])->values()->all();
     }
 
     private function rules(Property $property): string
