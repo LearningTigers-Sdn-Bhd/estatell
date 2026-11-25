@@ -77,6 +77,7 @@ Route::middleware('pos')->group(function () {
 
             Route::middleware('pos.can:'.PermissionEnum::PosSell->value)->group(function () {
                 Route::get('outlets/{outlet}/terminal', [PosRegisterController::class, 'terminal'])->whereNumber('outlet')->name('terminal');
+                Route::get('outlets/{outlet}/floor-version', [PosRegisterController::class, 'floorVersion'])->whereNumber('outlet')->name('floor-version');
                 Route::get('in-house-guests', [PosRegisterController::class, 'guests'])->name('in-house-guests');
 
                 Route::post('orders', [PosOrderController::class, 'store'])->name('orders.store');
@@ -96,6 +97,7 @@ Route::middleware('pos')->group(function () {
                     Route::post('prebill', [PosOrderController::class, 'prebill'])->name('prebill');
                     Route::post('dining-option', [PosOrderController::class, 'diningOption'])->name('dining-option');
                     Route::post('room', [PosOrderController::class, 'attachRoom'])->name('room');
+                    Route::post('table', [PosOrderController::class, 'transferTable'])->name('table');
                     Route::post('settle', [PosOrderController::class, 'settle'])->name('settle');
                     Route::post('refund', [PosOrderController::class, 'refund'])->name('refund');
                     Route::post('change-payment', [PosOrderController::class, 'changePayment'])->name('change-payment');
@@ -154,11 +156,6 @@ Route::middleware('pos')->group(function () {
         Route::get('staff-pins', [PosStaffSettingsController::class, 'index'])->name('staff-pins.index');
         Route::post('void-reasons', [PosStaffSettingsController::class, 'storeVoidReason'])->name('void-reasons.store');
         Route::put('void-reasons/{reason}', [PosStaffSettingsController::class, 'updateVoidReason'])->whereNumber('reason')->name('void-reasons.update');
-        Route::get('floors', [PosFloorController::class, 'index'])->name('floors.index');
-        Route::post('outlets/{outlet}/floors', [PosFloorController::class, 'storeFloor'])->whereNumber('outlet')->name('floors.store');
-        Route::put('floors/{floor}', [PosFloorController::class, 'updateFloor'])->whereNumber('floor')->name('floors.update');
-        Route::post('floors/{floor}/tables', [PosFloorController::class, 'batchTables'])->whereNumber('floor')->name('tables.batch');
-        Route::put('tables/{table}', [PosFloorController::class, 'updateTable'])->whereNumber('table')->name('tables.update');
         Route::get('outlets', [PosOutletSettingsController::class, 'index'])->name('outlets.index');
         Route::put('outlets/{outlet}', [PosOutletSettingsController::class, 'update'])->whereNumber('outlet')->name('outlets.update');
         Route::post('outlets/{outlet}/registers', [PosOutletSettingsController::class, 'storeRegister'])->whereNumber('outlet')->name('registers.store');
@@ -181,6 +178,12 @@ Route::middleware('pos')->group(function () {
     });
 
     Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosMenu->value)->group(function () {
+        Route::get('floors', [PosFloorController::class, 'index'])->name('floors.index');
+        Route::post('outlets/{outlet}/floors', [PosFloorController::class, 'storeFloor'])->whereNumber('outlet')->name('floors.store');
+        Route::put('floors/{floor}', [PosFloorController::class, 'updateFloor'])->whereNumber('floor')->name('floors.update');
+        Route::post('floors/{floor}/tables', [PosFloorController::class, 'batchTables'])->whereNumber('floor')->name('tables.batch');
+        Route::post('floors/{floor}/table', [PosFloorController::class, 'storeTable'])->whereNumber('floor')->name('tables.store');
+        Route::put('tables/{table}', [PosFloorController::class, 'updateTable'])->whereNumber('table')->name('tables.update');
         Route::get('kitchen', [PosKitchenSettingsController::class, 'index'])->name('kitchen.index');
         Route::post('outlets/{outlet}/kitchen-stations', [PosKitchenSettingsController::class, 'storeStation'])->whereNumber('outlet')->name('kitchen-stations.store');
         Route::put('kitchen-stations/{station}', [PosKitchenSettingsController::class, 'updateStation'])->whereNumber('station')->name('kitchen-stations.update');

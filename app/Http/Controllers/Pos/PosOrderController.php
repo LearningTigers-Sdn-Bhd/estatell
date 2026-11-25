@@ -22,6 +22,7 @@ use App\Actions\Pos\ResolvePosApproval;
 use App\Actions\Pos\SettlePosOrder;
 use App\Actions\Pos\SplitOrderLineQuantity;
 use App\Actions\Pos\SplitPosOrder;
+use App\Actions\Pos\TransferOrderTable;
 use App\Actions\Pos\TransferOrderToRegister;
 use App\Actions\Pos\UpdateDraftOrderLine;
 use App\Actions\Pos\VoidOrderLine;
@@ -51,6 +52,7 @@ use App\Http\Requests\Pos\SettlePosOrderRequest;
 use App\Http\Requests\Pos\SplitPosOrderLineRequest;
 use App\Http\Requests\Pos\SplitPosOrderRequest;
 use App\Http\Requests\Pos\StorePosOrderRequest;
+use App\Http\Requests\Pos\TransferOrderTableRequest;
 use App\Http\Requests\Pos\TransferPosOrderRequest;
 use App\Http\Requests\Pos\UpdatePosOrderLineRequest;
 use App\Http\Requests\Pos\VoidPosLineRequest;
@@ -339,6 +341,15 @@ class PosOrderController extends Controller
         }
 
         $this->toast($attachOrderRoom($this->actor($request), $property, $model, $unit)->refusal, $unit === null ? __('Room unlinked.') : __('Room linked to order.'));
+
+        return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function transferTable(TransferOrderTableRequest $request, Property $property, int $order, TransferOrderTable $transferOrderTable): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $table = PosTable::query()->where('property_id', $property->id)->findOrFail((int) $request->validated('pos_table_id'));
+        $this->toast($transferOrderTable($this->actor($request), $property, $model, $table)->refusal, __('Check moved to table :table.', ['table' => $table->code]));
 
         return $this->terminal($property, $model->shift, $model);
     }

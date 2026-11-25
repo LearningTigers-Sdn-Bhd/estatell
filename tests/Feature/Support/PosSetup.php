@@ -34,7 +34,7 @@ function posSetup(bool $inclusiveTax = true): array
     $item = ChargeItem::factory()->create(['property_id' => $property->id, 'default_amount' => null, 'allow_override' => true]);
     $tax = Tax::factory()->for($property)->create(['rate' => '8.00', 'is_inclusive' => $inclusiveTax]);
     $tax->applicableTransactionCodes()->attach($item->transactionCode);
-    $outlet = PosOutlet::factory()->create(['property_id' => $property->id, 'default_charge_item_id' => $item->id]);
+    $outlet = PosOutlet::factory()->create(['property_id' => $property->id, 'default_charge_item_id' => $item->id, 'pos_enabled' => false]);
     $actor = User::factory()->for($property)->withPermissions(['pos.view', 'pos.manage', 'pos.resolve', 'meals.redeem'])->create();
 
     return ['property' => $property, 'actor' => $actor, 'unit' => $unit, 'outlet' => $outlet, 'item' => $item];

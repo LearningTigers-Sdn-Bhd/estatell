@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\BatchCreatePosTables;
+use App\Actions\Pos\CreatePosTable;
 use App\Actions\Pos\SavePosFloor;
 use App\Actions\Pos\SavePosTable;
 use App\Data\Pos\PosTableInputData;
@@ -72,6 +73,25 @@ class PosFloorController extends Controller
     {
         $model = PosFloor::query()->where('property_id', $property->id)->findOrFail($floor);
         $this->toast($batchCreatePosTables($request->user(), $property, $model, (string) ($request->validated('prefix') ?? ''), (int) $request->validated('start'), (int) $request->validated('end'), (int) $request->validated('seats'))->refusal, __('Tables added.'));
+
+        return back();
+    }
+
+    public function storeTable(SavePosTableRequest $request, Property $property, int $floor, CreatePosTable $createPosTable): RedirectResponse
+    {
+        $model = PosFloor::query()->where('property_id', $property->id)->findOrFail($floor);
+        $data = new PosTableInputData(
+            (string) $request->validated('code'),
+            $request->validated('label'),
+            (int) $request->validated('seats'),
+            PosTableShape::from((string) $request->validated('shape')),
+            (int) $request->validated('x'),
+            (int) $request->validated('y'),
+            (int) $request->validated('width'),
+            (int) $request->validated('height'),
+            $request->boolean('active', true),
+        );
+        $this->toast($createPosTable($request->user(), $property, $model, $data)->refusal, __('Table added.'));
 
         return back();
     }

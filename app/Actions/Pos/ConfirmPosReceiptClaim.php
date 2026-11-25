@@ -73,7 +73,11 @@ class ConfirmPosReceiptClaim
             return false;
         }
 
-        return $amount->isEqualTo(BigDecimal::of($order->grand_total))
+        $grand = BigDecimal::of($order->grand_total);
+        $rounded = $grand->plus(BigDecimal::of($order->rounding_adjustment));
+        $totalMatches = $amount->isEqualTo($grand) || $amount->isEqualTo($rounded);
+
+        return $totalMatches
             && in_array(trim($date), [$order->business_date?->toDateString(), $order->settled_at?->toDateString()], true);
     }
 }

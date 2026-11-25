@@ -91,6 +91,7 @@ type Props = {
         requireMealRedemptionConfirmation: boolean;
     };
     floors: Floor[];
+    floorVersion: string | null;
     clock: { required: boolean; clockedIn: boolean };
     register: { id: number; name: string } | null;
     registers: { id: number; name: string }[];
@@ -124,6 +125,7 @@ export default function PosTerminal(props: Props) {
         prebill,
         outlet,
         floors,
+        floorVersion,
         clock,
         register,
         registers,
@@ -460,6 +462,7 @@ export default function PosTerminal(props: Props) {
                     {showFloorBoard ? (
                         <PosFloorBoard
                             floors={floors}
+                            floorVersion={floorVersion}
                             outletId={outlet.id}
                             registerId={register.id}
                             diningOptionId={diningId}
@@ -761,6 +764,18 @@ export default function PosTerminal(props: Props) {
                             id: open.id,
                             label: `${open.tableCode ?? 'No table'} · ${open.orderNumber ?? `#${open.id}`}`,
                         }))}
+                    vacantTables={floors.flatMap((floor) =>
+                        floor.tables
+                            .filter(
+                                (table) =>
+                                    !table.occupied &&
+                                    table.id !== order.tableId,
+                            )
+                            .map((table) => ({
+                                value: String(table.id),
+                                label: `${floor.name} · ${table.code}`,
+                            })),
+                    )}
                 />
             )}
 

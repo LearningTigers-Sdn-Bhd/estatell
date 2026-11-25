@@ -108,6 +108,7 @@ class PosRegisterController extends Controller
             ],
             'clock' => ['required' => $model->require_clock_in, 'clockedIn' => PosTimeClock::query()->where('user_id', $actor->id)->where('pos_outlet_id', $model->id)->whereNull('clocked_out_at')->exists()],
             'floors' => $model->operation_mode === PosOperationMode::PayLater ? $floors->for($model) : [],
+            'floorVersion' => $model->operation_mode === PosOperationMode::PayLater ? $floors->version($model) : null,
             'register' => $register === null ? null : ['id' => $register->id, 'name' => $register->name],
             'registers' => PosRegister::query()->where('pos_outlet_id', $model->id)->where('active', true)->orderBy('name')->get(['id', 'name']),
             'shift' => $shift === null ? null : PosShiftData::fromModel($shift),
@@ -160,6 +161,13 @@ class PosRegisterController extends Controller
                 $guests,
             ),
         ]);
+    }
+
+    public function floorVersion(Property $property, int $outlet, TableFloorState $floors): JsonResponse
+    {
+        $model = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail($outlet);
+
+        return response()->json(['version' => $floors->version($model)]);
     }
 
     /**
