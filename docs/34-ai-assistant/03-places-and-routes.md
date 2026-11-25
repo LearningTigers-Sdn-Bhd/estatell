@@ -75,7 +75,7 @@ concierge_quotes   id, property_id, token (unique), room_type_id, rate_plan_id,
 
 **Link to the AI turn.** A turn is written only after the stream ends, so `CreateConciergeQuote` cannot know it. `SendQuoteLink` returns the quote id. `RecordAiTurn` sets the outcome to QuoteSent and calls the Concierge Action `AttachConciergeQuoteToAiTurn` to fill `ai_turn_id`. On confirm, Concierge fires `ConciergeQuoteBooked`. An AI listener calls `MarkAiTurnBooked`, which sets `ai_turns.reservation_id` and the outcome Booked. Each module writes only its own tables.
 
-**In the chat.** The room options and the quote link are cards drawn from the tool output (`tool-CheckRoomsAndPrices`, `tool-SendQuoteLink` parts), not from the model's text. So the price on screen always comes from the tool.
+**In the chat.** The room options and the quote link are cards drawn from the tool output (`tool-CheckRoomsAndPrices`, `tool-SendQuoteLink` parts), not from the model's text. So the price on screen always comes from the tool. A finished reply with no text and no card (rare, but the model can send one) shows "Sorry, I didn't catch that. Could you ask again?"
 
 The Concierge module owns the table, the page and the quote Actions. The AI module only calls `CreateConciergeQuote` and `AttachConciergeQuoteToAiTurn`.
 

@@ -86,6 +86,20 @@ function browserLanguage(): string | null {
     return /^[a-z]{2}$/.test(code) ? code : null;
 }
 
+const CARD_PARTS = [
+    'tool-CheckRoomsAndPrices',
+    'tool-SendQuoteLink',
+    'tool-MakeGuestRequest',
+];
+
+/** A finished reply with no text and no card, which the model can rarely send. */
+function isEmptyReply(message: UIMessage): boolean {
+    return (
+        textOf(message) === '' &&
+        !message.parts.some((part) => CARD_PARTS.includes(part.type))
+    );
+}
+
 function textOf(message: UIMessage): string {
     return message.parts
         .map((part) => (part.type === 'text' ? part.text : ''))
@@ -290,7 +304,7 @@ function ChatBody({
                             description="Ask about the property, facilities, check-in times or the area."
                         />
                     ) : (
-                        messages.map((message) => (
+                        messages.map((message, index) => (
                             <Message key={message.id} from={message.role}>
                                 <MessageContent>
                                     {message.role === 'assistant' ? (
@@ -332,6 +346,18 @@ function ChatBody({
                                                     />
                                                 ) : null,
                                             )}
+                                            {isEmptyReply(message) &&
+                                                !(
+                                                    busy &&
+                                                    index ===
+                                                        messages.length - 1
+                                                ) && (
+                                                    <p className="text-muted-foreground">
+                                                        Sorry, I didn&apos;t
+                                                        catch that. Could you
+                                                        ask again?
+                                                    </p>
+                                                )}
                                         </>
                                     ) : (
                                         <p className="whitespace-pre-wrap">

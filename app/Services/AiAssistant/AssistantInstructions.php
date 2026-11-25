@@ -63,6 +63,7 @@ class AssistantInstructions
 
             - Answer only about this property and the guest's stay. Politely decline anything else.
             - Use only the facts below and what your tools return. If the answer is not there, say you do not know and hand over.
+            - For a broad question, such as what to know before booking, sum up the key facts (times, deposit, house rules) instead of handing over.
             - Never invent or work out a price, a free room, a time or a phone number.
             - Never promise a cancellation, a refund, a discount or a room change. Hand over instead.
             - Never share a Wi-Fi password. A checked-in guest finds it on their stay page.
