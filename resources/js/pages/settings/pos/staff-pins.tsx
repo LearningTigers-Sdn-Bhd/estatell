@@ -44,7 +44,10 @@ import {
     revoke as revokeDevice,
     store as storeDevice,
 } from '@/routes/settings/pos/devices';
-import { revoke as revokePin } from '@/routes/settings/pos/staff-pins';
+import {
+    invite as invitePin,
+    revoke as revokePin,
+} from '@/routes/settings/pos/staff-pins';
 
 type Props = {
     staff: { id: number; name: string; hasPin: boolean }[];
@@ -83,8 +86,9 @@ export default function PosStaffSettings({
                     <CardHeader>
                         <CardTitle>Staff PINs</CardTitle>
                         <CardDescription>
-                            Staff set their own PIN under Account. Revoke one if
-                            a PIN is known to others.
+                            Staff set their own PIN under Account. Invite
+                            someone who has none to set it by email, or revoke a
+                            PIN that is known to others.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -118,6 +122,25 @@ export default function PosStaffSettings({
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
+                                            {!person.hasPin && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        router.post(
+                                                            invitePin.url({
+                                                                user: person.id,
+                                                            }),
+                                                            {},
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    Invite
+                                                </Button>
+                                            )}
                                             {person.hasPin && (
                                                 <Button
                                                     variant="ghost"

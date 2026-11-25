@@ -179,6 +179,9 @@ class PosRefusalMessages
             'count_required' => __('Enter the counted quantity for every ingredient.'),
             'stocktake_closed' => __('This closing count is already finished.'),
             'stocktake_empty' => __('Add at least one ingredient to count.'),
+            'staff_invalid' => __('That staff member was not found or is no longer active.'),
+            'pin_already_set' => __('This person already has a POS PIN. Revoke it first if it must change.'),
+            'invite_recently_sent' => __('An invitation was sent a moment ago. Ask them to check their email, or try again in 30 minutes.'),
             'transfer_same_outlet' => __('Pick a different outlet to transfer to.'),
             default => $code,
         };
