@@ -134,12 +134,14 @@ php artisan db:seed --class=RimbaLodgeSeeder --force --no-interaction
 
 From `routes/console.php`.
 
-| Task                             | When           | Does                                       |
-| -------------------------------- | -------------- | ------------------------------------------ |
-| `horizon:snapshot`               | Every 5 min    | Horizon metrics                            |
-| `purge-expired-identity-scans`   | Daily at 03:30 | Deletes ID scans past their retention      |
-| `night-audit:dispatch-scheduled` | Every 5 min    | Starts automatic night audits that are due |
-| `onboarding:send-reminders`      | Hourly         | Reminds stalled owners                     |
+| Task                             | When           | Does                                                                                    |
+| -------------------------------- | -------------- | --------------------------------------------------------------------------------------- |
+| `horizon:snapshot`               | Every 5 min    | Horizon metrics                                                                         |
+| `purge-expired-identity-scans`   | Daily at 03:30 | Deletes ID scans past their retention                                                   |
+| `night-audit:dispatch-scheduled` | Every 5 min    | Starts automatic night audits that are due                                              |
+| `onboarding:send-reminders`      | Hourly         | Reminds stalled owners                                                                  |
+| `close-quiet-ai-threads`         | Daily at 03:25 | Closes AI chats quiet for 7 days (chat API: 24 hours). Handed-over chats wait for staff |
+| `purge-ai-message-text`          | Daily at 03:35 | Deletes AI chat text and handover summaries after 90 days                               |
 
 ## Environment variables that need care
 
@@ -153,6 +155,8 @@ From `routes/console.php`.
 | `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`          | Curlec **live** keys only. Without them, online payment answers `payment_unavailable`. In Curlec's live dashboard, add the webhook `https://app.estatell.com/webhooks/curlec` with the same secret. See [Payment](../29-booking-engine/04-payment.md#environments).              |
 | `BOOKING_SITE_URL`, `BOOKING_API_DOCS_URL`                             | Optional. Default to `https://booking.estatell.com` and the developer guide on `docs.estatell.com`.                                                                                                                                                                              |
 | `DOCS_AUTH_SECRET`                                                     | Required. Signs staff in to the docs site. Generate once with `openssl rand -hex 32`, and set the same value as a Worker secret in `estatell-docs` (`bunx wrangler secret put DOCS_AUTH_SECRET`). Without it, the **Help & docs** link fails here and the docs site answers 503. |
+
+The AI assistant needs no env vars. Each hotel saves its own OpenAI key in Settings › AI assistant, and `config/ai.php` defaults to `OPENAI_STORE=false` and `OPENAI_TEXT_MODEL=gpt-6-luna`. Leave `OPENAI_API_KEY` and `AI_EVAL_OPENAI_KEY` empty. To change the model, first add its prices to `config/ai-pricing.php`, or the spend shows zero. See [AI assistant](../35-ai-assistant/01-overview.md#api-key).
 
 The `media` volume holds `storage/app/private` (media stored on "This server"). It is shared by all three services. Back it up.
 
