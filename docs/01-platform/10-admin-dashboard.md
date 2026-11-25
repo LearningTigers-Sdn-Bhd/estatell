@@ -44,13 +44,13 @@ On mobile everything stacks in that order.
 
 `App\Services\Platform\AdminDashboardSummary`, with the monthly figures from `AdminDashboardTrends`.
 
-| Card              | Shows                                                                                                                     | Opens                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Properties        | A donut by status with the total in the middle, a legend row per status with its count, and the number of Active partners | Each row: Properties on that status; the partners line: Partners |
-| Estatell revenue  | Commission income per month for six months, stacked by service (booking engine, channel manager), with this month's total | Commissions (title)                                              |
-| Growth            | Sign-ups (`created_at`) and go-lives (`went_live_at`) per month for six months, as two lines                              | —                                                                |
-| Next payout       | The next payout and its date from `CommissionTotals`. What properties owe Estatell shows only when it is above zero       | Commissions                                                      |
-| Recent properties | The latest 5 properties by sign-up or go-live, whichever came last: code, name, status, change and day                    | The property (click on a row)                                    |
+| Card              | Shows                                                                                                                     | Opens                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Properties        | A donut by status with the total in the middle, a legend row per status with its count                                    | Each row: Properties on that status |
+| Estatell revenue  | Commission income per month for six months, stacked by service (booking engine, channel manager), with this month's total | Commissions (title)                 |
+| Growth            | Sign-ups (`created_at`) and go-lives (`went_live_at`) per month for six months, as two lines                              | —                                   |
+| Next payout       | The next payout and its date from `CommissionTotals`. What properties owe Estatell shows only when it is above zero       | Commissions                         |
+| Recent properties | The latest 5 properties by sign-up or go-live, whichever came last: code, name, status, change and day                    | The property (click on a row)       |
 
 ## Charts
 
@@ -61,4 +61,4 @@ On mobile everything stacks in that order.
 
 ## Tests
 
-`tests/Feature/Admin/AdminDashboardTest.php`: staff get 404; each To do row counts and links right, and old rows stay out; the night audit, quiet and onboarding rows; the empty To do; the status counts, partners and the order of recent properties; the monthly sign-ups, go-lives and income by service.
+`tests/Feature/Admin/AdminDashboardTest.php`: staff get 404; each To do row counts and links right, and old rows stay out; the night audit, quiet and onboarding rows; the empty To do; the status counts and the order of recent properties; the monthly sign-ups, go-lives and income by service.

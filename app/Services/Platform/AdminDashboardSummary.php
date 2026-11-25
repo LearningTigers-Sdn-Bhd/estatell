@@ -4,14 +4,12 @@ namespace App\Services\Platform;
 
 use App\Data\Platform\AdminDashboardSummaryData;
 use App\Data\Platform\AdminRecentPropertyData;
-use App\Enums\PartnerStatus;
 use App\Enums\PropertyStatus;
-use App\Models\Partner;
 use App\Models\Property;
 use App\Services\Commissions\CommissionTotals;
 
 /**
- * The admin dashboard cards: properties by status, partners, the next payout, the monthly charts and the latest
+ * The admin dashboard cards: properties by status, the next payout, the monthly charts and the latest
  * properties. See docs/01-platform/10-admin-dashboard.md#cards.
  */
 class AdminDashboardSummary
@@ -37,7 +35,6 @@ class AdminDashboardSummary
             onboarding: $count(PropertyStatus::Onboarding),
             pendingApproval: $count(PropertyStatus::PendingApproval),
             suspended: $count(PropertyStatus::Suspended),
-            activePartners: Partner::query()->where('status', PartnerStatus::Active)->count(),
             commissions: $this->commissionTotals->for(),
             months: $this->trends->months(),
             recent: $this->recent(),

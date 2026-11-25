@@ -19,7 +19,6 @@ class AdminDashboardSummaryData extends Data
         public int $onboarding,
         public int $pendingApproval,
         public int $suspended,
-        public int $activePartners,
         public CommissionTotalsData $commissions,
         public array $months,
         public array $recent,

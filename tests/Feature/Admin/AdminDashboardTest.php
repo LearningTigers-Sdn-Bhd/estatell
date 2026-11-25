@@ -5,7 +5,6 @@ use App\Enums\CommissionEntryType;
 use App\Enums\CommissionService;
 use App\Enums\ContactEnquiryStatus;
 use App\Enums\MailStatus;
-use App\Enums\PartnerStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\SignInResult;
 use App\Models\BusinessDate;
@@ -14,7 +13,6 @@ use App\Models\ChannelProperty;
 use App\Models\CommissionEntry;
 use App\Models\ContactEnquiry;
 use App\Models\MailEvent;
-use App\Models\Partner;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\SignInEvent;
@@ -89,7 +87,7 @@ test('the to do is empty when nothing needs an admin', function () {
         );
 });
 
-test('the summary counts properties and partners and lists the latest properties', function () {
+test('the summary counts properties and lists the latest properties', function () {
     $this->travelTo('2026-09-20 00:00:00');
     $old = Property::factory()->create(['name' => 'Old Live']);
 
@@ -99,8 +97,6 @@ test('the summary counts properties and partners and lists the latest properties
 
     $this->travelTo('2026-10-14 12:00:00');
     $old->update(['went_live_at' => now()]);
-    Partner::factory()->create(['status' => PartnerStatus::Active]);
-    Partner::factory()->create(['status' => PartnerStatus::Suspended]);
 
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('admin.dashboard'))
@@ -110,7 +106,6 @@ test('the summary counts properties and partners and lists the latest properties
                 ->where('summary.onboarding', 1)
                 ->where('summary.suspended', 1)
                 ->where('summary.pendingApproval', 0)
-                ->where('summary.activePartners', 1)
                 ->has('summary.commissions.immediatePayable')
                 ->has('summary.recent', 3)
                 ->where('summary.recent.0.code', $old->code)
