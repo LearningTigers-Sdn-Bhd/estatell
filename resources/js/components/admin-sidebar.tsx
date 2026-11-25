@@ -16,11 +16,15 @@ import { toNavItem } from '@/lib/navigation';
 import { dashboard } from '@/routes/admin';
 
 /**
- * Sidebar for platform admin pages. Items come from `App\Navigation\AdminNavigation`.
+ * Sidebar for platform admin pages. Groups come from `App\Navigation\AdminNavigation`; their labels stay plain.
+ * External items (Horizon) move to the footer.
  */
 export function AdminSidebar() {
     const { adminNavigation } = usePage().props;
-    const items = adminNavigation ?? [];
+    const groups = adminNavigation ?? [];
+    const externalItems = groups
+        .flatMap((group) => group.items)
+        .filter((item) => item.external);
 
     return (
         <Sidebar collapsible="icon" variant="sidebar">
@@ -38,16 +42,22 @@ export function AdminSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain
-                    items={items
-                        .filter((item) => !item.external)
-                        .map(toNavItem)}
-                />
+                {groups.map((group) => {
+                    const items = group.items.filter((item) => !item.external);
+
+                    return items.length > 0 ? (
+                        <NavMain
+                            key={group.label}
+                            label={group.label}
+                            items={items.map(toNavItem)}
+                        />
+                    ) : null;
+                })}
             </SidebarContent>
 
             <SidebarFooter>
                 <NavFooter
-                    items={items.filter((item) => item.external).map(toNavItem)}
+                    items={externalItems.map(toNavItem)}
                     className="mt-auto"
                 />
                 <NavUser variant="sidebar" />

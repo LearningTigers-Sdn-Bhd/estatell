@@ -79,8 +79,13 @@ export default function CommandPaletteDialog({
                 ),
             );
         }
-        (props.adminNavigation ?? props.partnerNavigation ?? []).forEach(
-            (item) => entries.push({ item, context: 'Workspace' }),
+        (props.adminNavigation ?? []).forEach((group) =>
+            group.items.forEach((item) =>
+                entries.push({ item, context: `Admin › ${group.label}` }),
+            ),
+        );
+        (props.partnerNavigation ?? []).forEach((item) =>
+            entries.push({ item, context: 'Workspace' }),
         );
         (props.accountNavigation ?? []).forEach((item) =>
             entries.push({ item, context: 'Account' }),

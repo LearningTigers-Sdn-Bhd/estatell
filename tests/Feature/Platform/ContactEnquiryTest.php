@@ -146,8 +146,8 @@ test('admin navigation badges the new enquiries', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('admin.dashboard'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('adminNavigation.10.title', 'Enquiries')
-            ->where('adminNavigation.10.badge', 2)
+            ->where('adminNavigation.1.items.3.title', 'Enquiries')
+            ->where('adminNavigation.1.items.3.badge', 2)
         );
 });
 

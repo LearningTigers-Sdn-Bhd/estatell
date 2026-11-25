@@ -70,7 +70,7 @@ class HandleInertiaRequests extends Middleware
             'docsUrl' => $request->user() !== null ? rtrim((string) config('estatell.docs_url'), '/').'/en/docs' : null,
             'property' => fn () => $this->currentProperty($request),
             'businessDate' => fn () => $this->businessDate($request),
-            'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
+            'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->groups() : null,
             'portalNavigation' => fn () => $request->user()?->is_company_user ? app(PortalNavigation::class)->items($request) : null,
             'portalCompany' => fn () => $this->portalCompany($request),
             'portalSwitcher' => fn () => $request->user()?->is_company_user ? app(PortalNavigation::class)->switcher($request, $request->user()) : null,
