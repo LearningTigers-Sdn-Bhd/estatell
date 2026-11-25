@@ -274,3 +274,4 @@ New: the `Concierge` feature, `ConciergeStays`, `ConciergeLookupLockout`, `Conci
 - **ID photo reading.** The guest types the ID fields. A photo is stored for staff to see and fills nothing.
 - **Sending the stay link by WhatsApp.** The email is built.
 - **Telling staff** when a request arrives. The request shows in the staff list, with no notification yet.
+- **AI chat and future-date booking.** Planned in [AI assistant](../34-ai-assistant/01-overview.md): a chat on the lobby and stay pages, and [quote links](../34-ai-assistant/03-places-and-routes.md#quote-links) that book future dates without the microsite.
