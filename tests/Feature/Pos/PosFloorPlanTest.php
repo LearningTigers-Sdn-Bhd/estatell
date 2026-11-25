@@ -9,6 +9,7 @@ use App\Actions\Pos\FireOrderLines;
 use App\Actions\Pos\HoldOrderCourse;
 use App\Actions\Pos\MergePosOrders;
 use App\Actions\Pos\MovePosOrderItems;
+use App\Actions\Pos\PlaceOrderLine;
 use App\Actions\Pos\SavePosFloor;
 use App\Actions\Pos\SplitOrderLineQuantity;
 use App\Actions\Pos\SplitPosOrder;
@@ -207,4 +208,23 @@ it('clocks staff in and out, once at a time, and holds orders back at an outlet 
         ->and(app(CreatePosOrder::class)($s['manager'], $s['property'], $s['shift'], $s['dineIn'], (string) Str::uuid())->isRefused())->toBeFalse()
         ->and(app(ClockOutPosStaff::class)($s['manager'], $s['property'])->isRefused())->toBeFalse()
         ->and(PosTimeClock::query()->whereNull('clocked_out_at')->count())->toBe(0);
+});
+
+it('places a line at a course and seat, releases a held line moved to course 1, and refuses a sent line', function () {
+    $s = posFloorSetup();
+    $order = posTableOrder($s);
+    $line = posAddLine($s, $order, $s['steak'], 1, ['courseNumber' => 2]);
+    $place = fn ($row, ?int $course, ?int $seat) => app(PlaceOrderLine::class)($s['manager'], $s['property'], $order, $row, $course, $seat);
+
+    app(HoldOrderCourse::class)($s['manager'], $s['property'], $order, 2);
+    expect($line->refresh()->kitchen_status)->toBe(PosKitchenStatus::Held)
+        ->and($place($line, 3, 4)->isRefused())->toBeFalse()
+        ->and($line->refresh()->course_number)->toBe(3)->and($line->seat_number)->toBe(4)
+        ->and($place($line, 1, 0)->isRefused())->toBeFalse()
+        ->and($line->refresh()->kitchen_status)->toBe(PosKitchenStatus::Draft)->and($line->seat_number)->toBeNull()
+        ->and($place($line, 10, null)->refusal)->toBe('placement_invalid');
+
+    app(FireOrderLines::class)($s['manager'], $s['property'], $order);
+
+    expect($place($line, 2, null)->refusal)->toBe('line_locked')->and($place($line, null, 2)->isRefused())->toBeFalse();
 });

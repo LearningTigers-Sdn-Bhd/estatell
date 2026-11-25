@@ -93,7 +93,7 @@ class PosRegisterController extends Controller
             'menu' => $snapshot($model),
             'order' => $order === null ? null : PosOrderData::fromModel($order),
             'receipt' => $receipt === null ? null : PosOrderData::fromModel($receipt),
-            'openOrders' => $shift === null ? [] : PosOrder::query()->where('pos_shift_id', $shift->id)->where('status', 'open')->orderBy('id')->with('table:id,code')->get(['id', 'order_number', 'grand_total', 'pos_table_id'])->map(fn (PosOrder $open): array => ['id' => $open->id, 'orderNumber' => $open->order_number, 'grandTotal' => $open->grand_total, 'tableCode' => $open->table?->code])->all(),
+            'openOrders' => $shift === null ? [] : PosOrder::query()->where('pos_shift_id', $shift->id)->where('status', 'open')->orderBy('id')->with('table:id,code')->get(['id', 'order_number', 'grand_total', 'pos_table_id', 'opened_at'])->map(fn (PosOrder $open): array => ['id' => $open->id, 'orderNumber' => $open->order_number, 'grandTotal' => $open->grand_total, 'tableCode' => $open->table?->code, 'tableId' => $open->pos_table_id, 'openedAt' => $open->opened_at->toIso8601String()])->all(),
             'voidReasons' => PosVoidReason::query()->where('property_id', $property->id)->where('active', true)->orderBy('sort_order')->orderBy('label')->get(['id', 'label', 'requires_manager_pin']),
             'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->values()->all(),
             'staff' => $this->staff($property),

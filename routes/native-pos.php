@@ -50,6 +50,7 @@ Route::middleware('native-pos')->group(function () {
                     Route::post('fire', [PosOrderController::class, 'fire'])->name('fire');
                     Route::post('course', [PosOrderController::class, 'course'])->name('course');
                     Route::post('lines/{line}/split', [PosOrderController::class, 'splitLine'])->name('lines.split');
+                    Route::post('lines/{line}/place', [PosOrderController::class, 'placeLine'])->name('lines.place');
                     Route::post('split', [PosOrderController::class, 'split'])->name('split');
                     Route::post('move', [PosOrderController::class, 'move'])->name('move');
                     Route::post('merge', [PosOrderController::class, 'merge'])->name('merge');

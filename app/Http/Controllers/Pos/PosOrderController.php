@@ -12,6 +12,7 @@ use App\Actions\Pos\FireOrderLines;
 use App\Actions\Pos\HoldOrderCourse;
 use App\Actions\Pos\MergePosOrders;
 use App\Actions\Pos\MovePosOrderItems;
+use App\Actions\Pos\PlaceOrderLine;
 use App\Actions\Pos\PrintPreBill;
 use App\Actions\Pos\RefundPosOrder;
 use App\Actions\Pos\RemoveDraftLine;
@@ -41,6 +42,7 @@ use App\Http\Requests\Pos\FirePosOrderRequest;
 use App\Http\Requests\Pos\MergePosOrdersRequest;
 use App\Http\Requests\Pos\MovePosOrderItemsRequest;
 use App\Http\Requests\Pos\OrderCoursePosRequest;
+use App\Http\Requests\Pos\PlacePosOrderLineRequest;
 use App\Http\Requests\Pos\PrintPreBillRequest;
 use App\Http\Requests\Pos\RefundPosOrderRequest;
 use App\Http\Requests\Pos\SettlePosOrderRequest;
@@ -167,6 +169,15 @@ class PosOrderController extends Controller
         $hold = $request->validated('action') === 'hold';
         $result = $hold ? $holdOrderCourse($this->actor($request), $property, $model, $course) : $fireOrderCourse($this->actor($request), $property, $model, $course);
         $this->toast($result->refusal, $hold ? __('Course :course held.', ['course' => $course]) : __('Course :course sent.', ['course' => $course]));
+
+        return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function placeLine(PlacePosOrderLineRequest $request, Property $property, int $order, int $line, PlaceOrderLine $placeOrderLine): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $result = $placeOrderLine($this->actor($request), $property, $model, $this->line($model, $line), $request->validated('course') === null ? null : (int) $request->validated('course'), $request->validated('seat') === null ? null : (int) $request->validated('seat'));
+        $this->toast($result->refusal, __('Line placed.'));
 
         return $this->terminal($property, $model->shift, $model);
     }

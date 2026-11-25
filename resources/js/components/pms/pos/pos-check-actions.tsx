@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { course, merge, move, split } from '@/routes/pos/orders';
-import { split as splitLine } from '@/routes/pos/orders/lines';
+import { place, split as splitLine } from '@/routes/pos/orders/lines';
 
 type Order = App.Data.Pos.PosOrderData;
 
@@ -36,6 +36,13 @@ export function PosCheckActionsDialog({
     const [courseNumber, setCourseNumber] = useState('2');
     const [splitLineId, setSplitLineId] = useState('');
     const [splitQty, setSplitQty] = useState('1');
+    const seats = Array.from(
+        new Set(
+            live
+                .map((line) => line.seatNumber)
+                .filter((seat): seat is number => seat !== null),
+        ),
+    ).sort((a, b) => a - b);
     const options = others.map((row) => ({
         value: String(row.id),
         label: row.label,
@@ -65,8 +72,11 @@ export function PosCheckActionsDialog({
                 <FieldLabel>Lines</FieldLabel>
                 <ul className="flex flex-col gap-2">
                     {live.map((line) => (
-                        <li key={line.id}>
-                            <label className="flex items-center gap-3">
+                        <li
+                            key={line.id}
+                            className="flex flex-wrap items-center gap-3"
+                        >
+                            <label className="flex flex-1 items-center gap-3">
                                 <Checkbox
                                     checked={picked.includes(line.id)}
                                     onCheckedChange={(value) =>
@@ -80,11 +90,11 @@ export function PosCheckActionsDialog({
                                     }
                                 />
                                 <span>
-                                    {line.quantity} × {line.itemName} · course{' '}
-                                    {line.courseNumber}
+                                    {line.quantity} × {line.itemName}
                                     {line.kitchenStatus === 'held' && ' · held'}
                                 </span>
                             </label>
+                            <PlaceFields orderId={order.id} line={line} />
                         </li>
                     ))}
                 </ul>
@@ -104,6 +114,34 @@ export function PosCheckActionsDialog({
                     Split to a new check
                 </Button>
             </div>
+
+            {seats.length > 0 && (
+                <Field>
+                    <FieldLabel>Split by seat</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                        {seats.map((seat) => (
+                            <Button
+                                key={seat}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                    post(split.url({ order: order.id }), {
+                                        line_ids: live
+                                            .filter(
+                                                (line) =>
+                                                    line.seatNumber === seat,
+                                            )
+                                            .map((line) => line.id),
+                                    })
+                                }
+                            >
+                                Seat {seat} to a new check
+                            </Button>
+                        ))}
+                    </div>
+                </Field>
+            )}
 
             <Field>
                 <FieldLabel>Move the picked lines to</FieldLabel>
@@ -220,5 +258,59 @@ export function PosCheckActionsDialog({
                 </div>
             </Field>
         </FormOverlay>
+    );
+}
+
+type Line = App.Data.Pos.PosOrderLineData;
+
+/** Course and seat of one line. A course can only change before the line is sent to the kitchen. */
+function PlaceFields({ orderId, line }: { orderId: number; line: Line }) {
+    const [courseValue, setCourseValue] = useState(String(line.courseNumber));
+    const [seatValue, setSeatValue] = useState(String(line.seatNumber ?? ''));
+    const canCourse =
+        line.kitchenStatus === 'draft' || line.kitchenStatus === 'held';
+
+    return (
+        <span className="flex items-center gap-2">
+            <Input
+                aria-label={`Course for ${line.itemName}`}
+                type="number"
+                min={1}
+                max={9}
+                className="w-16"
+                disabled={!canCourse}
+                value={courseValue}
+                onChange={(event) => setCourseValue(event.target.value)}
+            />
+            <Input
+                aria-label={`Seat for ${line.itemName}`}
+                type="number"
+                min={1}
+                max={99}
+                className="w-16"
+                placeholder="Seat"
+                value={seatValue}
+                onChange={(event) => setSeatValue(event.target.value)}
+            />
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                    router.post(
+                        place.url({ order: orderId, line: line.id }),
+                        {
+                            course: canCourse
+                                ? Number(courseValue) || 1
+                                : undefined,
+                            seat: seatValue === '' ? 0 : Number(seatValue),
+                        },
+                        { preserveScroll: true },
+                    )
+                }
+            >
+                Place
+            </Button>
+        </span>
     );
 }

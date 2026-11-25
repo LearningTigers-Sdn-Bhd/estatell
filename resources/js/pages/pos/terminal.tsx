@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { PosChangeTenderDialog } from '@/components/pms/pos/pos-change-tender-dialog';
 import { PosCheckActionsDialog } from '@/components/pms/pos/pos-check-actions';
 import { PosCheckoutSheet } from '@/components/pms/pos/pos-checkout-sheet';
 import { PosFloorBoard } from '@/components/pms/pos/pos-floor-board';
@@ -41,6 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { clock as clockRoute, index as posIndex, terminal } from '@/routes/pos';
 import {
+    changePayment,
     diningOption,
     fire,
     prebill,
@@ -79,6 +81,8 @@ type Props = {
         orderNumber: string | null;
         grandTotal: string;
         tableCode: string | null;
+        tableId: number | null;
+        openedAt: string;
     }[];
     voidReasons: PosVoidReason[];
     transactionCodes: { value: string; label: string }[];
@@ -120,6 +124,7 @@ export default function PosTerminal(props: Props) {
     );
     const [receiptOpen, setReceiptOpen] = useState(true);
     const [checkActions, setCheckActions] = useState(false);
+    const [swapping, setSwapping] = useState(false);
     const [course, setCourse] = useState(1);
 
     const trading = shift !== null && shift.status === 'open';
@@ -574,6 +579,20 @@ export default function PosTerminal(props: Props) {
                             hasMealCover={order.lines.some(
                                 (row) => row.isEntitlementCovered,
                             )}
+                            otherBills={openOrders
+                                .filter(
+                                    (open) =>
+                                        open.id !== order.id &&
+                                        open.tableId !== null &&
+                                        open.tableId === order.tableId,
+                                )
+                                .map((open) => ({
+                                    id: open.id,
+                                    label:
+                                        open.orderNumber ?? `Check #${open.id}`,
+                                    openedAt: open.openedAt,
+                                    total: open.grandTotal,
+                                }))}
                         />
                     )}
                     <PosVoidDialog
@@ -662,7 +681,32 @@ export default function PosTerminal(props: Props) {
                             Refund items
                         </Button>
                     )}
+                    {can.refund && receipt.orderType === 'sale' && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setSwapping(true)}
+                        >
+                            Change tender
+                        </Button>
+                    )}
                 </FormOverlay>
+            )}
+            {receipt && (
+                <PosChangeTenderDialog
+                    open={swapping}
+                    onClose={() => setSwapping(false)}
+                    order={receipt}
+                    tenders={menu.paymentMethods
+                        .map((method) => method.tenderType)
+                        .filter((type, at, all) => all.indexOf(type) === at)
+                        .map((type) => ({
+                            value: type,
+                            label: type.replace('_', ' '),
+                        }))}
+                    url={changePayment.url({ order: receipt.id })}
+                    staff={staff}
+                />
             )}
             {receipt && (
                 <PosRefundDialog

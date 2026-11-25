@@ -4,6 +4,8 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PosApprovalFields, noApproval } from './pos-approval-fields';
+import type { PosStaff } from './pos-types';
 
 type Order = App.Data.Pos.PosOrderData;
 
@@ -17,12 +19,15 @@ export function PosChangeTenderDialog({
     order,
     tenders,
     url,
+    staff,
 }: {
     open: boolean;
     onClose: () => void;
     order: Order;
     tenders: EnumOption[];
     url: string;
+    /** At the register a manager approves with their PIN; in the back office the signed-in manager is the approver. */
+    staff?: PosStaff[];
 }) {
     const payments = order.payments.filter(
         (payment) =>
@@ -34,6 +39,7 @@ export function PosChangeTenderDialog({
         payment_id: String(payments[0]?.id ?? ''),
         tender_type: '',
         reference: '',
+        ...noApproval,
     });
 
     return (
@@ -94,6 +100,16 @@ export function PosChangeTenderDialog({
                     }
                 />
             </Field>
+            {staff !== undefined && (
+                <PosApprovalFields
+                    staff={staff}
+                    data={{
+                        approver_id: form.data.approver_id,
+                        approver_pin: form.data.approver_pin,
+                    }}
+                    onChange={(next) => form.setData({ ...form.data, ...next })}
+                />
+            )}
         </FormOverlay>
     );
 }

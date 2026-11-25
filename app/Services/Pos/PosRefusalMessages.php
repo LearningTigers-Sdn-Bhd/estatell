@@ -86,6 +86,7 @@ class PosRefusalMessages
             'receipt_attempts_exceeded' => __('Too many tries on this receipt. Please ask the staff for help.'),
             'receipt_closed' => __('This receipt can no longer be claimed here.'),
             'receipt_mismatch' => __('That total and date do not match the receipt.'),
+            'placement_invalid' => __('Pick a course from 1 to 9 and a seat from 1 to 99.'),
             default => $code,
         };
     }
