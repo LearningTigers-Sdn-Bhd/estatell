@@ -10,13 +10,16 @@ use App\Services\Pos\QrSessionState;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Check the stay PIN and the primary guest's last name before a room QR shows its menu. Five wrong tries lock the token for
- * 15 minutes. The refusal does not say which of the two was wrong. A refusal writes the try count only.
+ * Check the stay PIN and the primary guest's last name before a room QR shows its menu. Five wrong tries lock the token. Each
+ * lock lasts twice as long as the one before (15, 30, 60 minutes), and the third lock revokes the token, so front desk must
+ * issue a new PIN. The refusal does not say which of the two was wrong. A refusal writes the try count only.
  * See docs/34-native-pos/06-kitchen-kds-and-qr.md.
  */
 class UnlockRoomQrSession
 {
     public const MAX_ATTEMPTS = 5;
+
+    public const MAX_LOCKS = 3;
 
     public const LOCK_MINUTES = 15;
 
@@ -53,14 +56,28 @@ class UnlockRoomQrSession
             }
 
             $attempts = $session->failed_pin_attempts + 1;
-            $locked = $attempts >= self::MAX_ATTEMPTS;
+
+            if ($attempts < self::MAX_ATTEMPTS) {
+                $session->forceFill(['failed_pin_attempts' => $attempts])->save();
+
+                return PosActionResult::refused('stay_verification_failed');
+            }
+
+            $locks = $session->lock_count + 1;
+
+            if ($locks >= self::MAX_LOCKS) {
+                $session->forceFill(['failed_pin_attempts' => 0, 'lock_count' => $locks, 'revoked_at' => now()])->save();
+
+                return PosActionResult::refused('qr_revoked');
+            }
 
             $session->forceFill([
-                'failed_pin_attempts' => $locked ? 0 : $attempts,
-                'locked_until' => $locked ? now()->addMinutes(self::LOCK_MINUTES) : null,
+                'failed_pin_attempts' => 0,
+                'lock_count' => $locks,
+                'locked_until' => now()->addMinutes(self::LOCK_MINUTES * 2 ** ($locks - 1)),
             ])->save();
 
-            return PosActionResult::refused($locked ? 'qr_locked' : 'stay_verification_failed');
+            return PosActionResult::refused('qr_locked');
         });
     }
 

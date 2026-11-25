@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $property_id
  * @property int $pos_category_id
  * @property int|null $transaction_code_id
+ * @property int|null $kitchen_station_id
  * @property int|null $meal_period_id
  * @property string $name
  * @property string|null $internal_name

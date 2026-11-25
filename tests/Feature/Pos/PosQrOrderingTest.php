@@ -144,6 +144,27 @@ it('gives a room QR a fresh PIN and revokes the old token when the PIN is regene
         ->and(PosQrSession::query()->where('kind', PosQrSessionKind::Room->value)->whereNull('revoked_at')->count())->toBe(1);
 });
 
+it('revokes a room QR for good after its third lock', function () {
+    $s = posQrRoomSetup();
+    $token = $s['session']->token;
+    $wrong = $s['pin'] === '0000' ? '1111' : '0000';
+
+    for ($lock = 1; $lock <= 3; $lock++) {
+        Cache::flush();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('qr.room.unlock', $token), ['pin' => $wrong, 'last_name' => 'Rahman']);
+        }
+
+        if ($lock < 3) {
+            expect($s['session']->refresh()->lock_count)->toBe($lock);
+            $s['session']->forceFill(['locked_until' => now()->subMinute()])->save();
+        }
+    }
+
+    expect($s['session']->refresh()->revoked_at)->not->toBeNull();
+});
+
 it('revokes a room QR when the guest checks out or the check-in is undone', function () {
     $s = posQrRoomSetup();
 

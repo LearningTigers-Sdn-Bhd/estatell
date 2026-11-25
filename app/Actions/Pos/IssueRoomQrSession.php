@@ -45,6 +45,7 @@ class IssueRoomQrSession
             ]);
             $session->property_id = $propertyId;
             $session->reservation_unit_id = $unit->id;
+            $session->expires_at = $unit->departure_date->endOfDay();
             $session->save();
 
             return $pin;

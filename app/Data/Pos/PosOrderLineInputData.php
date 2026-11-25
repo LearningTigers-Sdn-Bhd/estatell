@@ -26,5 +26,6 @@ class PosOrderLineInputData extends Data
         public ?int $seatNumber = null,
         public ?string $weight = null,
         public array $comboSelections = [],
+        public ?string $snapshotPrice = null,
     ) {}
 }

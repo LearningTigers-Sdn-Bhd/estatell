@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pos;
 use App\Actions\Pos\IssueTableQrSession;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
+use App\Models\PosQrSession;
 use App\Models\PosTable;
 use App\Models\Property;
 use Illuminate\Http\RedirectResponse;
@@ -30,10 +31,13 @@ class PosTableQrController extends Controller
             return back();
         }
 
+        $session = $result->model;
+        abort_unless($session instanceof PosQrSession, 500);
+
         return Inertia::render('pos/table-qr', [
             'table' => $model->code,
-            'url' => route('qr.table.show', ['token' => $result->model->token]),
-            'expiresAt' => $result->model->expires_at?->toIso8601String(),
+            'url' => route('qr.table.show', ['token' => $session->token]),
+            'expiresAt' => $session->expires_at?->toIso8601String(),
         ]);
     }
 }

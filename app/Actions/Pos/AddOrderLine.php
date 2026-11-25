@@ -235,6 +235,11 @@ class AddOrderLine
 
     private function unitPrice(PosItemVariant $variant, ?PosOutletItem $outletItem, PosOrderLineInputData $data): ?string
     {
+        // Only an offline sync sets this, to honour the price its snapshot showed. The register never sends it.
+        if ($data->snapshotPrice !== null) {
+            return BigDecimal::of($data->snapshotPrice)->toScale(2)->__toString();
+        }
+
         if ($variant->pricing_type === PosPricingType::Variable) {
             return $data->unitPrice !== null && preg_match('/^\d{1,10}(\.\d{1,2})?$/', $data->unitPrice) === 1
                 ? BigDecimal::of($data->unitPrice)->toScale(2)->__toString()

@@ -11,6 +11,7 @@ use App\Models\PosOrderLine;
 use App\Models\PosOutlet;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -103,11 +104,10 @@ class KitchenDisplay
             ->get()
             ->filter(fn (PosOrderLine $line): bool => $kinds === null || in_array($line->order->diningOption?->kind, $kinds, true));
 
-        return $lines
+        return array_values($lines
             ->groupBy('pos_order_id')
-            ->map(fn ($group): array => $this->ticket($station, $group->first()->order, $group->values()->all()))
-            ->values()
-            ->all();
+            ->map(fn ($group): array => $this->ticket($station, $group->first()->order, $group))
+            ->all());
     }
 
     /**
@@ -133,11 +133,11 @@ class KitchenDisplay
             ->get()
             ->keyBy('id');
 
-        return $rows->map(fn (PosOrderLine $row): array => [
+        return array_values($rows->map(fn (PosOrderLine $row): array => [
             'id' => (int) $row->pos_order_id,
             'label' => $this->label($orders[$row->pos_order_id]),
-            'bumpedAt' => CarbonImmutable::parse($row->bumped_at)->toIso8601String(),
-        ])->values()->all();
+            'bumpedAt' => CarbonImmutable::parse((string) $row->getAttribute('bumped_at'))->toIso8601String(),
+        ])->all());
     }
 
     /**
@@ -193,18 +193,18 @@ class KitchenDisplay
     }
 
     /**
-     * @param  list<PosOrderLine>  $lines
+     * @param  Collection<int, PosOrderLine>  $lines
      * @return array<string, mixed>
      */
-    private function ticket(PosKitchenStation $station, PosOrder $order, array $lines): array
+    private function ticket(PosKitchenStation $station, PosOrder $order, Collection $lines): array
     {
         return [
             'id' => $order->id,
             'label' => $this->label($order),
             'type' => $order->table !== null ? 'table' : ($order->reservationUnit !== null ? 'room' : 'walk_in'),
             'diningKind' => $order->diningOption?->kind?->label(),
-            'firedAt' => collect($lines)->min(fn (PosOrderLine $line): ?string => $line->fired_at?->toIso8601String()),
-            'lines' => array_map(fn (PosOrderLine $line): array => $this->line($station, $line), $lines),
+            'firedAt' => $lines->min(fn (PosOrderLine $line): ?string => $line->fired_at?->toIso8601String()),
+            'lines' => array_values($lines->map(fn (PosOrderLine $line): array => $this->line($station, $line))->all()),
         ];
     }
 

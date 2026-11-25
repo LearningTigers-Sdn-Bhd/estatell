@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $stay_pin_hash
  * @property bool $single_use
  * @property int $failed_pin_attempts
+ * @property int $lock_count
  * @property CarbonImmutable|null $locked_until
  * @property CarbonImmutable|null $expires_at
  * @property CarbonImmutable|null $revoked_at
@@ -31,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['pos_outlet_id', 'pos_table_id', 'reservation_unit_id', 'kind', 'token', 'stay_pin_hash', 'single_use', 'failed_pin_attempts', 'locked_until', 'expires_at', 'revoked_at', 'created_by_user_id'])]
+#[Fillable(['pos_outlet_id', 'pos_table_id', 'reservation_unit_id', 'kind', 'token', 'stay_pin_hash', 'single_use', 'failed_pin_attempts', 'lock_count', 'locked_until', 'expires_at', 'revoked_at', 'created_by_user_id'])]
 class PosQrSession extends Model
 {
     /** @use HasFactory<PosQrSessionFactory> */
@@ -46,6 +47,7 @@ class PosQrSession extends Model
             'kind' => PosQrSessionKind::class,
             'single_use' => 'boolean',
             'failed_pin_attempts' => 'integer',
+            'lock_count' => 'integer',
             'locked_until' => 'datetime',
             'expires_at' => 'datetime',
             'revoked_at' => 'datetime',

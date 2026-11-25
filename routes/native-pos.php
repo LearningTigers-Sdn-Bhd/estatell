@@ -8,6 +8,7 @@ use App\Http\Controllers\Pos\PosKitchenController;
 use App\Http\Controllers\Pos\PosKitchenSettingsController;
 use App\Http\Controllers\Pos\PosMenuController;
 use App\Http\Controllers\Pos\PosModifierController;
+use App\Http\Controllers\Pos\PosOfflineController;
 use App\Http\Controllers\Pos\PosOrderController;
 use App\Http\Controllers\Pos\PosOrderReceiptController;
 use App\Http\Controllers\Pos\PosOutletSettingsController;
@@ -70,6 +71,9 @@ Route::middleware('native-pos')->group(function () {
 
             Route::middleware('pos.can:'.PermissionEnum::PosSell->value)->group(function () {
                 Route::post('tables/{table}/qr', [PosTableQrController::class, 'issue'])->whereNumber('table')->name('tables.qr');
+                Route::get('offline', [PosOfflineController::class, 'show'])->name('offline.show');
+                Route::get('offline/snapshot', [PosOfflineController::class, 'snapshot'])->name('offline.snapshot');
+                Route::post('offline-sync', [PosOfflineController::class, 'sync'])->middleware('throttle:60,1')->name('offline.sync');
             });
 
             Route::middleware('pos.can:'.PermissionEnum::PosKds->value)->group(function () {

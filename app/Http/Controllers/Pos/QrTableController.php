@@ -9,6 +9,7 @@ use App\Http\Requests\Pos\PlaceQrOrderRequest;
 use App\Models\PosQrSession;
 use App\Services\Pos\OutletMenuSnapshot;
 use App\Services\Pos\PosRefusalMessages;
+use App\Services\Pos\QrMenu;
 use App\Services\Pos\QrSessionState;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -20,7 +21,7 @@ use Inertia\Response;
  */
 class QrTableController extends Controller
 {
-    public function show(string $token, OutletMenuSnapshot $menu, QrSessionState $state): Response
+    public function show(string $token, OutletMenuSnapshot $menu, QrMenu $qrMenu, QrSessionState $state): Response
     {
         $session = $this->session($token);
         $status = $state($session);
@@ -33,7 +34,7 @@ class QrTableController extends Controller
             'outlet' => $outlet->name,
             'table' => $session->table->code,
             'allowRemark' => $outlet->allow_qr_customer_remark,
-            'categories' => $status === QrSessionState::ACTIVE ? $this->orderable($menu($outlet)['categories']) : [],
+            'categories' => $status === QrSessionState::ACTIVE ? $qrMenu($menu($outlet)['categories']) : [],
         ]);
     }
 
@@ -58,37 +59,5 @@ class QrTableController extends Controller
             ->where('kind', PosQrSessionKind::Table->value)
             ->with(['property', 'outlet', 'table'])
             ->firstOrFail();
-    }
-
-    /**
-     * Items a guest can order alone: no combo, and no modifier group the guest must pick from.
-     *
-     * @param  list<array<string, mixed>>  $categories
-     * @return list<array<string, mixed>>
-     */
-    private function orderable(array $categories): array
-    {
-        return collect($categories)
-            ->map(fn (array $category): array => [
-                'id' => $category['id'],
-                'name' => $category['name'],
-                'items' => collect($category['items'])
-                    ->reject(fn (array $item): bool => $item['isCombo'] || collect($item['modifierGroups'])->contains(fn (array $group): bool => $group['minSelect'] > 0))
-                    ->map(fn (array $item): array => [
-                        'id' => $item['id'],
-                        'name' => $item['name'],
-                        'variants' => collect($item['variants'])->map(fn (array $variant): array => [
-                            'id' => $variant['id'],
-                            'name' => $variant['name'],
-                            'price' => $variant['price'],
-                            'soldOut' => $variant['soldOut'],
-                        ])->values()->all(),
-                    ])
-                    ->values()
-                    ->all(),
-            ])
-            ->filter(fn (array $category): bool => $category['items'] !== [])
-            ->values()
-            ->all();
     }
 }

@@ -36,6 +36,29 @@ Deviations and open items:
 - **Guest menu** hides combos and items with a modifier the guest must pick. Those still need staff.
 - **Sessions with no open check** expire by time. A table with another open check keeps its link.
 
+## Build status (Phase 3, step 13: walk-in offline)
+
+| Part                                                                                                              | State                          |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Menu snapshot issued by the server, stored by version, kept 7 days (`pos_menu_snapshots`, `IssuePosMenuSnapshot`) | Built                          |
+| Service worker caches built assets, and keeps the offline page for reload without a connection (`public/sw.js`)   | Built                          |
+| Sales kept in IndexedDB until the server confirms them (`pos-offline-store.ts`)                                   | Built                          |
+| Cash and static DuitNow only. Room charges and meal redemptions refused offline                                   | Built (`tender_not_offline`)   |
+| Items with a changing price, or a modifier to choose, are not sold offline                                        | Built                          |
+| Sync replays each sale once (`client_uuid`), at the snapshot's prices, with drift logged                          | Built (`SyncOfflinePosOrders`) |
+| Official number on sync; the device shows `OFF-{register}-{short}`                                                | Built                          |
+| DuitNow sales wait as `pending_verification` for bank-slip reconciliation                                         | Built                          |
+| Sale from a closed shift joins the open shift and is marked `synced_late`                                         | Built                          |
+
+Deviations and open items:
+
+- **No shift-close block.** The register does not yet refuse a shift close while sales are waiting. The offline page shows the queue.
+- **No manager approval for old snapshots.** A snapshot older than 7 days is refused (`snapshot_expired`). The planned Manager PIN approval is not built.
+- **No cash offset for closed shifts.** The late cash counts in the open shift. The planned phantom-overage offset is not built.
+- **Totals on sync.** The offline page does not show a tax-inclusive total. The server prices the sale on sync, and the cash tendered must cover it.
+- **No printed offline slip.** The `OFF-` reference shows on screen only.
+- **Offline page entry.** Reached from the register index, next to an open register.
+
 Deviation: the ODS board sits behind the terminal actor and `pos.kds`, so a pickup monitor needs a signed-in kitchen session. A public board needs its own token, which is not built.
 
 ## Purpose

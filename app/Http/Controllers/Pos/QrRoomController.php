@@ -13,6 +13,7 @@ use App\Models\PosOutlet;
 use App\Models\PosQrSession;
 use App\Services\Pos\OutletMenuSnapshot;
 use App\Services\Pos\PosRefusalMessages;
+use App\Services\Pos\QrMenu;
 use App\Services\Pos\QrSessionState;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ use Inertia\Response;
  */
 class QrRoomController extends Controller
 {
-    public function show(Request $request, string $token, OutletMenuSnapshot $menu, QrSessionState $state): Response
+    public function show(Request $request, string $token, OutletMenuSnapshot $menu, QrMenu $qrMenu, QrSessionState $state): Response
     {
         $session = $this->session($token);
         $status = $state($session);
@@ -44,7 +45,7 @@ class QrRoomController extends Controller
             'outlets' => $outlets->map(fn (PosOutlet $row): array => ['id' => $row->id, 'name' => $row->name])->values()->all(),
             'outlet' => $live ? ['id' => $outlet->id, 'name' => $outlet->name] : null,
             'allowRemark' => $live && $outlet->allow_qr_customer_remark,
-            'categories' => $live ? $this->orderable($menu($outlet)['categories']) : [],
+            'categories' => $live ? $qrMenu($menu($outlet)['categories']) : [],
         ]);
     }
 
@@ -115,35 +116,5 @@ class QrRoomController extends Controller
     private function key(string $token): string
     {
         return 'pos_qr_room.'.hash('sha256', $token);
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $categories
-     * @return list<array<string, mixed>>
-     */
-    private function orderable(array $categories): array
-    {
-        return collect($categories)
-            ->map(fn (array $category): array => [
-                'id' => $category['id'],
-                'name' => $category['name'],
-                'items' => collect($category['items'])
-                    ->reject(fn (array $item): bool => $item['isCombo'] || collect($item['modifierGroups'])->contains(fn (array $group): bool => $group['minSelect'] > 0))
-                    ->map(fn (array $item): array => [
-                        'id' => $item['id'],
-                        'name' => $item['name'],
-                        'variants' => collect($item['variants'])->map(fn (array $variant): array => [
-                            'id' => $variant['id'],
-                            'name' => $variant['name'],
-                            'price' => $variant['price'],
-                            'soldOut' => $variant['soldOut'],
-                        ])->values()->all(),
-                    ])
-                    ->values()
-                    ->all(),
-            ])
-            ->filter(fn (array $category): bool => $category['items'] !== [])
-            ->values()
-            ->all();
     }
 }

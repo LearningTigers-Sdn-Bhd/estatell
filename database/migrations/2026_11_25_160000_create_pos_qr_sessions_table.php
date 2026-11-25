@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('stay_pin_hash', 255)->nullable();
             $table->boolean('single_use')->default(true);
             $table->unsignedSmallInteger('failed_pin_attempts')->default(0);
+            $table->unsignedSmallInteger('lock_count')->default(0);
             $table->timestamp('locked_until')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamp('revoked_at')->nullable();

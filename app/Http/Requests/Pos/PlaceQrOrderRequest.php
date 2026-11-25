@@ -32,10 +32,10 @@ class PlaceQrOrderRequest extends FormRequest
      */
     public function cartLines(): array
     {
-        return array_map(fn (array $line): array => [
+        return array_values(array_map(fn (array $line): array => [
             'variant_id' => (int) $line['variant_id'],
             'quantity' => (int) $line['quantity'],
             'note' => isset($line['note']) && trim((string) $line['note']) !== '' ? trim((string) $line['note']) : null,
-        ], $this->validated('lines'));
+        ], $this->validated('lines')));
     }
 }
