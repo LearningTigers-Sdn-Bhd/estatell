@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * A tool the AI assistant may call. The value is the tool's class name in `app/Ai/Tools/`, which is also the name the
- * model sees. See docs/34-ai-assistant/02-agent-and-tools.md#tools.
+ * model sees. See docs/35-ai-assistant/02-agent-and-tools.md#tools.
  */
 enum AiTool: string
 {

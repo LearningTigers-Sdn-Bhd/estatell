@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * The AI assistant's threads, one row per model turn, and the tools each turn called. No message text here: it lives in
  * the SDK's conversation tables and is purged after 90 days, so these rows can stay for the usage report. Place, status,
- * outcome and tool have no CHECK, so a new enum case needs no migration. See docs/34-ai-assistant/04-usage-and-cost.md.
+ * outcome and tool have no CHECK, so a new enum case needs no migration. See docs/35-ai-assistant/04-usage-and-cost.md.
  */
 return new class extends Migration
 {

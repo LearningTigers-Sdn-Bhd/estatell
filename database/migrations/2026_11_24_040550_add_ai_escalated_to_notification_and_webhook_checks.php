@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The AI assistant handover: the `ai_thread_escalated` staff notification and the `ai.escalated` webhook event.
- * See docs/34-ai-assistant/03-places-and-routes.md#handover.
+ * See docs/35-ai-assistant/03-places-and-routes.md#handover.
  */
 return new class extends Migration
 {

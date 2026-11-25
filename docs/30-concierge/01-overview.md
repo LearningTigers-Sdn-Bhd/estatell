@@ -243,7 +243,7 @@ A property that sells day use (an active room type sold per room and an active D
 
 ### Quote links
 
-A guest the AI assistant quoted books a future stay on `GET /stay/{code}/quote/{quote}`, with the walk-in details form and the walk-in booking code (`ConfirmConciergeWalkIn` with the quote's rate plan). The walk-in switch is not needed: the AI assistant's RoomQuotes scope is the switch. A quote stay pays the **whole stay** on its Payment step: the unit's whole bill with its taxes, plus the security deposit (`SelfCheckInPayment::shortfall` with `wholeStay`, decided 2026-11-24). Its Payment and Hold expired steps say "confirm your booking" and "ask us again in the chat". See [Quote links](../34-ai-assistant/03-places-and-routes.md#quote-links).
+A guest the AI assistant quoted books a future stay on `GET /stay/{code}/quote/{quote}`, with the walk-in details form and the walk-in booking code (`ConfirmConciergeWalkIn` with the quote's rate plan). The walk-in switch is not needed: the AI assistant's RoomQuotes scope is the switch. A quote stay pays the **whole stay** on its Payment step: the unit's whole bill with its taxes, plus the security deposit (`SelfCheckInPayment::shortfall` with `wholeStay`, decided 2026-11-24). Its Payment and Hold expired steps say "confirm your booking" and "ask us again in the chat". See [Quote links](../35-ai-assistant/03-places-and-routes.md#quote-links).
 
 ## Safety
 
@@ -278,4 +278,4 @@ New: the `Concierge` feature, `ConciergeStays`, `ConciergeLookupLockout`, `Conci
 - **ID photo reading.** The guest types the ID fields. A photo is stored for staff to see and fills nothing.
 - **Sending the stay link by WhatsApp.** The email is built.
 - **Telling staff** when a request arrives. The request shows in the staff list, with no notification yet.
-- **AI chat and future-date booking.** Planned in [AI assistant](../34-ai-assistant/01-overview.md): a chat on the lobby and stay pages, and [quote links](../34-ai-assistant/03-places-and-routes.md#quote-links) that book future dates without the microsite.
+- **AI chat and future-date booking.** Planned in [AI assistant](../35-ai-assistant/01-overview.md): a chat on the lobby and stay pages, and [quote links](../35-ai-assistant/03-places-and-routes.md#quote-links) that book future dates without the microsite.

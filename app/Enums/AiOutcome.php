@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * How one AI assistant turn ended. See docs/34-ai-assistant/04-usage-and-cost.md#data-model.
+ * How one AI assistant turn ended. See docs/35-ai-assistant/04-usage-and-cost.md#data-model.
  */
 enum AiOutcome: string
 {

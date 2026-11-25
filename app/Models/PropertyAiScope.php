@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * One AI assistant scope of a property. A scope is on only when both layers are on. A missing row is off.
- * See docs/34-ai-assistant/01-overview.md#scopes.
+ * See docs/35-ai-assistant/01-overview.md#scopes.
  *
  * @property int $id
  * @property int $property_id

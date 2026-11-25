@@ -15,7 +15,7 @@ use Stringable;
 
 /**
  * The rooms free for a stay and their prices, one per room type and plan sold online, priced as the booking will charge.
- * The chat draws the rooms as cards from this result. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * The chat draws the rooms as cards from this result. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class CheckRoomsAndPrices implements Tool
 {

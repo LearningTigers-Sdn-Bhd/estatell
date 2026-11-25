@@ -9,7 +9,7 @@ use Laravel\Ai\Responses\Data\TextUsage;
 /**
  * What one turn cost, in millionths of a US dollar, from its tokens and the model's price in `config/ai-pricing.php`.
  * A price per million tokens in dollars is the same number as micros per token. See
- * docs/34-ai-assistant/04-usage-and-cost.md#data-model.
+ * docs/35-ai-assistant/04-usage-and-cost.md#data-model.
  */
 class AiTurnCost
 {

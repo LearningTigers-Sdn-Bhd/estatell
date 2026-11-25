@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * The AI assistant's scopes for each property (allowed by the platform admin, enabled by the hotel), and the handover
  * message and monthly cap on property_settings. The scope column has no CHECK, so a new AiScope case needs no migration.
- * See docs/34-ai-assistant/01-overview.md#scopes.
+ * See docs/35-ai-assistant/01-overview.md#scopes.
  */
 return new class extends Migration
 {

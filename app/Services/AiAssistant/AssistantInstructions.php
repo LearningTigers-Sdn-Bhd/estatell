@@ -15,7 +15,7 @@ use App\Services\Property\PropertyToday;
 /**
  * The instructions of one AI assistant turn: the rules, the place, what a guest may know about the property, the
  * language rule and the handover message. Only what a guest may see goes in: never Wi-Fi, hidden FAQs or hidden topics.
- * See docs/34-ai-assistant/02-agent-and-tools.md#instructions.
+ * See docs/35-ai-assistant/02-agent-and-tools.md#instructions.
  */
 class AssistantInstructions
 {

@@ -14,7 +14,7 @@ use Throwable;
 /**
  * The OpenAI provider on the hotel's own key. Each hotel brings its own key (BYOK) and Estatell has none, so there is no
  * fallback. The provider uses the model and options of `ai.providers.openai`, with the hotel's key in place of the env
- * key. See docs/34-ai-assistant/01-overview.md#api-key.
+ * key. See docs/35-ai-assistant/01-overview.md#api-key.
  */
 class AiKeyProvider
 {

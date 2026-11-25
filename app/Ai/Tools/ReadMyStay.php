@@ -14,7 +14,7 @@ use Stringable;
 /**
  * The guest's own stay: dates, room, guests and the balance due. It reads only the stay its thread was opened for, which
  * the stay link set; it takes no input, so the model cannot ask for another stay. The room number (of the latest night so far, so
- * after a room move too) is given only to a checked-in guest, as on the stay page. See docs/34-ai-assistant/02-agent-and-tools.md#tools.
+ * after a room move too) is given only to a checked-in guest, as on the stay page. See docs/35-ai-assistant/02-agent-and-tools.md#tools.
  */
 class ReadMyStay implements Tool
 {

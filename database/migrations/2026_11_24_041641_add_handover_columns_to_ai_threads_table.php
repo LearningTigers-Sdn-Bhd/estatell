@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The AI chats inbox: the model's handover summary, and who resolved the handover and when. The 90-day text purge clears
- * the summary. See docs/34-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
+ * the summary. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 return new class extends Migration
 {

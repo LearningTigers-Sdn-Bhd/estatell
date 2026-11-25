@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
  * Save a quote link for one room type and plan of a future stay. Nothing is booked or held: the guest books on the quote
  * page. The price is the one the booking will charge (`KioskWalkIn::quotable`), and the link lasts `VALID_HOURS`. Refused,
  * writing nothing, when the dates are wrong, the arrival is outside `BookingWindow`, or the room is not free on that plan.
- * See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class CreateConciergeQuote
 {

@@ -9,7 +9,7 @@ use App\Models\User;
 /**
  * The hotel saves its own OpenAI key, then it is tested at once. The key is stored encrypted and never logged. Returns
  * the test result: null when OpenAI could not be reached, so the key stays untested.
- * See docs/34-ai-assistant/01-overview.md#api-key.
+ * See docs/35-ai-assistant/01-overview.md#api-key.
  */
 class SaveAiKey
 {

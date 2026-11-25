@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The hotel's own OpenAI key for the AI assistant (stored encrypted by the model cast), whether it works, and when it
- * was last tested. See docs/34-ai-assistant/01-overview.md#api-key.
+ * was last tested. See docs/35-ai-assistant/01-overview.md#api-key.
  */
 return new class extends Migration
 {

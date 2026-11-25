@@ -13,7 +13,7 @@ use Stringable;
 /**
  * Make a quote link for a room the guest chose from `CheckRoomsAndPrices`. Nothing is booked: the guest books on the
  * link's page. The chat draws the link as a card from this result, and `RecordAiTurn` links the quote to the turn by its
- * `quote_id`. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * `quote_id`. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class SendQuoteLink implements Tool
 {

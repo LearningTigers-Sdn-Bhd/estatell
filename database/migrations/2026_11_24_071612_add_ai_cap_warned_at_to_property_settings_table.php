@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The AI assistant's 80% cap notice: when staff were last told, so they are told once a month, and the
- * `ai_cap_nearly_reached` notification type. See docs/34-ai-assistant/04-usage-and-cost.md#monthly-cap.
+ * `ai_cap_nearly_reached` notification type. See docs/35-ai-assistant/04-usage-and-cost.md#monthly-cap.
  */
 return new class extends Migration
 {

@@ -72,7 +72,7 @@ Route::middleware(['concierge:checked-out', 'throttle:concierge'])->prefix('c/{t
 
 /*
  * The AI assistant chat on the Concierge page. It needs the AI assistant feature and its Concierge scope on top of the
- * Concierge guard. A message is limited per stay link, or per address and property in the lobby. See docs/34-ai-assistant/03-places-and-routes.md.
+ * Concierge guard. A message is limited per stay link, or per address and property in the lobby. See docs/35-ai-assistant/03-places-and-routes.md.
  */
 Route::middleware(['concierge', 'ai-assistant:concierge', 'throttle:concierge'])->group(function () {
     Route::get('stay/{property:code}/ai/messages', [ConciergeChatController::class, 'lobbyMessages'])->name('concierge.chat.lobby');

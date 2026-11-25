@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
  * desk staff get `AiThreadEscalated` and the `ai.escalated` webhook is queued, both with the summary and never the chat.
  * A new handover clears an earlier resolve. The thread keeps answering questions. Returns false without writing or
  * sending when the thread is already handed over or closed.
- * See docs/34-ai-assistant/02-agent-and-tools.md#handover.
+ * See docs/35-ai-assistant/02-agent-and-tools.md#handover.
  */
 class EscalateAiThread
 {

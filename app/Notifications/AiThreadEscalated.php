@@ -9,7 +9,7 @@ use Illuminate\Notifications\Messages\MailMessage;
  * Tells front desk staff that the AI assistant handed a chat over. It carries the place, the guest name when the thread
  * belongs to a stay, and the model's short summary, never the chat itself. The data is copied in, so the message does
  * not depend on the thread when it is built. It opens the chat in the AI chats inbox.
- * See docs/34-ai-assistant/03-places-and-routes.md#handover.
+ * See docs/35-ai-assistant/03-places-and-routes.md#handover.
  */
 class AiThreadEscalated extends PropertyNotification
 {

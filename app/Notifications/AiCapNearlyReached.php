@@ -8,7 +8,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 /**
  * Tells staff who manage settings that the AI assistant has used 80% of its monthly cap this month. At the cap every
  * chat goes to staff, so they can raise the cap first. Sent once a month. It opens Settings › AI assistant › Usage.
- * See docs/34-ai-assistant/04-usage-and-cost.md#monthly-cap.
+ * See docs/35-ai-assistant/04-usage-and-cost.md#monthly-cap.
  */
 class AiCapNearlyReached extends PropertyNotification
 {

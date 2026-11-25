@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * Where an AI assistant thread runs. The place decides which tools the agent gets and which scope must be on.
- * See docs/34-ai-assistant/03-places-and-routes.md.
+ * See docs/35-ai-assistant/03-places-and-routes.md.
  */
 enum AiPlace: string
 {

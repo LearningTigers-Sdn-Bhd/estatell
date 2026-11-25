@@ -16,7 +16,7 @@ use Laravel\Ai\Contracts\ConversationStore;
  * conversation here, so neither the browser nor the model picks a conversation id. Returns null when a lobby id is
  * already used by another thread (another property, another place, or closed): the browser then starts a new id. The
  * browser's language is kept on the thread the first time it is known.
- * See docs/34-ai-assistant/02-agent-and-tools.md#the-agent.
+ * See docs/35-ai-assistant/02-agent-and-tools.md#the-agent.
  */
 class OpenAiThread
 {

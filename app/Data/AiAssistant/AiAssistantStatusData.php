@@ -15,7 +15,7 @@ use Spatie\LaravelData\Data;
 /**
  * The status rail on every tab of Settings › AI assistant: the hotel's key (masked to its last four characters), its
  * last test, how many places are on, and this month's estimated spend against the cap. Amounts are US dollars, as
- * OpenAI bills. See docs/34-ai-assistant/01-overview.md#settings.
+ * OpenAI bills. See docs/35-ai-assistant/01-overview.md#settings.
  */
 class AiAssistantStatusData extends Data
 {

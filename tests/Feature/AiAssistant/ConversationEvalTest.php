@@ -8,7 +8,7 @@ require_once __DIR__.'/../Support/AiEvalSetup.php';
  * Opt-in live eval: multi-turn edge cases, adapted from the wastays concierge eval
  * (spec/fixtures/ai_concierge/conversations). Rooms and rates are in aiEvalLobby(): Garden Room, Sea View Room and Family
  * Suite, free 2 to 4 November 2026, and Garden and Sea View also 12 to 15 November. Run with
- * `php artisan test --group=ai-eval`. See docs/34-ai-assistant/05-eval.md.
+ * `php artisan test --group=ai-eval`. See docs/35-ai-assistant/05-eval.md.
  */
 
 afterAll(fn () => aiEvalReport('Conversation'));

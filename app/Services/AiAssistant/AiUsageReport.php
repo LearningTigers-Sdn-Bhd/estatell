@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
  * What the AI assistant did and cost in one calendar month (property time zone), from the usage log: totals, turns and
  * spend per place, threads per language, turns per outcome, bookings made from quotes with their room total, and runs
  * and failures per tool. Counts and amounts only, never message text. Cost is in micros of a US dollar.
- * See docs/34-ai-assistant/04-usage-and-cost.md#usage-tab.
+ * See docs/35-ai-assistant/04-usage-and-cost.md#usage-tab.
  */
 class AiUsageReport
 {

@@ -8,7 +8,7 @@ use App\Models\AiTurn;
 
 /**
  * A quote link became a booking: the turn that sent it gets the reservation and the outcome Booked. A quote with no turn
- * changes nothing. See docs/34-ai-assistant/04-usage-and-cost.md#data-model.
+ * changes nothing. See docs/35-ai-assistant/04-usage-and-cost.md#data-model.
  */
 class MarkAiTurnBooked
 {

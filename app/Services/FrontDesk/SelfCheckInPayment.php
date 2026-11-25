@@ -32,7 +32,7 @@ class SelfCheckInPayment
     /**
      * What is still unpaid of Collect now, as a decimal string with two places. `0.00` when it is covered. With
      * `$wholeStay` the unit's whole bill (every Scheduled row, taxes included) takes the place of the Collect now taxes,
-     * and the deposit is still added. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+     * and the deposit is still added. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
      */
     public function shortfall(ReservationUnit $unit, bool $wholeStay = false): string
     {

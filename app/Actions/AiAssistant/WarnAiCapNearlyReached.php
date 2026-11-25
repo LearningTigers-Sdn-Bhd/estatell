@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Notification;
 /**
  * Tell staff who manage settings, once a month, that the AI assistant has spent 80% of its monthly cap. Called after
  * each turn is logged. No cap, under 80%, or already told this month (property time zone) changes nothing. Returns
- * whether it told them. See docs/34-ai-assistant/04-usage-and-cost.md#monthly-cap.
+ * whether it told them. See docs/35-ai-assistant/04-usage-and-cost.md#monthly-cap.
  */
 class WarnAiCapNearlyReached
 {

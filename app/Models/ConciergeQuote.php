@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A quote link for a future stay on the Concierge page. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * A quote link for a future stay on the Concierge page. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  *
  * @property int $id
  * @property int $property_id

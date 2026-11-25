@@ -27,7 +27,7 @@ use Stringable;
 /**
  * The AI assistant of one property, for one thread. The thread's place decides the tools, and a tool whose capability
  * scope is off is left out. At most four tool calls and a reply per turn. The model comes from `config/ai.php`, and the
- * provider is OpenAI on the hotel's own key. See docs/34-ai-assistant/02-agent-and-tools.md.
+ * provider is OpenAI on the hotel's own key. See docs/35-ai-assistant/02-agent-and-tools.md.
  */
 #[MaxSteps(5)]
 #[Timeout(60)]
@@ -42,7 +42,7 @@ class PropertyAssistant implements Agent, Conversational, HasTools
     ) {}
 
     /**
-     * OpenAI on the hotel's own key. See docs/34-ai-assistant/01-overview.md#api-key.
+     * OpenAI on the hotel's own key. See docs/35-ai-assistant/01-overview.md#api-key.
      */
     public function provider(): Provider
     {

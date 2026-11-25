@@ -49,7 +49,7 @@ The server sends only the selected tab's setting and choices. Each tab has its o
 
 ### AI assistant tab
 
-Two switches under **Experimental AI places**, saved together with one **Save changes** button: **Booking website chat** and **Staff helper (Ask Estatell)**. Each switch sends an explicit 1 or 0. See [Experimental places](../34-ai-assistant/01-overview.md#experimental-places).
+Two switches under **Experimental AI places**, saved together with one **Save changes** button: **Booking website chat** and **Staff helper (Ask Estatell)**. Each switch sends an explicit 1 or 0. See [Experimental places](../35-ai-assistant/01-overview.md#experimental-places).
 
 ## Settings
 
@@ -58,8 +58,8 @@ Two switches under **Experimental AI places**, saved together with one **Save ch
 | `require_go_live_approval`   | When true, owners **Send for approval** and an admin approves or sends it back. The checkbox help: "Owners send their setup for review. You approve it or send it back from Properties, under Waiting for approval." Switching it off leaves pending requests pending. See [Go live](../17-onboarding/03-go-live.md#approval). |
 | `default_dorm_strategy`      | Default Channex strategy for Bed room types. See [Dorm strategies](../21-channels/03-dorm-strategies.md).                                                                                                                                                                                                                      |
 | `media_disk`                 | Where new uploads are stored. See [Media storage](#media-storage).                                                                                                                                                                                                                                                             |
-| `ai_booking_website_enabled` | Releases the experimental booking website chat. Off hides the `BookingEngine` scope everywhere. See [Experimental places](../34-ai-assistant/01-overview.md#experimental-places).                                                                                                                                              |
-| `ai_staff_helper_enabled`    | Releases the experimental staff helper. Off hides the `Staff`, `DailyNumbers` and `HowTo` scopes everywhere. See [Experimental places](../34-ai-assistant/01-overview.md#experimental-places).                                                                                                                                 |
+| `ai_booking_website_enabled` | Releases the experimental booking website chat. Off hides the `BookingEngine` scope everywhere. See [Experimental places](../35-ai-assistant/01-overview.md#experimental-places).                                                                                                                                              |
+| `ai_staff_helper_enabled`    | Releases the experimental staff helper. Off hides the `Staff`, `DailyNumbers` and `HowTo` scopes everywhere. See [Experimental places](../35-ai-assistant/01-overview.md#experimental-places).                                                                                                                                 |
 
 ## Media storage
 

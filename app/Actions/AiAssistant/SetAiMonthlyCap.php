@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * The hotel sets the AI assistant's monthly spend limit, in micros of a US dollar, as it pays OpenAI. Null is no cap.
- * Returns false, writing nothing, when the cap is unchanged. See docs/34-ai-assistant/04-usage-and-cost.md#monthly-cap.
+ * Returns false, writing nothing, when the cap is unchanged. See docs/35-ai-assistant/04-usage-and-cost.md#monthly-cap.
  */
 class SetAiMonthlyCap
 {

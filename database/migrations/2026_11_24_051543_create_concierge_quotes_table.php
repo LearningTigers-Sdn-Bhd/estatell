@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * A quote link the AI assistant sends: a room type, plan and dates for a guest to book on the Concierge page. Nothing is
- * booked until the guest confirms. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * booked until the guest confirms. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 return new class extends Migration
 {

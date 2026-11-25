@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * A place or a capability of the AI assistant. The platform admin allows each one for a property, and the hotel turns
- * it on. See docs/34-ai-assistant/01-overview.md#scopes.
+ * it on. See docs/35-ai-assistant/01-overview.md#scopes.
  */
 enum AiScope: string
 {

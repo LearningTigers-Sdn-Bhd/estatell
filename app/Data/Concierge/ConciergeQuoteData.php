@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * A quote link as its page shows it. `total` is the price now, null when the room can no longer be booked on that plan;
- * `quotedTotal` is the price the guest was told. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * `quotedTotal` is the price the guest was told. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class ConciergeQuoteData extends Data
 {

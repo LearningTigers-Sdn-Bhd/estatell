@@ -8,7 +8,7 @@ use App\Models\AiThread;
 /**
  * Close Open threads with no message for 7 days, so the next message starts a new thread. A handed-over thread stays
  * until staff resolve it in the AI chats inbox; it closes 7 quiet days after that. Returns how many closed. Running it
- * again finds nothing more. See docs/34-ai-assistant/04-usage-and-cost.md#data-model.
+ * again finds nothing more. See docs/35-ai-assistant/04-usage-and-cost.md#data-model.
  */
 class CloseQuietAiThreads
 {

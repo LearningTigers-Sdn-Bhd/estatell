@@ -10,7 +10,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * One thread in the AI chats inbox. `preview` is the handover summary, else the guest's last message (`last_guest_message`,
- * selected by `AiThreadList`). No other chat text. See docs/34-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
+ * selected by `AiThreadList`). No other chat text. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 class AiThreadRowData extends Data
 {

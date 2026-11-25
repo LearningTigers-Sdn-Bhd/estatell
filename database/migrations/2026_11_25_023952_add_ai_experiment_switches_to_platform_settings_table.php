@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * The platform switches for the experimental AI assistant places. See docs/34-ai-assistant/01-overview.md#experimental-places.
+     * The platform switches for the experimental AI assistant places. See docs/35-ai-assistant/01-overview.md#experimental-places.
      */
     public function up(): void
     {

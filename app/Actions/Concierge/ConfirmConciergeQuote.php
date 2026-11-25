@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  * Book a quote link once the guest has given who they are, the same way as a Concierge walk-in (`ConfirmConciergeWalkIn`)
  * with the quote's room type, plan and dates. The quote is locked, so it books once. Refused, writing nothing, with
  * `quote_used`, `quote_expired`, `no_room_available` (the plan is no longer sold online or the room has gone), or any
- * walk-in refusal. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * walk-in refusal. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class ConfirmConciergeQuote
 {

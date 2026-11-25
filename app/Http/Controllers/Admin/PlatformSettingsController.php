@@ -36,7 +36,7 @@ class PlatformSettingsController extends Controller
     }
 
     /**
-     * The switches for the experimental AI assistant places. See docs/34-ai-assistant/01-overview.md#experimental-places.
+     * The switches for the experimental AI assistant places. See docs/35-ai-assistant/01-overview.md#experimental-places.
      */
     public function ai(PlatformSettings $platformSettings): Response
     {

@@ -22,7 +22,7 @@ class BookConciergeWalkIn
      * the guest's only after the payment step. Refused, writing nothing, with `walk_in_disabled` while the property
      * has the switch off, `busy` while `MAX_OPEN_HOLDS` holds are open, or `no_room_available`. A quote link passes its
      * `$ratePlanId` and `$quoted`: the RoomQuotes scope is its switch, so the walk-in switch is not checked, but the hold
-     * limit is shared. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+     * limit is shared. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
      */
     public function __invoke(Property $property, KioskWalkInData $search, int $roomTypeId, ?Guest $guest = null, ?int $ratePlanId = null, bool $quoted = false): KioskWalkInResult
     {

@@ -10,7 +10,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * The General tab of Settings › AI assistant: whether a key is saved (never the key), the monthly cap in US dollars,
- * and the handover message with the built-in text used when it is empty. See docs/34-ai-assistant/01-overview.md#settings.
+ * and the handover message with the built-in text used when it is empty. See docs/35-ai-assistant/01-overview.md#settings.
  */
 class AiGeneralSettingsData extends Data
 {

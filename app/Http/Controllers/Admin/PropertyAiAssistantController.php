@@ -13,7 +13,7 @@ use Inertia\Inertia;
 /**
  * The AI assistant's child rows on the admin Features tab: which scopes the property may use. The hotel sets its own key
  * and monthly cap.
- * See docs/34-ai-assistant/01-overview.md#scopes.
+ * See docs/35-ai-assistant/01-overview.md#scopes.
  */
 class PropertyAiAssistantController extends Controller
 {

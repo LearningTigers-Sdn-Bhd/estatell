@@ -6,7 +6,7 @@ require_once __DIR__.'/../Support/AiEvalSetup.php';
 
 /*
  * Opt-in live eval: single questions a guest asks, each with a known answer in the Teluk Biru Resort guide. Run with
- * `php artisan test --group=ai-eval`. See docs/34-ai-assistant/05-eval.md.
+ * `php artisan test --group=ai-eval`. See docs/35-ai-assistant/05-eval.md.
  */
 
 afterAll(fn () => aiEvalReport('Knowledge'));

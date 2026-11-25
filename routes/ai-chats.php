@@ -5,7 +5,7 @@ use App\Http\Controllers\AiAssistant\AiChatsController;
 use Illuminate\Support\Facades\Route;
 
 /**
- * The AI chats inbox: what the assistant handed over to the front desk. See docs/34-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
+ * The AI chats inbox: what the assistant handed over to the front desk. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 Route::prefix('ai-chats')->name('ai-chats.')->middleware(['ai-assistant', 'can:'.PermissionEnum::FrontDeskView->value])->group(function () {
     Route::get('/', [AiChatsController::class, 'index'])->name('index');

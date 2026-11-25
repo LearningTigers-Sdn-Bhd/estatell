@@ -7,7 +7,7 @@ use App\Models\Property;
 
 /**
  * What the property's AI assistant cost in the current calendar month (property time zone), and whether that reached the
- * monthly cap. See docs/34-ai-assistant/04-usage-and-cost.md#monthly-cap.
+ * monthly cap. See docs/35-ai-assistant/04-usage-and-cost.md#monthly-cap.
  */
 class AiMonthlyUsage
 {

@@ -10,7 +10,7 @@ use Stringable;
 
 /**
  * The smallest call that proves a hotel's OpenAI key works: a one-word reply. OpenAI has no free call that also checks
- * the account has credit, so this costs the hotel a fraction of a cent. See docs/34-ai-assistant/01-overview.md#api-key.
+ * the account has credit, so this costs the hotel a fraction of a cent. See docs/35-ai-assistant/01-overview.md#api-key.
  */
 #[MaxTokens(16)]
 #[Timeout(15)]

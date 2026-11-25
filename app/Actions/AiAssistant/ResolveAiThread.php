@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
  * Staff mark a handover handled in the AI chats inbox: the thread goes from Escalated back to Open, with who resolved it
  * and when, so the guest keeps the same chat and a new handover alerts staff again. Returns false without writing or
  * logging when the thread is not handed over (already resolved, or closed). The activity log has no UUID subjects, so
- * the entry is on the property with the thread id. See docs/34-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
+ * the entry is on the property with the thread id. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 class ResolveAiThread
 {

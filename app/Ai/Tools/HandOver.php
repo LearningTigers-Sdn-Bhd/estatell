@@ -12,7 +12,7 @@ use Stringable;
 
 /**
  * Hand the thread over to staff when the assistant cannot help, is unsure, or the guest asks for a person. It works on
- * the thread it was given only. See docs/34-ai-assistant/02-agent-and-tools.md#handover.
+ * the thread it was given only. See docs/35-ai-assistant/02-agent-and-tools.md#handover.
  */
 class HandOver implements Tool
 {

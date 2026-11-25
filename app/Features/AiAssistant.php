@@ -7,7 +7,7 @@ use Laravel\Pennant\Attributes\Name;
 
 /**
  * Unlocks the AI assistant: a chat that answers guests and staff. Which places and capabilities it uses is set per
- * property in `property_ai_scopes`. See docs/34-ai-assistant/01-overview.md.
+ * property in `property_ai_scopes`. See docs/35-ai-assistant/01-overview.md.
  */
 #[Name('ai-assistant')]
 class AiAssistant

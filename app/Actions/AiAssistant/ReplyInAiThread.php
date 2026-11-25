@@ -22,8 +22,8 @@ use Throwable;
  * is not called: the guest gets the handover message and the turn is logged as CapReached with no tokens. While the key
  * is Failing the same happens, logged as Failed. Otherwise the turn is logged once the stream ends. A stream that fails
  * (the provider is down, or the account is out of credit) is logged as Failed and reported, so it reaches the Laravel
- * log, and a key OpenAI refused becomes Failing. See docs/34-ai-assistant/04-usage-and-cost.md#monthly-cap and
- * docs/34-ai-assistant/01-overview.md#api-key.
+ * log, and a key OpenAI refused becomes Failing. See docs/35-ai-assistant/04-usage-and-cost.md#monthly-cap and
+ * docs/35-ai-assistant/01-overview.md#api-key.
  */
 class ReplyInAiThread
 {

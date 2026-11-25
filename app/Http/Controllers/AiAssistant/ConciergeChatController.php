@@ -18,7 +18,7 @@ use Laravel\Ai\Responses\StreamableAgentResponse;
 /**
  * The AI assistant chat on the Concierge page: the lobby (no stay known) and a stay link (tied to that stay). Guarded by
  * `concierge` and `ai-assistant:concierge`. Each place reads its thread back as JSON and answers a message as a stream.
- * See docs/34-ai-assistant/03-places-and-routes.md#concierge-lobby-and-stay.
+ * See docs/35-ai-assistant/03-places-and-routes.md#concierge-lobby-and-stay.
  */
 class ConciergeChatController extends Controller
 {

@@ -21,7 +21,7 @@ use Spatie\LaravelData\PaginatedDataCollection;
 
 /**
  * The AI chats inbox: the Handed over and All tabs, the chat Sheet (`?thread={id}`) and Resolve. Behind `ai-assistant`
- * and `front-desk.view`. See docs/34-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
+ * and `front-desk.view`. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 class AiChatsController extends Controller
 {

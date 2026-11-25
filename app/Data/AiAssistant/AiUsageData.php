@@ -14,7 +14,7 @@ use Spatie\LaravelData\Data;
  * Settings › AI assistant › Usage for one month (`Y-m`, property time zone): estimated spend in US dollars against the
  * cap, turns and threads, then by place, language, outcome and tool, and the bookings made from quotes with their room
  * total in the property currency. Counts and amounts only, never message text. `thisMonth` is the latest month the
- * picker offers. See docs/34-ai-assistant/04-usage-and-cost.md#usage-tab.
+ * picker offers. See docs/35-ai-assistant/04-usage-and-cost.md#usage-tab.
  */
 class AiUsageData extends Data
 {

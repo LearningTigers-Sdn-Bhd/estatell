@@ -32,7 +32,7 @@ use function Laravel\Ai\agent;
 /*
  * The opt-in AI eval: live OpenAI calls against a seaside resort in Semporna. Never part of a normal run or CI: the
  * `ai-eval` group is excluded in phpunit.xml, and every case skips without AI_EVAL_OPENAI_KEY. Run it by hand with
- * `php artisan test --group=ai-eval`. See docs/34-ai-assistant/05-eval.md.
+ * `php artisan test --group=ai-eval`. See docs/35-ai-assistant/05-eval.md.
  */
 
 const AI_EVAL_JUDGE = 'ai-eval-judge';

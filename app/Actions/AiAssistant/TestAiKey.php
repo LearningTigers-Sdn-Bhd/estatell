@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Test the hotel's saved OpenAI key with one small call, and save the result: Working, or Failing when OpenAI refuses
  * the key (wrong key, or no credit). Returns null, writing nothing, when there is no key or the call failed for another
- * reason (OpenAI is down), which says nothing about the key. See docs/34-ai-assistant/01-overview.md#api-key.
+ * reason (OpenAI is down), which says nothing about the key. See docs/35-ai-assistant/01-overview.md#api-key.
  */
 class TestAiKey
 {

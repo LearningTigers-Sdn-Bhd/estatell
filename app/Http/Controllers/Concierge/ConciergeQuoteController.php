@@ -28,7 +28,7 @@ use Inertia\Response;
 /**
  * A quote link the AI assistant sent: the guest sees the room, plan and dates priced again, gives their details, and only
  * then is the room booked and held, the same way as a Concierge walk-in. A used link opens the stay page instead.
- * See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class ConciergeQuoteController extends Controller
 {

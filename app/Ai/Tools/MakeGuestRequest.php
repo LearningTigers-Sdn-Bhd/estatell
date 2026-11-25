@@ -14,7 +14,7 @@ use Stringable;
 /**
  * Send a housekeeping, maintenance or complaint request for the guest's own stay, through `SubmitConciergeRequest`, so
  * the limits of the stay page's request form apply. A refusal returns its own sentence for the guest. The chat draws a
- * sent request as a card from this result. See docs/34-ai-assistant/02-agent-and-tools.md#tools.
+ * sent request as a card from this result. See docs/35-ai-assistant/02-agent-and-tools.md#tools.
  */
 class MakeGuestRequest implements Tool
 {

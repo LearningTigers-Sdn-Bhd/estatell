@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One reply of the AI assistant: its tokens, its cost and how it ended. It keeps no message text.
- * See docs/34-ai-assistant/04-usage-and-cost.md#data-model.
+ * See docs/35-ai-assistant/04-usage-and-cost.md#data-model.
  *
  * @property int $id
  * @property int $property_id

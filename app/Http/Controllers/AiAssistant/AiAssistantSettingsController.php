@@ -29,7 +29,7 @@ use Inertia\Response;
 
 /**
  * Settings › AI assistant: the General, Places, Capabilities and Usage tabs. Each tab is its own URL and sends only its own
- * data, plus the status rail every tab shows. See docs/34-ai-assistant/01-overview.md#settings.
+ * data, plus the status rail every tab shows. See docs/35-ai-assistant/01-overview.md#settings.
  */
 class AiAssistantSettingsController extends Controller
 {

@@ -8,7 +8,7 @@ use App\Models\Property;
 /**
  * OpenAI refused the hotel's key during a chat. Until the hotel tests the key again, turns make no model call and the
  * guest gets the handover message. Returns false, writing nothing, when the key is already Failing.
- * See docs/34-ai-assistant/01-overview.md#api-key.
+ * See docs/35-ai-assistant/01-overview.md#api-key.
  */
 class MarkAiKeyFailing
 {

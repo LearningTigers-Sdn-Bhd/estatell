@@ -8,7 +8,7 @@ use App\Services\AiAssistant\AiKeyProvider;
 
 /**
  * The hotel removes its OpenAI key. Every place of the assistant is off until a new key is saved. Returns false,
- * writing nothing, when there is no key. See docs/34-ai-assistant/01-overview.md#api-key.
+ * writing nothing, when there is no key. See docs/35-ai-assistant/01-overview.md#api-key.
  */
 class RemoveAiKey
 {

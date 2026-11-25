@@ -16,7 +16,7 @@ use Laravel\Ai\Responses\Data\ToolResult;
  * Log one turn of a thread: its tokens, its cost, how it ended and the tools it called. No message text is kept here.
  * A quote link the turn sent is linked to it here, as the quote is made before the turn exists. A turn that cost
  * something may tell staff the month reached 80% of the cap.
- * See docs/34-ai-assistant/04-usage-and-cost.md#data-model.
+ * See docs/35-ai-assistant/04-usage-and-cost.md#data-model.
  */
 class RecordAiTurn
 {

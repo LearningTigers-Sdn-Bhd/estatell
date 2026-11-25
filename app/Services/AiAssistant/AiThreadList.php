@@ -16,7 +16,7 @@ use Laravel\Ai\Models\ConversationMessage;
 /**
  * The AI chats inbox lists, guest places only (never a staff member's own helper chats). Handed over: Escalated threads, oldest handover first. All: every thread, last message
  * first. Both filter by place and by the day of the last message, 25 a page, scoped to the property. Each row also gets
- * the guest's last message and its turn count in the same query. See docs/34-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
+ * the guest's last message and its turn count in the same query. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 class AiThreadList
 {

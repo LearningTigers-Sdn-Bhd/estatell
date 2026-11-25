@@ -7,7 +7,7 @@ use Brick\Math\RoundingMode;
 
 /**
  * Converts the AI assistant's monthly cap between US dollars (what staff type) and micros (what is stored). OpenAI
- * bills in US dollars, so the cap and the usage log do too. See docs/34-ai-assistant/04-usage-and-cost.md#monthly-cap.
+ * bills in US dollars, so the cap and the usage log do too. See docs/35-ai-assistant/04-usage-and-cost.md#monthly-cap.
  */
 class AiMonthlyCap
 {

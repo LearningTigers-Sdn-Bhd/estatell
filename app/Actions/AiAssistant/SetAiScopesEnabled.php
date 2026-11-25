@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * The hotel turns its allowed AI assistant scopes on or off. Returns false, writing nothing, when a scope in the list is
  * not one the hotel may set (the admin stopped it, or its feature is off). Nothing is logged when nothing changes.
- * See docs/34-ai-assistant/01-overview.md#scopes.
+ * See docs/35-ai-assistant/01-overview.md#scopes.
  */
 class SetAiScopesEnabled
 {

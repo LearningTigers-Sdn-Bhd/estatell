@@ -12,7 +12,7 @@ use Stringable;
 
 /**
  * One part of what a guest may know about the property, in full. The instructions already hold most of it; the nearby
- * places are only here. See docs/34-ai-assistant/02-agent-and-tools.md#tools.
+ * places are only here. See docs/35-ai-assistant/02-agent-and-tools.md#tools.
  */
 class PropertyFacts implements Tool
 {

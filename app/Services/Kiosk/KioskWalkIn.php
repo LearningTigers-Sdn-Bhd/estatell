@@ -56,7 +56,7 @@ class KioskWalkIn
     /**
      * Every room type and plan a quote link may sell for a night stay: plans bookable online only, each priced as the
      * booking will price it, so the quote shows what the folio will charge. Nothing on a day before the business date.
-     * See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+     * See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
      *
      * @return list<KioskWalkInOffer>
      */

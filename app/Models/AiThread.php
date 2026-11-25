@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One chat with the AI assistant. Its messages live in the SDK's conversation `agent_conversation_id`, which the server
- * sets when the thread starts and never takes from the browser. See docs/34-ai-assistant/04-usage-and-cost.md.
+ * sets when the thread starts and never takes from the browser. See docs/35-ai-assistant/04-usage-and-cost.md.
  *
  * @property string $id
  * @property int $property_id

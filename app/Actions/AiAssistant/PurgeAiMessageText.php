@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Delete AI chat message text older than 90 days, and the handover summaries written that long ago. The usage log
  * (`ai_turns`, `ai_turn_tools`) keeps no text, so it stays. Returns how many messages were deleted. Running it again
- * finds nothing more. See docs/34-ai-assistant/01-overview.md#personal-data.
+ * finds nothing more. See docs/35-ai-assistant/01-overview.md#personal-data.
  */
 class PurgeAiMessageText
 {

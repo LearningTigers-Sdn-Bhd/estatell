@@ -1,6 +1,6 @@
 # AI assistant
 
-> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities, General and Usage tabs with the status rail, the 80% cap notice, the 90-day purge, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
+> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes, the Places, Capabilities, General and Usage tabs with the status rail, the 80% cap notice, the 90-day purge, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff and the AI chats inbox. The build items are in [checklist.md](../checklist.md#35-ai-assistant).
 
 ## Purpose
 

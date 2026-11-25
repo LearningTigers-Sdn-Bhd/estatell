@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * An AI assistant thread that was handed over to staff, with the model's short summary from the context. It never
- * carries the chat itself. See docs/34-ai-assistant/03-places-and-routes.md#handover.
+ * carries the chat itself. See docs/35-ai-assistant/03-places-and-routes.md#handover.
  */
 class AiThreadWebhookPayload implements WebhookPayloadBuilder
 {

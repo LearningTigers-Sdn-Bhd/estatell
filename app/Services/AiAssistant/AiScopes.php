@@ -14,7 +14,7 @@ use Laravel\Pennant\Feature;
  * Answers which AI assistant scopes a property may use. A scope is on when the AI assistant feature is on, the feature
  * the scope needs is on, the place it needs is on, its row is both allowed (admin) and enabled (hotel), and the hotel
  * has saved its own OpenAI key. An experimental place (and its capabilities) also needs its platform switch on.
- * See docs/34-ai-assistant/01-overview.md#scopes.
+ * See docs/35-ai-assistant/01-overview.md#scopes.
  */
 class AiScopes
 {
@@ -44,7 +44,7 @@ class AiScopes
 
     /**
      * Whether the platform admin has turned on the experimental place a scope belongs to. Scopes outside the
-     * experimental places are always released. See docs/34-ai-assistant/01-overview.md#experimental-places.
+     * experimental places are always released. See docs/35-ai-assistant/01-overview.md#experimental-places.
      */
     public function isReleased(AiScope $scope): bool
     {

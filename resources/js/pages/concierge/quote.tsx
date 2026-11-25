@@ -29,7 +29,7 @@ const friendlyDate = (date: string) =>
 /**
  * A quote link the AI assistant sent: the room, plan and dates priced again by the server. Nothing is booked until the guest
  * gives their details, as on the walk-in details page. An expired quote, or a room no longer free on that plan, sends the
- * guest back to the chat. See docs/34-ai-assistant/03-places-and-routes.md#quote-links.
+ * guest back to the chat. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 export default function ConciergeQuote({
     property,

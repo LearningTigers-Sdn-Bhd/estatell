@@ -103,7 +103,7 @@ function RemoveKey() {
 
 /**
  * Settings › AI assistant › General: the hotel's own OpenAI key, the monthly cap and the handover message. Each section
- * saves on its own. See docs/34-ai-assistant/01-overview.md#settings.
+ * saves on its own. See docs/35-ai-assistant/01-overview.md#settings.
  */
 export default function AiAssistantGeneral({
     settings,

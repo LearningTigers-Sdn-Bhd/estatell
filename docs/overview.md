@@ -125,7 +125,7 @@ jsonb is allowed only for:
 - Audit diffs (activity log).
 - Frozen snapshots on issued documents (registration cards, invoices).
 - The framework `notifications.data` column.
-- Raw AI provider messages: the `laravel/ai` conversation tables (`agent_conversation_messages` keeps steps, usage and meta as JSON text). Deleted after 90 days. Reports read `ai_turns`, never these. See [AI assistant](34-ai-assistant/04-usage-and-cost.md#data-model).
+- Raw AI provider messages: the `laravel/ai` conversation tables (`agent_conversation_messages` keeps steps, usage and meta as JSON text). Deleted after 90 days. Reports read `ai_turns`, never these. See [AI assistant](35-ai-assistant/04-usage-and-cost.md#data-model).
 
 ## Approved dependencies
 
@@ -150,7 +150,7 @@ Composer:
 | `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                                                                                                                                         |
 | `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                                                                                                                                        |
 | `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                                                                                                                                        |
-| `laravel/ai`                            | 1.4     | `config/ai.php`, OpenAI by default, each hotel's own key (`OPENAI_API_KEY` is not used by the assistant), `OPENAI_TEXT_MODEL`, `OPENAI_STORE=false`. Conversation migrations published. See [AI assistant](34-ai-assistant/01-overview.md). |
+| `laravel/ai`                            | 1.4     | `config/ai.php`, OpenAI by default, each hotel's own key (`OPENAI_API_KEY` is not used by the assistant), `OPENAI_TEXT_MODEL`, `OPENAI_STORE=false`. Conversation migrations published. See [AI assistant](35-ai-assistant/01-overview.md). |
 | `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                                                                                                                           |
 
 npm:
@@ -248,4 +248,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 33  | [Facilities](33-facilities/)           | Bookable halls, equipment and activities (booked by Item or Person), events and event folios (feature flag, planned)                                         |
 | 33  | [POS integration](33-pos/)             | External POS outlets, room-charge postings, restaurant meal check-in, inbound `/api/pos/v1` and Loyverse adapter (feature flag)                              |
 | 34  | [Native POS](34-native-pos/)           | Built-in hospitality POS: menu, floor plan, shifts, MY SST/5-sen/LHDN, live room charge & meals, KDS, QR ordering and Posport bridge (feature flag, planned) |
-| 34  | [AI assistant](34-ai-assistant/)       | An AI chat on the Concierge page, the booking website, for staff and through an API for n8n, with a usage log (feature flag, planned)                        |
+| 35  | [AI assistant](35-ai-assistant/)       | An AI chat on the Concierge page, the booking website, for staff and through an API for n8n, with a usage log (feature flag, planned)                        |
