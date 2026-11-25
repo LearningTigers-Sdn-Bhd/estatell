@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AmenityController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CommissionRateController;
 use App\Http\Controllers\Admin\ContactEnquiryController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EInvoiceGuideController;
 use App\Http\Controllers\Admin\MailEventController;
 use App\Http\Controllers\Admin\NearbyPlaceController;
@@ -37,7 +38,7 @@ use App\Http\Controllers\Admin\WebhookEndpointController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::inertia('/', 'admin/dashboard')->name('dashboard');
+    Route::get('/', [DashboardController::class, 'show'])->name('dashboard');
 
     Route::get('properties', [PropertyController::class, 'index'])->name('properties.index');
     Route::post('properties', [PropertyController::class, 'store'])->middleware('support.2fa')->name('properties.store');
