@@ -23,7 +23,7 @@ class SetPropertyFeature
      */
     public function __invoke(User $admin, Property $property, PlatformFeature $feature, bool $active, ?array $providers = null): ?string
     {
-        if (! $active && $feature === PlatformFeature::NativePos && $this->openPosShifts->exist($property)) {
+        if (! $active && $feature === PlatformFeature::Pos && $this->openPosShifts->exist($property)) {
             return 'open_pos_shifts_exist';
         }
 

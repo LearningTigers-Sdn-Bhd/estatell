@@ -132,7 +132,7 @@ export default function PosIndex({
                     <EmptyState
                         icon={Store}
                         title="No outlet is ready to sell"
-                        description="A manager turns on Native POS for an outlet and adds a register in Settings, POS."
+                        description="A manager enables POS on an outlet and adds a register in Settings, POS."
                     />
                 ) : (
                     outlets.map((outlet) => (

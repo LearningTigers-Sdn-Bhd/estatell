@@ -106,7 +106,7 @@ class QrRoomController extends Controller
     {
         return PosOutlet::query()
             ->where('property_id', $session->property_id)
-            ->where('native_pos_enabled', true)
+            ->where('pos_enabled', true)
             ->where('active', true)
             ->whereHas('diningOptions', fn ($query) => $query->whereIn('kind', [PosDiningKind::RoomService->value, PosDiningKind::Poolside->value])->where('active', true))
             ->orderBy('name')

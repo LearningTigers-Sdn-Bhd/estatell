@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\UnitStatus;
-use App\Features\PosIntegration;
+use App\Features\Pos;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\MealPeriod;
@@ -27,7 +27,7 @@ function posSetup(bool $inclusiveTax = true): array
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id]);
-    Feature::for($property)->activate(PosIntegration::class);
+    Feature::for($property)->activate(Pos::class);
 
     $reservation = Reservation::factory()->create(['property_id' => $property->id]);
     $unit = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $reservation->id]);

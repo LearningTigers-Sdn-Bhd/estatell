@@ -14,7 +14,7 @@ use App\Enums\PosPaymentDirection;
 use App\Enums\PosPaymentStatus;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosTenderType;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\BusinessDate;
 use App\Models\DocumentSequence;
 use App\Models\PosCashMovement;
@@ -71,12 +71,12 @@ it('refuses a register that is off, an outlet that is not native and Native POS 
     expect(app(OpenPosShift::class)($s['manager'], $s['property'], $s['register'], '0')->refusal)->toBe('register_invalid');
 
     $s['register']->forceFill(['active' => true])->save();
-    $s['outlet']->forceFill(['native_pos_enabled' => false])->save();
+    $s['outlet']->forceFill(['pos_enabled' => false])->save();
     expect(app(OpenPosShift::class)($s['manager'], $s['property'], $s['register'], '0')->refusal)->toBe('register_invalid');
 
-    $s['outlet']->forceFill(['native_pos_enabled' => true])->save();
-    Feature::for($s['property'])->deactivate(NativePos::class);
-    expect(app(OpenPosShift::class)($s['manager'], $s['property'], $s['register'], '0')->refusal)->toBe('native_pos_disabled');
+    $s['outlet']->forceFill(['pos_enabled' => true])->save();
+    Feature::for($s['property'])->deactivate(Pos::class);
+    expect(app(OpenPosShift::class)($s['manager'], $s['property'], $s['register'], '0')->refusal)->toBe('pos_disabled');
 });
 
 it('refuses to open without the GL codes the journal needs', function () {
@@ -378,17 +378,17 @@ it('keeps Native POS on while a shift is open and lets it go off once every shif
     $admin = User::factory()->admin()->create();
     $shift = posOpenShift($s);
 
-    expect(app(SetPropertyFeature::class)($admin, $s['property'], PlatformFeature::NativePos, false))->toBe('open_pos_shifts_exist')
-        ->and(Feature::for($s['property'])->active(NativePos::class))->toBeTrue();
+    expect(app(SetPropertyFeature::class)($admin, $s['property'], PlatformFeature::Pos, false))->toBe('open_pos_shifts_exist')
+        ->and(Feature::for($s['property'])->active(Pos::class))->toBeTrue();
 
     app(BeginCloseShift::class)($s['manager'], $s['property'], $shift);
-    expect(app(SetPropertyFeature::class)($admin, $s['property'], PlatformFeature::NativePos, false))->toBe('open_pos_shifts_exist');
+    expect(app(SetPropertyFeature::class)($admin, $s['property'], PlatformFeature::Pos, false))->toBe('open_pos_shifts_exist');
 
     app(SubmitBlindCount::class)($s['manager'], $s['property'], $shift, '200.00');
     app(FinalizeCloseShift::class)($s['manager'], $s['property'], $shift);
 
-    expect(app(SetPropertyFeature::class)($admin, $s['property'], PlatformFeature::NativePos, false))->toBeNull()
-        ->and(Feature::for($s['property'])->active(NativePos::class))->toBeFalse();
+    expect(app(SetPropertyFeature::class)($admin, $s['property'], PlatformFeature::Pos, false))->toBeNull()
+        ->and(Feature::for($s['property'])->active(Pos::class))->toBeFalse();
 });
 
 it('cannot have two open shifts on one register at the database level', function () {

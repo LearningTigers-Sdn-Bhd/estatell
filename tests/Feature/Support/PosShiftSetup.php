@@ -12,7 +12,7 @@ use App\Models\PosRegister;
 use App\Models\PosShift;
 use App\Models\TransactionCode;
 
-require_once __DIR__.'/NativePosSetup.php';
+require_once __DIR__.'/PosTerminalSetup.php';
 
 /** @return array<string, mixed> */
 function posShiftSetup(array $outletOverrides = []): array
@@ -21,7 +21,7 @@ function posShiftSetup(array $outletOverrides = []): array
     $property = $setup['property'];
     $codes = fn () => TransactionCode::factory()->create(['property_id' => $property->id])->id;
     $setup['outlet']->forceFill(array_merge([
-        'native_pos_enabled' => true,
+        'pos_enabled' => true,
         'cash_variance_transaction_code_id' => $codes(),
         'rounding_transaction_code_id' => $codes(),
         'safe_clearing_transaction_code_id' => $codes(),

@@ -18,7 +18,7 @@ class ClockInPosStaff
 {
     public function __invoke(User $actor, Property $property, PosOutlet $outlet): PosActionResult
     {
-        if ($outlet->property_id !== $property->id || ! $outlet->native_pos_enabled || $actor->property_id !== $property->id) {
+        if ($outlet->property_id !== $property->id || ! $outlet->pos_enabled || $actor->property_id !== $property->id) {
             return PosActionResult::refused('outlet_invalid');
         }
 

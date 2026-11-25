@@ -66,7 +66,7 @@ class PlaceQrOrder
         $isTable = $session->kind === PosQrSessionKind::Table;
         $outlet = $isTable ? $session->outlet : $outlet;
 
-        if ($outlet === null || $outlet->property_id !== $session->property_id || ! $outlet->native_pos_enabled || ! $outlet->active) {
+        if ($outlet === null || $outlet->property_id !== $session->property_id || ! $outlet->pos_enabled || ! $outlet->active) {
             return PosActionResult::refused('outlet_invalid');
         }
 

@@ -18,14 +18,12 @@ use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureFacilitiesAreActive;
 use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
-use App\Http\Middleware\EnsureNativePosIsActive;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePayoutsAreShown;
 use App\Http\Middleware\EnsurePortalAccess;
 use App\Http\Middleware\EnsurePosActorCan;
-use App\Http\Middleware\EnsurePosAnyIsActive;
-use App\Http\Middleware\EnsurePosIntegrationIsActive;
+use App\Http\Middleware\EnsurePosIsActive;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
 use App\Http\Middleware\HandleAppearance;
@@ -89,9 +87,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'booking-engine' => EnsureBookingEngineIsActive::class,
             'concierge' => EnsureConciergeIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
-            'pos-integration' => EnsurePosIntegrationIsActive::class,
-            'pos-any' => EnsurePosAnyIsActive::class,
-            'native-pos' => EnsureNativePosIsActive::class,
+            'pos' => EnsurePosIsActive::class,
             'pos.actor' => ResolvePosActor::class,
             'pos.can' => EnsurePosActorCan::class,
             'pos.device' => RequirePosTerminalDevice::class,
@@ -121,10 +117,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
-        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePosIntegrationIsActive::class);
-        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePosAnyIsActive::class);
-        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureNativePosIsActive::class);
-        $middleware->appendToPriorityList(EnsureNativePosIsActive::class, ResolvePosActor::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePosIsActive::class);
+        $middleware->appendToPriorityList(EnsurePosIsActive::class, ResolvePosActor::class);
         $middleware->appendToPriorityList(ResolvePosActor::class, RequirePosTerminalDevice::class);
         $middleware->appendToPriorityList(ResolvePosActor::class, EnsurePosActorCan::class);
 

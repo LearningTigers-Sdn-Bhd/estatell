@@ -124,7 +124,7 @@ export default function PosKitchen({
                 <CardContent>
                     {outlet === null && (
                         <p className="text-muted-foreground">
-                            Turn on Native POS for an outlet first.
+                            Enable POS on an outlet first.
                         </p>
                     )}
                     {outlet !== null && (

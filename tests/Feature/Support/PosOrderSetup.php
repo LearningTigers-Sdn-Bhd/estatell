@@ -13,7 +13,7 @@ use App\Data\Pos\PosOrderLineInputData;
 use App\Data\Pos\PosTenderInputData;
 use App\Enums\PaymentMethodType;
 use App\Enums\PosTenderType;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PaymentMethod;
 use App\Models\PosDiningOption;
 use App\Models\PosItemVariant;
@@ -43,7 +43,7 @@ function posOrderSetup(bool $meal = false): array
 {
     $s = $meal ? mealSetup() : posSetup();
     $property = $s['property'];
-    Feature::for($property)->activate(NativePos::class);
+    Feature::for($property)->activate(Pos::class);
 
     $manager = User::factory()->for($property)->withPermissions(['pos.sell', 'pos.shift', 'pos.void', 'pos.refund', 'pos.discount', 'pos.manage', 'pos.menu', 'pos.reports', 'pos.view', 'meals.redeem'])->create();
     $code = fn () => TransactionCode::factory()->create(['property_id' => $property->id]);
@@ -53,7 +53,7 @@ function posOrderSetup(bool $meal = false): array
 
     $outlet = PosOutlet::factory()->create([
         'property_id' => $property->id,
-        'native_pos_enabled' => true,
+        'pos_enabled' => true,
         'service_charge_transaction_code_id' => $code()->id,
         'packaging_transaction_code_id' => $code()->id,
         'rounding_transaction_code_id' => $code()->id,

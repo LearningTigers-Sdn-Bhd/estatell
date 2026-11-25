@@ -2560,10 +2560,6 @@ forced: boolean,
 completedDay: string,
 completedTime: string,
 };
-export type NativePosReviewData = {
-message: string,
-url: string | null,
-};
 export type NextAutoAuditData = {
 day: string,
 time: string,
@@ -2597,7 +2593,7 @@ canViewPacket: boolean,
 lastAudit: App.Data.NightAudit.LastAuditData | null,
 nextAutoAudit: App.Data.NightAudit.NextAutoAuditData | null,
 posReview: App.Data.NightAudit.PosReviewData | null,
-nativePosReview: App.Data.NightAudit.NativePosReviewData | null,
+posShiftReview: App.Data.NightAudit.PosShiftReviewData | null,
 };
 export type PackageNightAmountData = {
 id: number,
@@ -2617,6 +2613,10 @@ wholeStay: boolean,
 blockedReason: string | null,
 };
 export type PosReviewData = {
+message: string,
+url: string | null,
+};
+export type PosShiftReviewData = {
 message: string,
 url: string | null,
 };
@@ -3675,7 +3675,7 @@ name: string,
 code: string,
 defaultChargeItemId: number | null,
 active: boolean,
-nativePosEnabled: boolean,
+posEnabled: boolean,
 };
 export type PosOutletRowData = {
 id: number,
@@ -3684,7 +3684,7 @@ code: string,
 defaultChargeItemId: number | null,
 chargeItemName: string | null,
 active: boolean,
-nativePosEnabled: boolean,
+posEnabled: boolean,
 };
 export type PosPostingDetailData = {
 row: App.Data.Pos.PosPostingRowData,
@@ -6244,7 +6244,7 @@ export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'events.view' | 'events.manage' | 'facilities.book' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'booking-website.payment-mode' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view' | 'pos.view' | 'pos.manage' | 'pos.resolve' | 'meals.redeem' | 'pos.sell' | 'pos.shift' | 'pos.void' | 'pos.discount' | 'pos.refund' | 'pos.kds' | 'pos.menu' | 'pos.inventory' | 'pos.hardware' | 'pos.reports';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos-integration' | 'facilities' | 'native-pos';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';

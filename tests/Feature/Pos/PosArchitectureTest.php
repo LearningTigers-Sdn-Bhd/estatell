@@ -38,8 +38,7 @@ arch('PIN and terminal actions never touch the folio ledger')
 
 arch('Native POS middleware are plain classes with a handle method')
     ->expect([
-        'App\Http\Middleware\EnsureNativePosIsActive',
-        'App\Http\Middleware\EnsurePosAnyIsActive',
+        'App\Http\Middleware\EnsurePosIsActive',
         'App\Http\Middleware\BlockBackOfficeInTerminalMode',
         'App\Http\Middleware\ResolvePosActor',
         'App\Http\Middleware\EnsurePosActorCan',

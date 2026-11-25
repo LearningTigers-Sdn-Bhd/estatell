@@ -23,7 +23,7 @@ class SavePosOutletSettings
     public function __invoke(User $actor, Property $property, PosOutlet $outlet, array $values): PosActionResult
     {
         return DB::transaction(function () use ($actor, $property, $outlet, $values): PosActionResult {
-            if ($outlet->property_id !== $property->id || ! $outlet->native_pos_enabled) {
+            if ($outlet->property_id !== $property->id || ! $outlet->pos_enabled) {
                 return PosActionResult::refused('outlet_invalid');
             }
 

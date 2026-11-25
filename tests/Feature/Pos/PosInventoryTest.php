@@ -129,7 +129,7 @@ it('keeps a moving average cost across deliveries, in base units', function () {
 it('writes off waste only with a reason, and moves a transfer as a pair of rows', function () {
     $s = posInventorySetup();
     posReceiveRice($s, '2', '5.00');
-    $other = PosOutlet::factory()->create(['property_id' => $s['property']->id, 'native_pos_enabled' => true]);
+    $other = PosOutlet::factory()->create(['property_id' => $s['property']->id, 'pos_enabled' => true]);
 
     expect(app(RecordStockWaste::class)($s['manager'], $s['property'], $s['outlet'], $s['rice'], '100', '  ')->refusal)->toBe('waste_reason_required')
         ->and(app(RecordStockWaste::class)($s['manager'], $s['property'], $s['outlet'], $s['rice'], '100', 'Dropped')->isRefused())->toBeFalse()

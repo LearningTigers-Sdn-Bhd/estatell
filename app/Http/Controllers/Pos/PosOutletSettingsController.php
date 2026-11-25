@@ -26,7 +26,7 @@ class PosOutletSettingsController extends Controller
 
     public function index(Request $request, Property $property): Response
     {
-        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->orderBy('name')->get();
+        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get();
         $outlet = $outlets->firstWhere('id', (int) $request->query('outlet')) ?? $outlets->first();
 
         return Inertia::render('settings/pos/outlets', [

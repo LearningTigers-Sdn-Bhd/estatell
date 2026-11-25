@@ -53,7 +53,7 @@ class PosOrderReceiptController extends Controller
         return Inertia::render('finance/pos-orders/index', [
             'currency' => CurrencyData::forProperty($property),
             'orders' => PosOrderRowData::collect($orders->through(PosOrderRowData::fromModel(...)), PaginatedDataCollection::class),
-            'outlets' => PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->orderBy('name')->get(['id', 'name']),
+            'outlets' => PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get(['id', 'name']),
             'filters' => $request->only(['outlet', 'status', 'from', 'to', 'q']),
         ]);
     }

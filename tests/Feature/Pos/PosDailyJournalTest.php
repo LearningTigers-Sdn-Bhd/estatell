@@ -14,7 +14,7 @@ use App\Data\Pos\PosTenderInputData;
 use App\Enums\BusinessDateStatus;
 use App\Enums\PosCashMovementKind;
 use App\Enums\PosTenderType;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\AccountingConnection;
 use App\Models\BusinessDate;
 use App\Models\PosRegister;
@@ -295,7 +295,7 @@ it('still exports POS days after Native POS was turned off', function () {
     $order = posNewOrder($s);
     posAddLine($s, $order, $s['steak']);
     app(SettlePosOrder::class)($s['manager'], $s['property'], $order, [posCash('116.00')]);
-    Feature::for($s['property'])->deactivate(NativePos::class);
+    Feature::for($s['property'])->deactivate(Pos::class);
 
     expect(posJournalLines($s)['100-000']['debit'])->toBe('116.00');
 });

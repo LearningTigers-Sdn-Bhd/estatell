@@ -159,7 +159,7 @@ export default function PosNativeOutlets({
                 )}
                 {outlet === null ? (
                     <p className="text-sm text-muted-foreground">
-                        Turn on Native POS for an outlet on the Outlets tab
+                        Enable POS on an outlet on the Outlets tab
                         first.
                     </p>
                 ) : (

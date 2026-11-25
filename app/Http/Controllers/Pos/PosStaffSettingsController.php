@@ -31,7 +31,7 @@ class PosStaffSettingsController extends Controller
         return Inertia::render('settings/pos/staff-pins', [
             'staff' => User::query()->where('property_id', $property->id)->whereNull('deactivated_at')->orderBy('name')->get(['id', 'name'])->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name, 'hasPin' => (bool) $pins->get($user->id)?->active])->all(),
             'devices' => PosTerminalDevice::query()->where('property_id', $property->id)->with('outlet:id,name')->orderByDesc('id')->get()->map(fn (PosTerminalDevice $device): array => ['id' => $device->id, 'name' => $device->name, 'outlet' => $device->outlet->name, 'revoked' => $device->revoked_at !== null, 'lastSeenAt' => $device->last_seen_at?->toIso8601String()])->all(),
-            'outlets' => PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->orderBy('name')->get(['id', 'name'])->map(fn (PosOutlet $outlet): array => ['value' => (string) $outlet->id, 'label' => $outlet->name])->all(),
+            'outlets' => PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get(['id', 'name'])->map(fn (PosOutlet $outlet): array => ['value' => (string) $outlet->id, 'label' => $outlet->name])->all(),
             'voidReasons' => PosVoidReason::query()->where('property_id', $property->id)->orderBy('sort_order')->orderBy('label')->get(['id', 'label', 'requires_manager_pin', 'default_return_stock', 'active'])->all(),
         ]);
     }

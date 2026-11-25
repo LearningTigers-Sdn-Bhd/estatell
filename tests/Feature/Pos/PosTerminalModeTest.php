@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
-require_once __DIR__.'/../Support/NativePosSetup.php';
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
 
 beforeEach(fn () => Cache::flush());
 
@@ -133,7 +133,7 @@ it('locks a user per device after 5 wrong PINs on the route', function () {
  */
 function posProbeRoutes(): void
 {
-    Route::middleware(['web', 'auth', 'property.access', 'native-pos', 'pos.actor'])->prefix('p/{property:code}/pos-probe')->name('pos.probe.')->group(function () {
+    Route::middleware(['web', 'auth', 'property.access', 'pos', 'pos.actor'])->prefix('p/{property:code}/pos-probe')->name('pos.probe.')->group(function () {
         Route::get('sell', fn () => 'sold')->middleware('pos.can:pos.sell')->name('sell');
         Route::get('refund', fn () => 'refunded')->middleware('pos.can:pos.refund')->name('refund');
     });

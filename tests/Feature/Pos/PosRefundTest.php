@@ -15,7 +15,7 @@ use App\Enums\PosOrderType;
 use App\Enums\PosPaymentDirection;
 use App\Enums\PosTenderType;
 use App\Enums\TransactionKind;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -330,9 +330,9 @@ it('returns the same refund for the same client uuid and writes nothing twice', 
 it('refuses while Native POS is off', function () {
     $s = posOrderSetup();
     $order = posSettledCash($s, [$s['mocha']]);
-    Feature::for($s['property'])->deactivate(NativePos::class);
+    Feature::for($s['property'])->deactivate(Pos::class);
 
-    expect(posRefund($s, $order, [new PosRefundLineInputData($order->lines()->sole()->id, 1)])->refusal)->toBe('native_pos_disabled');
+    expect(posRefund($s, $order, [new PosRefundLineInputData($order->lines()->sole()->id, 1)])->refusal)->toBe('pos_disabled');
 });
 
 it('reverses a whole untouched room charge once, tax lines included', function () {

@@ -5,7 +5,7 @@ namespace App\Actions\Pos;
 use App\Enums\PosOrderStatus;
 use App\Enums\PosShiftStatus;
 use App\Enums\UnitStatus;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosDiningOption;
 use App\Models\PosOrder;
 use App\Models\PosShift;
@@ -31,8 +31,8 @@ class CreatePosOrder
     public function __invoke(User $actor, Property $property, PosShift $shift, PosDiningOption $diningOption, string $clientUuid, int $guestCount = 1, ?ReservationUnit $unit = null, ?PosTable $table = null): PosActionResult
     {
         return DB::transaction(function () use ($actor, $property, $shift, $diningOption, $clientUuid, $guestCount, $unit, $table): PosActionResult {
-            if (! Feature::for($property)->active(NativePos::class)) {
-                return PosActionResult::refused('native_pos_disabled');
+            if (! Feature::for($property)->active(Pos::class)) {
+                return PosActionResult::refused('pos_disabled');
             }
 
             $existing = PosOrder::query()->where('property_id', $property->id)->where('client_uuid', $clientUuid)->first();

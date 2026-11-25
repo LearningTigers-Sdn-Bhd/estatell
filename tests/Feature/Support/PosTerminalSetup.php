@@ -1,6 +1,6 @@
 <?php
 
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\BusinessDate;
 use App\Models\PosOutlet;
 use App\Models\PosStaffPin;
@@ -22,7 +22,7 @@ function nativePosSetup(): array
     $property = Property::factory()->live()->create();
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id]);
-    Feature::for($property)->activate(NativePos::class);
+    Feature::for($property)->activate(Pos::class);
 
     $outlet = PosOutlet::factory()->create(['property_id' => $property->id]);
     $manager = User::factory()->for($property)->withPermissions(['pos.sell', 'pos.shift', 'pos.void', 'pos.refund', 'pos.discount', 'pos.manage', 'pos.reports'])->create();

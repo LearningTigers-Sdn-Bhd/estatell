@@ -120,6 +120,6 @@ class PosKitchenController extends Controller
 
     private function outlet(Property $property, int $outlet): PosOutlet
     {
-        return PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->findOrFail($outlet);
+        return PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail($outlet);
     }
 }

@@ -29,7 +29,7 @@ use App\Models\TransactionCode;
 use App\Models\User;
 use Spatie\Activitylog\Models\Activity;
 
-require_once __DIR__.'/../Support/NativePosSetup.php';
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
 
 /** @return array{property: Property, actor: User, outlet: PosOutlet, category: PosCategory, code: TransactionCode} */
 function posMenuSetup(): array

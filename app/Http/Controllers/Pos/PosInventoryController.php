@@ -45,7 +45,7 @@ class PosInventoryController extends Controller
 
     public function index(Request $request, Property $property, PosStockBalances $balances): Response
     {
-        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->orderBy('name')->get();
+        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get();
         $outlet = $outlets->firstWhere('id', (int) $request->query('outlet')) ?? $outlets->first();
         $onHand = $outlet === null ? [] : $balances->forOutlet($outlet->id);
         $stocktake = $outlet === null ? null : PosStocktake::query()->where('pos_outlet_id', $outlet->id)->where('status', PosStocktakeStatus::Draft->value)->with('lines')->latest('id')->first();

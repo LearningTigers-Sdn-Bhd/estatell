@@ -4,7 +4,7 @@ use App\Models\PosStaffPin;
 use App\Models\PosTerminalDevice;
 use Spatie\Activitylog\Models\Activity;
 
-require_once __DIR__.'/../Support/NativePosSetup.php';
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
 
 it('registers the browser as a terminal device with a signed HttpOnly cookie and stores only the hash', function () {
     $setup = nativePosSetup();

@@ -28,7 +28,7 @@ class IssueTableQrSession
 
             $outlet = $table->floor->outlet;
 
-            if (! $outlet->active || ! $outlet->native_pos_enabled) {
+            if (! $outlet->active || ! $outlet->pos_enabled) {
                 return PosActionResult::refused('outlet_inactive');
             }
 

@@ -44,13 +44,13 @@ class PosOfflineController extends Controller
 
     public function sync(SyncOfflinePosOrdersRequest $request, Property $property, SyncOfflinePosOrders $syncOfflinePosOrders): JsonResponse
     {
-        $outlet = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->findOrFail((int) $request->validated('outlet_id'));
+        $outlet = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail((int) $request->validated('outlet_id'));
 
         return response()->json(['results' => $syncOfflinePosOrders($this->actor($request), $property, $outlet, $request->validated('orders'))]);
     }
 
     private function outlet(Property $property, Request $request): PosOutlet
     {
-        return PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->findOrFail((int) $request->query('outlet'));
+        return PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail((int) $request->query('outlet'));
     }
 }

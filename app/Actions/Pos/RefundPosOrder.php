@@ -16,7 +16,7 @@ use App\Enums\PosPaymentStatus;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosStockMovementKind;
 use App\Enums\PosTenderType;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\FolioLine;
 use App\Models\PosItem;
 use App\Models\PosOrder;
@@ -90,8 +90,8 @@ class RefundPosOrder
      */
     private function refund(User $actor, Property $property, PosOrder $original, array $inputs, string $reason, string $clientUuid, User $approvedBy, ?PosShift $shift, ?array $payouts): PosActionResult
     {
-        if (! Feature::for($property)->active(NativePos::class)) {
-            return PosActionResult::refused('native_pos_disabled');
+        if (! Feature::for($property)->active(Pos::class)) {
+            return PosActionResult::refused('pos_disabled');
         }
 
         $existing = PosOrder::query()->where('property_id', $property->id)->where('client_uuid', $clientUuid)->first();

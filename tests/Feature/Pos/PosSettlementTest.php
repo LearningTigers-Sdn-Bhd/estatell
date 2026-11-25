@@ -17,7 +17,7 @@ use App\Enums\PosPaymentDirection;
 use App\Enums\PosPaymentStatus;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosTenderType;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\BusinessDate;
 use App\Models\DocumentSequence;
 use App\Models\PosOrderPayment;
@@ -210,8 +210,8 @@ it('refuses an order with no lines, a closing shift and Native POS being off', f
     expect(posSettle($s, $order, [posCash('116.00')])->refusal)->toBe('shift_not_open');
 
     $s['shift']->forceFill(['status' => PosShiftStatus::Open])->save();
-    Feature::for($s['property'])->deactivate(NativePos::class);
-    expect(posSettle($s, $order, [posCash('116.00')])->refusal)->toBe('native_pos_disabled');
+    Feature::for($s['property'])->deactivate(Pos::class);
+    expect(posSettle($s, $order, [posCash('116.00')])->refusal)->toBe('pos_disabled');
 });
 
 it('refuses an order of another property', function () {

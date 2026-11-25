@@ -1,20 +1,20 @@
 <?php
 
 use App\Actions\Pos\ResetPosStockCountdowns;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosItem;
 use App\Models\PosItemVariant;
 use App\Models\PosOrder;
 use App\Models\PosOutletItem;
-use App\Services\Pos\NativePosReview;
+use App\Services\Pos\PosShiftReview;
 use Laravel\Pennant\Feature;
 
-require_once __DIR__.'/../Support/NativePosSetup.php';
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
 require_once __DIR__.'/../Support/PosShiftSetup.php';
 
 it('tells the audit sheet about open shifts and open orders, without blocking', function () {
     $s = posShiftSetup();
-    $review = fn () => app(NativePosReview::class)->for($s['property'], $s['manager']);
+    $review = fn () => app(PosShiftReview::class)->for($s['property'], $s['manager']);
 
     expect($review())->toBeNull();
 
@@ -30,8 +30,8 @@ it('goes quiet when Native POS is off or everything is closed', function () {
     $s = posShiftSetup();
     posOpenShift($s);
 
-    Feature::for($s['property'])->deactivate(NativePos::class);
-    expect(app(NativePosReview::class)->for($s['property'], $s['manager']))->toBeNull();
+    Feature::for($s['property'])->deactivate(Pos::class);
+    expect(app(PosShiftReview::class)->for($s['property'], $s['manager']))->toBeNull();
 });
 
 it('only reports the own property', function () {
@@ -39,7 +39,7 @@ it('only reports the own property', function () {
     $other = posShiftSetup();
     posOpenShift($other);
 
-    expect(app(NativePosReview::class)->for($s['property'], $s['manager']))->toBeNull();
+    expect(app(PosShiftReview::class)->for($s['property'], $s['manager']))->toBeNull();
 });
 
 it('resets stock counts that have a daily reset number and leaves the rest alone', function () {

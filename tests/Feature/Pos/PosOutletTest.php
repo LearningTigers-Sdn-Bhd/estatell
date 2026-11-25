@@ -9,13 +9,13 @@ use App\Enums\PosDiningKind;
 use App\Enums\PosOperationMode;
 use App\Enums\PosRoundingMode;
 use App\Enums\PosRoundingPolicy;
-use App\Features\NativePos;
+use App\Features\Pos;
 use App\Models\PosDiningOption;
 use App\Models\PosOutlet;
 use Illuminate\Database\QueryException;
 use Laravel\Pennant\Feature;
 
-require_once __DIR__.'/../Support/NativePosSetup.php';
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
 require_once __DIR__.'/../Support/PosSetup.php';
 
 it('saves a native outlet with no charge item and gives it the Malaysian dining options', function () {
@@ -26,7 +26,7 @@ it('saves a native outlet with no charge item and gives it the Malaysian dining 
     expect($result->isRefused())->toBeFalse();
     $outlet = $result->outlet->fresh();
     expect($outlet->default_charge_item_id)->toBeNull()
-        ->and($outlet->native_pos_enabled)->toBeTrue()
+        ->and($outlet->pos_enabled)->toBeTrue()
         ->and($outlet->operation_mode)->toBe(PosOperationMode::PayFirst)
         ->and($outlet->rounding_mode)->toBe(PosRoundingMode::FiveSen)
         ->and($outlet->rounding_policy)->toBe(PosRoundingPolicy::CashLegOnly)
@@ -57,11 +57,11 @@ it('seeds dining options once and leaves an outlet that already has them alone',
 
 it('refuses a native outlet while Native POS is off', function () {
     $setup = nativePosSetup();
-    Feature::for($setup['property'])->deactivate(NativePos::class);
+    Feature::for($setup['property'])->deactivate(Pos::class);
 
     $result = app(SavePosOutlet::class)($setup['manager'], $setup['property'], new PosOutletData('Cafe', 'CAFE', null, true, true));
 
-    expect($result->refusal)->toBe('native_pos_disabled')
+    expect($result->refusal)->toBe('pos_disabled')
         ->and(PosOutlet::query()->where('code', 'CAFE')->exists())->toBeFalse();
 });
 
@@ -75,12 +75,12 @@ it('keeps the charge item mandatory for an outlet that is not native', function 
 
 it('lets an external outlet turn native on and keep its charge item', function () {
     $setup = posSetup();
-    Feature::for($setup['property'])->activate(NativePos::class);
+    Feature::for($setup['property'])->activate(Pos::class);
 
     $result = app(SavePosOutlet::class)($setup['actor'], $setup['property'], new PosOutletData('Main', $setup['outlet']->code, $setup['item']->id, true, true), $setup['outlet']);
 
     expect($result->isRefused())->toBeFalse()
-        ->and($result->outlet->native_pos_enabled)->toBeTrue()
+        ->and($result->outlet->pos_enabled)->toBeTrue()
         ->and($result->outlet->default_charge_item_id)->toBe($setup['item']->id);
 });
 
@@ -100,11 +100,11 @@ it('lists a native-only outlet on the outlets page', function () {
 
     $this->actingAs($setup['manager'])->get(route('settings.pos-outlets.index', $setup['property']->code))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->has('outlets', 2)->where('outlets', fn ($outlets) => collect($outlets)->contains(fn (array $row): bool => $row['code'] === 'CAFE' && $row['chargeItemName'] === null && $row['nativePosEnabled'] === true)));
+        ->assertInertia(fn ($page) => $page->has('outlets', 2)->where('outlets', fn ($outlets) => collect($outlets)->contains(fn (array $row): bool => $row['code'] === 'CAFE' && $row['chargeItemName'] === null && $row['posEnabled'] === true)));
 });
 
 it('rejects a native outlet without a charge item at the database level', function () {
     $setup = nativePosSetup();
 
-    expect(fn () => $setup['outlet']->forceFill(['default_charge_item_id' => null, 'native_pos_enabled' => false])->save())->toThrow(QueryException::class);
+    expect(fn () => $setup['outlet']->forceFill(['default_charge_item_id' => null, 'pos_enabled' => false])->save())->toThrow(QueryException::class);
 });

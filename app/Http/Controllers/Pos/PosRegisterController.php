@@ -43,7 +43,7 @@ class PosRegisterController extends Controller
 
         abort_if($actor instanceof User && ! $actor->checkPermissionTo(PermissionEnum::PosSell->value), 403);
 
-        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->where('active', true)->orderBy('name')->get();
+        $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->where('active', true)->orderBy('name')->get();
         $registers = PosRegister::query()->where('property_id', $property->id)->where('active', true)->orderBy('name')->get()->groupBy('pos_outlet_id');
         $openShifts = PosShift::query()->where('property_id', $property->id)->where('status', '<>', PosShiftStatus::Closed)->get()->keyBy('pos_register_id');
 
@@ -69,7 +69,7 @@ class PosRegisterController extends Controller
     public function terminal(Request $request, Property $property, int $outlet, OutletMenuSnapshot $snapshot, TableFloorState $floors): Response
     {
         $actor = $this->actor($request);
-        $model = PosOutlet::query()->where('property_id', $property->id)->where('native_pos_enabled', true)->findOrFail($outlet);
+        $model = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail($outlet);
         $register = PosRegister::query()->where('pos_outlet_id', $model->id)->where('active', true)->find((int) $request->query('register'));
         $shift = $register === null ? null : PosShift::query()->where('pos_register_id', $register->id)->where('status', '<>', PosShiftStatus::Closed)->with(['outlet', 'register', 'openedBy'])->first();
         $orderId = (int) $request->query('order');
