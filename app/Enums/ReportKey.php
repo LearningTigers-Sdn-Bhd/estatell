@@ -658,6 +658,7 @@ enum ReportKey: string
                 new ReportColumn('ref', __('Room / no.'), ColumnAlign::Left, true),
                 new ReportColumn('quantity', __('Qty'), ColumnAlign::Right, true),
                 new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+                new ReportColumn('dietary', RemarkKind::Dietary->label(), ColumnAlign::Left, true),
                 new ReportColumn('phone', __('Phone'), ColumnAlign::Left, false),
                 new ReportColumn('folio', __('Charge to'), ColumnAlign::Left, false),
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, false, money: true),

@@ -5,6 +5,7 @@ use App\Enums\FacilityBookedBy;
 use App\Enums\FacilityBookingStatus;
 use App\Enums\FacilityRateBasis;
 use App\Enums\PermissionEnum;
+use App\Enums\RemarkKind;
 use App\Enums\ReportKey;
 use App\Features\Facilities;
 use App\Models\Event;
@@ -13,6 +14,7 @@ use App\Models\FacilityBooking;
 use App\Models\Folio;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\ReservationRemark;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\UnitNight;
@@ -141,6 +143,20 @@ test('the spreadsheet keeps the date column and the filters', function () {
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
     expect($rows)->toHaveCount(2)
-        ->and($rows[0])->toBe(['Date', 'Time', 'Facility', 'Guest / event', 'Room / no.', 'Qty', 'Status'])
-        ->and($rows[1])->toBe(['2026-10-15', '20:00–22:00', 'Night Walk', $setup['reservation']->booker->full_name, '12', '2', 'Confirmed']);
+        ->and($rows[0])->toBe(['Date', 'Time', 'Facility', 'Guest / event', 'Room / no.', 'Qty', 'Status', 'Dietary remarks'])
+        ->and($rows[1])->toBe(['2026-10-15', '20:00–22:00', 'Night Walk', $setup['reservation']->booker->full_name, '12', '2', 'Confirmed', '']);
+});
+
+test('a guest\'s dietary remark shows on the participant list, and an event has none', function () {
+    $setup = facilityReportSetup();
+    ReservationRemark::factory()->for($setup['reservation'])->create(['kind' => RemarkKind::Dietary, 'body' => 'Vegetarian, no nuts']);
+    ReservationRemark::factory()->for($setup['reservation'])->create(['kind' => RemarkKind::Housekeeping, 'body' => 'Extra towels']);
+    $guest = facilityReportBooking($setup, $setup['walk'], false);
+    $group = facilityReportBooking($setup, $setup['walk'], true);
+
+    $rows = collect(ReportKey::FacilityBookings->report()->rows($setup['property'], new ReportFilters('2026-10-15', '2026-10-15')))->keyBy('key');
+
+    expect($rows[$guest->id]->cells()['dietary'])->toBe('Vegetarian, no nuts')
+        ->and($rows[$group->id]->cells()['dietary'])->toBe('')
+        ->and(collect(ReportKey::FacilityBookings->columns())->firstWhere('key', 'dietary')->defaultVisible)->toBeTrue();
 });

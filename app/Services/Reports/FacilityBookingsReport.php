@@ -7,6 +7,7 @@ use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportSection;
 use App\Data\Shared\BadgeData;
 use App\Enums\FacilityBookingStatus;
+use App\Enums\RemarkKind;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Models\FacilityBooking;
@@ -42,7 +43,7 @@ class FacilityBookingsReport implements HasSections, Report
             ->whereIn('facility_bookings.status', $statuses)
             ->when($filters->facilityIds !== [], fn (Builder $query) => $query->whereIn('facility_bookings.facility_id', $filters->facilityIds))
             ->when($rowKeys !== null, fn (Builder $query) => $query->whereIn('facility_bookings.id', array_map(intval(...), $rowKeys)))
-            ->with(['facility', 'folio:id,number', 'event.payerGuest', 'event.payerCompany', 'reservation.booker', 'reservation.units:id,reservation_id,status'])
+            ->with(['facility', 'folio:id,number', 'event.payerGuest', 'event.payerCompany', 'reservation.booker', 'reservation.units:id,reservation_id,status', 'reservation.remarks' => fn ($query) => $query->where('kind', RemarkKind::Dietary)])
             ->orderBy('facility_bookings.booking_date')
             ->orderBy('facilities.position')
             ->orderBy('facility_bookings.starts_at')
@@ -113,6 +114,7 @@ class FacilityBookingsReport implements HasSections, Report
             folio: $booking->folio->number,
             amount: $booking->unit_amount === null ? null : (string) BigDecimal::of($booking->unit_amount)->multipliedBy($units)->toScale(2),
             notes: $booking->private ? trim(__('Private').' '.$booking->notes) : $booking->notes,
+            dietary: $reservation?->remarks->first()?->body,
             section: $facility->id.'|'.$booking->booking_date->toDateString().'|'.$time,
             capacity: $facility->capacity,
             unit: $facility->booked_by->unit($facility->capacity),

@@ -28,6 +28,7 @@ class FacilityBookingRow extends Data implements ReportRow
         public string $folio,
         public ?string $amount,
         public ?string $notes,
+        public ?string $dietary,
         public string $section,
         public int $capacity,
         public string $unit,
@@ -51,6 +52,7 @@ class FacilityBookingRow extends Data implements ReportRow
             'folio' => $this->folio,
             'amount' => $this->amount === null ? '' : number_format((float) $this->amount, 2),
             'notes' => $this->notes ?? '',
+            'dietary' => $this->dietary ?? '',
         ];
     }
 
@@ -71,6 +73,7 @@ class FacilityBookingRow extends Data implements ReportRow
             'folio' => $this->folio,
             'amount' => $this->amount === null ? '' : round((float) $this->amount, 2),
             'notes' => $this->notes ?? '',
+            'dietary' => $this->dietary ?? '',
         ];
     }
 }
