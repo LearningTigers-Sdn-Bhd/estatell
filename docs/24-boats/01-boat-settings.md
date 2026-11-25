@@ -89,7 +89,7 @@ Boat out                                                                        
  [●  ]      12:00   12:45    Resort jetty        —      MV Sea Eagle                    Ferry · RM25.00      Breakfast                   ⋯
 ```
 
-- **Default boat & crew** shows the boat, then the crew member in charge with "(in charge)", then the assistants: "MV Sand Bay 1 · Awang (in charge), Daus". "—" when none is set.
+- **Default boat & crew** shows the boat on the first line and, under it in muted text, the crew member in charge with "(in charge)", then the assistants: "MV Sand Bay 1" / "Awang (in charge), Daus". The cell wraps, so a long crew stays in its column. "—" when none is set.
 
 - Two tables, Boat in then Boat out, each sorted by **Leaves**. There is no manual order, as with meal periods.
 - Unavailable rows stay in place and are muted. There is no separate inactive list.
