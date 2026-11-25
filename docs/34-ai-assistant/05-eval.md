@@ -8,9 +8,14 @@ Measure how well the assistant answers real guest questions. Normal tests fake t
 
 1. Put an OpenAI key in `.env`: `AI_EVAL_OPENAI_KEY=sk-...`. Without it, every case skips.
 2. Run `php artisan test --group=ai-eval`. One group: add `--filter=Knowledge` or `--filter=Conversation`.
-3. Read the report at the end of the output. A copy is saved to `storage/logs/ai-eval-*.md`.
+3. Read the report at the end of the output. A copy is saved to `storage/logs/ai-eval-*.md`, and every run's messages, replies and checks to `storage/logs/ai-eval-*.json`.
 
-Run it serially (no `--parallel`): the report is printed per test file.
+| Mode        | Command                                                        | Time    | Cost      |
+| ----------- | -------------------------------------------------------------- | ------- | --------- |
+| Quick check | `AI_EVAL_REPEAT=1 php artisan test --group=ai-eval --parallel` | ~5 min  | ~US$ 0.06 |
+| Sign-off    | `php artisan test --group=ai-eval --parallel`                  | ~10 min | ~US$ 0.17 |
+
+Use the quick check while you change the assistant, and the sign-off (3 runs per case) before a merge. With `--parallel` each test file runs in its own process with its own test database, and still writes its own report.
 
 ## Never in CI
 

@@ -118,7 +118,7 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => 'Room from 2 to 4 November 2026 for 4 adults.', 'tools' => [AiTool::CheckRoomsAndPrices], 'says' => ['Family Suite'], 'judge' => 'Offers only the Family Suite with its prices. Does not offer the Garden Room or the Sea View Room.'],
     ]],
     'a sold-out room type' => ['Booking flow', 'lobby', [
-        ['guest' => 'Family Suite from 12 to 14 November 2026 for 4 adults.', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Says no room for 4 adults is free on those dates. Offers other dates, a smaller room choice or staff help. Does not invent a free room or a price.'],
+        ['guest' => 'Family Suite from 12 to 14 November 2026 for 4 adults.', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Says the Family Suite, or any room for 4 adults, is not free on those dates. Offers other dates, a smaller room choice or staff help. Does not invent a free room or a price.'],
     ]],
     'compare room types' => ['Booking flow', 'lobby', [
         ['guest' => 'What is the difference between the Garden Room and the Sea View Room?', 'judge' => 'Does not invent room features such as size, bed type, a balcony or what the room looks out on, beyond the room names and the guide. It may compare prices from a room search, say it does not know the details, or hand over.'],
@@ -144,4 +144,4 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => 'Thanks. Before I go, what time does breakfast start?', 'saysAny' => ['6 am', '6am', '6:00', '06:00']],
         ['guest' => 'Ok, send me the link for the Sea View Room with breakfast.', 'tools' => [AiTool::SendQuoteLink]],
     ]],
-]))->group('ai-eval')->repeat(3);
+]))->group('ai-eval')->repeat(aiEvalRepeat());

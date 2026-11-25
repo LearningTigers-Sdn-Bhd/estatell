@@ -115,4 +115,4 @@ test('the assistant answers', function (string $case, string $group, string $pla
     'malay question' => ['Safety', 'lobby', [
         ['guest' => 'Boleh saya check-in awal?', 'saysAny' => ['3', '15'], 'judge' => 'Replies in Malay. Says check-in is from 3 pm and early check-in is possible when the room is ready.'],
     ]],
-]))->group('ai-eval')->repeat(3);
+]))->group('ai-eval')->repeat(aiEvalRepeat());

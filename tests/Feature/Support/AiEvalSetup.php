@@ -44,6 +44,15 @@ function aiEvalKey(): ?string
     return is_string($key) && $key !== '' ? $key : null;
 }
 
+/**
+ * How many times each case runs: 3 by default, or AI_EVAL_REPEAT from the shell (`AI_EVAL_REPEAT=1` for a quick check).
+ * Read from the process environment, because the test files load before Laravel reads .env.
+ */
+function aiEvalRepeat(): int
+{
+    return max(1, (int) (getenv('AI_EVAL_REPEAT') ?: 3));
+}
+
 /** Skips the case when no eval key is set, so the group costs nothing by accident. */
 function aiEvalSkipWithoutKey(): void
 {
