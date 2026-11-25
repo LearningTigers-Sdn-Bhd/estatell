@@ -5,6 +5,9 @@ namespace App\Data\Shared;
 use App\Enums\AccountingDocumentStatus;
 use App\Enums\AccountingSetupStatus;
 use App\Enums\AccountingSyncStatus;
+use App\Enums\AiKeyStatus;
+use App\Enums\AiOutcome;
+use App\Enums\AiThreadStatus;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArrivalImportOutcome;
 use App\Enums\AuditStatus;
@@ -51,6 +54,28 @@ class BadgeData extends Data
         public string $label,
         public Tone $tone,
     ) {}
+
+    public static function fromAiOutcome(AiOutcome $outcome): self
+    {
+        return new self($outcome->value, $outcome->label(), $outcome->tone());
+    }
+
+    public static function fromAiThreadStatus(AiThreadStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    /**
+     * The hotel's OpenAI key: Working or Not working, else Not tested, or No key when none is saved.
+     */
+    public static function forAiKey(bool $hasKey, ?AiKeyStatus $status): self
+    {
+        return match (true) {
+            ! $hasKey => new self('none', __('No key'), Tone::Neutral),
+            $status === null => new self('untested', __('Not tested'), Tone::Neutral),
+            default => new self($status->value, $status->label(), $status->tone()),
+        };
+    }
 
     public static function fromGatewayRefundStatus(GatewayRefundStatus $status): self
     {

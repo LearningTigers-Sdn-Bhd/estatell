@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Account\RecordSignIn;
 use App\Actions\Account\RecordSignOut;
+use App\Actions\AiAssistant\MarkAiTurnBooked;
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
 use App\Actions\Concierge\QueueStayWelcome;
@@ -21,6 +22,7 @@ use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
 use App\Enums\SignInResult;
 use App\Events\ChannelStructureChanged;
+use App\Events\ConciergeQuoteBooked;
 use App\Events\FolioClosed;
 use App\Events\InventoryChanged;
 use App\Events\RatesChanged;
@@ -30,6 +32,7 @@ use App\Events\StayCheckedOut;
 use App\Events\StayCheckInUndone;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
+use App\Models\AiConnection;
 use App\Models\BookingClient;
 use App\Models\EInvoiceSubmission;
 use App\Models\Kiosk;
@@ -147,6 +150,13 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(20)->by('concierge-write:'.(is_string($token) ? $token : $request->ip()).'|'.$request->route()?->getName());
         });
+        RateLimiter::for('concierge-chat', function (Request $request): Limit {
+            $token = $request->route('token');
+
+            return is_string($token)
+                ? Limit::perMinute(20)->by('concierge-chat:'.$token)
+                : Limit::perMinute(10)->by('concierge-chat:'.$request->ip().'|'.(($property = $request->route('property')) instanceof Property ? $property->code : (string) $property));
+        });
         RateLimiter::for('concierge-lookup', fn (Request $request): Limit => Limit::perMinute(30)->by('concierge-lookup:'.$request->ip()));
         RateLimiter::for('concierge-returning', fn (Request $request): array => [
             // The limiter runs before route binding, so the property is still its code; a bound one has its code on the model.
@@ -168,6 +178,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-token', function (Request $request): Limit {
             $kiosk = $request->attributes->get('kiosk');
             $client = $request->attributes->get('booking_client');
+            $aiConnection = $request->attributes->get('ai_connection');
+
+            if ($aiConnection instanceof AiConnection) {
+                return Limit::perMinute(60)->by('ai:'.$aiConnection->id);
+            }
 
             if ($client instanceof BookingClient) {
                 $property = $request->route('code') ?? $request->route('slug');
@@ -192,6 +207,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(IssueRoomQrSession::class)($event->propertyId, $event->reservationUnitId));
         Event::listen([StayCheckedOut::class, StayCheckInUndone::class], fn (StayCheckedOut|StayCheckInUndone $event) => app(RevokeRoomQrSessions::class)($event->propertyId, $event->reservationUnitId));
         Event::listen(FolioClosed::class, fn (FolioClosed $event) => app(QueueFolioEInvoiceOnClose::class)($event));
+        Event::listen(ConciergeQuoteBooked::class, fn (ConciergeQuoteBooked $event) => app(MarkAiTurnBooked::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 
         // A wastays import replays old stays: it sends no webhooks, also from the jobs it queues.

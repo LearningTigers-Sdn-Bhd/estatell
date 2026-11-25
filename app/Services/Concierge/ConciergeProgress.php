@@ -28,6 +28,7 @@ class ConciergeProgress
         private RegistrationCardFieldRules $fieldRules,
         private SelfCheckInPayment $payment,
         private KioskWalkInHolds $holds,
+        private ConciergeQuoteStays $quotes,
     ) {}
 
     public function for(ReservationUnit $stay): ConciergeStep
@@ -72,7 +73,8 @@ class ConciergeProgress
             }
         }
 
-        if (! $this->payment->isPaidEnough($stay)) {
+        // A stay booked from a quote link pays the whole stay before check-in, not only Collect now.
+        if (! $this->payment->isPaidEnough($stay, $this->quotes->isQuoted($stay))) {
             return ConciergeStep::Payment;
         }
 

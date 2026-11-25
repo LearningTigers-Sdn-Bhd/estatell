@@ -10,6 +10,7 @@ use App\Models\GatewayPayment;
 use App\Models\PaymentMethod;
 use App\Models\ReservationUnit;
 use App\Services\Concierge\ConciergeBill;
+use App\Services\Concierge\ConciergeQuoteStays;
 use App\Services\FrontDesk\SelfCheckInPayment;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Payments\CurlecGateway;
@@ -19,7 +20,7 @@ use Illuminate\Support\Str;
 
 class StartStayPayment
 {
-    public function __construct(private CurlecGateway $gateway, private SelfCheckInPayment $payment, private KioskStays $stays, private ConciergeBill $bill, private RecordStayPayment $record) {}
+    public function __construct(private CurlecGateway $gateway, private SelfCheckInPayment $payment, private KioskStays $stays, private ConciergeBill $bill, private RecordStayPayment $record, private ConciergeQuoteStays $quotes) {}
 
     /**
      * An open order the guest already paid, such as after a bank redirect that never returned, would make Curlec refuse
@@ -66,7 +67,7 @@ class StartStayPayment
 
         $this->catchUpPaidOrders($stay);
 
-        $due = $inHouse ? $this->bill->due($stay) : $this->payment->shortfall($stay);
+        $due = $inHouse ? $this->bill->due($stay) : $this->payment->shortfall($stay, $this->quotes->isQuoted($stay));
 
         if ((float) $due <= 0) {
             return StayPaymentResult::refused(StayPaymentResult::REFUSAL_NOTHING_DUE, __('Nothing is due for this booking.'));

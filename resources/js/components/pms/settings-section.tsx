@@ -27,12 +27,15 @@ type SectionActions = ReactNode | ((state: { isDirty: boolean }) => ReactNode);
  * `actions` sit on the right of the header, and wrap below the description on a phone.
  * `hideHeader` leaves the title and description out when the page header already says them; the title still names
  * the unsaved changes dialog.
+ * `submitInField` leaves the save button out, so the fields render their own submit button (for example an
+ * `InputGroupButton` at the end of a single input); `children` gets `processing` for its spinner.
  * `saveBar` replaces the save button with a bar that floats at the bottom of the window while it has unsaved changes,
  * with Discard and Save. Use it with `guardUnsavedChanges` for a long form.
  */
 export function SettingsSection({
     form,
     title,
+    icon,
     description,
     submitLabel = 'Save settings',
     contentClassName = 'grid gap-5 md:grid-cols-2',
@@ -44,10 +47,13 @@ export function SettingsSection({
     submitIcon,
     hideHeader = false,
     saveBar = false,
+    submitInField = false,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
     title: string;
+    /** An icon box before the title, like `PanelHeading`. Inside a Workspace panel, pair it with `headerClassName="ps-2 pt-2"`. */
+    icon?: LucideIcon;
     description: string;
     submitLabel?: string;
     contentClassName?: string;
@@ -64,7 +70,12 @@ export function SettingsSection({
     hideHeader?: boolean;
     /** Shows Discard and Save in a floating bar while the form has unsaved changes. */
     saveBar?: boolean;
-    children: (errors: Record<string, string>) => ReactNode;
+    /** The fields hold their own submit button; no save button below them. */
+    submitInField?: boolean;
+    children: (
+        errors: Record<string, string>,
+        state: { processing: boolean },
+    ) => ReactNode;
 }) {
     const afterSave = useRef<(() => void) | null>(null);
     // Remounting the fields on Discard also resets their React state, such as switches and selects.
@@ -84,6 +95,7 @@ export function SettingsSection({
             {({ processing, errors, isDirty, submit, resetAndClearErrors }) => (
                 <SettingsSectionContent
                     title={title}
+                    icon={icon}
                     description={description}
                     submitLabel={submitLabel}
                     contentClassName={contentClassName}
@@ -95,6 +107,7 @@ export function SettingsSection({
                     submitIcon={submitIcon}
                     hideHeader={hideHeader}
                     saveBar={saveBar}
+                    submitInField={submitInField}
                     processing={processing}
                     isDirty={isDirty}
                     onSave={(onSaved) => {
@@ -107,7 +120,7 @@ export function SettingsSection({
                     }}
                 >
                     <div key={fieldsKey} className="contents">
-                        {children(errors)}
+                        {children(errors, { processing })}
                     </div>
                 </SettingsSectionContent>
             )}
@@ -115,8 +128,40 @@ export function SettingsSection({
     );
 }
 
+/** The section title and description, with an icon box before them when `icon` is set. */
+function SectionTitle({
+    title,
+    icon: Icon,
+    description,
+}: {
+    title: string;
+    icon?: LucideIcon;
+    description: string;
+}) {
+    const text = (
+        <div className="min-w-0 space-y-1">
+            <h3 className="text-base font-medium">{title}</h3>
+            <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+    );
+
+    if (!Icon) {
+        return text;
+    }
+
+    return (
+        <div className="flex min-w-0 items-start gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Icon aria-hidden className="size-4" />
+            </span>
+            {text}
+        </div>
+    );
+}
+
 function SettingsSectionContent({
     title,
+    icon,
     description,
     submitLabel,
     contentClassName,
@@ -128,6 +173,7 @@ function SettingsSectionContent({
     submitIcon: SubmitIcon,
     hideHeader,
     saveBar,
+    submitInField,
     processing,
     isDirty,
     onSave,
@@ -135,6 +181,7 @@ function SettingsSectionContent({
     children,
 }: {
     title: string;
+    icon?: LucideIcon;
     description: string;
     submitLabel: string;
     contentClassName: string;
@@ -146,6 +193,7 @@ function SettingsSectionContent({
     submitIcon?: LucideIcon;
     hideHeader: boolean;
     saveBar: boolean;
+    submitInField: boolean;
     processing: boolean;
     isDirty: boolean;
     onSave: (onSaved: () => void) => void;
@@ -181,12 +229,11 @@ function SettingsSectionContent({
                         headerClassName,
                     )}
                 >
-                    <div className="min-w-0 space-y-1">
-                        <h3 className="text-base font-medium">{title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                            {description}
-                        </p>
-                    </div>
+                    <SectionTitle
+                        title={title}
+                        icon={icon}
+                        description={description}
+                    />
                     <div className="flex flex-wrap items-center gap-2">
                         {typeof actions === 'function'
                             ? actions({ isDirty })
@@ -195,15 +242,16 @@ function SettingsSectionContent({
                     </div>
                 </header>
             ) : hideHeader ? null : (
-                <header className={cn('space-y-1', headerClassName)}>
-                    <h3 className="text-base font-medium">{title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                        {description}
-                    </p>
+                <header className={headerClassName}>
+                    <SectionTitle
+                        title={title}
+                        icon={icon}
+                        description={description}
+                    />
                 </header>
             )}
             <div className={contentClassName}>{children}</div>
-            {!readOnly && !submitInHeader && !saveBar && (
+            {!readOnly && !submitInHeader && !saveBar && !submitInField && (
                 <footer className="flex justify-end">{saveButton}</footer>
             )}
             {!readOnly && saveBar && isDirty && (

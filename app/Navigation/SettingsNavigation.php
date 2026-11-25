@@ -6,6 +6,7 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Features\AccountingIntegration;
+use App\Features\AiAssistant;
 use App\Features\Boats;
 use App\Features\BookingEngine;
 use App\Features\Concierge;
@@ -103,6 +104,12 @@ class SettingsNavigation
                     href: route('settings.facilities.index', ['property' => $property->code], absolute: false),
                     icon: 'tent',
                     active: request()->routeIs('settings.facilities.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(AiAssistant::class) ? new NavItemData(
+                    title: __('AI assistant'),
+                    href: route('settings.ai-assistant.index', ['property' => $property->code], absolute: false),
+                    icon: 'bot',
+                    active: request()->routeIs('settings.ai-assistant.*'),
                 ) : null,
             ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([

@@ -125,6 +125,7 @@ jsonb is allowed only for:
 - Audit diffs (activity log).
 - Frozen snapshots on issued documents (registration cards, invoices).
 - The framework `notifications.data` column.
+- Raw AI provider messages: the `laravel/ai` conversation tables (`agent_conversation_messages` keeps steps, usage and meta as JSON text). Deleted after 90 days. Reports read `ai_turns`, never these. See [AI assistant](35-ai-assistant/04-usage-and-cost.md#data-model).
 
 ## Approved dependencies
 
@@ -132,37 +133,40 @@ Installed versions. All are in `composer.json` and `package.json`.
 
 Composer:
 
-| Package                                 | Version | Setup                                                                                                                            |
-| --------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `laravel/pennant`                       | 1.26    | Database store (`features` table)                                                                                                |
-| `laravel/horizon`                       | 5.50    | See [Deployment](#deployment)                                                                                                    |
-| `spatie/laravel-permission`             | 8.3     | Teams mode: `teams => true`, `team_foreign_key => property_id` in `config/permission.php`                                        |
-| `spatie/laravel-data`                   | 4.23    | Default config                                                                                                                   |
-| `spatie/laravel-typescript-transformer` | 3.3     | `TypeScriptTransformerServiceProvider` writes `resources/js/types/generated.d.ts`                                                |
-| `spatie/laravel-ciphersweet`            | 1.9     | `CIPHERSWEET_KEY` env, `blind_indexes` table                                                                                     |
-| `barryvdh/laravel-dompdf`               | 3.1     | None                                                                                                                             |
-| `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                             |
-| `spatie/period`                         | 2.4     | None                                                                                                                             |
-| `brick/money`                           | 0.15    | None                                                                                                                             |
-| `brick/math`                            | 1.0     | Direct use of `BigDecimal` for ledger sums. 1.0 rejects floats                                                                   |
-| `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage). |
-| `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                              |
-| `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                             |
-| `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                             |
-| `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                |
+| Package                                 | Version | Setup                                                                                                                                                                                                                                       |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `laravel/pennant`                       | 1.26    | Database store (`features` table)                                                                                                                                                                                                           |
+| `laravel/horizon`                       | 5.50    | See [Deployment](#deployment)                                                                                                                                                                                                               |
+| `spatie/laravel-permission`             | 8.3     | Teams mode: `teams => true`, `team_foreign_key => property_id` in `config/permission.php`                                                                                                                                                   |
+| `spatie/laravel-data`                   | 4.23    | Default config                                                                                                                                                                                                                              |
+| `spatie/laravel-typescript-transformer` | 3.3     | `TypeScriptTransformerServiceProvider` writes `resources/js/types/generated.d.ts`                                                                                                                                                           |
+| `spatie/laravel-ciphersweet`            | 1.9     | `CIPHERSWEET_KEY` env, `blind_indexes` table                                                                                                                                                                                                |
+| `barryvdh/laravel-dompdf`               | 3.1     | None                                                                                                                                                                                                                                        |
+| `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                                                                                                                                        |
+| `spatie/period`                         | 2.4     | None                                                                                                                                                                                                                                        |
+| `brick/money`                           | 0.15    | None                                                                                                                                                                                                                                        |
+| `brick/math`                            | 1.0     | Direct use of `BigDecimal` for ledger sums. 1.0 rejects floats                                                                                                                                                                              |
+| `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage).                                                                                                            |
+| `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                                                                                                                                         |
+| `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                                                                                                                                        |
+| `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                                                                                                                                        |
+| `laravel/ai`                            | 1.4     | `config/ai.php`, OpenAI by default, each hotel's own key (`OPENAI_API_KEY` is not used by the assistant), `OPENAI_TEXT_MODEL`, `OPENAI_STORE=false`. Conversation migrations published. See [AI assistant](35-ai-assistant/01-overview.md). |
+| `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                                                                                                                           |
 
 npm:
 
-| Package                    | Version    | Note                                                                        |
-| -------------------------- | ---------- | --------------------------------------------------------------------------- |
-| `@tanstack/react-table`    | 9.2        | v9 API: `useTable` + `tableFeatures`. shadcn examples use v8.               |
-| `@tanstack/react-virtual`  | 3.14       | `pms/grid` engine                                                           |
-| `date-fns`, `@date-fns/tz` | 4.4 / 1.5  | Property time zone                                                          |
-| `signature_pad`            | 5.1        | Registration signing                                                        |
-| `canvas-confetti`          | 1.9        | Go-live                                                                     |
-| `@base-ui/react`           | 1.8        | Base UI primitives for shadcn                                               |
-| `cn`, `shadcn`             | 0.4 / 4.21 | `cn` is used by shadcn components. `shadcn` provides `shadcn/tailwind.css`. |
-| `react-day-picker`, `cmdk` | 10.0 / 1.1 | Added by shadcn `calendar` and `command`                                    |
+| Package                             | Version    | Note                                                                        |
+| ----------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| `@tanstack/react-table`             | 9.2        | v9 API: `useTable` + `tableFeatures`. shadcn examples use v8.               |
+| `@tanstack/react-virtual`           | 3.14       | `pms/grid` engine                                                           |
+| `date-fns`, `@date-fns/tz`          | 4.4 / 1.5  | Property time zone                                                          |
+| `signature_pad`                     | 5.1        | Registration signing                                                        |
+| `canvas-confetti`                   | 1.9        | Go-live                                                                     |
+| `@base-ui/react`                    | 1.8        | Base UI primitives for shadcn                                               |
+| `cn`, `shadcn`                      | 0.4 / 4.21 | `cn` is used by shadcn components. `shadcn` provides `shadcn/tailwind.css`. |
+| `react-day-picker`, `cmdk`          | 10.0 / 1.1 | Added by shadcn `calendar` and `command`                                    |
+| `ai`, `@ai-sdk/react`               | 7.0 / 4.0  | `useChat` for the AI assistant chat                                         |
+| `streamdown`, `use-stick-to-bottom` | 2.7 / 1.1  | Added by AI Elements `message` and `conversation`                           |
 
 TypeScript types are generated with `php artisan typescript:transform`. The generated file is committed. `composer run dev` has no watcher for it: a long-running watcher keeps the classes it loaded at start and writes stale types after a pull or branch switch. Instead the git hooks in `.githooks/` run a fresh transform: `post-merge` and `post-checkout` after a pull or branch switch, and `pre-commit` when a commit stages `app/Data`, `app/Enums` or the generated file, which stops the commit until the new types are staged. Run it yourself after editing a Data class or enum.
 
@@ -244,3 +248,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 33  | [Facilities](33-facilities/)           | Bookable halls, equipment and activities (booked by Item or Person), events and event folios (feature flag, planned)                                         |
 | 33  | [POS integration](33-pos/)             | External POS outlets, room-charge postings, restaurant meal check-in, inbound `/api/pos/v1` and Loyverse adapter (feature flag)                              |
 | 34  | [Native POS](34-native-pos/)           | Built-in hospitality POS: menu, floor plan, shifts, MY SST/5-sen/LHDN, live room charge & meals, KDS, QR ordering and Posport bridge (feature flag, planned) |
+| 35  | [AI assistant](35-ai-assistant/)       | An AI chat on the Concierge page, the booking website, for staff and through an API for n8n, with a usage log (feature flag, planned)                        |

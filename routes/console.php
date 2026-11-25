@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\Account\PruneSignInEvents;
+use App\Actions\AiAssistant\CloseQuietAiThreads;
+use App\Actions\AiAssistant\PurgeAiMessageText;
 use App\Actions\ApiAccess\PruneIdempotencyKeys;
 use App\Actions\BookingEngine\ExpireBookingHolds;
 use App\Actions\BookingEngine\PurgeBookingHoldGuestDetails;
@@ -76,6 +78,10 @@ Schedule::call(fn (): int => app(ResendWaitingOnlineRefunds::class)())->name('re
 Schedule::call(fn (): int => app(PurgeBookingHoldGuestDetails::class)())->name('purge-booking-hold-guest-details')->dailyAt('03:50')->onOneServer();
 
 Schedule::call(fn (): int => app(PruneWebhookDeliveries::class)())->name('prune-webhook-deliveries')->dailyAt('03:55')->onOneServer();
+
+Schedule::call(fn (): int => app(PurgeAiMessageText::class)())->name('purge-ai-message-text')->dailyAt('03:35')->onOneServer();
+
+Schedule::call(fn (): int => app(CloseQuietAiThreads::class)())->name('close-quiet-ai-threads')->dailyAt('03:25')->onOneServer();
 
 Schedule::call(fn (): int => app(RecordDueCommissions::class)())->name('record-due-commissions')->hourly()->withoutOverlapping()->onOneServer();
 

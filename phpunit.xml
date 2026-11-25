@@ -16,6 +16,12 @@
             <directory>tests/Browser</directory>
         </testsuite>
     </testsuites>
+    <groups>
+        <!-- The AI eval calls OpenAI. Run it by hand only, never in CI. See docs/35-ai-assistant/05-eval.md. -->
+        <exclude>
+            <group>ai-eval</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>

@@ -9,12 +9,14 @@ import { PaymentStep } from '@/components/concierge/payment-step';
 import { StayHome } from '@/components/concierge/stay-home';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { SAVED_STAY_DAYS, removeStay, saveStay } from '@/lib/concierge-stays';
-import { identity, lobby } from '@/routes/concierge';
+import { identity, lobby, requests, stayContact } from '@/routes/concierge';
+import chat from '@/routes/concierge/chat';
 import {
     CheckInStep,
     FrontDeskStep,
     MessageStep,
 } from '@/components/concierge/status-steps';
+import { AiChatSheet } from '@/components/pms/ai-chat/ai-chat-sheet';
 import type { EnumOption } from '@/components/pms/enum-select';
 
 type Stay = App.Data.Concierge.ConciergeStayData;
@@ -33,11 +35,13 @@ export default function ConciergeStay({
     identityKinds,
     genders,
     countries,
+    aiChat,
 }: {
     stay: Stay;
     identityKinds: EnumOption[];
     genders: EnumOption[];
     countries: EnumOption[];
+    aiChat: boolean;
 }) {
     // Remember the stay on this phone, so the lobby can offer "Continue your stay". A family can open several rooms on one
     // phone, so each stay is kept in a list. It stays on the phone and is never sent.
@@ -116,6 +120,11 @@ export default function ConciergeStay({
                 <PaymentStep
                     token={stay.token}
                     amount={stay.shortfall ?? '0.00'}
+                    description={
+                        stay.fromQuote
+                            ? 'Pay the amount due to confirm your booking. Your room is held for a few minutes.'
+                            : undefined
+                    }
                 />
             )}
             {stay.step === 'check_in' && <CheckInStep stay={stay} />}
@@ -146,11 +155,23 @@ export default function ConciergeStay({
                         label: 'Start again',
                     }}
                     title="Your room hold has ended"
-                    body="The room was held for a short time and was not paid for, so it was released. Scan the lobby QR code to start again, or ask the front desk."
+                    body={
+                        stay.fromQuote
+                            ? 'The room was held for a short time and was not paid for, so it was released. Ask us again in the chat for a new quote, or ask the front desk.'
+                            : 'The room was held for a short time and was not paid for, so it was released. Scan the lobby QR code to start again, or ask the front desk.'
+                    }
                 />
             )}
             {stay.step === 'desk' && (
                 <FrontDeskStep propertyCode={stay.property.code} />
+            )}
+            {aiChat && (
+                <AiChatSheet
+                    messagesUrl={chat.stay.url({ token: stay.token })}
+                    sendUrl={chat.stay.send.url({ token: stay.token })}
+                    contactUrl={stayContact.url({ token: stay.token })}
+                    requestsUrl={requests.url({ token: stay.token })}
+                />
             )}
         </GuestFrame>
     );

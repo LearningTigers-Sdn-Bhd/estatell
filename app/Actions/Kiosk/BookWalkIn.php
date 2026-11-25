@@ -44,13 +44,14 @@ class BookWalkIn
      * Book and hold the room for any channel. `$kiosk` is the machine that asked, or null for the Concierge page; each
      * channel checks its own walk-in switch before it calls this. `$guest` is a guest of the property who is booking, such as a
      * returning guest the Concierge page recognised; without one the booking gets a guest with no name for the ID step to fill.
+     * `$ratePlanId` books that plan, as a quote link does; without it the room type's cheapest plan is booked.
      */
-    public function book(Property $property, ?Kiosk $kiosk, KioskWalkInData $search, int $roomTypeId, ?Guest $guest = null): KioskWalkInResult
+    public function book(Property $property, ?Kiosk $kiosk, KioskWalkInData $search, int $roomTypeId, ?Guest $guest = null, ?int $ratePlanId = null): KioskWalkInResult
     {
         try {
-            return DB::transaction(function () use ($property, $kiosk, $search, $roomTypeId, $guest): KioskWalkInResult {
+            return DB::transaction(function () use ($property, $kiosk, $search, $roomTypeId, $guest, $ratePlanId): KioskWalkInResult {
                 $type = RoomType::query()->where('property_id', $property->id)->lockForUpdate()->find($roomTypeId);
-                $offer = $type === null ? null : ($this->walkIn->available($property, $search, $roomTypeId)[0] ?? null);
+                $offer = $type === null ? null : ($this->walkIn->available($property, $search, $roomTypeId, $ratePlanId)[0] ?? null);
                 if ($offer === null || ! $offer->available) {
                     return new KioskWalkInResult(refusal: 'no_room_available');
                 }

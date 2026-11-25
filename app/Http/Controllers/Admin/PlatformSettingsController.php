@@ -36,6 +36,14 @@ class PlatformSettingsController extends Controller
     }
 
     /**
+     * The switches for the experimental AI assistant places. See docs/35-ai-assistant/01-overview.md#experimental-places.
+     */
+    public function ai(PlatformSettings $platformSettings): Response
+    {
+        return $this->renderTab($platformSettings, 'ai');
+    }
+
+    /**
      * The commission rates. See docs/30-commission-fees/05-platform-pages.md#commission-rates.
      */
     public function commissions(PlatformSettings $platformSettings, CommissionRates $commissionRates): Response
@@ -66,16 +74,17 @@ class PlatformSettingsController extends Controller
      */
     private function renderTab(PlatformSettings $platformSettings, string $tab, array $props = []): Response
     {
-        $field = match ($tab) {
-            'channels' => 'defaultDormStrategy',
-            'storage' => 'mediaDisk',
-            'commissions' => null,
-            default => 'requireGoLiveApproval',
+        $fields = match ($tab) {
+            'channels' => ['defaultDormStrategy'],
+            'storage' => ['mediaDisk'],
+            'ai' => ['aiBookingWebsiteEnabled', 'aiStaffHelperEnabled'],
+            'commissions' => [],
+            default => ['requireGoLiveApproval'],
         };
 
         return Inertia::render('admin/settings/edit', [
             'activeTab' => $tab,
-            'settings' => $field === null ? [] : PlatformSettingsData::fromModel($platformSettings->current())->only($field),
+            'settings' => $fields === [] ? [] : PlatformSettingsData::fromModel($platformSettings->current())->only(...$fields),
             ...match ($tab) {
                 'channels' => ['dormStrategies' => DormStrategy::options()],
                 'storage' => ['mediaDisks' => MediaDisk::options()],
@@ -83,6 +92,11 @@ class PlatformSettingsController extends Controller
             },
             ...$props,
         ]);
+    }
+
+    public function updateAi(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings): RedirectResponse
+    {
+        return $this->save($request, $updatePlatformSettings, 'admin.settings.ai');
     }
 
     private function save(UpdatePlatformSettingsRequest $request, UpdatePlatformSettings $updatePlatformSettings, string $route): RedirectResponse

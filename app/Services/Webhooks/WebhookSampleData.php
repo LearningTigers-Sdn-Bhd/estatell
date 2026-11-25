@@ -27,6 +27,7 @@ class WebhookSampleData
             WebhookEvent::RoomCleaned, WebhookEvent::RoomMaintenanceFlagged => ['room' => ['id' => 11, 'number' => '101', 'room_type' => 'Deluxe King', 'housekeeping_status' => 'clean', 'needs_maintenance' => $event === WebhookEvent::RoomMaintenanceFlagged, 'remark' => null]],
             WebhookEvent::NightAuditCompleted => ['night_audit' => ['id' => 81, 'business_date' => now()->subDay()->toDateString(), 'status' => 'completed', 'trigger' => 'scheduled', 'forced' => false]],
             WebhookEvent::ChannelAlert => ['alert' => ['id' => 91, 'event' => 'non_acked_booking', 'label' => 'Not acknowledged booking', 'external_booking_id' => 'BDC-4455', 'revision_id' => 'rev-1', 'created_at' => now()->toIso8601String()]],
+            WebhookEvent::AiEscalated => ['thread' => ['id' => '01970000-0000-7000-8000-000000000001', 'place' => 'concierge-stay', 'status' => 'escalated', 'reservation_id' => 401, 'escalated_at' => now()->toIso8601String()], 'summary' => 'The guest asks for a late check-out tomorrow.'],
         };
     }
 

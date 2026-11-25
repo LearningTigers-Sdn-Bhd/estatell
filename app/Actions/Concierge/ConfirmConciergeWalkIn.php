@@ -34,20 +34,23 @@ class ConfirmConciergeWalkIn
         private RegistrationCardFieldRules $fieldRules,
     ) {}
 
-    public function withIdentity(Property $property, KioskWalkInData $search, int $roomTypeId, KioskIdentityData $data, ?UploadedFile $front = null, ?UploadedFile $back = null): ConciergeWalkInBooked
+    /**
+     * A quote link passes its `$ratePlanId` and `$quoted` (see `BookConciergeWalkIn`); a walk-in leaves them out.
+     */
+    public function withIdentity(Property $property, KioskWalkInData $search, int $roomTypeId, KioskIdentityData $data, ?UploadedFile $front = null, ?UploadedFile $back = null, ?int $ratePlanId = null, bool $quoted = false): ConciergeWalkInBooked
     {
         if (blank($data->nationalityCode) && $this->fieldRules->nationalityIsNeededForTax($property)) {
             return ConciergeWalkInBooked::refused('nationality_required');
         }
 
-        return $this->confirm($property, $search, $roomTypeId, null, fn (ReservationUnit $stay): ?string => ($this->saveIdentity)($stay, $data, $front, $back)->accepted ? null : 'identity_refused');
+        return $this->confirm($property, $search, $roomTypeId, $ratePlanId, $quoted, null, fn (ReservationUnit $stay): ?string => ($this->saveIdentity)($stay, $data, $front, $back)->accepted ? null : 'identity_refused');
     }
 
     /**
      * A returning guest: the room is booked for the one profile that has this email or phone, so no second guest is made. Nothing is
      * booked when no profile matches.
      */
-    public function returning(Property $property, KioskWalkInData $search, int $roomTypeId, string $contact): ConciergeWalkInBooked
+    public function returning(Property $property, KioskWalkInData $search, int $roomTypeId, string $contact, ?int $ratePlanId = null, bool $quoted = false): ConciergeWalkInBooked
     {
         $guest = $this->returning->match($property, $contact);
 
@@ -55,7 +58,7 @@ class ConfirmConciergeWalkIn
             return ConciergeWalkInBooked::refused('no_match');
         }
 
-        return $this->confirm($property, $search, $roomTypeId, $guest, function (ReservationUnit $stay) use ($guest): ?string {
+        return $this->confirm($property, $search, $roomTypeId, $ratePlanId, $quoted, $guest, function (ReservationUnit $stay) use ($guest): ?string {
             activity()
                 ->performedOn($guest)
                 ->event('concierge.returning_guest_joined')
@@ -69,11 +72,11 @@ class ConfirmConciergeWalkIn
     /**
      * @param  Closure(ReservationUnit): ?string  $fill  Runs on the held stay, and returns the refusal when it cannot go on.
      */
-    private function confirm(Property $property, KioskWalkInData $search, int $roomTypeId, ?Guest $guest, Closure $fill): ConciergeWalkInBooked
+    private function confirm(Property $property, KioskWalkInData $search, int $roomTypeId, ?int $ratePlanId, bool $quoted, ?Guest $guest, Closure $fill): ConciergeWalkInBooked
     {
         try {
-            $stay = DB::transaction(function () use ($property, $search, $roomTypeId, $guest, $fill): ReservationUnit {
-                $result = ($this->book)($property, $search, $roomTypeId, $guest);
+            $stay = DB::transaction(function () use ($property, $search, $roomTypeId, $ratePlanId, $quoted, $guest, $fill): ReservationUnit {
+                $result = ($this->book)($property, $search, $roomTypeId, $guest, $ratePlanId, $quoted);
 
                 if ($result->hold === null) {
                     throw new WalkInRefused($result->refusal ?? 'no_room_available');
@@ -85,7 +88,8 @@ class ConfirmConciergeWalkIn
                     throw new WalkInRefused($refusal);
                 }
 
-                if ($this->payment->isPaidEnough($stay)) {
+                // A quote stay pays the whole stay, so it is announced on its payment, never here.
+                if (! $quoted && $this->payment->isPaidEnough($stay)) {
                     ($this->announce)($stay->property_id, $stay->reservation_id);
                 }
 

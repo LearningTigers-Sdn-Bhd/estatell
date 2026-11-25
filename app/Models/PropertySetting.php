@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AiKeyStatus;
 use App\Enums\KioskKeyMode;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
@@ -10,6 +11,7 @@ use App\Enums\RegistrationCardScope;
 use App\Enums\WeekendNights;
 use App\Models\Casts\AsCurrency;
 use Brick\Money\Currency;
+use Carbon\CarbonImmutable;
 use Database\Factories\PropertySettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -68,6 +70,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $front_desk_extension
  * @property bool $concierge_location_check_enabled Guests must be at the property to check in on the Concierge page.
  * @property bool $concierge_test_payments_enabled Concierge stay payments use Curlec's test system, so no real money moves.
+ * @property string|null $ai_handover_message What the AI assistant tells a guest when it hands over. Empty uses the built-in text.
+ * @property int|null $ai_monthly_cap_micros The AI assistant's monthly spend limit in millionths of a US dollar, set by the hotel. Empty is no cap.
+ * @property string|null $ai_openai_key The hotel's own OpenAI key for the AI assistant, encrypted. Never sent to the browser in full.
+ * @property AiKeyStatus|null $ai_key_status Whether the key works. Null is not tested yet.
+ * @property CarbonImmutable|null $ai_key_checked_at
+ * @property CarbonImmutable|null $ai_cap_warned_at When staff were last told the AI assistant reached 80% of its monthly cap.
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -80,7 +88,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'arrival_instructions', 'departure_instructions', 'front_desk_open_24h', 'front_desk_opens_at', 'front_desk_closes_at',
     'front_desk_whatsapp', 'after_hours_message', 'duty_manager_phone', 'emergency_phone', 'emergency_services_number', 'emergency_instructions',
     'room_policy', 'payment_policy', 'other_policies', 'front_desk_phone', 'front_desk_email', 'front_desk_extension',
-    'concierge_location_check_enabled', 'concierge_test_payments_enabled',
+    'concierge_location_check_enabled', 'concierge_test_payments_enabled', 'ai_handover_message', 'ai_monthly_cap_micros',
+    'ai_openai_key', 'ai_key_status', 'ai_key_checked_at', 'ai_cap_warned_at',
 ])]
 class PropertySetting extends Model
 {
@@ -118,6 +127,11 @@ class PropertySetting extends Model
             'concierge_test_payments_enabled' => 'boolean',
             'front_desk_open_24h' => 'boolean',
             'kiosk_idle_timeout_seconds' => 'integer',
+            'ai_monthly_cap_micros' => 'integer',
+            'ai_openai_key' => 'encrypted',
+            'ai_key_status' => AiKeyStatus::class,
+            'ai_key_checked_at' => 'immutable_datetime',
+            'ai_cap_warned_at' => 'immutable_datetime',
         ];
     }
 

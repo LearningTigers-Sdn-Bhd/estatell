@@ -64,6 +64,119 @@ pushedAt: string | null,
 canRetry: boolean,
 };
 }
+namespace AiAssistant {
+export type AiAssistantAdminData = {
+keyStatus: App.Data.Shared.BadgeData,
+scopes: App.Data.AiAssistant.AiScopeData[],
+chatApiConnections: number | null,
+};
+export type AiAssistantSettingsData = {
+scopes: App.Data.AiAssistant.AiScopeData[],
+hasKey: boolean,
+};
+export type AiAssistantStatusData = {
+maskedKey: string | null,
+keyStatus: App.Data.Shared.BadgeData,
+checkedAt: string | null,
+placesOn: number,
+placesTotal: number,
+spentUsd: string,
+capUsd: string | null,
+capPercent: number | null,
+chatApiConnections: number | null,
+};
+export type AiConnectionRowData = {
+id: number,
+name: string,
+lastUsedAt: string | null,
+revokedAt: string | null,
+canRevoke: boolean,
+};
+export type AiGeneralSettingsData = {
+hasKey: boolean,
+capUsd: string | null,
+handoverMessage: string | null,
+defaultHandoverMessage: string,
+};
+export type AiScopeData = {
+scope: App.Enums.AiScope,
+kind: App.Enums.AiScopeKind,
+label: string,
+description: string,
+allowed: boolean,
+enabled: boolean,
+available: boolean,
+note: string | null,
+};
+export type AiThreadData = {
+row: App.Data.AiAssistant.AiThreadRowData,
+resolvedAt: string | null,
+resolvedByName: string | null,
+canResolve: boolean,
+messages: Record<string, any>[],
+};
+export type AiThreadRowData = {
+id: string,
+place: string,
+placeLabel: string,
+status: App.Data.Shared.BadgeData,
+guestName: string | null,
+roomNumber: string | null,
+reservationId: number | null,
+preview: string | null,
+hasSummary: boolean,
+turns: number,
+lastMessageAt: string,
+escalatedAt: string | null,
+};
+export type AiUsageBookingData = {
+id: number,
+reference: string,
+status: App.Data.Shared.BadgeData,
+bookedAt: string,
+roomTotal: string,
+};
+export type AiUsageData = {
+month: string,
+thisMonth: string,
+spentUsd: string,
+capUsd: string | null,
+capPercent: number | null,
+turns: number,
+threads: number,
+places: App.Data.AiAssistant.AiUsagePlaceData[],
+languages: App.Data.AiAssistant.AiUsageLanguageData[],
+outcomes: App.Data.AiAssistant.AiUsageOutcomeData[],
+tools: App.Data.AiAssistant.AiUsageToolData[],
+bookings: App.Data.AiAssistant.AiUsageBookingData[],
+bookedRoomTotal: string,
+currency: App.Data.Property.CurrencyData | null,
+};
+export type AiUsageLanguageData = {
+language: string | null,
+threads: number,
+};
+export type AiUsageOutcomeData = {
+outcome: App.Data.Shared.BadgeData,
+turns: number,
+};
+export type AiUsagePlaceData = {
+label: string,
+turns: number,
+spentUsd: string,
+};
+export type AiUsageToolData = {
+label: string,
+runs: number,
+failures: number,
+};
+export type ChatApiTabData = {
+connections: App.Data.AiAssistant.AiConnectionRowData[],
+endpoint: string,
+keyStatus: App.Data.Shared.BadgeData,
+keyBlocksReplies: boolean,
+};
+}
 namespace ApiAccess {
 export type KioskData = {
 id: number,
@@ -1254,6 +1367,19 @@ departureInstructions: string | null,
 transport: App.Data.Concierge.ConciergeTransportData | null,
 topics: App.Data.Concierge.ConciergeTopicData[],
 };
+export type ConciergeQuoteData = {
+token: string,
+roomTypeName: string,
+ratePlanName: string,
+arrivalDate: string,
+departureDate: string,
+nights: number,
+adults: number,
+quotedTotal: string,
+total: string | null,
+currency: string,
+expired: boolean,
+};
 export type ConciergeRequestData = {
 id: number,
 type: string,
@@ -1285,6 +1411,7 @@ identity: App.Data.Concierge.ConciergeIdentityPrefillData | null,
 eInvoiceUrl: string | null,
 checkInTime: string | null,
 checkInOpensLater: boolean,
+fromQuote: boolean,
 };
 export type ConciergeTermsData = {
 version: number,
@@ -3210,11 +3337,15 @@ export type PlatformSettingsData = {
 requireGoLiveApproval: boolean,
 defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
+aiBookingWebsiteEnabled: boolean,
+aiStaffHelperEnabled: boolean,
 };
 export type PlatformSettingsInputData = {
 requireGoLiveApproval: boolean | null,
 defaultDormStrategy: App.Enums.DormStrategy | null,
 mediaDisk: App.Enums.MediaDisk | null,
+aiBookingWebsiteEnabled: boolean | null,
+aiStaffHelperEnabled: boolean | null,
 };
 export type PropertyFeatureData = {
 feature: App.Enums.PlatformFeature,
@@ -6105,6 +6236,14 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type AiChannel = 'whatsapp' | 'instagram' | 'messenger' | 'telegram' | 'other';
+export type AiKeyStatus = 'working' | 'failing';
+export type AiOutcome = 'answered' | 'quote-sent' | 'booked' | 'escalated' | 'refused' | 'failed' | 'cap-reached';
+export type AiPlace = 'concierge-lobby' | 'concierge-stay' | 'booking-engine' | 'staff' | 'api';
+export type AiScope = 'concierge' | 'booking-engine' | 'staff' | 'api' | 'room-quotes' | 'stay-details' | 'guest-requests' | 'daily-numbers' | 'how-to';
+export type AiScopeKind = 'place' | 'capability';
+export type AiThreadStatus = 'open' | 'escalated' | 'closed';
+export type AiTool = 'PropertyFacts' | 'CheckRoomsAndPrices' | 'SendQuoteLink' | 'ReadMyStay' | 'MakeGuestRequest' | 'HandOver' | 'DailyNumbers' | 'HowTo';
 export type AmenityType = 'property' | 'room';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
@@ -6217,7 +6356,7 @@ export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled' | 'ai_thread_escalated' | 'ai_cap_nearly_reached';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
@@ -6248,7 +6387,7 @@ export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'events.view' | 'events.manage' | 'facilities.book' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'booking-website.payment-mode' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view' | 'pos.view' | 'pos.manage' | 'pos.resolve' | 'meals.redeem' | 'pos.sell' | 'pos.shift' | 'pos.void' | 'pos.discount' | 'pos.refund' | 'pos.kds' | 'pos.menu' | 'pos.inventory' | 'pos.hardware' | 'pos.reports';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities' | 'ai-assistant';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
@@ -6330,7 +6469,7 @@ export type UnitMovement = 'arrivals' | 'departures';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type WastaysEventType = 'create' | 'check_in' | 'charge' | 'adjustment' | 'repair' | 'payment' | 'deposit' | 'refund' | 'reversal' | 'folio_movement' | 'stay_change' | 'early_departure' | 'check_out';
 export type WebhookDeliveryStatus = 'pending' | 'retrying' | 'delivered' | 'refused' | 'failed';
-export type WebhookEvent = 'booking.created' | 'booking.updated' | 'booking.cancelled' | 'booking.no_show' | 'stay.checked_in' | 'stay.checked_out' | 'stay.welcome_ready' | 'payment.received' | 'payment.refunded' | 'folio.closed' | 'guest.created' | 'guest.updated' | 'guest.merged' | 'guest.anonymized' | 'room.cleaned' | 'room.maintenance_flagged' | 'night_audit.completed' | 'channel.alert';
+export type WebhookEvent = 'booking.created' | 'booking.updated' | 'booking.cancelled' | 'booking.no_show' | 'stay.checked_in' | 'stay.checked_out' | 'stay.welcome_ready' | 'payment.received' | 'payment.refunded' | 'folio.closed' | 'guest.created' | 'guest.updated' | 'guest.merged' | 'guest.anonymized' | 'room.cleaned' | 'room.maintenance_flagged' | 'night_audit.completed' | 'channel.alert' | 'ai.escalated';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type WeekendNights = 'fri_sat' | 'sat_sun';
 }
