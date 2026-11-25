@@ -8,17 +8,18 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 
 ## Decisions
 
-| #   | Decision                                                                                                                                                      | Date       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 1   | One **AI assistant** module, not a part of the Concierge page. The places share the same knowledge, handover and usage log; only the tools change.            | 2026-11-20 |
-| 2   | The package is `laravel/ai` (the Laravel AI SDK).                                                                                                             | 2026-11-24 |
-| 3   | The provider is **OpenAI**, on **each hotel's own key** (BYOK). The hotel pays OpenAI. There is no Estatell key and no fallback. See [API key](#api-key).     | 2026-11-24 |
-| 4   | The chat UI uses **shadcn AI Elements**, which needs the npm packages `ai` and `@ai-sdk/react`.                                                               | 2026-11-24 |
-| 5   | The Concierge page books **future dates** itself, through a quote link. No microsite is needed. See [Quote links](03-places-and-routes.md#quote-links).       | 2026-11-24 |
-| 6   | No MCP server. Outside tools such as n8n use the [chat API](03-places-and-routes.md#chat-api-for-n8n).                                                        | 2026-11-20 |
-| 7   | The AI never sets a price, cancels, refunds, or changes a folio. The staff helper is **read only**.                                                           | 2026-11-20 |
-| 8   | Every AI turn is a row in the [usage log](04-usage-and-cost.md), for analysis, the monthly cap and the hotel's spend.                                         | 2026-11-24 |
-| 9   | The platform admin decides the [scope](#scopes): which places and capabilities each property may use. The hotel then turns on what it wants. Both must be on. | 2026-11-24 |
+| #   | Decision                                                                                                                                                                                                   | Date       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | One **AI assistant** module, not a part of the Concierge page. The places share the same knowledge, handover and usage log; only the tools change.                                                         | 2026-11-20 |
+| 2   | The package is `laravel/ai` (the Laravel AI SDK).                                                                                                                                                          | 2026-11-24 |
+| 3   | The provider is **OpenAI**, on **each hotel's own key** (BYOK). The hotel pays OpenAI. There is no Estatell key and no fallback. See [API key](#api-key).                                                  | 2026-11-24 |
+| 4   | The chat UI uses **shadcn AI Elements**, which needs the npm packages `ai` and `@ai-sdk/react`.                                                                                                            | 2026-11-24 |
+| 5   | The Concierge page books **future dates** itself, through a quote link. No microsite is needed. See [Quote links](03-places-and-routes.md#quote-links).                                                    | 2026-11-24 |
+| 6   | No MCP server. Outside tools such as n8n use the [chat API](03-places-and-routes.md#chat-api-for-n8n).                                                                                                     | 2026-11-20 |
+| 7   | The AI never sets a price, cancels, refunds, or changes a folio. The staff helper is **read only**.                                                                                                        | 2026-11-20 |
+| 8   | Every AI turn is a row in the [usage log](04-usage-and-cost.md), for analysis, the monthly cap and the hotel's spend.                                                                                      | 2026-11-24 |
+| 9   | The platform admin decides the [scope](#scopes): which places and capabilities each property may use. The hotel then turns on what it wants. Both must be on.                                              | 2026-11-24 |
+| 10  | Estatell sets up the [chat API](03-places-and-routes.md#chat-api-for-n8n) for the hotel, with the hotel's consent. The admin switch is its only gate, and its connections live on the admin property page. | 2026-11-25 |
 
 ## Terms
 
@@ -33,13 +34,13 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 
 ## Places
 
-| Place           | Who                                  | Needs on                                                                                     | Scope           |
-| --------------- | ------------------------------------ | -------------------------------------------------------------------------------------------- | --------------- |
-| Concierge lobby | Anyone with the lobby link           | `AiAssistant` and `Concierge`                                                                | `Concierge`     |
-| Concierge stay  | The guest on `/c/{token}`            | `AiAssistant` and `Concierge`                                                                | `Concierge`     |
-| Booking engine  | Visitors of the booking website      | `AiAssistant`, `BookingEngine` and a published microsite                                     | `BookingEngine` |
-| Staff           | Signed-in staff                      | `AiAssistant`                                                                                | `Staff`         |
-| API             | n8n or another tool with an AI token | `AiAssistant` `Api`, and an active [AI connection](03-places-and-routes.md#chat-api-for-n8n) |
+| Place           | Who                                  | Needs on                                                                              | Scope           |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------------------------- | --------------- |
+| Concierge lobby | Anyone with the lobby link           | `AiAssistant` and `Concierge`                                                         | `Concierge`     |
+| Concierge stay  | The guest on `/c/{token}`            | `AiAssistant` and `Concierge`                                                         | `Concierge`     |
+| Booking engine  | Visitors of the booking website      | `AiAssistant`, `BookingEngine` and a published microsite                              | `BookingEngine` |
+| Staff           | Signed-in staff                      | `AiAssistant`                                                                         | `Staff`         |
+| API             | n8n or another tool with an AI token | `AiAssistant` and an active [AI connection](03-places-and-routes.md#chat-api-for-n8n) | `Api`           |
 
 `AiPlace` enum: `ConciergeLobby`, `ConciergeStay`, `BookingEngine`, `Staff`, `Api`, with `label()`.
 
@@ -80,7 +81,7 @@ A scope is a place or a capability. The `AiScope` enum lists them, with `label()
 
 `PropertyFacts` and `HandOver` need no scope: every place has them. A capability works in every place that uses its tool (see [Tools](02-agent-and-tools.md#tools)).
 
-Two layers decide if a scope is on:
+Two layers decide if a scope is on, except for an admin-only scope:
 
 | Layer   | Who                          | Where                                             | Column    |
 | ------- | ---------------------------- | ------------------------------------------------- | --------- |
@@ -96,22 +97,22 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
 - A scope is on only when the `AiAssistant` feature is on, its [experimental place](#experimental-places) is released, the features it needs are on, the row is both allowed and enabled, and the hotel has saved an [API key](#api-key). `AiScopes` (a Service) answers this.
 - A missing row means off. A new scope is a new enum case, with no migration.
 - When the admin stops allowing a scope, the hotel's `enabled` stays, so allowing it again brings back the hotel's choice.
+- **Admin-only scope.** `Api` is set by the platform admin alone (`AiScope::isAdminOnly()`). Estatell sets up the chat API with the hotel's consent, so allowed means on, and `enabled` is ignored. `AiScopes::forHotel()` leaves it out, so the hotel's Places tab never shows it. Decided 2026-11-25.
 
 ## Settings
 
 **Settings › AI assistant** is a fixed-height `Workspace` with tab links, like Settings › Concierge: the tab and a right rail each scroll on their own, and the page does not scroll. Every page sets the layout `variant: 'fixed'`. General is the first tab, and the AI assistant link opens it (`settings/ai-assistant`).
 
-| Tab          | Holds                                                                                                                 |
-| ------------ | --------------------------------------------------------------------------------------------------------------------- |
-| General      | The hotel's [OpenAI key](#api-key), the monthly cap and the handover message (`settings/ai-assistant`)                |
-| Places       | The switch for each allowed place (`settings/ai-assistant/places`)                                                    |
-| Capabilities | The switch for each allowed capability (`settings/ai-assistant/capabilities`)                                         |
-| Usage        | The hotel's [spend and usage](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`)             |
-| Connections  | The AI connections for the [chat API](03-places-and-routes.md#chat-api-for-n8n) (`settings/ai-assistant/connections`) |
+| Tab          | Holds                                                                                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------- |
+| General      | The hotel's [OpenAI key](#api-key), the monthly cap and the handover message (`settings/ai-assistant`)    |
+| Places       | The switch for each allowed place (`settings/ai-assistant/places`)                                        |
+| Capabilities | The switch for each allowed capability (`settings/ai-assistant/capabilities`)                             |
+| Usage        | The hotel's [spend and usage](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`) |
 
-Each tab is its own URL and sends only its own data, plus `status` for the rail. Connections comes with its checklist item. Decided 2026-11-24: one General tab for the key, the cap and the handover message, replacing the earlier Handover and API key tabs (the earlier rule was "tabs by kind of setting, not one General tab").
+Each tab is its own URL and sends only its own data, plus `status` for the rail. The chat API has no tab here: its connections are on the admin property page (see [Chat API for n8n](03-places-and-routes.md#chat-api-for-n8n)). Decided 2026-11-24: one General tab for the key, the cap and the handover message, replacing the earlier Handover and API key tabs (the earlier rule was "tabs by kind of setting, not one General tab").
 
-**Status rail.** Every tab shows the same 20rem rail (`AiAssistantStatusData`): a warning when no key is saved or OpenAI refused it (with a link to General on the other tabs), the masked key, its status and last test, how many places are on, this month's estimated spend against the cap with a bar, and **Test key**. The spend is `AiMonthlyUsage`, the same sum the cap check uses; the [Usage tab](04-usage-and-cost.md#usage-tab) adds the breakdown.
+**Status rail.** Every tab shows the same 20rem rail (`AiAssistantStatusData`): a warning when no key is saved or OpenAI refused it (with a link to General on the other tabs), the masked key, its status and last test, how many places are on, the chat API line while it is on ("Set up by Estatell" and the number of active connections, read only), this month's estimated spend against the cap with a bar, and **Test key**. The spend is `AiMonthlyUsage`, the same sum the cap check uses; the [Usage tab](04-usage-and-cost.md#usage-tab) adds the breakdown.
 
 The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. With no key saved, the Places switches are disabled and the rail says why. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "Good question! I've passed this to our front desk so they can help you personally. You can also contact them directly." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
 
@@ -176,17 +177,17 @@ Guest messages go to OpenAI, on the hotel's own OpenAI account. Before launch, c
 
 These came with the plan. The user confirmed all of them on 2026-11-24.
 
-| Default                                                                    | Used by                                            |
-| -------------------------------------------------------------------------- | -------------------------------------------------- |
-| New top-level folder `app/Ai/` for the agent, tools and middleware         | [The agent](02-agent-and-tools.md#the-agent)       |
-| Message text kept 90 days                                                  | [Personal data](#personal-data)                    |
-| At most 4 tool calls per turn                                              | [The agent](02-agent-and-tools.md#the-agent)       |
-| A quote link lasts 24 hours                                                | [Quote links](03-places-and-routes.md#quote-links) |
-| Chat throttles (lobby 10, stay and booking engine 20, API 60 a minute)     | [Routes](03-places-and-routes.md#routes)           |
-| A quiet thread closes after 7 days                                         | [Data model](04-usage-and-cost.md#data-model)      |
-| Staff with `settings.manage` are told at 80% of the cap                    | [Monthly cap](04-usage-and-cost.md#monthly-cap)    |
-| `OPENAI_STORE=false`: OpenAI keeps no copy of guest messages               | [Personal data](#personal-data)                    |
-| One model for all properties: `OPENAI_TEXT_MODEL`, `gpt-6-luna` by default | [The agent](02-agent-and-tools.md#the-agent)       |
+| Default                                                                     | Used by                                            |
+| --------------------------------------------------------------------------- | -------------------------------------------------- |
+| New top-level folder `app/Ai/` for the agent, tools and middleware          | [The agent](02-agent-and-tools.md#the-agent)       |
+| Message text kept 90 days                                                   | [Personal data](#personal-data)                    |
+| At most 4 tool calls per turn                                               | [The agent](02-agent-and-tools.md#the-agent)       |
+| A quote link lasts 24 hours                                                 | [Quote links](03-places-and-routes.md#quote-links) |
+| Chat throttles (lobby 10, stay and booking engine 20, API 60 a minute)      | [Routes](03-places-and-routes.md#routes)           |
+| A quiet thread closes after 7 days (chat API: 24 hours, decided 2026-11-25) | [Data model](04-usage-and-cost.md#data-model)      |
+| Staff with `settings.manage` are told at 80% of the cap                     | [Monthly cap](04-usage-and-cost.md#monthly-cap)    |
+| `OPENAI_STORE=false`: OpenAI keeps no copy of guest messages                | [Personal data](#personal-data)                    |
+| One model for all properties: `OPENAI_TEXT_MODEL`, `gpt-6-luna` by default  | [The agent](02-agent-and-tools.md#the-agent)       |
 
 ## To verify
 

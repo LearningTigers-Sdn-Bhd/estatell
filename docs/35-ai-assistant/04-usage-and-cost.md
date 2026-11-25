@@ -13,6 +13,7 @@ ai_threads       id (UUID), property_id, place (AiPlace), status (AiThreadStatus
                  agent_conversation_id (unique, the SDK conversation),
                  reservation_unit_id (nullable), user_id (nullable, staff),
                  ai_connection_id (nullable), external_ref_hash (nullable),
+                 channel (AiChannel, nullable), guest_name (nullable),
                  language (nullable), escalated_at (nullable),
                  handover_summary (text, nullable), resolved_at (nullable),
                  resolved_by_user_id (nullable),
@@ -26,15 +27,15 @@ ai_turns         id, property_id, ai_thread_id, place (AiPlace), language (nulla
 ai_turn_tools    id, ai_turn_id, tool (AiTool), succeeded (bool)
 ```
 
-- `AiThreadStatus`: Open, Escalated, Closed, with `label()`, `tone()` and `canTransitionTo()`. Open goes to Escalated or Closed. Escalated goes to Closed, or back to Open when staff resolve it in the [AI chats inbox](03-places-and-routes.md#ai-chats-inbox). Closed stays closed. An Open thread with no message for 7 days is Closed by a daily job (`CloseQuietAiThreads`, 03:25). A handed-over thread waits for staff: it closes 7 quiet days after they resolve it.
+- `AiThreadStatus`: Open, Escalated, Closed, with `label()`, `tone()` and `canTransitionTo()`. Open goes to Escalated or Closed. Escalated goes to Closed, or back to Open when staff resolve it in the [AI chats inbox](03-places-and-routes.md#ai-chats-inbox). Closed stays closed. An Open thread with no message for 7 days is Closed by a daily job (`CloseQuietAiThreads`, 03:25). A chat API thread closes after 24 hours with no guest message, both when the next message arrives and in the same job (see [Chat API threads](03-places-and-routes.md#threads)). A handed-over thread waits for staff: it closes 7 quiet days after they resolve it (24 hours for the chat API).
 - `handover_summary`, `resolved_at` and `resolved_by_user_id` come with the AI chats inbox. A new handover replaces the summary and clears `resolved_at` and `resolved_by_user_id`.
 - `AiOutcome`: Answered, QuoteSent, Booked, Escalated, Refused, Failed, CapReached, with `label()` and `tone()`.
 - `language` is the browser's language (ISO 639-1, for example `ms`, `en`, `zh`): the chat sends it with each message, and `OpenAiThread` keeps the first one it gets. Decided 2026-11-24: the browser language, not a model report, because it costs nothing and adds no tool call. It is the device's language, which is usually but not always the language the guest writes in. Each turn copies it from the thread.
-- `ai_connection_id` and `external_ref_hash` come with the chat API for n8n. The guest questions item creates the other columns.
+- `ai_connection_id`, `external_ref_hash`, `channel` and `guest_name` come with the chat API for n8n, with an index on `(property_id, external_ref_hash)`. `external_ref_hash` is an HMAC, never the chat id. The guest questions item creates the other columns.
 - `cost_micros` is the provider's price in millionths of a US dollar, from the tokens and the model's price in `config/ai-pricing.php`. OpenAI bills in dollars, so the log does too. It is an estimate of the hotel's OpenAI bill; the bill itself is the exact amount.
 - `reservation_id` is filled when a [quote](03-places-and-routes.md#quote-links) from that turn becomes a booking. The outcome then moves to Booked.
 - The turn row is written by `RecordAiTurn` (an Action), called from the stream's `then()` in `ReplyInAiThread` once the reply ends. The outcome is Failed when a tool failed, Escalated when `HandOver` ran, QuoteSent when `SendQuoteLink` ran, otherwise Answered. A stream that fails (the provider is down, or the account has no credit) is logged from the stream's `catch()` as Failed with no tokens, and the error is reported to the Laravel log. The guest sees "We could not send that." When OpenAI refused the hotel's key, the key status also becomes Failing (see [API key](01-overview.md#api-key)).
-- Message text lives in the SDK's conversation tables and is deleted after 90 days. The same purge sets `ai_threads.handover_summary` to null. `ai_turns` and `ai_turn_tools` keep no text, so they stay.
+- Message text lives in the SDK's conversation tables and is deleted after 90 days. The same purge sets `ai_threads.handover_summary` and `guest_name` to null. `ai_turns` and `ai_turn_tools` keep no text, so they stay.
 
 ## Monthly cap
 
