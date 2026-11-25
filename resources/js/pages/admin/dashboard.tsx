@@ -124,7 +124,7 @@ function PropertiesCard({ summary }: { summary: Summary }) {
     const total = slices.reduce((sum, slice) => sum + slice.count, 0);
 
     return (
-        <Card className="h-full">
+        <Card className="h-80">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Building2
@@ -139,10 +139,10 @@ function PropertiesCard({ summary }: { summary: Summary }) {
                     </Link>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-1 flex-col items-center gap-4 sm:flex-row">
+            <CardContent className="flex min-h-0 flex-1 flex-row items-center gap-4">
                 <ChartContainer
                     config={statusConfig}
-                    className="aspect-square w-full max-w-40 shrink-0"
+                    className="aspect-square w-full max-w-32 shrink-0 sm:max-w-40"
                     role="img"
                     aria-label="Properties by status"
                 >
@@ -295,7 +295,7 @@ function RevenueCard({ summary }: { summary: Summary }) {
             <CardContent className="flex min-h-0 flex-1 flex-col">
                 <ChartContainer
                     config={revenueConfig}
-                    className="aspect-auto h-56 w-full xl:h-auto xl:min-h-0 xl:flex-1"
+                    className="aspect-auto min-h-0 w-full flex-1"
                     role="img"
                     aria-label="Estatell commission income for the last six months, by service"
                 >
@@ -375,7 +375,7 @@ const growthConfig = {
 /** Sign-ups and go-lives per month for six months. A gap between the lines means properties stall in onboarding. */
 function GrowthCard({ summary }: { summary: Summary }) {
     return (
-        <Card className="min-w-0 xl:min-h-0 xl:flex-1">
+        <Card className="h-72 min-w-0 xl:h-auto xl:min-h-0 xl:flex-1">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <TrendingUp
@@ -388,7 +388,7 @@ function GrowthCard({ summary }: { summary: Summary }) {
             <CardContent className="flex min-h-0 flex-1 flex-col">
                 <ChartContainer
                     config={growthConfig}
-                    className="aspect-auto h-40 w-full xl:h-auto xl:min-h-0 xl:flex-1"
+                    className="aspect-auto min-h-0 w-full flex-1"
                     role="img"
                     aria-label="Property sign-ups and go-lives for the last six months"
                 >
@@ -453,7 +453,7 @@ function GrowthCard({ summary }: { summary: Summary }) {
 /** What needs an admin now. Each row links to the list filtered to it. */
 function TodoCard({ todo }: { todo: Todo }) {
     return (
-        <Card className="h-full xl:min-h-0">
+        <Card className="h-full min-h-0">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <ClipboardList
@@ -478,7 +478,7 @@ function TodoCard({ todo }: { todo: Todo }) {
                         />
                     </div>
                 ) : (
-                    <ul className="max-h-96 divide-y overflow-y-auto border-t xl:max-h-none xl:min-h-0 xl:flex-1">
+                    <ul className="min-h-0 flex-1 divide-y overflow-y-auto border-t">
                         {todo.rows.map((row) => (
                             <li
                                 key={row.key}
@@ -655,7 +655,10 @@ export default function AdminDashboard({
     return (
         <>
             <Head title="Admin" />
-            <div className="flex flex-1 flex-col gap-4 p-4">
+            <div
+                scroll-region=""
+                className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4"
+            >
                 <PageHeader
                     title="Dashboard"
                     description="What needs you, and how the platform is doing."
@@ -664,34 +667,31 @@ export default function AdminDashboard({
                 <Deferred
                     data="summary"
                     fallback={
-                        <div className="grid gap-3 xl:h-80 xl:grid-cols-3 xl:grid-rows-1">
-                            <CardSkeleton rows={4} className="min-h-80" />
+                        <div className="grid gap-3 xl:grid-cols-3">
+                            <CardSkeleton rows={4} className="h-80" />
                             <CardSkeleton
                                 rows={6}
-                                className="min-h-80 xl:col-span-2"
+                                className="h-80 xl:col-span-2"
                             />
                         </div>
                     }
                 >
                     {summary && (
-                        <div className="grid gap-3 xl:h-80 xl:grid-cols-3 xl:grid-rows-1">
+                        <div className="grid gap-3 xl:grid-cols-3">
                             <PropertiesCard summary={summary} />
-                            <div className="min-w-0 xl:col-span-2 xl:h-full xl:min-h-0">
+                            <div className="h-80 min-w-0 xl:col-span-2">
                                 <RevenueCard summary={summary} />
                             </div>
                         </div>
                     )}
                 </Deferred>
 
-                <div className="grid gap-3 xl:h-112 xl:grid-cols-3 xl:grid-rows-1">
-                    <div className="min-w-0 xl:col-span-2 xl:h-full xl:min-h-0">
+                <div className="grid gap-3 xl:grid-cols-3">
+                    <div className="h-112 min-w-0 xl:col-span-2">
                         <Deferred
                             data="todo"
                             fallback={
-                                <CardSkeleton
-                                    rows={5}
-                                    className="h-full min-h-80"
-                                />
+                                <CardSkeleton rows={5} className="h-full" />
                             }
                         >
                             {todo && <TodoCard todo={todo} />}
@@ -700,14 +700,11 @@ export default function AdminDashboard({
                     <Deferred
                         data="summary"
                         fallback={
-                            <CardSkeleton
-                                rows={6}
-                                className="h-full min-h-80"
-                            />
+                            <CardSkeleton rows={6} className="h-72 xl:h-112" />
                         }
                     >
                         {summary && (
-                            <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
+                            <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:flex xl:h-112 xl:flex-col">
                                 <GrowthCard summary={summary} />
                                 <PayoutsCard summary={summary} />
                             </div>
@@ -724,6 +721,7 @@ export default function AdminDashboard({
 }
 
 AdminDashboard.layout = {
+    variant: 'fixed' as const,
     breadcrumbs: [
         {
             title: 'Admin',

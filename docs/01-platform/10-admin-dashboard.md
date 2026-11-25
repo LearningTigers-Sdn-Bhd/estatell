@@ -14,7 +14,7 @@ The Dashboard archetype, without an alert or quick actions:
 | 2   | **To do** (two thirds) beside **Growth** and **Next payout** (a third)  |
 | 3   | **Recent properties**, a `DataTable` with **View all** to Properties    |
 
-On mobile everything stacks in that order.
+The page uses the admin layout's `fixed` variant: the breadcrumb header stays on screen and only the content below it scrolls. On mobile everything stacks in that order. Card heights are fixed at every screen size, so nothing moves when data loads or a list grows: Properties and Estatell revenue `h-80`, To do `h-112` (its list scrolls inside), Growth `h-72` below `xl`. On `xl` the right column is `h-112`: Next payout takes its own height and Growth fills the rest. Skeletons use the same heights.
 
 `Admin\DashboardController@show` sends two deferred props, `todo` and `summary`. Each card shows a skeleton until its prop loads.
 
