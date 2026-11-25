@@ -25,13 +25,13 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | Deposit liability             | `DepositLiability`   | `FolioBalancesOnDate` (every credit balance)                                     | One date | Landscape           | –             |
 | Non-national guests           | `NonNationalGuests`  | foreign units that stayed, and their tourism tax lines                           | Range    | Landscape           | 31 days       |
 | Police report                 | `PoliceReport`       | every guest of a unit that stayed (`unit_guests`)                                | Range    | Landscape           | 31 days       |
-| Boat manifest                 | `BoatManifest`       | `unit_boat_trips` (only with the Boats feature)                                  | One date | Portrait            | –             |
+| Boat manifest                 | `BoatManifest`       | `unit_boat_trips` (only with the Boats feature)                                  | One date | Landscape           | –             |
 | Transfer manifest             | `TransferManifest`   | `unit_transfers` (only with the Transfers feature)                               | One date | Landscape           | –             |
 | Housekeeping tasks            | `HousekeepingTasks`  | `room_statuses`, `unit_nights`, `room_blocks`                                    | One date | Landscape           | –             |
 | Checked out                   | `CheckedOut`         | `reservation_units`                                                              | Range    | Portrait            | 31 days       |
 | Daily revenue                 | `DailyRevenue`       | `DailyRevenueQuery` (live)                                                       | Range    | Landscape           | 366 days      |
 | Daily charges                 | `DailyCharges`       | `folio_lines` through `DailyRevenueQuery`                                        | Range    | Landscape           | 31 days       |
-| Booking performance (planned) | `BookingPerformance` | reservations by booking date                                                     | Range    | Portrait            | 366 days      |
+| Booking performance           | `BookingPerformance` | reservations by booking date                                                     | Range    | Landscape           | 366 days      |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
 - **Boat manifest** belongs to the Boats module and is exported from the [Boat Trips board](../24-boats/05-boats-board.md#export-boat-manifest), not from the Reports menu. It has no report page. Its export routes sit under `reservations.view`, and its Columns Sheet uses the shared layout routes. See [Boat manifest](../24-boats/03-boat-manifest.md).
