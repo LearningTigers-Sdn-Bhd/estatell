@@ -20,6 +20,7 @@ import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { enter, exit } from '@/routes/pos/terminal-mode';
 import { terminal } from '@/routes/pos';
+import { show as offlineShow } from '@/routes/pos/offline';
 import { open } from '@/routes/pos/shifts';
 
 type Register = {
@@ -178,6 +179,23 @@ export default function PosIndex({
                                             >
                                                 Open register (
                                                 {register.shiftNumber})
+                                            </Link>
+                                        ) : null}
+                                        {register.shiftNumber ? (
+                                            <Link
+                                                className={buttonVariants({
+                                                    variant: 'outline',
+                                                })}
+                                                href={offlineShow.url(
+                                                    undefined,
+                                                    {
+                                                        query: {
+                                                            outlet: outlet.id,
+                                                        },
+                                                    },
+                                                )}
+                                            >
+                                                Offline walk-in
                                             </Link>
                                         ) : (
                                             <Button

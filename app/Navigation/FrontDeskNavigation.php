@@ -111,7 +111,13 @@ class FrontDeskNavigation
                     title: __('POS register'),
                     href: route('pos.index', ['property' => $property->code], absolute: false),
                     icon: 'receipt',
-                    active: request()->routeIs('pos.*'),
+                    active: request()->routeIs('pos.*') && ! request()->routeIs('pos.kds.*', 'pos.ods.*'),
+                ) : null,
+                $user->can(PermissionEnum::PosKds->value) && Feature::for($property)->active(NativePos::class) ? new NavItemData(
+                    title: __('Kitchen display'),
+                    href: route('pos.kds.index', ['property' => $property->code], absolute: false),
+                    icon: 'chef-hat',
+                    active: request()->routeIs('pos.kds.*', 'pos.ods.*'),
                 ) : null,
                 $user->can(PermissionEnum::MealsRedeem->value) && (Feature::for($property)->active(PosIntegration::class) || Feature::for($property)->active(NativePos::class)) ? new NavItemData(
                     title: __('Meal check-in'),

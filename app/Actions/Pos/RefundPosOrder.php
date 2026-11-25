@@ -14,6 +14,7 @@ use App\Enums\PosOrderType;
 use App\Enums\PosPaymentDirection;
 use App\Enums\PosPaymentStatus;
 use App\Enums\PosShiftStatus;
+use App\Enums\PosStockMovementKind;
 use App\Enums\PosTenderType;
 use App\Features\NativePos;
 use App\Models\FolioLine;
@@ -67,6 +68,7 @@ class RefundPosOrder
         private ReverseLine $reverseLine,
         private PostPosFolioCredit $postPosFolioCredit,
         private UndoMealRedemption $undoMealRedemption,
+        private PostRecipeStock $postRecipeStock,
     ) {}
 
     /**
@@ -127,8 +129,8 @@ class RefundPosOrder
         }
 
         $refund = $this->createRefundOrder($actor, $original, $shift, $clientUuid, $businessDate->date, $plan);
-        $this->createRefundLines($refund, $plan, $inputs);
-        $this->giveBackStockAndMeals($actor, $original, $plan, $inputs);
+        $refundLines = $this->createRefundLines($refund, $plan, $inputs);
+        $this->giveBackStockAndMeals($actor, $original, $plan, $refundLines, $inputs);
         $this->payOut($actor, $property, $original, $refund, $shift, $approvedBy, $payouts);
 
         activity()->performedOn($refund)->causedBy($actor)->event('pos.order_refunded')
@@ -311,9 +313,12 @@ class RefundPosOrder
     /**
      * @param  array<int, array{line: PosOrderLine, quantity: int, amounts: array<string, string>, taxes: list<array{row: PosOrderLineTax, base: string, amount: string}>}>  $plan
      * @param  list<PosRefundLineInputData>  $inputs
+     * @return array<int, PosOrderLine>
      */
-    private function createRefundLines(PosOrder $refund, array $plan, array $inputs): void
+    private function createRefundLines(PosOrder $refund, array $plan, array $inputs): array
     {
+        $created = [];
+
         foreach ($plan as $row) {
             $original = $row['line'];
             $line = new PosOrderLine;
@@ -340,6 +345,11 @@ class RefundPosOrder
             $line->forceFill($row['amounts']);
             $line->save();
 
+            $original->loadMissing('modifiers');
+            foreach ($original->modifiers as $modifier) {
+                $modifier->replicate()->forceFill(['pos_order_line_id' => $line->id])->save();
+            }
+
             foreach ($row['taxes'] as $tax) {
                 $taxRow = new PosOrderLineTax;
                 $taxRow->pos_order_line_id = $line->id;
@@ -355,14 +365,19 @@ class RefundPosOrder
                 $taxRow->tax_amount = $tax['amount'];
                 $taxRow->save();
             }
+
+            $created[$original->id] = $line;
         }
+
+        return $created;
     }
 
     /**
      * @param  array<int, array{line: PosOrderLine, quantity: int, amounts: array<string, string>, taxes: list<array{row: PosOrderLineTax, base: string, amount: string}>}>  $plan
+     * @param  array<int, PosOrderLine>  $refundLines
      * @param  list<PosRefundLineInputData>  $inputs
      */
-    private function giveBackStockAndMeals(User $actor, PosOrder $original, array $plan, array $inputs): void
+    private function giveBackStockAndMeals(User $actor, PosOrder $original, array $plan, array $refundLines, array $inputs): void
     {
         foreach ($inputs as $input) {
             $row = $plan[$input->orderLineId];
@@ -371,6 +386,7 @@ class RefundPosOrder
             if ($input->returnStock && $line->pos_item_variant_id !== null && $line->kitchen_status->isLocked()) {
                 PosOutletItem::query()->where('pos_outlet_id', $original->pos_outlet_id)->where('pos_item_variant_id', $line->pos_item_variant_id)->whereNotNull('stock_countdown')->increment('stock_countdown', $row['quantity']);
                 PosItem::query()->whereKey($line->variant->pos_item_id)->whereNotNull('shared_stock_count')->increment('shared_stock_count', $row['quantity']);
+                ($this->postRecipeStock)($refundLines[$line->id], PosStockMovementKind::RefundReturn);
             }
 
             if ($input->restoreMealEntitlement && $line->meal_redemption_id !== null) {

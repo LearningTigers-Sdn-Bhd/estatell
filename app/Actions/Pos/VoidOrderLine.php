@@ -5,6 +5,7 @@ namespace App\Actions\Pos;
 use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderLineKind;
 use App\Enums\PosOrderStatus;
+use App\Enums\PosStockMovementKind;
 use App\Models\PosItem;
 use App\Models\PosOrder;
 use App\Models\PosOrderLine;
@@ -24,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 class VoidOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpKitchenVersion $bumpKitchenVersion, private PostRecipeStock $postRecipeStock) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line, PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
     {
@@ -77,7 +78,12 @@ class VoidOrderLine
 
                     if ($fired && $return) {
                         $this->returnStock($order, $row);
+                        ($this->postRecipeStock)($row, PosStockMovementKind::VoidReturn);
                     }
+                }
+
+                if ($fired) {
+                    ($this->bumpKitchenVersion)($line->kitchenStation);
                 }
 
                 $result = ($this->recalculate)($order);

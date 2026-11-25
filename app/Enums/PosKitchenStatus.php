@@ -26,6 +26,19 @@ enum PosKitchenStatus: string
     }
 
     /**
+     * The kitchen path of one line: Fired to Preparing or Ready, Preparing to Ready, Ready back to Preparing or on to Served.
+     */
+    public function canTransitionTo(self $to): bool
+    {
+        return match ($this) {
+            self::Fired => $to === self::Preparing || $to === self::Ready,
+            self::Preparing => $to === self::Ready,
+            self::Ready => $to === self::Preparing || $to === self::Served,
+            default => false,
+        };
+    }
+
+    /**
      * A line that was sent to the kitchen can no longer be removed without a manager.
      */
     public function isLocked(): bool

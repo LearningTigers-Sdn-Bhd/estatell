@@ -1,6 +1,66 @@
 # Kitchen routing, Web KDS/ODS, QR self-ordering and walk-in offline mode
 
-> **Planned (Phase 3).** Part of [Native POS](01-overview.md). Defines kitchen stations, Web KDS (`version` hash polling — no Reverb dependency), ODS pickup boards, per-stay Room QR + PIN ordering, dynamic Table QR ordering, and walk-in-only IndexedDB PWA offline mode.
+> **Built (Phase 3).** Part of [Native POS](01-overview.md). Defines kitchen stations, Web KDS (`version` hash polling — no Reverb dependency), ODS pickup boards, per-stay Room QR + PIN ordering, dynamic Table QR ordering, and walk-in-only IndexedDB PWA offline mode.
+
+## Build status (Phase 3, step 11)
+
+| Part                                                                        | State                                                          |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `pos_kitchen_stations`, `kitchen_station_id` on categories, items and lines | Built                                                          |
+| Routing: item station, else category station; combo parents route nowhere   | Built (`KitchenDisplay::stationIdFor`)                         |
+| Web KDS: Kitchen, Window and All day views, Bump, Recall, Served            | Built (`pos/kds`)                                              |
+| Version polling (`/kds/{station}/version`, `/ods/{outlet}/version`)         | Built, random token in the cache, not a Redis hash key by hand |
+| Void dockets on the screen (struck through, 30 minutes)                     | Built on screen. Printed void docket not built                 |
+| ODS pickup board                                                            | Built (`pos/ods`), staff route, not public (see below)         |
+| Browser kitchen docket print                                                | Not built, waits for the print step                            |
+| Cooking guide popover                                                       | Built (`Popover` on KDS ticket lines when a dish has a guide)  |
+| Front desk sidebar link to Kitchen Display (`/p/{code}/pos/kds`)            | Built (`FrontDeskNavigation`, gated on `pos.kds`)              |
+
+## Build status (Phase 3, step 12)
+
+| Part                                                                                                    | State                                                  |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `pos_qr_sessions` with kind shape checks, token, hashed stay PIN, failed-try count and lock             | Built                                                  |
+| Dynamic table QR: long-press a table on the floor board, one live token per table, revoked on settle    | Built (`IssueTableQrSession`, `RevokeTableQrSessions`) |
+| Table QR menu and orders at `/q/table/{token}` (30 views a minute, 10 orders in 15 minutes per IP)      | Built (`qr/table`)                                     |
+| Per-stay room QR: issued on `StayCheckedIn`, revoked on `StayCheckedOut` and `StayCheckInUndone`        | Built (`IssueRoomQrSession`, `RevokeRoomQrSessions`)   |
+| Room QR at `/q/room/{token}`: stay PIN and primary guest's last name, lock after 5 tries for 15 minutes | Built (`qr/room`, `UnlockRoomQrSession`)               |
+| Front desk regenerate room PIN (`front-desk.check-in`)                                                  | Built, the PIN is shown once in the toast              |
+| Guest orders become Draft lines through `AddOrderLine`; staff Fire approves them                        | Built                                                  |
+
+Deviations and open items:
+
+- **Table QR image:** Rendered as an inline SVG via `PosReceiptClaimQr::svg()` inside `.pos-print-area` on `pos/table-qr` for 80 mm thermal/browser printing.
+- **No auto-accept.** Every guest order waits as Draft lines until the cashier fires them. The outlet's `allow_qr_customer_remark` controls the note. `allow_anonymous_qr` is not used yet.
+- **Room PIN is not on the welcome slip.** Front desk regenerate is the only way to get the PIN for now.
+- **Last name check** compares with the last word of the primary guest's full name, because a guest has no separate last-name column.
+- **Guest menu** hides combos and items with a modifier the guest must pick. Those still need staff.
+- **Sessions with no open check** expire by time. A table with another open check keeps its link.
+
+## Build status (Phase 3, step 13: walk-in offline)
+
+| Part                                                                                                              | State                          |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Menu snapshot issued by the server, stored by version, kept 7 days (`pos_menu_snapshots`, `IssuePosMenuSnapshot`) | Built                          |
+| Service worker caches built assets, and keeps the offline page for reload without a connection (`public/sw.js`)   | Built                          |
+| Sales kept in IndexedDB until the server confirms them (`pos-offline-store.ts`)                                   | Built                          |
+| Cash and static DuitNow only. Room charges and meal redemptions refused offline                                   | Built (`tender_not_offline`)   |
+| Items with a changing price, or a modifier to choose, are not sold offline                                        | Built                          |
+| Sync replays each sale once (`client_uuid`), at the snapshot's prices, with drift logged                          | Built (`SyncOfflinePosOrders`) |
+| Official number on sync; the device shows `OFF-{register}-{short}`                                                | Built                          |
+| DuitNow sales wait as `pending_verification` for bank-slip reconciliation                                         | Built                          |
+| Sale from a closed shift joins the open shift and is marked `synced_late`                                         | Built                          |
+
+Deviations and open items:
+
+- **No shift-close block.** The register does not yet refuse a shift close while sales are waiting. The offline page shows the queue.
+- **No manager approval for old snapshots.** A snapshot older than 7 days is refused (`snapshot_expired`). The planned Manager PIN approval is not built.
+- **No cash offset for closed shifts.** The late cash counts in the open shift. The planned phantom-overage offset is not built.
+- **Totals on sync.** The offline page does not show a tax-inclusive total. The server prices the sale on sync, and the cash tendered must cover it.
+- **No printed offline slip.** The `OFF-` reference shows on screen only.
+- **Offline page entry.** Reached from the register index, next to an open register.
+
+Deviation: the ODS board sits behind the terminal actor and `pos.kds`, so a pickup monitor needs a signed-in kitchen session. A public board needs its own token, which is not built.
 
 ## Purpose
 

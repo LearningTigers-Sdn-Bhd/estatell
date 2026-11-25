@@ -5,6 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\UnitStatus;
 use App\Events\StayCheckedOut;
+use App\Events\StayCheckInUndone;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\UndoCheckInRule;
@@ -78,6 +79,8 @@ class UndoCheckIn
                 ->log('Check-in undone');
 
             ($this->syncReservationStatus)($locked->reservation);
+
+            event(new StayCheckInUndone($locked->property_id, $locked->id));
 
             StayCheckedOut::dispatch($locked->property_id, $locked->id);
 

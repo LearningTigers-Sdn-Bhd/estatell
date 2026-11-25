@@ -10,6 +10,7 @@ import OnboardingLayout from '@/layouts/onboarding-layout';
 import PartnerLayout from '@/layouts/partner-layout';
 import PortalLayout from '@/layouts/portal-layout';
 import PosLayout from '@/layouts/pos-layout';
+import QrLayout from '@/layouts/qr-layout';
 import AccountLayout from '@/layouts/account/layout';
 import { setUrlDefaults } from '@/wayfinder';
 
@@ -48,6 +49,8 @@ void createInertiaApp({
                 return page.props.adminNavigation ? AdminLayout : PartnerLayout;
             case name.startsWith('pos/'):
                 return PosLayout;
+            case name.startsWith('qr/'):
+                return QrLayout;
             case name.startsWith('account/'):
                 return AccountLayout;
             default:

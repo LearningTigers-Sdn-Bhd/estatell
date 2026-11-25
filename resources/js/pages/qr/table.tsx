@@ -1,0 +1,70 @@
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
+import { QrMenu } from '@/components/pms/qr/qr-menu';
+import type { QrCategory, QrLine } from '@/components/pms/qr/qr-menu';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { orders as tableOrders } from '@/routes/qr/table';
+
+type Props = {
+    token: string;
+    status: 'active' | 'revoked' | 'expired' | 'locked';
+    property: string;
+    outlet: string;
+    table: string;
+    allowRemark: boolean;
+    categories: QrCategory[];
+};
+
+const closedMessage: Record<Exclude<Props['status'], 'active'>, string> = {
+    revoked:
+        'This table code was replaced or the table is settled. Ask the team for a new one.',
+    expired: 'This table code has expired. Ask the team for a new one.',
+    locked: 'This code is locked. Ask the team for help.',
+};
+
+export default function QrTable({
+    token,
+    status,
+    property,
+    outlet,
+    table,
+    allowRemark,
+    categories,
+}: Props) {
+    const [sending, setSending] = useState(false);
+
+    return (
+        <>
+            <Head title={`${property} · ${table}`} />
+            <header className="sticky top-0 z-10 border-b bg-background p-4">
+                <p className="text-sm text-muted-foreground">{outlet}</p>
+                <h1 className="text-xl font-semibold">Table {table}</h1>
+            </header>
+
+            {status !== 'active' ? (
+                <Card className="m-4">
+                    <CardHeader>
+                        <CardTitle>Ordering is closed</CardTitle>
+                    </CardHeader>
+                    <CardContent>{closedMessage[status]}</CardContent>
+                </Card>
+            ) : (
+                <QrMenu
+                    categories={categories}
+                    allowRemark={allowRemark}
+                    sending={sending}
+                    onSend={(lines: QrLine[]) => {
+                        setSending(true);
+                        router.post(
+                            tableOrders.url({ token }),
+                            { lines },
+                            {
+                                onFinish: () => setSending(false),
+                            },
+                        );
+                    }}
+                />
+            )}
+        </>
+    );
+}

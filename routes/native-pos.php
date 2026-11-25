@@ -4,19 +4,25 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Pos\PosClockController;
 use App\Http\Controllers\Pos\PosDiningOptionController;
 use App\Http\Controllers\Pos\PosFloorController;
+use App\Http\Controllers\Pos\PosInventoryController;
+use App\Http\Controllers\Pos\PosKitchenController;
+use App\Http\Controllers\Pos\PosKitchenSettingsController;
 use App\Http\Controllers\Pos\PosMenuController;
 use App\Http\Controllers\Pos\PosModifierController;
+use App\Http\Controllers\Pos\PosOfflineController;
 use App\Http\Controllers\Pos\PosOrderController;
 use App\Http\Controllers\Pos\PosOrderReceiptController;
 use App\Http\Controllers\Pos\PosOutletSettingsController;
 use App\Http\Controllers\Pos\PosPinController;
 use App\Http\Controllers\Pos\PosRegisterController;
+use App\Http\Controllers\Pos\PosRoomQrController;
 use App\Http\Controllers\Pos\PosSalesReportController;
 use App\Http\Controllers\Pos\PosScheduleController;
 use App\Http\Controllers\Pos\PosShiftController;
 use App\Http\Controllers\Pos\PosShiftReportController;
 use App\Http\Controllers\Pos\PosStaffPinController;
 use App\Http\Controllers\Pos\PosStaffSettingsController;
+use App\Http\Controllers\Pos\PosTableQrController;
 use App\Http\Controllers\Pos\PosTerminalDeviceController;
 use App\Http\Controllers\Pos\PosTerminalModeController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +70,24 @@ Route::middleware('native-pos')->group(function () {
                 });
             });
 
+            Route::middleware('pos.can:'.PermissionEnum::PosSell->value)->group(function () {
+                Route::post('tables/{table}/qr', [PosTableQrController::class, 'issue'])->whereNumber('table')->name('tables.qr');
+                Route::get('offline', [PosOfflineController::class, 'show'])->name('offline.show');
+                Route::get('offline/snapshot', [PosOfflineController::class, 'snapshot'])->name('offline.snapshot');
+                Route::post('offline-sync', [PosOfflineController::class, 'sync'])->middleware('throttle:60,1')->name('offline.sync');
+            });
+
+            Route::middleware('pos.can:'.PermissionEnum::PosKds->value)->group(function () {
+                Route::get('kds', [PosKitchenController::class, 'index'])->name('kds.index');
+                Route::get('kds/{station}', [PosKitchenController::class, 'show'])->whereNumber('station')->name('kds.show');
+                Route::get('kds/{station}/version', [PosKitchenController::class, 'version'])->whereNumber('station')->name('kds.version');
+                Route::patch('kds/lines/{line}/status', [PosKitchenController::class, 'updateLine'])->whereNumber('line')->name('kds.lines.status');
+                Route::post('kds/{station}/orders/{order}/bump', [PosKitchenController::class, 'bump'])->whereNumber(['station', 'order'])->name('kds.orders.bump');
+                Route::post('kds/{station}/orders/{order}/recall', [PosKitchenController::class, 'recall'])->whereNumber(['station', 'order'])->name('kds.orders.recall');
+                Route::get('ods/{outlet}', [PosKitchenController::class, 'pickup'])->whereNumber('outlet')->name('ods.show');
+                Route::get('ods/{outlet}/version', [PosKitchenController::class, 'pickupVersion'])->whereNumber('outlet')->name('ods.version');
+            });
+
             Route::middleware('pos.can:'.PermissionEnum::PosShift->value)->group(function () {
                 Route::post('orders/{order}/transfer-register', [PosOrderController::class, 'transfer'])->whereNumber('order')->name('orders.transfer-register');
                 Route::post('shifts/open', [PosShiftController::class, 'open'])->name('shifts.open');
@@ -77,6 +101,8 @@ Route::middleware('native-pos')->group(function () {
             });
         });
     });
+
+    Route::post('pos/room-qr/{unit}/regenerate', [PosRoomQrController::class, 'regenerate'])->whereNumber('unit')->middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->name('pos.room-qr.regenerate');
 
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('pos-orders', [PosOrderReceiptController::class, 'index'])->middleware('can:'.PermissionEnum::PosView->value)->name('pos-orders.index');
@@ -109,7 +135,24 @@ Route::middleware('native-pos')->group(function () {
         Route::put('outlets/{outlet}/registers/{register}', [PosOutletSettingsController::class, 'updateRegister'])->whereNumber(['outlet', 'register'])->name('registers.update');
     });
 
+    Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosInventory->value)->group(function () {
+        Route::get('inventory', [PosInventoryController::class, 'index'])->name('inventory.index');
+        Route::post('ingredients', [PosInventoryController::class, 'storeIngredient'])->name('ingredients.store');
+        Route::put('ingredients/{ingredient}', [PosInventoryController::class, 'updateIngredient'])->whereNumber('ingredient')->name('ingredients.update');
+        Route::put('variants/{variant}/recipe', [PosInventoryController::class, 'saveRecipe'])->whereNumber('variant')->name('recipes.update');
+        Route::post('outlets/{outlet}/purchases', [PosInventoryController::class, 'receive'])->whereNumber('outlet')->name('purchases.store');
+        Route::post('outlets/{outlet}/waste', [PosInventoryController::class, 'waste'])->whereNumber('outlet')->name('waste.store');
+        Route::post('transfers', [PosInventoryController::class, 'transfer'])->name('transfers.store');
+        Route::post('outlets/{outlet}/stocktakes', [PosInventoryController::class, 'startStocktake'])->whereNumber('outlet')->name('stocktakes.store');
+        Route::put('stocktakes/{stocktake}/ingredients/{ingredient}', [PosInventoryController::class, 'count'])->whereNumber(['stocktake', 'ingredient'])->name('stocktakes.count');
+        Route::post('stocktakes/{stocktake}/close', [PosInventoryController::class, 'closeStocktake'])->whereNumber('stocktake')->name('stocktakes.close');
+    });
+
     Route::prefix('settings/pos')->name('settings.pos.')->middleware('can:'.PermissionEnum::PosMenu->value)->group(function () {
+        Route::get('kitchen', [PosKitchenSettingsController::class, 'index'])->name('kitchen.index');
+        Route::post('outlets/{outlet}/kitchen-stations', [PosKitchenSettingsController::class, 'storeStation'])->whereNumber('outlet')->name('kitchen-stations.store');
+        Route::put('kitchen-stations/{station}', [PosKitchenSettingsController::class, 'updateStation'])->whereNumber('station')->name('kitchen-stations.update');
+        Route::put('outlets/{outlet}/kitchen-routing', [PosKitchenSettingsController::class, 'updateRouting'])->whereNumber('outlet')->name('kitchen-routing.update');
         Route::get('menu', [PosMenuController::class, 'index'])->name('menu.index');
         Route::post('categories', [PosMenuController::class, 'storeCategory'])->name('categories.store');
         Route::put('categories/{category}', [PosMenuController::class, 'updateCategory'])->whereNumber('category')->name('categories.update');
