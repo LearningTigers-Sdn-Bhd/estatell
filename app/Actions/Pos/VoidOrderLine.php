@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 class VoidOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate, private BumpKitchenVersion $bumpKitchenVersion, private PostRecipeStock $postRecipeStock) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpKitchenVersion $bumpKitchenVersion, private PostRecipeStock $postRecipeStock, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line, PosVoidReason $reason, ?string $reasonText = null, ?bool $returnStock = null, ?User $approver = null): PosActionResult
     {
@@ -95,6 +95,12 @@ class VoidOrderLine
                 activity()->performedOn($order)->causedBy($actor)->event('pos.line_voided')
                     ->withProperties(['property_id' => $property->id, 'pos_order_line_id' => $line->id, 'item_name' => $line->item_name, 'quantity' => $line->quantity, 'reason' => $reason->label, 'approved_by_user_id' => $approver?->id, 'return_stock' => $fired && $return])
                     ->log('POS line voided');
+
+                $registerId = $order->shift?->pos_register_id;
+
+                if ($registerId !== null) {
+                    ($this->bumpCfdVersion)($registerId);
+                }
 
                 return PosActionResult::saved($line->refresh());
             });

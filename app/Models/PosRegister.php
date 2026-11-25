@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $pos_outlet_id
  * @property string $name
  * @property bool $active
+ * @property int|null $active_pos_order_id The check the customer-facing display shows, or the one just settled.
+ * @property CarbonImmutable|null $active_order_updated_at
+ * @property bool $cfd_checkout_active Whether the cashier has the checkout sheet open.
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
@@ -34,6 +37,8 @@ class PosRegister extends Model
     {
         return [
             'active' => 'boolean',
+            'active_order_updated_at' => 'datetime',
+            'cfd_checkout_active' => 'boolean',
         ];
     }
 

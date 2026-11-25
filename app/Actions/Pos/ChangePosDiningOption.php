@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ChangePosDiningOption
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosDiningOption $option, ?User $approver = null): PosActionResult
     {
@@ -53,6 +53,12 @@ class ChangePosDiningOption
                 activity()->performedOn($order)->causedBy($actor)->event('pos.dining_option_changed')
                     ->withProperties(['property_id' => $property->id, 'from' => $from, 'to' => $option->id, 'approved_by_user_id' => $approver?->id])
                     ->log('POS dining option changed');
+
+                $registerId = $order->shift?->pos_register_id;
+
+                if ($registerId !== null) {
+                    ($this->bumpCfdVersion)($registerId);
+                }
 
                 return PosActionResult::saved($order->refresh());
             });

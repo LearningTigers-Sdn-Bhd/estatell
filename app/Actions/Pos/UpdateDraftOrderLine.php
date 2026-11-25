@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  */
 class UpdateDraftOrderLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line, ?int $quantity, ?string $note = null): PosActionResult
     {
@@ -70,6 +70,12 @@ class UpdateDraftOrderLine
                 activity()->performedOn($order)->causedBy($actor)->event('pos.line_updated')
                     ->withProperties(['property_id' => $property->id, 'pos_order_line_id' => $line->id, 'quantity' => $quantity])
                     ->log('POS line updated');
+
+                $registerId = $order->shift?->pos_register_id;
+
+                if ($registerId !== null) {
+                    ($this->bumpCfdVersion)($registerId);
+                }
 
                 return PosActionResult::saved($line->refresh());
             });

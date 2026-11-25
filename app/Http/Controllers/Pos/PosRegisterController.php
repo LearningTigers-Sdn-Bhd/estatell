@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Pos;
 
+use App\Actions\Pos\UpdateRegisterDisplayState;
 use App\Data\Pos\PosOrderData;
 use App\Data\Pos\PosShiftData;
 use App\Data\Property\CurrencyData;
@@ -10,6 +11,7 @@ use App\Enums\PosCashMovementKind;
 use App\Enums\PosDiscountType;
 use App\Enums\PosKitchenStatus;
 use App\Enums\PosOperationMode;
+use App\Enums\PosOrderStatus;
 use App\Enums\PosShiftStatus;
 use App\Enums\PosTenderType;
 use App\Http\Controllers\Controller;
@@ -26,6 +28,7 @@ use App\Models\Property;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Pos\CustomerDisplay;
 use App\Services\Pos\DailyMealCheckInList;
 use App\Services\Pos\InHouseGuestLookup;
 use App\Services\Pos\OutletMenuSnapshot;
@@ -76,7 +79,7 @@ class PosRegisterController extends Controller
         ]);
     }
 
-    public function terminal(Request $request, Property $property, int $outlet, OutletMenuSnapshot $snapshot, TableFloorState $floors, CurrentBusinessDate $currentBusinessDate): Response
+    public function terminal(Request $request, Property $property, int $outlet, OutletMenuSnapshot $snapshot, TableFloorState $floors, CurrentBusinessDate $currentBusinessDate, UpdateRegisterDisplayState $updateRegisterDisplayState): Response
     {
         $actor = $this->actor($request);
         $model = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->findOrFail($outlet);
@@ -91,6 +94,10 @@ class PosRegisterController extends Controller
         $receipt = $receiptId > 0 && $shift !== null
             ? PosOrder::query()->where('property_id', $property->id)->where('pos_shift_id', $shift->id)->with($this->orderRelations())->find($receiptId)
             : null;
+
+        if ($register !== null) {
+            $this->syncCustomerDisplay($property, $register, $order, $updateRegisterDisplayState);
+        }
 
         return Inertia::render('pos/terminal', [
             'currency' => CurrencyData::forProperty($property),
@@ -180,6 +187,30 @@ class PosRegisterController extends Controller
     public static function orderRelations(): array
     {
         return ['outlet', 'shift.register', 'diningOption', 'reservationUnit.reservation', 'refundFor', 'openedBy', 'table', 'lines.modifiers', 'lines.variant.item', 'payments', 'discounts'];
+    }
+
+    /**
+     * Keep the customer-facing display in step with the check on screen. A settled order stays for its thank-you window even
+     * when the cashier clears the register, so the guest still sees the receipt and change due.
+     */
+    private function syncCustomerDisplay(Property $property, PosRegister $register, ?PosOrder $order, UpdateRegisterDisplayState $updateRegisterDisplayState): void
+    {
+        if ($register->active_pos_order_id === $order?->id) {
+            return;
+        }
+
+        if ($order === null && $register->active_pos_order_id !== null) {
+            $previous = PosOrder::query()->where('property_id', $property->id)->find($register->active_pos_order_id);
+            $settledRecently = $previous?->status === PosOrderStatus::Settled
+                && $previous->settled_at !== null
+                && $previous->settled_at->diffInSeconds(now()) <= CustomerDisplay::THANK_YOU_SECONDS;
+
+            if ($settledRecently) {
+                return;
+            }
+        }
+
+        $updateRegisterDisplayState($property, $register, $order?->id, false);
     }
 
     /**

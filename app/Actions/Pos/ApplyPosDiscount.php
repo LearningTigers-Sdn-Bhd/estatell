@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ApplyPosDiscount
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosDiscountType $type, string $value, ?PosOrderLine $line = null, ?string $reason = null, ?User $approver = null, bool $excludeAddons = false): PosActionResult
     {
@@ -90,6 +90,12 @@ class ApplyPosDiscount
                 activity()->performedOn($order)->causedBy($actor)->event('pos.discount_applied')
                     ->withProperties(['property_id' => $property->id, 'type' => $type->value, 'value' => $value, 'pos_order_line_id' => $line?->id, 'approved_by_user_id' => $approver?->id, 'reason' => $reason])
                     ->log('POS discount applied');
+
+                $registerId = $order->shift?->pos_register_id;
+
+                if ($registerId !== null) {
+                    ($this->bumpCfdVersion)($registerId);
+                }
 
                 return PosActionResult::saved($order->refresh());
             });

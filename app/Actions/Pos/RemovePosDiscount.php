@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  */
 class RemovePosDiscount
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, ?PosOrderLine $line = null, ?User $approver = null): PosActionResult
     {
@@ -57,6 +57,12 @@ class RemovePosDiscount
                 activity()->performedOn($order)->causedBy($actor)->event('pos.discount_removed')
                     ->withProperties(['property_id' => $property->id, 'pos_order_line_id' => $line?->id, 'approved_by_user_id' => $approver?->id])
                     ->log('POS discount removed');
+
+                $registerId = $order->shift?->pos_register_id;
+
+                if ($registerId !== null) {
+                    ($this->bumpCfdVersion)($registerId);
+                }
 
                 return PosActionResult::saved($order->refresh());
             });

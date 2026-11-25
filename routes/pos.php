@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Pos\MealCheckInController;
 use App\Http\Controllers\Pos\PosApiClientController;
+use App\Http\Controllers\Pos\PosCfdController;
 use App\Http\Controllers\Pos\PosClockController;
 use App\Http\Controllers\Pos\PosDiningOptionController;
 use App\Http\Controllers\Pos\PosFloorController;
@@ -103,6 +104,10 @@ Route::middleware('pos')->group(function () {
                     Route::post('change-payment', [PosOrderController::class, 'changePayment'])->name('change-payment');
                 });
 
+                Route::get('cfd/{register}', [PosCfdController::class, 'show'])->whereNumber('register')->name('cfd.show');
+                Route::get('cfd/{register}/version', [PosCfdController::class, 'version'])->whereNumber('register')->name('cfd.version');
+                Route::post('cfd/{register}/state', [PosCfdController::class, 'state'])->whereNumber('register')->name('cfd.state');
+
                 Route::post('tables/{table}/qr', [PosTableQrController::class, 'issue'])->whereNumber('table')->name('tables.qr');
                 Route::get('offline', [PosOfflineController::class, 'show'])->name('offline.show');
                 Route::get('offline/snapshot', [PosOfflineController::class, 'snapshot'])->name('offline.snapshot');
@@ -158,6 +163,8 @@ Route::middleware('pos')->group(function () {
         Route::put('void-reasons/{reason}', [PosStaffSettingsController::class, 'updateVoidReason'])->whereNumber('reason')->name('void-reasons.update');
         Route::get('outlets', [PosOutletSettingsController::class, 'index'])->name('outlets.index');
         Route::put('outlets/{outlet}', [PosOutletSettingsController::class, 'update'])->whereNumber('outlet')->name('outlets.update');
+        Route::post('outlets/{outlet}/cfd-qr', [PosOutletSettingsController::class, 'storeCfdQr'])->whereNumber('outlet')->name('outlets.cfd-qr.store');
+        Route::delete('outlets/{outlet}/cfd-qr', [PosOutletSettingsController::class, 'destroyCfdQr'])->whereNumber('outlet')->name('outlets.cfd-qr.destroy');
         Route::post('outlets/{outlet}/registers', [PosOutletSettingsController::class, 'storeRegister'])->whereNumber('outlet')->name('registers.store');
         Route::put('outlets/{outlet}/registers/{register}', [PosOutletSettingsController::class, 'updateRegister'])->whereNumber(['outlet', 'register'])->name('registers.update');
         Route::post('outlets/{outlet}/payment-methods', [PosOutletSettingsController::class, 'storePaymentMethod'])->whereNumber('outlet')->name('payment-methods.store');

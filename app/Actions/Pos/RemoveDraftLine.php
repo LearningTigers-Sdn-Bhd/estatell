@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 class RemoveDraftLine
 {
-    public function __construct(private RecalculatePosOrder $recalculate) {}
+    public function __construct(private RecalculatePosOrder $recalculate, private BumpCfdVersion $bumpCfdVersion) {}
 
     public function __invoke(User $actor, Property $property, PosOrder $order, PosOrderLine $line): PosActionResult
     {
@@ -63,6 +63,12 @@ class RemoveDraftLine
                 activity()->performedOn($order)->causedBy($actor)->event('pos.line_removed')
                     ->withProperties(['property_id' => $property->id, 'item_name' => $line->item_name])
                     ->log('POS draft line removed');
+
+                $registerId = $order->shift?->pos_register_id;
+
+                if ($registerId !== null) {
+                    ($this->bumpCfdVersion)($registerId);
+                }
 
                 return PosActionResult::saved($order->refresh());
             });

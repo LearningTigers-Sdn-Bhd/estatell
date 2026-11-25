@@ -20,6 +20,7 @@ use App\Models\PosOrderFolioLink;
 use App\Models\PosOrderLine;
 use App\Models\PosOrderPayment;
 use App\Models\PosOutletPaymentMethod;
+use App\Models\PosRegister;
 use App\Models\PosShift;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -72,6 +73,7 @@ class SettlePosOrder
         private CreateFolio $createFolio,
         private PostPrecalculatedCharge $postPrecalculatedCharge,
         private RedeemMeal $redeemMeal,
+        private BumpCfdVersion $bumpCfdVersion,
     ) {}
 
     /**
@@ -171,6 +173,13 @@ class SettlePosOrder
 
         if ($order->pos_table_id !== null) {
             ($this->revokeTableQrSessions)($property->id, $order->pos_table_id);
+        }
+
+        $registerId = $order->shift?->pos_register_id;
+
+        if ($registerId !== null) {
+            PosRegister::query()->whereKey($registerId)->update(['active_pos_order_id' => $order->id, 'active_order_updated_at' => now(), 'cfd_checkout_active' => false]);
+            ($this->bumpCfdVersion)($registerId);
         }
 
         activity()->performedOn($order)->causedBy($actor)->event('pos.order_settled')
