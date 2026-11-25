@@ -64,6 +64,29 @@ pushedAt: string | null,
 canRetry: boolean,
 };
 }
+namespace AiAssistant {
+export type AiAssistantAdminData = {
+capUsd: string | null,
+scopes: App.Data.AiAssistant.AiScopeData[],
+};
+export type AiAssistantSettingsData = {
+scopes: App.Data.AiAssistant.AiScopeData[],
+};
+export type AiHandoverSettingsData = {
+handoverMessage: string | null,
+defaultHandoverMessage: string,
+};
+export type AiScopeData = {
+scope: App.Enums.AiScope,
+kind: App.Enums.AiScopeKind,
+label: string,
+description: string,
+allowed: boolean,
+enabled: boolean,
+available: boolean,
+note: string | null,
+};
+}
 namespace ApiAccess {
 export type KioskData = {
 id: number,
@@ -6105,6 +6128,8 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type AiScope = 'concierge' | 'booking-engine' | 'staff' | 'api' | 'room-quotes' | 'stay-details' | 'guest-requests' | 'daily-numbers' | 'how-to';
+export type AiScopeKind = 'place' | 'capability';
 export type AmenityType = 'property' | 'room';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
@@ -6248,7 +6273,7 @@ export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PdfTableStyle = 'minimal' | 'lined' | 'shaded';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'events.view' | 'events.manage' | 'facilities.book' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'folio.waive-tax' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api' | 'booking-website.payment-mode' | 'guest-requests.view' | 'guest-requests.manage' | 'guest-requests.resolve' | 'einvoice.view' | 'einvoice.manage' | 'payouts.view' | 'pos.view' | 'pos.manage' | 'pos.resolve' | 'meals.redeem' | 'pos.sell' | 'pos.shift' | 'pos.void' | 'pos.discount' | 'pos.refund' | 'pos.kds' | 'pos.menu' | 'pos.inventory' | 'pos.hardware' | 'pos.reports';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks' | 'booking-engine' | 'concierge' | 'bed-room-types' | 'pos' | 'facilities' | 'ai-assistant';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';

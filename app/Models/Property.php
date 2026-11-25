@@ -469,6 +469,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(GuestRequest::class);
     }
 
+    /** @return HasMany<PropertyAiScope, $this> */
+    public function aiScopes(): HasMany
+    {
+        return $this->hasMany(PropertyAiScope::class);
+    }
+
     /** @return HasMany<PropertyWifiNetwork, $this> */
     public function wifiNetworks(): HasMany
     {

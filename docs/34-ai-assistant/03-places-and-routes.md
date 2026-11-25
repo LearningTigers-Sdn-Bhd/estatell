@@ -12,15 +12,17 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 
 ## Routes
 
-| Route                                                | Place           | Auth                                                |
-| ---------------------------------------------------- | --------------- | --------------------------------------------------- |
-| `POST /stay/{code}/ai/messages`                      | Concierge lobby | None; throttled by address and property             |
-| `POST /c/{token}/ai/messages`                        | Concierge stay  | The stay token                                      |
-| `POST /api/booking/v1/properties/{code}/ai/messages` | Booking engine  | Booking client token (`booking:*`) and `X-Guest-IP` |
-| `POST /p/{property:code}/ai/messages`                | Staff           | Staff session                                       |
-| `POST /api/ai/v1/messages`                           | API             | AI connection token (`ai:chat`)                     |
-| `GET/PUT /p/{property:code}/settings/ai-assistant`   | Settings        | `settings.manage`                                   |
-| `GET /p/{property:code}/settings/ai-assistant/usage` | Settings        | `settings.manage`                                   |
+| Route                                                                                 | Place           | Auth                                                |
+| ------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------- |
+| `POST /stay/{code}/ai/messages`                                                       | Concierge lobby | None; throttled by address and property             |
+| `POST /c/{token}/ai/messages`                                                         | Concierge stay  | The stay token                                      |
+| `POST /api/booking/v1/properties/{code}/ai/messages`                                  | Booking engine  | Booking client token (`booking:*`) and `X-Guest-IP` |
+| `POST /p/{property:code}/ai/messages`                                                 | Staff           | Staff session                                       |
+| `POST /api/ai/v1/messages`                                                            | API             | AI connection token (`ai:chat`)                     |
+| `GET /p/{property:code}/settings/ai-assistant` (Places), `/capabilities`, `/handover` | Settings        | `settings.manage`                                   |
+| `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`            | Settings        | `settings.manage`                                   |
+| `GET /p/{property:code}/settings/ai-assistant/connections`                            | Settings        | `settings.manage`                                   |
+| `GET /p/{property:code}/settings/ai-assistant/usage`                                  | Settings        | `settings.manage`                                   |
 
 Every chat route sits behind the `ai-assistant` middleware and checks its place [scope](01-overview.md#scopes) through `AiScopes`. A scope that is off returns 404. A cap that is reached returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap)).
 
@@ -70,7 +72,7 @@ An **Ask Estatell** button in the navbar opens the chat in a Sheet on any staff 
 
 For WhatsApp or any other channel run by the hotel's own n8n.
 
-- **AI connections**: Settings › AI assistant › General lists them. Create one with a name ("n8n – WhatsApp"); the token (ability `ai:chat`, Sanctum, like [API tokens](../28-api-access/01-api-tokens.md)) is shown once. Revoke turns it off.
+- **AI connections**: Settings › AI assistant › Connections lists them. Create one with a name ("n8n – WhatsApp"); the token (ability `ai:chat`, Sanctum, like [API tokens](../28-api-access/01-api-tokens.md)) is shown once. Revoke turns it off.
 - `ai_connections`: id, property_id, name, is_active, last_used_at, timestamps. It owns its tokens with `HasApiTokens`.
 
 ```

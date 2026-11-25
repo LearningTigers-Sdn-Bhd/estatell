@@ -6,6 +6,7 @@ use App\Http\Middleware\BlockBackOfficeInTerminalMode;
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
+use App\Http\Middleware\EnsureAiAssistantIsActive;
 use App\Http\Middleware\EnsureBedsAreActive;
 use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureBookingClientReach;
@@ -79,6 +80,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'beds' => EnsureBedsAreActive::class,
             'boats' => EnsureBoatsIsActive::class,
             'facilities' => EnsureFacilitiesAreActive::class,
+            'ai-assistant' => EnsureAiAssistantIsActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
             'einvoicing' => EnsureEInvoicingIsActive::class,
@@ -111,6 +113,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBedsAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureFacilitiesAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAiAssistantIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureEInvoicingIsActive::class);

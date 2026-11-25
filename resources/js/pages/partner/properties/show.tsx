@@ -55,6 +55,7 @@ export default function PartnerPropertyShow({
     staff = [],
     features = [],
     bookingEngineMode,
+    aiAssistant,
     overview,
 }: {
     property: Property;
@@ -62,6 +63,7 @@ export default function PartnerPropertyShow({
     staff?: StaffMember[];
     features?: PropertyFeature[];
     bookingEngineMode?: App.Data.Platform.BookingEngineModeData;
+    aiAssistant?: App.Data.AiAssistant.AiAssistantAdminData;
     overview?: App.Data.Platform.AdminPropertyOverviewData;
 }) {
     return (
@@ -107,6 +109,7 @@ export default function PartnerPropertyShow({
                                 code={property.code}
                                 features={features}
                                 bookingEngineMode={bookingEngineMode}
+                                aiAssistant={aiAssistant}
                                 readOnly
                             />
                         )}

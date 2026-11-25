@@ -1,6 +1,6 @@
 # AI assistant
 
-> **Planned.** Researched on 2026-11-20, decided on 2026-11-24. Nothing is built. The build items are in [checklist.md](../checklist.md#34-ai-assistant).
+> **In progress.** Researched on 2026-11-20, decided on 2026-11-24. Built: the feature flag, the scopes and the Places, Capabilities and Handover tabs (no chat yet). The build items are in [checklist.md](../checklist.md#34-ai-assistant).
 
 ## Purpose
 
@@ -69,10 +69,10 @@ A scope is a place or a capability. The `AiScope` enum lists them, with `label()
 
 Two layers decide if a scope is on:
 
-| Layer   | Who                          | Where                             | Column    |
-| ------- | ---------------------------- | --------------------------------- | --------- |
-| Allowed | Platform admin               | Admin › property › Features       | `allowed` |
-| Enabled | Staff with `settings.manage` | Settings › AI assistant › General | `enabled` |
+| Layer   | Who                          | Where                                             | Column    |
+| ------- | ---------------------------- | ------------------------------------------------- | --------- |
+| Allowed | Platform admin               | Admin › property › Features                       | `allowed` |
+| Enabled | Staff with `settings.manage` | Settings › AI assistant › Places and Capabilities | `enabled` |
 
 ```
 property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default false),
@@ -88,12 +88,17 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
 
 **Settings › AI assistant** follows the Settings archetype with tab links.
 
-| Tab     | Holds                                                                                                           |
-| ------- | --------------------------------------------------------------------------------------------------------------- |
-| General | The switch for each allowed scope, the handover message the guest sees, and the AI connections for the chat API |
-| Usage   | The [usage report](04-usage-and-cost.md#usage-tab) for a month                                                  |
+| Tab          | Holds                                                                                                                 |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Places       | The switch for each allowed place (`settings/ai-assistant`)                                                           |
+| Capabilities | The switch for each allowed capability (`settings/ai-assistant/capabilities`)                                         |
+| Handover     | The handover message the guest sees (`settings/ai-assistant/handover`)                                                |
+| Usage        | The [usage report](04-usage-and-cost.md#usage-tab) for a month (`settings/ai-assistant/usage`)                        |
+| Connections  | The AI connections for the [chat API](03-places-and-routes.md#chat-api-for-n8n) (`settings/ai-assistant/connections`) |
 
-The General tab shows a switch only for a scope the admin allows and whose needed features are on. The others are hidden. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
+Each tab is its own URL and sends only its own data. Usage and Connections come with their checklist items. Decided 2026-11-24: tabs by kind of setting, not one General tab.
+
+The Places and Capabilities tabs show a switch only for a scope the admin allows and whose needed features are on. The others are hidden. The handover message is `property_settings.ai_handover_message` (text, nullable); empty uses the built-in text "I'll pass this to our front desk. They will reply soon." The assistant's knowledge is the Concierge content (FAQs, policies, amenities and so on), so there is no separate knowledge page. See [Knowledge](02-agent-and-tools.md#knowledge).
 
 ## Files
 

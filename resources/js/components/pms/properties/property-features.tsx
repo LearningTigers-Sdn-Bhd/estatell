@@ -1,7 +1,8 @@
-import { Form, Link, router } from '@inertiajs/react';
+import { Form, Link, router, useForm } from '@inertiajs/react';
 import {
     AppWindow,
     BedSingle,
+    Bot,
     Cable,
     Calculator,
     CircleCheck,
@@ -12,6 +13,7 @@ import {
     FileText,
     Globe,
     Lock,
+    Pencil,
     Ship,
     Utensils,
     Tablet,
@@ -30,10 +32,18 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { FormOverlay } from '@/components/pms/form-overlay';
+import { MoneyInput } from '@/components/pms/money-input';
 import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -46,12 +56,16 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import { update as updateAiCap } from '@/routes/admin/properties/ai-cap';
+import { update as updateAiScope } from '@/routes/admin/properties/ai-scopes';
 import { update as updateMode } from '@/routes/admin/properties/booking-engine-mode';
 import { eInvoiceGuide } from '@/routes/admin';
 import { update as updateFeature } from '@/routes/admin/properties/features';
 
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type BookingEngineMode = App.Data.Platform.BookingEngineModeData;
+type AiAssistantAdmin = App.Data.AiAssistant.AiAssistantAdminData;
+type AiScope = App.Data.AiAssistant.AiScopeData;
 
 /** Each feature's icon: the one its module uses in the staff Settings menu (Channels tab for the channel manager). */
 const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
@@ -66,6 +80,14 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     'bed-room-types': BedSingle,
     pos: Utensils,
     facilities: Tent,
+    'ai-assistant': Bot,
+};
+
+/** OpenAI bills in US dollars, so the AI assistant's cap is in US dollars, not the property currency. */
+const usDollar: App.Data.Property.CurrencyData = {
+    code: 'USD',
+    name: 'US dollar',
+    decimals: 2,
 };
 
 /** On and Off for the partner's read-only rows. */
@@ -207,6 +229,98 @@ function BookingEngineModeControl({
 }
 
 /**
+ * The AI assistant's monthly cap in the Setting column, with a Dialog to change it. One field, so a Dialog, not an
+ * inline form in the table.
+ */
+function AiCapControl({
+    code,
+    capUsd,
+    readOnly,
+}: {
+    code: string;
+    capUsd: string | null;
+    readOnly: boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const form = useForm({ cap_usd: capUsd ?? '' });
+    const text = capUsd === null ? 'No cap' : `US$ ${capUsd}`;
+
+    if (readOnly) {
+        return <span className="text-sm tabular-nums">{text}</span>;
+    }
+
+    return (
+        <>
+            <div className="flex items-center justify-end gap-2">
+                <span className="text-sm tabular-nums">{text}</span>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Edit the monthly cap"
+                    onClick={() => {
+                        form.setDefaults({ cap_usd: capUsd ?? '' });
+                        form.reset();
+                        form.clearErrors();
+                        setOpen(true);
+                    }}
+                >
+                    <Pencil />
+                </Button>
+            </div>
+            <FormOverlay
+                variant="dialog"
+                size="sm"
+                open={open}
+                onOpenChange={setOpen}
+                title="Monthly cap"
+                errors={form.errors}
+                dirty={form.isDirty}
+                onSubmit={() =>
+                    form.put(updateAiCap.url({ property: code }), {
+                        preserveScroll: true,
+                        onSuccess: () => setOpen(false),
+                    })
+                }
+                submitLabel="Save"
+                processing={form.processing}
+            >
+                <Field data-invalid={!!form.errors.cap_usd}>
+                    <FieldLabel htmlFor="ai-cap">Monthly cap</FieldLabel>
+                    <MoneyInput
+                        id="ai-cap"
+                        value={form.data.cap_usd}
+                        onChange={(value) => form.setData('cap_usd', value)}
+                        currency={usDollar}
+                        placeholder="e.g. 20.00"
+                        invalid={!!form.errors.cap_usd}
+                    />
+                    <FieldDescription>
+                        The most this property may spend on OpenAI in a calendar
+                        month. Leave it empty for no cap.
+                    </FieldDescription>
+                    <FieldError>{form.errors.cap_usd}</FieldError>
+                </Field>
+            </FormOverlay>
+        </>
+    );
+}
+
+/** A heading row inside the features table, for the AI assistant's Places and Capabilities groups. */
+function GroupRow({ label }: { label: string }) {
+    return (
+        <TableRow className="hover:bg-transparent">
+            <TableCell />
+            <TableCell
+                colSpan={2}
+                className="ps-8 text-xs font-medium text-muted-foreground uppercase"
+            >
+                {label}
+            </TableCell>
+        </TableRow>
+    );
+}
+
+/**
  * One row of the features table. A child row (a lock provider, the booking engine mode) starts with a corner arrow.
  * `onChange` missing means the switch is on and disabled: the setting is on while its parent is on.
  */
@@ -279,11 +393,13 @@ export function PropertyFeatures({
     code,
     features,
     bookingEngineMode,
+    aiAssistant,
     readOnly = false,
 }: {
     code: string;
     features: PropertyFeature[];
     bookingEngineMode?: BookingEngineMode;
+    aiAssistant?: AiAssistantAdmin;
     readOnly?: boolean;
 }) {
     const toggle = (
@@ -384,6 +500,77 @@ export function PropertyFeatures({
             />
         );
 
+    const allowScope = (scope: AiScope, allowed: boolean) =>
+        router
+            .optimistic<{ aiAssistant: AiAssistantAdmin }>((props) => ({
+                aiAssistant: {
+                    ...props.aiAssistant,
+                    scopes: props.aiAssistant.scopes.map((entry) =>
+                        entry.scope === scope.scope
+                            ? { ...entry, allowed }
+                            : entry,
+                    ),
+                },
+            }))
+            .put(
+                updateAiScope.url({ property: code, scope: scope.scope }),
+                { allowed },
+                { preserveScroll: true },
+            );
+
+    const scopeRow = (scope: AiScope) => (
+        <FeatureRow
+            key={scope.scope}
+            child
+            readOnly={readOnly}
+            label={scope.label}
+            description={
+                scope.note === null
+                    ? scope.description
+                    : `${scope.description} ${scope.note}`
+            }
+            checked={scope.allowed}
+            switchLabel={`${scope.allowed ? 'Stop' : 'Allow'} ${scope.label}`}
+            onChange={
+                scope.available || scope.allowed
+                    ? (allowed) => allowScope(scope, allowed)
+                    : undefined
+            }
+        />
+    );
+
+    // Places and capabilities the property may use, and the monthly cap, while the AI assistant is on.
+    const aiRows = (item: PropertyFeature) =>
+        item.feature === 'ai-assistant' &&
+        item.active &&
+        aiAssistant && (
+            <>
+                <FeatureRow
+                    child
+                    readOnly={readOnly}
+                    label="Monthly cap"
+                    description="At the cap, the assistant stops calling OpenAI and hands every chat to staff until the next month."
+                    checked
+                    switchLabel={`The monthly cap applies while ${item.label} is on`}
+                    setting={
+                        <AiCapControl
+                            code={code}
+                            capUsd={aiAssistant.capUsd}
+                            readOnly={readOnly}
+                        />
+                    }
+                />
+                <GroupRow label="Places" />
+                {aiAssistant.scopes
+                    .filter((scope) => scope.kind === 'place')
+                    .map(scopeRow)}
+                <GroupRow label="Capabilities" />
+                {aiAssistant.scopes
+                    .filter((scope) => scope.kind === 'capability')
+                    .map(scopeRow)}
+            </>
+        );
+
     return (
         <div className="flex flex-col gap-4">
             <PanelHeading
@@ -436,6 +623,7 @@ export function PropertyFeatures({
                                 />
                                 {providerRows(item)}
                                 {modeRow(item)}
+                                {aiRows(item)}
                             </Fragment>
                         ))}
                     </TableBody>

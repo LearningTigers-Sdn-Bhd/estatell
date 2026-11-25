@@ -68,6 +68,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $front_desk_extension
  * @property bool $concierge_location_check_enabled Guests must be at the property to check in on the Concierge page.
  * @property bool $concierge_test_payments_enabled Concierge stay payments use Curlec's test system, so no real money moves.
+ * @property string|null $ai_handover_message What the AI assistant tells a guest when it hands over. Empty uses the built-in text.
+ * @property int|null $ai_monthly_cap_micros The AI assistant's monthly spend limit in millionths of a US dollar, set by a platform admin. Empty is no cap.
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -80,7 +82,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'arrival_instructions', 'departure_instructions', 'front_desk_open_24h', 'front_desk_opens_at', 'front_desk_closes_at',
     'front_desk_whatsapp', 'after_hours_message', 'duty_manager_phone', 'emergency_phone', 'emergency_services_number', 'emergency_instructions',
     'room_policy', 'payment_policy', 'other_policies', 'front_desk_phone', 'front_desk_email', 'front_desk_extension',
-    'concierge_location_check_enabled', 'concierge_test_payments_enabled',
+    'concierge_location_check_enabled', 'concierge_test_payments_enabled', 'ai_handover_message', 'ai_monthly_cap_micros',
 ])]
 class PropertySetting extends Model
 {
@@ -118,6 +120,7 @@ class PropertySetting extends Model
             'concierge_test_payments_enabled' => 'boolean',
             'front_desk_open_24h' => 'boolean',
             'kiosk_idle_timeout_seconds' => 'integer',
+            'ai_monthly_cap_micros' => 'integer',
         ];
     }
 

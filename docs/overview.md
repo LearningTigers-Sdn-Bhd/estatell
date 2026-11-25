@@ -132,24 +132,25 @@ Installed versions. All are in `composer.json` and `package.json`.
 
 Composer:
 
-| Package                                 | Version | Setup                                                                                                                            |
-| --------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `laravel/pennant`                       | 1.26    | Database store (`features` table)                                                                                                |
-| `laravel/horizon`                       | 5.50    | See [Deployment](#deployment)                                                                                                    |
-| `spatie/laravel-permission`             | 8.3     | Teams mode: `teams => true`, `team_foreign_key => property_id` in `config/permission.php`                                        |
-| `spatie/laravel-data`                   | 4.23    | Default config                                                                                                                   |
-| `spatie/laravel-typescript-transformer` | 3.3     | `TypeScriptTransformerServiceProvider` writes `resources/js/types/generated.d.ts`                                                |
-| `spatie/laravel-ciphersweet`            | 1.9     | `CIPHERSWEET_KEY` env, `blind_indexes` table                                                                                     |
-| `barryvdh/laravel-dompdf`               | 3.1     | None                                                                                                                             |
-| `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                             |
-| `spatie/period`                         | 2.4     | None                                                                                                                             |
-| `brick/money`                           | 0.15    | None                                                                                                                             |
-| `brick/math`                            | 1.0     | Direct use of `BigDecimal` for ledger sums. 1.0 rejects floats                                                                   |
-| `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage). |
-| `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                              |
-| `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                             |
-| `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                             |
-| `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                |
+| Package                                 | Version | Setup                                                                                                                                                              |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `laravel/pennant`                       | 1.26    | Database store (`features` table)                                                                                                                                  |
+| `laravel/horizon`                       | 5.50    | See [Deployment](#deployment)                                                                                                                                      |
+| `spatie/laravel-permission`             | 8.3     | Teams mode: `teams => true`, `team_foreign_key => property_id` in `config/permission.php`                                                                          |
+| `spatie/laravel-data`                   | 4.23    | Default config                                                                                                                                                     |
+| `spatie/laravel-typescript-transformer` | 3.3     | `TypeScriptTransformerServiceProvider` writes `resources/js/types/generated.d.ts`                                                                                  |
+| `spatie/laravel-ciphersweet`            | 1.9     | `CIPHERSWEET_KEY` env, `blind_indexes` table                                                                                                                       |
+| `barryvdh/laravel-dompdf`               | 3.1     | None                                                                                                                                                               |
+| `propaganistas/laravel-phone`           | 6.0     | None                                                                                                                                                               |
+| `spatie/period`                         | 2.4     | None                                                                                                                                                               |
+| `brick/money`                           | 0.15    | None                                                                                                                                                               |
+| `brick/math`                            | 1.0     | Direct use of `BigDecimal` for ledger sums. 1.0 rejects floats                                                                                                     |
+| `spatie/laravel-medialibrary`           | 11.23   | `media` table. Default disk is the private `local` disk. See [Media storage](01-platform/02-platform-settings.md#media-storage).                                   |
+| `league/flysystem-aws-s3-v3`            | 3.35    | Needed by the `r2` disk (s3 driver)                                                                                                                                |
+| `spatie/laravel-query-builder`          | 7.3     | None                                                                                                                                                               |
+| `spatie/laravel-activitylog`            | 5.1     | `activity_log` table                                                                                                                                               |
+| `laravel/ai`                            | 1.4     | `config/ai.php`, OpenAI by default, `OPENAI_API_KEY`. The SDK's conversation migrations are not published yet. See [AI assistant](34-ai-assistant/01-overview.md). |
+| `redberry/mailbox-for-laravel` (dev)    | 2.3     | `MAIL_MAILER=mailbox`. See [Viewing mail](04-notifications/01-notification-types.md#viewing-mail-in-development).                                                  |
 
 npm:
 

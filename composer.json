@@ -16,6 +16,7 @@
         "brick/math": "^1.0",
         "brick/money": "^0.15",
         "inertiajs/inertia-laravel": "^3.0",
+        "laravel/ai": "^1.4",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",

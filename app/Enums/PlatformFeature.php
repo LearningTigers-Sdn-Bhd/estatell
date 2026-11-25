@@ -3,6 +3,7 @@
 namespace App\Enums;
 
 use App\Features\AccountingIntegration;
+use App\Features\AiAssistant;
 use App\Features\BedRoomTypes;
 use App\Features\Boats;
 use App\Features\BookingEngine;
@@ -30,6 +31,7 @@ enum PlatformFeature: string
     case BedRoomTypes = 'bed-room-types';
     case Pos = 'pos';
     case Facilities = 'facilities';
+    case AiAssistant = 'ai-assistant';
 
     public function label(): string
     {
@@ -45,6 +47,7 @@ enum PlatformFeature: string
             self::BedRoomTypes => __('Dormitory features'),
             self::Pos => __('Point of sale'),
             self::Facilities => __('Facilities and events'),
+            self::AiAssistant => __('AI assistant'),
         };
     }
 
@@ -62,6 +65,7 @@ enum PlatformFeature: string
             self::BedRoomTypes => __('Create room types sold by bed, for dorms. Room types that already sell beds keep working while this is off.'),
             self::Pos => __('Built-in point of sale (registers, shifts, menu, orders, KDS, QR ordering, inventory), restaurant meal check-in and POS API room charges.'),
             self::Facilities => __('Halls, equipment and activities staff book by date and time, and event folios for guests who do not stay.'),
+            self::AiAssistant => __('A chat that answers guests and staff, and hands over to staff when it cannot help. Choose its places and capabilities below.'),
         };
     }
 
@@ -82,6 +86,7 @@ enum PlatformFeature: string
             self::BedRoomTypes => BedRoomTypes::class,
             self::Pos => Pos::class,
             self::Facilities => Facilities::class,
+            self::AiAssistant => AiAssistant::class,
         };
     }
 }

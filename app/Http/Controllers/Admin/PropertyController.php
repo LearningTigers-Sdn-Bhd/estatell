@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Onboarding\CreatePropertyForOwner;
+use App\Data\AiAssistant\AiAssistantAdminData;
 use App\Data\Channels\ChannelSyncProgressData;
 use App\Data\Channels\ChannelTabData;
 use App\Data\Platform\AdminPropertyData;
@@ -116,6 +117,7 @@ class PropertyController extends Controller
         return $this->renderTab($property, 'features', [
             'features' => PropertyFeatureData::forProperty($property),
             'bookingEngineMode' => BookingEngineModeData::forProperty($property),
+            'aiAssistant' => AiAssistantAdminData::forProperty($property->loadMissing('settings')),
         ]);
     }
 

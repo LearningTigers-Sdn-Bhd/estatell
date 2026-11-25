@@ -33,7 +33,7 @@ ai_turn_tools    id, ai_turn_id, tool (AiTool), succeeded (bool)
 
 ## Monthly cap
 
-- The platform admin sets `property_settings.ai_monthly_cap_micros` on the admin property page. Empty means no cap.
+- The platform admin sets `property_settings.ai_monthly_cap_micros` on the admin property page, under the AI assistant row. The admin types US dollars (`20.00`) in a Dialog, and `AiMonthlyCap` converts to micros. Empty means no cap.
 - Before each turn, `AiMonthlyUsage` sums `cost_micros` for the property's calendar month (property time zone). At or over the cap, the turn makes no model call: the guest gets the handover message, and the turn is logged as CapReached with zero tokens.
 - At 80% of the cap, the platform admins get one notification for that month.
 

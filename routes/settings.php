@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Accounting\AccountingSettingsController;
+use App\Http\Controllers\AiAssistant\AiAssistantSettingsController;
 use App\Http\Controllers\ApiAccess\KioskController;
 use App\Http\Controllers\Boats\BoatController;
 use App\Http\Controllers\Boats\BoatCrewController;
@@ -196,6 +197,14 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('/', [BoatFareController::class, 'store'])->name('store');
             Route::put('{chargeItem}', [BoatFareController::class, 'update'])->name('update');
         });
+    });
+
+    Route::middleware(['ai-assistant', 'can:'.PermissionEnum::SettingsManage->value])->prefix('ai-assistant')->name('ai-assistant.')->group(function () {
+        Route::get('/', [AiAssistantSettingsController::class, 'index'])->name('index');
+        Route::get('capabilities', [AiAssistantSettingsController::class, 'capabilities'])->name('capabilities');
+        Route::get('handover', [AiAssistantSettingsController::class, 'handover'])->name('handover');
+        Route::put('scopes', [AiAssistantSettingsController::class, 'scopes'])->name('scopes.update');
+        Route::put('handover-message', [AiAssistantSettingsController::class, 'handoverMessage'])->name('handover-message.update');
     });
 
     Route::middleware(['facilities', 'can:'.PermissionEnum::SettingsManage->value])->prefix('facilities')->name('facilities.')->scopeBindings()->group(function () {
