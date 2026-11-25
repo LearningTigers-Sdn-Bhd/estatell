@@ -61,6 +61,8 @@ The structure sync of the Kopi Lane demo property (ES1107) on Channex staging, r
 
 **Booking.com.** Both shared test hotels (`6519420`, `5868189`) were leased to other Channex accounts, so the connection was refused. Their mapping details show a **Single Room** with rates at occupancy `[1]`, which is where a dorm (one guest per unit) maps. A booking on the test hotel needs a person at `secure.booking.com` with Booking.com's test card. It also needs rate plans in GBP, the test hotels' currency, while Kopi Lane sells in MYR.
 
+**Booking.com ARI (2026-11-25).** Test hotel `6519420` was free. A BookingCom channel on the Kopi Lane staging property (`49be5435-8a90-41dc-9f86-8f65856b85d2`, currency GBP from the test hotel) maps the 8-Bed Mixed Dorm's bed rate plan to the hotel's **Single Room**, standard rate, occupancy 1, primary. Activation ran `full_sync` and a `sync` event to Booking.com: result success, 2 logs, 763 ms (`GET /channel_events?filter[channel_id]=`). Channex held 13, 13, 16, 16 free beds for 10–13 Dec. So Booking.com accepts the BedAsUnit structure: one sellable unit per bed at occupancy 1. Prices go as MYR figures to a GBP test hotel; Channex does not convert, which only matters on the test hotel. `5868189` was still leased to another account.
+
 Still to check: how an OTA sends a multi-bed booking. The CRS booking above sent one room entry per bed by choice, so it does not show what an OTA sends.
 
 ### Confirmed in Channex docs
