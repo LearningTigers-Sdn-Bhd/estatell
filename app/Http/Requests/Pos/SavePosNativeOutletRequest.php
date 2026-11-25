@@ -41,6 +41,8 @@ class SavePosNativeOutletRequest extends FormRequest
             'print_receipt_after_payment' => ['required', 'boolean'],
             'print_drawer_slip' => ['required', 'boolean'],
             'require_clock_in' => ['required', 'boolean'],
+            'allow_anonymous_qr' => ['sometimes', 'boolean'],
+            'allow_qr_customer_remark' => ['sometimes', 'boolean'],
         ];
     }
 }

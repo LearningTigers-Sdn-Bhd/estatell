@@ -61,6 +61,8 @@ export type OutletSettingsRecord = {
     printReceiptAfterPayment: boolean;
     printDrawerSlip: boolean;
     requireClockIn: boolean;
+    allowAnonymousQr: boolean;
+    allowQrCustomerRemark: boolean;
 };
 
 export type OutletPaymentMethodRow = {
@@ -134,6 +136,16 @@ const SWITCHES = [
         'Staff must clock in to take orders',
         'requireClockIn',
     ],
+    [
+        'allow_anonymous_qr',
+        'Allow guests to order from table QR without login',
+        'allowAnonymousQr',
+    ],
+    [
+        'allow_qr_customer_remark',
+        'Allow guest kitchen remarks on QR orders',
+        'allowQrCustomerRemark',
+    ],
 ] as const;
 
 export function OutletSettingsForm({
@@ -178,6 +190,8 @@ export function OutletSettingsForm({
         print_receipt_after_payment: outlet.printReceiptAfterPayment,
         print_drawer_slip: outlet.printDrawerSlip,
         require_clock_in: outlet.requireClockIn,
+        allow_anonymous_qr: outlet.allowAnonymousQr,
+        allow_qr_customer_remark: outlet.allowQrCustomerRemark,
     });
 
     return (

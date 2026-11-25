@@ -106,6 +106,8 @@ type Props = {
         tableCode: string | null;
         tableId: number | null;
         openedAt: string;
+        source?: string;
+        draftCount?: number;
     }[];
     voidReasons: PosVoidReason[];
     transactionCodes: EnumOption[];
@@ -330,6 +332,12 @@ export default function PosTerminal(props: Props) {
                 type,
         }));
 
+    const pendingQrOrders = openOrders.filter(
+        (entry) =>
+            (entry.source === 'table_qr' || entry.source === 'room_qr') &&
+            (entry.draftCount ?? 0) > 0,
+    );
+
     if (shift === null || register === null) {
         return (
             <>
@@ -428,6 +436,46 @@ export default function PosTerminal(props: Props) {
                     )}
                 </div>
             </header>
+
+            {pendingQrOrders.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 border-b bg-warning-bg/30 px-4 py-2 text-sm">
+                    <span className="font-medium text-warning-text">
+                        Incoming QR orders ({pendingQrOrders.length}) — review
+                        and send to kitchen:
+                    </span>
+                    {pendingQrOrders.map((entry) => (
+                        <Button
+                            key={entry.id}
+                            type="button"
+                            size="sm"
+                            variant={
+                                order?.id === entry.id ? 'default' : 'outline'
+                            }
+                            className="min-h-11"
+                            onClick={() =>
+                                router.get(
+                                    terminal.url(
+                                        { outlet: outlet.id },
+                                        {
+                                            query: {
+                                                register: register.id,
+                                                order: entry.id,
+                                            },
+                                        },
+                                    ),
+                                )
+                            }
+                        >
+                            {entry.tableCode
+                                ? `Table ${entry.tableCode}`
+                                : entry.source === 'room_qr'
+                                  ? 'Room QR'
+                                  : `#${entry.id}`}{' '}
+                            · {entry.draftCount} new
+                        </Button>
+                    ))}
+                </div>
+            )}
 
             <main className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)]">
                 <section className="flex min-h-0 flex-col gap-3">

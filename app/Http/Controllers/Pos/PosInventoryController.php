@@ -11,6 +11,7 @@ use App\Actions\Pos\SavePosIngredient;
 use App\Actions\Pos\SavePosRecipe;
 use App\Actions\Pos\StartPosStocktake;
 use App\Actions\Pos\TransferStock;
+use App\Data\Property\CurrencyData;
 use App\Enums\PosStockMovementKind;
 use App\Enums\PosStocktakeStatus;
 use App\Http\Controllers\Controller;
@@ -45,12 +46,14 @@ class PosInventoryController extends Controller
 
     public function index(Request $request, Property $property, PosStockBalances $balances): Response
     {
+        $property->loadMissing('settings');
         $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get();
         $outlet = $outlets->firstWhere('id', (int) $request->query('outlet')) ?? $outlets->first();
         $onHand = $outlet === null ? [] : $balances->forOutlet($outlet->id);
         $stocktake = $outlet === null ? null : PosStocktake::query()->where('pos_outlet_id', $outlet->id)->where('status', PosStocktakeStatus::Draft->value)->with('lines')->latest('id')->first();
 
         return Inertia::render('settings/pos/inventory', [
+            'currency' => CurrencyData::forProperty($property),
             'outlets' => $outlets->map(fn (PosOutlet $row): array => ['value' => (string) $row->id, 'label' => $row->name])->all(),
             'outlet' => $outlet === null ? null : ['id' => $outlet->id, 'name' => $outlet->name],
             'ingredients' => PosIngredient::query()->where('property_id', $property->id)->orderBy('name')->get()->map(fn (PosIngredient $row): array => [
