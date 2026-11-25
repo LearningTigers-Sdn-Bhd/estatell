@@ -83,9 +83,13 @@ On the **booking engine**, `SendQuoteLink` returns a link to the microsite's che
 
 ## Booking engine
 
+Work in progress, behind the Booking website chat switch. See [Experimental places](01-overview.md#experimental-places).
+
 A chat bubble on the booking website. The microsite calls the booking API route with its booking client token and passes the stream through (see [To verify](01-overview.md#to-verify)). Tools: facts, prices and quote links only. It never reads a booking.
 
 ## Staff
+
+Work in progress, behind the Staff helper switch. See [Experimental places](01-overview.md#experimental-places).
 
 An **Ask Estatell** button in the navbar opens the chat in a Sheet on any staff page. Read only: the answers link to the page where staff act. Tools: `DailyNumbers`, `HowTo` and `HandOver` (which here tells support, not the front desk).
 

@@ -6,18 +6,21 @@ use App\Enums\AiScope;
 use App\Features\AiAssistant;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\AiAssistant\AiScopes;
 use Laravel\Pennant\Feature;
 
 /**
  * A platform admin allows or stops one AI assistant scope for a property. Stopping keeps the hotel's own switch, so
  * allowing the scope again brings back the hotel's choice. Returns false, writing nothing, while the AI assistant feature
- * is off or when nothing changes. See docs/34-ai-assistant/01-overview.md#scopes.
+ * is off, while the scope's experimental place is not released, or when nothing changes. See docs/34-ai-assistant/01-overview.md#scopes.
  */
 class SetAiScopeAllowed
 {
+    public function __construct(private AiScopes $aiScopes) {}
+
     public function __invoke(User $admin, Property $property, AiScope $scope, bool $allowed): bool
     {
-        if (! Feature::for($property)->active(AiAssistant::class)) {
+        if (! Feature::for($property)->active(AiAssistant::class) || ! $this->aiScopes->isReleased($scope)) {
             return false;
         }
 

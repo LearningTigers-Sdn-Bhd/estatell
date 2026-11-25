@@ -23,6 +23,7 @@ function aiAssistantSetup(): array
 {
     $owner = User::factory()->owner()->create();
     Feature::for($owner->property)->activate(AiAssistant::class);
+    releaseExperimentalAiPlaces();
 
     return ['owner' => $owner, 'property' => $owner->property];
 }
@@ -208,6 +209,39 @@ test('admins see whether the hotel has a working key, never the key', function (
     $this->actingAs($admin)->get($features)
         ->assertInertia(fn (Assert $page) => $page->where('aiAssistant.keyStatus.value', 'working'))
         ->assertDontSee('sk-test-hotel-1234');
+});
+
+test('an experimental place stays hidden and off until its platform switch is on', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    ['owner' => $owner, 'property' => $property] = aiAssistantSetup();
+    giveAiKey($property);
+    aiScopeRow($property, AiScope::Staff);
+    aiScopeRow($property, AiScope::HowTo);
+    aiScopeRow($property, AiScope::BookingEngine);
+    releaseExperimentalAiPlaces(bookingWebsite: false, staffHelper: false);
+    $scopes = app(AiScopes::class);
+
+    expect($scopes->isOn($property, AiScope::Staff))->toBeFalse()
+        ->and($scopes->isOn($property, AiScope::HowTo))->toBeFalse()
+        ->and($scopes->forHotel($property))->toBe([]);
+
+    $this->actingAs($admin)->get(route('admin.properties.features', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->has('aiAssistant.scopes', 5));
+
+    $this->actingAs($admin)
+        ->put(route('admin.properties.ai-scopes.update', ['property' => $property->code, 'scope' => 'staff']), ['allowed' => false])
+        ->assertRedirect();
+    expect($property->aiScopes()->where('scope', AiScope::Staff)->sole()->allowed)->toBeTrue()
+        ->and(Activity::query()->where('event', 'ai-assistant.scope-stopped')->exists())->toBeFalse();
+
+    $this->actingAs($owner)->put(route('settings.ai-assistant.scopes.update', $property->code), ['scopes' => ['staff' => false]])
+        ->assertInertiaFlash('toast.type', 'error');
+
+    releaseExperimentalAiPlaces(bookingWebsite: false, staffHelper: true);
+
+    expect($scopes->isOn($property, AiScope::Staff))->toBeTrue()
+        ->and($scopes->isOn($property, AiScope::HowTo))->toBeTrue()
+        ->and($scopes->isReleased(AiScope::BookingEngine))->toBeFalse();
 });
 
 test('only platform admins set the scope', function () {

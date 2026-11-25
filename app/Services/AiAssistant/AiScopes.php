@@ -6,18 +6,22 @@ use App\Enums\AiScope;
 use App\Features\AiAssistant;
 use App\Models\Property;
 use App\Models\PropertyAiScope;
+use App\Services\Platform\PlatformSettings;
 use Illuminate\Support\Collection;
 use Laravel\Pennant\Feature;
 
 /**
  * Answers which AI assistant scopes a property may use. A scope is on when the AI assistant feature is on, the feature
  * the scope needs is on, the place it needs is on, its row is both allowed (admin) and enabled (hotel), and the hotel
- * has saved its own OpenAI key.
+ * has saved its own OpenAI key. An experimental place (and its capabilities) also needs its platform switch on.
  * See docs/34-ai-assistant/01-overview.md#scopes.
  */
 class AiScopes
 {
-    public function __construct(private readonly AiKeyProvider $keys) {}
+    public function __construct(
+        private readonly AiKeyProvider $keys,
+        private readonly PlatformSettings $platformSettings,
+    ) {}
 
     public function isOn(Property $property, AiScope $scope): bool
     {
@@ -39,7 +43,32 @@ class AiScopes
     }
 
     /**
-     * The scopes the hotel sees in Settings: allowed by the admin, with the feature they need on.
+     * Whether the platform admin has turned on the experimental place a scope belongs to. Scopes outside the
+     * experimental places are always released. See docs/34-ai-assistant/01-overview.md#experimental-places.
+     */
+    public function isReleased(AiScope $scope): bool
+    {
+        $settings = $this->platformSettings->current();
+
+        return match ($scope->requiredScope() ?? $scope) {
+            AiScope::BookingEngine => $settings->ai_booking_website_enabled,
+            AiScope::Staff => $settings->ai_staff_helper_enabled,
+            default => true,
+        };
+    }
+
+    /**
+     * The scopes the admin sees on the property's Features tab: every released scope.
+     *
+     * @return list<AiScope>
+     */
+    public function released(): array
+    {
+        return array_values(array_filter(AiScope::cases(), fn (AiScope $scope): bool => $this->isReleased($scope)));
+    }
+
+    /**
+     * The scopes the hotel sees in Settings: released, allowed by the admin, with the feature they need on.
      *
      * @return list<AiScope>
      */
@@ -48,7 +77,7 @@ class AiScopes
         $rows = $this->rows($property);
 
         return array_values(array_filter(
-            AiScope::cases(),
+            $this->released(),
             fn (AiScope $scope): bool => ($rows->get($scope->value)->allowed ?? false) && $this->hasRequiredFeature($property, $scope),
         ));
     }
@@ -70,7 +99,7 @@ class AiScopes
     {
         $row = $rows->get($scope->value);
 
-        if ($row === null || ! $row->allowed || ! $row->enabled || ! $this->hasRequiredFeature($property, $scope)) {
+        if ($row === null || ! $row->allowed || ! $row->enabled || ! $this->isReleased($scope) || ! $this->hasRequiredFeature($property, $scope)) {
             return false;
         }
 

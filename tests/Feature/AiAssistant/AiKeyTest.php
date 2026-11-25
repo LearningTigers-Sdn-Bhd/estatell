@@ -30,6 +30,7 @@ function aiKeySetup(): array
 {
     $owner = User::factory()->owner()->create();
     Feature::for($owner->property)->activate(AiAssistant::class);
+    releaseExperimentalAiPlaces();
 
     return ['owner' => $owner, 'property' => $owner->property];
 }

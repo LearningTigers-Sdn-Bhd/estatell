@@ -146,6 +146,8 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('settings/channels', [PlatformSettingsController::class, 'updateChannels'])->middleware('support.2fa')->name('settings.channels.update');
     Route::get('settings/storage', [PlatformSettingsController::class, 'storage'])->name('settings.storage');
     Route::put('settings/storage', [PlatformSettingsController::class, 'updateStorage'])->middleware('support.2fa')->name('settings.storage.update');
+    Route::get('settings/ai', [PlatformSettingsController::class, 'ai'])->name('settings.ai');
+    Route::put('settings/ai', [PlatformSettingsController::class, 'updateAi'])->middleware('support.2fa')->name('settings.ai.update');
     Route::get('e-invoice-guide', EInvoiceGuideController::class)->name('e-invoice-guide');
     Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
     Route::get('commissions/export', [CommissionController::class, 'export'])->name('commissions.export');

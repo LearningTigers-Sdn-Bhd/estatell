@@ -25,6 +25,10 @@ class UpdatePlatformSettingsRequest extends FormRequest
             $this->routeIs('admin.settings.storage.update') => [
                 'media_disk' => ['required', Rule::enum(MediaDisk::class)->only(MediaDisk::configured())],
             ],
+            $this->routeIs('admin.settings.ai.update') => [
+                'ai_booking_website_enabled' => ['required', 'boolean'],
+                'ai_staff_helper_enabled' => ['required', 'boolean'],
+            ],
             default => ['require_go_live_approval' => ['required', 'boolean']],
         };
     }
@@ -37,6 +41,10 @@ class UpdatePlatformSettingsRequest extends FormRequest
             ),
             $this->routeIs('admin.settings.storage.update') => new PlatformSettingsInputData(
                 mediaDisk: MediaDisk::from($this->validated('media_disk')),
+            ),
+            $this->routeIs('admin.settings.ai.update') => new PlatformSettingsInputData(
+                aiBookingWebsiteEnabled: $this->boolean('ai_booking_website_enabled'),
+                aiStaffHelperEnabled: $this->boolean('ai_staff_helper_enabled'),
             ),
             default => new PlatformSettingsInputData(requireGoLiveApproval: $this->boolean('require_go_live_approval')),
         };

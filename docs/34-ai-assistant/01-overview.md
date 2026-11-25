@@ -47,7 +47,20 @@ Guests ask the same questions every day: breakfast, parking, pets, a room for ne
 
 Pennant feature `AiAssistant` (`App\Features\AiAssistant`, `#[Name('ai-assistant')]`), off by default, like [Facilities](../33-facilities/01-overview.md#feature-flag). A platform admin turns it on per property. `PlatformFeature::AiAssistant` lists it. With the feature off, the settings item, every chat and every AI route are hidden, and the routes return 404 through an `ai-assistant` middleware. Turning it off keeps all data.
 
-On the same admin page, under the AI assistant row, the platform admin allows each [scope](#scopes) and sees the status of the hotel's [API key](#api-key) (never the key). The hotel sets its own [monthly cap](04-usage-and-cost.md#monthly-cap).
+On the same admin page, under the AI assistant row, the platform admin allows each released [scope](#scopes) and sees the status of the hotel's [API key](#api-key) (never the key). The hotel sets its own [monthly cap](04-usage-and-cost.md#monthly-cap).
+
+## Experimental places
+
+The booking website chat and the staff helper are work in progress (see the WIP list in the checklist). Each has its own switch in Admin › Platform settings › AI assistant, off by default. Decided 2026-11-25.
+
+| Switch                      | Column                       | Scopes it releases               |
+| --------------------------- | ---------------------------- | -------------------------------- |
+| Booking website chat        | `ai_booking_website_enabled` | `BookingEngine`                  |
+| Staff helper (Ask Estatell) | `ai_staff_helper_enabled`    | `Staff`, `DailyNumbers`, `HowTo` |
+
+- `AiScopes::isReleased()` answers this. A capability follows its place's switch.
+- While a switch is off, its scopes are hidden on the admin Features tab and in the hotel's Settings, `SetAiScopeAllowed` refuses them, and `AiScopes::isOn` is false. The `property_ai_scopes` rows stay, so turning the switch on again brings back each property's choices.
+- When a place is finished and signed off, its switch is removed and its scopes are always released.
 
 ## Scopes
 
@@ -80,7 +93,7 @@ property_ai_scopes   id, property_id, scope (AiScope), allowed (bool, default fa
                      unique (property_id, scope)
 ```
 
-- A scope is on only when the `AiAssistant` feature is on, the features it needs are on, the row is both allowed and enabled, and the hotel has saved an [API key](#api-key). `AiScopes` (a Service) answers this.
+- A scope is on only when the `AiAssistant` feature is on, its [experimental place](#experimental-places) is released, the features it needs are on, the row is both allowed and enabled, and the hotel has saved an [API key](#api-key). `AiScopes` (a Service) answers this.
 - A missing row means off. A new scope is a new enum case, with no migration.
 - When the admin stops allowing a scope, the hotel's `enabled` stays, so allowing it again brings back the hotel's choice.
 

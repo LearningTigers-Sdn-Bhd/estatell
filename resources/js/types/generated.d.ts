@@ -3322,11 +3322,15 @@ export type PlatformSettingsData = {
 requireGoLiveApproval: boolean,
 defaultDormStrategy: App.Enums.DormStrategy,
 mediaDisk: App.Enums.MediaDisk,
+aiBookingWebsiteEnabled: boolean,
+aiStaffHelperEnabled: boolean,
 };
 export type PlatformSettingsInputData = {
 requireGoLiveApproval: boolean | null,
 defaultDormStrategy: App.Enums.DormStrategy | null,
 mediaDisk: App.Enums.MediaDisk | null,
+aiBookingWebsiteEnabled: boolean | null,
+aiStaffHelperEnabled: boolean | null,
 };
 export type PropertyFeatureData = {
 feature: App.Enums.PlatformFeature,

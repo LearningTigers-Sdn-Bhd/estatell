@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * The AI assistant's child rows on the admin Features tab: the status of the hotel's OpenAI key (never the key) and the
- * Allowed switch of each scope.
+ * Allowed switch of each released scope.
  */
 class AiAssistantAdminData extends Data
 {
@@ -32,7 +32,7 @@ class AiAssistantAdminData extends Data
             keyStatus: BadgeData::forAiKey(app(AiKeyProvider::class)->hasKey($property), $property->settings?->ai_key_status),
             scopes: array_map(
                 fn (AiScope $scope): AiScopeData => AiScopeData::forAdmin($scope, $rows->get($scope->value), $aiScopes->hasRequiredFeature($property, $scope)),
-                AiScope::cases(),
+                $aiScopes->released(),
             ),
         );
     }

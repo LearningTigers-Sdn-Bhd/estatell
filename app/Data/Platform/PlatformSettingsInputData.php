@@ -15,5 +15,7 @@ class PlatformSettingsInputData extends Data
         public ?bool $requireGoLiveApproval = null,
         public ?DormStrategy $defaultDormStrategy = null,
         public ?MediaDisk $mediaDisk = null,
+        public ?bool $aiBookingWebsiteEnabled = null,
+        public ?bool $aiStaffHelperEnabled = null,
     ) {}
 }

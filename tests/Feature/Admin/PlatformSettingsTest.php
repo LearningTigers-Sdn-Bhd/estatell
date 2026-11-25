@@ -41,6 +41,7 @@ dataset('platform settings sections', [
     ['admin.settings.edit', 'admin.settings.update', ['require_go_live_approval' => '1']],
     ['admin.settings.channels', 'admin.settings.channels.update', ['default_dorm_strategy' => 'bed_as_unit']],
     ['admin.settings.storage', 'admin.settings.storage.update', ['media_disk' => 'local']],
+    ['admin.settings.ai', 'admin.settings.ai.update', ['ai_booking_website_enabled' => '0', 'ai_staff_helper_enabled' => '0']],
 ]);
 
 test('staff get a 404 on every platform settings section', function (string $getRoute, string $putRoute, array $payload) {
@@ -269,4 +270,30 @@ test('settings are read back from a serializing cache store', function () {
         ->and($settings->exists)->toBeTrue();
 
     Cache::forget(PlatformSettings::CACHE_KEY);
+});
+
+test('the AI assistant tab sends and saves only the experimental place switches, and logs the change', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    app(PlatformSettings::class)->current();
+
+    $this->actingAs($admin)->get(route('admin.settings.ai'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('activeTab', 'ai')
+            ->where('settings.aiBookingWebsiteEnabled', false)
+            ->where('settings.aiStaffHelperEnabled', false)
+            ->missing('settings.requireGoLiveApproval'));
+
+    $this->actingAs($admin)
+        ->put(route('admin.settings.ai'), validPlatformSettings(['ai_booking_website_enabled' => '0', 'ai_staff_helper_enabled' => '1']))
+        ->assertRedirect(route('admin.settings.ai'));
+
+    $settings = app(PlatformSettings::class)->current();
+    expect($settings->ai_staff_helper_enabled)->toBeTrue()
+        ->and($settings->ai_booking_website_enabled)->toBeFalse()
+        ->and($settings->require_go_live_approval)->toBeFalse()
+        ->and(Activity::query()->sole()->attribute_changes->toArray())->toBe(['attributes' => ['ai_staff_helper_enabled' => true], 'old' => ['ai_staff_helper_enabled' => false]]);
+
+    $this->actingAs($admin)->put(route('admin.settings.ai'), ['ai_staff_helper_enabled' => '1'])
+        ->assertSessionHasErrors('ai_booking_website_enabled');
 });
