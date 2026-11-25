@@ -1,17 +1,22 @@
 <?php
 
 use App\Enums\ChannelConnectionStatus;
+use App\Enums\CommissionEntryType;
+use App\Enums\CommissionService;
 use App\Enums\ContactEnquiryStatus;
 use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\SignInResult;
+use App\Models\BusinessDate;
 use App\Models\ChannelConnection;
 use App\Models\ChannelProperty;
+use App\Models\CommissionEntry;
 use App\Models\ContactEnquiry;
 use App\Models\MailEvent;
 use App\Models\Partner;
 use App\Models\Property;
+use App\Models\Reservation;
 use App\Models\SignInEvent;
 use App\Models\User;
 use App\Models\WebhookDelivery;
@@ -105,7 +110,6 @@ test('the summary counts properties and partners and lists the latest properties
                 ->where('summary.onboarding', 1)
                 ->where('summary.suspended', 1)
                 ->where('summary.pendingApproval', 0)
-                ->where('summary.newThisMonth', 2)
                 ->where('summary.activePartners', 1)
                 ->has('summary.commissions.immediatePayable')
                 ->has('summary.recent', 3)
@@ -114,6 +118,80 @@ test('the summary counts properties and partners and lists the latest properties
                 ->where('summary.recent.0.at', '2026-10-14')
                 ->where('summary.recent.2.code', $signedUp->code)
                 ->where('summary.recent.2.event', 'Signed up')
+            )
+        );
+});
+
+test('the to do flags a late night audit, quiet properties and stalled onboarding', function () {
+    $late = Property::factory()->create(['name' => 'Late Audit Inn']);
+    BusinessDate::factory()->create(['property_id' => $late->id, 'date' => '2026-10-11']);
+    $onTime = Property::factory()->create();
+    BusinessDate::factory()->create(['property_id' => $onTime->id, 'date' => '2026-10-13']);
+
+    $this->travelTo('2026-09-01 00:00:00');
+    $quiet = Property::factory()->create(['name' => 'Quiet Lodge']);
+    $busy = Property::factory()->create();
+    $this->travelBack();
+    $this->travelTo('2026-10-14 12:00:00');
+    Reservation::factory()->create(['property_id' => $busy->id]);
+
+    Property::factory()->onboarding()->create(['onboarding_last_activity_at' => '2026-09-29 00:00:00']);
+    Property::factory()->onboarding()->create(['onboarding_last_activity_at' => '2026-10-10 00:00:00']);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->loadDeferredProps('todo', fn (Assert $page) => $page
+                ->where('todo.total', 3)
+                ->has('todo.rows', 3)
+                ->where('todo.rows.0.key', "night-audit-{$late->code}")
+                ->where('todo.rows.0.label', 'Night audit 3 days behind')
+                ->where('todo.rows.0.href', "/admin/properties/{$late->code}")
+                ->where('todo.rows.1.key', "quiet-{$quiet->code}")
+                ->where('todo.rows.1.detail', 'Quiet Lodge')
+                ->where('todo.rows.2.key', 'stuck-onboarding')
+                ->where('todo.rows.2.count', 1)
+                ->where('todo.rows.2.href', '/admin/properties?filter%5Bstatus%5D=onboarding')
+            )
+        );
+});
+
+test('the monthly charts count sign-ups, go-lives and commission income by service', function () {
+    $commission = fn (CommissionService $service, string $amount): CommissionEntry => CommissionEntry::factory()->create([
+        'type' => CommissionEntryType::Commission,
+        'reservation_id' => Reservation::factory()->create()->id,
+        'service' => $service,
+        'base_amount' => '100.00',
+        'rate' => '10.00',
+        'amount' => $amount,
+        'reason' => null,
+    ]);
+
+    $this->travelTo('2026-04-20 00:00:00');
+    $commission(CommissionService::BookingEngine, '-50.00');
+
+    $this->travelTo('2026-09-20 00:00:00');
+    Property::factory()->onboarding()->create();
+
+    $this->travelTo('2026-10-05 00:00:00');
+    $commission(CommissionService::BookingEngine, '-12.50');
+    $commission(CommissionService::ChannelManager, '-3.00');
+
+    $this->travelTo('2026-10-14 12:00:00');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->loadDeferredProps('summary', fn (Assert $page) => $page
+                ->has('summary.months', 6)
+                ->where('summary.months.0.month', '2026-05')
+                ->where('summary.months.0.bookingEngine', '0.00')
+                ->where('summary.months.4.month', '2026-09')
+                ->where('summary.months.4.signUps', 1)
+                ->where('summary.months.4.goLives', 0)
+                ->where('summary.months.5.month', '2026-10')
+                ->where('summary.months.5.bookingEngine', '12.50')
+                ->where('summary.months.5.channelManager', '3.00')
             )
         );
 });

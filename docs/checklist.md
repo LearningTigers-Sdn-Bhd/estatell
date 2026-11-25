@@ -178,6 +178,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                              |
 | ---------- | ------------------------------------------------------------------------------------ |
+| `e4531a85` | feat(platform): add the admin dashboard                                              |
 | `e880da86` | feat(platform): group the admin sidebar                                              |
 | `5fcc1041` | feat(platform): redirect the root URL to sign-in                                     |
 | `43be3133` | feat(onboarding): add the admin onboarding board                                     |
@@ -579,6 +580,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(ui): add category colour tokens and room type labels` — `--category-1` to `--category-12` with `-foreground` in `app.css` and the `@theme` mapping, the colour and short label helper in `resources/js/lib/` with unit tests (colour by place, the label examples in the doc). Docs: [Category tokens](design-system/02-tokens-and-typography.md#tokens), [Colour and short label](05-rooms/01-room-types.md#colour-and-short-label).
 - [x] `feat(platform): group the admin sidebar` — `AdminNavigation::groups()` with Overview, Business, Content, Integrations and System; plain labels; Horizon stays in the footer; the ⌘K palette shows `Admin › {group}`. Docs: [App shell](design-system/09-app-shell.md).
 - [x] `feat(platform): add the admin dashboard` — replaces the placeholder: status tiles, the To do card (`AdminDashboardTodo`), This month and Commissions tiles and the Recent properties table (`AdminDashboardSummary`), both deferred. Needs: group the admin sidebar. Docs: [Admin dashboard](01-platform/10-admin-dashboard.md).
+- [x] `feat(platform): add charts and health rows to the admin dashboard` — the Properties donut, Estatell revenue bars by service and Growth lines (`AdminDashboardTrends`), Next payout in place of This month and Commissions, and the night audit behind, no new bookings and stuck in onboarding To do rows. Needs: add the admin dashboard. Docs: [Admin dashboard](01-platform/10-admin-dashboard.md#cards).
 
 ### 03 Staff
 

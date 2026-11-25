@@ -11,14 +11,17 @@ use App\Models\Property;
 use App\Services\Commissions\CommissionTotals;
 
 /**
- * The admin dashboard tiles. "This month" is the calendar month in Malaysia time.
- * See docs/01-platform/10-admin-dashboard.md#tiles.
+ * The admin dashboard cards: properties by status, partners, the next payout, the monthly charts and the latest
+ * properties. See docs/01-platform/10-admin-dashboard.md#cards.
  */
 class AdminDashboardSummary
 {
     private const int RECENT = 5;
 
-    public function __construct(private CommissionTotals $commissionTotals) {}
+    public function __construct(
+        private CommissionTotals $commissionTotals,
+        private AdminDashboardTrends $trends,
+    ) {}
 
     public function get(): AdminDashboardSummaryData
     {
@@ -34,11 +37,9 @@ class AdminDashboardSummary
             onboarding: $count(PropertyStatus::Onboarding),
             pendingApproval: $count(PropertyStatus::PendingApproval),
             suspended: $count(PropertyStatus::Suspended),
-            newThisMonth: Property::query()
-                ->where('created_at', '>=', now(SignInLogDirectory::TIME_ZONE)->startOfMonth()->utc())
-                ->count(),
             activePartners: Partner::query()->where('status', PartnerStatus::Active)->count(),
             commissions: $this->commissionTotals->for(),
+            months: $this->trends->months(),
             recent: $this->recent(),
         );
     }

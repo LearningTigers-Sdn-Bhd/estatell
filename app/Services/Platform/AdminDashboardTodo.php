@@ -4,6 +4,7 @@ namespace App\Services\Platform;
 
 use App\Data\Platform\AdminDashboardTodoData;
 use App\Data\Platform\AdminDashboardTodoRowData;
+use App\Enums\BusinessDateStatus;
 use App\Enums\ChannelConnectionStatus;
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\ContactEnquiryStatus;
@@ -18,7 +19,9 @@ use App\Models\MailEvent;
 use App\Models\Property;
 use App\Models\SignInEvent;
 use App\Models\WebhookDelivery;
+use App\Services\Property\PropertyToday;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * What needs a platform admin now. Each row counts one problem and links to the list filtered to it. Rows with
@@ -26,6 +29,13 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class AdminDashboardTodo
 {
+    /** Days without onboarding activity, or without a new booking, before a property shows here. */
+    private const int QUIET_DAYS = 14;
+
+    public function __construct(
+        private PropertyToday $propertyToday,
+    ) {}
+
     public function get(): AdminDashboardTodoData
     {
         $today = now(SignInLogDirectory::TIME_ZONE)->startOfDay();
@@ -47,7 +57,19 @@ class AdminDashboardTodo
                 href: route('admin.enquiries.index', ['filter' => ['status' => ContactEnquiryStatus::New->value]], absolute: false),
                 tone: Tone::Info,
             ),
+            ...$this->nightAuditRows(),
             ...$this->channelRows(),
+            ...$this->quietRows(),
+            $this->row(
+                key: 'stuck-onboarding',
+                count: Property::query()
+                    ->where('status', PropertyStatus::Onboarding)
+                    ->whereRaw('coalesce(onboarding_last_activity_at, created_at) < ?', [now()->subDays(self::QUIET_DAYS)])
+                    ->count(),
+                label: fn (int $count): string => trans_choice('{1} property stuck in onboarding for 14 days|[2,*] properties stuck in onboarding for 14 days', $count),
+                href: route('admin.properties.index', ['filter' => ['status' => PropertyStatus::Onboarding->value]], absolute: false),
+                tone: Tone::Warning,
+            ),
             ...array_map(fn (WebhookDeliveryStatus $status): ?AdminDashboardTodoRowData => $this->row(
                 key: "webhooks-{$status->value}",
                 count: WebhookDelivery::query()->where('status', $status)->count(),
@@ -82,6 +104,73 @@ class AdminDashboardTodo
             total: array_sum(array_map(fn (AdminDashboardTodoRowData $row): int => $row->count, $rows)),
             rows: $rows,
         );
+    }
+
+    /**
+     * One row per Live property whose open business date is more than a day behind its calendar, the same rule as
+     * the front desk night audit alert. Linked to the admin property page.
+     *
+     * @return list<AdminDashboardTodoRowData>
+     */
+    private function nightAuditRows(): array
+    {
+        return Property::query()
+            ->where('status', PropertyStatus::Live)
+            ->with(['settings', 'businessDates' => fn (HasMany $query) => $query->current()])
+            ->orderBy('name')
+            ->get()
+            ->map(function (Property $property): ?AdminDashboardTodoRowData {
+                $businessDate = $property->businessDates->first();
+
+                if ($businessDate === null || $businessDate->status !== BusinessDateStatus::Open) {
+                    return null;
+                }
+
+                $behind = (int) $businessDate->date->toImmutable()->startOfDay()->diffInDays($this->propertyToday->date($property), false);
+
+                if ($behind <= 1) {
+                    return null;
+                }
+
+                return new AdminDashboardTodoRowData(
+                    key: "night-audit-{$property->code}",
+                    count: 1,
+                    label: __('Night audit :days days behind', ['days' => $behind]),
+                    detail: $property->name,
+                    href: route('admin.properties.show', $property->code, absolute: false),
+                    tone: Tone::Danger,
+                );
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * One row per property Live for at least 14 days with no reservation created in the last 14 days.
+     *
+     * @return list<AdminDashboardTodoRowData>
+     */
+    private function quietRows(): array
+    {
+        $since = now()->subDays(self::QUIET_DAYS);
+
+        return Property::query()
+            ->where('status', PropertyStatus::Live)
+            ->where('went_live_at', '<=', $since)
+            ->whereDoesntHave('reservations', fn (Builder $query) => $query->where('created_at', '>=', $since))
+            ->orderBy('name')
+            ->get(['id', 'code', 'name'])
+            ->map(fn (Property $property): AdminDashboardTodoRowData => new AdminDashboardTodoRowData(
+                key: "quiet-{$property->code}",
+                count: 1,
+                label: __('No new bookings in 14 days'),
+                detail: $property->name,
+                href: route('admin.properties.show', $property->code, absolute: false),
+                tone: Tone::Warning,
+            ))
+            ->values()
+            ->all();
     }
 
     /**
