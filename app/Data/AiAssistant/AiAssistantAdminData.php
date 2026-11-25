@@ -11,7 +11,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * The AI assistant's child rows on the admin Features tab: the status of the hotel's OpenAI key (never the key) and the
- * Allowed switch of each released scope.
+ * Allowed switch of each released scope. `chatApiConnections` is the number of active chat API connections while the
+ * Chat API is allowed, for the row's link to the Chat API tab.
  */
 class AiAssistantAdminData extends Data
 {
@@ -21,6 +22,7 @@ class AiAssistantAdminData extends Data
     public function __construct(
         public BadgeData $keyStatus,
         public array $scopes,
+        public ?int $chatApiConnections,
     ) {}
 
     public static function forProperty(Property $property): self
@@ -34,6 +36,9 @@ class AiAssistantAdminData extends Data
                 fn (AiScope $scope): AiScopeData => AiScopeData::forAdmin($scope, $rows->get($scope->value), $aiScopes->hasRequiredFeature($property, $scope)),
                 $aiScopes->released(),
             ),
+            chatApiConnections: $aiScopes->isAllowed($property, AiScope::Api)
+                ? $property->aiConnections()->whereNull('revoked_at')->count()
+                : null,
         );
     }
 }

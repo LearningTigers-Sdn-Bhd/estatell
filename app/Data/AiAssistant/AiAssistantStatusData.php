@@ -14,8 +14,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * The status rail on every tab of Settings › AI assistant: the hotel's key (masked to its last four characters), its
- * last test, how many places are on, and this month's estimated spend against the cap. Amounts are US dollars, as
- * OpenAI bills. See docs/35-ai-assistant/01-overview.md#settings.
+ * last test, how many places are on, the chat API Estatell set up (read only, null while off), and this month's
+ * estimated spend against the cap. Amounts are US dollars, as OpenAI bills. See docs/35-ai-assistant/01-overview.md#settings.
  */
 class AiAssistantStatusData extends Data
 {
@@ -28,6 +28,7 @@ class AiAssistantStatusData extends Data
         public string $spentUsd,
         public ?string $capUsd,
         public ?int $capPercent,
+        public ?int $chatApiConnections,
     ) {}
 
     public static function forProperty(Property $property): self
@@ -49,6 +50,7 @@ class AiAssistantStatusData extends Data
             spentUsd: (string) $cap->toDollars($spentMicros),
             capUsd: $cap->toDollars($capMicros),
             capPercent: $capMicros === null ? null : min(100, intdiv($spentMicros * 100, $capMicros)),
+            chatApiConnections: $scopes->isAllowed($property, AiScope::Api) ? $property->aiConnections()->whereNull('revoked_at')->count() : null,
         );
     }
 }

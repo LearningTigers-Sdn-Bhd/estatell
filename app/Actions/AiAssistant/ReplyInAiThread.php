@@ -3,13 +3,12 @@
 namespace App\Actions\AiAssistant;
 
 use App\Ai\Agents\PropertyAssistant;
-use App\Enums\AiKeyStatus;
 use App\Enums\AiOutcome;
 use App\Models\AiThread;
 use App\Services\AiAssistant\AiFixedReply;
 use App\Services\AiAssistant\AiHandoverMessage;
 use App\Services\AiAssistant\AiKeyProvider;
-use App\Services\AiAssistant\AiMonthlyUsage;
+use App\Services\AiAssistant\AiReplyGate;
 use Laravel\Ai\Exceptions\StreamErrorException;
 use Laravel\Ai\Responses\Data\TextUsage;
 use Laravel\Ai\Responses\StreamableAgentResponse;
@@ -28,7 +27,7 @@ use Throwable;
 class ReplyInAiThread
 {
     public function __construct(
-        private readonly AiMonthlyUsage $usage,
+        private readonly AiReplyGate $gate,
         private readonly AiHandoverMessage $handover,
         private readonly AiFixedReply $fixedReply,
         private readonly RecordAiTurn $recordTurn,
@@ -40,14 +39,10 @@ class ReplyInAiThread
     {
         $property = $thread->property;
 
-        if ($this->usage->capReached($property)) {
-            ($this->recordTurn)($thread, 'none', new TextUsage, 0, outcome: AiOutcome::CapReached);
+        $blocked = $this->gate->blockedOutcome($property);
 
-            return $this->fixedReply->stream($this->handover->forProperty($property))->usingProtocol($chat->protocol());
-        }
-
-        if ($property->loadMissing('settings')->settings?->ai_key_status === AiKeyStatus::Failing) {
-            ($this->recordTurn)($thread, 'none', new TextUsage, 0, outcome: AiOutcome::Failed);
+        if ($blocked !== null) {
+            ($this->recordTurn)($thread, 'none', new TextUsage, 0, outcome: $blocked);
 
             return $this->fixedReply->stream($this->handover->forProperty($property))->usingProtocol($chat->protocol());
         }

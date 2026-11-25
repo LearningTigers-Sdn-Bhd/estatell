@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\PartnerTemporaryPasswordController;
 use App\Http\Controllers\Admin\PayoutVoucherController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\PropertyAiAssistantController;
+use App\Http\Controllers\Admin\PropertyAiConnectionController;
 use App\Http\Controllers\Admin\PropertyBookingEngineModeController;
 use App\Http\Controllers\Admin\PropertyChannelConnectionController;
 use App\Http\Controllers\Admin\PropertyChannelController;
@@ -75,6 +76,9 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::delete('properties/{property:code}/commissions/periods/{commissionPeriod}', [PropertyCommissionController::class, 'cancel'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'commissionPeriod' => '[0-9]+'])->middleware('support.2fa')->scopeBindings()->name('properties.commissions.cancel');
     Route::put('properties/{property:code}/booking-engine-mode', [PropertyBookingEngineModeController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.booking-engine-mode.update');
     Route::put('properties/{property:code}/ai-scopes/{scope}', [PropertyAiAssistantController::class, 'scope'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.ai-scopes.update');
+    Route::get('properties/{property:code}/chat-api', [PropertyController::class, 'chatApi'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.chat-api');
+    Route::post('properties/{property:code}/chat-api/connections', [PropertyAiConnectionController::class, 'store'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.chat-api.connections.store');
+    Route::delete('properties/{property:code}/chat-api/connections/{aiConnection}', [PropertyAiConnectionController::class, 'destroy'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'aiConnection' => '[0-9]+'])->middleware('support.2fa')->scopeBindings()->name('properties.chat-api.connections.destroy');
     Route::get('properties/{property:code}/go-live', [PropertyGoLiveController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.go-live.show');
     Route::post('properties/{property:code}/go-live/approve', [PropertyGoLiveController::class, 'approve'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.go-live.approve');
     Route::post('properties/{property:code}/go-live/reject', [PropertyGoLiveController::class, 'reject'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.go-live.reject');

@@ -2,11 +2,13 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\ApiAccess\RecordAiConnectionUse;
 use App\Actions\ApiAccess\RecordBookingClientUse;
 use App\Actions\ApiAccess\RecordKioskUse;
 use App\Actions\ApiAccess\RecordPosApiClientUse;
 use App\Features\Kiosks;
 use App\Http\Responses\ApiError;
+use App\Models\AiConnection;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
 use App\Models\PosApiClient;
@@ -27,20 +29,20 @@ use Symfony\Component\HttpFoundation\Response;
  * A kiosk's property is the only property the request can see: controllers read
  * `$request->attributes->get('kiosk')->property` and never take a property from the URL or body. A booking client is
  * set as the `booking_client` attribute, and only ever passes a `booking:` route; `EnsureBookingClientReach` then checks
- * the property in the path.
+ * the property in the path. A chat API connection is set as the `ai_connection` attribute and only passes an `ai:` route.
  *
  * `AuthenticatesRequests` puts this class before `throttle` in Laravel's middleware order, because the `api-token` limiter
  * reads the attribute this class sets. Without it, the limiter counts per IP address.
  */
 class AuthenticateApiToken implements AuthenticatesRequests
 {
-    public function __construct(private RecordKioskUse $recordKioskUse, private RecordBookingClientUse $recordClientUse, private RecordPosApiClientUse $recordPosUse) {}
+    public function __construct(private RecordKioskUse $recordKioskUse, private RecordBookingClientUse $recordClientUse, private RecordPosApiClientUse $recordPosUse, private RecordAiConnectionUse $recordAiUse) {}
 
     public function handle(Request $request, Closure $next, string $scope): Response
     {
         $owner = $this->usableOwner($request);
 
-        if ($owner === null || $owner->tokenCant($scope) || ($owner instanceof BookingClient) !== str_starts_with($scope, 'booking:') || ($owner instanceof PosApiClient) !== str_starts_with($scope, 'pos:')) {
+        if ($owner === null || $owner->tokenCant($scope) || ($owner instanceof BookingClient) !== str_starts_with($scope, 'booking:') || ($owner instanceof PosApiClient) !== str_starts_with($scope, 'pos:') || ($owner instanceof AiConnection) !== str_starts_with($scope, 'ai:')) {
             $key = 'api-token-rejections:'.(string) $request->ip();
 
             if (RateLimiter::hit($key, 60) > 120) {
@@ -56,6 +58,9 @@ class AuthenticateApiToken implements AuthenticatesRequests
         if ($owner instanceof Kiosk) {
             $request->attributes->set('kiosk', $owner);
             ($this->recordKioskUse)($owner);
+        } elseif ($owner instanceof AiConnection) {
+            $request->attributes->set('ai_connection', $owner);
+            ($this->recordAiUse)($owner);
         } elseif ($owner instanceof PosApiClient) {
             $request->attributes->set('pos_client', $owner);
             ($this->recordPosUse)($owner);
@@ -72,14 +77,14 @@ class AuthenticateApiToken implements AuthenticatesRequests
      * property is suspended or has the Kiosks feature off. The guard remembers its user for as long as the application
      * lives, so it is cleared for each request.
      */
-    private function usableOwner(Request $request): Kiosk|BookingClient|PosApiClient|null
+    private function usableOwner(Request $request): Kiosk|BookingClient|PosApiClient|AiConnection|null
     {
         /** @var RequestGuard $guard */
         $guard = Auth::guard('sanctum');
         /** @var mixed $owner Static analysis assumes the guard returns a User, but Sanctum returns the token owner. */
         $owner = $guard->setRequest($request)->forgetUser()->user();
 
-        if ($owner instanceof BookingClient || $owner instanceof PosApiClient) {
+        if ($owner instanceof BookingClient || $owner instanceof PosApiClient || $owner instanceof AiConnection) {
             return $owner->revoked_at === null ? $owner : null;
         }
 

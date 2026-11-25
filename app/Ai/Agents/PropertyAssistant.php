@@ -8,6 +8,7 @@ use App\Ai\Tools\MakeGuestRequest;
 use App\Ai\Tools\PropertyFacts;
 use App\Ai\Tools\ReadMyStay;
 use App\Ai\Tools\SendQuoteLink;
+use App\Enums\AiPlace;
 use App\Enums\AiTool;
 use App\Models\AiThread;
 use App\Services\AiAssistant\AiKeyProvider;
@@ -72,7 +73,7 @@ class PropertyAssistant implements Agent, Conversational, HasTools
             $instance = match ($tool) {
                 AiTool::PropertyFacts => app(PropertyFacts::class, ['property' => $property]),
                 AiTool::CheckRoomsAndPrices => app(CheckRoomsAndPrices::class, ['property' => $property]),
-                AiTool::SendQuoteLink => app(SendQuoteLink::class, ['property' => $property]),
+                AiTool::SendQuoteLink => app(SendQuoteLink::class, ['property' => $property, 'linkInReply' => $this->thread->place === AiPlace::Api]),
                 AiTool::ReadMyStay => app(ReadMyStay::class, ['thread' => $this->thread]),
                 AiTool::MakeGuestRequest => app(MakeGuestRequest::class, ['thread' => $this->thread]),
                 AiTool::HandOver => app(HandOver::class, ['thread' => $this->thread]),

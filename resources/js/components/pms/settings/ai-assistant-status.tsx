@@ -98,6 +98,12 @@ export function AiAssistantStatusRail({
                     <Row label="Places on">
                         {status.placesOn} of {status.placesTotal}
                     </Row>
+                    {status.chatApiConnections !== null && (
+                        <Row label="Chat API">
+                            Set up by Estatell · {status.chatApiConnections}{' '}
+                            active
+                        </Row>
+                    )}
                 </dl>
                 <Button
                     type="button"

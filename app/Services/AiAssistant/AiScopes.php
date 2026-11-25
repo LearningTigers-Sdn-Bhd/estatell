@@ -12,7 +12,8 @@ use Laravel\Pennant\Feature;
 
 /**
  * Answers which AI assistant scopes a property may use. A scope is on when the AI assistant feature is on, the feature
- * the scope needs is on, the place it needs is on, its row is both allowed (admin) and enabled (hotel), and the hotel
+ * the scope needs is on, the place it needs is on, its row is both allowed (admin) and enabled (hotel, except for an
+ * admin-only scope), and the hotel
  * has saved its own OpenAI key. An experimental place (and its capabilities) also needs its platform switch on.
  * See docs/35-ai-assistant/01-overview.md#scopes.
  */
@@ -30,6 +31,19 @@ class AiScopes
         }
 
         return $this->isOnWith($property, $scope, $this->rows($property));
+    }
+
+    /**
+     * Whether the platform admin allows a scope for a property: the AI assistant feature is on, the scope is released,
+     * its feature is on and its row is allowed. The hotel's switch and key do not count. The admin Chat API tab shows
+     * while this is true for `Api`.
+     */
+    public function isAllowed(Property $property, AiScope $scope): bool
+    {
+        return Feature::for($property)->active(AiAssistant::class)
+            && ($this->rows($property)->get($scope->value)->allowed ?? false)
+            && $this->isReleased($scope)
+            && $this->hasRequiredFeature($property, $scope);
     }
 
     /**
@@ -68,7 +82,8 @@ class AiScopes
     }
 
     /**
-     * The scopes the hotel sees in Settings: released, allowed by the admin, with the feature they need on.
+     * The scopes the hotel sees in Settings: released, allowed by the admin, with the feature they need on. An admin-only
+     * scope is never one of them.
      *
      * @return list<AiScope>
      */
@@ -78,7 +93,7 @@ class AiScopes
 
         return array_values(array_filter(
             $this->released(),
-            fn (AiScope $scope): bool => ($rows->get($scope->value)->allowed ?? false) && $this->hasRequiredFeature($property, $scope),
+            fn (AiScope $scope): bool => ! $scope->isAdminOnly() && ($rows->get($scope->value)->allowed ?? false) && $this->hasRequiredFeature($property, $scope),
         ));
     }
 
@@ -99,7 +114,7 @@ class AiScopes
     {
         $row = $rows->get($scope->value);
 
-        if ($row === null || ! $row->allowed || ! $row->enabled || ! $this->isReleased($scope) || ! $this->hasRequiredFeature($property, $scope)) {
+        if ($row === null || ! $row->allowed || (! $row->enabled && ! $scope->isAdminOnly()) || ! $this->isReleased($scope) || ! $this->hasRequiredFeature($property, $scope)) {
             return false;
         }
 

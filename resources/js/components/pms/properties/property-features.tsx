@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PanelHeading } from '@/components/pms/panel-heading';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
@@ -51,6 +51,7 @@ import { update as updateAiScope } from '@/routes/admin/properties/ai-scopes';
 import { update as updateMode } from '@/routes/admin/properties/booking-engine-mode';
 import { eInvoiceGuide } from '@/routes/admin';
 import { update as updateFeature } from '@/routes/admin/properties/features';
+import { chatApi as chatApiTab } from '@/routes/admin/properties';
 
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type BookingEngineMode = App.Data.Platform.BookingEngineModeData;
@@ -424,6 +425,21 @@ export function PropertyFeatures({
                 { preserveScroll: true },
             );
 
+    // The Chat API row links to its own tab while it is on: Estatell sets up the connections there.
+    const chatApiLink = (scope: AiScope) =>
+        scope.scope === 'api' &&
+        scope.allowed &&
+        !readOnly &&
+        aiAssistant?.chatApiConnections !== null &&
+        aiAssistant?.chatApiConnections !== undefined && (
+            <Link
+                href={chatApiTab(code)}
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+                Manage ({aiAssistant.chatApiConnections} active)
+            </Link>
+        );
+
     const scopeRow = (scope: AiScope) => (
         <FeatureRow
             key={scope.scope}
@@ -442,6 +458,7 @@ export function PropertyFeatures({
                     ? (allowed) => allowScope(scope, allowed)
                     : undefined
             }
+            setting={chatApiLink(scope) || undefined}
         />
     );
 

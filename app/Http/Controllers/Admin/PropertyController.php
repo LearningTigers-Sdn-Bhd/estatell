@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Onboarding\CreatePropertyForOwner;
 use App\Data\AiAssistant\AiAssistantAdminData;
+use App\Data\AiAssistant\ChatApiTabData;
 use App\Data\Channels\ChannelSyncProgressData;
 use App\Data\Channels\ChannelTabData;
 use App\Data\Platform\AdminPropertyData;
@@ -11,6 +12,7 @@ use App\Data\Platform\AdminPropertyRowData;
 use App\Data\Platform\AdminPropertyStaffData;
 use App\Data\Platform\BookingEngineModeData;
 use App\Data\Platform\PropertyFeatureData;
+use App\Enums\AiScope;
 use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
@@ -19,6 +21,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreatePropertyForOwnerRequest;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\AiAssistant\AiScopes;
 use App\Services\Channels\ChannelOtaOverview;
 use App\Services\Channels\ChannelStructurePreview;
 use App\Services\Channels\ChannelSyncProgress;
@@ -145,6 +148,19 @@ class PropertyController extends Controller
     }
 
     /**
+     * Property page, Chat API tab: the chat API connections for n8n. Shown only while the AI assistant and its Chat API
+     * switch are on. See docs/35-ai-assistant/03-places-and-routes.md#admin.
+     */
+    public function chatApi(Property $property, AiScopes $aiScopes): Response
+    {
+        abort_unless($aiScopes->isAllowed($property, AiScope::Api), 404);
+
+        return $this->renderTab($property, 'chat-api', [
+            'chatApi' => ChatApiTabData::forProperty($property),
+        ]);
+    }
+
+    /**
      * Property page, Commissions tab: each service's charging period and the history.
      * See docs/30-commission-fees/05-platform-pages.md#property-commissions-tab.
      */
@@ -159,7 +175,7 @@ class PropertyController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's data is sent.
      *
-     * @param  'overview'|'staff'|'features'|'ota-lists'|'channels'|'commissions'  $tab
+     * @param  'overview'|'staff'|'features'|'ota-lists'|'channels'|'commissions'|'chat-api'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, string $tab, array $tabProps = []): Response
@@ -170,6 +186,7 @@ class PropertyController extends Controller
             'property' => AdminPropertyData::fromModel($property, app(PropertyOwners::class)->firstFor($property)),
             'tab' => $tab,
             'channelManagerOn' => Feature::for($property)->active(ChannelManager::class),
+            'chatApiOn' => app(AiScopes::class)->isAllowed($property, AiScope::Api),
             'partnerOptions' => $property->partner_id === null ? app(PartnerDirectory::class)->moveOptions() : [],
             ...$tabProps,
         ]);

@@ -103,6 +103,7 @@ class AssistantInstructions
         $who = match ($place) {
             AiPlace::ConciergeLobby => 'You are on the property\'s guest page. You do not know who is asking or whether they have a booking.',
             AiPlace::ConciergeStay => 'You are on the stay page of a guest with a booking. You cannot see or change their booking yet; for questions about their own bill or dates, hand over.',
+            AiPlace::Api => 'You are answering a message a guest sent through a messaging app such as WhatsApp. You do not know who is asking or whether they have a booking. Write plain text only: no Markdown, tables or headings.',
             default => 'You are answering on behalf of the property.',
         };
 

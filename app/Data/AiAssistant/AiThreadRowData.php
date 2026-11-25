@@ -9,7 +9,8 @@ use App\Models\UnitNight;
 use Spatie\LaravelData\Data;
 
 /**
- * One thread in the AI chats inbox. `preview` is the handover summary, else the guest's last message (`last_guest_message`,
+ * One thread in the AI chats inbox. A chat API thread shows its channel with the place ("Chat API · WhatsApp") and the
+ * name n8n sent. `preview` is the handover summary, else the guest's last message (`last_guest_message`,
  * selected by `AiThreadList`). No other chat text. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 class AiThreadRowData extends Data
@@ -41,9 +42,9 @@ class AiThreadRowData extends Data
         return new self(
             id: $thread->id,
             place: $thread->place->value,
-            placeLabel: $thread->place->label(),
+            placeLabel: $thread->channel === null ? $thread->place->label() : $thread->place->label().' · '.$thread->channel->label(),
             status: BadgeData::fromAiThreadStatus($thread->status),
-            guestName: $primaryGuest?->guest->full_name,
+            guestName: $primaryGuest?->guest->full_name ?? $thread->guest_name,
             roomNumber: $lastNight?->room?->number,
             reservationId: $unit?->reservation_id,
             preview: $thread->handover_summary ?? (is_string($lastGuestMessage) ? $lastGuestMessage : null),

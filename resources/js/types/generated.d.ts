@@ -68,6 +68,7 @@ namespace AiAssistant {
 export type AiAssistantAdminData = {
 keyStatus: App.Data.Shared.BadgeData,
 scopes: App.Data.AiAssistant.AiScopeData[],
+chatApiConnections: number | null,
 };
 export type AiAssistantSettingsData = {
 scopes: App.Data.AiAssistant.AiScopeData[],
@@ -82,6 +83,14 @@ placesTotal: number,
 spentUsd: string,
 capUsd: string | null,
 capPercent: number | null,
+chatApiConnections: number | null,
+};
+export type AiConnectionRowData = {
+id: number,
+name: string,
+lastUsedAt: string | null,
+revokedAt: string | null,
+canRevoke: boolean,
 };
 export type AiGeneralSettingsData = {
 hasKey: boolean,
@@ -160,6 +169,12 @@ export type AiUsageToolData = {
 label: string,
 runs: number,
 failures: number,
+};
+export type ChatApiTabData = {
+connections: App.Data.AiAssistant.AiConnectionRowData[],
+endpoint: string,
+keyStatus: App.Data.Shared.BadgeData,
+keyBlocksReplies: boolean,
 };
 }
 namespace ApiAccess {
@@ -6221,6 +6236,7 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type AiChannel = 'whatsapp' | 'instagram' | 'messenger' | 'telegram' | 'other';
 export type AiKeyStatus = 'working' | 'failing';
 export type AiOutcome = 'answered' | 'quote-sent' | 'booked' | 'escalated' | 'refused' | 'failed' | 'cap-reached';
 export type AiPlace = 'concierge-lobby' | 'concierge-stay' | 'booking-engine' | 'staff' | 'api';

@@ -32,6 +32,7 @@ use App\Events\StayCheckedOut;
 use App\Events\StayCheckInUndone;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
+use App\Models\AiConnection;
 use App\Models\BookingClient;
 use App\Models\EInvoiceSubmission;
 use App\Models\Kiosk;
@@ -177,6 +178,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-token', function (Request $request): Limit {
             $kiosk = $request->attributes->get('kiosk');
             $client = $request->attributes->get('booking_client');
+            $aiConnection = $request->attributes->get('ai_connection');
+
+            if ($aiConnection instanceof AiConnection) {
+                return Limit::perMinute(60)->by('ai:'.$aiConnection->id);
+            }
 
             if ($client instanceof BookingClient) {
                 $property = $request->route('code') ?? $request->route('slug');

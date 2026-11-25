@@ -147,7 +147,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ? ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, $exception->getHeaders())
             : null);
 
-        $exceptions->render(fn (ValidationException $exception, Request $request) => $request->is('api/booking/*', 'api/pos/*')
+        $exceptions->render(fn (ValidationException $exception, Request $request) => $request->is('api/booking/*', 'api/pos/*', 'api/ai/*')
             ? ApiError::response('invalid_fields', $exception->getMessage(), $exception->status, details: ['fields' => $exception->errors()])
             : null);
 

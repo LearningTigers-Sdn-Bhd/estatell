@@ -181,8 +181,10 @@ test('every tab shows the status rail with the places on and this month\'s spend
 
     $this->actingAs($owner)->get(route("settings.ai-assistant.{$tab}", $property->code))
         ->assertInertia(fn (Assert $page) => $page
+            // The chat API is admin-only, so it is not one of the hotel's places: it has its own read-only line.
             ->where('status.placesOn', 1)
-            ->where('status.placesTotal', 2)
+            ->where('status.placesTotal', 1)
+            ->where('status.chatApiConnections', 0)
             ->where('status.spentUsd', '12.40')
             ->where('status.capUsd', '20.00')
             ->where('status.capPercent', 62));

@@ -13,18 +13,23 @@ use Stringable;
 /**
  * Make a quote link for a room the guest chose from `CheckRoomsAndPrices`. Nothing is booked: the guest books on the
  * link's page. The chat draws the link as a card from this result, and `RecordAiTurn` links the quote to the turn by its
- * `quote_id`. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
+ * `quote_id`. A chat API thread has no cards, so there the model writes the url in its reply. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class SendQuoteLink implements Tool
 {
     public function __construct(
         private readonly Property $property,
         private readonly CreateConciergeQuote $create,
+        private readonly bool $linkInReply = false,
     ) {}
 
     public function description(): Stringable|string
     {
-        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates and adults. Nothing is booked until the guest books on the link, which lasts 24 hours. The guest sees the link as a card, so do not repeat the link in your reply.';
+        $link = $this->linkInReply
+            ? 'This chat shows no cards, so write the url from the result in your reply.'
+            : 'The guest sees the link as a card, so do not repeat the link in your reply.';
+
+        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates and adults. Nothing is booked until the guest books on the link, which lasts 24 hours. '.$link;
     }
 
     public function handle(Request $request): Stringable|string

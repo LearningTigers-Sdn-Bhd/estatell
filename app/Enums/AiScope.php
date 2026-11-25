@@ -57,6 +57,16 @@ enum AiScope: string
     }
 
     /**
+     * Whether only the platform admin sets this scope. Estatell sets up the chat API with the hotel's consent, so for it
+     * allowed means on: the hotel's switch is ignored and its Settings never show it.
+     * See docs/35-ai-assistant/01-overview.md#scopes.
+     */
+    public function isAdminOnly(): bool
+    {
+        return $this === self::Api;
+    }
+
+    /**
      * The platform feature this scope needs on, besides the AI assistant itself.
      */
     public function requiredFeature(): ?PlatformFeature

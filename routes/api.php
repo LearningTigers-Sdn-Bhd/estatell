@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Ai\MessageController as AiMessageController;
 use App\Http\Controllers\Api\Booking\ContentController;
 use App\Http\Controllers\Api\Booking\HoldController;
 use App\Http\Controllers\Api\Booking\ManageBookingController;
@@ -17,7 +18,9 @@ use App\Http\Controllers\Api\Kiosk\WalkInController;
 use App\Http\Controllers\Api\Pos\InHouseGuestController;
 use App\Http\Controllers\Api\Pos\OutletController;
 use App\Http\Controllers\Api\Pos\RoomChargeController;
+use App\Http\Middleware\EnsureAiChatApiActive;
 use App\Http\Middleware\EnsurePosApiFeatureActive;
+use App\Models\AiConnection;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -113,4 +116,12 @@ Route::prefix('pos/v1')->name('api.pos.v1.')->middleware(['api.token:pos:*', 'th
         Route::post('room-charges', [RoomChargeController::class, 'store'])->name('room-charges.store');
         Route::post('room-charges/{external_receipt_id}/void', [RoomChargeController::class, 'void'])->name('room-charges.void');
     });
+});
+
+/*
+ * The chat API for n8n. The token's property is the only property a request can see. The idempotency key is optional.
+ * See docs/35-ai-assistant/03-places-and-routes.md#chat-api-for-n8n.
+ */
+Route::prefix('ai/v1')->name('api.ai.v1.')->middleware(['api.token:'.AiConnection::TOKEN_ABILITY, 'throttle:api-token', EnsureAiChatApiActive::class])->group(function () {
+    Route::post('messages', [AiMessageController::class, 'store'])->middleware('api.idempotent')->name('messages.store');
 });

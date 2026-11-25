@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AiChannel;
 use App\Enums\AiPlace;
 use App\Enums\AiThreadStatus;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $agent_conversation_id
  * @property int|null $reservation_unit_id The stay of a Concierge stay thread. Set from the stay link, never by the model.
  * @property int|null $user_id The staff member of a Staff thread.
+ * @property int|null $ai_connection_id The chat API connection the latest message came through.
+ * @property string|null $external_ref_hash HMAC of the property, channel and the channel's chat id. Never the chat id.
+ * @property AiChannel|null $channel
+ * @property string|null $guest_name The name n8n sent. Cleared by the 90-day text purge.
  * @property string|null $language
  * @property CarbonImmutable|null $escalated_at
  * @property string|null $handover_summary The model's short summary of the last handover. Cleared by the 90-day text purge.
@@ -33,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'place', 'status', 'agent_conversation_id', 'reservation_unit_id', 'user_id', 'language', 'escalated_at', 'handover_summary', 'resolved_at', 'resolved_by_user_id', 'last_message_at'])]
+#[Fillable(['property_id', 'place', 'status', 'agent_conversation_id', 'reservation_unit_id', 'user_id', 'ai_connection_id', 'external_ref_hash', 'channel', 'guest_name', 'language', 'escalated_at', 'handover_summary', 'resolved_at', 'resolved_by_user_id', 'last_message_at'])]
 class AiThread extends Model
 {
     /** @use HasFactory<AiThreadFactory> */
@@ -47,6 +52,7 @@ class AiThread extends Model
         return [
             'place' => AiPlace::class,
             'status' => AiThreadStatus::class,
+            'channel' => AiChannel::class,
             'escalated_at' => 'immutable_datetime',
             'resolved_at' => 'immutable_datetime',
             'last_message_at' => 'immutable_datetime',
@@ -67,6 +73,14 @@ class AiThread extends Model
     public function reservationUnit(): BelongsTo
     {
         return $this->belongsTo(ReservationUnit::class);
+    }
+
+    /**
+     * @return BelongsTo<AiConnection, $this>
+     */
+    public function aiConnection(): BelongsTo
+    {
+        return $this->belongsTo(AiConnection::class);
     }
 
     /**

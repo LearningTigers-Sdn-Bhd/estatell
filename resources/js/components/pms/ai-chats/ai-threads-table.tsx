@@ -24,10 +24,10 @@ export function timeAgo(at: string): string {
     return `${Math.round(minutes / 1440)} days`;
 }
 
-/** The stay's guest and room, or "Lobby guest" for a chat with no stay. */
+/** The stay's guest and room, the name n8n sent, or "Lobby guest" ("Guest" on the chat API) when unknown. */
 export function guestLabel(row: AiThreadRow): string {
     if (!row.guestName) {
-        return 'Lobby guest';
+        return row.place === 'api' ? 'Guest' : 'Lobby guest';
     }
 
     return row.roomNumber

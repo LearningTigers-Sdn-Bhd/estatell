@@ -30,7 +30,7 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 | `GET /p/{property:code}/settings/ai-assistant/usage`                                 | Settings        | `settings.manage`                                   |
 | `GET /admin/properties/{property:code}/chat-api`                                     | Admin           | Platform admin                                      |
 | `POST /admin/properties/{property:code}/chat-api/connections`                        | Admin           | Platform admin, `support.2fa`                       |
-| `DELETE /admin/properties/{property:code}/chat-api/connections/{connection}`         | Admin           | Platform admin, `support.2fa`                       |
+| `DELETE /admin/properties/{property:code}/chat-api/connections/{aiConnection}`       | Admin           | Platform admin, `support.2fa`                       |
 
 Every chat route sits behind the `ai-assistant` middleware and checks its place [scope](01-overview.md#scopes) through `AiScopes`. A scope that is off returns 404. A cap that is reached, or a key that is Failing, returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap) and [API key](01-overview.md#api-key)).
 
@@ -109,8 +109,8 @@ For WhatsApp or any other channel run by n8n. Estatell sets it up for the hotel,
 | Key notice     | "Needs the hotel's OpenAI key", with the key status. When the key is Failing, a warning says n8n messages get the handover message until the hotel fixes the key.                                                                                                                                                                                                   |
 | How to call it | An example n8n workflow (three cards: WhatsApp trigger, HTTP request to Estatell, WhatsApp send, built from `Card` and `Badge`, stacked on small screens), then the request with Copy, the fields, the reply with Copy, and the errors. The token shows as `<token>`, and the URL comes from the app URL. The idempotency key is left out to keep the setup simple. |
 
-- `ai_connections`: id, property_id, name, is_active, last_used_at, timestamps. It owns its tokens (ability `ai:chat`, Sanctum, like [API tokens](../28-api-access/01-api-tokens.md)) with `HasApiTokens`.
-- `CreateAiConnection` returns the plain token once. `RevokeAiConnection` sets `is_active` to false and deletes its tokens. Both are logged on the property, without the token.
+- `ai_connections`: id, property_id, name, last_used_at, revoked_at, timestamps, like `pos_api_clients`. It owns its tokens (ability `ai:chat`, Sanctum, like [API tokens](../28-api-access/01-api-tokens.md)) with `HasApiTokens`.
+- `CreateAiConnection` returns the plain token once. `RevokeAiConnection` sets `revoked_at` and deletes its tokens; the row stays. Both are logged (`api-access.token-created`, `api-access.token-revoked`), without the token. `AuthenticateApiToken` sets the `ai_connection` attribute, and `api_idempotency_keys` has an `ai_connection_id` owner.
 - Turning the switch off refuses every token at once. Connections are kept, so turning it on again restores them.
 - The hotel's OpenAI key is still needed. The hotel's status rail shows a read-only chat API line (see [Settings](01-overview.md#settings)).
 
@@ -139,14 +139,18 @@ Idempotency-Key: <n8n execution id>   (optional)
 - A phone number never proves who the guest is, so the API place has no stay tools.
 - `Idempotency-Key` is optional and documented here only. When sent, it works like the [kiosk writes](../28-api-access/03-kiosk-check-in-endpoints.md#idempotency-for-every-kiosk-write): a retry gets the same reply and makes no second turn. Without it, an n8n retry can make a second turn.
 
-| Status | `error.code`     | When                                                   |
-| ------ | ---------------- | ------------------------------------------------------ |
-| 401    | `unauthorized`   | Token missing, wrong or revoked                        |
-| 404    | `ai_unavailable` | The AI assistant feature or the Chat API switch is off |
-| 422    | `invalid_fields` | A field is missing or too long                         |
-| 429    | `rate_limited`   | Over the throttle. Wait and retry                      |
+| Status | `error.code`     | When                                                                            |
+| ------ | ---------------- | ------------------------------------------------------------------------------- |
+| 401    | `unauthorized`   | Token missing, wrong or revoked                                                 |
+| 404    | `ai_unavailable` | The AI assistant feature or the Chat API switch is off, or the hotel has no key |
+| 422    | `invalid_fields` | A field is missing or too long                                                  |
+| 429    | `rate_limited`   | Over the throttle. Wait and retry                                               |
 
-A reached cap or a Failing key answers 200 with the handover message and no model call, like every other place.
+| 503 | `ai_failed` | OpenAI did not answer (an outage). The turn is logged as Failed and reported |
+
+A reached cap or a Failing key answers 200 with the handover message and no model call, like every other place. A key OpenAI refuses becomes Failing and also answers 200 with the handover message.
+
+- The instructions for the API place ask for plain text, with no Markdown, because WhatsApp does not render it. There are no cards, so `SendQuoteLink` tells the model to write the quote link's url in its reply. Decided 2026-11-25.
 
 ### Threads
 
