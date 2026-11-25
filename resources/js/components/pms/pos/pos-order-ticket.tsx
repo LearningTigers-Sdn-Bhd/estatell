@@ -9,6 +9,22 @@ import type { PosCurrency } from './pos-types';
 type Order = App.Data.Pos.PosOrderData;
 type Line = App.Data.Pos.PosOrderLineData;
 
+function formatQuantityPrefix(line: Line): string {
+    if (line.isWeighed && line.weightUnit !== null) {
+        const divisor = Number(line.weightUnitDivisor ?? '1');
+        const totalWeight = Number(line.quantity) * (divisor > 0 ? divisor : 1);
+        const formatted = Number.isInteger(totalWeight)
+            ? String(totalWeight)
+            : totalWeight.toFixed(2).replace(/\.?0+$/, '');
+
+        return `${formatted} ${line.weightUnit}`;
+    }
+
+    const qty = Number(line.quantity);
+
+    return `${Number.isInteger(qty) ? qty : line.quantity} ×`;
+}
+
 /**
  * The ticket: draft lines are still editable, sent lines are locked. Amounts are the server's, shown as it calculated them.
  */
@@ -39,7 +55,7 @@ export function PosOrderTicket({
                     <li
                         key={line.id}
                         className={cn(
-                            'flex flex-col gap-1 rounded-lg border p-3',
+                            'flex flex-col gap-1.5 rounded-lg border p-3',
                             line.isComboPart && 'ml-4 border-dashed',
                             line.isVoided && 'opacity-50',
                         )}
@@ -53,9 +69,9 @@ export function PosOrderTicket({
                                     )}
                                 >
                                     <span className="tabular-nums">
-                                        {line.quantity}
+                                        {formatQuantityPrefix(line)}
                                     </span>{' '}
-                                    × {line.itemName}
+                                    {line.itemName}
                                     {line.variantName !== 'Regular' &&
                                         ` (${line.variantName})`}
                                 </span>
@@ -78,8 +94,8 @@ export function PosOrderTicket({
                                 />
                             </span>
                         </div>
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 <Badge
                                     variant={
                                         line.isDraft ? 'outline' : 'secondary'
@@ -92,6 +108,16 @@ export function PosOrderTicket({
                                 >
                                     {lineStatusLabel(line)}
                                 </Badge>
+                                {line.courseNumber > 1 && (
+                                    <Badge variant="outline">
+                                        Course {line.courseNumber}
+                                    </Badge>
+                                )}
+                                {line.seatNumber !== null && (
+                                    <Badge variant="outline">
+                                        Seat {line.seatNumber}
+                                    </Badge>
+                                )}
                                 {line.isEntitlementCovered && (
                                     <Badge variant="secondary">
                                         Included meal
@@ -110,7 +136,8 @@ export function PosOrderTicket({
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    size="icon-sm"
+                                                    size="icon"
+                                                    className="min-h-11 min-w-11"
                                                     aria-label={`One less ${line.itemName}`}
                                                     disabled={
                                                         Number(line.quantity) <=
@@ -130,7 +157,8 @@ export function PosOrderTicket({
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    size="icon-sm"
+                                                    size="icon"
+                                                    className="min-h-11 min-w-11"
                                                     aria-label={`One more ${line.itemName}`}
                                                     onClick={() =>
                                                         onQuantity(
@@ -149,7 +177,8 @@ export function PosOrderTicket({
                                         <Button
                                             type="button"
                                             variant="ghost"
-                                            size="icon-sm"
+                                            size="icon"
+                                            className="min-h-11 min-w-11"
                                             aria-label={`Remove ${line.itemName}`}
                                             onClick={() => onRemove(line)}
                                         >

@@ -67,7 +67,7 @@ class PosOrderReceiptController extends Controller
         return Inertia::render('finance/pos-orders/show', [
             'currency' => CurrencyData::forProperty($property),
             'order' => PosOrderData::fromModel($model, $refunded),
-            'folioLinks' => PosOrderFolioLink::query()->where('pos_order_id', $model->id)->get()->map(fn (PosOrderFolioLink $link): array => ['id' => $link->id, 'folioId' => $link->folio_id, 'grossAmount' => $link->gross_amount, 'refundedAmount' => (string) ((float) $link->refunded_net + (float) $link->refunded_tax)])->all(),
+            'folioLinks' => PosOrderFolioLink::query()->where('pos_order_id', $model->id)->with('folio:id,reservation_id')->get()->map(fn (PosOrderFolioLink $link): array => ['id' => $link->id, 'folioId' => $link->folio_id, 'reservationId' => $link->folio?->reservation_id, 'grossAmount' => $link->gross_amount, 'refundedAmount' => (string) ((float) $link->refunded_net + (float) $link->refunded_tax)])->all(),
             'refunds' => PosOrder::query()->where('refund_for_order_id', $model->id)->get(['id', 'order_number', 'grand_total'])->map(fn (PosOrder $refund): array => ['id' => $refund->id, 'orderNumber' => $refund->order_number, 'grandTotal' => $refund->grand_total])->all(),
             'tenders' => collect(PosTenderType::options())->reject(fn (array $option): bool => $option['value'] === PosTenderType::RoomCharge->value)->values()->all(),
             'can' => [

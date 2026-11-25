@@ -57,6 +57,9 @@ class PosRegisterController extends Controller
             'locked' => $locked,
             'hasDevice' => $request->attributes->get('pos_device') !== null,
             'actor' => $actor instanceof User ? ['id' => $actor->id, 'name' => $actor->name] : null,
+            'clock' => $actor instanceof User ? [
+                'clockedInOutletId' => PosTimeClock::query()->where('user_id', $actor->id)->whereNull('clocked_out_at')->value('pos_outlet_id'),
+            ] : null,
             'canShift' => $actor instanceof User && $actor->checkPermissionTo(PermissionEnum::PosShift->value),
             'staff' => $locked ? $this->staff($property) : [],
             'outlets' => $actor === null ? [] : $outlets->map(fn (PosOutlet $outlet): array => [

@@ -68,6 +68,7 @@ class PosScheduleController extends Controller
             'variants' => $items->flatMap(fn (PosItem $item) => $item->variants->map(fn (PosItemVariant $variant): array => [
                 'value' => (string) $variant->id,
                 'label' => $item->name.($variant->name === 'Regular' ? '' : ' ('.$variant->name.')'),
+                'itemId' => $item->id,
             ]))->values()->all(),
         ]);
     }

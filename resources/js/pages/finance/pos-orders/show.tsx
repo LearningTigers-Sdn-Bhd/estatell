@@ -16,12 +16,14 @@ import {
     refund,
     show,
 } from '@/routes/finance/pos-orders';
+import { folio as reservationFolio } from '@/routes/reservations';
 
 type Props = {
     order: App.Data.Pos.PosOrderData;
     folioLinks: {
         id: number;
         folioId: number;
+        reservationId: number | null;
         grossAmount: string;
         refundedAmount: string;
     }[];
@@ -122,7 +124,27 @@ export default function PosOrdersShow({
                                         key={link.id}
                                         className="text-muted-foreground"
                                     >
-                                        Folio line{' '}
+                                        {link.reservationId !== null ? (
+                                            <Link
+                                                className="font-medium text-foreground underline underline-offset-4"
+                                                href={reservationFolio.url(
+                                                    {
+                                                        reservation:
+                                                            link.reservationId,
+                                                    },
+                                                    {
+                                                        query: {
+                                                            folio: link.folioId,
+                                                        },
+                                                    },
+                                                )}
+                                            >
+                                                Folio #{link.folioId}
+                                            </Link>
+                                        ) : (
+                                            <span>Folio #{link.folioId}</span>
+                                        )}{' '}
+                                        ·{' '}
                                         <MoneyText
                                             amount={link.grossAmount}
                                             currency={currency}

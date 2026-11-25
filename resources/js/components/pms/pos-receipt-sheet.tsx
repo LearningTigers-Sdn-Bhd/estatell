@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
     Sheet,
     SheetContent,
@@ -29,6 +30,8 @@ export function PosFolioReceiptSheet({
         id: number;
         order: App.Data.Pos.PosOrderData;
     } | null>(null);
+    const [failed, setFailed] = useState(false);
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
         if (orderId === null) {
@@ -39,22 +42,33 @@ export function PosFolioReceiptSheet({
 
         void fetch(receipt.url({ order: orderId }), {
             headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
         })
-            .then(
-                (response) =>
-                    response.json() as Promise<{
-                        order: App.Data.Pos.PosOrderData;
-                    }>,
-            )
-            .then(
-                (body) =>
-                    !cancelled && setLoaded({ id: orderId, order: body.order }),
-            );
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                return response.json() as Promise<{
+                    order: App.Data.Pos.PosOrderData;
+                }>;
+            })
+            .then((body) => {
+                if (!cancelled) {
+                    setFailed(false);
+                    setLoaded({ id: orderId, order: body.order });
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setFailed(true);
+                }
+            });
 
         return () => {
             cancelled = true;
         };
-    }, [orderId]);
+    }, [orderId, attempt]);
 
     const order =
         loaded !== null && loaded.id === orderId ? loaded.order : null;
@@ -73,7 +87,24 @@ export function PosFolioReceiptSheet({
                     </SheetDescription>
                 </SheetHeader>
                 <div className="overflow-y-auto p-4">
-                    {order === null ? (
+                    {failed ? (
+                        <div className="flex flex-col items-start gap-3 rounded-lg border p-4 text-sm">
+                            <p className="text-destructive">
+                                Could not load the POS receipt.
+                            </p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setFailed(false);
+                                    setAttempt((count) => count + 1);
+                                }}
+                            >
+                                Retry
+                            </Button>
+                        </div>
+                    ) : order === null ? (
                         <Skeleton className="h-64 w-full" />
                     ) : (
                         <PosReceipt order={order} currency={currency} />

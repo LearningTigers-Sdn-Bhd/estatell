@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Lock, LogOut, Store, UserRound } from 'lucide-react';
+import { Clock, Lock, LogOut, Store, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -16,10 +16,17 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { enter, exit } from '@/routes/pos/terminal-mode';
-import { terminal } from '@/routes/pos';
+import { clock as posClock, terminal } from '@/routes/pos';
 import { show as offlineShow } from '@/routes/pos/offline';
 import { open } from '@/routes/pos/shifts';
 
@@ -36,6 +43,7 @@ type Props = {
     locked: boolean;
     hasDevice: boolean;
     actor: PosStaff | null;
+    clock: { clockedInOutletId: number | null } | null;
     canShift: boolean;
     staff: PosStaff[];
     outlets: Outlet[];
@@ -45,6 +53,7 @@ export default function PosIndex({
     locked,
     hasDevice,
     actor,
+    clock,
     canShift,
     staff,
     outlets,
@@ -57,6 +66,20 @@ export default function PosIndex({
     const [switching, setSwitching] = useState(false);
     const openForm = useForm({ register_id: '', opening_cash: '' });
     const exitForm = useForm({ password: '' });
+
+    const clockIn = (outletId: number) =>
+        router.post(
+            posClock.url(),
+            { action: 'in', outlet_id: outletId },
+            { preserveScroll: true },
+        );
+
+    const clockOut = () =>
+        router.post(
+            posClock.url(),
+            { action: 'out' },
+            { preserveScroll: true },
+        );
 
     if (locked && actor === null) {
         return (
@@ -102,29 +125,47 @@ export default function PosIndex({
                         actor ? `Signed in as ${actor.name}.` : undefined
                     }
                     actions={
-                        locked ? (
-                            <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                            {clock?.clockedInOutletId !== null &&
+                                clock?.clockedInOutletId !== undefined && (
+                                    <Button
+                                        variant="outline"
+                                        className="min-h-11"
+                                        onClick={clockOut}
+                                    >
+                                        <Clock data-icon="inline-start" />
+                                        Clock out
+                                    </Button>
+                                )}
+                            {locked ? (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        className="min-h-11"
+                                        onClick={() => setSwitching(true)}
+                                    >
+                                        <UserRound data-icon="inline-start" />
+                                        Switch user
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="min-h-11"
+                                        onClick={() => setLeaving(true)}
+                                    >
+                                        <LogOut data-icon="inline-start" />
+                                        Leave Terminal Mode
+                                    </Button>
+                                </>
+                            ) : (
                                 <Button
-                                    variant="outline"
-                                    onClick={() => setSwitching(true)}
+                                    className="min-h-11"
+                                    onClick={() => router.post(enter.url())}
                                 >
-                                    <UserRound data-icon="inline-start" />
-                                    Switch user
+                                    <Lock data-icon="inline-start" />
+                                    Enter Terminal Mode
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setLeaving(true)}
-                                >
-                                    <LogOut data-icon="inline-start" />
-                                    Leave Terminal Mode
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button onClick={() => router.post(enter.url())}>
-                                <Lock data-icon="inline-start" />
-                                Enter Terminal Mode
-                            </Button>
-                        )
+                            )}
+                        </div>
                     }
                 />
 
@@ -135,93 +176,123 @@ export default function PosIndex({
                         description="A manager enables POS on an outlet and adds a register in Settings, POS."
                     />
                 ) : (
-                    outlets.map((outlet) => (
-                        <Card key={outlet.id}>
-                            <CardHeader>
-                                <CardTitle>{outlet.name}</CardTitle>
-                                <CardDescription>
-                                    Pick a register to sell from.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                {outlet.registers.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">
-                                        This outlet has no register yet.
-                                    </p>
-                                )}
-                                {outlet.registers.map((register) => (
-                                    <div
-                                        key={register.id}
-                                        className="flex flex-col gap-3 rounded-lg border p-4"
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <p className="font-medium">
-                                                {register.name}
-                                            </p>
-                                            {register.shiftNumber && (
-                                                <Badge variant="secondary">
-                                                    {register.shiftStatus}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        {register.shiftNumber ? (
-                                            <Link
-                                                className={buttonVariants()}
-                                                href={terminal.url(
-                                                    { outlet: outlet.id },
-                                                    {
-                                                        query: {
-                                                            register:
-                                                                register.id,
-                                                        },
-                                                    },
-                                                )}
-                                            >
-                                                Open register (
-                                                {register.shiftNumber})
-                                            </Link>
-                                        ) : null}
-                                        {register.shiftNumber ? (
-                                            <Link
-                                                className={buttonVariants({
-                                                    variant: 'outline',
-                                                })}
-                                                href={offlineShow.url(
-                                                    undefined,
-                                                    {
-                                                        query: {
-                                                            outlet: outlet.id,
-                                                        },
-                                                    },
-                                                )}
-                                            >
-                                                Offline walk-in
-                                            </Link>
+                    outlets.map((outlet) => {
+                        const clockedHere =
+                            clock?.clockedInOutletId === outlet.id;
+
+                        return (
+                            <Card key={outlet.id}>
+                                <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+                                    <div className="flex flex-col gap-1">
+                                        <CardTitle>{outlet.name}</CardTitle>
+                                        <CardDescription>
+                                            Pick a register to sell from.
+                                        </CardDescription>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {clockedHere ? (
+                                            <Badge variant="secondary">
+                                                Clocked in
+                                            </Badge>
                                         ) : (
-                                            <Button
-                                                variant="outline"
-                                                disabled={!canShift}
-                                                onClick={() => {
-                                                    openForm.setData({
-                                                        register_id: String(
-                                                            register.id,
-                                                        ),
-                                                        opening_cash: '',
-                                                    });
-                                                    setOpening({
-                                                        outlet,
-                                                        register,
-                                                    });
-                                                }}
-                                            >
-                                                Open shift
-                                            </Button>
+                                            clock?.clockedInOutletId ===
+                                                null && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="min-h-11"
+                                                    onClick={() =>
+                                                        clockIn(outlet.id)
+                                                    }
+                                                >
+                                                    <Clock data-icon="inline-start" />
+                                                    Clock in
+                                                </Button>
+                                            )
                                         )}
                                     </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    ))
+                                </CardHeader>
+                                <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {outlet.registers.length === 0 && (
+                                        <p className="text-sm text-muted-foreground">
+                                            This outlet has no register yet.
+                                        </p>
+                                    )}
+                                    {outlet.registers.map((register) => (
+                                        <div
+                                            key={register.id}
+                                            className="flex flex-col gap-3 rounded-lg border p-4"
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="font-medium">
+                                                    {register.name}
+                                                </p>
+                                                {register.shiftNumber && (
+                                                    <Badge variant="secondary">
+                                                        {register.shiftStatus}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {register.shiftNumber ? (
+                                                <Link
+                                                    className={`${buttonVariants()} min-h-11`}
+                                                    href={terminal.url(
+                                                        { outlet: outlet.id },
+                                                        {
+                                                            query: {
+                                                                register:
+                                                                    register.id,
+                                                            },
+                                                        },
+                                                    )}
+                                                >
+                                                    Open register (
+                                                    {register.shiftNumber})
+                                                </Link>
+                                            ) : null}
+                                            {register.shiftNumber ? (
+                                                <Link
+                                                    className={`${buttonVariants({
+                                                        variant: 'outline',
+                                                    })} min-h-11`}
+                                                    href={offlineShow.url(
+                                                        undefined,
+                                                        {
+                                                            query: {
+                                                                outlet: outlet.id,
+                                                            },
+                                                        },
+                                                    )}
+                                                >
+                                                    Offline walk-in
+                                                </Link>
+                                            ) : (
+                                                <Button
+                                                    variant="outline"
+                                                    className="min-h-11"
+                                                    disabled={!canShift}
+                                                    onClick={() => {
+                                                        openForm.setData({
+                                                            register_id: String(
+                                                                register.id,
+                                                            ),
+                                                            opening_cash: '',
+                                                        });
+                                                        setOpening({
+                                                            outlet,
+                                                            register,
+                                                        });
+                                                    }}
+                                                >
+                                                    Open shift
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        );
+                    })
                 )}
             </div>
 
@@ -286,18 +357,21 @@ export default function PosIndex({
                 </Field>
             </FormOverlay>
 
-            <FormOverlay
-                variant="dialog"
-                open={switching}
-                onOpenChange={setSwitching}
-                title="Switch user"
-                errors={{}}
-                processing={false}
-                submitLabel="Close"
-                onSubmit={() => setSwitching(false)}
-            >
-                <PosPinPad staff={staff} onDone={() => setSwitching(false)} />
-            </FormOverlay>
+            <Dialog open={switching} onOpenChange={setSwitching}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Switch user</DialogTitle>
+                        <DialogDescription>
+                            Tap your name and enter your PIN to switch
+                            operators.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <PosPinPad
+                        staff={staff}
+                        onDone={() => setSwitching(false)}
+                    />
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

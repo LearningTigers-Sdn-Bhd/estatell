@@ -3645,6 +3645,8 @@ courseNumber: number,
 seatNumber: number | null,
 isWeighed: boolean,
 isComboPart: boolean,
+weightUnit: string | null,
+weightUnitDivisor: string | null,
 };
 export type PosOrderLineInputData = {
 variantId: number,
