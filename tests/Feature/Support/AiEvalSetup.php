@@ -253,8 +253,11 @@ function aiEvalPlay(Property $property, array $turns, callable $send): array
 {
     $failures = [];
     $transcript = [];
+    $GLOBALS['aiEvalTranscript'] = [];
 
     foreach ($turns as $index => $turn) {
+        $before = count($failures);
+        $verdict = null;
         $reply = $send($turn['guest']);
         $label = 'Turn '.($index + 1).' ('.Str::limit($turn['guest'], 40).')';
         $called = AiTurn::query()->where('property_id', $property->id)->latest('id')->first()?->tools()->get()->map(fn (AiTurnTool $row): string => $row->tool->value)->all() ?? [];
@@ -296,6 +299,22 @@ function aiEvalPlay(Property $property, array $turns, callable $send): array
                 $failures[] = "{$label}: judge says no. {$verdict['reason']}";
             }
         }
+
+        $GLOBALS['aiEvalTranscript'][] = [
+            'guest' => $turn['guest'],
+            'reply' => $reply,
+            'called' => $called,
+            'expect' => [
+                'tools' => array_map(fn (AiTool $tool): string => $tool->value, $turn['tools'] ?? []),
+                'noTools' => array_map(fn (AiTool $tool): string => $tool->value, $turn['noTools'] ?? []),
+                'says' => $turn['says'] ?? [],
+                'saysAny' => $turn['saysAny'] ?? [],
+                'never' => $turn['never'] ?? [],
+                'judge' => $turn['judge'] ?? null,
+            ],
+            'verdict' => $verdict,
+            'failures' => array_slice($failures, $before),
+        ];
 
         if ($failures !== []) {
             $failures[] = "{$label} reply: ".Str::limit($reply, 400);
@@ -367,7 +386,8 @@ function aiEvalRecord(Property $property, string $group, string $case, array $fa
 {
     $micros = (int) AiTurn::query()->where('property_id', $property->id)->sum('cost_micros') + ($GLOBALS['aiEvalJudgeMicros'] ?? 0);
     $GLOBALS['aiEvalJudgeMicros'] = 0;
-    $GLOBALS['aiEvalResults'][] = ['group' => $group, 'case' => $case, 'passed' => $failures === [], 'micros' => $micros];
+    $GLOBALS['aiEvalResults'][] = ['group' => $group, 'case' => $case, 'passed' => $failures === [], 'micros' => $micros, 'turns' => $GLOBALS['aiEvalTranscript'] ?? []];
+    $GLOBALS['aiEvalTranscript'] = [];
     $GLOBALS['aiEvalModel'] = (string) config('ai.providers.openai.models.text.default');
     $GLOBALS['aiEvalLogs'] = storage_path('logs');
 
@@ -375,12 +395,12 @@ function aiEvalRecord(Property $property, string $group, string $case, array $fa
 }
 
 /**
- * Prints the pass rate per group and the cost of the run, and saves it to storage/logs/ai-eval-*.md. A case passes when
+ * Prints the pass rate per group and the cost of the run, and saves it to storage/logs/ai-eval-*.md, with every run's turns in ai-eval-*.json. A case passes when
  * at least 2 of its 3 runs pass. Called from `afterAll`, when the app is gone, so it reads what `aiEvalRecord` kept.
  */
 function aiEvalReport(string $title): void
 {
-    /** @var list<array{group: string, case: string, passed: bool, micros: int}> $results */
+    /** @var list<array{group: string, case: string, passed: bool, micros: int, turns: list<array<string, mixed>>}> $results */
     $results = $GLOBALS['aiEvalResults'] ?? [];
     $GLOBALS['aiEvalResults'] = [];
 
@@ -403,7 +423,9 @@ function aiEvalReport(string $title): void
 
     $report = implode("\n", $lines)."\n";
     fwrite(STDOUT, "\n{$report}\n");
-    file_put_contents($GLOBALS['aiEvalLogs'].'/ai-eval-'.Str::slug($title).'-'.date('Ymd-His').'.md', $report);
+    $file = $GLOBALS['aiEvalLogs'].'/ai-eval-'.Str::slug($title).'-'.date('Ymd-His');
+    file_put_contents("{$file}.md", $report);
+    file_put_contents("{$file}.json", json_encode(['title' => $title, 'model' => $GLOBALS['aiEvalModel'], 'runs' => $results], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 }
 
 /**
