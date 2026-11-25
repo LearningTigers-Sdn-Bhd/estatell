@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Boats\SaveBoat;
+use App\Actions\Boats\SaveBoatCrewMember;
+use App\Actions\Boats\UpdateBoatDeparture;
 use App\Actions\Concierge\SaveGuestContacts;
 use App\Actions\Facilities\AssignFacilitySlotCrew;
 use App\Actions\Facilities\BookFacility;
@@ -19,6 +22,9 @@ use App\Enums\RemarkKind;
 use App\Enums\TransferDirection;
 use App\Enums\TransferMode;
 use App\Enums\UnitStatus;
+use App\Models\Boat;
+use App\Models\BoatCrewMember;
+use App\Models\BoatDeparture;
 use App\Models\Facility;
 use App\Models\FacilityBoat;
 use App\Models\FacilityBooking;
@@ -45,6 +51,7 @@ use RuntimeException;
  * run changes nothing it already set:
  *
  * - **Emergency phones** for the transfer manifest (duty manager and emergency).
+ * - **Island boats and crew** (Boats module) and each departure's default boat and crew, where the lodge has departures.
  * - **Activity bookings** that fill every session to 40-90% of its places with guests staying that night.
  * - **Transfers** for about 60% of the arrivals and half of the departures that have none (shared or in the package).
  * - **Guides and boats** of the activities, and a guide (and, for boat trips, a boat) on every booked session.
@@ -119,6 +126,7 @@ class DemoDailyOperationsSeeder extends Seeder
             $to = $from->addDays(self::DAYS);
 
             $this->phones($property, $owner, $setup);
+            $this->islandBoats($property, $owner);
             $this->activities($property, $owner, $from, $to);
             $this->newTransfers($property, $owner, $from, $to);
             $this->crews($property, $owner, $setup, $from, $to);
@@ -140,6 +148,41 @@ class DemoDailyOperationsSeeder extends Seeder
             'emergency_phone' => $setup['emergency'],
             'front_desk_open_24h' => $property->settings->front_desk_open_24h ?? true,
         ]);
+    }
+
+    /**
+     * For a lodge with island boat departures (the Boats module): two speedboats and four crew members, and each
+     * departure's default boat and crew (in charge plus one assistant). The Boat Trips board starts every date's sailing
+     * from these defaults. A departure that already has a default boat keeps it.
+     */
+    private function islandBoats(Property $property, User $owner): void
+    {
+        $departures = BoatDeparture::query()->where('property_id', $property->id)->orderBy('leaves_at')->get();
+
+        if ($departures->isEmpty()) {
+            return;
+        }
+
+        $boats = array_map(fn (array $boat): Boat => Boat::query()->where('property_id', $property->id)->where('name', $boat[0])->first()
+            ?? app(SaveBoat::class)($owner, $property, ['name' => $boat[0], 'registration' => $boat[1], 'seats' => 20, 'active' => true]), [['Kopi Express 1', 'SBH 2271'], ['Kopi Express 2', 'SBH 2288']]);
+        $crew = array_map(fn (array $member): BoatCrewMember => BoatCrewMember::query()->where('property_id', $property->id)->where('name', $member[0])->first()
+            ?? app(SaveBoatCrewMember::class)($owner, $property, ['name' => $member[0], 'phone' => $member[1], 'active' => true]), [
+                ['Awang Jaafar', '+60 13 881 2040'], ['Daus Ismail', '+60 19 830 7712'], ['Faizal Omar', '+60 14 862 5519'], ['Hafiz Rahman', '+60 17 845 0034'],
+            ]);
+
+        foreach ($departures as $index => $departure) {
+            if ($departure->default_boat_id !== null) {
+                continue;
+            }
+
+            $pair = $index % 2;
+            $result = app(UpdateBoatDeparture::class)($owner, $departure, [
+                'default_boat_id' => $boats[$pair]->id,
+                'in_charge_id' => $crew[$pair * 2]->id,
+                'assistant_ids' => [$crew[$pair * 2 + 1]->id],
+            ]);
+            $this->count($result->isRefused() ? "departure refused ({$result->refusal})" : 'departures with boat and crew');
+        }
     }
 
     /**
