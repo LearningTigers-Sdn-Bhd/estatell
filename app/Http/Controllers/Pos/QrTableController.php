@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\PlaceQrOrder;
 use App\Data\Property\CurrencyData;
+use App\Enums\PosDiningKind;
 use App\Enums\PosQrSessionKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pos\PlaceQrOrderRequest;
@@ -27,6 +28,8 @@ class QrTableController extends Controller
         $session = $this->session($token);
         $status = $state($session);
         $outlet = $session->outlet;
+        // QR table orders are Dine-In checks, so the guest sees the total with that option's service charge.
+        $dineIn = $outlet->diningOptions()->where('kind', PosDiningKind::DineIn->value)->where('active', true)->first();
 
         return Inertia::render('qr/table', [
             'token' => $token,
@@ -36,6 +39,7 @@ class QrTableController extends Controller
             'table' => $session->table->code,
             'currency' => CurrencyData::forProperty($session->property),
             'allowRemark' => $outlet->allow_qr_customer_remark,
+            'serviceChargeRate' => $dineIn?->apply_service_charge ? (string) $dineIn->service_charge_rate : null,
             'categories' => $status === QrSessionState::ACTIVE ? $qrMenu($menu($outlet)['categories']) : [],
         ]);
     }

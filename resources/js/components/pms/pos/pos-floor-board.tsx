@@ -260,6 +260,9 @@ export function PosFloorBoard({
                         role="group"
                         aria-label="Covers for a new check"
                     >
+                        <span className="pr-1 text-sm text-muted-foreground">
+                            Covers
+                        </span>
                         {COVER_PRESETS.map((preset) => (
                             <Button
                                 key={preset}

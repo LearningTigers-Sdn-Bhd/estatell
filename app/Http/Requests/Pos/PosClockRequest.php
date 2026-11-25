@@ -20,7 +20,7 @@ class PosClockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'outlet_id' => ['required', 'integer'],
+            'outlet_id' => ['required_if:action,in', 'nullable', 'integer'],
             'action' => ['required', 'in:in,out'],
         ];
     }

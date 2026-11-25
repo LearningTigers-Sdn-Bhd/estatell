@@ -13,6 +13,7 @@ type Props = {
     table: string;
     currency: App.Data.Property.CurrencyData | null;
     allowRemark: boolean;
+    serviceChargeRate: string | null;
     categories: QrCategory[];
 };
 
@@ -31,6 +32,7 @@ export default function QrTable({
     table,
     currency,
     allowRemark,
+    serviceChargeRate,
     categories,
 }: Props) {
     const [sending, setSending] = useState(false);
@@ -55,6 +57,7 @@ export default function QrTable({
                     categories={categories}
                     currency={currency}
                     allowRemark={allowRemark}
+                    serviceChargeRate={serviceChargeRate}
                     sending={sending}
                     onSend={(lines: QrLine[], clearCart: () => void) => {
                         setSending(true);

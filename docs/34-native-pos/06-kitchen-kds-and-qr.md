@@ -101,6 +101,8 @@ _(Phase 3 migration also adds nullable `kitchen_station_id → pos_kitchen_stati
 
 ## Kitchen stations & ticket routing
 
+Saving a station routing also gives the lines that were already sent (fired, on an open check, with no station) the station of their item or category, so an order sent before the kitchen was set up still reaches its screen (`RouteFiredKitchenLines`). Sending with no station shows a warning toast instead of a plain success.
+
 When `FireOrderLines` executes:
 
 1. Non-voided `Draft` lines (matching the fired course) group by resolved `kitchen_station_id` (`item.kitchen_station_id ?? category.kitchen_station_id`).
@@ -124,6 +126,8 @@ Runs in fullscreen browser mode on any kitchen tablet or wall monitor without re
 ## Dynamic Table QR & Per-Stay In-Room Dining QR
 
 ### 1. Dynamic Table QR (`/q/table/{token}`)
+
+The guest's cart total includes the Dine-In option's service charge (`serviceChargeRate`), so it matches the cashier's bill. Staff can open the table QR slip from the Check actions sheet ("Show table QR") as well as by long-pressing a table.
 
 - Long-press a table on the Floor Plan → **Dynamic QR Code**: creates a `pos_qr_sessions` row (`kind = Table`, TTL = `dynamic_qr_ttl_minutes`, `single_use = true`, revoking any previous open session for that table) and prints a thermal/browser slip.
 - **`single_use` semantics**: The token stays active for the table's dining session (allowing the table to submit multiple rounds of orders) and is **automatically revoked upon settlement (`SettlePosOrder`)** or when `expires_at` passes — preventing out-of-store prank orders!

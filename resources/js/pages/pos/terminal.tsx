@@ -63,6 +63,7 @@ import {
     prebill as prebillRoute,
     refund,
     store as storeOrder,
+    voidMethod as voidEmptyOrder,
 } from '@/routes/pos/orders';
 import {
     store as storeLine,
@@ -228,6 +229,7 @@ export default function PosTerminal(props: Props) {
             .catch(() => undefined);
     }
 
+    const openingOrder = useRef<LineChoice[] | null>(null);
     const activeOrderId = order?.id ?? null;
     const cfdSignature = `${order?.id ?? 'none'}|${order?.lines.length ?? 0}|${order?.grandTotal ?? ''}|${order?.discountTotal ?? ''}|${order?.diningOptionId ?? ''}|${receipt?.id ?? ''}`;
 
@@ -253,7 +255,11 @@ export default function PosTerminal(props: Props) {
         order === null &&
         (selectedDining === undefined || selectedDining.kind === 'dine_in');
 
-    function addLine(orderId: number, choice: LineChoice) {
+    function addLine(
+        orderId: number,
+        choice: LineChoice,
+        onFinish?: () => void,
+    ) {
         router.post(
             storeLine.url({ order: orderId }),
             {
@@ -267,8 +273,19 @@ export default function PosTerminal(props: Props) {
                 combo_selections: choice.combo_selections,
                 course_number: course > 1 ? course : undefined,
             },
-            { preserveScroll: true },
+            { preserveScroll: true, onFinish },
         );
+    }
+
+    /** Add the lines one after another, because a new visit would cancel the one still running. */
+    function addLines(orderId: number, queue: LineChoice[]) {
+        const [first, ...rest] = queue;
+
+        if (first === undefined) {
+            return;
+        }
+
+        addLine(orderId, first, () => addLines(orderId, rest));
     }
 
     function pick(choice: LineChoice) {
@@ -280,7 +297,15 @@ export default function PosTerminal(props: Props) {
             return;
         }
 
+        // Taps made while the new order is still opening join the same order instead of opening another one.
+        if (openingOrder.current !== null) {
+            openingOrder.current.push(choice);
+
+            return;
+        }
+
         // No order yet: open one, then add the line to it.
+        openingOrder.current = [choice];
         router.post(
             storeOrder.url(),
             { register_id: register?.id, pos_dining_option_id: diningId },
@@ -295,8 +320,11 @@ export default function PosTerminal(props: Props) {
                     );
 
                     if (id > 0) {
-                        addLine(id, choice);
+                        addLines(id, openingOrder.current ?? []);
                     }
+                },
+                onFinish: () => {
+                    openingOrder.current = null;
                 },
             },
         );
@@ -828,10 +856,20 @@ export default function PosTerminal(props: Props) {
                             <Button
                                 variant="outline"
                                 className="min-h-11"
-                                onClick={() => setVoiding({ line: null })}
+                                onClick={() =>
+                                    hasLines
+                                        ? setVoiding({ line: null })
+                                        : router.post(
+                                              voidEmptyOrder.url({
+                                                  order: order.id,
+                                              }),
+                                              {},
+                                              { preserveScroll: true },
+                                          )
+                                }
                             >
                                 <Trash2 data-icon="inline-start" />
-                                Void order
+                                {hasLines ? 'Void order' : 'Discard check'}
                             </Button>
                             <Button
                                 className="col-span-2 h-14 text-base"

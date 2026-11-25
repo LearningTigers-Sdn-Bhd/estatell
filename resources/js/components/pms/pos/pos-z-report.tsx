@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { MoneyText } from '@/components/pms/money-text';
 import { cashMovementKindLabel, tenderTypeLabel } from './pos-types';
 import type { PosCurrency } from './pos-types';
@@ -19,6 +20,7 @@ type Snapshot = {
         direction: string;
         payments: number;
         amount: string;
+        rounding_adjustment: string;
     }[];
     cash_movements: {
         kind: string;
@@ -81,14 +83,17 @@ export function PosZReport({
                 ))}
             </Block>
             <Block title={`Sales (${z.sales.orders})`}>
+                {/* The stored subtotal is already net of discounts, so the report adds them back to make the rows add up. */}
                 <Line
                     label="Subtotal"
-                    amount={String(z.sales.subtotal)}
+                    amount={(
+                        Number(z.sales.subtotal) + Number(z.sales.discounts)
+                    ).toFixed(2)}
                     currency={currency}
                 />
                 <Line
                     label="Discounts"
-                    amount={String(z.sales.discounts)}
+                    amount={`-${z.sales.discounts}`}
                     currency={currency}
                 />
                 <Line
@@ -118,12 +123,20 @@ export function PosZReport({
             </Block>
             <Block title="Tenders">
                 {z.tenders.map((tender) => (
-                    <Line
-                        key={`${tender.tender_type}-${tender.direction}`}
-                        label={`${tenderTypeLabel(tender.tender_type)}${tender.direction === 'out' ? ' (refund)' : ''} ×${tender.payments}`}
-                        amount={tender.amount}
-                        currency={currency}
-                    />
+                    <Fragment key={`${tender.tender_type}-${tender.direction}`}>
+                        <Line
+                            label={`${tenderTypeLabel(tender.tender_type)}${tender.direction === 'out' ? ' (refund)' : ''} ×${tender.payments}`}
+                            amount={tender.amount}
+                            currency={currency}
+                        />
+                        {Number(tender.rounding_adjustment) !== 0 && (
+                            <Line
+                                label="Cash rounding"
+                                amount={tender.rounding_adjustment}
+                                currency={currency}
+                            />
+                        )}
+                    </Fragment>
                 ))}
             </Block>
             {z.cash_movements.length > 0 && (
