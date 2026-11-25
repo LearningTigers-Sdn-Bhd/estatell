@@ -30,6 +30,7 @@ use App\Http\Controllers\Pos\PosStaffSettingsController;
 use App\Http\Controllers\Pos\PosTableQrController;
 use App\Http\Controllers\Pos\PosTerminalDeviceController;
 use App\Http\Controllers\Pos\PosTerminalModeController;
+use App\Http\Middleware\KeepInertiaFlash;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -104,7 +105,7 @@ Route::middleware('pos')->group(function () {
                     Route::post('change-payment', [PosOrderController::class, 'changePayment'])->name('change-payment');
                 });
 
-                Route::get('cfd/{register}', [PosCfdController::class, 'show'])->whereNumber('register')->name('cfd.show');
+                Route::get('cfd/{register}', [PosCfdController::class, 'show'])->whereNumber('register')->middleware(KeepInertiaFlash::class)->name('cfd.show');
                 Route::get('cfd/{register}/version', [PosCfdController::class, 'version'])->whereNumber('register')->name('cfd.version');
                 Route::post('cfd/{register}/state', [PosCfdController::class, 'state'])->whereNumber('register')->name('cfd.state');
 

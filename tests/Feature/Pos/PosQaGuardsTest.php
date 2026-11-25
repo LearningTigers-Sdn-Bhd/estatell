@@ -22,6 +22,7 @@ use App\Models\PosOrderPayment;
 use App\Models\PosTable;
 use App\Models\PosVoidReason;
 use App\Models\TransactionCode;
+use Inertia\Support\SessionKey;
 
 require_once __DIR__.'/../Support/PosTerminalSetup.php';
 require_once __DIR__.'/../Support/PosSetup.php';
@@ -138,6 +139,18 @@ it('shows a guest the table QR total with the service charge of a dine-in check'
     $this->get(route('qr.table.show', $link->token))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('serviceChargeRate', '10.00'));
+});
+
+it('keeps the cashier toast in the session when the customer display reloads', function () {
+    $s = posOrderSetup();
+    $toast = ['toast' => ['type' => 'success', 'message' => 'Added.']];
+
+    $this->actingAs($s['manager'])
+        ->withSession([SessionKey::FLASH_DATA => $toast])
+        ->get(route('pos.cfd.show', [$s['property']->code, $s['register']->id]))
+        ->assertOk();
+
+    expect(session(SessionKey::FLASH_DATA))->toBe($toast);
 });
 
 it('names a service charge code that is not a charge when a room charge cannot post', function () {
