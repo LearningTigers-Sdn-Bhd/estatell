@@ -3600,6 +3600,8 @@ eInvoiceSubmissionId: number | null,
 tableId: number | null,
 tableCode: string | null,
 parentOrderId: number | null,
+claimUrl: string | null,
+claimQrSvg: string | null,
 lines: App.Data.Pos.PosOrderLineData[],
 payments: {
 id: number,

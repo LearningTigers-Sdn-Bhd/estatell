@@ -98,3 +98,4 @@ require __DIR__.'/partner.php';
 require __DIR__.'/portal.php';
 require __DIR__.'/guest.php';
 require __DIR__.'/concierge.php';
+require __DIR__.'/receipt.php';

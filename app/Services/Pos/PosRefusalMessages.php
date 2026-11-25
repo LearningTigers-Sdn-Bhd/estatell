@@ -82,6 +82,10 @@ class PosRefusalMessages
             'combo_part_locked' => __('Change or remove the whole combo, not one part of it.'),
             'combo_selection_invalid' => __('Pick the right number of choices for each part of the combo.'),
             'combo_invalid' => __('A combo needs at least one part, and a part cannot be another combo.'),
+            'receipt_not_found' => __('We could not find that receipt.'),
+            'receipt_attempts_exceeded' => __('Too many tries on this receipt. Please ask the staff for help.'),
+            'receipt_closed' => __('This receipt can no longer be claimed here.'),
+            'receipt_mismatch' => __('That total and date do not match the receipt.'),
             default => $code,
         };
     }

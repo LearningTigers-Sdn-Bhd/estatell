@@ -35,6 +35,7 @@ void createInertiaApp({
             case name === 'registration/guest':
             case name === 'registration/done':
             case name.startsWith('concierge/'):
+            case name === 'receipt/claim':
                 return GuestLayout;
             case name.startsWith('admin/'):
                 return AdminLayout;

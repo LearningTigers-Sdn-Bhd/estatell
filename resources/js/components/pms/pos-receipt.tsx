@@ -134,6 +134,18 @@ export function PosReceipt({
                         </li>
                     ))}
             </ul>
+            {order.claimQrSvg !== null && order.claimUrl !== null && (
+                <div className="flex flex-col items-center gap-1 pt-2 text-center">
+                    <p>Need an e-invoice? Scan within the month.</p>
+                    <div
+                        className="size-32"
+                        role="img"
+                        aria-label="QR code to claim an e-invoice"
+                        dangerouslySetInnerHTML={{ __html: order.claimQrSvg }}
+                    />
+                    <p className="break-all">{order.claimUrl}</p>
+                </div>
+            )}
             <p className="pt-2 text-center">Thank you</p>
         </div>
     );

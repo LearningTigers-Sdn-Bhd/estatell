@@ -2,8 +2,11 @@
 
 namespace App\Data\Pos;
 
+use App\Enums\PosOrderStatus;
 use App\Models\PosOrder;
 use App\Models\PosOrderPayment;
+use App\Services\EInvoice\PosOrderReportLines;
+use App\Services\Pos\PosReceiptClaimQr;
 use Spatie\LaravelData\Data;
 
 /**
@@ -48,6 +51,8 @@ class PosOrderData extends Data
         public ?int $tableId,
         public ?string $tableCode,
         public ?int $parentOrderId,
+        public ?string $claimUrl,
+        public ?string $claimQrSvg,
         public array $lines,
         public array $payments,
         public array $discounts,
@@ -61,6 +66,8 @@ class PosOrderData extends Data
      */
     public static function fromModel(PosOrder $order, array $refunded = []): self
     {
+        $claimUrl = $order->status === PosOrderStatus::Settled && $order->order_type->value === 'sale' && app(PosOrderReportLines::class)->reportable($order) ? app(PosReceiptClaimQr::class)->url($order) : null;
+
         return new self(
             $order->id,
             $order->order_number,
@@ -92,6 +99,8 @@ class PosOrderData extends Data
             $order->pos_table_id,
             $order->table?->code,
             $order->parent_order_id,
+            $claimUrl,
+            $claimUrl === null ? null : app(PosReceiptClaimQr::class)->svg($claimUrl),
             array_values($order->lines->map(fn ($line): PosOrderLineData => PosOrderLineData::fromModel($line, $refunded[$line->id] ?? null))->all()),
             array_values($order->payments->map(fn (PosOrderPayment $payment): array => [
                 'id' => $payment->id,
