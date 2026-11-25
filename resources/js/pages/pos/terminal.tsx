@@ -11,7 +11,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { PosCheckActionsDialog } from '@/components/pms/pos/pos-check-actions';
 import { PosCheckoutSheet } from '@/components/pms/pos/pos-checkout-sheet';
+import { PosFloorBoard } from '@/components/pms/pos/pos-floor-board';
+import type { Floor } from '@/components/pms/pos/pos-floor-board';
 import {
     PosDiscountDialog,
     PosVoidDialog,
@@ -61,7 +64,9 @@ type Props = {
         name: string;
         printReceiptAfterPayment: boolean;
         roomChargeLimited: boolean;
+        payLater: boolean;
     };
+    floors: Floor[];
     register: { id: number; name: string } | null;
     registers: { id: number; name: string }[];
     shift: App.Data.Pos.PosShiftData | null;
@@ -72,6 +77,7 @@ type Props = {
         id: number;
         orderNumber: string | null;
         grandTotal: string;
+        tableCode: string | null;
     }[];
     voidReasons: PosVoidReason[];
     transactionCodes: { value: string; label: string }[];
@@ -85,6 +91,7 @@ export default function PosTerminal(props: Props) {
     const {
         currency,
         outlet,
+        floors,
         register,
         shift,
         menu,
@@ -110,6 +117,8 @@ export default function PosTerminal(props: Props) {
         menu.diningOptions[0]?.id ?? 0,
     );
     const [receiptOpen, setReceiptOpen] = useState(true);
+    const [checkActions, setCheckActions] = useState(false);
+    const [course, setCourse] = useState(1);
 
     const trading = shift !== null && shift.status === 'open';
     const hasDraft =
@@ -128,6 +137,7 @@ export default function PosTerminal(props: Props) {
                 note: choice.note || undefined,
                 unit_price: choice.unit_price || undefined,
                 cover_with_entitlement: choice.cover_with_entitlement,
+                course_number: course > 1 ? course : undefined,
             },
             { preserveScroll: true },
         );
@@ -298,12 +308,63 @@ export default function PosTerminal(props: Props) {
                             </Button>
                         ))}
                     </div>
-                    <PosMenuPanel
-                        categories={menu.categories}
-                        currency={currency}
-                        disabled={!trading}
-                        onPick={tap}
-                    />
+                    {outlet.payLater && order === null ? (
+                        <PosFloorBoard
+                            floors={floors}
+                            outletId={outlet.id}
+                            registerId={register.id}
+                            diningOptionId={diningId}
+                            currency={currency}
+                            trading={trading}
+                        />
+                    ) : (
+                        <>
+                            {outlet.payLater && (
+                                <div
+                                    className="flex flex-wrap items-center gap-2"
+                                    role="group"
+                                    aria-label="Course"
+                                >
+                                    <Link
+                                        href={terminal.url(
+                                            { outlet: outlet.id },
+                                            {
+                                                query: {
+                                                    register: register.id,
+                                                },
+                                            },
+                                        )}
+                                        className={buttonVariants({
+                                            variant: 'outline',
+                                            size: 'sm',
+                                        })}
+                                    >
+                                        Tables
+                                    </Link>
+                                    {[1, 2, 3, 4].map((number) => (
+                                        <Button
+                                            key={number}
+                                            size="sm"
+                                            variant={
+                                                course === number
+                                                    ? 'default'
+                                                    : 'outline'
+                                            }
+                                            onClick={() => setCourse(number)}
+                                        >
+                                            Course {number}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                            <PosMenuPanel
+                                categories={menu.categories}
+                                currency={currency}
+                                disabled={!trading}
+                                onPick={tap}
+                            />
+                        </>
+                    )}
                 </section>
 
                 <aside className="flex min-h-0 flex-col gap-3 rounded-xl border p-3">
@@ -335,6 +396,9 @@ export default function PosTerminal(props: Props) {
                                             size: 'sm',
                                         })}
                                     >
+                                        {open.tableCode !== null
+                                            ? `${open.tableCode} · `
+                                            : ''}
                                         {open.orderNumber ?? `#${open.id}`}
                                     </Link>
                                 ))}
@@ -394,6 +458,14 @@ export default function PosTerminal(props: Props) {
                                 <Send data-icon="inline-start" />
                                 Send
                             </Button>
+                            {outlet.payLater && order.status === 'open' && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCheckActions(true)}
+                                >
+                                    Check actions
+                                </Button>
+                            )}
                             <Button
                                 variant="outline"
                                 disabled={!hasLines}
@@ -449,6 +521,20 @@ export default function PosTerminal(props: Props) {
                 onClose={() => setLine(null)}
                 onAdd={pick}
             />
+
+            {order !== null && outlet.payLater && (
+                <PosCheckActionsDialog
+                    open={checkActions}
+                    onClose={() => setCheckActions(false)}
+                    order={order}
+                    others={openOrders
+                        .filter((open) => open.id !== order.id)
+                        .map((open) => ({
+                            id: open.id,
+                            label: `${open.tableCode ?? 'No table'} · ${open.orderNumber ?? `#${open.id}`}`,
+                        }))}
+                />
+            )}
 
             {order && (
                 <>

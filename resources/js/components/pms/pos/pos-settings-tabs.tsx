@@ -3,6 +3,7 @@ import {
     BookOpen,
     KeyRound,
     Layers,
+    LayoutGrid,
     Plug,
     Store,
     UtensilsCrossed,
@@ -18,6 +19,7 @@ import { index as posApiClientsIndex } from '@/routes/settings/pos-api-clients';
 import { index as posIntegrationsIndex } from '@/routes/settings/pos-integrations';
 import { index as posOutletsIndex } from '@/routes/settings/pos-outlets';
 import { index as nativeDiningIndex } from '@/routes/settings/pos/dining-options';
+import { index as nativeFloorsIndex } from '@/routes/settings/pos/floors';
 import { index as nativeMenuIndex } from '@/routes/settings/pos/menu';
 import { index as nativeModifiersIndex } from '@/routes/settings/pos/modifiers';
 import { index as nativeOutletsIndex } from '@/routes/settings/pos/outlets';
@@ -32,6 +34,7 @@ export type PosSettingsTab =
     | 'menu'
     | 'modifiers'
     | 'dining'
+    | 'floors'
     | 'staff';
 
 const tabTitles: Record<PosSettingsTab, string> = {
@@ -42,6 +45,7 @@ const tabTitles: Record<PosSettingsTab, string> = {
     menu: 'Menu',
     modifiers: 'Modifiers',
     dining: 'Dining options',
+    floors: 'Floor plan',
     staff: 'Staff PINs and terminals',
 };
 
@@ -88,6 +92,12 @@ export function posSettingsTabs(): TabLink[] {
             label: 'Dining options',
             icon: UtensilsCrossed,
             href: nativeDiningIndex(),
+        },
+        {
+            value: 'floors',
+            label: 'Floor plan',
+            icon: LayoutGrid,
+            href: nativeFloorsIndex(),
         },
         {
             value: 'staff',

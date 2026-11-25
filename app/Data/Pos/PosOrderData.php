@@ -45,13 +45,16 @@ class PosOrderData extends Data
         public ?string $openedAt,
         public ?string $settledAt,
         public ?int $eInvoiceSubmissionId,
+        public ?int $tableId,
+        public ?string $tableCode,
+        public ?int $parentOrderId,
         public array $lines,
         public array $payments,
         public array $discounts,
     ) {}
 
     /**
-     * Expects `outlet`, `shift.register`, `diningOption`, `reservationUnit.reservation`, `refundFor`, `openedBy`, `lines.modifiers`,
+     * Expects `outlet`, `shift.register`, `diningOption`, `reservationUnit.reservation`, `refundFor`, `openedBy`, `table`, `lines.modifiers`,
      * `payments` and `discounts` loaded.
      *
      * @param  array<int, string>  $refunded  Refunded quantity by original line id.
@@ -86,6 +89,9 @@ class PosOrderData extends Data
             $order->opened_at->toIso8601String(),
             $order->settled_at?->toIso8601String(),
             $order->e_invoice_submission_id,
+            $order->pos_table_id,
+            $order->table?->code,
+            $order->parent_order_id,
             array_values($order->lines->map(fn ($line): PosOrderLineData => PosOrderLineData::fromModel($line, $refunded[$line->id] ?? null))->all()),
             array_values($order->payments->map(fn (PosOrderPayment $payment): array => [
                 'id' => $payment->id,

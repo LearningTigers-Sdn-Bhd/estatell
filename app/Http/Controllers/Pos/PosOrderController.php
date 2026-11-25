@@ -6,13 +6,19 @@ use App\Actions\Pos\AddOrderLine;
 use App\Actions\Pos\ApplyPosDiscount;
 use App\Actions\Pos\ChangePosDiningOption;
 use App\Actions\Pos\CreatePosOrder;
+use App\Actions\Pos\FireOrderCourse;
 use App\Actions\Pos\FireOrderLines;
+use App\Actions\Pos\HoldOrderCourse;
+use App\Actions\Pos\MergePosOrders;
+use App\Actions\Pos\MovePosOrderItems;
 use App\Actions\Pos\PrintPreBill;
 use App\Actions\Pos\RefundPosOrder;
 use App\Actions\Pos\RemoveDraftLine;
 use App\Actions\Pos\RemovePosDiscount;
 use App\Actions\Pos\ResolvePosApproval;
 use App\Actions\Pos\SettlePosOrder;
+use App\Actions\Pos\SplitOrderLineQuantity;
+use App\Actions\Pos\SplitPosOrder;
 use App\Actions\Pos\TransferOrderToRegister;
 use App\Actions\Pos\UpdateDraftOrderLine;
 use App\Actions\Pos\VoidOrderLine;
@@ -30,9 +36,14 @@ use App\Http\Requests\Pos\AddPosOrderLineRequest;
 use App\Http\Requests\Pos\ApplyPosDiscountRequest;
 use App\Http\Requests\Pos\ChangePosDiningOptionRequest;
 use App\Http\Requests\Pos\FirePosOrderRequest;
+use App\Http\Requests\Pos\MergePosOrdersRequest;
+use App\Http\Requests\Pos\MovePosOrderItemsRequest;
+use App\Http\Requests\Pos\OrderCoursePosRequest;
 use App\Http\Requests\Pos\PrintPreBillRequest;
 use App\Http\Requests\Pos\RefundPosOrderRequest;
 use App\Http\Requests\Pos\SettlePosOrderRequest;
+use App\Http\Requests\Pos\SplitPosOrderLineRequest;
+use App\Http\Requests\Pos\SplitPosOrderRequest;
 use App\Http\Requests\Pos\StorePosOrderRequest;
 use App\Http\Requests\Pos\TransferPosOrderRequest;
 use App\Http\Requests\Pos\UpdatePosOrderLineRequest;
@@ -43,6 +54,7 @@ use App\Models\PosOrder;
 use App\Models\PosOrderLine;
 use App\Models\PosRegister;
 use App\Models\PosShift;
+use App\Models\PosTable;
 use App\Models\PosVoidReason;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -65,7 +77,15 @@ class PosOrderController extends Controller
             return back();
         }
 
-        $result = $createPosOrder($this->actor($request), $property, $shift, $option, (string) ($request->validated('client_uuid') ?? Str::uuid()), (int) ($request->validated('guest_count') ?? 1), $unit);
+        $table = $request->validated('pos_table_id') === null ? null : PosTable::query()->where('property_id', $property->id)->find((int) $request->validated('pos_table_id'));
+
+        if ($request->validated('pos_table_id') !== null && $table === null) {
+            $this->error(__('That table is not available at this outlet.'));
+
+            return back();
+        }
+
+        $result = $createPosOrder($this->actor($request), $property, $shift, $option, (string) ($request->validated('client_uuid') ?? Str::uuid()), (int) ($request->validated('guest_count') ?? 1), $unit, $table);
 
         return $this->toast($result->refusal, __('Order opened.')) && $result->model instanceof PosOrder ? $this->terminal($property, $shift, $result->model) : back();
     }
@@ -80,6 +100,8 @@ class PosOrderController extends Controller
             $request->validated('note'),
             $request->validated('unit_price'),
             (bool) $request->validated('cover_with_entitlement'),
+            (int) ($request->validated('course_number') ?? 1),
+            $request->validated('seat_number') === null ? null : (int) $request->validated('seat_number'),
         );
 
         $this->toast($addOrderLine($this->actor($request), $property, $model, $input)->refusal, __('Added.'));
@@ -131,6 +153,52 @@ class PosOrderController extends Controller
         $this->toast($fireOrderLines($this->actor($request), $property, $model, $ids === null ? null : array_values(array_map(intval(...), $ids)))->refusal, __('Sent to the kitchen.'));
 
         return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function course(OrderCoursePosRequest $request, Property $property, int $order, HoldOrderCourse $holdOrderCourse, FireOrderCourse $fireOrderCourse): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $course = (int) $request->validated('course');
+        $hold = $request->validated('action') === 'hold';
+        $result = $hold ? $holdOrderCourse($this->actor($request), $property, $model, $course) : $fireOrderCourse($this->actor($request), $property, $model, $course);
+        $this->toast($result->refusal, $hold ? __('Course :course held.', ['course' => $course]) : __('Course :course sent.', ['course' => $course]));
+
+        return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function splitLine(SplitPosOrderLineRequest $request, Property $property, int $order, int $line, SplitOrderLineQuantity $splitOrderLineQuantity): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $this->toast($splitOrderLineQuantity($this->actor($request), $property, $model, $this->line($model, $line), (int) $request->validated('quantity'))->refusal, __('Line split.'));
+
+        return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function split(SplitPosOrderRequest $request, Property $property, int $order, SplitPosOrder $splitPosOrder): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $table = $request->validated('pos_table_id') === null ? null : PosTable::query()->where('property_id', $property->id)->find((int) $request->validated('pos_table_id'));
+        $result = $splitPosOrder($this->actor($request), $property, $model, array_values(array_map(intval(...), $request->validated('line_ids'))), (string) ($request->validated('client_uuid') ?? Str::uuid()), $table);
+
+        return $this->toast($result->refusal, __('New check opened.')) && $result->model instanceof PosOrder ? $this->terminal($property, $model->shift, $result->model) : $this->terminal($property, $model->shift, $model);
+    }
+
+    public function move(MovePosOrderItemsRequest $request, Property $property, int $order, MovePosOrderItems $movePosOrderItems): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $target = $this->order($property, (int) $request->validated('target_order_id'));
+        $this->toast($movePosOrderItems($this->actor($request), $property, $model, $target, array_values(array_map(intval(...), $request->validated('line_ids'))))->refusal, __('Items moved.'));
+
+        return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function merge(MergePosOrdersRequest $request, Property $property, int $order, MergePosOrders $mergePosOrders): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $target = $this->order($property, (int) $request->validated('target_order_id'));
+        $result = $mergePosOrders($this->actor($request), $property, $model, $target);
+
+        return $this->toast($result->refusal, __('Checks merged.')) ? $this->terminal($property, $target->shift, $target) : $this->terminal($property, $model->shift, $model);
     }
 
     public function void(VoidPosOrderRequest $request, Property $property, int $order, VoidPosOrder $voidPosOrder, ResolvePosApproval $resolveApproval): RedirectResponse

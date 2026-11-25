@@ -192,6 +192,8 @@ class AddOrderLine
         $line->unit_price = $unitPrice;
         $line->unit_cost = $variant->cost;
         $line->kitchen_status = PosKitchenStatus::Draft;
+        $line->course_number = min(9, max(1, $data->courseNumber));
+        $line->seat_number = $data->seatNumber !== null && $data->seatNumber >= 1 ? min(99, $data->seatNumber) : null;
         $line->save();
 
         foreach ($modifiers as $row) {

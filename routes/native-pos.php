@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Pos\PosDiningOptionController;
+use App\Http\Controllers\Pos\PosFloorController;
 use App\Http\Controllers\Pos\PosMenuController;
 use App\Http\Controllers\Pos\PosModifierController;
 use App\Http\Controllers\Pos\PosOrderController;
@@ -44,6 +45,11 @@ Route::middleware('native-pos')->group(function () {
                     Route::patch('lines/{line}', [PosOrderController::class, 'updateLine'])->name('lines.update');
                     Route::post('lines/{line}/void', [PosOrderController::class, 'voidLine'])->name('lines.void');
                     Route::post('fire', [PosOrderController::class, 'fire'])->name('fire');
+                    Route::post('course', [PosOrderController::class, 'course'])->name('course');
+                    Route::post('lines/{line}/split', [PosOrderController::class, 'splitLine'])->name('lines.split');
+                    Route::post('split', [PosOrderController::class, 'split'])->name('split');
+                    Route::post('move', [PosOrderController::class, 'move'])->name('move');
+                    Route::post('merge', [PosOrderController::class, 'merge'])->name('merge');
                     Route::post('void', [PosOrderController::class, 'void'])->name('void');
                     Route::post('discount', [PosOrderController::class, 'discount'])->name('discount');
                     Route::post('prebill', [PosOrderController::class, 'prebill'])->name('prebill');
@@ -86,6 +92,11 @@ Route::middleware('native-pos')->group(function () {
         Route::get('staff-pins', [PosStaffSettingsController::class, 'index'])->name('staff-pins.index');
         Route::post('void-reasons', [PosStaffSettingsController::class, 'storeVoidReason'])->name('void-reasons.store');
         Route::put('void-reasons/{reason}', [PosStaffSettingsController::class, 'updateVoidReason'])->whereNumber('reason')->name('void-reasons.update');
+        Route::get('floors', [PosFloorController::class, 'index'])->name('floors.index');
+        Route::post('outlets/{outlet}/floors', [PosFloorController::class, 'storeFloor'])->whereNumber('outlet')->name('floors.store');
+        Route::put('floors/{floor}', [PosFloorController::class, 'updateFloor'])->whereNumber('floor')->name('floors.update');
+        Route::post('floors/{floor}/tables', [PosFloorController::class, 'batchTables'])->whereNumber('floor')->name('tables.batch');
+        Route::put('tables/{table}', [PosFloorController::class, 'updateTable'])->whereNumber('table')->name('tables.update');
         Route::get('outlets', [PosOutletSettingsController::class, 'index'])->name('outlets.index');
         Route::put('outlets/{outlet}', [PosOutletSettingsController::class, 'update'])->whereNumber('outlet')->name('outlets.update');
         Route::post('outlets/{outlet}/registers', [PosOutletSettingsController::class, 'storeRegister'])->whereNumber('outlet')->name('registers.store');

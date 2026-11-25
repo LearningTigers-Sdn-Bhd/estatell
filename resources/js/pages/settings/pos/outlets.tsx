@@ -46,6 +46,7 @@ type Outlet = {
     cashVarianceTransactionCodeId: number | null;
     safeClearingTransactionCodeId: number | null;
     sstRegistrationNumber: string | null;
+    operationMode: string;
     roundingMode: string;
     roundingPolicy: string;
     roomChargeLimit: string | null;
@@ -62,6 +63,7 @@ type Props = {
     outlet: Outlet | null;
     registers: { id: number; name: string; active: boolean }[];
     transactionCodes: EnumOption[];
+    operationModes: EnumOption[];
     roundingModes: EnumOption[];
     roundingPolicies: EnumOption[];
 };
@@ -128,6 +130,7 @@ export default function PosNativeOutlets({
     outlet,
     registers,
     transactionCodes,
+    operationModes,
     roundingModes,
     roundingPolicies,
 }: Props) {
@@ -159,6 +162,7 @@ export default function PosNativeOutlets({
                             key={outlet.id}
                             outlet={outlet}
                             codes={transactionCodes}
+                            operationModes={operationModes}
                             roundingModes={roundingModes}
                             roundingPolicies={roundingPolicies}
                         />
@@ -173,11 +177,13 @@ export default function PosNativeOutlets({
 function OutletForm({
     outlet,
     codes,
+    operationModes,
     roundingModes,
     roundingPolicies,
 }: {
     outlet: Outlet;
     codes: EnumOption[];
+    operationModes: EnumOption[];
     roundingModes: EnumOption[];
     roundingPolicies: EnumOption[];
 }) {
@@ -198,6 +204,7 @@ function OutletForm({
             outlet.safeClearingTransactionCodeId ?? '',
         ),
         sst_registration_number: outlet.sstRegistrationNumber ?? '',
+        operation_mode: outlet.operationMode,
         rounding_mode: outlet.roundingMode,
         rounding_policy: outlet.roundingPolicy,
         room_charge_limit: outlet.roomChargeLimit ?? '',
@@ -264,6 +271,20 @@ function OutletForm({
                                 />
                             </Field>
                         ))}
+                        <Field>
+                            <FieldLabel htmlFor="operation_mode">
+                                Service style
+                            </FieldLabel>
+                            <EnumSelect
+                                id="operation_mode"
+                                name="operation_mode"
+                                options={operationModes}
+                                value={form.data.operation_mode}
+                                onValueChange={(value) =>
+                                    form.setData('operation_mode', value)
+                                }
+                            />
+                        </Field>
                         <Field>
                             <FieldLabel htmlFor="rounding_mode">
                                 Cash rounding

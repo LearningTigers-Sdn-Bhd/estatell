@@ -25,6 +25,8 @@ class AddPosOrderLineRequest extends FormRequest
             'modifier_option_ids' => ['nullable', 'array', 'max:40'],
             'modifier_option_ids.*' => ['integer'],
             'note' => ['nullable', 'string', 'max:255'],
+            'course_number' => ['nullable', 'integer', 'between:1,9'],
+            'seat_number' => ['nullable', 'integer', 'between:1,99'],
             'unit_price' => ['nullable', 'decimal:0,2', 'min:0'],
             'cover_with_entitlement' => ['nullable', 'boolean'],
         ];

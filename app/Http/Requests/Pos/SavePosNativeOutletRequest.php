@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Pos;
 
+use App\Enums\PosOperationMode;
 use App\Enums\PosRoundingMode;
 use App\Enums\PosRoundingPolicy;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,6 +30,7 @@ class SavePosNativeOutletRequest extends FormRequest
             'cash_variance_transaction_code_id' => ['nullable', 'integer'],
             'safe_clearing_transaction_code_id' => ['nullable', 'integer'],
             'sst_registration_number' => ['nullable', 'string', 'max:40'],
+            'operation_mode' => ['required', Rule::enum(PosOperationMode::class)],
             'rounding_mode' => ['required', Rule::enum(PosRoundingMode::class)],
             'rounding_policy' => ['required', Rule::enum(PosRoundingPolicy::class)],
             'room_charge_limit' => ['nullable', 'decimal:0,2', 'min:0'],

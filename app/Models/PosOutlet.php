@@ -123,6 +123,14 @@ class PosOutlet extends Model
     }
 
     /**
+     * @return HasMany<PosFloor, $this>
+     */
+    public function floors(): HasMany
+    {
+        return $this->hasMany(PosFloor::class, 'pos_outlet_id');
+    }
+
+    /**
      * @return HasMany<PosDiningOption, $this>
      */
     public function diningOptions(): HasMany
