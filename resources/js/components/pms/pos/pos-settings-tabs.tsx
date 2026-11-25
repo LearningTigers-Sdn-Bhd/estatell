@@ -3,6 +3,7 @@ import {
     BookOpen,
     KeyRound,
     Layers,
+    CalendarClock,
     LayoutGrid,
     Plug,
     Store,
@@ -20,6 +21,7 @@ import { index as posIntegrationsIndex } from '@/routes/settings/pos-integration
 import { index as posOutletsIndex } from '@/routes/settings/pos-outlets';
 import { index as nativeDiningIndex } from '@/routes/settings/pos/dining-options';
 import { index as nativeFloorsIndex } from '@/routes/settings/pos/floors';
+import { index as nativeSchedulesIndex } from '@/routes/settings/pos/schedules';
 import { index as nativeMenuIndex } from '@/routes/settings/pos/menu';
 import { index as nativeModifiersIndex } from '@/routes/settings/pos/modifiers';
 import { index as nativeOutletsIndex } from '@/routes/settings/pos/outlets';
@@ -35,6 +37,7 @@ export type PosSettingsTab =
     | 'modifiers'
     | 'dining'
     | 'floors'
+    | 'schedules'
     | 'staff';
 
 const tabTitles: Record<PosSettingsTab, string> = {
@@ -46,6 +49,7 @@ const tabTitles: Record<PosSettingsTab, string> = {
     modifiers: 'Modifiers',
     dining: 'Dining options',
     floors: 'Floor plan',
+    schedules: 'Menu schedules and combos',
     staff: 'Staff PINs and terminals',
 };
 
@@ -92,6 +96,12 @@ export function posSettingsTabs(): TabLink[] {
             label: 'Dining options',
             icon: UtensilsCrossed,
             href: nativeDiningIndex(),
+        },
+        {
+            value: 'schedules',
+            label: 'Schedules and combos',
+            icon: CalendarClock,
+            href: nativeSchedulesIndex(),
         },
         {
             value: 'floors',

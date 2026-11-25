@@ -40,6 +40,7 @@ class SavePosNativeOutletRequest extends FormRequest
             'require_dual_control' => ['required', 'boolean'],
             'print_receipt_after_payment' => ['required', 'boolean'],
             'print_drawer_slip' => ['required', 'boolean'],
+            'require_clock_in' => ['required', 'boolean'],
         ];
     }
 }

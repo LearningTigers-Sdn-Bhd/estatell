@@ -53,6 +53,9 @@ type Item = {
     description: string | null;
     priceIncludesTax: boolean;
     serviceChargeExempt: boolean;
+    soldByWeight: boolean;
+    weightUnit: string | null;
+    weightUnitDivisor: string | null;
     sortOrder: number;
     active: boolean;
     variants: Variant[];
@@ -334,6 +337,9 @@ function ItemForm({
         description: row?.description ?? '',
         price_includes_tax: row?.priceIncludesTax ?? false,
         service_charge_exempt: row?.serviceChargeExempt ?? false,
+        sold_by_weight: row?.soldByWeight ?? false,
+        weight_unit: row?.weightUnit ?? 'g',
+        weight_unit_divisor: row?.weightUnitDivisor ?? '100',
         sort_order: String(row?.sortOrder ?? 0),
         active: row?.active ?? true,
         variants: row?.variants ?? [
@@ -449,6 +455,48 @@ function ItemForm({
                 />
                 <FieldLabel htmlFor="item-sc">No service charge</FieldLabel>
             </Field>
+            <Field orientation="horizontal">
+                <Switch
+                    id="item-weight"
+                    checked={form.data.sold_by_weight}
+                    onCheckedChange={(checked) =>
+                        form.setData('sold_by_weight', checked)
+                    }
+                />
+                <FieldLabel htmlFor="item-weight">Sold by weight</FieldLabel>
+            </Field>
+            {form.data.sold_by_weight && (
+                <div className="grid grid-cols-2 gap-3">
+                    <Field data-invalid={!!form.errors.weight_unit}>
+                        <FieldLabel htmlFor="item-weight-unit">Unit</FieldLabel>
+                        <Input
+                            id="item-weight-unit"
+                            maxLength={20}
+                            value={form.data.weight_unit}
+                            onChange={(event) =>
+                                form.setData('weight_unit', event.target.value)
+                            }
+                        />
+                    </Field>
+                    <Field>
+                        <FieldLabel htmlFor="item-weight-divisor">
+                            Price is per
+                        </FieldLabel>
+                        <Input
+                            id="item-weight-divisor"
+                            inputMode="decimal"
+                            className="tabular-nums"
+                            value={form.data.weight_unit_divisor}
+                            onChange={(event) =>
+                                form.setData(
+                                    'weight_unit_divisor',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </Field>
+                </div>
+            )}
             <Field orientation="horizontal">
                 <Switch
                     id="item-active"

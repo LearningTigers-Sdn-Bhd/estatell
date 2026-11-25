@@ -10,6 +10,7 @@ use App\Models\PosDiningOption;
 use App\Models\PosOrder;
 use App\Models\PosShift;
 use App\Models\PosTable;
+use App\Models\PosTimeClock;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -21,7 +22,7 @@ use Laravel\Pennant\Feature;
  * Open a counter or table order on a register's open shift. The client sends a `client_uuid`, so a tap that is sent twice
  * returns the same order and writes nothing twice. The dining option must be the shift outlet's own and active
  * (`dining_option_invalid`). A room may be named up front for meal entitlement and room charge: it must be in house
- * (`unit_not_eligible`). A table must be active on an active floor of the shift's outlet (`table_invalid`). A shift that is not Open takes no orders (`shift_not_open`). A refusal writes nothing.
+ * (`unit_not_eligible`). A table must be active on an active floor of the shift's outlet (`table_invalid`). An outlet that requires clocking in only takes orders from staff clocked in at it (`clock_in_required`). A shift that is not Open takes no orders (`shift_not_open`). A refusal writes nothing.
  */
 class CreatePosOrder
 {
@@ -56,6 +57,10 @@ class CreatePosOrder
 
             if ($guestCount < 1 || $guestCount > 99) {
                 return PosActionResult::refused('guest_count_invalid');
+            }
+
+            if ($shift->outlet->require_clock_in && ! PosTimeClock::query()->where('user_id', $actor->id)->where('pos_outlet_id', $shift->pos_outlet_id)->whereNull('clocked_out_at')->exists()) {
+                return PosActionResult::refused('clock_in_required');
             }
 
             if ($table !== null && ! $this->tableFits($property, $shift, $table)) {

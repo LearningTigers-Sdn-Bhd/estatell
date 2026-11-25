@@ -4,6 +4,7 @@ namespace App\Actions\Pos;
 
 use App\Data\Pos\PosItemInputData;
 use App\Data\Pos\PosItemVariantInputData;
+use App\Enums\PosPricingType;
 use App\Models\MealPeriod;
 use App\Models\PosCategory;
 use App\Models\PosItem;
@@ -49,6 +50,9 @@ class SavePosItem
                 'price_includes_tax' => $data->priceIncludesTax,
                 'service_charge_exempt' => $data->serviceChargeExempt,
                 'cooking_guide' => $data->cookingGuide,
+                'sold_by_weight' => $data->soldByWeight,
+                'weight_unit' => $data->soldByWeight ? trim((string) $data->weightUnit) : null,
+                'weight_unit_divisor' => $data->soldByWeight ? $data->weightUnitDivisor : null,
                 'sort_order' => $data->sortOrder,
                 'active' => $data->active,
             ]);
@@ -77,6 +81,14 @@ class SavePosItem
 
         if ($data->mealPeriodId !== null && ! MealPeriod::query()->where('property_id', $property->id)->whereKey($data->mealPeriodId)->exists()) {
             return 'meal_period_invalid';
+        }
+
+        if ($data->soldByWeight && (trim((string) $data->weightUnit) === '' || $data->weightUnitDivisor === null || preg_match('/^\d{1,7}(\.\d{1,3})?$/', $data->weightUnitDivisor) !== 1 || ! BigDecimal::of($data->weightUnitDivisor)->isPositive())) {
+            return 'weight_unit_required';
+        }
+
+        if ($data->soldByWeight && array_any($data->variants, fn (PosItemVariantInputData $variant): bool => $variant->pricingType === PosPricingType::Variable)) {
+            return 'weight_price_fixed';
         }
 
         if (array_all($data->variants, fn (PosItemVariantInputData $variant): bool => ! $variant->active)) {

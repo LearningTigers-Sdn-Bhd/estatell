@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\Pos\BatchCreatePosTables;
+use App\Actions\Pos\ClockInPosStaff;
+use App\Actions\Pos\ClockOutPosStaff;
 use App\Actions\Pos\CreatePosOrder;
 use App\Actions\Pos\FireOrderCourse;
 use App\Actions\Pos\FireOrderLines;
@@ -14,6 +16,7 @@ use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderStatus;
 use App\Models\PosOrderDiscount;
 use App\Models\PosTable;
+use App\Models\PosTimeClock;
 use App\Services\Pos\TableFloorState;
 use Illuminate\Support\Str;
 
@@ -190,4 +193,18 @@ it('refuses to split a discounted line or move lines on a check with a bill disc
     $line->forceFill(['discount_type' => 'fixed_amount', 'discount_value' => '2.00'])->save();
 
     expect(app(SplitOrderLineQuantity::class)($s['manager'], $s['property'], $order, $line, 1)->refusal)->toBe('line_not_splittable');
+});
+
+it('clocks staff in and out, once at a time, and holds orders back at an outlet that requires it', function () {
+    $s = posOrderSetup();
+    $clockIn = fn () => app(ClockInPosStaff::class)($s['manager'], $s['property'], $s['outlet']);
+    $s['outlet']->forceFill(['require_clock_in' => true])->save();
+
+    expect(app(CreatePosOrder::class)($s['manager'], $s['property'], $s['shift'], $s['dineIn'], (string) Str::uuid())->refusal)->toBe('clock_in_required')
+        ->and(app(ClockOutPosStaff::class)($s['manager'], $s['property'])->refusal)->toBe('not_clocked_in')
+        ->and($clockIn()->isRefused())->toBeFalse()
+        ->and($clockIn()->refusal)->toBe('already_clocked_in')
+        ->and(app(CreatePosOrder::class)($s['manager'], $s['property'], $s['shift'], $s['dineIn'], (string) Str::uuid())->isRefused())->toBeFalse()
+        ->and(app(ClockOutPosStaff::class)($s['manager'], $s['property'])->isRefused())->toBeFalse()
+        ->and(PosTimeClock::query()->whereNull('clocked_out_at')->count())->toBe(0);
 });

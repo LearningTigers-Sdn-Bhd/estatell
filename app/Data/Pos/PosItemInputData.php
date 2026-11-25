@@ -26,5 +26,8 @@ class PosItemInputData extends Data
         public ?string $cookingGuide = null,
         public int $sortOrder = 0,
         public bool $active = true,
+        public bool $soldByWeight = false,
+        public ?string $weightUnit = null,
+        public ?string $weightUnitDivisor = null,
     ) {}
 }

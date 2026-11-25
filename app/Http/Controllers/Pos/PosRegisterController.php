@@ -15,6 +15,7 @@ use App\Models\PosOutlet;
 use App\Models\PosRegister;
 use App\Models\PosShift;
 use App\Models\PosStaffPin;
+use App\Models\PosTimeClock;
 use App\Models\PosVoidReason;
 use App\Models\Property;
 use App\Models\TransactionCode;
@@ -84,6 +85,7 @@ class PosRegisterController extends Controller
         return Inertia::render('pos/terminal', [
             'currency' => CurrencyData::forProperty($property),
             'outlet' => ['id' => $model->id, 'name' => $model->name, 'printReceiptAfterPayment' => $model->print_receipt_after_payment, 'roomChargeLimited' => $model->room_charge_limit !== null, 'payLater' => $model->operation_mode === PosOperationMode::PayLater],
+            'clock' => ['required' => $model->require_clock_in, 'clockedIn' => PosTimeClock::query()->where('user_id', $actor->id)->where('pos_outlet_id', $model->id)->whereNull('clocked_out_at')->exists()],
             'floors' => $model->operation_mode === PosOperationMode::PayLater ? $floors->for($model) : [],
             'register' => $register === null ? null : ['id' => $register->id, 'name' => $register->name],
             'registers' => PosRegister::query()->where('pos_outlet_id', $model->id)->where('active', true)->orderBy('name')->get(['id', 'name']),

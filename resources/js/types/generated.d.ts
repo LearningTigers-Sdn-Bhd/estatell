@@ -3522,6 +3522,9 @@ serviceChargeExempt: boolean,
 cookingGuide: string | null,
 sortOrder: number,
 active: boolean,
+soldByWeight: boolean,
+weightUnit: string | null,
+weightUnitDivisor: string | null,
 };
 export type PosItemVariantInputData = {
 price: string,
@@ -3532,6 +3535,18 @@ sku: string | null,
 barcode: string | null,
 cost: string | null,
 sortOrder: number,
+active: boolean,
+};
+export type PosMenuScheduleInputData = {
+name: string,
+daysOfWeek: number,
+startTime: string,
+endTime: string,
+categoryIds: number[],
+itemIds: number[],
+effectiveFrom: string | null,
+effectiveUntil: string | null,
+mealPeriodId: number | null,
 active: boolean,
 };
 export type PosModifierGroupInputData = {
@@ -3635,6 +3650,8 @@ unitPrice: string | null,
 coverWithEntitlement: boolean,
 courseNumber: number,
 seatNumber: number | null,
+weight: string | null,
+comboSelections: number[][],
 };
 export type PosOrderRowData = {
 id: number,

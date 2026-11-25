@@ -56,6 +56,7 @@ type Outlet = {
     requireDualControl: boolean;
     printReceiptAfterPayment: boolean;
     printDrawerSlip: boolean;
+    requireClockIn: boolean;
 };
 
 type Props = {
@@ -123,6 +124,11 @@ const SWITCHES = [
         'printReceiptAfterPayment',
     ],
     ['print_drawer_slip', 'Print a drawer slip', 'printDrawerSlip'],
+    [
+        'require_clock_in',
+        'Staff must clock in to take orders',
+        'requireClockIn',
+    ],
 ] as const;
 
 export default function PosNativeOutlets({
@@ -215,6 +221,7 @@ function OutletForm({
         require_dual_control: outlet.requireDualControl,
         print_receipt_after_payment: outlet.printReceiptAfterPayment,
         print_drawer_slip: outlet.printDrawerSlip,
+        require_clock_in: outlet.requireClockIn,
     });
 
     return (

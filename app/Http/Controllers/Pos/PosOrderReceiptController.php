@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Pos;
 
 use App\Actions\EInvoice\SubmitPosWalkInEInvoice;
+use App\Actions\Pos\ChangePosPaymentMethod;
 use App\Actions\Pos\RefundPosOrder;
 use App\Data\Pos\PosOrderData;
 use App\Data\Pos\PosOrderRowData;
@@ -10,13 +11,16 @@ use App\Data\Pos\PosRefundLineInputData;
 use App\Data\Property\CurrencyData;
 use App\Enums\PermissionEnum;
 use App\Enums\PosOrderStatus;
+use App\Enums\PosTenderType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
+use App\Http\Requests\Pos\ChangePosPaymentRequest;
 use App\Http\Requests\Pos\RefundPosOrderRequest;
 use App\Http\Requests\Pos\SubmitPosEInvoiceRequest;
 use App\Models\PosOrder;
 use App\Models\PosOrderFolioLink;
 use App\Models\PosOrderLine;
+use App\Models\PosOrderPayment;
 use App\Models\PosOutlet;
 use App\Models\Property;
 use Illuminate\Http\JsonResponse;
@@ -65,6 +69,7 @@ class PosOrderReceiptController extends Controller
             'order' => PosOrderData::fromModel($model, $refunded),
             'folioLinks' => PosOrderFolioLink::query()->where('pos_order_id', $model->id)->get()->map(fn (PosOrderFolioLink $link): array => ['id' => $link->id, 'folioId' => $link->folio_id, 'grossAmount' => $link->gross_amount, 'refundedAmount' => (string) ((float) $link->refunded_net + (float) $link->refunded_tax)])->all(),
             'refunds' => PosOrder::query()->where('refund_for_order_id', $model->id)->get(['id', 'order_number', 'grand_total'])->map(fn (PosOrder $refund): array => ['id' => $refund->id, 'orderNumber' => $refund->order_number, 'grandTotal' => $refund->grand_total])->all(),
+            'tenders' => collect(PosTenderType::options())->reject(fn (array $option): bool => $option['value'] === PosTenderType::RoomCharge->value)->values()->all(),
             'can' => [
                 'refund' => $user->can(PermissionEnum::PosRefund->value),
                 'einvoice' => $user->can(PermissionEnum::EInvoiceManage->value),
@@ -88,6 +93,25 @@ class PosOrderReceiptController extends Controller
         $lines = array_values(array_map(fn (array $row): PosRefundLineInputData => new PosRefundLineInputData((int) $row['order_line_id'], (int) $row['quantity'], (bool) ($row['return_stock'] ?? false), (bool) ($row['restore_meal_entitlement'] ?? false)), $request->validated('lines')));
         $result = $refundPosOrder($request->user(), $property, $original, $lines, (string) $request->validated('reason'), (string) ($request->validated('client_uuid') ?? Str::uuid()), $request->user());
         $this->toast($result->refusal, __('Refund recorded.'));
+
+        return back();
+    }
+
+    public function changePayment(ChangePosPaymentRequest $request, Property $property, int $order, ChangePosPaymentMethod $changePosPaymentMethod): RedirectResponse
+    {
+        $original = PosOrder::query()->where('property_id', $property->id)->findOrFail($order);
+        $payment = PosOrderPayment::query()->where('pos_order_id', $original->id)->findOrFail((int) $request->validated('payment_id'));
+
+        // The back office has no second approver, so an outlet that needs two people for this must do it at the register.
+        if ($original->outlet->require_dual_control) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('This outlet needs a second person to approve a tender change. Change it at the register with a manager PIN.')]);
+
+            return back();
+        }
+
+        $tender = PosTenderType::from((string) $request->validated('tender_type'));
+        $result = $changePosPaymentMethod($request->user(), $property, $original, $payment, $tender, $request->validated('payment_method_id') === null ? null : (int) $request->validated('payment_method_id'), $request->validated('reference'), $request->user());
+        $this->toast($result->refusal, __('Tender changed.'));
 
         return back();
     }

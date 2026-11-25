@@ -39,7 +39,7 @@ import type {
 import { PosReceipt } from '@/components/pms/pos-receipt';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { index as posIndex, terminal } from '@/routes/pos';
+import { clock as clockRoute, index as posIndex, terminal } from '@/routes/pos';
 import {
     diningOption,
     fire,
@@ -67,6 +67,7 @@ type Props = {
         payLater: boolean;
     };
     floors: Floor[];
+    clock: { required: boolean; clockedIn: boolean };
     register: { id: number; name: string } | null;
     registers: { id: number; name: string }[];
     shift: App.Data.Pos.PosShiftData | null;
@@ -92,6 +93,7 @@ export default function PosTerminal(props: Props) {
         currency,
         outlet,
         floors,
+        clock,
         register,
         shift,
         menu,
@@ -137,6 +139,8 @@ export default function PosTerminal(props: Props) {
                 note: choice.note || undefined,
                 unit_price: choice.unit_price || undefined,
                 cover_with_entitlement: choice.cover_with_entitlement,
+                weight: choice.weight || undefined,
+                combo_selections: choice.combo_selections,
                 course_number: course > 1 ? course : undefined,
             },
             { preserveScroll: true },
@@ -178,7 +182,9 @@ export default function PosTerminal(props: Props) {
         const simple =
             item.variants.length === 1 &&
             item.modifierGroups.length === 0 &&
-            item.variants[0].pricingType === 'fixed';
+            item.variants[0].pricingType === 'fixed' &&
+            !item.soldByWeight &&
+            !item.isCombo;
 
         if (simple) {
             pick({
@@ -236,6 +242,24 @@ export default function PosTerminal(props: Props) {
                     )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                    {clock.required && (
+                        <Button
+                            variant={clock.clockedIn ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() =>
+                                router.post(
+                                    clockRoute.url(),
+                                    {
+                                        outlet_id: outlet.id,
+                                        action: clock.clockedIn ? 'out' : 'in',
+                                    },
+                                    { preserveScroll: true },
+                                )
+                            }
+                        >
+                            {clock.clockedIn ? 'Clock out' : 'Clock in'}
+                        </Button>
+                    )}
                     <Button
                         variant="outline"
                         size="sm"

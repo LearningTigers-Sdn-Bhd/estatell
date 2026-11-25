@@ -44,9 +44,15 @@ class RemoveDraftLine
                     return PosActionResult::refused('prebill_locked');
                 }
 
-                PosOrderLineTax::query()->where('pos_order_line_id', $line->id)->delete();
-                PosOrderLineModifier::query()->where('pos_order_line_id', $line->id)->delete();
-                $line->delete();
+                if ($line->parent_combo_line_id !== null) {
+                    return PosActionResult::refused('combo_part_locked');
+                }
+
+                foreach ([...PosOrderLine::query()->where('parent_combo_line_id', $line->id)->get()->all(), $line] as $row) {
+                    PosOrderLineTax::query()->where('pos_order_line_id', $row->id)->delete();
+                    PosOrderLineModifier::query()->where('pos_order_line_id', $row->id)->delete();
+                    $row->delete();
+                }
 
                 $result = ($this->recalculate)($order);
 

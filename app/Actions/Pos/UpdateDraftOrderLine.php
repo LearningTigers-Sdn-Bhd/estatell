@@ -39,8 +39,12 @@ class UpdateDraftOrderLine
                     return PosActionResult::refused('line_locked');
                 }
 
+                if ($line->parent_combo_line_id !== null) {
+                    return PosActionResult::refused('combo_part_locked');
+                }
+
                 if ($quantity !== null) {
-                    if ($quantity < 1 || $quantity > 999 || ($line->is_entitlement_covered && $quantity !== 1)) {
+                    if ($quantity < 1 || $quantity > 999 || ($line->is_entitlement_covered && $quantity !== 1) || $line->variant->item->sold_by_weight) {
                         return PosActionResult::refused('quantity_invalid');
                     }
 
@@ -49,6 +53,7 @@ class UpdateDraftOrderLine
                     }
 
                     $line->quantity = $quantity.'.000';
+                    PosOrderLine::query()->where('parent_combo_line_id', $line->id)->update(['quantity' => $quantity.'.000']);
                 }
 
                 if ($note !== null) {

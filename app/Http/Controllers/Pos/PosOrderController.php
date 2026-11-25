@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pos;
 use App\Actions\Pos\AddOrderLine;
 use App\Actions\Pos\ApplyPosDiscount;
 use App\Actions\Pos\ChangePosDiningOption;
+use App\Actions\Pos\ChangePosPaymentMethod;
 use App\Actions\Pos\CreatePosOrder;
 use App\Actions\Pos\FireOrderCourse;
 use App\Actions\Pos\FireOrderLines;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Pos\Concerns\RespondsToPos;
 use App\Http\Requests\Pos\AddPosOrderLineRequest;
 use App\Http\Requests\Pos\ApplyPosDiscountRequest;
 use App\Http\Requests\Pos\ChangePosDiningOptionRequest;
+use App\Http\Requests\Pos\ChangePosPaymentRequest;
 use App\Http\Requests\Pos\FirePosOrderRequest;
 use App\Http\Requests\Pos\MergePosOrdersRequest;
 use App\Http\Requests\Pos\MovePosOrderItemsRequest;
@@ -52,6 +54,7 @@ use App\Http\Requests\Pos\VoidPosOrderRequest;
 use App\Models\PosDiningOption;
 use App\Models\PosOrder;
 use App\Models\PosOrderLine;
+use App\Models\PosOrderPayment;
 use App\Models\PosRegister;
 use App\Models\PosShift;
 use App\Models\PosTable;
@@ -102,6 +105,8 @@ class PosOrderController extends Controller
             (bool) $request->validated('cover_with_entitlement'),
             (int) ($request->validated('course_number') ?? 1),
             $request->validated('seat_number') === null ? null : (int) $request->validated('seat_number'),
+            $request->validated('weight') === null ? null : (string) $request->validated('weight'),
+            array_map(fn (array $ids): array => array_values(array_map(intval(...), $ids)), array_combine(array_map(intval(...), array_keys($request->validated('combo_selections') ?? [])), array_values($request->validated('combo_selections') ?? []))),
         );
 
         $this->toast($addOrderLine($this->actor($request), $property, $model, $input)->refusal, __('Added.'));
@@ -243,6 +248,25 @@ class PosOrderController extends Controller
         }
 
         return $this->terminal($property, $model->shift, $model);
+    }
+
+    public function changePayment(ChangePosPaymentRequest $request, Property $property, int $order, ChangePosPaymentMethod $changePosPaymentMethod, ResolvePosApproval $resolveApproval): RedirectResponse
+    {
+        $model = $this->order($property, $order);
+        $actor = $this->actor($request);
+        $payment = PosOrderPayment::query()->where('pos_order_id', $model->id)->findOrFail((int) $request->validated('payment_id'));
+        $approval = $resolveApproval($request, $property, $model->outlet, $actor, PermissionEnum::PosRefund, 'change payment method', ['order' => $model->id]);
+
+        if ($approval['error'] !== null || $approval['approver'] === null) {
+            $this->error($approval['error'] ?? __('A manager must approve a tender change. Enter their PIN.'));
+
+            return back();
+        }
+
+        $tender = PosTenderType::from((string) $request->validated('tender_type'));
+        $this->toast($changePosPaymentMethod($actor, $property, $model, $payment, $tender, $request->validated('payment_method_id') === null ? null : (int) $request->validated('payment_method_id'), $request->validated('reference'), $approval['approver'])->refusal, __('Tender changed.'));
+
+        return back();
     }
 
     public function transfer(TransferPosOrderRequest $request, Property $property, int $order, TransferOrderToRegister $transferOrderToRegister): RedirectResponse
