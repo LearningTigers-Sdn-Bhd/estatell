@@ -13,8 +13,10 @@ use App\Models\PosVoidReason;
 use App\Models\PropertyEInvoiceSetting;
 use App\Models\User;
 use App\Services\Pos\CustomerDisplay;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/PosOrderSetup.php';
@@ -140,4 +142,33 @@ it('keeps the settled check on screen when the cashier clears the register withi
 
     expect(PosOrder::query()->findOrFail($order->id)->status->value)->toBe('settled')
         ->and($s['register']->fresh()->active_pos_order_id)->toBe($order->id);
+});
+
+it('stores, serves and removes the outlet static DuitNow QR and the welcome message', function () {
+    $s = posOrderSetup();
+    Storage::fake(config('filesystems.public_media'));
+    $url = route('settings.pos.outlets.cfd-qr.store', [$s['property']->code, $s['outlet']->id]);
+
+    $this->actingAs($s['manager'])->post($url, ['qr' => UploadedFile::fake()->image('qr.png', 300, 300)])
+        ->assertRedirect();
+
+    $path = $s['outlet']->fresh()->cfd_duitnow_qr_path;
+
+    expect($path)->not->toBeNull();
+    Storage::disk(config('filesystems.public_media'))->assertExists($path);
+
+    $this->actingAs($s['manager'])->put(route('settings.pos.outlets.update', [$s['property']->code, $s['outlet']->id]), [
+        'operation_mode' => 'pay_first', 'rounding_mode' => 'five_sen', 'rounding_policy' => 'cash_leg_only',
+        'require_room_charge_signature' => true, 'require_meal_redemption_confirmation' => true, 'require_reprint_pin' => true,
+        'require_dual_control' => false, 'print_receipt_after_payment' => true, 'print_drawer_slip' => true, 'require_clock_in' => false,
+        'cfd_welcome_message' => 'Welcome to Ocean Breeze',
+    ])->assertRedirect();
+
+    expect($s['outlet']->fresh()->cfd_welcome_message)->toBe('Welcome to Ocean Breeze');
+
+    $this->actingAs($s['manager'])->delete(route('settings.pos.outlets.cfd-qr.destroy', [$s['property']->code, $s['outlet']->id]))
+        ->assertRedirect();
+
+    expect($s['outlet']->fresh()->cfd_duitnow_qr_path)->toBeNull();
+    Storage::disk(config('filesystems.public_media'))->assertMissing($path);
 });
