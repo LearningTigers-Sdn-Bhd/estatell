@@ -28,4 +28,14 @@ class SavePosCategoryRequest extends FormRequest
             'active' => ['required', 'boolean'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'transaction_code_id' => __('account code'),
+        ];
+    }
 }

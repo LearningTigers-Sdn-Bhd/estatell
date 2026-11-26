@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../Support/PosTerminalSetup.php';
+
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PosPostingStatus;
 use App\Features\Pos;
@@ -137,7 +139,8 @@ it('lists postings with a status filter and shows the receipt payload', function
             ->component('finance/pos-postings/index')
             ->has('postings.data', 1)
             ->where('postings.data.0.id', $pending->id)
-            ->where('pendingCount', 1));
+            ->where('summary.2.status', 'pending_review')
+            ->where('summary.2.count', 1));
 
     $this->actingAs($setup['actor'])->get(route('finance.pos-postings.show', [$code, $pending->id]))
         ->assertInertia(fn (Assert $page) => $page
@@ -235,4 +238,20 @@ it('gives the default roles their POS permissions', function () {
         ->and($frontDesk->can('meals.redeem'))->toBeTrue()
         ->and($frontDesk->can('pos.manage'))->toBeFalse()
         ->and($housekeeping->can('pos.view'))->toBeFalse();
+});
+
+it('gives each Staff and terminals tab its own URL and only that tab its rows', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    foreach (['index' => 'pins', 'terminals' => 'terminals', 'void-reasons' => 'reasons'] as $route => $tab) {
+        $this->actingAs($setup['manager'])->get(route("settings.pos.staff-pins.{$route}", $code))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('tab', $tab)
+                ->where('counts.activeDevices', 1)
+                ->has('devices', $tab === 'terminals' ? 1 : 0)
+                ->where('staff', fn ($staff) => count($staff) > 0 === ($tab === 'pins')));
+    }
+
+    $this->actingAs($setup['cashier'])->get(route('settings.pos.staff-pins.terminals', $code))->assertForbidden();
 });

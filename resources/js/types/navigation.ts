@@ -23,6 +23,8 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    /** Opens in a new browser tab instead of navigating inside the current shell. */
+    external?: boolean;
     /** Opens a sheet instead of going to `href`. */
     action?: string | null;
     /** A count shown beside the title. Left out when null. */

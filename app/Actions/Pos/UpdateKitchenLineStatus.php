@@ -3,9 +3,9 @@
 namespace App\Actions\Pos;
 
 use App\Enums\PosKitchenStatus;
-use App\Enums\PosOrderStatus;
 use App\Models\PosOrderLine;
 use App\Models\Property;
+use App\Services\Pos\KitchenDisplay;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  */
 class UpdateKitchenLineStatus
 {
-    public function __construct(private BumpKitchenVersion $bumpKitchenVersion) {}
+    public function __construct(private KitchenDisplay $kitchenDisplay, private BumpKitchenVersion $bumpKitchenVersion) {}
 
     public function __invoke(Property $property, PosOrderLine $line, PosKitchenStatus $to): PosActionResult
     {
@@ -27,7 +27,7 @@ class UpdateKitchenLineStatus
                 return PosActionResult::refused('line_invalid');
             }
 
-            if ($line->order->status !== PosOrderStatus::Open) {
+            if (! $this->kitchenDisplay->isOnScreen($line->order)) {
                 return PosActionResult::refused('order_not_open');
             }
 

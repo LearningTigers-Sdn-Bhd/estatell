@@ -1,12 +1,21 @@
 import { Form, router, useForm } from '@inertiajs/react';
-import { Check, Copy, MoreHorizontal, Plus, Webhook } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+    Check,
+    Copy,
+    KeyRound,
+    Plus,
+    ShieldCheck,
+    TriangleAlert,
+    Webhook,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import {
     PosSettingsShell,
     posSettingsBreadcrumbs,
 } from '@/components/pms/pos/pos-settings-tabs';
+import { StatusBadge } from '@/components/pms/status-badge';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -19,13 +28,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -33,12 +35,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -56,7 +52,9 @@ import { revoke, store } from '@/routes/settings/pos-api-clients';
 type Client = App.Data.Pos.PosApiClientRowData;
 type Issued = { name: string; token: string };
 
-function when(iso: string | null): string {
+const API_BASE_PATH = '/api/pos/v1';
+
+function formatLastUsed(iso: string | null): string {
     return iso === null
         ? 'Never'
         : new Date(iso).toLocaleString('en-GB', {
@@ -67,27 +65,31 @@ function when(iso: string | null): string {
           });
 }
 
-/** The token in a copyable box. It is shown once. */
+/** One-time issued token with right-aligned copy button. */
 function TokenBox({ token }: { token: string }) {
     const [copied, copy] = useClipboard();
 
     return (
-        <div className="flex flex-col gap-3 rounded-lg bg-muted p-4">
-            <p className="font-mono text-sm break-all">{token}</p>
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="self-start"
-                onClick={() => copy(token)}
-            >
-                {copied === token ? (
-                    <Check data-icon="inline-start" />
-                ) : (
-                    <Copy data-icon="inline-start" />
-                )}
-                {copied === token ? 'Copied' : 'Copy token'}
-            </Button>
+        <div className="flex flex-col gap-3 rounded-xl border bg-muted/50 p-4">
+            <p className="font-mono text-sm break-all text-foreground">
+                {token}
+            </p>
+            <div className="flex justify-end">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="max-sm:min-h-11"
+                    onClick={() => copy(token)}
+                >
+                    {copied === token ? (
+                        <Check data-icon="inline-start" />
+                    ) : (
+                        <Copy data-icon="inline-start" />
+                    )}
+                    {copied === token ? 'Copied' : 'Copy token'}
+                </Button>
+            </div>
         </div>
     );
 }
@@ -96,6 +98,7 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
     const [adding, setAdding] = useState(false);
     const [revoking, setRevoking] = useState<Client | null>(null);
     const [issued, setIssued] = useState<Issued | null>(null);
+    const [copiedEndpoint, copyEndpoint] = useClipboard();
     const form = useForm({ name: '' });
 
     // The token arrives once, as flash data on the redirect after "Add API client".
@@ -109,8 +112,18 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
         });
     }, []);
 
-    const addButton = (
-        <Button onClick={() => setAdding(true)}>
+    const activeCount = useMemo(
+        () => clients.filter((client) => client.canRevoke).length,
+        [clients],
+    );
+    const revokedCount = clients.length - activeCount;
+
+    const headerActions = (
+        <Button
+            type="button"
+            className="max-sm:min-h-11"
+            onClick={() => setAdding(true)}
+        >
             <Plus data-icon="inline-start" />
             Add API client
         </Button>
@@ -118,104 +131,229 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
 
     return (
         <>
-            <PosSettingsShell activeTab="api">
-                <Card>
-                    <CardHeader className="flex flex-row items-start justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                            <CardTitle>API access</CardTitle>
-                            <CardDescription>
-                                Bearer tokens for external POS systems or
-                                middleware calling{' '}
-                                <code className="font-mono text-xs">
-                                    /api/pos/v1
-                                </code>
-                                . Revoking a client stops it immediately.
-                            </CardDescription>
-                        </div>
-                        {clients.length > 0 && addButton}
-                    </CardHeader>
-                    <CardContent>
+            <PosSettingsShell activeTab="api" actions={headerActions}>
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                    <section className="min-w-0 overflow-hidden rounded-xl border bg-card">
+                        <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-4 py-3">
+                            <span className="font-heading text-sm font-semibold text-foreground">
+                                API clients
+                            </span>
+                            <div className="flex items-center gap-2 tabular-nums">
+                                <Badge variant="outline">
+                                    {activeCount} active
+                                </Badge>
+                                {revokedCount > 0 && (
+                                    <Badge variant="secondary">
+                                        {revokedCount} revoked
+                                    </Badge>
+                                )}
+                            </div>
+                        </header>
+
                         {clients.length === 0 ? (
-                            <EmptyState
-                                icon={Webhook}
-                                title="No API clients yet"
-                                description="Add a client to issue a scoped token for your POS."
-                                action={addButton}
-                            />
+                            <div className="p-8">
+                                <EmptyState
+                                    icon={Webhook}
+                                    title="No API clients yet"
+                                    description="Use Add API client above to issue a scoped Bearer token for an external POS or middleware."
+                                />
+                            </div>
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Last used</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="w-10">
-                                            <span className="sr-only">
-                                                Actions
-                                            </span>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {clients.map((client) => (
-                                        <TableRow key={client.id}>
-                                            <TableCell className="font-medium">
-                                                {client.name}
-                                            </TableCell>
-                                            <TableCell>
-                                                {when(client.lastUsedAt)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className={
-                                                        client.canRevoke
-                                                            ? 'bg-success/10 text-success'
-                                                            : 'bg-muted text-muted-foreground'
-                                                    }
+                            <>
+                                <div className="hidden overflow-x-auto md:block">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead scope="col">
+                                                    Client
+                                                </TableHead>
+                                                <TableHead scope="col">
+                                                    Last used
+                                                </TableHead>
+                                                <TableHead scope="col">
+                                                    Status
+                                                </TableHead>
+                                                <TableHead
+                                                    scope="col"
+                                                    className="w-28 text-end"
                                                 >
-                                                    {client.canRevoke
-                                                        ? 'Active'
-                                                        : 'Revoked'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {client.canRevoke && (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger
-                                                            render={
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon-sm"
-                                                                    aria-label={`Actions for ${client.name}`}
+                                                    <span className="sr-only">
+                                                        Actions
+                                                    </span>
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {clients.map((client) => (
+                                                <TableRow key={client.id}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2.5">
+                                                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-muted/50 text-foreground">
+                                                                <KeyRound
+                                                                    aria-hidden="true"
+                                                                    className="size-3.5"
                                                                 />
-                                                            }
-                                                        >
-                                                            <MoreHorizontal />
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem
-                                                                variant="destructive"
+                                                            </span>
+                                                            <span className="font-medium text-foreground">
+                                                                {client.name}
+                                                            </span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground tabular-nums">
+                                                        {formatLastUsed(
+                                                            client.lastUsedAt,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <StatusBadge
+                                                            status={{
+                                                                value: client.canRevoke
+                                                                    ? 'active'
+                                                                    : 'revoked',
+                                                                label: client.canRevoke
+                                                                    ? 'Active'
+                                                                    : 'Revoked',
+                                                                tone: client.canRevoke
+                                                                    ? 'success'
+                                                                    : 'neutral',
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-end">
+                                                        {client.canRevoke && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                aria-label={`Revoke ${client.name}`}
                                                                 onClick={() =>
                                                                     setRevoking(
                                                                         client,
                                                                     )
                                                                 }
                                                             >
-                                                                Revoke client
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
+                                                                Revoke
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+
+                                <div className="flex flex-col divide-y md:hidden">
+                                    {clients.map((client) => (
+                                        <div
+                                            key={client.id}
+                                            className="flex flex-col gap-3 p-4"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium text-foreground">
+                                                        {client.name}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground tabular-nums">
+                                                        Last used:{' '}
+                                                        {formatLastUsed(
+                                                            client.lastUsedAt,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <StatusBadge
+                                                    status={{
+                                                        value: client.canRevoke
+                                                            ? 'active'
+                                                            : 'revoked',
+                                                        label: client.canRevoke
+                                                            ? 'Active'
+                                                            : 'Revoked',
+                                                        tone: client.canRevoke
+                                                            ? 'success'
+                                                            : 'neutral',
+                                                    }}
+                                                />
+                                            </div>
+                                            {client.canRevoke && (
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="min-h-11"
+                                                        aria-label={`Revoke ${client.name}`}
+                                                        onClick={() =>
+                                                            setRevoking(client)
+                                                        }
+                                                    >
+                                                        Revoke
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
-                                </TableBody>
-                            </Table>
+                                </div>
+                            </>
                         )}
-                    </CardContent>
-                </Card>
+                    </section>
+
+                    <aside
+                        aria-label="POS API integration details"
+                        className="flex flex-col gap-4 lg:sticky lg:top-4"
+                    >
+                        <div className="flex flex-col gap-4 rounded-xl border bg-card p-4">
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck
+                                    aria-hidden="true"
+                                    className="size-4 text-muted-foreground"
+                                />
+                                <h2 className="font-heading text-sm font-semibold text-foreground">
+                                    Connection details
+                                </h2>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                    Base endpoint
+                                </span>
+                                <div className="flex items-center justify-between gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+                                    <code className="font-mono text-xs text-foreground">
+                                        {API_BASE_PATH}
+                                    </code>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        aria-label="Copy API base path"
+                                        onClick={() =>
+                                            copyEndpoint(API_BASE_PATH)
+                                        }
+                                    >
+                                        {copiedEndpoint === API_BASE_PATH ? (
+                                            <Check />
+                                        ) : (
+                                            <Copy />
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                    Authentication header
+                                </span>
+                                <code className="rounded-lg border bg-muted/40 px-3 py-2 font-mono text-xs text-foreground">
+                                    Authorization: Bearer &lt;token&gt;
+                                </code>
+                            </div>
+
+                            <p className="border-t pt-3 text-xs text-muted-foreground">
+                                Tokens are displayed once when created. Revoking
+                                a client invalidates its token immediately.
+                            </p>
+                        </div>
+                    </aside>
+                </div>
             </PosSettingsShell>
 
             <FormOverlay
@@ -230,10 +368,10 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
                     }
                 }}
                 title="Add API client"
-                description="You get a token to put in your POS. It is shown once."
+                description="Name the external POS or integration. A Bearer token will be generated and shown once."
                 errors={form.errors}
                 processing={form.processing}
-                submitLabel="Add API client"
+                submitLabel="Create client"
                 onSubmit={() =>
                     form.post(store.url(), {
                         onSuccess: () => {
@@ -244,7 +382,7 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
                 }
             >
                 <Field data-invalid={!!form.errors.name}>
-                    <FieldLabel htmlFor="client-name">Name</FieldLabel>
+                    <FieldLabel htmlFor="client-name">Client name</FieldLabel>
                     <Input
                         id="client-name"
                         placeholder="e.g. Restaurant POS"
@@ -272,12 +410,26 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
                                     Token for {issued.name}
                                 </DialogTitle>
                                 <DialogDescription>
-                                    Copy it now. You will not see it again.
+                                    Save this token in your external POS now.
                                 </DialogDescription>
                             </DialogHeader>
+                            <div className="flex items-center gap-2.5 rounded-lg bg-warning/10 px-3 py-2.5 text-xs text-warning-text">
+                                <TriangleAlert
+                                    aria-hidden="true"
+                                    className="size-4 shrink-0"
+                                />
+                                <span>
+                                    This token is shown only once and cannot be
+                                    viewed again after closing this window.
+                                </span>
+                            </div>
                             <TokenBox token={issued.token} />
                             <DialogFooter>
-                                <Button onClick={() => setIssued(null)}>
+                                <Button
+                                    type="button"
+                                    className="max-sm:min-h-11"
+                                    onClick={() => setIssued(null)}
+                                >
                                     Done
                                 </Button>
                             </DialogFooter>
@@ -304,8 +456,9 @@ export default function PosApiClientsIndex({ clients }: { clients: Client[] }) {
                                             Revoke {revoking.name}?
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            The POS stops working at once. To
-                                            connect it again, add a new API
+                                            The external POS stops
+                                            authenticating immediately. To
+                                            reconnect it later, create a new API
                                             client.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>

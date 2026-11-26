@@ -3,10 +3,10 @@
 namespace App\Actions\Pos;
 
 use App\Enums\PosKitchenStatus;
-use App\Enums\PosOrderStatus;
 use App\Models\PosKitchenStation;
 use App\Models\PosOrder;
 use App\Models\Property;
+use App\Services\Pos\KitchenDisplay;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  */
 class BumpKitchenOrder
 {
-    public function __construct(private BumpKitchenVersion $bumpKitchenVersion) {}
+    public function __construct(private KitchenDisplay $kitchenDisplay, private BumpKitchenVersion $bumpKitchenVersion) {}
 
     public function __invoke(Property $property, PosKitchenStation $station, PosOrder $order, bool $recall = false): PosActionResult
     {
@@ -28,7 +28,7 @@ class BumpKitchenOrder
                 return PosActionResult::refused('station_invalid');
             }
 
-            if ($order->status !== PosOrderStatus::Open) {
+            if (! $this->kitchenDisplay->isOnScreen($order)) {
                 return PosActionResult::refused('order_not_open');
             }
 

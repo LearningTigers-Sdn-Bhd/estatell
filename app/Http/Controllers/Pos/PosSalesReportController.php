@@ -19,8 +19,9 @@ class PosSalesReportController extends Controller
     public function __invoke(Request $request, Property $property, PosSalesReport $report): Response
     {
         $property->loadMissing('settings');
-        $from = (string) $request->query('from', now()->startOfMonth()->toDateString());
-        $to = (string) $request->query('to', now()->toDateString());
+        $dates = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]);
+        $from = $dates['from'] ?? now()->startOfMonth()->toDateString();
+        $to = $dates['to'] ?? now()->toDateString();
 
         return Inertia::render('reports/pos-sales', [
             'currency' => CurrencyData::forProperty($property),

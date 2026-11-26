@@ -24,4 +24,14 @@ class RegisterPosTerminalDeviceRequest extends FormRequest
             'pos_outlet_id' => ['required', 'integer'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'pos_outlet_id' => __('outlet'),
+        ];
+    }
 }

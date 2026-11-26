@@ -9,6 +9,7 @@ type Props = {
     token: string;
     status: 'active' | 'revoked' | 'expired' | 'locked';
     property: string;
+    logoUrl: string | null;
     outlet: string;
     table: string;
     currency: App.Data.Property.CurrencyData | null;
@@ -28,6 +29,7 @@ export default function QrTable({
     token,
     status,
     property,
+    logoUrl,
     outlet,
     table,
     currency,
@@ -40,9 +42,18 @@ export default function QrTable({
     return (
         <>
             <Head title={`${property} · ${table}`} />
-            <header className="sticky top-0 z-10 border-b bg-background p-4">
-                <p className="text-sm text-muted-foreground">{outlet}</p>
-                <h1 className="text-xl font-semibold">Table {table}</h1>
+            <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background p-4">
+                {logoUrl !== null && (
+                    <img
+                        src={logoUrl}
+                        alt={property}
+                        className="size-12 shrink-0 object-contain"
+                    />
+                )}
+                <div className="flex min-w-0 flex-col">
+                    <p className="text-sm text-muted-foreground">{outlet}</p>
+                    <h1 className="text-xl font-semibold">Table {table}</h1>
+                </div>
             </header>
 
             {status !== 'active' ? (

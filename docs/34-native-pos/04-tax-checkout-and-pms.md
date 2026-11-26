@@ -183,6 +183,7 @@ Mirrors `PostCharge`'s complete safety chain while accepting precalculated `TaxC
 ## Lineage-safe refunds (`RefundPosOrder`)
 
 - Accessed via `/pos/orders/{order}/refund` (inline Manager PIN `pos.refund`) or Finance Orders (non-terminal back-office session). Requires `(property_id, idempotency_key)`, mandatory refund reason, and locked `OpenPosBusinessDate` (`status === Open`).
+- **Which drawer**: a refund is booked on the shift that made the sale while that shift is open. If it is closed, it goes to the outlet's oldest open shift.
 - **Concurrency lock**: Acquires `properties (shared)` → `business_dates` → `pos_orders::lockForUpdate()` → `pos_shifts::lockForUpdate()` before checking remaining refundable line quantities, remaining refundable tax buckets, and remaining refundable payment balances.
 - **Lineage & split-bill allocation rule**:
     - **Refund by Item**: Each refund line stores `refund_of_order_line_id` (inheriting exact discounted net, SC, and tax rates for the refunded qty!) + optional `return_stock` + optional `restore_meal_entitlement` (calling `UndoMealRedemption::forPos()` on 1:1 lines).

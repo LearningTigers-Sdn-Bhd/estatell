@@ -68,6 +68,7 @@ class RefundPosOrder
         private ReverseLine $reverseLine,
         private PostPosFolioCredit $postPosFolioCredit,
         private UndoMealRedemption $undoMealRedemption,
+        private BumpKitchenVersion $bumpKitchenVersion,
         private PostRecipeStock $postRecipeStock,
     ) {}
 
@@ -130,6 +131,11 @@ class RefundPosOrder
 
         $refund = $this->createRefundOrder($actor, $original, $shift, $clientUuid, $businessDate->date, $plan);
         $refundLines = $this->createRefundLines($refund, $plan, $inputs);
+
+        // The kitchen stops cooking what was given back.
+        foreach ($plan as $row) {
+            ($this->bumpKitchenVersion)($row['line']->kitchenStation);
+        }
         $this->giveBackStockAndMeals($actor, $original, $plan, $refundLines, $inputs);
         $this->payOut($actor, $property, $original, $refund, $shift, $approvedBy, $payouts);
 
@@ -154,9 +160,13 @@ class RefundPosOrder
     {
         $query = PosShift::query()->where('property_id', $property->id)->where('pos_outlet_id', $original->pos_outlet_id)->where('status', PosShiftStatus::Open->value);
 
-        return $shift === null
-            ? $query->orderBy('id')->lockForUpdate()->first()
-            : $query->whereKey($shift->id)->lockForUpdate()->first();
+        if ($shift !== null) {
+            return $query->whereKey($shift->id)->lockForUpdate()->first();
+        }
+
+        // The drawer that took the money gives it back while its shift is open, else the oldest open drawer of the outlet.
+        return (clone $query)->whereKey($original->pos_shift_id)->lockForUpdate()->first()
+            ?? $query->orderBy('id')->lockForUpdate()->first();
     }
 
     /**

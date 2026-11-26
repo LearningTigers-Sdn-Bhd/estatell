@@ -13,7 +13,12 @@ export type QrVariant = {
     soldOut: boolean;
 };
 
-export type QrItem = { id: number; name: string; variants: QrVariant[] };
+export type QrItem = {
+    id: number;
+    name: string;
+    imageUrl?: string | null;
+    variants: QrVariant[];
+};
 
 export type QrCategory = { id: number; name: string; items: QrItem[] };
 
@@ -39,6 +44,7 @@ export function QrMenu({
     currency,
     allowRemark,
     serviceChargeRate,
+    maxQuantity,
     sending,
     onSend,
 }: {
@@ -46,6 +52,8 @@ export function QrMenu({
     currency: App.Data.Property.CurrencyData | null;
     allowRemark: boolean;
     serviceChargeRate?: string | null;
+    /** The most of one variant a single order may hold. No limit when left out. */
+    maxQuantity?: number;
     sending: boolean;
     onSend: (lines: QrLine[], clearCart: () => void) => void;
 }) {
@@ -77,7 +85,10 @@ export function QrMenu({
             [variant.id]: {
                 variant,
                 item: item.name,
-                quantity: (current[variant.id]?.quantity ?? 0) + 1,
+                quantity: Math.min(
+                    maxQuantity ?? Infinity,
+                    (current[variant.id]?.quantity ?? 0) + 1,
+                ),
                 note: current[variant.id]?.note ?? '',
             },
         }));
@@ -129,7 +140,15 @@ export function QrMenu({
 
             {category?.items.map((item) => (
                 <Card key={item.id}>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center gap-3">
+                        {item.imageUrl && (
+                            <img
+                                src={item.imageUrl}
+                                alt=""
+                                loading="lazy"
+                                className="size-20 shrink-0 rounded-lg object-cover"
+                            />
+                        )}
                         <CardTitle className="text-lg">{item.name}</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-wrap gap-2">
@@ -202,6 +221,10 @@ export function QrMenu({
                                         variant="outline"
                                         className="min-h-11 min-w-11"
                                         aria-label="More"
+                                        disabled={
+                                            row.quantity >=
+                                            (maxQuantity ?? Infinity)
+                                        }
                                         onClick={() =>
                                             change(
                                                 row.variant.id,
@@ -216,6 +239,13 @@ export function QrMenu({
                         ))}
                     </div>
                 )}
+                {maxQuantity !== undefined &&
+                    rows.some((row) => row.quantity >= maxQuantity) && (
+                        <p role="status" className="text-sm">
+                            One sale takes up to {maxQuantity} of an item. Save
+                            another sale for more.
+                        </p>
+                    )}
                 {allowRemark && rows.length > 0 && (
                     <Input
                         placeholder="Note for the kitchen (optional)"

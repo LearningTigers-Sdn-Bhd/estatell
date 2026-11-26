@@ -7,6 +7,7 @@ use App\Actions\Pos\IssueTableQrSession;
 use App\Actions\Pos\RevokeRoomQrSessions;
 use App\Actions\Pos\SavePosFloor;
 use App\Actions\Pos\SettlePosOrder;
+use App\Actions\Property\UploadPropertyLogo;
 use App\Enums\PosKitchenStatus;
 use App\Enums\PosOrderSource;
 use App\Enums\PosQrSessionKind;
@@ -16,10 +17,13 @@ use App\Models\Guest;
 use App\Models\PosOrder;
 use App\Models\PosQrSession;
 use App\Models\PosTable;
+use App\Models\Property;
 use App\Models\UnitGuest;
 use App\Models\User;
 use App\Services\Pos\QrSessionState;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
@@ -270,4 +274,20 @@ it('exposes the room dining QR card on a checked-in reservation and flashes the 
     $this->actingAs($frontDesk)
         ->post(route('pos.room-qr.regenerate', ['property' => $s['property']->code, 'unit' => $s['unit']->id]))
         ->assertRedirect();
+});
+
+it('shows the hotel logo to a guest through the QR token only', function () {
+    Storage::fake('local');
+    $s = posQrTableSetup();
+    $session = app(IssueTableQrSession::class)($s['manager'], $s['property'], $s['table'])->model;
+    $page = route('qr.table.show', $session->token);
+
+    $this->get($page)->assertInertia(fn (Assert $page) => $page->where('logoUrl', null));
+
+    app(UploadPropertyLogo::class)($s['manager'], $s['property'], UploadedFile::fake()->image('logo.png', 200, 80));
+    $logo = $s['property']->refresh()->getFirstMedia(Property::LOGO);
+
+    $this->get($page)->assertInertia(fn (Assert $page) => $page->where('logoUrl', route('qr.logo', ['token' => $session->token, 'v' => $logo->id], false)));
+    $this->get(route('qr.logo', $session->token))->assertOk()->assertHeader('Content-Type', 'image/png');
+    $this->get(route('qr.logo', str_repeat('x', 32)))->assertNotFound();
 });

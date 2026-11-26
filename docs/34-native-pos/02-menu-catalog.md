@@ -213,3 +213,10 @@ When Native POS is enabled on an outlet, Estatell seeds Malaysian hotel defaults
 ## Media
 
 Item thumbnails use `spatie/laravel-medialibrary` (`pos_item_image` collection, single file, 400×400 WebP). Never store base64 images in database columns.
+
+| Topic        | Rule                                                                                                                                                                                                                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Upload       | Menu, add or edit an item (`pos.menu`). PNG, JPEG or WebP up to 5 MB and 6000 × 6000 pixels. Cropped to a square. The browser first shrinks a large photo to 1200 pixels WebP. A new item sends its photo with the form; a saved item uploads it as soon as it is picked (`SavePosItemImage`) |
+| Storage      | The public media disk, with a new file name on each upload                                                                                                                                                                                                                                    |
+| Shown on     | The menu list, the item form, the register menu tiles and the table and room QR guest menus                                                                                                                                                                                                   |
+| Not shown on | The offline walk-in page (pictures need the network), kitchen screens, receipts and the customer display                                                                                                                                                                                      |

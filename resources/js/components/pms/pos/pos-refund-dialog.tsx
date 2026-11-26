@@ -5,6 +5,7 @@ import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PosApprovalFields, noApproval } from './pos-approval-fields';
 import type { PosStaff } from './pos-types';
+import { unlessRefused } from './pos-unless-refused';
 
 type RefundLine = {
     order_line_id: number;
@@ -23,12 +24,15 @@ export function PosRefundDialog({
     order,
     url,
     staff,
+    requiresApproval = true,
 }: {
     open: boolean;
     onClose: () => void;
     order: App.Data.Pos.PosOrderData;
     url: string;
     staff?: PosStaff[];
+    /** False when the signed-in user may refund alone; the PIN fields are then optional. */
+    requiresApproval?: boolean;
 }) {
     const refundable = order.lines.filter(
         (line) =>
@@ -84,10 +88,10 @@ export function PosRefundDialog({
             onSubmit={() =>
                 form.post(url, {
                     preserveScroll: true,
-                    onSuccess: () => {
+                    onSuccess: unlessRefused(() => {
                         form.reset();
                         onClose();
-                    },
+                    }),
                 })
             }
         >
@@ -189,7 +193,7 @@ export function PosRefundDialog({
                 </Field>
                 {staff && (
                     <PosApprovalFields
-                        required
+                        required={requiresApproval}
                         staff={staff}
                         data={{
                             approver_id: form.data.approver_id,

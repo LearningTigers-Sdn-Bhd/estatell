@@ -1,13 +1,14 @@
 import { Head, Link } from '@inertiajs/react';
-import { FileText, Printer, Undo2 } from 'lucide-react';
+import { BedDouble, FileText, Printer, Undo2, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatCard } from '@/components/pms/stat-card';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { PosChangeTenderDialog } from '@/components/pms/pos/pos-change-tender-dialog';
 import { PosEInvoiceDialog } from '@/components/pms/pos/pos-einvoice-dialog';
 import { PosRefundDialog } from '@/components/pms/pos/pos-refund-dialog';
 import { PosReceipt } from '@/components/pms/pos-receipt';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -52,13 +53,22 @@ export default function PosOrdersShow({
     return (
         <>
             <Head title={`Receipt ${order.orderNumber ?? ''}`} />
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
                     title={`Receipt ${order.orderNumber ?? ''}`}
                     description={`${order.outletName} · ${order.businessDate ?? ''}`}
                     back={{ href: index(), label: 'POS receipts' }}
                     badge={
-                        <Badge variant="secondary">{order.statusLabel}</Badge>
+                        <StatusBadge
+                            status={{
+                                value: order.status,
+                                label: order.statusLabel,
+                                tone:
+                                    order.status === 'voided'
+                                        ? 'danger'
+                                        : 'success',
+                            }}
+                        />
                     }
                     actions={
                         <div className="flex gap-2">
@@ -98,7 +108,57 @@ export default function PosOrdersShow({
                         </div>
                     }
                 />
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard
+                        icon={Wallet}
+                        label={
+                            order.orderType === 'refund' ? 'Returned' : 'Total'
+                        }
+                        value={
+                            <MoneyText
+                                amount={order.grandTotal}
+                                currency={currency}
+                            />
+                        }
+                        hint="With service charge and tax"
+                    />
+                    <StatCard
+                        icon={BedDouble}
+                        label="Charged to a room"
+                        value={
+                            <MoneyText
+                                amount={order.folioPostedAmount}
+                                currency={currency}
+                            />
+                        }
+                        hint={
+                            Number(order.folioPostedAmount) > 0
+                                ? 'Posted to a folio'
+                                : 'Nothing on a folio'
+                        }
+                    />
+                    <StatCard
+                        icon={Undo2}
+                        label="Refunds"
+                        value={refunds.length}
+                        hint={
+                            refunds.length === 0
+                                ? 'None against this receipt'
+                                : 'See linked records'
+                        }
+                    />
+                    <StatCard
+                        icon={FileText}
+                        label="E-invoice"
+                        value={
+                            order.eInvoiceSubmissionId === null
+                                ? 'Not filed'
+                                : 'Filed'
+                        }
+                        hint="LHDN submission"
+                    />
+                </div>
+                <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
                     <Card>
                         <CardContent className="pt-6">
                             <PosReceipt order={order} currency={currency} />
@@ -107,7 +167,7 @@ export default function PosOrdersShow({
                     <div className="flex flex-col gap-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Links</CardTitle>
+                                <CardTitle>Linked records</CardTitle>
                             </CardHeader>
                             <CardContent className="flex flex-col gap-2 text-sm">
                                 {Number(order.folioPostedAmount) > 0 && (

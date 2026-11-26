@@ -26,13 +26,40 @@ class PosStaffSettingsController extends Controller
 
     public function index(Property $property): Response
     {
+        return $this->page($property, 'pins');
+    }
+
+    public function terminals(Property $property): Response
+    {
+        return $this->page($property, 'terminals');
+    }
+
+    public function voidReasons(Property $property): Response
+    {
+        return $this->page($property, 'reasons');
+    }
+
+    /**
+     * One tab of the page. Every tab gets the counts for the tab badges, and only the open tab gets its rows.
+     */
+    private function page(Property $property, string $tab): Response
+    {
         $pins = PosStaffPin::query()->where('property_id', $property->id)->get()->keyBy('user_id');
+        $staff = User::query()->where('property_id', $property->id)->whereNull('deactivated_at')->orderBy('name')->get(['id', 'name']);
+        $devices = PosTerminalDevice::query()->where('property_id', $property->id);
 
         return Inertia::render('settings/pos/staff-pins', [
-            'staff' => User::query()->where('property_id', $property->id)->whereNull('deactivated_at')->orderBy('name')->get(['id', 'name'])->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name, 'hasPin' => (bool) $pins->get($user->id)?->active])->all(),
-            'devices' => PosTerminalDevice::query()->where('property_id', $property->id)->with('outlet:id,name')->orderByDesc('id')->get()->map(fn (PosTerminalDevice $device): array => ['id' => $device->id, 'name' => $device->name, 'outlet' => $device->outlet->name, 'revoked' => $device->revoked_at !== null, 'lastSeenAt' => $device->last_seen_at?->toIso8601String()])->all(),
+            'tab' => $tab,
+            'counts' => [
+                'staff' => $staff->count(),
+                'pinsSet' => $staff->filter(fn (User $user): bool => (bool) $pins->get($user->id)?->active)->count(),
+                'activeDevices' => (clone $devices)->active()->count(),
+                'voidReasons' => PosVoidReason::query()->where('property_id', $property->id)->count(),
+            ],
+            'staff' => $tab === 'pins' ? $staff->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name, 'hasPin' => (bool) $pins->get($user->id)?->active])->all() : [],
+            'devices' => $tab === 'terminals' ? $devices->with('outlet:id,name')->orderByDesc('id')->get()->map(fn (PosTerminalDevice $device): array => ['id' => $device->id, 'name' => $device->name, 'outlet' => $device->outlet->name, 'revoked' => $device->revoked_at !== null, 'lastSeenAt' => $device->last_seen_at?->toIso8601String()])->all() : [],
             'outlets' => PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get(['id', 'name'])->map(fn (PosOutlet $outlet): array => ['value' => (string) $outlet->id, 'label' => $outlet->name])->all(),
-            'voidReasons' => PosVoidReason::query()->where('property_id', $property->id)->orderBy('sort_order')->orderBy('label')->get(['id', 'label', 'requires_manager_pin', 'default_return_stock', 'active'])->all(),
+            'voidReasons' => $tab === 'reasons' ? PosVoidReason::query()->where('property_id', $property->id)->orderBy('sort_order')->orderBy('label')->get(['id', 'label', 'requires_manager_pin', 'default_return_stock', 'active'])->all() : [],
         ]);
     }
 

@@ -6,7 +6,7 @@ const toneClasses: Record<App.Enums.Tone, string> = {
     neutral: 'bg-muted text-muted-foreground',
     info: 'bg-info/10 text-info',
     success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
+    warning: 'bg-warning/10 text-warning-text',
     danger: 'bg-destructive/10 text-destructive',
 };
 

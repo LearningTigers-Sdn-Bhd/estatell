@@ -178,4 +178,14 @@ class PosOrderLine extends Model
     {
         return $this->hasMany(PosOrderLineTax::class, 'pos_order_line_id');
     }
+
+    /**
+     * The refund lines that gave units of this line back.
+     *
+     * @return HasMany<PosOrderLine, $this>
+     */
+    public function refundLines(): HasMany
+    {
+        return $this->hasMany(self::class, 'refund_of_order_line_id');
+    }
 }

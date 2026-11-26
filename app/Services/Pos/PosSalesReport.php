@@ -5,6 +5,10 @@ namespace App\Services\Pos;
 use App\Enums\PosOrderStatus;
 use App\Models\PosTimeClock;
 use App\Models\Property;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -14,6 +18,8 @@ class PosSalesReport
 {
     /**
      * @return array{
+     *     summary: array{total: string, orders: int, averageOrder: ?string, discounts: string},
+     *     daily: list<array{date: string, total: string, orders: int}>,
      *     byOutlet: list<array{name: string, total: string, orders: int, discounts: string}>,
      *     byCategory: list<array{name: string, net: string, quantity: string}>,
      *     audit: array{voidedOrders: int, voidedLines: int, refunds: int},
@@ -112,6 +118,8 @@ class PosSalesReport
             ->all();
 
         return [
+            'summary' => $this->summary($byOutlet),
+            'daily' => $this->daily($orders(), $from, $to),
             'byOutlet' => array_values($byOutlet),
             'byCategory' => array_values($byCategory),
             'audit' => [
@@ -122,5 +130,67 @@ class PosSalesReport
             'redeemedMeals' => array_values($redeemedMeals),
             'timeClocks' => array_values($timeClocks),
         ];
+    }
+
+    /**
+     * Headline figures, added up from the outlet rows so they always match the outlet table.
+     *
+     * @param  array<array{name: string, total: string, orders: int, discounts: string}>  $byOutlet
+     * @return array{total: string, orders: int, averageOrder: ?string, discounts: string}
+     */
+    private function summary(array $byOutlet): array
+    {
+        $total = BigDecimal::zero()->toScale(2);
+        $discounts = BigDecimal::zero()->toScale(2);
+
+        foreach ($byOutlet as $row) {
+            $total = $total->plus($row['total']);
+            $discounts = $discounts->plus($row['discounts']);
+        }
+
+        $count = array_sum(array_column($byOutlet, 'orders'));
+
+        return [
+            'total' => (string) $total,
+            'orders' => $count,
+            'averageOrder' => $count > 0 ? (string) $total->dividedBy($count, 2, RoundingMode::HalfUp) : null,
+            'discounts' => (string) $discounts,
+        ];
+    }
+
+    /**
+     * Settled sales net of refunds per business date. Days without orders show as zero when the range is a year or less.
+     *
+     * @return list<array{date: string, total: string, orders: int}>
+     */
+    private function daily(Builder $orders, string $from, string $to): array
+    {
+        $rows = $orders
+            ->where('pos_orders.status', PosOrderStatus::Settled->value)
+            ->selectRaw("pos_orders.business_date as date, sum(case when order_type = 'sale' then grand_total else -grand_total end) as total, sum(case when order_type = 'sale' then 1 else 0 end) as orders")
+            ->groupBy('pos_orders.business_date')
+            ->orderBy('pos_orders.business_date')
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [(string) $row->date => [
+                'date' => (string) $row->date,
+                'total' => number_format((float) $row->total, 2, '.', ''),
+                'orders' => (int) $row->orders,
+            ]]);
+
+        $start = CarbonImmutable::parse($from);
+        $end = CarbonImmutable::parse($to);
+
+        if ($rows->isEmpty() || $start->diffInDays($end) > 366) {
+            return array_values($rows->all());
+        }
+
+        $days = [];
+
+        for ($day = $start; $day <= $end; $day = $day->addDay()) {
+            $date = $day->toDateString();
+            $days[] = $rows->get($date, ['date' => $date, 'total' => '0.00', 'orders' => 0]);
+        }
+
+        return $days;
     }
 }

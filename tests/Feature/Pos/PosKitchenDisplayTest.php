@@ -2,18 +2,23 @@
 
 use App\Actions\Pos\BumpKitchenOrder;
 use App\Actions\Pos\FireOrderLines;
+use App\Actions\Pos\RefundPosOrder;
 use App\Actions\Pos\SavePosKitchenRouting;
 use App\Actions\Pos\SavePosKitchenStation;
+use App\Actions\Pos\SettlePosOrder;
 use App\Actions\Pos\UpdateKitchenLineStatus;
 use App\Actions\Pos\VoidOrderLine;
+use App\Data\Pos\PosRefundLineInputData;
 use App\Enums\PosDiningKind;
 use App\Enums\PosKitchenStatus;
 use App\Enums\PosStationMode;
 use App\Models\PosKitchenStation;
+use App\Models\PosOrder;
 use App\Models\PosVoidReason;
 use App\Models\User;
 use App\Services\Pos\KitchenDisplay;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/../Support/PosOrderSetup.php';
@@ -198,4 +203,86 @@ it('refuses a station name taken in the outlet, thresholds out of order, and a r
     $otherOutlet = posKitchenSetup();
 
     expect(app(SavePosKitchenRouting::class)($s['manager'], $s['property'], $s['outlet'], [$s['category']->id => $otherOutlet['hot']->id], [])->refusal)->toBe('station_invalid');
+});
+
+/** A pay-first sale: the steaks are paid for before anything was sent to the kitchen. */
+function posPaidKitchenOrder(array $s, int $quantity = 1): PosOrder
+{
+    $order = posNewOrder($s);
+    posAddLine($s, $order, $s['steak'], $quantity);
+    $result = app(SettlePosOrder::class)($s['manager'], $s['property'], $order->refresh(), [posCash((string) $order->grand_total, '1000.00')]);
+
+    expect($result->refusal)->toBeNull();
+
+    return $order->refresh();
+}
+
+it('keeps a paid order on the kitchen screens until it is served', function () {
+    $s = posKitchenSetup();
+    $order = posPaidKitchenOrder($s);
+    $line = $order->lines()->sole();
+    $kitchen = app(KitchenDisplay::class);
+
+    expect($kitchen->tickets($s['hot']))->toHaveCount(1)
+        ->and($kitchen->pickup($s['outlet'])['preparing'])->toHaveCount(1);
+
+    expect(app(BumpKitchenOrder::class)($s['property'], $s['hot'], $order)->refusal)->toBeNull()
+        ->and($kitchen->pickup($s['outlet'])['ready'])->toHaveCount(1)
+        ->and($kitchen->recallable($s['hot']))->toHaveCount(1);
+
+    expect(app(UpdateKitchenLineStatus::class)($s['property'], $line->refresh(), PosKitchenStatus::Served)->refusal)->toBeNull()
+        ->and($kitchen->tickets($s['hot']))->toBe([])
+        ->and($kitchen->pickup($s['outlet']))->toBe(['preparing' => [], 'ready' => []]);
+});
+
+it('hides paid orders of an earlier business date and refuses to change them', function () {
+    $s = posKitchenSetup();
+    $order = posPaidKitchenOrder($s);
+    $order->forceFill(['business_date' => '2026-10-10', 'settled_at' => now()->subDays(4)])->save();
+
+    expect(app(KitchenDisplay::class)->tickets($s['hot']))->toBe([])
+        ->and(app(KitchenDisplay::class)->pickup($s['outlet']))->toBe(['preparing' => [], 'ready' => []])
+        ->and(app(BumpKitchenOrder::class)($s['property'], $s['hot'], $order)->refusal)->toBe('order_not_open');
+});
+
+it('keeps a just-paid order when the business date has moved on', function () {
+    $s = posKitchenSetup();
+    $order = posPaidKitchenOrder($s);
+    $order->forceFill(['business_date' => '2026-10-13'])->save();
+
+    expect(app(KitchenDisplay::class)->tickets($s['hot']))->toHaveCount(1);
+});
+
+it('drops a paid ready order from the pickup board after half an hour but keeps it at the window', function () {
+    $s = posKitchenSetup();
+    $order = posPaidKitchenOrder($s);
+    app(BumpKitchenOrder::class)($s['property'], $s['hot'], $order);
+    $before = app(KitchenDisplay::class)->outletVersion($s['outlet']->id);
+
+    $this->travel(31)->minutes();
+
+    expect(app(KitchenDisplay::class)->pickup($s['outlet'])['ready'])->toBe([])
+        ->and(app(KitchenDisplay::class)->tickets($s['hot']))->toHaveCount(1)
+        ->and(app(KitchenDisplay::class)->outletVersion($s['outlet']->id))->not->toBe($before);
+});
+
+it('cooks only what was not refunded, and shows a fully refunded line as void', function () {
+    $s = posKitchenSetup();
+    $order = posPaidKitchenOrder($s, 2);
+    $line = $order->lines()->sole();
+    $kitchen = app(KitchenDisplay::class);
+    $refund = fn () => app(RefundPosOrder::class)($s['manager'], $s['property'], $order, [new PosRefundLineInputData($line->id, 1, false, false)], 'Changed mind', (string) Str::uuid(), $s['manager']);
+
+    $versionBefore = $kitchen->version($s['hot']->id);
+    expect($refund()->refusal)->toBeNull()
+        ->and($kitchen->version($s['hot']->id))->not->toBe($versionBefore)
+        ->and($kitchen->tickets($s['hot'])[0]['lines'][0])->toMatchArray(['quantity' => '1', 'voided' => false]);
+
+    expect($refund()->refusal)->toBeNull()
+        ->and($kitchen->tickets($s['hot'])[0]['lines'][0]['voided'])->toBeTrue()
+        ->and($kitchen->pickup($s['outlet']))->toBe(['preparing' => [], 'ready' => []]);
+
+    $this->travel(31)->minutes();
+
+    expect($kitchen->tickets($s['hot']))->toBe([]);
 });

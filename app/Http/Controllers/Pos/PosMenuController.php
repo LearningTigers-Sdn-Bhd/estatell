@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\SavePosCategory;
 use App\Actions\Pos\SavePosItem;
+use App\Actions\Pos\SavePosItemImage;
 use App\Actions\Pos\UpdateOutletItemAvailability;
 use App\Actions\Pos\UpdateSharedStockCount;
 use App\Actions\Pos\UpdateStockCountdown;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
 use App\Http\Requests\Pos\SavePosCategoryRequest;
 use App\Http\Requests\Pos\SavePosItemRequest;
+use App\Http\Requests\Pos\UploadPosItemImageRequest;
 use App\Models\MealPeriod;
 use App\Models\PosCategory;
 use App\Models\PosItem;
@@ -45,6 +47,7 @@ class PosMenuController extends Controller
                 'items' => fn ($query) => $query->orderBy('sort_order')->orderBy('name'),
                 'items.variants' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
                 'items.variants.outletItems',
+                'items.media',
             ])
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -76,6 +79,7 @@ class PosMenuController extends Controller
                     'mealPeriodId' => $item->meal_period_id,
                     'internalName' => $item->internal_name,
                     'description' => $item->description,
+                    'imageUrl' => $item->imageUrl(),
                     'priceIncludesTax' => $item->price_includes_tax,
                     'serviceChargeExempt' => $item->service_charge_exempt,
                     'soldByWeight' => $item->sold_by_weight,
@@ -108,9 +112,13 @@ class PosMenuController extends Controller
         return back();
     }
 
-    public function storeItem(SavePosItemRequest $request, Property $property, SavePosItem $savePosItem, UpdateSharedStockCount $updateSharedStock): RedirectResponse
+    public function storeItem(SavePosItemRequest $request, Property $property, SavePosItem $savePosItem, UpdateSharedStockCount $updateSharedStock, SavePosItemImage $savePosItemImage): RedirectResponse
     {
         $result = $savePosItem($request->user(), $property, $this->item($request));
+
+        if (! $result->isRefused() && $result->model instanceof PosItem && $request->file('image') !== null) {
+            $savePosItemImage($request->user(), $property, $result->model, $request->file('image'));
+        }
 
         if (! $result->isRefused() && $result->model instanceof PosItem && ($request->has('shared_stock_count') || $request->has('daily_shared_stock_reset'))) {
             $count = $request->validated('shared_stock_count');
@@ -135,6 +143,22 @@ class PosMenuController extends Controller
         }
 
         $this->toast($result->refusal, __('Item saved.'));
+
+        return back();
+    }
+
+    public function storeItemImage(UploadPosItemImageRequest $request, Property $property, int $item, SavePosItemImage $savePosItemImage): RedirectResponse
+    {
+        $model = PosItem::query()->where('property_id', $property->id)->findOrFail($item);
+        $this->toast($savePosItemImage($request->user(), $property, $model, $request->file('image'))->refusal, __('Photo uploaded.'));
+
+        return back();
+    }
+
+    public function destroyItemImage(Request $request, Property $property, int $item, SavePosItemImage $savePosItemImage): RedirectResponse
+    {
+        $model = PosItem::query()->where('property_id', $property->id)->findOrFail($item);
+        $this->toast($savePosItemImage($request->user(), $property, $model, null)->refusal, __('Photo removed.'));
 
         return back();
     }

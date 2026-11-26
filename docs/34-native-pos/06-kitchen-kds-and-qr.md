@@ -56,8 +56,8 @@ Deviations and open items:
 - **No shift-close block.** The register does not yet refuse a shift close while sales are waiting. The offline page shows the queue.
 - **No manager approval for old snapshots.** A snapshot older than 7 days is refused (`snapshot_expired`). The planned Manager PIN approval is not built.
 - **No cash offset for closed shifts.** The late cash counts in the open shift. The planned phantom-overage offset is not built.
-- **Totals on sync.** The offline page does not show a tax-inclusive total. The server prices the sale on sync, and the cash tendered must cover it.
-- **No printed offline slip.** The `OFF-` reference shows on screen only.
+- **Estimated totals.** The server sends each variant priced at quantities 1 to 20 (service charge and tax, default dining option, walk-in guest) and the packaging fee with the offline menu (`PosOfflineEstimate`). The calculator rounds each line on its own, so the till adds lines and gets the server's total while prices are unchanged. One offline sale takes up to 20 of an item, so every line has an exact quote; a larger order is a second sale. The till rounds cash to the outlet's step, refuses to save less cash than the total, and prints the result. The server prices the sale on sync.
+- **Provisional slip.** The `OFF-` reference prints on a provisional slip. The official receipt number is given on sync.
 - **Offline page entry.** Reached from the register index, next to an open register.
 
 Deviation: the ODS board sits behind the terminal actor and `pos.kds`, so a pickup monitor needs a signed-in kitchen session. A public board needs its own token, which is not built.
@@ -123,7 +123,25 @@ Runs in fullscreen browser mode on any kitchen tablet or wall monitor without re
 - **Window / Expo Mode (FOH Runners)**: Lists orders with `Ready` items grouped by Table / Room; tapping **Served** marks lines `Served` and records prep-to-serve durations.
 - **ODS (Customer Pickup Screen)**: Two-column public/kiosk board (`/p/{code}/pos/ods/{outlet}`): **Preparing** and **Ready for Pickup**.
 
+### What stays on the screens
+
+The kitchen follows the food, not the payment (`KitchenDisplay::onScreen`). A line leaves the screens when it is marked **Served**, paid or not.
+
+| Case                            | Kitchen and Window                                                                  | Pickup board                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Open check                      | Until served                                                                        | Until served                                                  |
+| Paid sale (also Pay first)      | Until served, if it is of the current business date or was paid in the last 3 hours | Same, but a ready order leaves 30 minutes after it was bumped |
+| Paid sale older than that       | Hidden, and bump and status changes are refused                                     | Hidden                                                        |
+| Partly refunded line            | Shows the quantity that is left                                                     | Listed while something is left                                |
+| Fully refunded line, not served | Void docket for 30 minutes                                                          | Not listed                                                    |
+| Offline walk-in, when it syncs  | Not shown: its lines are saved as Served, because the food was handed over          | Not shown                                                     |
+| Voided or merged order          | Not shown, as before                                                                | Not shown                                                     |
+
+Hiding never changes a line. The outlet version also changes every 5 minutes, so a quiet pickup board drops orders that waited too long.
+
 ## Dynamic Table QR & Per-Stay In-Room Dining QR
+
+The table and room guest pages show the hotel logo when one is uploaded. The logo is stored privately, so guests read it through `GET /q/logo/{token}` with their QR token. POS receipts show the same logo in grey. Restaurants have no logo of their own.
 
 ### 1. Dynamic Table QR (`/q/table/{token}`)
 

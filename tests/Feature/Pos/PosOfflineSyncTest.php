@@ -3,6 +3,7 @@
 use App\Actions\Pos\IssuePosMenuSnapshot;
 use App\Actions\Pos\SyncOfflinePosOrders;
 use App\Enums\PaymentMethodType;
+use App\Enums\PosKitchenStatus;
 use App\Enums\PosReconciliationStatus;
 use App\Enums\PosTenderType;
 use App\Models\PaymentMethod;
@@ -61,6 +62,28 @@ function posOfflineSetup(): array
 
     return $s;
 }
+
+it('quotes each variant with the service charge and tax the sale is settled at', function () {
+    $s = posOfflineSetup();
+    $quotes = collect($s['snapshot']['categories'])->flatMap(fn (array $category): array => $category['items'])->flatMap(fn (array $item): array => $item['variants'])->firstWhere('id', $s['steak']->id)['quotes'];
+
+    expect($quotes)->toHaveCount(20)
+        ->and($quotes[0]['total'])->toBe(posOfflineTotal($s, $s['steak']))
+        ->and($quotes[2]['total'])->toBe(posOfflineTotal($s, $s['steak'], 3))
+        ->and($quotes[6]['total'])->toBe(posOfflineTotal($s, $s['steak'], 7))
+        ->and($s['snapshot']['cashRounding'])->toBe($s['outlet']->refresh()->rounding_mode->value);
+});
+
+it('does not send a synced offline sale to the kitchen again', function () {
+    $s = posOfflineSetup();
+    $sale = posOfflineSale($s, $s['steak']);
+
+    app(SyncOfflinePosOrders::class)($s['manager'], $s['property'], $s['outlet'], [$sale]);
+
+    $statuses = PosOrder::query()->where('client_uuid', $sale['client_uuid'])->sole()->lines()->pluck('kitchen_status')->unique()->values()->all();
+
+    expect($statuses)->toBe([PosKitchenStatus::Served]);
+});
 
 it('issues a menu snapshot once per version and keeps it seven days', function () {
     $s = posOfflineSetup();

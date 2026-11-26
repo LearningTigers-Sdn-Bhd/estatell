@@ -2,6 +2,7 @@
 
 namespace App\Actions\Pos;
 
+use App\Models\Property;
 use Illuminate\Contracts\Session\Session;
 
 /**
@@ -10,9 +11,9 @@ use Illuminate\Contracts\Session\Session;
  */
 class EnterPosTerminalMode
 {
-    public function __invoke(Session $session): void
+    public function __invoke(Session $session, Property $property): void
     {
-        $session->put('pos_terminal_locked', true);
+        $session->put(['pos_terminal_locked' => true, 'pos_terminal_property_id' => $property->id]);
         $session->forget(['pos_active_actor_id', 'pos_terminal_unlocked']);
     }
 }

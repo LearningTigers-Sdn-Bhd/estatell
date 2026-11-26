@@ -37,6 +37,8 @@ use App\Http\Middleware\ResolvePosActor;
 use App\Http\Middleware\TrackOnboardingActivity;
 use App\Http\Middleware\TrackSignInActivity;
 use App\Http\Responses\ApiError;
+use App\Models\Property;
+use App\Services\Pos\PosTerminal;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -204,10 +206,19 @@ return Application::configure(basePath: dirname(__DIR__))
             View::share('appearance', in_array($appearance, ['light', 'dark', 'system'], true) ? $appearance : 'system');
             Inertia::flushShared();
 
-            $response = $exception->rootView('app')->render($concierge ? 'concierge/error' : 'errors', [
-                'status' => $status,
-                'recoveryUrl' => $recoveryUrl,
-            ])->toResponse($request);
+            $props = ['status' => $status, 'recoveryUrl' => $recoveryUrl];
+
+            // Any refusal on a locked browser (back office, unregistered till, PIN actor without permission) needs a way out.
+            if ($status === 403 && app(PosTerminal::class)->isLocked($request)) {
+                // `/`, `/dashboard` and `/account/*` carry no property, so fall back to the signed-in user's own.
+                $property = $request->route('property') ?? $request->user()?->property;
+
+                if ($property instanceof Property) {
+                    $props['leaveTerminalUrl'] = route('pos.index', ['property' => $property], absolute: false);
+                }
+            }
+
+            $response = $exception->rootView('app')->render($concierge ? 'concierge/error' : 'errors', $props)->toResponse($request);
 
             $headers = $exception->response->headers->all();
             unset($headers['content-type'], $headers['content-length']);

@@ -38,6 +38,7 @@ class OutletMenuSnapshot
             ->with([
                 'items' => fn ($query) => $query->where('active', true)->orderBy('sort_order')->orderBy('name')->with([
                     'comboSlots.options.variant.item',
+                    'media',
                     'variants' => fn ($variants) => $variants->where('active', true)->orderBy('sort_order')->orderBy('id'),
                     'modifierGroups' => fn ($groups) => $groups->where('pos_modifier_groups.active', true)->orderBy('pos_item_modifier_group.sort_order')->with([
                         'options' => fn ($options) => $options->where('active', true)->where('availability', '!=', PosAvailability::None->value)->orderBy('sort_order')->orderBy('id'),
@@ -112,6 +113,7 @@ class OutletMenuSnapshot
             'name' => $item->name,
             'internalName' => $item->internal_name,
             'description' => $item->description,
+            'imageUrl' => $item->imageUrl(),
             'mealPeriodId' => $item->meal_period_id,
             'priceIncludesTax' => $item->price_includes_tax,
             'serviceChargeExempt' => $item->service_charge_exempt,

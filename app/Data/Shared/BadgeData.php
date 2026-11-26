@@ -31,6 +31,7 @@ use App\Enums\PartnerStatus;
 use App\Enums\PaymentMode;
 use App\Enums\PaymentReportStatus;
 use App\Enums\PayoutVoucherStatus;
+use App\Enums\PosShiftStatus;
 use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
 use App\Enums\RegistrationCardStatus;
@@ -255,5 +256,10 @@ class BadgeData extends Data
     public static function fromRoomDayState(RoomDayState $state): self
     {
         return new self($state->value, $state->label(), $state->tone());
+    }
+
+    public static function fromPosShiftStatus(PosShiftStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
     }
 }

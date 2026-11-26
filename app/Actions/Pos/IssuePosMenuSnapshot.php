@@ -6,6 +6,7 @@ use App\Models\PosMenuSnapshot;
 use App\Models\PosOutlet;
 use App\Models\Property;
 use App\Services\Pos\OutletMenuSnapshot;
+use App\Services\Pos\PosOfflineEstimate;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,7 +17,7 @@ class IssuePosMenuSnapshot
 {
     public const RETENTION_DAYS = 7;
 
-    public function __construct(private OutletMenuSnapshot $menu) {}
+    public function __construct(private OutletMenuSnapshot $menu, private PosOfflineEstimate $estimate) {}
 
     /**
      * @return array<string, mixed> The snapshot payload, with its `version`.
@@ -24,7 +25,10 @@ class IssuePosMenuSnapshot
     public function __invoke(Property $property, PosOutlet $outlet): array
     {
         return DB::transaction(function () use ($property, $outlet): array {
-            $payload = ($this->menu)($outlet);
+            $menu = ($this->estimate)($property, $outlet, ($this->menu)($outlet));
+            unset($menu['version']);
+            // The version covers the quotes too, so a new tax rate or dining option gives a new snapshot.
+            $payload = ['version' => md5(json_encode($menu, JSON_THROW_ON_ERROR))] + $menu;
 
             PosMenuSnapshot::query()->firstOrCreate(
                 ['pos_outlet_id' => $outlet->id, 'version' => $payload['version']],

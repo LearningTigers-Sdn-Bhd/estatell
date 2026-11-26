@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { PosApprovalFields, noApproval } from './pos-approval-fields';
 import type { PosPaymentMethod, PosStaff } from './pos-types';
+import { unlessRefused } from './pos-unless-refused';
 
 type Order = App.Data.Pos.PosOrderData;
 
@@ -78,7 +79,7 @@ export function PosChangeTenderDialog({
                 }));
                 form.post(url, {
                     preserveScroll: true,
-                    onSuccess: onClose,
+                    onSuccess: unlessRefused(onClose),
                 });
             }}
         >
