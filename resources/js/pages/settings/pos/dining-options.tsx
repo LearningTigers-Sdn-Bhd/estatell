@@ -1,6 +1,8 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
+    AlertCircle,
     BedDouble,
+    Pencil,
     Plus,
     ShoppingBag,
     Store,
@@ -22,8 +24,9 @@ import {
     posSettingsBreadcrumbs,
 } from '@/components/pms/pos/pos-settings-tabs';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -32,12 +35,14 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { index as posOutletsIndex } from '@/routes/settings/pos-outlets';
 import { index as diningIndex } from '@/routes/settings/pos/dining-options';
 
 type Props = {
     currency: App.Data.Property.CurrencyData | null;
     outlets: EnumOption[];
     outletId: number | null;
+    hasServiceChargeCode?: boolean;
     kinds: EnumOption[];
     options: DiningOptionRow[];
 };
@@ -55,6 +60,7 @@ export default function PosDiningOptions({
     currency,
     outlets,
     outletId,
+    hasServiceChargeCode = true,
     kinds,
     options,
 }: Props) {
@@ -99,7 +105,7 @@ export default function PosDiningOptions({
                 onClick={() => setEditing({ row: null })}
             >
                 <Plus data-icon="inline-start" />
-                Add option
+                Add dining option
             </Button>
         </div>
     );
@@ -112,6 +118,16 @@ export default function PosDiningOptions({
                         icon={Store}
                         title="No POS outlet available"
                         description="Enable built-in POS on at least one outlet under Setup to configure dining options."
+                        action={
+                            <Link
+                                href={posOutletsIndex()}
+                                className={buttonVariants({
+                                    variant: 'outline',
+                                })}
+                            >
+                                Go to Outlets
+                            </Link>
+                        }
                     />
                 </div>
             ) : options.length === 0 ? (
@@ -119,7 +135,17 @@ export default function PosDiningOptions({
                     <EmptyState
                         icon={Utensils}
                         title="No dining options yet"
-                        description="Use Add option above to configure default service charge and packaging fees for this outlet."
+                        description="Add options such as Dine-in, Takeaway, or Room service to set service charge and packaging rules for this outlet."
+                        action={
+                            <Button
+                                type="button"
+                                className="max-sm:min-h-11"
+                                onClick={() => setEditing({ row: null })}
+                            >
+                                <Plus data-icon="inline-start" />
+                                Add your first dining option
+                            </Button>
+                        }
                     />
                 </div>
             ) : (
@@ -127,29 +153,37 @@ export default function PosDiningOptions({
                     <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
                         <div className="flex flex-wrap items-center gap-2">
                             {activeOutletLabel && (
-                                <span className="font-medium text-foreground">
+                                <Badge variant="secondary">
                                     {activeOutletLabel}
-                                </span>
+                                </Badge>
                             )}
                             <span className="tabular-nums">
                                 {activeCount} of {options.length} active
                             </span>
                         </div>
-                        <div>
-                            {defaultOption ? (
-                                <span>
-                                    Default for new orders:{' '}
-                                    <span className="font-medium text-foreground">
-                                        {defaultOption.name}
-                                    </span>
+                        {defaultOption && (
+                            <span>
+                                Default for new orders:{' '}
+                                <span className="font-medium text-foreground">
+                                    {defaultOption.name}
                                 </span>
-                            ) : (
-                                <span className="text-warning-text">
-                                    No default dining option set
-                                </span>
-                            )}
-                        </div>
+                            </span>
+                        )}
                     </div>
+
+                    {!defaultOption && activeCount > 0 && (
+                        <Alert>
+                            <AlertCircle aria-hidden />
+                            <AlertTitle>
+                                No default dining option set
+                            </AlertTitle>
+                            <AlertDescription>
+                                Edit an active option below and turn on
+                                &quot;Default for new orders&quot; so cashiers
+                                do not have to pick one manually on every check.
+                            </AlertDescription>
+                        </Alert>
+                    )}
 
                     <div className="overflow-hidden rounded-xl border bg-card">
                         <div className="hidden md:block">
@@ -159,7 +193,9 @@ export default function PosDiningOptions({
                                         <TableHead scope="col">
                                             Option
                                         </TableHead>
-                                        <TableHead scope="col">Kind</TableHead>
+                                        <TableHead scope="col">
+                                            Service type
+                                        </TableHead>
                                         <TableHead scope="col">
                                             Service charge
                                         </TableHead>
@@ -175,7 +211,7 @@ export default function PosDiningOptions({
                                         </TableHead>
                                         <TableHead
                                             scope="col"
-                                            className="w-24 text-right"
+                                            className="w-28 text-right"
                                         >
                                             <span className="sr-only">
                                                 Actions
@@ -277,6 +313,7 @@ export default function PosDiningOptions({
                                                                 })
                                                             }
                                                         >
+                                                            <Pencil data-icon="inline-start" />
                                                             Edit
                                                         </Button>
                                                     </div>
@@ -369,6 +406,7 @@ export default function PosDiningOptions({
                                                     setEditing({ row: option })
                                                 }
                                             >
+                                                <Pencil data-icon="inline-start" />
                                                 Edit
                                             </Button>
                                         </div>
@@ -384,7 +422,9 @@ export default function PosDiningOptions({
                 <PosDiningOptionForm
                     key={editing.row?.id ?? 'new'}
                     row={editing.row}
+                    currency={currency}
                     outletId={outletId}
+                    hasServiceChargeCode={hasServiceChargeCode}
                     kinds={kinds}
                     onClose={() => setEditing(null)}
                 />

@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Plus, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Pencil, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -28,6 +28,7 @@ import {
     InputGroupButton,
     InputGroupInput,
 } from '@/components/ui/input-group';
+import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/toast';
 import { availability } from '@/routes/settings/pos/modifier-options';
 
@@ -156,12 +157,25 @@ export default function PosModifiers({
                     <EmptyState
                         icon={SlidersHorizontal}
                         title="No modifier groups yet"
-                        description="Use Add modifier group above to create choices like cooking temperature, milk type, or toppings."
+                        description="Create choice groups such as cooking temperature, milk type, ice level, or extra toppings, then link them to menu items."
+                        action={
+                            <Button
+                                type="button"
+                                className="max-sm:min-h-11"
+                                onClick={() => setEditing({ row: null })}
+                            >
+                                <Plus data-icon="inline-start" />
+                                Add your first modifier group
+                            </Button>
+                        }
                     />
                 </div>
             ) : (
                 <div className="flex flex-col gap-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <search
+                        aria-label="Filter modifier groups"
+                        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
                         <div className="flex flex-1 flex-col gap-2 sm:max-w-xl sm:flex-row sm:items-center">
                             <InputGroup className="w-full sm:flex-1">
                                 <InputGroupAddon>
@@ -214,7 +228,7 @@ export default function PosModifiers({
                                 />
                             )}
                         </div>
-                    </div>
+                    </search>
 
                     {filteredGroups.length === 0 ? (
                         <div className="rounded-xl border bg-card p-6">
@@ -274,14 +288,19 @@ export default function PosModifiers({
                                                         group,
                                                     )}
                                                 </CardDescription>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {linkedNames.length === 0
-                                                        ? 'Not linked to any menu items yet'
-                                                        : linkedNames.length <=
-                                                            3
-                                                          ? `Linked to: ${linkedNames.join(', ')}`
-                                                          : `Linked to ${linkedNames.length} items: ${linkedNames.slice(0, 3).join(', ')} +${linkedNames.length - 3} more`}
-                                                </p>
+                                                {linkedNames.length === 0 ? (
+                                                    <p className="text-xs text-warning-text">
+                                                        Not linked to any menu
+                                                        items yet. Edit this
+                                                        group to attach items.
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {linkedNames.length <= 3
+                                                            ? `Linked to: ${linkedNames.join(', ')}`
+                                                            : `Linked to ${linkedNames.length} items: ${linkedNames.slice(0, 3).join(', ')} +${linkedNames.length - 3} more`}
+                                                    </p>
+                                                )}
                                             </div>
                                             <Button
                                                 type="button"
@@ -293,10 +312,23 @@ export default function PosModifiers({
                                                     setEditing({ row: group })
                                                 }
                                             >
+                                                <Pencil data-icon="inline-start" />
                                                 Edit
                                             </Button>
                                         </CardHeader>
                                         <CardContent className="divide-y px-0">
+                                            {group.options.length > 0 && (
+                                                <div className="flex items-center justify-between bg-muted/15 px-4 py-2 text-xs text-muted-foreground">
+                                                    <span>
+                                                        Choices (
+                                                        {group.options.length})
+                                                    </span>
+                                                    <span>
+                                                        Availability (saves on
+                                                        change)
+                                                    </span>
+                                                </div>
+                                            )}
                                             {group.options.length === 0 ? (
                                                 <div className="px-4 py-4 text-sm text-muted-foreground">
                                                     No choices configured yet.
@@ -308,6 +340,9 @@ export default function PosModifiers({
                                                     );
                                                     const optionId =
                                                         option.id ?? 0;
+                                                    const isSaving =
+                                                        savingOptionId ===
+                                                        optionId;
 
                                                     return (
                                                         <div
@@ -331,7 +366,7 @@ export default function PosModifiers({
                                                                         <StatusBadge
                                                                             status={{
                                                                                 value: 'none',
-                                                                                label: '86d',
+                                                                                label: 'Not available',
                                                                                 tone: 'warning',
                                                                             }}
                                                                         />
@@ -356,7 +391,10 @@ export default function PosModifiers({
                                                                     )}
                                                                 </span>
                                                             </div>
-                                                            <div className="flex justify-end">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {isSaving && (
+                                                                    <Spinner className="size-4 text-muted-foreground" />
+                                                                )}
                                                                 <EnumSelect
                                                                     name={`availability-${optionId}`}
                                                                     options={
@@ -366,8 +404,7 @@ export default function PosModifiers({
                                                                         option.availability
                                                                     }
                                                                     disabled={
-                                                                        savingOptionId ===
-                                                                        optionId
+                                                                        isSaving
                                                                     }
                                                                     onValueChange={(
                                                                         value,
@@ -424,6 +461,7 @@ export default function PosModifiers({
                 <PosModifierGroupForm
                     key={editing.row?.id ?? 'new'}
                     row={editing.row}
+                    currency={currency}
                     items={items}
                     onClose={() => setEditing(null)}
                 />

@@ -1,9 +1,11 @@
-import { router } from '@inertiajs/react';
-import { CalendarClock, Layers, Plus, Store } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import { CalendarClock, Layers, Pencil, Plus, Store } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { DiscardChangesDialog } from '@/components/pms/discard-changes-dialog';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import type { MultiComboboxOption } from '@/components/pms/multi-combobox';
 import {
     PosComboForm,
     PosScheduleForm,
@@ -21,17 +23,19 @@ import {
 } from '@/components/pms/pos/pos-settings-tabs';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
+import { index as posOutletsIndex } from '@/routes/settings/pos-outlets';
 import { index as schedulesIndex } from '@/routes/settings/pos/schedules';
 
 type Props = {
+    currency: App.Data.Property.CurrencyData | null;
     outlets: EnumOption[];
     outlet: { id: number; name: string } | null;
     schedules: ScheduleRow[];
-    categories: EnumOption[];
-    items: EnumOption[];
+    categories: MultiComboboxOption[];
+    items: MultiComboboxOption[];
     mealPeriods: EnumOption[];
     combos: ComboRow[];
     variants: ComboVariantOption[];
@@ -73,6 +77,7 @@ function formatScope(
 }
 
 export default function PosSchedules({
+    currency,
     outlets,
     outlet,
     schedules,
@@ -87,6 +92,10 @@ export default function PosSchedules({
     );
     const [comboItem, setComboItem] = useState(
         combos[0] ? String(combos[0].id) : '',
+    );
+    const [comboDirty, setComboDirty] = useState(false);
+    const [pendingComboItem, setPendingComboItem] = useState<string | null>(
+        null,
     );
 
     const selected = items.find((item) => item.value === comboItem);
@@ -110,9 +119,48 @@ export default function PosSchedules({
         [mealPeriods],
     );
 
+    const comboIds = useMemo(
+        () => new Set(combos.map((combo) => String(combo.id))),
+        [combos],
+    );
+
+    const groupedComboItemOptions = useMemo<EnumOption[]>(() => {
+        const unconfigured = items
+            .filter((entry) => !comboIds.has(entry.value))
+            .map((entry) => ({
+                ...entry,
+                group:
+                    combos.length > 0
+                        ? 'Turn a menu item into a combo'
+                        : 'Menu items',
+            }));
+        const configured = items
+            .filter((entry) => comboIds.has(entry.value))
+            .map((entry) => ({
+                ...entry,
+                group: 'Already configured combos',
+            }));
+
+        return [...unconfigured, ...configured];
+    }, [items, comboIds, combos.length]);
+
     const activeScheduleCount = schedules.filter(
         (schedule) => schedule.active,
     ).length;
+
+    const selectComboItem = (nextId: string) => {
+        if (nextId === comboItem) {
+            return;
+        }
+
+        if (comboDirty) {
+            setPendingComboItem(nextId);
+
+            return;
+        }
+
+        setComboItem(nextId);
+    };
 
     const headerActions = (
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -129,7 +177,7 @@ export default function PosSchedules({
                         )
                     }
                     icon={<Store aria-hidden />}
-                    aria-label="Outlet"
+                    aria-label="Outlet for menu schedules"
                     className="w-48"
                 />
             )}
@@ -155,6 +203,11 @@ export default function PosSchedules({
                                 <h2 className="font-heading text-base font-medium">
                                     Menu schedules
                                 </h2>
+                                {outlet && (
+                                    <Badge variant="secondary">
+                                        {outlet.name}
+                                    </Badge>
+                                )}
                                 {schedules.length > 0 && (
                                     <Badge variant="outline">
                                         <span className="tabular-nums">
@@ -178,6 +231,16 @@ export default function PosSchedules({
                                 icon={Store}
                                 title="No POS outlet available"
                                 description="Enable built-in POS on at least one outlet under Setup to create menu schedules."
+                                action={
+                                    <Link
+                                        href={posOutletsIndex()}
+                                        className={buttonVariants({
+                                            variant: 'outline',
+                                        })}
+                                    >
+                                        Go to Outlets
+                                    </Link>
+                                }
                             />
                         </div>
                     ) : schedules.length === 0 ? (
@@ -185,7 +248,19 @@ export default function PosSchedules({
                             <EmptyState
                                 icon={CalendarClock}
                                 title="No menu schedules yet"
-                                description="Every item is currently on sale all day. Use Add schedule above for breakfast, lunch, or happy hour."
+                                description="Every item is currently on sale all day. Create a schedule to limit categories or items to breakfast, lunch, or happy hour."
+                                action={
+                                    <Button
+                                        type="button"
+                                        className="max-sm:min-h-11"
+                                        onClick={() =>
+                                            setEditing({ row: null })
+                                        }
+                                    >
+                                        <Plus data-icon="inline-start" />
+                                        Add your first schedule
+                                    </Button>
+                                }
                             />
                         </div>
                     ) : (
@@ -199,6 +274,8 @@ export default function PosSchedules({
                                     schedule.effectiveUntil
                                         ? `${schedule.effectiveFrom ?? 'Start'} to ${schedule.effectiveUntil ?? 'Ongoing'}`
                                         : null;
+                                const isOvernight =
+                                    schedule.endTime < schedule.startTime;
 
                                 return (
                                     <div
@@ -287,6 +364,11 @@ export default function PosSchedules({
                                                 <span className="text-sm font-medium text-foreground tabular-nums">
                                                     {schedule.startTime} to{' '}
                                                     {schedule.endTime}
+                                                    {isOvernight && (
+                                                        <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                                            (next day)
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </div>
                                             <Button
@@ -301,6 +383,7 @@ export default function PosSchedules({
                                                     })
                                                 }
                                             >
+                                                <Pencil data-icon="inline-start" />
                                                 Edit
                                             </Button>
                                         </div>
@@ -318,6 +401,7 @@ export default function PosSchedules({
                                 <h2 className="font-heading text-base font-medium">
                                     Combos
                                 </h2>
+                                <Badge variant="secondary">All outlets</Badge>
                                 <Badge variant="outline">
                                     <span className="tabular-nums">
                                         {combos.length} configured
@@ -325,10 +409,10 @@ export default function PosSchedules({
                                 </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                Pick an item and assign bundle parts such as a
-                                main and a drink. The item&apos;s own price is
-                                the combo price, and each choice can add an
-                                upcharge.
+                                Turn any menu item into a set meal by adding
+                                bundle parts such as a main and a drink. The
+                                item&apos;s own menu price is the base combo
+                                price, and each option can add an upcharge.
                             </p>
                         </div>
                     </header>
@@ -358,7 +442,7 @@ export default function PosSchedules({
                                                     type="button"
                                                     aria-pressed={active}
                                                     onClick={() =>
-                                                        setComboItem(
+                                                        selectComboItem(
                                                             String(combo.id),
                                                         )
                                                     }
@@ -393,16 +477,22 @@ export default function PosSchedules({
                             <Field>
                                 <FieldLabel htmlFor="combo-item-picker">
                                     {combos.length > 0
-                                        ? 'Configure another item'
-                                        : 'Pick a combo item'}
+                                        ? 'Configure another menu item'
+                                        : 'Pick a menu item to make a combo'}
                                 </FieldLabel>
+                                <FieldDescription>
+                                    {items.length === 0
+                                        ? 'Create the combo item on the Menu page first (for example "Set Lunch").'
+                                        : 'Choose the menu item that represents this bundle.'}
+                                </FieldDescription>
                                 <EnumSelect
                                     id="combo-item-picker"
                                     name="combo_item"
-                                    options={items}
+                                    options={groupedComboItemOptions}
                                     value={comboItem}
-                                    onValueChange={setComboItem}
+                                    onValueChange={selectComboItem}
                                     placeholder="Pick a menu item"
+                                    disabled={items.length === 0}
                                 />
                             </Field>
                         </div>
@@ -410,14 +500,24 @@ export default function PosSchedules({
                         <div className="min-w-0 p-4">
                             {selected !== undefined ? (
                                 <div className="flex flex-col gap-4">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                                         <div className="flex flex-col gap-0.5">
-                                            <h3 className="font-heading text-base font-medium">
-                                                {selected.label}
-                                            </h3>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h3 className="font-heading text-base font-medium">
+                                                    {selected.label}
+                                                </h3>
+                                                {comboIds.has(
+                                                    selected.value,
+                                                ) && (
+                                                    <Badge variant="outline">
+                                                        Combo active
+                                                    </Badge>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-muted-foreground">
-                                                Define the choices cashiers pick
-                                                when selling this combo.
+                                                Define the parts and allowed
+                                                items cashiers choose when
+                                                selling this combo.
                                             </p>
                                         </div>
                                     </div>
@@ -429,19 +529,21 @@ export default function PosSchedules({
                                                 String(combo.id) ===
                                                 selected.value,
                                         )}
+                                        currency={currency}
                                         variants={variants}
+                                        onDirtyChange={setComboDirty}
                                     />
                                 </div>
                             ) : (
                                 <EmptyState
                                     icon={Layers}
-                                    title="Select an item to configure"
+                                    title="Select a menu item to build a combo"
                                     description={
                                         items.length === 0
                                             ? 'Add menu items on the Menu page first before building combos.'
                                             : combos.length === 0
-                                              ? 'Choose any menu item on the left to set up its bundle parts.'
-                                              : 'Pick an existing combo or choose another menu item on the left to edit its bundle parts.'
+                                              ? 'Pick any menu item on the left to add bundle parts such as a main and a drink.'
+                                              : 'Pick a configured combo or choose another menu item on the left to edit its bundle parts.'
                                     }
                                 />
                             )}
@@ -461,6 +563,19 @@ export default function PosSchedules({
                     onClose={() => setEditing(null)}
                 />
             )}
+
+            <DiscardChangesDialog
+                open={pendingComboItem !== null}
+                onOpenChange={(open) => !open && setPendingComboItem(null)}
+                title="Discard unsaved combo changes?"
+                onDiscard={() => {
+                    if (pendingComboItem !== null) {
+                        setComboItem(pendingComboItem);
+                        setComboDirty(false);
+                        setPendingComboItem(null);
+                    }
+                }}
+            />
         </PosSettingsShell>
     );
 }

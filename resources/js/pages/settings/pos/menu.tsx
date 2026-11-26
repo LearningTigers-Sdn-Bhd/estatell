@@ -4,6 +4,7 @@ import {
     Plus,
     Search,
     SlidersHorizontal,
+    Store,
     UtensilsCrossed,
     X,
 } from 'lucide-react';
@@ -312,12 +313,25 @@ export default function PosMenuSettings({
                     <EmptyState
                         icon={UtensilsCrossed}
                         title="No menu categories yet"
-                        description="Use Add category above to create your first group, such as Food or Drinks, then add items with sizes and prices."
+                        description="Start by creating a category such as Mains, Drinks, or Desserts, then add items with sizes and prices inside it."
+                        action={
+                            <Button
+                                type="button"
+                                className="max-sm:min-h-11"
+                                onClick={() => setCategory({ row: null })}
+                            >
+                                <Plus data-icon="inline-start" />
+                                Add your first category
+                            </Button>
+                        }
                     />
                 </div>
             ) : (
                 <div className="flex flex-col gap-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <search
+                        aria-label="Filter menu items"
+                        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
                         <div className="flex flex-1 flex-col gap-2 sm:max-w-xl sm:flex-row sm:items-center">
                             <InputGroup className="w-full sm:flex-1">
                                 <InputGroupAddon>
@@ -359,7 +373,7 @@ export default function PosMenuSettings({
                                 ? `Showing ${visibleItemCount} of ${totalItems} ${totalItems === 1 ? 'item' : 'items'}`
                                 : `${categories.length} ${categories.length === 1 ? 'category' : 'categories'} · ${totalItems} ${totalItems === 1 ? 'item' : 'items'}`}
                         </p>
-                    </div>
+                    </search>
 
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:hidden">
                         <Button
@@ -599,7 +613,8 @@ export default function PosMenuSettings({
                                                             setCategory({ row })
                                                         }
                                                     >
-                                                        Edit
+                                                        <Pencil data-icon="inline-start" />
+                                                        Edit category
                                                     </Button>
                                                     <Button
                                                         type="button"
@@ -633,7 +648,7 @@ export default function PosMenuSettings({
                                                         description={
                                                             hasActiveFilter
                                                                 ? 'Try clearing your search or status filter.'
-                                                                : 'Add your first item with sizes, prices, and kitchen details.'
+                                                                : 'Add your first item with sizes, prices, and optional photo or kitchen details.'
                                                         }
                                                         action={
                                                             hasActiveFilter ? (
@@ -654,7 +669,26 @@ export default function PosMenuSettings({
                                                                     Clear
                                                                     filters
                                                                 </Button>
-                                                            ) : undefined
+                                                            ) : (
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    className="max-sm:min-h-11"
+                                                                    onClick={() =>
+                                                                        setItem(
+                                                                            {
+                                                                                row: null,
+                                                                                categoryId:
+                                                                                    row.id,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Plus data-icon="inline-start" />
+                                                                    Add item to{' '}
+                                                                    {row.name}
+                                                                </Button>
+                                                            )
                                                         }
                                                     />
                                                 </div>
@@ -684,7 +718,7 @@ export default function PosMenuSettings({
                                                                     </TableHead>
                                                                     <TableHead
                                                                         scope="col"
-                                                                        className="w-40 text-right"
+                                                                        className="w-44 text-right"
                                                                     >
                                                                         <span className="sr-only">
                                                                             Actions
@@ -719,6 +753,12 @@ export default function PosMenuSettings({
                                                                                                     entry.imageUrl
                                                                                                 }
                                                                                                 alt=""
+                                                                                                width={
+                                                                                                    48
+                                                                                                }
+                                                                                                height={
+                                                                                                    48
+                                                                                                }
                                                                                                 loading="lazy"
                                                                                                 className="size-12 shrink-0 rounded-lg object-cover"
                                                                                             />
@@ -802,7 +842,7 @@ export default function PosMenuSettings({
                                                                                                     <span className="font-medium text-foreground">
                                                                                                         {variant.pricingType ===
                                                                                                         'variable' ? (
-                                                                                                            'Variable'
+                                                                                                            'Price at register'
                                                                                                         ) : (
                                                                                                             <MoneyText
                                                                                                                 amount={
@@ -844,7 +884,9 @@ export default function PosMenuSettings({
                                                                                             />
                                                                                         ) : (
                                                                                             <span className="text-xs text-muted-foreground">
-                                                                                                Default
+                                                                                                All
+                                                                                                outlets
+                                                                                                (default)
                                                                                             </span>
                                                                                         )}
                                                                                     </TableCell>
@@ -879,6 +921,7 @@ export default function PosMenuSettings({
                                                                                                     )
                                                                                                 }
                                                                                             >
+                                                                                                <Store data-icon="inline-start" />
                                                                                                 Outlets
                                                                                             </Button>
                                                                                         )}
@@ -897,6 +940,7 @@ export default function PosMenuSettings({
                                                                                                 )
                                                                                             }
                                                                                         >
+                                                                                            <Pencil data-icon="inline-start" />
                                                                                             Edit
                                                                                         </Button>
                                                                                     </div>
@@ -930,20 +974,38 @@ export default function PosMenuSettings({
                                                                         className="flex flex-col gap-3 p-4"
                                                                     >
                                                                         <div className="flex items-start justify-between gap-3">
-                                                                            <div className="flex min-w-0 flex-col gap-0.5">
-                                                                                <span className="font-medium text-foreground">
-                                                                                    {
-                                                                                        entry.name
-                                                                                    }
-                                                                                </span>
-                                                                                {entry.internalName && (
-                                                                                    <span className="text-xs text-muted-foreground">
-                                                                                        Kitchen:{' '}
+                                                                            <div className="flex min-w-0 items-start gap-3">
+                                                                                {entry.imageUrl && (
+                                                                                    <img
+                                                                                        src={
+                                                                                            entry.imageUrl
+                                                                                        }
+                                                                                        alt=""
+                                                                                        width={
+                                                                                            40
+                                                                                        }
+                                                                                        height={
+                                                                                            40
+                                                                                        }
+                                                                                        loading="lazy"
+                                                                                        className="size-10 shrink-0 rounded-lg object-cover"
+                                                                                    />
+                                                                                )}
+                                                                                <div className="flex min-w-0 flex-col gap-0.5">
+                                                                                    <span className="font-medium text-foreground">
                                                                                         {
-                                                                                            entry.internalName
+                                                                                            entry.name
                                                                                         }
                                                                                     </span>
-                                                                                )}
+                                                                                    {entry.internalName && (
+                                                                                        <span className="text-xs text-muted-foreground">
+                                                                                            Kitchen:{' '}
+                                                                                            {
+                                                                                                entry.internalName
+                                                                                            }
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                             <StatusBadge
                                                                                 status={{
@@ -980,7 +1042,7 @@ export default function PosMenuSettings({
                                                                                         </span>
                                                                                         {variant.pricingType ===
                                                                                         'variable' ? (
-                                                                                            'Variable'
+                                                                                            'Price at register'
                                                                                         ) : (
                                                                                             <MoneyText
                                                                                                 amount={
@@ -1045,6 +1107,7 @@ export default function PosMenuSettings({
                                                                                         )
                                                                                     }
                                                                                 >
+                                                                                    <Store data-icon="inline-start" />
                                                                                     Outlets
                                                                                 </Button>
                                                                             )}
@@ -1063,6 +1126,7 @@ export default function PosMenuSettings({
                                                                                     )
                                                                                 }
                                                                             >
+                                                                                <Pencil data-icon="inline-start" />
                                                                                 Edit
                                                                             </Button>
                                                                         </div>
@@ -1094,6 +1158,7 @@ export default function PosMenuSettings({
                 <PosItemForm
                     key={item.row?.id ?? `new-${item.categoryId}`}
                     row={item.row}
+                    currency={currency}
                     imageUrl={
                         categories
                             .flatMap((entry) => entry.items)
@@ -1112,6 +1177,7 @@ export default function PosMenuSettings({
                 <PosOutletOverrideSheet
                     key={overrideItem.id}
                     item={overrideItem}
+                    currency={currency}
                     outlets={outlets}
                     availabilityOptions={availabilityOptions}
                     onClose={() => setOverrideItem(null)}
