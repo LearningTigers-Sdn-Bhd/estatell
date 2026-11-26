@@ -2667,6 +2667,14 @@ number: string,
 refusal: App.Enums.HousekeepingRefusal,
 }[],
 };
+export type HousekeepingDormData = {
+bedsTonight: number,
+beds: number,
+occupancy: string,
+movements: App.Data.Shared.BadgeData[],
+arrivals: string | null,
+departures: string | null,
+};
 export type HousekeepingOutOfServiceData = {
 reasonLabel: string,
 endsOn: string,
@@ -2699,6 +2707,7 @@ isPriority: boolean,
 priorityNote: string | null,
 remark: string | null,
 guestRemark: string | null,
+dorm: App.Data.Housekeeping.HousekeepingDormData | null,
 needsMaintenance: boolean,
 canDismissMaintenance: boolean,
 doNotDisturb: boolean,

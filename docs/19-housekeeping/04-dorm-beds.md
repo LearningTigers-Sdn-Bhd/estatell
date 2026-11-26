@@ -32,6 +32,18 @@ bed_statuses   id, property_id, bed_id (unique, cascade), status (clean | dirty 
 ## Board
 
 - A dorm row shows a **"3 of 8 beds dirty"** button under its status badge ("8 beds ready" or "8 beds inspected" when none is dirty). It opens the beds: label, who is in it today (Due out, In house, Checked out, Arriving, or Empty) and its status, which opens the moves the viewer may make.
+- **The dorm row reads in counts** (2026-11-26), never as one bed's guest and dates, which read as one stay for the room ("8 adults, 25 Nov – 25 Nov"). `HousekeepingRoomData.dorm` (`HousekeepingDormData`, from `HousekeepingBoardBuilder::counts()`; one unit is one bed):
+
+    | Column             | Dorm row                                                                                                   |
+    | ------------------ | ---------------------------------------------------------------------------------------------------------- |
+    | Guest              | "6 of 8 beds tonight"                                                                                      |
+    | Reservation Status | One badge per stay with its count: "1 Due out", "2 Arriving", "5 In house", "1 Checked out" (none at zero) |
+    | Arrival            | "2 from 15:00" (still to arrive, earliest time), "All arrived", or —                                       |
+    | Departure          | "1 by 11:00" (still to leave, latest time), "2 left", or —                                                 |
+
+    Pax stays the sum of tonight's guests. The printed sheet and the spreadsheet print the same words. Sorting still uses the first arriving or leaving bed's date and time. Decided with the owner on 2026-11-26, after comparing OPERA, which keeps the housekeeping status apart from the front office status, and hostel systems that track by bed.
+
+- **Movement strip** (desktop only): under the beds button, the beds with a movement today, "A6 Due out · Dirty", "B2 Arriving", "A3 Checked out · Dirty" (the bunk to turn over). Stay-over beds are left out even when dirty, because the button already counts them. Phones keep the button only.
 - `HousekeepingRoomData.beds` (`HousekeepingBedData`): the dorm's active beds in order, read with the rooms (`beds.status`) and the day's units (one read, grouped by room and by bed). The query count does not grow with beds (tested).
 - **Booking notes** (added 2026-11-26): a bed shows its guest's [housekeeping remark](../12-reservations/16-remarks.md) under the name (`HousekeepingBedData.guestRemark`), and the button adds ", 1 booking note" so it is not missed. The printed sheet's Notes list them as "Bed A2: Lower bunk please".
 - `PUT /p/{code}/housekeeping/rooms/{room}/beds/{bed}/status` (`housekeeping.rooms.beds.status`), `housekeeping.update`. The bed must belong to the room (scoped binding).

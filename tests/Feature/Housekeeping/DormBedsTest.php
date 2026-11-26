@@ -192,6 +192,42 @@ test('the board shows the booking\'s housekeeping remark on the guest\'s bed or 
         ->and(HousekeepingTaskRow::fromRoom($rows['105'], 2)->remarks)->toBe('Booking: Extra pillow');
 });
 
+test('a dorm row reads in counts, never as one bed\'s guest and dates, on the board and the printed sheet', function () {
+    $setup = dormBedsSetup();
+    [$a1, $a2, $a3] = $setup['beds'];
+    $stay = function (Bed $bed, array $attributes) use ($setup): void {
+        $unit = ReservationUnit::factory()->withNights()->create([
+            'reservation_id' => Reservation::factory()->create(['property_id' => $setup['property']->id])->id,
+            'room_type_id' => $setup['room']->room_type_id,
+            ...$attributes,
+        ]);
+        $unit->nights()->update(['room_id' => null, 'bed_id' => $bed->id]);
+    };
+    $stay($a1, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'departure_time' => '11:00', 'status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
+    $stay($a2, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14', 'arrival_time' => '15:00', 'status' => UnitStatus::Confirmed]);
+    $stay($a3, ['arrival_date' => '2026-10-11', 'departure_date' => '2026-10-14', 'status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
+
+    $room = collect(app(HousekeepingBoardBuilder::class)->rows($setup['property'], CarbonImmutable::parse('2026-10-12'), false, false, false))
+        ->firstWhere('number', '201');
+    $printed = HousekeepingTaskRow::fromRoom($room, 1);
+
+    expect($room->dorm->occupancy)->toBe('2 of 3 beds tonight')
+        ->and(array_map(fn ($badge) => $badge->label, $room->dorm->movements))->toBe(['1 Due out', '1 Arriving', '1 In house'])
+        ->and($room->dorm->arrivals)->toBe('1 from 15:00')
+        ->and($room->dorm->departures)->toBe('1 by 11:00')
+        ->and([$printed->guest, $printed->stay, $printed->arrival, $printed->departure])
+        ->toBe(['2 of 3 beds tonight', '1 Due out · 1 Arriving · 1 In house', '1 from 15:00', '1 by 11:00']);
+
+    $empty = Room::factory()->for($setup['property'])->create(['number' => '202', 'room_type_id' => $setup['room']->room_type_id]);
+    Bed::factory()->create(['room_id' => $empty->id]);
+    $quiet = collect(app(HousekeepingBoardBuilder::class)->rows($setup['property'], CarbonImmutable::parse('2026-10-12'), false, false, false))
+        ->firstWhere('number', '202');
+
+    expect($quiet->dorm->occupancy)->toBe('0 of 1 bed tonight')
+        ->and($quiet->dorm->movements)->toBe([])
+        ->and($quiet->dorm->arrivals)->toBeNull();
+});
+
 test('the board costs the same queries however many dorm beds there are', function () {
     $setup = dormBedsSetup();
     $count = function () use ($setup): int {

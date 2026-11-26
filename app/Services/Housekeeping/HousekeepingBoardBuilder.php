@@ -98,7 +98,7 @@ class HousekeepingBoardBuilder
     /**
      * Group the units that touch the date by the room they use that day, and by the dorm bed, in one read.
      *
-     * @return array{rooms: Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string}, reason: ?HousekeepingReason, due: string}>, beds: Collection<int, array{stay: ?HousekeepingStay, guest: ?string, guestRemark: ?string}>}
+     * @return array{rooms: Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string, counts: ?array{dueOut: int, checkedOut: int, arriving: int, arrived: int, inHouse: int, tonight: int, firstArrivalTime: ?string, lastDepartureTime: ?string}}, reason: ?HousekeepingReason, due: string}>, beds: Collection<int, array{stay: ?HousekeepingStay, guest: ?string, guestRemark: ?string}>}
      */
     private function stays(Property $property, CarbonImmutable $date): array
     {
@@ -155,7 +155,7 @@ class HousekeepingBoardBuilder
 
     /**
      * @param  list<array{unit: ReservationUnit, departing: bool}>  $entries
-     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string}, reason: ?HousekeepingReason, due: string}
+     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string, counts: ?array{dueOut: int, checkedOut: int, arriving: int, arrived: int, inHouse: int, tonight: int, firstArrivalTime: ?string, lastDepartureTime: ?string}}, reason: ?HousekeepingReason, due: string}
      */
     private function summarize(array $entries, CarbonImmutable $date): array
     {
@@ -205,9 +205,39 @@ class HousekeepingBoardBuilder
                 'stay' => $stay,
                 // The booking's housekeeping remark of the guests who sleep here tonight, or of those arriving.
                 'guestRemark' => $this->guestRemark($party),
+                // A dorm row shows these counts in place of one bed's guest and dates. One unit is one bed.
+                'counts' => $this->counts($entries, $date),
             ],
             'reason' => $reason,
             'due' => $due,
+        ];
+    }
+
+    /**
+     * How the units of a room stand today, for a dorm row: due out (still in, leaving today), checked out (left today),
+     * arriving (not in yet), arrived (checked in today), in house (checked in, staying tonight, arrived today or before)
+     * and tonight's beds taken. The first time still to arrive and the last time still to leave.
+     *
+     * @param  list<array{unit: ReservationUnit, departing: bool}>  $entries
+     * @return array{dueOut: int, checkedOut: int, arriving: int, arrived: int, inHouse: int, tonight: int, firstArrivalTime: ?string, lastDepartureTime: ?string}
+     */
+    private function counts(array $entries, CarbonImmutable $date): array
+    {
+        $day = $date->toDateString();
+        $entries = collect($entries);
+        $dueOut = $entries->filter(fn (array $entry): bool => $entry['departing'] && $entry['unit']->status === UnitStatus::CheckedIn)->pluck('unit');
+        $arriving = $entries->filter(fn (array $entry): bool => ! $entry['departing'] && $entry['unit']->status === UnitStatus::Confirmed)->pluck('unit');
+        $staying = $entries->filter(fn (array $entry): bool => ! $entry['departing'] && $entry['unit']->status === UnitStatus::CheckedIn)->pluck('unit');
+
+        return [
+            'dueOut' => $dueOut->count(),
+            'checkedOut' => $entries->filter(fn (array $entry): bool => $entry['departing'] && $entry['unit']->status === UnitStatus::CheckedOut)->count(),
+            'arriving' => $arriving->count(),
+            'arrived' => $staying->filter(fn (ReservationUnit $unit): bool => $unit->arrival_date->toDateString() === $day)->count(),
+            'inHouse' => $staying->count(),
+            'tonight' => $entries->reject(fn (array $entry): bool => $entry['departing'])->count(),
+            'firstArrivalTime' => $arriving->isEmpty() ? null : substr((string) $arriving->min('arrival_time'), 0, 5),
+            'lastDepartureTime' => $dueOut->isEmpty() ? null : substr((string) $dueOut->max('departure_time'), 0, 5),
         ];
     }
 
@@ -228,12 +258,12 @@ class HousekeepingBoardBuilder
     }
 
     /**
-     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string}, reason: ?HousekeepingReason, due: string}
+     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string, counts: ?array{dueOut: int, checkedOut: int, arriving: int, arrived: int, inHouse: int, tonight: int, firstArrivalTime: ?string, lastDepartureTime: ?string}}, reason: ?HousekeepingReason, due: string}
      */
     private function emptyStay(): array
     {
         return [
-            'view' => ['guest' => null, 'adults' => null, 'children' => null, 'arrivalDate' => null, 'arrivalTime' => null, 'departureDate' => null, 'departureTime' => null, 'isStayOver' => false, 'stay' => null, 'guestRemark' => null],
+            'view' => ['guest' => null, 'adults' => null, 'children' => null, 'arrivalDate' => null, 'arrivalTime' => null, 'departureDate' => null, 'departureTime' => null, 'isStayOver' => false, 'stay' => null, 'guestRemark' => null, 'counts' => null],
             'reason' => null,
             'due' => '2',
         ];

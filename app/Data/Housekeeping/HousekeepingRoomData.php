@@ -48,6 +48,7 @@ class HousekeepingRoomData extends Data
         public ?string $priorityNote,
         public ?string $remark,
         public ?string $guestRemark,
+        public ?HousekeepingDormData $dorm,
         public bool $needsMaintenance,
         public bool $canDismissMaintenance,
         public bool $doNotDisturb,
@@ -60,7 +61,7 @@ class HousekeepingRoomData extends Data
      *
      * @param  list<HousekeepingBedBlockData>  $bedBlocks
      * @param  list<HousekeepingBedData>  $beds
-     * @param  array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string}  $stay
+     * @param  array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string, counts: ?array{dueOut: int, checkedOut: int, arriving: int, arrived: int, inHouse: int, tonight: int, firstArrivalTime: ?string, lastDepartureTime: ?string}}  $stay
      */
     public static function forRoom(
         Room $room,
@@ -110,6 +111,7 @@ class HousekeepingRoomData extends Data
             remark: $roomStatus->remark,
             // A dorm's beds carry their own guests' remarks.
             guestRemark: $beds === [] ? $stay['guestRemark'] : null,
+            dorm: $beds === [] ? null : HousekeepingDormData::fromCounts($stay['counts'] ?? HousekeepingDormData::NO_COUNTS, count($beds)),
             needsMaintenance: $roomStatus->needs_maintenance,
             canDismissMaintenance: $canBlock && $roomStatus->needs_maintenance,
             doNotDisturb: $roomStatus->do_not_disturb_on?->toDateString() === $date,
