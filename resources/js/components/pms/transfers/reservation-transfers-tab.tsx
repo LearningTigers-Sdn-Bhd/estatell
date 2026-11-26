@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { formatMoney } from '@/components/pms/money-text';
+import { transferPrice } from '@/components/pms/transfer-price';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,32 +31,6 @@ type Route = App.Data.Transfers.TransferRouteData;
 
 /** The Type select's value for "no transfer": saving it removes the transfer. */
 const NONE = '';
-
-/** The price a type adds on a route, for the Type option's second line. */
-function priceFor(
-    route: Route | undefined,
-    mode: string,
-    currency: App.Data.Property.CurrencyData | null,
-): string | undefined {
-    if (route === undefined) {
-        return undefined;
-    }
-
-    const amount =
-        mode === 'shared'
-            ? route.sharedAmount
-            : mode === 'private'
-              ? route.privateAmount
-              : null;
-
-    if (mode === 'included') {
-        return 'No charge';
-    }
-
-    return amount === null
-        ? 'No price set: charge by hand'
-        : `${formatMoney(amount, currency)} · ${mode === 'shared' ? route.sharedChargeItemName : route.privateChargeItemName}`;
-}
 
 function TransferDialog(props: {
     open: boolean;
@@ -155,7 +129,11 @@ function TransferForm({
                         { value: NONE, label: 'No transfer' },
                         ...modes.map((mode) => ({
                             ...mode,
-                            description: priceFor(route, mode.value, currency),
+                            description: transferPrice(
+                                route,
+                                mode.value,
+                                currency,
+                            ),
                         })),
                     ]}
                     value={form.data.mode}

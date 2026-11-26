@@ -153,7 +153,7 @@ The toast names the result with the currency code: "Reservation R-1042: 3 of 3 c
 
 ## Sections
 
-1. **Stay**: arrival, departure, nights (shown), source, external reference, group name. Arrival and departure apply to every line.
+1. **Stay**: arrival, departure, nights (shown), source, external reference, group name. Arrival and departure apply to every line. With Boats on, **Boat in** and **Boat out**; with Transfers on, **Transfer in** and **Transfer out** (added 2026-11-26, see [Land transfers](../35-transfers/01-land-transfers.md#booking-form)). Both apply to every room.
     - Layout: the labels are Arrival and Departure. Each has one `InputGroup` with the date (`DatePicker`) and a native `type="time"` input. A nights badge sits between the two groups and takes no input. Source, External reference and Group name are on the row below. Below `lg` the badge sits between the groups, which stack in order.
     - Times: `arrival_time` and `departure_time` default to the property's `check_in_time` and `check_out_time` and apply to every line. They are the expected times and never change nights or prices (see [Expected times](01-reservation-shape.md#expected-times)). The native input shows 12-hour or 24-hour by the staff PC's locale, and the server always gets `HH:mm`. A stay is at least one night, so the times are never compared.
     - Arrival starts as today's business date on both pages. Staff can pick a later date on a new booking.

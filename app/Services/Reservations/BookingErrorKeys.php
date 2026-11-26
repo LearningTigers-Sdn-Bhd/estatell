@@ -6,6 +6,7 @@ use App\Actions\Reservations\AddOnResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\ReservationResult;
+use App\Services\Transfers\TransferRefusals;
 
 /**
  * Turns the refusal of `CreateBooking` into form errors keyed by position, for the booking form: `lines.1.room_type_id`,
@@ -20,7 +21,7 @@ class BookingErrorKeys
     /** The add-on fields: a refusal inside a line does not say which add-on, so they key the line's add-ons. */
     private const array ADD_ON_FIELDS = ['charge_item_id', 'quantity', 'unit_amount', 'service_date'];
 
-    public function __construct(private ReservationRefusals $refusals) {}
+    public function __construct(private ReservationRefusals $refusals, private TransferRefusals $transferRefusals) {}
 
     /**
      * @param  list<int>  $unitsPerLine  How many units each line adds, in line order.
@@ -30,6 +31,10 @@ class BookingErrorKeys
     {
         if ($result->boatDirection !== null) {
             return ['boat_'.$result->boatDirection => (string) current($this->refusals->boatTripErrors((string) $result->refusal))];
+        }
+
+        if ($result->transferDirection !== null) {
+            return ['transfer_'.$result->transferDirection => (string) current($this->transferRefusals->errors((string) $result->refusal))];
         }
 
         $errors = $this->refusals->errors((string) $result->refusal, $result->date, $canOverrideRestrictions);

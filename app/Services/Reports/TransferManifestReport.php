@@ -11,6 +11,7 @@ use App\Enums\Tone;
 use App\Enums\TransferDirection;
 use App\Models\Property;
 use App\Models\UnitTransfer;
+use App\Services\Guests\GuestParty;
 use App\Services\Reservations\ReservationRoomBox;
 use App\Services\Transfers\TransferRunSheet;
 use Carbon\CarbonImmutable;
@@ -27,6 +28,7 @@ class TransferManifestReport implements HasNote, HasSections, HasTotals, Report
     public function __construct(
         private TransferRunSheet $runSheet,
         private ReservationRoomBox $roomBox,
+        private GuestParty $guestParty,
     ) {}
 
     /**
@@ -49,6 +51,7 @@ class TransferManifestReport implements HasNote, HasSections, HasTotals, Report
             TransferDirection::Out->value => $this->roomBox->lastNightAssignmentsForUnits($unitIds(TransferDirection::Out)),
         ];
         $canViewGuest = Auth::user()?->can(PermissionEnum::GuestsView->value) ?? false;
+        $date = CarbonImmutable::parse($filters->from);
 
         return array_values($transfers
             ->map(fn (UnitTransfer $transfer): TransferManifestRow => TransferManifestRow::fromModel(
@@ -56,6 +59,7 @@ class TransferManifestReport implements HasNote, HasSections, HasTotals, Report
                 $transfer->reservationUnit,
                 $rooms[$transfer->direction->value][$transfer->reservation_unit_id] ?? null,
                 $canViewGuest,
+                $canViewGuest ? $this->guestParty->line([$transfer->reservationUnit], $date, $transfer->reservationUnit->reservation->booker) : null,
             ))
             ->all());
     }
@@ -127,6 +131,7 @@ class TransferManifestReport implements HasNote, HasSections, HasTotals, Report
             'unit' => null,
             'lead_guest' => null,
             'phone' => null,
+            'party' => null,
             'adults' => array_sum(array_map(fn (TransferManifestRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (TransferManifestRow $row): int => $row->children, $rows)),
             'total' => array_sum(array_map(fn (TransferManifestRow $row): int => $row->total, $rows)),

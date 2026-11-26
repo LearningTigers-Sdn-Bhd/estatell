@@ -10,7 +10,7 @@ use Spatie\LaravelData\Data;
  * One transfer of the Transfer manifest: a room's road transfer in or out on the date. The property names are the column
  * keys of `ReportKey::TransferManifest`. `key` is the transfer id. `vehicle_id` and `driver_id` group the row into its
  * section (one per vehicle and driver); they are not columns. `lead_guest` and `phone` are null when the user may not
- * see guests, as on the run sheet.
+ * see guests, as on the run sheet, and so is `party`, everyone in the room (`GuestParty`).
  */
 class TransferManifestRow extends Data implements ReportRow
 {
@@ -23,6 +23,7 @@ class TransferManifestRow extends Data implements ReportRow
         public string $unit,
         public ?string $lead_guest,
         public ?string $phone,
+        public ?string $party,
         public int $adults,
         public int $children,
         public int $total,
@@ -44,7 +45,7 @@ class TransferManifestRow extends Data implements ReportRow
      *
      * @param  string|null  $room  The room number or bed label of the night the direction needs, when one is assigned.
      */
-    public static function fromModel(UnitTransfer $transfer, ReservationUnit $unit, ?string $room, bool $canViewGuest): self
+    public static function fromModel(UnitTransfer $transfer, ReservationUnit $unit, ?string $room, bool $canViewGuest, ?string $party = null): self
     {
         $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $unit->reservation->booker;
         $route = $transfer->transferRoute;
@@ -60,6 +61,7 @@ class TransferManifestRow extends Data implements ReportRow
             unit: $room ?? $unit->roomType->name,
             lead_guest: $canViewGuest ? $occupant->full_name : null,
             phone: $canViewGuest ? $occupant->phone : null,
+            party: $canViewGuest ? $party : null,
             adults: $unit->adults,
             children: $unit->children,
             total: $unit->adults + $unit->children,
@@ -96,6 +98,7 @@ class TransferManifestRow extends Data implements ReportRow
             'unit' => $this->unit,
             'lead_guest' => $this->lead_guest ?? '',
             'phone' => $this->phone ?? '',
+            'party' => $this->party ?? '',
             'adults' => $this->adults,
             'children' => $this->children,
             'total' => $this->total,

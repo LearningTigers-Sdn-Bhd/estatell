@@ -106,16 +106,18 @@ Date         Time          Facility     Guest / event          Room / no.      Q
 | `time`     | Time            | ✓               |
 | `facility` | Facility        | ✓               |
 | `owner`    | Guest / event   | ✓               |
+| `party`    | Guests          | ✓               |
 | `ref`      | Room / no.      | ✓               |
 | `quantity` | Qty             | ✓               |
 | `status`   | Status          | ✓               |
 | `dietary`  | Dietary remarks | ✓               |
-| `phone`    | Phone           |                 |
+| `phone`    | Phone           | ✓               |
 | `folio`    | Charge to       |                 |
 | `amount`   | Amount          |                 |
 | `notes`    | Notes           |                 |
 
 - **Date** is a column too, because the spreadsheet is flat (sections do not export).
+- **Guests** (added 2026-11-26, for the guides): everyone named in the reservation's live rooms, primary guests first, with the nationality code and the age on the booking date, and the people not named yet: "Hannah Müller (DE, 34) · Mia Müller (DE, 7) · +1 not named" (`GuestParty`, shared with the Transfer manifest). An event has none. **Phone** is now shown by default too, so the guide can call the booker.
 - **Dietary remarks** (added 2026-11-25) is the reservation's [dietary remark](../12-reservations/16-remarks.md), shown by default so the guide sees it on the list. An event has none.
 - **Guest / event**: the event name, or the reservation's booker. **Room / no.**: the event number, or the first-night rooms of the reservation's live units ("12, 14"), or its reference when no room is set. **Phone**: the event payer's (guest, else company contact), or the booker's. **Amount**: the price before tax (unit price × rate basis quantity), blank when charged by hand.
 - **Filters**: a date range (up to 31 days; Today, Tomorrow, Next 7 days, This week, Next week), facilities and statuses (both multi-select). In the URL they are comma lists: `?facilities=3,5&statuses=tentative,confirmed`. No statuses means Tentative and Confirmed; Cancelled shows only when picked. Unknown values are dropped.

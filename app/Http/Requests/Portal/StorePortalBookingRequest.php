@@ -9,6 +9,7 @@ use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
 use App\Enums\IdentityDocumentType;
 use App\Http\Requests\Guests\GuestProfileRules;
+use App\Http\Requests\Transfers\TransferPickRules;
 use App\Models\Property;
 use App\Services\Guests\IdentityNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -67,6 +68,7 @@ class StorePortalBookingRequest extends PortalOffersRequest
             'boat_out.boat_departure_id' => ['required_if:boat_out.mode,'.BoatMode::Scheduled->value, 'nullable', 'integer'],
             'boat_out.time' => ['nullable', 'date_format:H:i'],
             'boat_out.note' => ['nullable', 'string', 'max:255'],
+            ...TransferPickRules::rules(),
         ];
     }
 
@@ -77,6 +79,7 @@ class StorePortalBookingRequest extends PortalOffersRequest
     {
         return [
             ...parent::messages(),
+            ...TransferPickRules::messages(),
             'lines.*.rate_plan_id.required' => __('Choose a rate for every line.'),
             'lines.*.room_type_id.required' => __('Choose a room type for every line.'),
             'guests.max' => __('A booking can have up to 99 rooms and beds.'),
@@ -120,6 +123,7 @@ class StorePortalBookingRequest extends PortalOffersRequest
             externalReference: $this->validated('external_reference'),
             expectedTotal: $this->validated('expected_total'),
             boatTrips: $this->boatTrips(),
+            transfers: TransferPickRules::inputs($this->validated()),
         );
     }
 

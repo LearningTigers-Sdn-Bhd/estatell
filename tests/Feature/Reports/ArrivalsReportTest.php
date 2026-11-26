@@ -1,5 +1,12 @@
 <?php
 
+use App\Enums\TransferDirection;
+use App\Enums\TransferMode;
+use App\Features\Transfers;
+use App\Models\TransferRoute;
+use App\Models\UnitTransfer;
+use Laravel\Pennant\Feature;
+
 require_once __DIR__.'/../Support/ReportSetup.php';
 
 use App\Data\Reports\ArrivalRow;
@@ -269,7 +276,7 @@ test('the arrivals report is in the registry with its columns', function () {
     $keys = array_map(fn ($column): string => $column->key, ReportKey::Arrivals->columns());
     $visible = array_map(fn ($column): string => $column->key, array_filter(ReportKey::Arrivals->columns(), fn ($column): bool => $column->defaultVisible));
 
-    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'departure', 'departure_time', 'boat', 'nights', 'unit', 'room_type', 'room', 'rate', 'rate_plan', 'meal_plan', 'guests', 'adults', 'children', 'company', 'source', 'market_segment', 'sales_person', 'booked_by', 'status', 'total', 'paid', 'balance', 'housekeeping_remarks', 'dietary_remarks', 'package_remarks', 'payment_remarks'])
+    expect($keys)->toBe(['reservation', 'guest', 'phone', 'arrival', 'arrival_time', 'departure', 'departure_time', 'boat', 'pick_up', 'drop_off', 'nights', 'unit', 'room_type', 'room', 'rate', 'rate_plan', 'meal_plan', 'guests', 'adults', 'children', 'company', 'source', 'market_segment', 'sales_person', 'booked_by', 'status', 'total', 'paid', 'balance', 'housekeeping_remarks', 'dietary_remarks', 'package_remarks', 'payment_remarks'])
         ->and(array_values($visible))->toBe(['reservation', 'guest', 'arrival', 'arrival_time', 'boat', 'nights', 'unit', 'status', 'total', 'paid', 'balance'])
         ->and(ReportKey::Arrivals->maxRangeDays())->toBe(31)
         ->and(ReportKey::Arrivals->report())->toBeInstanceOf(ArrivalsReport::class);
@@ -459,4 +466,21 @@ test('the arrivals rows cost the same number of queries however many bookings fi
     }
 
     expect($many)->toBe($few)->and($few)->toBeLessThanOrEqual(16);
+});
+
+test('with Transfers on, Pick-up and Drop-off show the road transfers of the room, and are hidden by default', function () {
+    [, $property] = reportSetup();
+    Feature::for($property)->activate(Transfers::class);
+    $unit = arrivingUnit($property);
+    $place = fn (string $where, bool $out = false): TransferRoute => TransferRoute::factory()->for($property)->when($out, fn ($factory) => $factory->out())->create(['place' => $where]);
+    UnitTransfer::factory()->create(['property_id' => $property->id, 'reservation_unit_id' => $unit->id, 'transfer_route_id' => $place('Sandakan Airport')->id, 'pickup_time' => '10:30', 'flight_number' => 'AK 6231', 'mode' => TransferMode::Shared]);
+    UnitTransfer::factory()->create(['property_id' => $property->id, 'reservation_unit_id' => $unit->id, 'direction' => TransferDirection::Out, 'transfer_route_id' => $place('Sepilok jetty', true)->id, 'pickup_time' => '08:00', 'flight_number' => null, 'mode' => TransferMode::Included]);
+    arrivingUnit($property);
+
+    $rows = app(ArrivalsReport::class)->rows($property, new ReportFilters('2026-10-10', '2026-10-10'));
+    $cells = collect($rows)->keyBy('key');
+
+    expect($cells[$unit->id]->cells())->toMatchArray(['pick_up' => '10:30 · Sandakan Airport · AK 6231 · Shared', 'drop_off' => '08:00 · Sepilok jetty · In package'])
+        ->and(collect($rows)->reject(fn ($row) => $row->key === $unit->id)->first()->cells())->toMatchArray(['pick_up' => '', 'drop_off' => ''])
+        ->and(collect(ReportKey::Arrivals->columns())->whereIn('key', ['pick_up', 'drop_off'])->every(fn ($column) => ! $column->defaultVisible && $column->feature === Transfers::class))->toBeTrue();
 });

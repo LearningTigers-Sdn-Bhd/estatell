@@ -21,6 +21,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\RemarkKind;
 use App\Enums\SellUnit;
 use App\Features\Boats;
+use App\Features\Transfers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\BoatSeatsRequest;
 use App\Http\Requests\Reservations\DayUseOffersRequest;
@@ -55,6 +56,7 @@ use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\WalkInOutcome;
+use App\Services\Transfers\ReservationTransfers;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -426,6 +428,7 @@ class ReservationBookingController extends Controller
             'hasDayUse' => $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->exists(),
             'hasBoats' => Feature::for($property)->active(Boats::class),
             'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],
+            'transferRoutes' => Feature::for($property)->active(Transfers::class) ? app(ReservationTransfers::class)->routes($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => CurrencyData::forProperty($property),
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),

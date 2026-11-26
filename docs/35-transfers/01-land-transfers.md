@@ -105,6 +105,16 @@ Double · 104    Transfer out   Not set                                         
 
 Changing the vehicle or driver does not touch the charge.
 
+## Booking form
+
+Added 2026-11-26 (Tanini). The staff booking form (New booking and Walk-in, not past stays) and the [company portal](../23-company-portal/01-company-portal.md#booking) show **Transfer in** and **Transfer out** under the boats while the feature is on and the property has an available route (`transferRoutes` prop, `ReservationTransfers::routes()`).
+
+- One select per direction: **No transfer**, then each route with each type, "Airport to Kopi Lane · Shared", with what it adds as the second line (`transfer-picks.ts`, `transfer-pick-field.tsx` in `components/pms`, shared by both forms). A pick shows **Pick-up**, **Flight** and **Bags**.
+- Pick-up starts at the arrival time less the route's drive (Transfer in) or the departure time (Transfer out). The portal has no stay time, so the agent types it.
+- The request sends `transfer_in` and `transfer_out` (`TransferPickRules`: the Transfers tab rules). They are ignored while the feature is off, and refused on a day use booking.
+- `CreateBooking` runs `SetUnitTransfer` on **every overnight unit**, after the rooms are assigned, in the booking's transaction. A refusal rolls the whole booking back and shows on the field (`BookingResult::transferDirection`, `BookingErrorKeys`); the portal shows it as a form error (`PortalBookingMessages`).
+- With more than one room, a **Private** pick is charged for each room, as on the Transfers tab. The form says so. To share one private van, set it on one room on the Transfers tab after saving.
+
 ## Run sheet
 
 **Front desk › Transfers** (`transfers.index`, `reservations.view`, icon `bus`): one date (`?date=`, default the business date) with every transfer of open units on it, sorted by pick-up time.
@@ -131,7 +141,7 @@ The run sheet for the drivers, as a file. It is **not a page**: staff export it 
 - **Sections:** one per vehicle and driver, in the order of their first pick-up, titled "Van 1 · SA 1234 B · Ali" ("Vehicle not set" or "Driver not set" for a missing half). Transfers with neither set come last in **Vehicle and driver not set** (warning tone). Each subtotal reads "2 transfers · 7 pax". The PDF prints each section as its own table; the spreadsheet is flat.
 - The total row sums adults, children, pax and bags.
 - **Emergency phones** (added 2026-11-25, Tanini's "emergency contact"): the PDF prints "In an emergency, call: Duty manager +60 12 111 2222 · Emergency 999" under the title, from the duty manager and emergency phones in the hotel information settings (`HasNote`). Nothing prints when neither is set. No guest emergency contact is stored.
-- **Guests:** Lead guest and Phone are the unit's primary guest, else its first guest, else the booker (the Boat manifest rule). They are empty for a user without `guests.view`, as on the run sheet.
+- **Guests:** Lead guest and Phone are the unit's primary guest, else its first guest, else the booker (the Boat manifest rule). **Guests** (`party`, added 2026-11-26) is everyone named in the room, primary first, with the nationality code and the age on the date: "Hannah Müller (DE, 34) · Tom Lee (GB) · +1 not named" (`GuestParty`). All three are empty for a user without `guests.view`, as on the run sheet.
 
 | Column          | Key           | Default visible | Content                                                                |
 | --------------- | ------------- | --------------- | ---------------------------------------------------------------------- |
@@ -142,6 +152,7 @@ The run sheet for the drivers, as a file. It is **not a page**: staff export it 
 | Room            | `unit`        | Yes             | Room number or bed (first night for In, last night for Out), else type |
 | Lead guest      | `lead_guest`  | Yes             | See Guests above                                                       |
 | Phone           | `phone`       | Yes             | The lead guest's phone                                                 |
+| Guests          | `party`       | Yes             | Everyone in the room, with nationality and age (see Guests above)      |
 | Adults          | `adults`      | No              |                                                                        |
 | Children        | `children`    | No              |                                                                        |
 | Pax             | `total`       | Yes             | Adults + children                                                      |
@@ -182,5 +193,4 @@ A route, vehicle, driver, unit or transfer of another property is a 404.
 
 ## Not built yet
 
-- Transfers on the booking form and the company portal (set them on the reservation page after booking).
 - Subcontractor payables.

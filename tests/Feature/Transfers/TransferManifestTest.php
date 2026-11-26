@@ -6,9 +6,11 @@ use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
+use App\Models\Guest;
 use App\Models\ReservationUnit;
 use App\Models\TransferDriver;
 use App\Models\TransferVehicle;
+use App\Models\UnitGuest;
 use App\Models\UnitTransfer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -184,4 +186,27 @@ test('the manifest prints the bags with their total, and the lodge\'s duty and e
 
     $csv = $this->post(transferManifestUrl($fixture, 'spreadsheet'), ['date' => '2026-10-20', 'format' => 'csv'])->assertOk();
     expect(file_get_contents($csv->getFile()->getPathname()))->toContain('Bags');
+});
+
+test('the manifest names the room\'s guests with nationality and age for guests.view, and counts the ones not named', function () {
+    $fixture = transferManifestFixture();
+    $property = $fixture['property'];
+    $lead = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Hannah Müller', 'nationality_code' => 'DE', 'date_of_birth' => '1990-10-21']);
+    $friend = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Tom Lee', 'nationality_code' => 'GB', 'date_of_birth' => null]);
+    UnitGuest::factory()->create(['reservation_unit_id' => $fixture['unit']->id, 'guest_id' => $friend->id, 'is_primary' => false]);
+    UnitGuest::factory()->create(['reservation_unit_id' => $fixture['unit']->id, 'guest_id' => $lead->id, 'is_primary' => true]);
+    $desk = User::factory()->for($property)->withPermissions([PermissionEnum::ReservationsView])->create();
+    $filters = new ReportFilters(from: '2026-10-20', to: '2026-10-20');
+    setPermissionsTeamId($property->id);
+
+    $this->actingAs($fixture['owner']);
+    $rows = collect(ReportKey::TransferManifest->report()->rows($property, $filters))->keyBy('key');
+
+    expect($rows[$fixture['afternoon']->id]->party)->toBe('Hannah Müller (DE, 35) · Tom Lee (GB) · +1 not named')
+        ->and($rows[$fixture['morning']->id]->party)->toStartWith('Tan Wei Ling')
+        ->and(collect(ReportKey::TransferManifest->columns())->firstWhere('key', 'party')->defaultVisible)->toBeTrue();
+
+    $this->actingAs($desk);
+
+    expect(collect(ReportKey::TransferManifest->report()->rows($property, $filters))->firstWhere('key', $fixture['afternoon']->id)->party)->toBeNull();
 });

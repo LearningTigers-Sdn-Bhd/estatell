@@ -7,12 +7,15 @@ use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportTotals;
 use App\Enums\BoatDirection;
 use App\Enums\StayType;
+use App\Enums\TransferDirection;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
+use App\Features\Transfers;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Boats\BoatTimeLabel;
 use App\Services\Reservations\ReservationRoomBox;
+use App\Services\Transfers\TransferLabel;
 use Illuminate\Database\Eloquent\Builder;
 use Laravel\Pennant\Feature;
 
@@ -26,6 +29,7 @@ class ArrivalsReport implements HasTotals, Report
         private UnitReportRows $unitRows,
         private ReservationRoomBox $roomBox,
         private BoatTimeLabel $boatTimes,
+        private TransferLabel $transferLabel,
     ) {}
 
     /**
@@ -51,12 +55,14 @@ class ArrivalsReport implements HasTotals, Report
     public function rows(Property $property, ReportFilters $filters, ?array $rowKeys = null): array
     {
         $boats = Feature::for($property)->active(Boats::class);
+        $transfers = Feature::for($property)->active(Transfers::class);
 
         return $this->unitRows->rows(
             $this->query($property, $filters)
                 ->orderBy('arrival_date')
                 ->orderBy('arrival_time')
                 ->when($boats, fn ($query) => $query->with('boatTrips'))
+                ->when($transfers, fn ($query) => $query->with('transfers.transferRoute'))
                 ->with([
                     'reservation.creator', 'reservation.salesPerson', 'reservation.marketSegment', 'reservation.remarks',
                     'ratePlan.inclusions' => fn ($inclusions) => $inclusions->whereNotNull('meal_period_id')->with('mealPeriod'),
@@ -66,7 +72,14 @@ class ArrivalsReport implements HasTotals, Report
                 ->orderBy('id'),
             $rowKeys,
             fn (array $unitIds): array => $this->roomBox->assignmentsForUnits($unitIds),
-            fn (ReservationUnit $unit, ?string $room, array $money): ArrivalRow => ArrivalRow::fromModel($unit, $room, $money, $boats ? $this->boatTimes->forUnit($unit, BoatDirection::In) : null),
+            fn (ReservationUnit $unit, ?string $room, array $money): ArrivalRow => ArrivalRow::fromModel(
+                $unit,
+                $room,
+                $money,
+                $boats ? $this->boatTimes->forUnit($unit, BoatDirection::In) : null,
+                $transfers ? $this->transferLabel->forUnit($unit, TransferDirection::In) : null,
+                $transfers ? $this->transferLabel->forUnit($unit, TransferDirection::Out) : null,
+            ),
         );
     }
 
@@ -103,6 +116,8 @@ class ArrivalsReport implements HasTotals, Report
             'dietary_remarks' => null,
             'package_remarks' => null,
             'payment_remarks' => null,
+            'pick_up' => null,
+            'drop_off' => null,
             ...$this->unitRows->totalFigures($rows),
         ]);
     }

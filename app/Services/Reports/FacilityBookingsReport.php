@@ -15,6 +15,7 @@ use App\Models\FacilitySlotCrew;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Facilities\ActivityRunSheet;
+use App\Services\Guests\GuestParty;
 use App\Services\Reservations\ReservationRoomBox;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class FacilityBookingsReport implements HasSections, Report
 {
-    public function __construct(private ReservationRoomBox $roomBox, private ActivityRunSheet $runSheet) {}
+    public function __construct(private ReservationRoomBox $roomBox, private ActivityRunSheet $runSheet, private GuestParty $guestParty) {}
 
     /**
      * @param  list<int|string>|null  $rowKeys  Booking ids.
@@ -45,7 +46,7 @@ class FacilityBookingsReport implements HasSections, Report
             ->whereIn('facility_bookings.status', $statuses)
             ->when($filters->facilityIds !== [], fn (Builder $query) => $query->whereIn('facility_bookings.facility_id', $filters->facilityIds))
             ->when($rowKeys !== null, fn (Builder $query) => $query->whereIn('facility_bookings.id', array_map(intval(...), $rowKeys)))
-            ->with(['facility', 'folio:id,number', 'event.payerGuest', 'event.payerCompany', 'reservation.booker', 'reservation.units:id,reservation_id,status', 'reservation.remarks' => fn ($query) => $query->where('kind', RemarkKind::Dietary)])
+            ->with(['facility', 'folio:id,number', 'event.payerGuest', 'event.payerCompany', 'reservation.booker', 'reservation.units:id,reservation_id,status,adults,children', 'reservation.units.guests.guest', 'reservation.remarks' => fn ($query) => $query->where('kind', RemarkKind::Dietary)])
             ->orderBy('facility_bookings.booking_date')
             ->orderBy('facilities.position')
             ->orderBy('facility_bookings.starts_at')
@@ -129,6 +130,11 @@ class FacilityBookingsReport implements HasSections, Report
             unit: $facility->booked_by->unit($facility->capacity),
             counts: $booking->status !== FacilityBookingStatus::Cancelled,
             crew: $crew === [] ? null : implode(' · ', $crew),
+            party: $reservation === null ? null : $this->guestParty->line(
+                $reservation->units->reject(fn (ReservationUnit $unit): bool => in_array($unit->status, [UnitStatus::Cancelled, UnitStatus::NoShow], true)),
+                $booking->booking_date,
+                $reservation->booker,
+            ),
         );
     }
 }

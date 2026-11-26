@@ -5,6 +5,11 @@ import {
     NOT_SET,
     type BoatChoice,
 } from '@/components/pms/reservations/boat-trips';
+import {
+    NO_TRANSFER,
+    transferPayload,
+    type TransferChoice,
+} from '@/components/pms/transfer-picks';
 
 /** One booking line of the form: a room type and rate plan, the party, and what is picked for it. */
 export type BookingAddOn = {
@@ -88,6 +93,9 @@ export type BookingForm = {
     /** Overnight only: the Boat in and Boat out picks, applied to every line. A day use block takes none. */
     boat_in: BoatChoice;
     boat_out: BoatChoice;
+    /** Overnight only, with the Transfers feature: the road transfers, set on every room. */
+    transfer_in?: TransferChoice;
+    transfer_out?: TransferChoice;
     /** Walk-in only, with `payment.record`: the Payment section. The server answers every amount; `expected_total` is the total the rail showed. */
     collect_room_charges?: boolean;
     collect_deposit?: boolean;
@@ -462,6 +470,8 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
             departure_date: data.arrival_date,
             boat_in: null,
             boat_out: null,
+            transfer_in: null,
+            transfer_out: null,
             guests: guestsPayload(data.guests),
             lines: data.lines.map((line) => {
                 const { key: _key, ...rest } = line;
@@ -486,6 +496,8 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
             data.boat_out ?? NOT_SET,
             data.departure_time,
         ),
+        transfer_in: transferPayload(data.transfer_in ?? NO_TRANSFER),
+        transfer_out: transferPayload(data.transfer_out ?? NO_TRANSFER),
         guests: guestsPayload(data.guests),
         lines: data.lines.map((line) => {
             const isBed = roomTypeOf(line, roomTypes)?.isBed === true;

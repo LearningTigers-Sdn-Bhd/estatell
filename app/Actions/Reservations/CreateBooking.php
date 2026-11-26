@@ -5,10 +5,12 @@ namespace App\Actions\Reservations;
 use App\Actions\FrontDesk\AutoAssignBookedUnit;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Guests\UpdateGuest;
+use App\Actions\Transfers\SetUnitTransfer;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewReservationData;
 use App\Data\Reservations\UnitPickData;
+use App\Enums\StayType;
 use App\Models\Bed;
 use App\Models\Guest;
 use App\Models\Property;
@@ -28,13 +30,14 @@ class CreateBooking
         private AssignRoom $assignRoom,
         private AssignBed $assignBed,
         private AutoAssignBookedUnit $autoAssignBookedUnit,
+        private SetUnitTransfer $setUnitTransfer,
     ) {}
 
     /**
      * Save what the booking form collected, in one transaction, by running the other Actions in this order: the guest
      * tabs (`CreateGuest` or `UpdateGuest`), `CreateReservation` with its lines, `AttachGuest` for each guest who stays,
      * then `AssignRoom` or `AssignBed` for each pick, then `AutoAssignBookedUnit` for each unit left without a room or
-     * bed. It holds no rules of its own. When any step is refused, everything rolls back, including new guests and the
+     * bed, then `SetUnitTransfer` for each road transfer on each overnight unit (not for a past stay). It holds no rules of its own. When any step is refused, everything rolls back, including new guests and the
      * reference number, and the result names the step; auto-assign finding nothing free is not a refusal.
      * `$fromChannel` and `$allowPastArrival` (past and migrated stays) are passed to `CreateReservation`. A past stay is
      * not auto-assigned, and neither is a booking with `$autoAssignRooms` off (the wastays replay, which sets its own
@@ -88,10 +91,39 @@ class CreateBooking
                     }
                 }
 
+                if (! $allowPastArrival) {
+                    $this->setTransfers($actor, $data, $units);
+                }
+
                 return BookingResult::created($reservation);
             });
         } catch (BookingRefused $refused) {
             return $refused->result;
+        }
+    }
+
+    /**
+     * The road transfers of the form, on every overnight unit, through `SetUnitTransfer`, which adds the charge. A day
+     * use unit has none.
+     *
+     * @param  Collection<int, ReservationUnit>  $units
+     *
+     * @throws BookingRefused
+     */
+    private function setTransfers(?User $actor, NewBookingData $data, Collection $units): void
+    {
+        foreach ($data->transfers as $transfer) {
+            foreach ($units as $index => $unit) {
+                if ($unit->stay_type === StayType::DayUse) {
+                    continue;
+                }
+
+                $result = ($this->setUnitTransfer)($actor, $unit, $transfer);
+
+                if ($result->isRefused()) {
+                    throw new BookingRefused(BookingResult::refused((string) $result->refusal, unitIndex: $index, transferDirection: $transfer->direction->value));
+                }
+            }
         }
     }
 

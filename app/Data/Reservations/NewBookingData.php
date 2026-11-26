@@ -2,6 +2,7 @@
 
 namespace App\Data\Reservations;
 
+use App\Data\Transfers\UnitTransferInputData;
 use App\Enums\BillingMode;
 use App\Enums\CollectedTaxesPayer;
 use App\Models\BookingSource;
@@ -20,6 +21,7 @@ class NewBookingData extends Data
      * @param  list<NewBookingGuestData>  $guests
      * @param  list<UnitPickData>  $picks
      * @param  array<string, string>  $remarks  The remark of each `RemarkKind` value that has one.
+     * @param  list<UnitTransferInputData>  $transfers  The road transfer in and out, set on every overnight unit.
      */
     public function __construct(
         #[LiteralTypeScriptType('{ id: number, name: string }')]
@@ -38,5 +40,6 @@ class NewBookingData extends Data
         public ?int $marketSegmentId = null,
         #[LiteralTypeScriptType('Partial<Record<App.Enums.RemarkKind, string>>')]
         public array $remarks = [],
+        public array $transfers = [],
     ) {}
 }

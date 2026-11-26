@@ -7,16 +7,19 @@ use App\Enums\FacilityRateBasis;
 use App\Enums\PermissionEnum;
 use App\Enums\RemarkKind;
 use App\Enums\ReportKey;
+use App\Enums\UnitStatus;
 use App\Features\Facilities;
 use App\Models\Event;
 use App\Models\Facility;
 use App\Models\FacilityBooking;
 use App\Models\Folio;
+use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationRemark;
 use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -143,8 +146,9 @@ test('the spreadsheet keeps the date column and the filters', function () {
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
     expect($rows)->toHaveCount(2)
-        ->and($rows[0])->toBe(['Date', 'Time', 'Facility', 'Guest / event', 'Room / no.', 'Qty', 'Status', 'Dietary remarks'])
-        ->and($rows[1])->toBe(['2026-10-15', '20:00–22:00', 'Night Walk', $setup['reservation']->booker->full_name, '12', '2', 'Confirmed', '']);
+        ->and($rows[0])->toBe(['Date', 'Time', 'Facility', 'Guest / event', 'Guests', 'Room / no.', 'Qty', 'Status', 'Dietary remarks', 'Phone'])
+        ->and([...array_slice($rows[1], 0, 4), ...array_slice($rows[1], 5, 4)])->toBe(['2026-10-15', '20:00–22:00', 'Night Walk', $setup['reservation']->booker->full_name, '12', '2', 'Confirmed', ''])
+        ->and($rows[1][4])->toStartWith($setup['reservation']->booker->full_name);
 });
 
 test('a guest\'s dietary remark shows on the participant list, and an event has none', function () {
@@ -159,4 +163,23 @@ test('a guest\'s dietary remark shows on the participant list, and an event has 
     expect($rows[$guest->id]->cells()['dietary'])->toBe('Vegetarian, no nuts')
         ->and($rows[$group->id]->cells()['dietary'])->toBe('')
         ->and(collect(ReportKey::FacilityBookings->columns())->firstWhere('key', 'dietary')->defaultVisible)->toBeTrue();
+});
+
+test('the participant list names everyone in the booking\'s live rooms, with nationality and age, and counts the rest', function () {
+    $setup = facilityReportSetup();
+    $unit = $setup['reservation']->units()->sole();
+    $unit->update(['adults' => 2, 'children' => 1]);
+    $lead = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Hannah Müller', 'nationality_code' => 'DE', 'date_of_birth' => '1992-03-01']);
+    $child = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Mia Müller', 'nationality_code' => 'DE', 'date_of_birth' => '2018-11-20']);
+    UnitGuest::factory()->create(['reservation_unit_id' => $unit->id, 'guest_id' => $child->id, 'is_primary' => false]);
+    UnitGuest::factory()->create(['reservation_unit_id' => $unit->id, 'guest_id' => $lead->id, 'is_primary' => true]);
+    $cancelled = ReservationUnit::factory()->for($setup['reservation'])->create(['status' => UnitStatus::Cancelled, 'adults' => 4, 'arrival_date' => '2026-10-14', 'departure_date' => '2026-10-16']);
+    UnitGuest::factory()->create(['reservation_unit_id' => $cancelled->id, 'guest_id' => Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Gone Guest'])->id]);
+    $guest = facilityReportBooking($setup, $setup['walk'], false, ['quantity' => 3]);
+    $group = facilityReportBooking($setup, $setup['walk'], true);
+
+    $rows = collect(ReportKey::FacilityBookings->report()->rows($setup['property'], new ReportFilters('2026-10-15', '2026-10-15')))->keyBy('key');
+
+    expect($rows[$guest->id]->cells()['party'])->toBe('Hannah Müller (DE, 34) · Mia Müller (DE, 7) · +1 not named')
+        ->and($rows[$group->id]->cells()['party'])->toBe('');
 });

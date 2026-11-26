@@ -67,17 +67,25 @@ class ReservationTransfers
 
         return [
             'transferRows' => $rows,
-            'transferRoutes' => $canManage
-                ? array_values(TransferRoute::query()
-                    ->where('property_id', $property->id)
-                    ->where('active', true)
-                    ->with(['sharedChargeItem', 'privateChargeItem'])
-                    ->orderBy('name')
-                    ->get()
-                    ->map(fn (TransferRoute $route): TransferRouteData => TransferRouteData::fromModel($route))
-                    ->all())
-                : [],
+            'transferRoutes' => $canManage ? $this->routes($property) : [],
             'transferModes' => TransferMode::options(),
         ];
+    }
+
+    /**
+     * The available routes of the property with their prices, by name, for the Transfers tab and the booking form.
+     *
+     * @return list<TransferRouteData>
+     */
+    public function routes(Property $property): array
+    {
+        return array_values(TransferRoute::query()
+            ->where('property_id', $property->id)
+            ->where('active', true)
+            ->with(['sharedChargeItem', 'privateChargeItem'])
+            ->orderBy('name')
+            ->get()
+            ->map(fn (TransferRoute $route): TransferRouteData => TransferRouteData::fromModel($route))
+            ->all());
     }
 }

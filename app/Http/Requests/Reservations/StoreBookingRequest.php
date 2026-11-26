@@ -9,6 +9,7 @@ use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Data\Reservations\UnitPickData;
+use App\Data\Transfers\UnitTransferInputData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
@@ -17,8 +18,10 @@ use App\Enums\IdentityDocumentType;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
+use App\Features\Transfers;
 use App\Http\Requests\Concerns\ValidatesRemarks;
 use App\Http\Requests\Guests\GuestProfileRules;
+use App\Http\Requests\Transfers\TransferPickRules;
 use App\Models\Bed;
 use App\Models\BookingSource;
 use App\Models\Guest;
@@ -31,6 +34,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Laravel\Pennant\Feature;
 use LogicException;
 
 class StoreBookingRequest extends FormRequest
@@ -92,6 +96,7 @@ class StoreBookingRequest extends FormRequest
             'boat_out.boat_departure_id' => ['required_if:boat_out.mode,'.BoatMode::Scheduled->value, 'nullable', 'integer'],
             'boat_out.time' => ['nullable', 'date_format:H:i'],
             'boat_out.note' => ['nullable', 'string', 'max:255'],
+            ...TransferPickRules::rules(),
             'group_name' => ['nullable', 'string', 'max:150'],
             'company_id' => ['nullable', 'integer'],
             'sales_person_id' => ['nullable', 'integer'],
@@ -145,6 +150,7 @@ class StoreBookingRequest extends FormRequest
             'booking_source_id.integer' => __('This booking source is not available. Pick another.'),
             'booking_source_id.exists' => __('This booking source is not available. Pick another.'),
             'lines.*.override_total.regex' => __('Enter an amount such as 840.00.'),
+            ...TransferPickRules::messages(),
             'lines.*.add_ons.*.unit_amount.regex' => __('Enter an amount such as 25.00.'),
             'lines.*.child_ages.*.required' => __('Enter the age of every child.'),
             'lines.*.child_ages.*.integer' => __('Enter the age of every child.'),
@@ -286,6 +292,7 @@ class StoreBookingRequest extends FormRequest
             salesPersonId: $this->filled('sales_person_id') ? $this->integer('sales_person_id') : null,
             marketSegmentId: $this->filled('market_segment_id') ? $this->integer('market_segment_id') : null,
             remarks: $this->remarks(),
+            transfers: $isDayUse ? [] : $this->transfers(),
         );
     }
 
@@ -376,6 +383,20 @@ class StoreBookingRequest extends FormRequest
         }
 
         return $trips;
+    }
+
+    /**
+     * The Transfer in and Transfer out of the form, for every overnight unit. Empty while the Transfers feature is off.
+     *
+     * @return list<UnitTransferInputData>
+     */
+    private function transfers(): array
+    {
+        if (! Feature::for($this->property())->active(Transfers::class)) {
+            return [];
+        }
+
+        return TransferPickRules::inputs($this->validated());
     }
 
     /**

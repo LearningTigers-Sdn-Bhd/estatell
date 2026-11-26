@@ -76,6 +76,8 @@ import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
 import { announceFormError, FormError } from '@/components/pms/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
 import { BookingBoatSelect } from '@/components/pms/reservations/booking-boat-select';
+import { TransferPickField } from '@/components/pms/transfer-pick-field';
+import { NO_TRANSFER } from '@/components/pms/transfer-picks';
 import {
     departuresFor,
     isScheduled,
@@ -224,6 +226,8 @@ type Props = {
     hasBoats: boolean;
     /** The available boat departures, both directions. Each pick filters them by direction. */
     boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
+    /** The available road transfer routes, both directions; empty while the Transfers feature is off. */
+    transferRoutes: App.Data.Transfers.TransferRouteData[];
     countries: EnumOption[];
     /** The property's country code: the nationality a new guest starts with. */
     defaultNationalityCode: string;
@@ -298,6 +302,7 @@ export default function ReservationCreate({
     hasDayUse,
     hasBoats,
     boatDepartures,
+    transferRoutes,
     countries,
     defaultNationalityCode,
     genders,
@@ -359,6 +364,8 @@ export default function ReservationCreate({
         lines: [prefilledLine()],
         boat_in: NOT_SET,
         boat_out: NOT_SET,
+        transfer_in: NO_TRANSFER,
+        transfer_out: NO_TRANSFER,
         without_card: false,
         collect_room_charges: true,
         collect_deposit: true,
@@ -1570,6 +1577,52 @@ export default function ReservationCreate({
                                             />
                                         </div>
                                     )}
+                                    {!isDayUse &&
+                                        transferRoutes.length > 0 &&
+                                        !isPastStay && (
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <TransferPickField
+                                                    id="booking-transfer-in"
+                                                    direction="in"
+                                                    value={
+                                                        data.transfer_in ??
+                                                        NO_TRANSFER
+                                                    }
+                                                    onChange={(choice) =>
+                                                        form.setData(
+                                                            'transfer_in',
+                                                            choice,
+                                                        )
+                                                    }
+                                                    routes={transferRoutes}
+                                                    currency={currency}
+                                                    stayTime={data.arrival_time}
+                                                    rooms={units}
+                                                    errors={errors}
+                                                />
+                                                <TransferPickField
+                                                    id="booking-transfer-out"
+                                                    direction="out"
+                                                    value={
+                                                        data.transfer_out ??
+                                                        NO_TRANSFER
+                                                    }
+                                                    onChange={(choice) =>
+                                                        form.setData(
+                                                            'transfer_out',
+                                                            choice,
+                                                        )
+                                                    }
+                                                    routes={transferRoutes}
+                                                    currency={currency}
+                                                    stayTime={
+                                                        data.departure_time
+                                                    }
+                                                    rooms={units}
+                                                    errors={errors}
+                                                />
+                                            </div>
+                                        )}
                                     <div
                                         className={cn(
                                             'grid gap-4 sm:grid-cols-2',
