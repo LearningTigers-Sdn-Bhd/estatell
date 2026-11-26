@@ -64,7 +64,7 @@ class GroupReports
         }
 
         $rows = $tab === GroupReportTab::ByProperty
-            ? $this->byProperty($visible, $rowsByProperty, $oneCurrency)
+            ? $this->byProperty($visible, $rowsByProperty)
             : $this->byDate($rowsByProperty, $oneCurrency);
         $all = array_merge(...array_values($rowsByProperty));
 
@@ -79,7 +79,7 @@ class GroupReports
      * @param  array<int, list<HistoryForecastRow>>  $rowsByProperty
      * @return list<GroupFiguresRowData>
      */
-    private function byProperty(Collection $properties, array $rowsByProperty, bool $oneCurrency): array
+    private function byProperty(Collection $properties, array $rowsByProperty): array
     {
         return array_values($properties
             ->map(fn (Property $property): GroupFiguresRowData => $this->combine($property->name, $property->code, $rowsByProperty[$property->id], true))

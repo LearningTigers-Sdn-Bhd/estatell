@@ -58,11 +58,22 @@ class GroupPropertyReports
         $layout = array_values(array_map(fn (ReportColumn $column): ReportLayoutColumnData => ReportLayoutColumnData::fromColumn($column, true), $columns));
         $filters = $key->groups() === [] ? $filters : new ReportFilters($filters->from, $filters->to, group: $filters->group ?? $key->groups()[0]);
 
+        $rowsByProperty = [];
+        $openableUnitIds = [];
+
         foreach ($offered as $property) {
-            $reportRows = $key->report()->rows($property, $filters);
+            $rowsByProperty[$property->id] = $key->report()->rows($property, $filters);
+
+            if (in_array($key, self::BOOKING_ROWS, true) && in_array(PermissionEnum::ReservationsView->value, $permissions[$property->id] ?? [], true)) {
+                $openableUnitIds = [...$openableUnitIds, ...array_map(fn (ReportRow $row): int => (int) $row->key, $rowsByProperty[$property->id])];
+            }
+        }
+
+        $reservations = $this->reservationsOfUnits($openableUnitIds);
+
+        foreach ($offered as $property) {
+            $reportRows = $rowsByProperty[$property->id];
             $allReportRows = [...$allReportRows, ...$reportRows];
-            $canOpen = in_array($key, self::BOOKING_ROWS, true) && in_array(PermissionEnum::ReservationsView->value, $permissions[$property->id] ?? [], true);
-            $reservations = $canOpen ? $this->reservationsOfUnits(array_map(fn (ReportRow $row): int => (int) $row->key, $reportRows)) : [];
 
             foreach ($reportRows as $row) {
                 $rows[] = new GroupReportRowData($property->code, $property->name, $this->cells($row, $layout), reservationId: $reservations[(int) $row->key] ?? null);
@@ -102,7 +113,8 @@ class GroupPropertyReports
     }
 
     /**
-     * The reservation of each unit, in one read, for the rows of a front desk list.
+     * The reservation of each unit, in one read for every property, for the rows of a front desk list. Only units of
+     * properties whose role may view reservations are asked for, so a row elsewhere does not open the panel.
      *
      * @param  list<int>  $unitIds
      * @return array<int, int> Reservation id by unit id.
