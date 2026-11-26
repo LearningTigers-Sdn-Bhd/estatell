@@ -32,6 +32,11 @@ test('the group timeline shows every property whose role shows the front desk, f
     $this->actingAs($setup['frontDesk'])->get($url)
         ->assertInertia(fn (Assert $page) => $page->has('properties', 2));
     $this->get($url.'?from=2026-10-01&to=2026-11-30')->assertSessionHasErrors('to');
+
+    $this->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('from', '2026-10-14')
+        ->where('to', '2026-10-27')
+        ->where('today', '2026-10-14'));
 });
 
 test('the group timeline costs the same queries however many stays the properties have', function () {

@@ -65,11 +65,11 @@ Each property counts on its own business date, as its own dashboard does. Querie
 
 ## Group timeline
 
-`GET /g/{group}/timeline` (`group.timeline`), Group › Timeline View. It takes the same `from` and `to` as a property's Timeline View (`StayViewTimelineRequest`: 31 at most). With no dates it opens on this whole month and shows those dates for every property whose role shows the front desk (`front-desk.view`), one card each, by name.
+`GET /g/{group}/timeline` (`group.timeline`), Group › Timeline View. It takes the same `from` and `to` as a property's Timeline View (`StayViewTimelineRequest`: 31 at most). With no dates it opens on today and the next 13 days (since 2026-11-26; this whole month before) and shows those dates for every property whose role shows the front desk (`front-desk.view`), one card each, by name.
 
-- **Month / 2 weeks** (decided 2026-11-24; Month is the default): Month shows the whole calendar month (up to 31 nights; earlier and later move a month), 2 weeks the 14 nights from the first date. The grid is **compact** in group mode (`density="compact"`: 36pt rows, 44px nights, a narrower room column), and a night that narrow heads with the weekday's letter and the day only. The property's own Timeline View keeps its size.
+- **2 weeks / Month** (2 weeks is the default since 2026-11-26): 2 weeks is the 14 nights from today (from the month's first day when the month shown does not hold today), and its nights **stretch to the card's width** (`columnWidth` on the grid, at least 64px), so the guest names on the bars show in full. Month shows the whole calendar month (up to 31 nights; earlier and later move a month) **compact** (`density="compact"`: 36pt rows, 44px nights, a narrower room column), where a night heads with the weekday's letter and the day only. The property's own Timeline View keeps its size.
 - Each card is the property's own Timeline View grid (`StayViewQuery` without rates, grouped by room type), read only: no dragging, resizing, blocking or new bookings. **Open Timeline View** opens the property's own view for the same dates, where every change happens.
-- Clicking a stay opens its booking in its property (`/p/{code}/reservations/{id}`), when the role there may view reservations.
+- Clicking a stay opens the [reservation panel](#reservation-panel) when the role there may view reservations; the panel links into the property.
 - Earlier and later move the whole window. Queries grow with the number of properties, never with stays (tested).
 
 ## Group reports

@@ -102,6 +102,7 @@ export function StayViewTimeline({
     onBlockRoom,
     corner,
     density = 'default',
+    columnWidth,
 }: {
     gridRef: Ref<DateGridHandle>;
     window: App.Data.StayView.StayViewWindowData;
@@ -135,13 +136,15 @@ export function StayViewTimeline({
     corner?: ReactNode;
     /** Compact rows and narrow nights, to see a month at once. */
     density?: keyof typeof SIZES;
+    /** A night's width in pixels in place of the density's, for a view fitted to the screen (the group 2 weeks). */
+    columnWidth?: number;
 }) {
     const {
         rowHeight: ROW_HEIGHT,
         labelWidth: LABEL_WIDTH,
-        columnWidth: COLUMN_WIDTH,
         groupHeight: GROUP_HEIGHT,
     } = SIZES[density];
+    const COLUMN_WIDTH = columnWidth ?? SIZES[density].columnWidth;
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
     const [hoveredReservation, setHoveredReservation] = useState<number | null>(
         null,

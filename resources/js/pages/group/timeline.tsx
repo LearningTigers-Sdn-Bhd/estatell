@@ -3,6 +3,10 @@ import { ChevronLeft, ChevronRight, ExternalLink, Info } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { formatDate } from '@/components/pms/date-text';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
+import {
+    ReservationPeekSheet,
+    type PeekTarget,
+} from '@/components/pms/group/reservation-peek-sheet';
 import { StayViewTimeline } from '@/components/pms/stay-view/stay-view-timeline';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -19,13 +23,13 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useElementWidth } from '@/hooks/use-element-width';
 import { useInitials } from '@/hooks/use-initials';
 import { timeline as propertyTimeline } from '@/routes/front-desk';
 import {
     dashboard as groupDashboard,
     timeline as groupTimeline,
 } from '@/routes/group';
-import { show } from '@/routes/reservations';
 
 type Block = App.Data.Group.GroupTimelinePropertyData;
 type Group = { id: number; name: string };
@@ -46,6 +50,10 @@ function addDays(date: string, days: number): string {
 
     return value.toISOString().slice(0, 10);
 }
+
+/** The compact Timeline View's label column, and the narrowest night of a stretched view. */
+const COMPACT_LABEL_WIDTH = 176;
+const MIN_WIDE_COLUMN = 64;
 
 /** The first and last day of the month that holds the date. */
 function monthOf(date: string): { from: string; to: string } {
@@ -82,22 +90,40 @@ function length(from: string, to: string): number {
  * One property's Timeline View, read only: bars open the booking in the property when the role there allows, and
  * every change happens in the property's own Timeline View.
  */
-function PropertyTimeline({ block }: { block: Block }) {
+function PropertyTimeline({
+    block,
+    days,
+    isMonth,
+    onPeek,
+}: {
+    block: Block;
+    days: number;
+    isMonth: boolean;
+    onPeek: (target: PeekTarget) => void;
+}) {
     const gridRef = useRef<DateGridHandle>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const width = useElementWidth(contentRef);
     const getInitials = useInitials();
     const { property } = block;
     const height = Math.min(Math.max(block.rooms.length, 3) * 36 + 96, 520);
+    // The month is compact; a shorter range stretches its nights across the card, so the names on the bars show.
+    const columnWidth =
+        isMonth || width === 0
+            ? undefined
+            : Math.max(
+                  MIN_WIDE_COLUMN,
+                  Math.floor((width - COMPACT_LABEL_WIDTH) / days),
+              );
 
     const openStay = (unitId: number) => {
         const stay = block.stays.find((item) => item.unitId === unitId);
 
         if (stay && block.canViewReservations) {
-            router.visit(
-                show.url({
-                    property: property.code,
-                    reservation: stay.reservationId,
-                }),
-            );
+            onPeek({
+                propertyCode: property.code,
+                reservationId: stay.reservationId,
+            });
         }
     };
 
@@ -151,6 +177,7 @@ function PropertyTimeline({ block }: { block: Block }) {
                 </CardAction>
             </CardHeader>
             <CardContent
+                ref={contentRef}
                 className="relative flex flex-col p-0"
                 style={{ height }}
             >
@@ -183,6 +210,7 @@ function PropertyTimeline({ block }: { block: Block }) {
                         onOpenStay={openStay}
                         onBlockRoom={() => undefined}
                         density="compact"
+                        columnWidth={columnWidth}
                     />
                 )}
             </CardContent>
@@ -194,14 +222,17 @@ export default function GroupTimeline({
     group,
     from,
     to,
+    today,
     properties,
 }: {
     group: Group;
     from: string;
     to: string;
+    today: string;
     properties: Block[];
 }) {
     const [loading, setLoading] = useState(false);
+    const [peek, setPeek] = useState<PeekTarget>(null);
     const days = length(from, to);
     const month = monthOf(from);
     const isMonth = from === month.from && to === month.to;
@@ -266,7 +297,11 @@ export default function GroupTimeline({
                             if (value[0] === 'month' && !isMonth) {
                                 visit(month.from, month.to);
                             } else if (value[0] === 'weeks' && isMonth) {
-                                visit(from, addDays(from, 13));
+                                // From today when the month holds it, else from the month's first day.
+                                const start =
+                                    today >= from && today <= to ? today : from;
+
+                                visit(start, addDays(start, 13));
                             }
                         }}
                         variant="outline"
@@ -288,10 +323,18 @@ export default function GroupTimeline({
                         <PropertyTimeline
                             key={block.property.code}
                             block={block}
+                            days={days}
+                            isMonth={isMonth}
+                            onPeek={setPeek}
                         />
                     ))
                 )}
             </div>
+            <ReservationPeekSheet
+                groupId={group.id}
+                target={peek}
+                onClose={() => setPeek(null)}
+            />
         </>
     );
 }
