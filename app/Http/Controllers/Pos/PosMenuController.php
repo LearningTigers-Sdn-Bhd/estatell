@@ -85,23 +85,7 @@ class PosMenuController extends Controller
                     'dailySharedStockReset' => $item->daily_shared_stock_reset,
                     'sortOrder' => $item->sort_order,
                     'active' => $item->active,
-                    'variants' => $item->variants->map(fn (PosItemVariant $variant): array => [
-                        'id' => $variant->id,
-                        'name' => $variant->name,
-                        'pricingType' => $variant->pricing_type->value,
-                        'price' => $variant->price,
-                        'cost' => $variant->cost,
-                        'sku' => $variant->sku,
-                        'barcode' => $variant->barcode,
-                        'active' => $variant->active,
-                        'outletItems' => $variant->outletItems->map(fn (PosOutletItem $row): array => [
-                            'outletId' => $row->pos_outlet_id,
-                            'availability' => $row->availability->value,
-                            'priceOverride' => $row->price_override,
-                            'stockCountdown' => $row->stock_countdown,
-                            'dailyStockReset' => $row->daily_stock_reset,
-                        ])->values()->all(),
-                    ])->all(),
+                    'variants' => $this->variants($item),
                 ])->values()->all(),
             ])->values()->all(),
             'transactionCodes' => TransactionCode::query()->where('property_id', $property->id)->where('kind', TransactionKind::Charge->value)->orderBy('name')->get(['id', 'name'])->map(fn (TransactionCode $code): array => ['value' => (string) $code->id, 'label' => $code->name])->all(),
@@ -200,6 +184,32 @@ class PosMenuController extends Controller
         $this->toast($second->refusal, __('Outlet override saved.'));
 
         return back();
+    }
+
+    /**
+     * The variants of a menu item, each with its per-outlet availability, price and stock.
+     *
+     * @return array<int, array{id: int, name: string, pricingType: string, price: string, cost: string|null, sku: string|null, barcode: string|null, active: bool, outletItems: array<int, array{outletId: int, availability: string, priceOverride: string|null, stockCountdown: int|null, dailyStockReset: int|null}>}>
+     */
+    private function variants(PosItem $item): array
+    {
+        return $item->variants->map(fn (PosItemVariant $variant): array => [
+            'id' => $variant->id,
+            'name' => $variant->name,
+            'pricingType' => $variant->pricing_type->value,
+            'price' => $variant->price,
+            'cost' => $variant->cost,
+            'sku' => $variant->sku,
+            'barcode' => $variant->barcode,
+            'active' => $variant->active,
+            'outletItems' => $variant->outletItems->map(fn (PosOutletItem $row): array => [
+                'outletId' => $row->pos_outlet_id,
+                'availability' => $row->availability->value,
+                'priceOverride' => $row->price_override,
+                'stockCountdown' => $row->stock_countdown,
+                'dailyStockReset' => $row->daily_stock_reset,
+            ])->values()->all(),
+        ])->all();
     }
 
     private function category(SavePosCategoryRequest $request): PosCategoryInputData
