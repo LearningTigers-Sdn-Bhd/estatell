@@ -76,6 +76,7 @@ export function PosModifierGroupForm({
             onOpenChange={(value) => !value && onClose()}
             title={row ? 'Edit modifier group' : 'Add modifier group'}
             errors={form.errors}
+            dirty={form.isDirty}
             processing={form.processing}
             submitLabel="Save group"
             onSubmit={() => {
@@ -107,6 +108,7 @@ export function PosModifierGroupForm({
                     onChange={(event) =>
                         form.setData('name', event.target.value)
                     }
+                    aria-invalid={!!form.errors.name}
                     autoFocus
                 />
                 <FieldError>{form.errors.name}</FieldError>
@@ -244,27 +246,28 @@ export function PosModifierGroupForm({
                         )}
                     </div>
                 ))}
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="self-start"
-                    onClick={() =>
-                        form.setData('options', [
-                            ...form.data.options,
-                            {
-                                id: null,
-                                name: '',
-                                priceDelta: '0.00',
-                                active: true,
-                                availability: 'all',
-                            },
-                        ])
-                    }
-                >
-                    <Plus data-icon="inline-start" />
-                    Add choice
-                </Button>
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                            form.setData('options', [
+                                ...form.data.options,
+                                {
+                                    id: null,
+                                    name: '',
+                                    priceDelta: '0.00',
+                                    active: true,
+                                    availability: 'all',
+                                },
+                            ])
+                        }
+                    >
+                        <Plus data-icon="inline-start" />
+                        Add choice
+                    </Button>
+                </div>
             </div>
         </FormOverlay>
     );

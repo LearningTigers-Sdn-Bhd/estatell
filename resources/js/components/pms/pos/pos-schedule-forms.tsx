@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -42,14 +42,16 @@ export type ComboRow = {
 
 export type ComboVariantOption = EnumOption & { itemId?: number };
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+export const SCHEDULE_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function scheduleDaysLabel(mask: number): string {
     if (mask === 127) {
         return 'Every day';
     }
 
-    return DAYS.filter((_, index) => (mask & (1 << index)) !== 0).join(', ');
+    return SCHEDULE_DAYS.filter((_, index) => (mask & (1 << index)) !== 0).join(
+        ', ',
+    );
 }
 
 export function PosScheduleForm({
@@ -96,8 +98,9 @@ export function PosScheduleForm({
             title={row === null ? 'Add schedule' : 'Edit schedule'}
             description="Items named here are sold only inside this window. Items no schedule names are always on sale."
             errors={form.errors}
+            dirty={form.isDirty}
             processing={form.processing}
-            submitLabel="Save"
+            submitLabel="Save schedule"
             onSubmit={() => {
                 form.transform((data) => ({
                     ...data,
@@ -127,6 +130,8 @@ export function PosScheduleForm({
                     onChange={(event) =>
                         form.setData('name', event.target.value)
                     }
+                    aria-invalid={!!form.errors.name}
+                    autoFocus
                 />
                 <FieldError>{form.errors.name}</FieldError>
             </Field>
@@ -150,26 +155,28 @@ export function PosScheduleForm({
             <Field>
                 <FieldLabel>Days</FieldLabel>
                 <div className="flex flex-wrap gap-2">
-                    {DAYS.map((day, index) => (
-                        <Button
-                            key={day}
-                            type="button"
-                            size="sm"
-                            variant={
-                                (form.data.days_of_week & (1 << index)) !== 0
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            onClick={() =>
-                                form.setData(
-                                    'days_of_week',
-                                    form.data.days_of_week ^ (1 << index),
-                                )
-                            }
-                        >
-                            {day}
-                        </Button>
-                    ))}
+                    {SCHEDULE_DAYS.map((day, index) => {
+                        const active =
+                            (form.data.days_of_week & (1 << index)) !== 0;
+
+                        return (
+                            <Button
+                                key={day}
+                                type="button"
+                                size="sm"
+                                aria-pressed={active}
+                                variant={active ? 'default' : 'outline'}
+                                onClick={() =>
+                                    form.setData(
+                                        'days_of_week',
+                                        form.data.days_of_week ^ (1 << index),
+                                    )
+                                }
+                            >
+                                {day}
+                            </Button>
+                        );
+                    })}
                 </div>
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -178,6 +185,7 @@ export function PosScheduleForm({
                     <Input
                         id="schedule-start"
                         type="time"
+                        className="tabular-nums"
                         value={form.data.start_time}
                         onChange={(event) =>
                             form.setData('start_time', event.target.value)
@@ -189,6 +197,7 @@ export function PosScheduleForm({
                     <Input
                         id="schedule-end"
                         type="time"
+                        className="tabular-nums"
                         value={form.data.end_time}
                         onChange={(event) =>
                             form.setData('end_time', event.target.value)
@@ -200,6 +209,7 @@ export function PosScheduleForm({
                     <Input
                         id="schedule-from"
                         type="date"
+                        className="tabular-nums"
                         value={form.data.effective_from}
                         onChange={(event) =>
                             form.setData('effective_from', event.target.value)
@@ -211,6 +221,7 @@ export function PosScheduleForm({
                     <Input
                         id="schedule-until"
                         type="date"
+                        className="tabular-nums"
                         value={form.data.effective_until}
                         onChange={(event) =>
                             form.setData('effective_until', event.target.value)
@@ -328,166 +339,210 @@ export function PosComboForm({
                 });
             }}
         >
-            {form.data.slots.map((slot, index) => (
-                <div
-                    key={index}
-                    className="flex flex-col gap-3 rounded-lg border p-3"
-                >
-                    <div className="flex flex-wrap items-end gap-3">
-                        <Field className="w-56">
-                            <FieldLabel htmlFor={`combo-part-${index}`}>
-                                Part name
-                            </FieldLabel>
-                            <Input
-                                id={`combo-part-${index}`}
-                                value={slot.name}
-                                onChange={(event) =>
-                                    setSlot(index, { name: event.target.value })
-                                }
-                            />
-                        </Field>
-                        <Field className="w-20">
-                            <FieldLabel htmlFor={`combo-min-${index}`}>
-                                Min
-                            </FieldLabel>
-                            <Input
-                                id={`combo-min-${index}`}
-                                type="number"
-                                min={0}
-                                value={slot.min}
-                                onChange={(event) =>
-                                    setSlot(index, { min: event.target.value })
-                                }
-                            />
-                        </Field>
-                        <Field className="w-20">
-                            <FieldLabel htmlFor={`combo-max-${index}`}>
-                                Max
-                            </FieldLabel>
-                            <Input
-                                id={`combo-max-${index}`}
-                                type="number"
-                                min={1}
-                                value={slot.max}
-                                onChange={(event) =>
-                                    setSlot(index, { max: event.target.value })
-                                }
-                            />
-                        </Field>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() =>
-                                form.setData(
-                                    'slots',
-                                    form.data.slots.filter(
-                                        (_, at) => at !== index,
-                                    ),
-                                )
-                            }
-                        >
-                            Remove part
-                        </Button>
-                    </div>
-                    {slot.options.map((option, optionIndex) => (
-                        <div
-                            key={optionIndex}
-                            className="flex flex-wrap items-end gap-3"
-                        >
-                            <Field className="min-w-52">
-                                <FieldLabel
-                                    htmlFor={`combo-opt-${index}-${optionIndex}`}
-                                >
-                                    Option item
-                                </FieldLabel>
-                                <EnumSelect
-                                    id={`combo-opt-${index}-${optionIndex}`}
-                                    name={`slots_${index}_options_${optionIndex}`}
-                                    options={allowedVariants}
-                                    value={option.variant_id}
-                                    onValueChange={(value) =>
-                                        setSlot(index, {
-                                            options: slot.options.map(
-                                                (row, at) =>
-                                                    at === optionIndex
-                                                        ? {
-                                                              ...row,
-                                                              variant_id: value,
-                                                          }
-                                                        : row,
-                                            ),
-                                        })
-                                    }
-                                    placeholder="Pick an item"
-                                />
-                            </Field>
-                            <Field className="w-28">
-                                <FieldLabel
-                                    htmlFor={`combo-up-${index}-${optionIndex}`}
-                                >
-                                    Upcharge
-                                </FieldLabel>
-                                <Input
-                                    id={`combo-up-${index}-${optionIndex}`}
-                                    inputMode="decimal"
-                                    className="tabular-nums"
-                                    value={option.upcharge}
-                                    onChange={(event) =>
-                                        setSlot(index, {
-                                            options: slot.options.map(
-                                                (row, at) =>
-                                                    at === optionIndex
-                                                        ? {
-                                                              ...row,
-                                                              upcharge:
-                                                                  event.target
-                                                                      .value,
-                                                          }
-                                                        : row,
-                                            ),
-                                        })
-                                    }
-                                />
-                            </Field>
+            {form.data.slots.length === 0 ? (
+                <div className="rounded-lg border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
+                    No bundle parts yet for {item.label}. Add a part such as
+                    Main or Drink, or save with no parts to treat it as a
+                    regular item.
+                </div>
+            ) : (
+                form.data.slots.map((slot, index) => (
+                    <div
+                        key={index}
+                        className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-4"
+                    >
+                        <div className="flex flex-wrap items-end justify-between gap-3">
+                            <div className="flex flex-1 flex-wrap items-end gap-3">
+                                <Field className="min-w-44 flex-1">
+                                    <FieldLabel htmlFor={`combo-part-${index}`}>
+                                        Part name
+                                    </FieldLabel>
+                                    <Input
+                                        id={`combo-part-${index}`}
+                                        placeholder="e.g. Main dish"
+                                        value={slot.name}
+                                        onChange={(event) =>
+                                            setSlot(index, {
+                                                name: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </Field>
+                                <Field className="w-20">
+                                    <FieldLabel htmlFor={`combo-min-${index}`}>
+                                        Min
+                                    </FieldLabel>
+                                    <Input
+                                        id={`combo-min-${index}`}
+                                        type="number"
+                                        min={0}
+                                        className="tabular-nums"
+                                        value={slot.min}
+                                        onChange={(event) =>
+                                            setSlot(index, {
+                                                min: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </Field>
+                                <Field className="w-20">
+                                    <FieldLabel htmlFor={`combo-max-${index}`}>
+                                        Max
+                                    </FieldLabel>
+                                    <Input
+                                        id={`combo-max-${index}`}
+                                        type="number"
+                                        min={1}
+                                        className="tabular-nums"
+                                        value={slot.max}
+                                        onChange={(event) =>
+                                            setSlot(index, {
+                                                max: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </Field>
+                            </div>
                             <Button
                                 type="button"
                                 variant="ghost"
+                                size="sm"
+                                className="ml-auto max-sm:min-h-11"
+                                aria-label={`Remove part ${slot.name || index + 1}`}
                                 onClick={() =>
-                                    setSlot(index, {
-                                        options: slot.options.filter(
-                                            (_, at) => at !== optionIndex,
+                                    form.setData(
+                                        'slots',
+                                        form.data.slots.filter(
+                                            (_, at) => at !== index,
                                         ),
-                                    })
+                                    )
                                 }
                             >
-                                Remove
+                                <Trash2 data-icon="inline-start" />
+                                Remove part
                             </Button>
                         </div>
-                    ))}
-                    <div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                                setSlot(index, {
-                                    options: [
-                                        ...slot.options,
-                                        { variant_id: '', upcharge: '0.00' },
-                                    ],
-                                })
-                            }
-                        >
-                            <Plus data-icon="inline-start" />
-                            Add option
-                        </Button>
+
+                        <div className="flex flex-col gap-2.5 border-t pt-3">
+                            {slot.options.map((option, optionIndex) => (
+                                <div
+                                    key={optionIndex}
+                                    className="grid grid-cols-1 items-end gap-2.5 sm:grid-cols-[minmax(0,1fr)_8rem_auto]"
+                                >
+                                    <Field>
+                                        <FieldLabel
+                                            htmlFor={`combo-opt-${index}-${optionIndex}`}
+                                        >
+                                            Option item
+                                        </FieldLabel>
+                                        <EnumSelect
+                                            id={`combo-opt-${index}-${optionIndex}`}
+                                            name={`slots_${index}_options_${optionIndex}`}
+                                            options={allowedVariants}
+                                            value={option.variant_id}
+                                            onValueChange={(value) =>
+                                                setSlot(index, {
+                                                    options: slot.options.map(
+                                                        (row, at) =>
+                                                            at === optionIndex
+                                                                ? {
+                                                                      ...row,
+                                                                      variant_id:
+                                                                          value,
+                                                                  }
+                                                                : row,
+                                                    ),
+                                                })
+                                            }
+                                            placeholder="Pick an item"
+                                        />
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel
+                                            htmlFor={`combo-up-${index}-${optionIndex}`}
+                                        >
+                                            Upcharge
+                                        </FieldLabel>
+                                        <Input
+                                            id={`combo-up-${index}-${optionIndex}`}
+                                            inputMode="decimal"
+                                            className="tabular-nums"
+                                            value={option.upcharge}
+                                            onChange={(event) =>
+                                                setSlot(index, {
+                                                    options: slot.options.map(
+                                                        (row, at) =>
+                                                            at === optionIndex
+                                                                ? {
+                                                                      ...row,
+                                                                      upcharge:
+                                                                          event
+                                                                              .target
+                                                                              .value,
+                                                                  }
+                                                                : row,
+                                                    ),
+                                                })
+                                            }
+                                        />
+                                    </Field>
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="max-sm:min-h-11"
+                                            aria-label={`Remove option ${optionIndex + 1} from part ${slot.name || index + 1}`}
+                                            onClick={() =>
+                                                setSlot(index, {
+                                                    options:
+                                                        slot.options.filter(
+                                                            (_, at) =>
+                                                                at !==
+                                                                optionIndex,
+                                                        ),
+                                                })
+                                            }
+                                        >
+                                            Remove
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                            <div className="flex justify-end pt-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="max-sm:min-h-11"
+                                    onClick={() =>
+                                        setSlot(index, {
+                                            options: [
+                                                ...slot.options,
+                                                {
+                                                    variant_id: '',
+                                                    upcharge: '0.00',
+                                                },
+                                            ],
+                                        })
+                                    }
+                                >
+                                    <Plus data-icon="inline-start" />
+                                    Add option
+                                </Button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            ))}
-            <div className="flex flex-wrap gap-2">
+                ))
+            )}
+
+            <FieldError>{Object.values(form.errors)[0]}</FieldError>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
                 <Button
                     type="button"
                     variant="outline"
+                    className="max-sm:min-h-11"
                     onClick={() =>
                         form.setData('slots', [
                             ...form.data.slots,
@@ -505,6 +560,7 @@ export function PosComboForm({
                 </Button>
                 <Button
                     type="submit"
+                    className="max-sm:min-h-11"
                     disabled={form.processing}
                     focusableWhenDisabled
                 >
@@ -512,7 +568,6 @@ export function PosComboForm({
                     Save combo
                 </Button>
             </div>
-            <FieldError>{Object.values(form.errors)[0]}</FieldError>
         </form>
     );
 }

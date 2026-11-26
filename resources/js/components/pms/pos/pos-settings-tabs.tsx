@@ -109,19 +109,28 @@ export function posSettingsBreadcrumbs(
 
 export function PosSettingsShell({
     activeTab,
+    actions,
+    meta,
     children,
 }: {
     activeTab: PosSettingsTab;
+    actions?: ReactNode;
+    meta?: ReactNode;
     children: ReactNode;
 }) {
-    const meta = pageMeta[activeTab];
+    const metaInfo = pageMeta[activeTab];
 
     return (
         <>
-            <Head title={`${meta.title} · POS`} />
+            <Head title={`${metaInfo.title} · POS`} />
 
             <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader title={meta.title} description={meta.description} />
+                <PageHeader
+                    title={metaInfo.title}
+                    description={metaInfo.description}
+                    meta={meta}
+                    actions={actions}
+                />
 
                 <div className="flex flex-col gap-6">{children}</div>
             </div>

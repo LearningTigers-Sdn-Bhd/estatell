@@ -187,6 +187,7 @@ export function PosCategoryForm({
 export function PosItemForm({
     row,
     categoryId,
+    categories,
     codes,
     mealPeriods,
     pricingTypes,
@@ -194,6 +195,7 @@ export function PosItemForm({
 }: {
     row: MenuItem | null;
     categoryId: number;
+    categories?: EnumOption[];
     codes: EnumOption[];
     mealPeriods: EnumOption[];
     pricingTypes: EnumOption[];
@@ -299,10 +301,27 @@ export function PosItemForm({
                     onChange={(event) =>
                         form.setData('name', event.target.value)
                     }
+                    aria-invalid={!!form.errors.name}
                     autoFocus
                 />
                 <FieldError>{form.errors.name}</FieldError>
             </Field>
+            {categories && categories.length > 0 && (
+                <Field data-invalid={!!form.errors.pos_category_id}>
+                    <FieldLabel htmlFor="item-category">Category</FieldLabel>
+                    <EnumSelect
+                        id="item-category"
+                        name="pos_category_id"
+                        options={categories}
+                        value={form.data.pos_category_id}
+                        onValueChange={(value) =>
+                            form.setData('pos_category_id', value)
+                        }
+                        aria-invalid={!!form.errors.pos_category_id}
+                    />
+                    <FieldError>{form.errors.pos_category_id}</FieldError>
+                </Field>
+            )}
             <Field>
                 <FieldLabel htmlFor="item-internal">Kitchen name</FieldLabel>
                 <Input
@@ -613,30 +632,31 @@ export function PosItemForm({
                         </div>
                     </div>
                 ))}
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="self-start"
-                    onClick={() =>
-                        form.setData('variants', [
-                            ...form.data.variants,
-                            {
-                                id: null,
-                                name: '',
-                                pricingType: 'fixed',
-                                price: '',
-                                cost: null,
-                                sku: null,
-                                barcode: null,
-                                active: true,
-                            },
-                        ])
-                    }
-                >
-                    <Plus data-icon="inline-start" />
-                    Add size
-                </Button>
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                            form.setData('variants', [
+                                ...form.data.variants,
+                                {
+                                    id: null,
+                                    name: '',
+                                    pricingType: 'fixed',
+                                    price: '',
+                                    cost: null,
+                                    sku: null,
+                                    barcode: null,
+                                    active: true,
+                                },
+                            ])
+                        }
+                    >
+                        <Plus data-icon="inline-start" />
+                        Add size
+                    </Button>
+                </div>
             </div>
         </FormOverlay>
     );
@@ -703,7 +723,7 @@ function OutletOverrideForm({
     onClose: () => void;
 }) {
     const form = useForm({
-        availability: existing?.availability ?? 'available',
+        availability: existing?.availability ?? 'all',
         price_override: existing?.priceOverride ?? '',
         stock_countdown:
             existing?.stockCountdown !== null &&

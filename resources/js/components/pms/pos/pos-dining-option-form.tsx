@@ -48,6 +48,7 @@ export function PosDiningOptionForm({
             onOpenChange={(value) => !value && onClose()}
             title={row ? 'Edit dining option' : 'Add dining option'}
             errors={form.errors}
+            dirty={form.isDirty}
             processing={form.processing}
             submitLabel="Save option"
             onSubmit={() => {
@@ -72,6 +73,7 @@ export function PosDiningOptionForm({
                     onChange={(event) =>
                         form.setData('name', event.target.value)
                     }
+                    aria-invalid={!!form.errors.name}
                     autoFocus
                 />
                 <FieldError>{form.errors.name}</FieldError>
