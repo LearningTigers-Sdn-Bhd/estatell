@@ -14,6 +14,8 @@ Managers asked to see the revenue reports, not only read them. A chart above the
 | [History & forecast](04-history-and-forecast.md)  | The same, with Room charges in place of Room revenue. Forecast bars are lighter, with a legend | A day, or a month past 62 days       |
 | [Revenue by transaction code](01-core-reports.md) | Two cards: the codes ranked by amount, and the total of each day or month                      | The report's Group by (Day or Month) |
 
+Group mode (2026-11-26) shows the same charts for all properties at once: Performance and the group Occupancy report through `RoomStatsChart::forGroup()`, the group Revenue report through `RevenueChart`. See [Group mode](../03-staff/05-group-mode.md#group-reports).
+
 Tax, Non-national guests, Daily charges and the Folio ledger have no chart: they are lists to check and file, and a chart adds nothing.
 
 ## Rules

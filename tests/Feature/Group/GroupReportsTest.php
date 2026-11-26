@@ -9,6 +9,8 @@ use App\Enums\GroupReportTab;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Models\DailyStatistic;
+use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Role;
 use App\Models\TransactionCode;
@@ -148,4 +150,44 @@ test('a booking opens only where the role may view reservations', function () {
     $this->actingAs($setup['manager'])->get(groupReportsUrl($setup['sepilok'], '?tab=bookings'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('report.bookings', fn ($rows) => collect($rows)->mapWithKeys(fn ($row) => [$row['propertyName'] => $row['canOpen']])->all() === ['Tanini Kinabatangan' => false, 'Tanini Sepilok' => true]));
+});
+
+test('Performance charts the whole group, a bar per date up to 62 days and per month beyond, from the sums', function () {
+    $setup = liveGroupSetup();
+    grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
+    groupArrival($setup['sepilok'], $setup['roomTypes']['sepilok']);
+    groupArrival($setup['kinabatangan'], $setup['roomTypes']['kinabatangan']);
+
+    $this->actingAs($setup['manager'])->get(groupReportsUrl($setup['sepilok'], '?tab=by-date&from=2026-10-14&to=2026-10-16'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('report.chart.step', 'day')
+            ->where('report.chart.points', fn ($points) => collect($points)->pluck('date')->all() === ['2026-10-14', '2026-10-15', '2026-10-16'])
+            ->where('report.figures.0.occupancy', fn ($occupancy) => (float) $occupancy > 0));
+
+    $page = $this->get(groupReportsUrl($setup['sepilok'], '?tab=by-date&from=2026-10-14&to=2026-10-16'))->inertiaProps('report');
+    expect($page['chart']['points'][0]['occupancy'])->toBe($page['figures'][0]['occupancy']);
+
+    $this->get(groupReportsUrl($setup['sepilok'], '?tab=by-property&from=2026-10-01&to=2026-12-31'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('report.chart.step', 'month')
+            ->where('report.chart.points', fn ($points) => collect($points)->pluck('date')->all() === ['2026-10', '2026-11', '2026-12']));
+
+    $this->get(groupReportsUrl($setup['sepilok'], '?tab=bookings&from=2026-10-14&to=2026-10-16'))
+        ->assertInertia(fn (Assert $page) => $page->where('report.chart', null));
+});
+
+test('the group Occupancy and Revenue reports carry their charts, and other reports none', function () {
+    $setup = liveGroupSetup();
+    grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
+    groupArrival($setup['sepilok'], $setup['roomTypes']['sepilok']);
+    $code = TransactionCode::factory()->for($setup['sepilok'])->create(['code' => '1000']);
+    FolioLine::factory()->create(['folio_id' => Folio::factory()->create(['property_id' => $setup['sepilok']->id])->id, 'transaction_code_id' => $code->id, 'amount' => '120.00', 'unit_amount' => '120.00', 'posting_date' => '2026-10-10']);
+    $url = fn (string $report): string => route('group.property-reports', $setup['sepilok']->property_group_id).'?report='.$report.'&from=2026-10-01&to=2026-10-14';
+
+    $this->actingAs($setup['manager'])->get($url('revenue'))
+        ->assertInertia(fn (Assert $page) => $page->has('result.revenueChart.periods')->where('result.roomStatsChart', null));
+    $this->get($url('occupancy'))
+        ->assertInertia(fn (Assert $page) => $page->has('result.roomStatsChart.points')->where('result.revenueChart', null));
+    $this->get($url('arrivals'))
+        ->assertInertia(fn (Assert $page) => $page->where('result.roomStatsChart', null)->where('result.revenueChart', null));
 });

@@ -59,6 +59,54 @@ class RoomStatsChart
     }
 
     /**
+     * The chart of several properties' rows of one report (Occupancy or History & forecast) at once, for group mode:
+     * one point per date (or per month past `DAILY_UP_TO_DAYS`), each the report's `totals()` over every property's
+     * rows of that date or month, so rates come from the sums, never averaged.
+     *
+     * @param  list<ReportRow>  $rows
+     */
+    public function forGroup(array $rows, ReportFilters $filters, ReportKey $report): RoomStatsChartData
+    {
+        $days = $report === ReportKey::Occupancy ? $this->occupancy($rows, $filters) : $this->historyForecast($rows, $filters);
+        $length = (int) CarbonImmutable::parse($filters->from)->diffInDays(CarbonImmutable::parse($filters->to)) + 1;
+        $rows = array_values(array_filter($rows, fn (ReportRow $row): bool => $row instanceof OccupancyRow || $row instanceof HistoryForecastRow));
+        $keyOf = fn (string $date): string => $length <= self::DAILY_UP_TO_DAYS ? $date : substr($date, 0, 7);
+        $revenueField = $report === ReportKey::Occupancy ? 'revenue' : 'room_charges';
+
+        /** @var array<string, list<OccupancyRow|HistoryForecastRow>> $buckets */
+        $buckets = [];
+        /** @var array<string, list<string>> $bases */
+        $bases = [];
+
+        foreach ($rows as $row) {
+            $key = $keyOf($row->date);
+            $buckets[$key][] = $row;
+        }
+
+        foreach ($days->points as $point) {
+            $bases[$keyOf($point->date)][] = $point->basis->value;
+        }
+
+        ksort($buckets);
+        $points = [];
+
+        foreach ($buckets as $key => $bucket) {
+            $figures = $report->totals($bucket)->figures ?? [];
+            $kinds = array_values(array_unique($bases[$key] ?? []));
+            $points[] = new RoomStatsChartPointData(
+                date: (string) $key,
+                basis: count($kinds) === 1 ? ForecastBasis::from($kinds[0]) : ForecastBasis::Today,
+                occupancy: (string) ($figures['occupancy'] ?? '0.00'),
+                adr: (string) ($figures['adr'] ?? '0.00'),
+                revpar: (string) ($figures['revpar'] ?? '0.00'),
+                revenue: (string) ($figures[$revenueField] ?? '0.00'),
+            );
+        }
+
+        return new RoomStatsChartData($length <= self::DAILY_UP_TO_DAYS ? ReportGroup::Day : ReportGroup::Month, $points);
+    }
+
+    /**
      * The day points as given, or one point per month: the report's totals over the month's rows, Actual or Forecast
      * when every day of the month is, else Today.
      *

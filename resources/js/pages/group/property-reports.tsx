@@ -11,6 +11,8 @@ import {
     ReservationPeekSheet,
     type PeekTarget,
 } from '@/components/pms/group/reservation-peek-sheet';
+import { RevenueChart } from '@/components/pms/reports/revenue-chart';
+import { RoomStatsChart } from '@/components/pms/reports/room-stats-chart';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import {
@@ -201,6 +203,19 @@ export default function GroupPropertyReports({
                         </p>
                     )}
 
+                    {result.roomStatsChart && (
+                        <RoomStatsChart
+                            chart={result.roomStatsChart}
+                            currency={result.currency}
+                            revenueLabel="Room revenue"
+                        />
+                    )}
+                    {result.revenueChart && (
+                        <RevenueChart
+                            chart={result.revenueChart}
+                            currency={result.currency}
+                        />
+                    )}
                     {result.rows.length === 0 ? (
                         <EmptyState
                             icon={FileText}

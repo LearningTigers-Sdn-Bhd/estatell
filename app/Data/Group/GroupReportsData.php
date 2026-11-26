@@ -4,6 +4,7 @@ namespace App\Data\Group;
 
 use App\Data\Property\CurrencyData;
 use App\Data\Property\PropertySummaryData;
+use App\Data\Reports\RoomStatsChartData;
 use Spatie\LaravelData\Data;
 
 /**
@@ -26,5 +27,6 @@ class GroupReportsData extends Data
         public ?GroupFiguresRowData $total,
         public array $bookings,
         public array $leftOut,
+        public ?RoomStatsChartData $chart = null,
     ) {}
 }

@@ -4,6 +4,8 @@ namespace App\Data\Group;
 
 use App\Data\Property\CurrencyData;
 use App\Data\Reports\ReportLayoutColumnData;
+use App\Data\Reports\RevenueChartData;
+use App\Data\Reports\RoomStatsChartData;
 use Spatie\LaravelData\Data;
 
 /**
@@ -11,7 +13,8 @@ use Spatie\LaravelData\Data;
  * report's order), the rows of all properties (one page of `PER_PAGE` on screen, `page` of `pages`; the CSV and the PDF
  * have them all), a total per
  * property and for all of them when the report has totals, and who was left out. `currency` is set when every
- * property uses one; money totals across properties need it.
+ * property uses one; money totals across properties need it, and so do the charts: `roomStatsChart` on Occupancy and
+ * `revenueChart` on Revenue, over every row of every property shown.
  */
 class GroupPropertyReportData extends Data
 {
@@ -37,5 +40,7 @@ class GroupPropertyReportData extends Data
         public int $page = 1,
         public int $pages = 1,
         public int $perPage = self::PER_PAGE,
+        public ?RoomStatsChartData $roomStatsChart = null,
+        public ?RevenueChartData $revenueChart = null,
     ) {}
 }

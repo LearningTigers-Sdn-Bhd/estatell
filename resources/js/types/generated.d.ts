@@ -2464,6 +2464,8 @@ notOffered: string[],
 page: number,
 pages: number,
 perPage: number,
+roomStatsChart: App.Data.Reports.RoomStatsChartData | null,
+revenueChart: App.Data.Reports.RevenueChartData | null,
 };
 export type GroupPropertyTilesData = {
 property: App.Data.Property.PropertySummaryData,
@@ -2485,6 +2487,7 @@ figures: App.Data.Group.GroupFiguresRowData[],
 total: App.Data.Group.GroupFiguresRowData | null,
 bookings: App.Data.Group.GroupBookingChangeRowData[],
 leftOut: string[],
+chart: App.Data.Reports.RoomStatsChartData | null,
 };
 export type GroupReservationRowData = {
 id: number,

@@ -82,6 +82,8 @@ Each property counts on its own business date, as its own dashboard does. Querie
 | By date     | One row per date, the properties added together, then the total                                                                                                                                                         | The same rows, grouped by date. Each property counts a date as actual or forecast by its own business date. |
 | Bookings    | Every change of every property in the dates, by time, with the property. A reservation opens in its property.                                                                                                           | Each property's `BookingChangesReport` (Rooms on books › Changes)                                           |
 
+**Chart** (2026-11-26) above By property and By date: the group's Occupancy, ADR, RevPAR or Room charges (a switch in the card header) by date up to 62 days, by month beyond, with forecast bars lighter. Each point is History & forecast's own `totals()` over every property's rows of that date or month (`RoomStatsChart::forGroup()`), so rates come from the sums. Shown only when every property uses one currency. Bookings has no chart.
+
 - Counts and money are summed; occupancy, ADR and RevPAR are worked out again from the sums, never averaged. Money is summed only when the properties use one currency (else "—").
 - **Export CSV** (`group.reports.export`) gives the open tab's rows with the screen's headings, the total last.
 - Queries grow with the number of properties, never with bookings (tested).
@@ -137,6 +139,7 @@ Added 2026-11-26 so owners and managers can read any lodge's booking from group 
 - Rows are the report's own `rows()` for each property whose role shows reports, in property order, with a **Property** column; columns are each property's default visible ones (tax columns of every property). Totals come from the report's own totals: one per property, then **All properties** when every property uses one currency.
 - **Property** filter (2026-11-26, owners asked for a hotel picker): `property` is one property's code, or all when missing. It runs the report for that property only, and the exports follow it. A code outside the group counts as all.
 - **Paging** (2026-11-26): the screen shows 50 rows a page (`page`, `GroupPropertyReportData::PER_PAGE`), so a month of a thousand arrivals stays quick to draw; the totals always cover every row. **Export CSV** (`group.property-reports.export`) and PDF have every row and the totals.
+- **Charts** (2026-11-26): Occupancy shows the room chart (`RoomStatsChart::forGroup()`, the properties added up per date or month), and Revenue the codes ranked and the total per day or month (`RevenueChart` over every property's rows; codes with the same number add up). Both need one currency, and cover every row, not the page.
 - **A booking row opens the [reservation panel](#reservation-panel)** on Arrivals, Departures, In house and Checked out (their row `key` is the unit; `GroupReportRowData.reservationId`, read in one query per property), where the role may view reservations. Other reports' rows do not open.
 - A property without reports permission is named ("Not included: …"); one that does not use the report's feature is named too.
 

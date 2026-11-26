@@ -7,6 +7,7 @@ import { DateText, formatDate } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
+import { RoomStatsChart } from '@/components/pms/reports/room-stats-chart';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
@@ -360,16 +361,25 @@ export default function GroupReports({
                     {empty ? (
                         <p className="text-sm text-muted-foreground">{empty}</p>
                     ) : figuresTab ? (
-                        <FiguresTable
-                            rows={report.figures}
-                            total={report.total}
-                            currency={report.currency}
-                            firstHeading={
-                                tab === 'by-date' ? 'Date' : 'Property'
-                            }
-                            from={from}
-                            to={to}
-                        />
+                        <>
+                            {report.chart && (
+                                <RoomStatsChart
+                                    chart={report.chart}
+                                    currency={report.currency}
+                                    revenueLabel="Room charges"
+                                />
+                            )}
+                            <FiguresTable
+                                rows={report.figures}
+                                total={report.total}
+                                currency={report.currency}
+                                firstHeading={
+                                    tab === 'by-date' ? 'Date' : 'Property'
+                                }
+                                from={from}
+                                to={to}
+                            />
+                        </>
                     ) : report.bookings.length === 0 ? (
                         <EmptyState
                             icon={History}

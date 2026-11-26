@@ -11,10 +11,12 @@ use App\Data\Reports\HistoryForecastRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\GroupReportTab;
 use App\Enums\PermissionEnum;
+use App\Enums\ReportKey;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Reports\BookingChangesReport;
 use App\Services\Reports\ReportFigures;
+use App\Services\Reports\RoomStatsChart;
 use App\Services\Staff\GroupProperties;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -33,6 +35,7 @@ class GroupReports
     public function __construct(
         private GroupProperties $groupProperties,
         private ForecastMonthCache $monthCache,
+        private RoomStatsChart $roomStatsChart,
         private BookingChangesReport $bookingChanges,
     ) {}
 
@@ -65,7 +68,10 @@ class GroupReports
             : $this->byDate($rowsByProperty, $oneCurrency);
         $all = array_merge(...array_values($rowsByProperty));
 
-        return new GroupReportsData($summaries, $currency, $rows, $all === [] ? null : $this->combine(__('All properties'), null, $all, $oneCurrency), [], $leftOut);
+        // The trend of the whole group for the dates, in one currency only (money cannot be added up across two).
+        $chart = $oneCurrency && $all !== [] ? $this->roomStatsChart->forGroup($all, $filters, ReportKey::HistoryForecast) : null;
+
+        return new GroupReportsData($summaries, $currency, $rows, $all === [] ? null : $this->combine(__('All properties'), null, $all, $oneCurrency), [], $leftOut, $chart);
     }
 
     /**

@@ -14,6 +14,8 @@ use App\Enums\ReportKey;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\User;
+use App\Services\Reports\RevenueChart;
+use App\Services\Reports\RoomStatsChart;
 use App\Services\Staff\GroupProperties;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -28,7 +30,7 @@ class GroupPropertyReports
     /** The reports whose row `key` is a reservation unit: a row opens the reservation panel. */
     private const array BOOKING_ROWS = [ReportKey::Arrivals, ReportKey::Departures, ReportKey::InHouse, ReportKey::CheckedOut];
 
-    public function __construct(private GroupProperties $groupProperties) {}
+    public function __construct(private GroupProperties $groupProperties, private RoomStatsChart $roomStatsChart, private RevenueChart $revenueChart) {}
 
     /**
      * @param  Collection<int, Property>  $properties  The properties the user may open in the group.
@@ -94,6 +96,8 @@ class GroupPropertyReports
             notOffered: array_values($allowed->reject(fn (Property $property): bool => $offered->contains($property))->map(fn (Property $property): string => $property->name)->all()),
             page: $allRows ? 1 : $page,
             pages: $allRows ? 1 : $pages,
+            roomStatsChart: ! $allRows && $oneCurrency && $allReportRows !== [] && $key === ReportKey::Occupancy ? $this->roomStatsChart->forGroup($allReportRows, $filters, $key) : null,
+            revenueChart: ! $allRows && $oneCurrency && $allReportRows !== [] && $key === ReportKey::Revenue ? $this->revenueChart->forRows($allReportRows, $filters) : null,
         );
     }
 
