@@ -44,7 +44,17 @@ function isAcceptedType(type: string): type is LogoSource['type'] {
  * The property logo in a rounded tile. A picked image opens the crop dialog, which uploads a square file. The logo
  * is not part of the profile Save.
  */
-export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
+export function PropertyLogoField({
+    logoUrl,
+    name,
+    subtitle,
+}: {
+    logoUrl: string | null;
+    /** The property name under the tile. */
+    name: string;
+    /** A short line under the name, for example "Resort · Kota Kinabalu, Malaysia". */
+    subtitle?: string;
+}) {
     const fileInput = useRef<HTMLInputElement>(null);
     const [source, setSource] = useState<LogoSource | null>(null);
     const [cropOpen, setCropOpen] = useState(false);
@@ -108,9 +118,9 @@ export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
             <PanelHeading
                 icon={ImageIcon}
                 title="Logo"
-                description="Shown in the app and printed at the top of PDFs. It is saved as soon as you crop it."
+                description="Shown in the app, to guests and on printed documents. It is saved as soon as you crop it."
             />
-            <Field>
+            <Field className="gap-3">
                 <input
                     ref={fileInput}
                     type="file"
@@ -126,9 +136,9 @@ export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
                         }
                     }}
                 />
-                <div>
+                <div className="flex flex-col items-center gap-4 rounded-xl border bg-card bg-gradient-to-br from-primary/20 via-primary/5 to-card px-4 pt-8 pb-6 text-center">
                     {logoUrl ? (
-                        <div className="group relative flex size-28 items-center justify-center overflow-hidden rounded-2xl border bg-muted">
+                        <div className="group relative flex size-32 items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg ring-4 ring-card">
                             <img
                                 src={logoUrl}
                                 alt="Property logo"
@@ -156,13 +166,21 @@ export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
                     ) : (
                         <button
                             type="button"
-                            className="flex size-28 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted text-muted-foreground transition-colors outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+                            className="flex size-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-muted-foreground/40 bg-card text-muted-foreground transition-colors outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
                             onClick={pickFile}
                         >
                             <Upload className="size-5" />
                             <span className="text-sm">Upload logo</span>
                         </button>
                     )}
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                        <p className="truncate text-base font-medium">{name}</p>
+                        {subtitle && (
+                            <p className="truncate text-sm text-muted-foreground">
+                                {subtitle}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <FieldDescription>
                     PNG or JPEG, up to 10 MB. You crop it to a square.

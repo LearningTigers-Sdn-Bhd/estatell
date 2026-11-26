@@ -228,7 +228,18 @@ export default function PropertySettings({
                     <Workspace
                         aside={
                             showLogo ? (
-                                <PropertyLogoField logoUrl={profile.logoUrl} />
+                                <PropertyLogoField
+                                    logoUrl={profile.logoUrl}
+                                    name={profile.name}
+                                    subtitle={[
+                                        profile.typeLabel,
+                                        [profile.city, profile.countryName]
+                                            .filter(Boolean)
+                                            .join(', '),
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                />
                             ) : undefined
                         }
                         asideLabel="Logo"
