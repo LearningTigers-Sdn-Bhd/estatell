@@ -36,6 +36,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useInitials } from '@/hooks/use-initials';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import {
@@ -192,7 +197,10 @@ function Attention({ blocks }: { blocks: Block[] }) {
     );
 }
 
-/** Tonight and the next six nights as small bars, tallest at 100%. */
+/**
+ * Tonight and the next six nights as small bars, tallest at 100%, with no figures: hovering or focusing a bar shows its
+ * night, occupancy and rooms sold. The table cell stays a picture of the week.
+ */
 function NightBars({
     nights,
 }: {
@@ -200,20 +208,39 @@ function NightBars({
 }) {
     return (
         <div
-            className="flex h-8 items-end gap-0.5"
-            role="img"
-            aria-label={`Occupancy for the next ${nights.length} nights: ${nights.map((night) => `${night.occupancy}%`).join(', ')}`}
+            className="flex h-8 items-end gap-1"
+            aria-label={`Occupancy for the next ${nights.length} nights`}
+            role="list"
         >
             {nights.map((night, index) => (
-                <span
-                    key={night.date}
-                    title={`${formatDate(night.date)}: ${night.occupancy}%`}
-                    className={cn(
-                        'w-2 rounded-sm',
-                        index === 0 ? 'bg-primary' : 'bg-primary/40',
-                    )}
-                    style={{ height: `${Math.max(night.occupancy, 4)}%` }}
-                />
+                <Tooltip key={night.date}>
+                    <TooltipTrigger
+                        render={
+                            <span
+                                role="listitem"
+                                tabIndex={0}
+                                aria-label={`${formatDate(night.date)}: ${night.occupancy}%, ${night.sold} of ${night.total} sold`}
+                                className="flex h-full w-2.5 items-end rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                        }
+                    >
+                        <span
+                            aria-hidden
+                            className={cn(
+                                'w-full rounded-sm',
+                                index === 0 ? 'bg-primary' : 'bg-primary/40',
+                            )}
+                            style={{
+                                height: `${Math.max(night.occupancy, 4)}%`,
+                            }}
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {formatDate(night.date)}
+                        {index === 0 ? ' (tonight)' : ''}: {night.occupancy}% ·{' '}
+                        {night.sold} of {night.total} sold
+                    </TooltipContent>
+                </Tooltip>
             ))}
         </div>
     );
@@ -253,10 +280,6 @@ function PropertyComparison({ blocks }: { blocks: Block[] }) {
         <Card size="sm" className="gap-2">
             <CardHeader>
                 <CardTitle>Today by property</CardTitle>
-                <CardDescription>
-                    Each property on its own business date. What you see follows
-                    your role there.
-                </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto px-0">
                 <Table>
