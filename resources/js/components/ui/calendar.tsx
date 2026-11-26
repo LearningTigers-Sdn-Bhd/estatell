@@ -3,6 +3,7 @@ import { cn } from "cn"
 import {
   DayPicker,
   getDefaultClassNames,
+  type CustomComponents,
   type DayButton,
   type Locale,
 } from "react-day-picker"
@@ -24,6 +25,15 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
   const defaultClassNames = getDefaultClassNames()
+  // Keep the day button the same component across renders. A new one on every render replaces every day button when
+  // a press focuses it, so the release lands on a removed button and the date is never picked.
+  const DayButton = React.useMemo(
+    () =>
+      function DayButton(props: React.ComponentProps<typeof CalendarDayButton>) {
+        return <CalendarDayButton locale={locale} {...props} />
+      },
+    [locale]
+  )
 
   return (
     <DayPicker
@@ -132,49 +142,58 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Root: ({ className, rootRef, ...props }) => {
-          return (
-            <div
-              data-slot="calendar"
-              ref={rootRef}
-              className={cn(className)}
-              {...props}
-            />
-          )
-        },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
-            return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
-            )
-          }
-
-          if (orientation === "right") {
-            return (
-              <ChevronRightIcon className={cn("size-4", className)} {...props} />
-            )
-          }
-
-          return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
-          )
-        },
-        DayButton: ({ ...props }) => (
-          <CalendarDayButton locale={locale} {...props} />
-        ),
-        WeekNumber: ({ children, ...props }) => {
-          return (
-            <td {...props}>
-              <div className="flex size-(--cell-size) items-center justify-center text-center">
-                {children}
-              </div>
-            </td>
-          )
-        },
+        Root: CalendarRoot,
+        Chevron: CalendarChevron,
+        DayButton,
+        WeekNumber: CalendarWeekNumber,
         ...components,
       }}
       {...props}
     />
+  )
+}
+
+function CalendarRoot({
+  className,
+  rootRef,
+  ...props
+}: React.ComponentProps<NonNullable<CustomComponents["Root"]>>) {
+  return (
+    <div
+      data-slot="calendar"
+      ref={rootRef}
+      className={cn(className)}
+      {...props}
+    />
+  )
+}
+
+function CalendarChevron({
+  className,
+  orientation,
+  ...props
+}: React.ComponentProps<NonNullable<CustomComponents["Chevron"]>>) {
+  if (orientation === "left") {
+    return <ChevronLeftIcon className={cn("size-4", className)} {...props} />
+  }
+
+  if (orientation === "right") {
+    return <ChevronRightIcon className={cn("size-4", className)} {...props} />
+  }
+
+  return <ChevronDownIcon className={cn("size-4", className)} {...props} />
+}
+
+function CalendarWeekNumber({
+  children,
+  ...props
+}: React.ComponentProps<NonNullable<CustomComponents["WeekNumber"]>>) {
+  return (
+    <td {...props}>
+      <div className="flex size-(--cell-size) items-center justify-center text-center">
+        {children}
+      </div>
+    </td>
   )
 }
 
