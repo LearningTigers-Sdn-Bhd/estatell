@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2, Utensils } from 'lucide-react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { EmptyState } from '@/components/pms/empty-state';
 import { SaveBar } from '@/components/pms/save-bar';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -97,14 +98,11 @@ export function MealPeriodsForm({
 
     return (
         <form onSubmit={submit} className="flex flex-col gap-5">
-            <header className="flex flex-col gap-1 ps-3 pt-2">
-                <h2 className="text-base font-medium">Meal periods</h2>
-                <p className="text-sm text-muted-foreground">
-                    When meals are served. Package inclusions and the kitchen
-                    meal count use these periods. They are listed by start time
-                    after you save.
-                </p>
-            </header>
+            <PanelHeading
+                icon={Utensils}
+                title="Meal periods"
+                description="When meals are served. Package inclusions and the kitchen meal count use these periods. They are listed by start time after you save."
+            />
 
             {rows.length === 0 ? (
                 <EmptyState

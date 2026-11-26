@@ -1,7 +1,8 @@
 import { Form } from '@inertiajs/react';
-import { Eye, Pencil, Trash2, Upload } from 'lucide-react';
+import { Eye, ImageIcon, Pencil, Trash2, Upload } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { LogoCropDialog } from '@/components/pms/settings/logo-crop-dialog';
 import type { LogoSource } from '@/components/pms/settings/logo-crop-dialog';
 import {
@@ -104,13 +105,11 @@ export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
 
     return (
         <section className="flex flex-col gap-4">
-            <header className="flex flex-col gap-1 ps-3 pt-2">
-                <h2 className="text-base font-medium">Logo</h2>
-                <p className="text-sm text-muted-foreground">
-                    Shown in the app and printed at the top of PDFs. It is saved
-                    as soon as you crop it.
-                </p>
-            </header>
+            <PanelHeading
+                icon={ImageIcon}
+                title="Logo"
+                description="Shown in the app and printed at the top of PDFs. It is saved as soon as you crop it."
+            />
             <Field>
                 <input
                     ref={fileInput}

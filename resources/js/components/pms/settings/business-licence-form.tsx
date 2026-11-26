@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { BadgeCheck, Plus, Save, ScrollText, Trash2 } from 'lucide-react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { DatePicker } from '@/components/pms/date-picker';
 import { OptionalBadge } from '@/components/pms/optional-badge';
 import { SaveBar } from '@/components/pms/save-bar';
@@ -111,13 +112,11 @@ export function BusinessLicenceForm({
     return (
         <form onSubmit={submit} className="flex flex-col gap-6">
             <section className="flex flex-col gap-5">
-                <header className="flex flex-col gap-1 ps-3 pt-2">
-                    <h2 className="text-base font-medium">Business details</h2>
-                    <p className="text-sm text-muted-foreground">
-                        The registered business name and numbers. They can print
-                        on receipts, invoices and reports.
-                    </p>
-                </header>
+                <PanelHeading
+                    icon={BadgeCheck}
+                    title="Business details"
+                    description="The registered business name and numbers. They can print on receipts, invoices and reports."
+                />
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field className="md:col-span-2">
                         <FieldLabel htmlFor="legal_name">
@@ -174,14 +173,11 @@ export function BusinessLicenceForm({
             </section>
 
             <section className="flex flex-col gap-5">
-                <header className="flex flex-col gap-1 ps-3 pt-2">
-                    <h2 className="text-base font-medium">Licences</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Business licences and registrations, for example a local
-                        council licence or a MOTAC registration. Tick Print to
-                        show a licence on documents.
-                    </p>
-                </header>
+                <PanelHeading
+                    icon={ScrollText}
+                    title="Licences"
+                    description="Business licences and registrations, for example a local council licence or a MOTAC registration. Tick Print to show a licence on documents."
+                />
 
                 {
                     <div className="overflow-auto rounded-xl border">

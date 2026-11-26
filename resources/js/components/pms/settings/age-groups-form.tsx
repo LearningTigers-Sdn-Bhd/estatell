@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Baby, Plus, Save, Trash2 } from 'lucide-react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { EmptyState } from '@/components/pms/empty-state';
 import { SaveBar } from '@/components/pms/save-bar';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -95,13 +96,11 @@ export function AgeGroupsForm({
 
     return (
         <form onSubmit={submit} className="flex flex-col gap-5">
-            <header className="flex flex-col gap-1 ps-3 pt-2">
-                <h2 className="text-base font-medium">Age groups</h2>
-                <p className="text-sm text-muted-foreground">
-                    Who counts as an infant or a child. Every rate plan and the
-                    booking form use these groups.
-                </p>
-            </header>
+            <PanelHeading
+                icon={Baby}
+                title="Age groups"
+                description="Who counts as an infant or a child. Every rate plan and the booking form use these groups."
+            />
 
             {rows.length === 0 ? (
                 <EmptyState

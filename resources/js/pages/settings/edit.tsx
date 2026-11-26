@@ -242,8 +242,9 @@ export default function PropertySettings({
                                 saveBar
                                 form={PropertySettingsController.updateProfile.form()}
                                 title="Profile"
+                                icon={Building2}
                                 description="The name, address and contact details printed on receipts, invoices and reports."
-                                headerClassName="ps-3 pt-2"
+                                headerClassName="ps-2 pt-2"
                                 submitLabel="Save"
                                 submitIcon={Save}
                                 contentClassName="flex flex-col gap-6"
@@ -417,8 +418,9 @@ export default function PropertySettings({
                                 saveBar
                                 form={form('general')}
                                 title="General"
+                                icon={SlidersHorizontal}
                                 description="Currency, local time, arrivals, and room assignment."
-                                headerClassName="ps-3 pt-2"
+                                headerClassName="ps-2 pt-2"
                                 submitLabel="Save"
                                 submitIcon={Save}
                             >
@@ -496,8 +498,9 @@ export default function PropertySettings({
                                 saveBar
                                 form={form('operations')}
                                 title="Operations"
+                                icon={MoonStar}
                                 description="Night audit and reservation exception rules."
-                                headerClassName="ps-3 pt-2"
+                                headerClassName="ps-2 pt-2"
                                 submitLabel="Save"
                                 submitIcon={Save}
                             >
@@ -602,8 +605,9 @@ export default function PropertySettings({
                                     saveBar
                                     form={form('support')}
                                     title="Support access"
+                                    icon={LifeBuoy}
                                     description="estatell Support can always view this property as its staff to help you."
-                                    headerClassName="ps-3 pt-2"
+                                    headerClassName="ps-2 pt-2"
                                     submitLabel="Save"
                                     submitIcon={Save}
                                     contentClassName="flex flex-col gap-5"
