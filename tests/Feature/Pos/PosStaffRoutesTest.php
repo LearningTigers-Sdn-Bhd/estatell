@@ -137,7 +137,8 @@ it('lists postings with a status filter and shows the receipt payload', function
             ->component('finance/pos-postings/index')
             ->has('postings.data', 1)
             ->where('postings.data.0.id', $pending->id)
-            ->where('pendingCount', 1));
+            ->where('summary.2.status', 'pending_review')
+            ->where('summary.2.count', 1));
 
     $this->actingAs($setup['actor'])->get(route('finance.pos-postings.show', [$code, $pending->id]))
         ->assertInertia(fn (Assert $page) => $page

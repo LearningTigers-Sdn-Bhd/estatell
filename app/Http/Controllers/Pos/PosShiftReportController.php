@@ -8,16 +8,18 @@ use App\Http\Controllers\Controller;
 use App\Models\PosCashMovement;
 use App\Models\PosShift;
 use App\Models\Property;
+use App\Services\Pos\PosFinanceSummary;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
 
 class PosShiftReportController extends Controller
 {
-    public function index(Property $property): Response
+    public function index(Property $property, PosFinanceSummary $summary): Response
     {
         return Inertia::render('finance/pos-shifts/index', [
             'currency' => CurrencyData::forProperty($property),
+            'summary' => $summary->shifts($property),
             'shifts' => PosShiftData::collect(PosShift::query()->where('property_id', $property->id)->with(['outlet', 'register', 'openedBy'])->orderByDesc('id')->paginate(25)->through(fn (PosShift $shift): PosShiftData => PosShiftData::fromModel($shift, true)), PaginatedDataCollection::class),
         ]);
     }

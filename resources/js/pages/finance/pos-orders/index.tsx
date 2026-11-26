@@ -1,13 +1,22 @@
-import { Head, router } from '@inertiajs/react';
-import { Receipt } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { Ban, Receipt, Search, ShoppingBag, Undo2, Wallet } from 'lucide-react';
 import { useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
+import { DateRangePicker } from '@/components/pms/date-range-picker';
+import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatCard } from '@/components/pms/stat-card';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import { reportDatePresets } from '@/lib/date-presets';
 import { index, show } from '@/routes/finance/pos-orders';
 
 type Row = App.Data.Pos.PosOrderRowData;
@@ -32,6 +41,13 @@ type Props = {
             next_page_url: string | null;
         };
     };
+    summary: {
+        netSales: string;
+        sales: number;
+        refunds: number;
+        refundTotal: string;
+        voided: number;
+    };
     outlets: { id: number; name: string }[];
     filters: Filters;
     currency: App.Data.Property.CurrencyData | null;
@@ -41,11 +57,13 @@ const column = dataTableColumns<Row>();
 
 export default function PosOrdersIndex({
     orders,
+    summary,
     outlets,
     filters,
     currency,
 }: Props) {
     const currencyCode = currency?.code ?? 'MYR';
+    const businessDay = usePage().props.businessDate?.date;
 
     const columns = useMemo(
         () => [
@@ -61,6 +79,7 @@ export default function PosOrdersIndex({
             column.accessor('businessDate', {
                 header: 'Date',
                 enableSorting: false,
+                cell: (info) => <DateText date={info.getValue()} />,
             }),
             column.accessor('outletName', {
                 header: 'Outlet',
@@ -70,32 +89,43 @@ export default function PosOrdersIndex({
                 header: 'Type',
                 enableSorting: false,
                 cell: (info) =>
-                    info.getValue() === 'refund' ? 'Refund' : 'Sale',
+                    info.getValue() === 'refund' ? (
+                        <Badge variant="outline">
+                            <Undo2 aria-hidden />
+                            Refund
+                        </Badge>
+                    ) : (
+                        'Sale'
+                    ),
             }),
             column.accessor('statusLabel', {
                 header: 'Status',
                 enableSorting: false,
                 cell: (info) => (
-                    <Badge
-                        variant={
-                            info.row.original.status === 'voided'
-                                ? 'destructive'
-                                : 'secondary'
-                        }
-                    >
-                        {info.getValue()}
-                    </Badge>
+                    <StatusBadge
+                        status={{
+                            value: info.row.original.status,
+                            label: info.getValue(),
+                            tone:
+                                info.row.original.status === 'voided'
+                                    ? 'danger'
+                                    : 'success',
+                        }}
+                    />
                 ),
             }),
             column.accessor('grandTotal', {
                 header: `Total (${currencyCode})`,
                 enableSorting: false,
                 cell: (info) => (
-                    <MoneyText
-                        amount={info.getValue()}
-                        currency={currency}
-                        plain
-                    />
+                    <span className="font-medium">
+                        {info.row.original.orderType === 'refund' && '−'}
+                        <MoneyText
+                            amount={info.getValue()}
+                            currency={currency}
+                            plain
+                        />
+                    </span>
                 ),
             }),
             column.accessor('onEInvoice', {
@@ -129,11 +159,50 @@ export default function PosOrdersIndex({
     return (
         <>
             <Head title="POS receipts" />
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
                     title="POS receipts"
                     description="Settled and voided POS sales and refunds."
                 />
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard
+                        icon={Wallet}
+                        label="Net sales"
+                        value={
+                            <MoneyText
+                                amount={summary.netSales}
+                                currency={currency}
+                            />
+                        }
+                        hint="Settled sales less refunds"
+                    />
+                    <StatCard
+                        icon={ShoppingBag}
+                        label="Sales receipts"
+                        value={summary.sales}
+                        hint="Settled"
+                    />
+                    <StatCard
+                        icon={Undo2}
+                        label="Refunds"
+                        value={summary.refunds}
+                        hint={
+                            <>
+                                <MoneyText
+                                    amount={summary.refundTotal}
+                                    currency={currency}
+                                />{' '}
+                                returned
+                            </>
+                        }
+                    />
+                    <StatCard
+                        icon={Ban}
+                        label="Voided"
+                        value={summary.voided}
+                        hint="Not counted in sales"
+                    />
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <EnumSelect
                         name="outlet"
@@ -157,33 +226,36 @@ export default function PosOrdersIndex({
                         allLabel="All statuses"
                         aria-label="Status"
                     />
-                    <Input
-                        type="date"
-                        aria-label="From"
-                        className="w-40"
-                        value={filters.from ?? ''}
-                        onChange={(event) =>
-                            visit({ from: event.target.value })
+                    <DateRangePicker
+                        from={filters.from ?? ''}
+                        to={filters.to ?? ''}
+                        onChange={(from, to) => visit({ from, to })}
+                        onClear={() => visit({ from: '', to: '' })}
+                        presets={
+                            businessDay
+                                ? reportDatePresets(businessDay)
+                                : undefined
                         }
+                        months={2}
+                        weekStartsOn={1}
+                        placeholder="All dates"
+                        className="w-auto"
                     />
-                    <Input
-                        type="date"
-                        aria-label="To"
-                        className="w-40"
-                        value={filters.to ?? ''}
-                        onChange={(event) => visit({ to: event.target.value })}
-                    />
-                    <Input
-                        type="search"
-                        aria-label="Receipt number"
-                        placeholder="Receipt number"
-                        className="w-48"
-                        defaultValue={filters.q ?? ''}
-                        onKeyDown={(event) =>
-                            event.key === 'Enter' &&
-                            visit({ q: event.currentTarget.value })
-                        }
-                    />
+                    <InputGroup className="w-56 sm:ml-auto">
+                        <InputGroupAddon>
+                            <Search aria-hidden />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                            type="search"
+                            aria-label="Receipt number"
+                            placeholder="Receipt number, then Enter"
+                            defaultValue={filters.q ?? ''}
+                            onKeyDown={(event) =>
+                                event.key === 'Enter' &&
+                                visit({ q: event.currentTarget.value })
+                            }
+                        />
+                    </InputGroup>
                 </div>
                 <DataTable
                     columns={columns}

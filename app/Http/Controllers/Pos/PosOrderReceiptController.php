@@ -23,6 +23,7 @@ use App\Models\PosOrderLine;
 use App\Models\PosOrderPayment;
 use App\Models\PosOutlet;
 use App\Models\Property;
+use App\Services\Pos\PosFinanceSummary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,11 +48,13 @@ class PosOrderReceiptController extends Controller
             ->when($request->query('status'), fn ($query, $status) => $query->where('status', (string) $status))
             ->when($request->query('from'), fn ($query, $from) => $query->whereDate('business_date', '>=', (string) $from))
             ->when($request->query('to'), fn ($query, $to) => $query->whereDate('business_date', '<=', (string) $to))
-            ->when($request->query('q'), fn ($query, $search) => $query->where('order_number', 'ilike', '%'.Str::of((string) $search)->replace(['%', '_'], '')->toString().'%'))
-            ->with('outlet')->orderByDesc('id')->paginate(25)->withQueryString();
+            ->when($request->query('q'), fn ($query, $search) => $query->where('order_number', 'ilike', '%'.Str::of((string) $search)->replace(['%', '_'], '')->toString().'%'));
+        $summary = app(PosFinanceSummary::class)->receipts(clone $orders);
+        $orders = $orders->with('outlet')->orderByDesc('id')->paginate(25)->withQueryString();
 
         return Inertia::render('finance/pos-orders/index', [
             'currency' => CurrencyData::forProperty($property),
+            'summary' => $summary,
             'orders' => PosOrderRowData::collect($orders->through(PosOrderRowData::fromModel(...)), PaginatedDataCollection::class),
             'outlets' => PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get(['id', 'name']),
             'filters' => $request->only(['outlet', 'status', 'from', 'to', 'q']),

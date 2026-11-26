@@ -1,13 +1,20 @@
 import { Head, router } from '@inertiajs/react';
-import { Receipt } from 'lucide-react';
+import {
+    CircleCheck,
+    EyeOff,
+    Receipt,
+    TriangleAlert,
+    Undo2,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatCard } from '@/components/pms/stat-card';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { Alert, AlertTitle } from '@/components/ui/alert';
 import { index, show } from '@/routes/finance/pos-postings';
 
 type Row = App.Data.Pos.PosPostingRowData;
@@ -27,17 +34,32 @@ type Props = {
     };
     status: string | null;
     statuses: { value: string; label: string }[];
-    pendingCount: number;
+    summary: {
+        status: string;
+        label: string;
+        count: number;
+        amount: string;
+    }[];
     currency: App.Data.Property.CurrencyData | null;
 };
 
 const column = dataTableColumns<Row>();
 
+const statusIcons: Record<string, LucideIcon> = {
+    posted: CircleCheck,
+    reversed: Undo2,
+    pending_review: TriangleAlert,
+    ignored: EyeOff,
+};
+
+/** The status that needs action comes first. */
+const cardOrder = ['pending_review', 'posted', 'reversed', 'ignored'];
+
 export default function PosPostingsIndex({
     postings,
     status,
     statuses,
-    pendingCount,
+    summary,
     currency,
 }: Props) {
     const columns = useMemo(
@@ -60,6 +82,21 @@ export default function PosPostingsIndex({
                 header: 'Reservation',
                 enableSorting: false,
                 cell: (info) => info.getValue() ?? '—',
+            }),
+            column.accessor('createdAt', {
+                header: 'Received',
+                enableSorting: false,
+                cell: (info) => (
+                    <span className="tabular-nums">
+                        {new Date(info.getValue()).toLocaleString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                        })}
+                    </span>
+                ),
             }),
             column.accessor('amount', {
                 header: 'Amount',
@@ -100,21 +137,37 @@ export default function PosPostingsIndex({
         <>
             <Head title="POS postings" />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
                     title="POS postings"
                     description="Room charges sent by your POS. Receipts that could not be posted wait here for front desk."
                 />
 
-                {pendingCount > 0 && status !== 'pending_review' && (
-                    <Alert>
-                        <AlertTitle>
-                            {pendingCount === 1
-                                ? '1 receipt needs review.'
-                                : `${pendingCount} receipts need review.`}
-                        </AlertTitle>
-                    </Alert>
-                )}
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {cardOrder
+                        .map((key) => summary.find((row) => row.status === key))
+                        .filter((row) => row !== undefined)
+                        .map((row) => (
+                            <StatCard
+                                key={row.status}
+                                icon={statusIcons[row.status] ?? Receipt}
+                                label={row.label}
+                                value={row.count}
+                                hint={
+                                    <MoneyText
+                                        amount={row.amount}
+                                        currency={currency}
+                                    />
+                                }
+                                pressed={status === row.status}
+                                onClick={() =>
+                                    visit(
+                                        status === row.status ? '' : row.status,
+                                    )
+                                }
+                            />
+                        ))}
+                </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                     <EnumSelect
