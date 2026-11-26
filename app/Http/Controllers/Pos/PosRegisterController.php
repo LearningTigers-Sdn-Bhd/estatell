@@ -6,6 +6,7 @@ use App\Actions\Pos\UpdateRegisterDisplayState;
 use App\Data\Pos\PosOrderData;
 use App\Data\Pos\PosShiftData;
 use App\Data\Property\CurrencyData;
+use App\Data\Shared\BadgeData;
 use App\Enums\PermissionEnum;
 use App\Enums\PosCashMovementKind;
 use App\Enums\PosDiscountType;
@@ -55,9 +56,16 @@ class PosRegisterController extends Controller
 
         $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->where('active', true)->orderBy('name')->get();
         $registers = PosRegister::query()->where('property_id', $property->id)->where('active', true)->orderBy('name')->get()->groupBy('pos_outlet_id');
-        $openShifts = PosShift::query()->where('property_id', $property->id)->where('status', '<>', PosShiftStatus::Closed)->get()->keyBy('pos_register_id');
+        $openShifts = PosShift::query()
+            ->where('property_id', $property->id)
+            ->where('status', '<>', PosShiftStatus::Closed)
+            ->with('openedBy:id,name')
+            ->withCount(['orders as open_orders_count' => fn ($query) => $query->where('status', PosOrderStatus::Open->value)])
+            ->get()
+            ->keyBy('pos_register_id');
 
         return Inertia::render('pos/index', [
+            'currency' => CurrencyData::forProperty($property),
             'locked' => $locked,
             'hasDevice' => $request->attributes->get('pos_device') !== null,
             'actor' => $actor instanceof User ? ['id' => $actor->id, 'name' => $actor->name] : null,
@@ -65,16 +73,26 @@ class PosRegisterController extends Controller
                 'clockedInOutletId' => PosTimeClock::query()->where('user_id', $actor->id)->whereNull('clocked_out_at')->value('pos_outlet_id'),
             ] : null,
             'canShift' => $actor instanceof User && $actor->checkPermissionTo(PermissionEnum::PosShift->value),
+            'canKds' => $actor instanceof User && $actor->checkPermissionTo(PermissionEnum::PosKds->value),
+            'canManage' => ! $locked && $actor instanceof User && $actor->checkPermissionTo(PermissionEnum::PosManage->value),
             'staff' => $locked ? $this->staff($property) : [],
             'outlets' => $actor === null ? [] : $outlets->map(fn (PosOutlet $outlet): array => [
                 'id' => $outlet->id,
                 'name' => $outlet->name,
-                'registers' => $registers->get($outlet->id, collect())->map(fn (PosRegister $register): array => [
-                    'id' => $register->id,
-                    'name' => $register->name,
-                    'shiftNumber' => $openShifts->get($register->id)?->shift_number,
-                    'shiftStatus' => $openShifts->get($register->id)?->status->label(),
-                ])->values()->all(),
+                'operationMode' => $outlet->operation_mode->label(),
+                'requireClockIn' => $outlet->require_clock_in,
+                'registers' => $registers->get($outlet->id, collect())->map(function (PosRegister $register) use ($openShifts): array {
+                    $shift = $openShifts->get($register->id);
+
+                    return [
+                        'id' => $register->id,
+                        'name' => $register->name,
+                        'shiftNumber' => $shift?->shift_number,
+                        'shiftStatus' => BadgeData::fromPosShiftStatus($shift === null ? PosShiftStatus::Closed : $shift->status)->toArray(),
+                        'openedBy' => $shift?->openedBy?->name,
+                        'openOrderCount' => $shift === null ? 0 : (int) $shift->getAttribute('open_orders_count'),
+                    ];
+                })->values()->all(),
             ])->values()->all(),
         ]);
     }
