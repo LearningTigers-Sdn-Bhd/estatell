@@ -123,6 +123,22 @@ Runs in fullscreen browser mode on any kitchen tablet or wall monitor without re
 - **Window / Expo Mode (FOH Runners)**: Lists orders with `Ready` items grouped by Table / Room; tapping **Served** marks lines `Served` and records prep-to-serve durations.
 - **ODS (Customer Pickup Screen)**: Two-column public/kiosk board (`/p/{code}/pos/ods/{outlet}`): **Preparing** and **Ready for Pickup**.
 
+### What stays on the screens
+
+The kitchen follows the food, not the payment (`KitchenDisplay::onScreen`). A line leaves the screens when it is marked **Served**, paid or not.
+
+| Case                            | Kitchen and Window                                                                  | Pickup board                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Open check                      | Until served                                                                        | Until served                                                  |
+| Paid sale (also Pay first)      | Until served, if it is of the current business date or was paid in the last 3 hours | Same, but a ready order leaves 30 minutes after it was bumped |
+| Paid sale older than that       | Hidden, and bump and status changes are refused                                     | Hidden                                                        |
+| Partly refunded line            | Shows the quantity that is left                                                     | Listed while something is left                                |
+| Fully refunded line, not served | Void docket for 30 minutes                                                          | Not listed                                                    |
+| Offline walk-in, when it syncs  | Not shown: its lines are saved as Served, because the food was handed over          | Not shown                                                     |
+| Voided or merged order          | Not shown, as before                                                                | Not shown                                                     |
+
+Hiding never changes a line. The outlet version also changes every 5 minutes, so a quiet pickup board drops orders that waited too long.
+
 ## Dynamic Table QR & Per-Stay In-Room Dining QR
 
 ### 1. Dynamic Table QR (`/q/table/{token}`)

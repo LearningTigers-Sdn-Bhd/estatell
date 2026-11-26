@@ -3,6 +3,7 @@
 use App\Actions\Pos\IssuePosMenuSnapshot;
 use App\Actions\Pos\SyncOfflinePosOrders;
 use App\Enums\PaymentMethodType;
+use App\Enums\PosKitchenStatus;
 use App\Enums\PosReconciliationStatus;
 use App\Enums\PosTenderType;
 use App\Models\PaymentMethod;
@@ -61,6 +62,17 @@ function posOfflineSetup(): array
 
     return $s;
 }
+
+it('does not send a synced offline sale to the kitchen again', function () {
+    $s = posOfflineSetup();
+    $sale = posOfflineSale($s, $s['steak']);
+
+    app(SyncOfflinePosOrders::class)($s['manager'], $s['property'], $s['outlet'], [$sale]);
+
+    $statuses = PosOrder::query()->where('client_uuid', $sale['client_uuid'])->sole()->lines()->pluck('kitchen_status')->unique()->values()->all();
+
+    expect($statuses)->toBe([PosKitchenStatus::Served]);
+});
 
 it('issues a menu snapshot once per version and keeps it seven days', function () {
     $s = posOfflineSetup();

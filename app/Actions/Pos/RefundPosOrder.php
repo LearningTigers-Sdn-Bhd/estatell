@@ -68,6 +68,7 @@ class RefundPosOrder
         private ReverseLine $reverseLine,
         private PostPosFolioCredit $postPosFolioCredit,
         private UndoMealRedemption $undoMealRedemption,
+        private BumpKitchenVersion $bumpKitchenVersion,
         private PostRecipeStock $postRecipeStock,
     ) {}
 
@@ -130,6 +131,11 @@ class RefundPosOrder
 
         $refund = $this->createRefundOrder($actor, $original, $shift, $clientUuid, $businessDate->date, $plan);
         $refundLines = $this->createRefundLines($refund, $plan, $inputs);
+
+        // The kitchen stops cooking what was given back.
+        foreach ($plan as $row) {
+            ($this->bumpKitchenVersion)($row['line']->kitchenStation);
+        }
         $this->giveBackStockAndMeals($actor, $original, $plan, $refundLines, $inputs);
         $this->payOut($actor, $property, $original, $refund, $shift, $approvedBy, $payouts);
 
