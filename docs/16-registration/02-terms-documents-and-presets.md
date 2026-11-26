@@ -90,19 +90,18 @@ Key clauses the guest ticks one by one before signing. They live in the terms ma
 
 ## UI
 
-The Terms tab is full width, in a three-column grid like the Layout tab. The editor takes two columns and the preview takes one.
+The Terms tab has the editor in the main panel and the preview in the 28rem rail, like the Layout tab. The Document and Language Selects and Add document sit on the right of the Terms heading.
 
 ```
-Terms   [Document: Standard ⌄]  [+ Add document]    [Language: English ⌄]
-┌──────────────────────────────────┬─────────────────────────┐
-│ v3 · published 5 Oct · Standard  │ Preview                 │
-│ template                         │ (placeholders filled)   │
-│ ┌──────────────────────────────┐ │                         │
-│ │ markdown editor              │ │                         │
-│ └──────────────────────────────┘ │                         │
-│ [Version history]  [Publish new version]                   │
-└──────────────────────────────────┴─────────────────────────┘
- ⓘ A newer template is available.  [Preview] [Apply]
+┌──────────────────────────────────────────────┬─────────────────────────┐
+│ Terms   [Document ⌄] [Language ⌄] [+ Add doc]│ Preview                 │
+│ v3 · published 5 Oct · Standard template     │ (placeholders filled)   │
+│ ┌──────────────────────────────────────────┐ │                         │
+│ │ markdown editor                          │ │                         │
+│ └──────────────────────────────────────────┘ │                         │
+│ ⓘ A newer template is available. [Preview] [Apply]                     │
+│ [Version history]      [Publish new version] │                         │
+└──────────────────────────────────────────────┴─────────────────────────┘
 ```
 
 - **Language** is a Select menu with every property locale (`Locale::options()`), not tabs or a toggle. A language the document has no version for is listed as "Bahasa Malaysia (not published)". Choosing it opens the editor with the property type's preset text, as an unpublished draft with a note. Publishing makes version 1 in that language.

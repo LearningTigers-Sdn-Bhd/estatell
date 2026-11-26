@@ -1,13 +1,23 @@
 import { router, useForm } from '@inertiajs/react';
-import { History, Plus, RefreshCw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import {
+    Eye,
+    FileText,
+    History,
+    Plus,
+    RefreshCw,
+    Trash2,
+    Upload,
+} from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import {
     TermsPreview,
     countChecklistItems,
 } from '@/components/pms/registration-card/terms-preview';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
+import { Workspace } from '@/components/pms/workspace';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -44,7 +54,6 @@ import {
 } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { terms } from '@/routes/settings/registration-card';
 import {
@@ -215,13 +224,15 @@ function DeleteDocumentDialog({
 }
 
 /**
- * The editor for one document in one language. Remounted (by key) whenever the document, language
- * or latest version changes, so its text always starts from the server copy.
+ * The editor for one document in one language, with the live preview in the Workspace rail. Remounted (by key)
+ * whenever the document, language or latest version changes, so its text always starts from the server copy.
  */
 function TermsEditor({
+    heading,
     editor,
     document,
 }: {
+    heading: ReactNode;
     editor: Editor;
     document: Document | undefined;
 }) {
@@ -241,35 +252,54 @@ function TermsEditor({
         });
 
     return (
-        <div className="flex flex-col gap-4">
-            <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                {editor.isDraft ? (
-                    <>
-                        <Badge variant="outline">Draft</Badge>
-                        Not published in this language yet. It starts from the{' '}
-                        {editor.presetLabel} template.
-                    </>
-                ) : (
-                    <>
-                        <span className="font-medium text-foreground tabular-nums">
-                            v{editor.version}
-                        </span>
-                        published{' '}
-                        {editor.publishedAt && (
-                            <time dateTime={editor.publishedAt}>
-                                {formatDate(editor.publishedAt)}
-                            </time>
-                        )}
-                        {editor.publishedBy && <>by {editor.publishedBy}</>}
-                        {editor.presetLabel && (
-                            <Badge variant="secondary">
-                                {editor.presetLabel} template
-                            </Badge>
-                        )}
-                    </>
-                )}
-            </p>
-            <div className="grid items-start gap-4 lg:grid-cols-2">
+        <Workspace
+            asideLabel="Preview"
+            asideWidth="wide"
+            aside={
+                <section className="flex flex-col gap-4">
+                    <PanelHeading
+                        icon={Eye}
+                        title="Preview"
+                        description="What the guest reads before signing, with sample details."
+                    />
+                    <div className="rounded-xl border p-4">
+                        <TermsPreview
+                            body={form.data.body}
+                            values={editor.placeholderValues}
+                        />
+                    </div>
+                </section>
+            }
+        >
+            <section className="flex flex-col gap-5">
+                {heading}
+                <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    {editor.isDraft ? (
+                        <>
+                            <Badge variant="outline">Draft</Badge>
+                            Not published in this language yet. It starts from
+                            the {editor.presetLabel} template.
+                        </>
+                    ) : (
+                        <>
+                            <span className="font-medium text-foreground tabular-nums">
+                                v{editor.version}
+                            </span>
+                            published{' '}
+                            {editor.publishedAt && (
+                                <time dateTime={editor.publishedAt}>
+                                    {formatDate(editor.publishedAt)}
+                                </time>
+                            )}
+                            {editor.publishedBy && <>by {editor.publishedBy}</>}
+                            {editor.presetLabel && (
+                                <Badge variant="secondary">
+                                    {editor.presetLabel} template
+                                </Badge>
+                            )}
+                        </>
+                    )}
+                </p>
                 <Field>
                     <FieldLabel htmlFor="terms-body">Terms text</FieldLabel>
                     <Textarea
@@ -301,178 +331,178 @@ function TermsEditor({
                         ). Templates are a starting point, not legal advice.
                     </FieldDescription>
                 </Field>
-                <section className="flex flex-col gap-2">
-                    <h4 className="text-sm leading-snug font-medium">
-                        Preview
-                    </h4>
-                    <div className="h-128 overflow-y-auto rounded-lg border p-4">
-                        <TermsPreview
-                            body={form.data.body}
-                            values={editor.placeholderValues}
-                        />
-                    </div>
-                </section>
-            </div>
-            {editor.newerTemplateBody !== null && (
-                <Alert>
-                    <RefreshCw aria-hidden />
-                    <AlertTitle>A newer template is available.</AlertTitle>
-                    <AlertDescription className="flex flex-wrap items-center gap-2">
-                        Applying it makes a new version. Nothing is lost.
-                        <span className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setTemplateOpen(true)}
-                            >
-                                Preview
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                disabled={applyForm.processing}
-                                focusableWhenDisabled
-                                onClick={() =>
-                                    applyForm.post(
-                                        apply.url({
-                                            termsDocument: editor.documentId,
-                                        }),
-                                        { preserveScroll: true },
-                                    )
-                                }
-                            >
-                                {applyForm.processing && <Spinner />}
-                                Apply
-                            </Button>
-                        </span>
-                    </AlertDescription>
-                </Alert>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setHistoryOpen(true)}
-                    >
-                        <History data-icon="inline-start" />
-                        Version history
-                    </Button>
-                    {document?.canDelete && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setDeleting(true)}
-                        >
-                            <Trash2 data-icon="inline-start" />
-                            Delete document
-                        </Button>
-                    )}
-                </div>
-                <Button
-                    type="button"
-                    disabled={
-                        form.processing ||
-                        (!editor.isDraft && !dirty) ||
-                        items > MAX_CHECKLIST_ITEMS
-                    }
-                    focusableWhenDisabled
-                    onClick={() => publish()}
-                >
-                    {form.processing && <Spinner />}
-                    Publish new version
-                </Button>
-            </div>
-
-            <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-                <SheetContent className="data-[side=right]:sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Version history</SheetTitle>
-                        <SheetDescription>
-                            Published versions never change. Use one as a
-                            starting point, then publish it as a new version.
-                        </SheetDescription>
-                    </SheetHeader>
-                    <ul className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
-                        {editor.history.length === 0 && (
-                            <li className="text-sm text-muted-foreground">
-                                Nothing published in this language yet.
-                            </li>
-                        )}
-                        {editor.history.map((version) => (
-                            <li
-                                key={version.version}
-                                className="flex items-center justify-between gap-3 rounded-lg border p-3"
-                            >
-                                <div className="flex flex-col gap-0.5 text-sm">
-                                    <span className="font-medium tabular-nums">
-                                        Version {version.version}
-                                        {version.isTemplate && (
-                                            <Badge
-                                                variant="secondary"
-                                                className="ml-2"
-                                            >
-                                                Template
-                                            </Badge>
-                                        )}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {formatDate(version.publishedAt)}
-                                        {version.publishedBy &&
-                                            ` · ${version.publishedBy}`}
-                                    </span>
-                                </div>
+                {editor.newerTemplateBody !== null && (
+                    <Alert>
+                        <RefreshCw aria-hidden />
+                        <AlertTitle>A newer template is available.</AlertTitle>
+                        <AlertDescription className="flex flex-wrap items-center gap-2">
+                            Applying it makes a new version. Nothing is lost.
+                            <span className="flex gap-2">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
-                                        form.setData('body', version.body);
-                                        setHistoryOpen(false);
-                                    }}
+                                    onClick={() => setTemplateOpen(true)}
                                 >
-                                    Use as starting point
+                                    <Eye data-icon="inline-start" />
+                                    Preview
                                 </Button>
-                            </li>
-                        ))}
-                    </ul>
-                </SheetContent>
-            </Sheet>
-
-            <Sheet open={templateOpen} onOpenChange={setTemplateOpen}>
-                <SheetContent className="data-[side=right]:sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>New template text</SheetTitle>
-                        <SheetDescription>
-                            Read only. Apply it from the banner to make it a new
-                            version.
-                        </SheetDescription>
-                    </SheetHeader>
-                    <div className="flex-1 overflow-y-auto px-4 pb-4">
-                        <TermsPreview
-                            body={editor.newerTemplateBody ?? ''}
-                            values={editor.placeholderValues}
-                        />
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={applyForm.processing}
+                                    focusableWhenDisabled
+                                    onClick={() =>
+                                        applyForm.post(
+                                            apply.url({
+                                                termsDocument:
+                                                    editor.documentId,
+                                            }),
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                >
+                                    {applyForm.processing ? (
+                                        <Spinner data-icon="inline-start" />
+                                    ) : (
+                                        <RefreshCw data-icon="inline-start" />
+                                    )}
+                                    Apply
+                                </Button>
+                            </span>
+                        </AlertDescription>
+                    </Alert>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setHistoryOpen(true)}
+                        >
+                            <History data-icon="inline-start" />
+                            Version history
+                        </Button>
+                        {document?.canDelete && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setDeleting(true)}
+                            >
+                                <Trash2 data-icon="inline-start" />
+                                Delete document
+                            </Button>
+                        )}
                     </div>
-                </SheetContent>
-            </Sheet>
+                    <Button
+                        type="button"
+                        disabled={
+                            form.processing ||
+                            (!editor.isDraft && !dirty) ||
+                            items > MAX_CHECKLIST_ITEMS
+                        }
+                        focusableWhenDisabled
+                        onClick={() => publish()}
+                    >
+                        {form.processing ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <Upload data-icon="inline-start" />
+                        )}
+                        Publish new version
+                    </Button>
+                </div>
 
-            {document && (
-                <DeleteDocumentDialog
-                    document={document}
-                    open={deleting}
-                    onOpenChange={setDeleting}
+                <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+                    <SheetContent className="data-[side=right]:sm:max-w-md">
+                        <SheetHeader>
+                            <SheetTitle>Version history</SheetTitle>
+                            <SheetDescription>
+                                Published versions never change. Use one as a
+                                starting point, then publish it as a new
+                                version.
+                            </SheetDescription>
+                        </SheetHeader>
+                        <ul className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
+                            {editor.history.length === 0 && (
+                                <li className="text-sm text-muted-foreground">
+                                    Nothing published in this language yet.
+                                </li>
+                            )}
+                            {editor.history.map((version) => (
+                                <li
+                                    key={version.version}
+                                    className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                                >
+                                    <div className="flex flex-col gap-0.5 text-sm">
+                                        <span className="font-medium tabular-nums">
+                                            Version {version.version}
+                                            {version.isTemplate && (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="ml-2"
+                                                >
+                                                    Template
+                                                </Badge>
+                                            )}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            {formatDate(version.publishedAt)}
+                                            {version.publishedBy &&
+                                                ` · ${version.publishedBy}`}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            form.setData('body', version.body);
+                                            setHistoryOpen(false);
+                                        }}
+                                    >
+                                        Use as starting point
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    </SheetContent>
+                </Sheet>
+
+                <Sheet open={templateOpen} onOpenChange={setTemplateOpen}>
+                    <SheetContent className="data-[side=right]:sm:max-w-md">
+                        <SheetHeader>
+                            <SheetTitle>New template text</SheetTitle>
+                            <SheetDescription>
+                                Read only. Apply it from the banner to make it a
+                                new version.
+                            </SheetDescription>
+                        </SheetHeader>
+                        <div className="flex-1 overflow-y-auto px-4 pb-4">
+                            <TermsPreview
+                                body={editor.newerTemplateBody ?? ''}
+                                values={editor.placeholderValues}
+                            />
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                {document && (
+                    <DeleteDocumentDialog
+                        document={document}
+                        open={deleting}
+                        onOpenChange={setDeleting}
+                    />
+                )}
+
+                <UnsavedChangesDialog
+                    guard={guard}
+                    name="the terms text"
+                    saving={form.processing}
+                    onSave={() => publish(guard.proceed)}
                 />
-            )}
-
-            <UnsavedChangesDialog
-                guard={guard}
-                name="the terms text"
-                saving={form.processing}
-                onSave={() => publish(guard.proceed)}
-            />
-        </div>
+            </section>
+        </Workspace>
     );
 }
 
@@ -489,27 +519,17 @@ export function RegistrationCardTermsForm({
 }) {
     const [adding, setAdding] = useState(false);
 
-    return (
-        <div className="flex flex-col gap-4">
-            <header className="flex flex-wrap items-end justify-between gap-3">
-                <div className="space-y-1">
-                    <h3 className="text-base font-medium">Terms</h3>
-                    <p className="text-sm text-muted-foreground">
-                        The terms a guest agrees to when signing. Each change is
-                        a new version, so signed cards keep the text they
-                        signed.
-                    </p>
-                </div>
-                <div
-                    className={cn(
-                        'flex w-full flex-wrap items-center gap-2',
-                        documents.length <= 1 && 'justify-end',
-                    )}
-                >
+    const heading = (
+        <PanelHeading
+            icon={FileText}
+            title="Terms"
+            description="The terms a guest agrees to when signing. Each change is a new version, so signed cards keep the text they signed."
+            actions={
+                <>
                     {documents.length > 1 && editor && (
                         <EnumSelect
                             aria-label="Document"
-                            className="min-w-48 flex-1"
+                            className="w-48"
                             options={documents.map((document) => ({
                                 value: String(document.id),
                                 label: document.name,
@@ -517,6 +537,17 @@ export function RegistrationCardTermsForm({
                             value={String(editor.documentId)}
                             onValueChange={(value) =>
                                 openEditor(Number(value), editor.locale)
+                            }
+                        />
+                    )}
+                    {editor && (
+                        <EnumSelect
+                            aria-label="Language"
+                            className="w-48"
+                            options={editor.localeOptions}
+                            value={editor.locale}
+                            onValueChange={(value) =>
+                                openEditor(editor.documentId, value)
                             }
                         />
                     )}
@@ -528,31 +559,31 @@ export function RegistrationCardTermsForm({
                         <Plus data-icon="inline-start" />
                         Add document
                     </Button>
-                    {editor && (
-                        <EnumSelect
-                            aria-label="Language"
-                            className="w-56"
-                            options={editor.localeOptions}
-                            value={editor.locale}
-                            onValueChange={(value) =>
-                                openEditor(editor.documentId, value)
-                            }
-                        />
-                    )}
-                </div>
-            </header>
+                </>
+            }
+        />
+    );
+
+    return (
+        <>
             {editor ? (
                 <TermsEditor
                     key={`${editor.documentId}-${editor.locale}-${editor.version}`}
+                    heading={heading}
                     editor={editor}
                     document={documents.find(
                         (document) => document.id === editor.documentId,
                     )}
                 />
             ) : (
-                <p className="text-sm text-muted-foreground">
-                    This property has no terms document yet.
-                </p>
+                <Workspace hideAside>
+                    <section className="flex flex-col gap-5">
+                        {heading}
+                        <p className="ps-2 text-sm text-muted-foreground">
+                            This property has no terms document yet.
+                        </p>
+                    </section>
+                </Workspace>
             )}
             <AddDocumentDialog
                 open={adding}
@@ -560,6 +591,6 @@ export function RegistrationCardTermsForm({
                 presets={presets}
                 defaultPreset={defaultPreset}
             />
-        </div>
+        </>
     );
 }

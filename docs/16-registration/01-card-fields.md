@@ -75,19 +75,21 @@ The Registration card page is its own Settings sidebar item (`settings.manage`),
 | Layout  | `…/registration-card/layout`           | The fields table and a live preview.                                                                                                                    |
 | Terms   | `…/registration-card/terms`            | The terms editor, with a language Select. See [Terms documents and presets](02-terms-documents-and-presets.md). Needs `registration-card.manage-terms`. |
 
+The page uses a fixed-height `Workspace`, like Settings › Property: each panel scrolls on its own. Each section heading has an icon box. Layout and Terms show their preview in a 28rem right rail; General has no rail, so its form takes the full width.
+
 General opens first. It uses one vertical form:
 
 - **Who completes a card** uses radio cards with descriptions: Primary guest only (one card for the primary guest) or Every adult (each adult completes their own card).
 - **Require card before check-in** sits directly below the scope choice. Staff with override permission can bypass the requirement.
-- **ID document retention (days)** has the placeholder “e.g. 90”. Leaving it blank keeps ID photos; document numbers stay when photos are deleted.
+- **ID document retention (days)** has an Optional badge and the placeholder “e.g. 90”. Leaving it blank keeps ID photos; document numbers stay when photos are deleted.
 - **Security deposit** uses radio cards: Do not collect or Collect a deposit. Collect shows the amount input with the placeholder “e.g. 100.00”. Do not collect saves zero through the existing amount field. Switching between the choices keeps an unsaved amount until the page is left.
-- Radio cards place the radio indicator on the right. Cards sit side by side on larger screens and stack on mobile. **Save changes** saves the form. Layout and Terms are unchanged.
+- Radio cards place the radio indicator on the right. Cards sit side by side on larger screens and stack on mobile. A change shows the floating Save bar (Discard and Save). Leaving with unsaved changes asks first.
 
-The Layout tab is full width, in a three-column grid. The table takes two columns and the preview takes one:
+The Layout tab has the table in the main panel and the preview in the rail:
 
 ```
 ┌───────────────────────────────────────┬───────────────────────┐
-│ Visibility │ Field         │ Required │ Preview (sticky)      │
+│ Visibility │ Field         │ Required │ Preview (rail)        │
 │ ─ Guest details ──────────────────────│                       │
 │ ─ Stay details ───────────────────────│                       │
 │ ─ Prices ─────────────────────────────│                       │
@@ -98,7 +100,7 @@ The Layout tab is full width, in a three-column grid. The table takes two column
 - Required applies to guest-detail fields only, and only when the field is visible. Visible and not required is Optional.
 - A locked row shows its switch disabled with the reason.
 - An **Order** column has up and down arrows (no drag-and-drop package, like room types). A field moves only inside its group. The preview follows the new order at once, and the order saves automatically with the visibilities.
-- There is no Save button. Every change saves by itself 300 ms after the last click, as one request with all visibilities and the order. The header shows "Saving…" and then "Changes save automatically." A success shows no toast. A refused save shows an error toast and the table snaps back to the server copy.
+- There is no Save button. Every change saves by itself 300 ms after the last click, as one request with all visibilities and the order. The heading shows "Saving…" on the right and then "Changes save automatically." A success shows no toast. A refused save shows an error toast and the table snaps back to the server copy.
 - The preview is drawn in the browser from the table state, with sample data. The server sends the rows and the property name.
 
 ## Actions

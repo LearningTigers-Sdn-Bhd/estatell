@@ -1,12 +1,13 @@
 import { Head } from '@inertiajs/react';
 import { FileText, SlidersHorizontal, TableProperties } from 'lucide-react';
-import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { RegistrationCardGeneralForm } from '@/components/pms/registration-card/registration-card-general-form';
 import { RegistrationCardLayoutForm } from '@/components/pms/registration-card/registration-card-layout-form';
 import { RegistrationCardTermsForm } from '@/components/pms/registration-card/registration-card-terms-form';
+import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
+import { Workspace } from '@/components/pms/workspace';
 import { edit as settingsEdit } from '@/routes/settings';
 import { general, layout, terms } from '@/routes/settings/registration-card';
 
@@ -40,6 +41,10 @@ function registrationCardTabs(canManageTerms: boolean): TabLink[] {
     ];
 }
 
+/**
+ * Settings › Registration card. Each tab is its own URL. The tab content sits in a fixed-height `Workspace` like
+ * Settings › Property: each panel scrolls on its own. Layout and Terms show their preview in a right rail.
+ */
 export default function RegistrationCard({
     settings,
     propertyName,
@@ -66,23 +71,26 @@ export default function RegistrationCard({
     return (
         <>
             <Head title="Registration card" />
-            <div className="flex flex-col gap-4 p-4">
-                <Heading
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 lg:overflow-hidden">
+                <PageHeader
                     title="Registration card"
                     description="What the card asks for, what it shows, and when a guest must complete it."
-                    className="mb-0"
                 />
                 <TabLinks
                     activeTab={tab}
-                    className="flex flex-col gap-4"
-                    panelWidth={tab === 'general' ? 'default' : 'full'}
                     tabs={registrationCardTabs(canManageTerms)}
+                    triggerClassName="md:min-w-0"
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
                     {tab === 'general' && (
-                        <RegistrationCardGeneralForm
-                            settings={settings}
-                            scopes={registrationCardScopes}
-                        />
+                        <Workspace hideAside>
+                            <RegistrationCardGeneralForm
+                                settings={settings}
+                                scopes={registrationCardScopes}
+                            />
+                        </Workspace>
                     )}
                     {tab === 'layout' && (
                         <RegistrationCardLayoutForm
@@ -105,6 +113,7 @@ export default function RegistrationCard({
 }
 
 RegistrationCard.layout = (props: { tab: Tab; canManageTerms: boolean }) => ({
+    variant: 'fixed',
     breadcrumbs: withTabCrumb(
         [
             { title: 'Settings', href: settingsEdit() },

@@ -1,6 +1,7 @@
 import { Banknote, CircleOff, UserRound, UsersRound } from 'lucide-react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { OptionalBadge } from '@/components/pms/optional-badge';
 import {
     Field,
     FieldContent,
@@ -132,7 +133,7 @@ export function RegistrationCardGeneralFields({
             </Field>
             <Field>
                 <FieldLabel htmlFor="id_document_retention_days">
-                    ID document retention (days)
+                    ID document retention (days) <OptionalBadge />
                 </FieldLabel>
                 <Input
                     id="id_document_retention_days"
