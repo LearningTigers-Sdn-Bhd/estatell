@@ -258,7 +258,7 @@ export default function PropertySettings({
                                 headerClassName="ps-2 pt-2"
                                 submitLabel="Save"
                                 submitIcon={Save}
-                                contentClassName="flex flex-col gap-6"
+                                contentClassName="flex flex-col gap-6 pb-6"
                             >
                                 {(errors) => (
                                     <>
