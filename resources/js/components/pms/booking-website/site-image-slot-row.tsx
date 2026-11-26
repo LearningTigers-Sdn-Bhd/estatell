@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
+import { uploadWithToast } from '@/lib/upload-with-toast';
 import {
     destroy,
     store,
@@ -31,27 +32,23 @@ export function SiteImageSlotRow({
     const [choosing, setChoosing] = useState(false);
     const [error, setError] = useState<string>();
 
-    const upload = (file: File) => {
+    const upload = async (file: File) => {
         setError(undefined);
-        router.post(
-            store.url({ slot: slot.key }),
-            { image: file },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                preserveState: true,
-                onStart: () => setBusy(true),
-                onError: (errors) =>
-                    setError(Object.values(errors)[0] ?? 'Upload failed.'),
-                onFinish: () => {
-                    setBusy(false);
+        setBusy(true);
 
-                    if (fileInput.current) {
-                        fileInput.current.value = '';
-                    }
-                },
-            },
-        );
+        const result = await uploadWithToast({
+            url: store.url({ slot: slot.key }),
+            files: [file],
+            field: 'image',
+            noun: ['image', 'images'],
+        });
+
+        setError(result.error);
+        setBusy(false);
+
+        if (fileInput.current) {
+            fileInput.current.value = '';
+        }
     };
 
     const remove = () => {
@@ -103,7 +100,7 @@ export function SiteImageSlotRow({
                         const file = event.target.files?.[0];
 
                         if (file) {
-                            upload(file);
+                            void upload(file);
                         }
                     }}
                 />

@@ -27,7 +27,7 @@ class SiteImageSlotData extends Data
             label: $slot->label,
             required: $slot->required,
             fileName: $image?->file_name,
-            url: $image?->getUrl('web'),
+            url: $image?->getAvailableUrl(['web']),
             thumbUrl: $image?->getUrl('thumb'),
         );
     }

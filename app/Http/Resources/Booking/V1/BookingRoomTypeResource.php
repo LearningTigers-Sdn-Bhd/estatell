@@ -27,7 +27,7 @@ class BookingRoomTypeResource extends JsonResource
             'name' => $roomType->name,
             'description' => $roomType->description,
             'photos' => $roomType->getMedia(RoomType::PHOTOS)->map(fn (Media $photo): array => [
-                'url' => $photo->getUrl('web'),
+                'url' => $photo->getAvailableUrl(['web']),
                 'thumb_url' => $photo->getUrl('thumb'),
             ])->values()->all(),
             'amenities' => $roomType->amenities->map(fn (Amenity $amenity): array => [

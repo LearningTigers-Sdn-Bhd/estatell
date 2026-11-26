@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { FileText } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
+import { uploadToastCallbacks } from '@/lib/upload-with-toast';
 
 /**
  * The proofs an agent sent: open the file, its amount and reference, and its status with the reason if rejected.
@@ -95,6 +96,10 @@ export function PaymentProofForm({
     defaultAmount?: string;
 }) {
     const [fileKey, setFileKey] = useState(0);
+    const uploadToast = useMemo(
+        () => uploadToastCallbacks('Uploading proof'),
+        [],
+    );
     const form = useForm<{
         file: File | null;
         bank_account_id: string;
@@ -120,6 +125,7 @@ export function PaymentProofForm({
                 form.reset();
                 setFileKey((key) => key + 1);
             },
+            ...uploadToast,
         });
     };
 

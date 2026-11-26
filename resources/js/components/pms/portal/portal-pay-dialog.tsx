@@ -1,4 +1,5 @@
 import { useForm } from '@inertiajs/react';
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { uploadToastCallbacks } from '@/lib/upload-with-toast';
 
 type Props = {
     open: boolean;
@@ -67,12 +69,17 @@ function PayForm({
         reference: '',
     });
     const { data, errors } = form;
+    const uploadToast = useMemo(
+        () => uploadToastCallbacks('Uploading slip'),
+        [],
+    );
 
     const submit = () => {
         form.post(action, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => onOpenChange(false),
+            ...uploadToast,
         });
     };
 

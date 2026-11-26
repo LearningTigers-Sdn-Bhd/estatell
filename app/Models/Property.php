@@ -119,13 +119,13 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
      */
     public function heroUrl(): ?string
     {
-        return $this->getFirstMedia(self::HERO)?->getUrl('web');
+        return $this->getFirstMedia(self::HERO)?->getAvailableUrl(['web']);
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')->performOnCollections(self::PHOTOS)->nonQueued()->width(400);
-        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS, self::HERO)->nonQueued()->width(1600);
+        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS, self::HERO)->width(1600);
     }
 
     /**

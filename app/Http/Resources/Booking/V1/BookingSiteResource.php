@@ -34,7 +34,7 @@ class BookingSiteResource extends JsonResource
             'template_key' => $site->siteTemplate?->key,
             'images' => $images->map(fn (Media $image): array => [
                 'slot' => $image->getCustomProperty('slot'),
-                'url' => $image->getUrl('web'),
+                'url' => $image->getAvailableUrl(['web']),
                 'thumb_url' => $image->getUrl('thumb'),
             ])->values()->all(),
             'main_color' => $site->main_color,
