@@ -1,6 +1,7 @@
 import { Form } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
+import { SaveBar } from '@/components/pms/save-bar';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -255,30 +256,12 @@ function SettingsSectionContent({
                 <footer className="flex justify-end">{saveButton}</footer>
             )}
             {!readOnly && saveBar && isDirty && (
-                <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center">
-                    <div
-                        role="region"
-                        aria-label={`Unsaved changes to ${title}`}
-                        aria-busy={processing}
-                        className="pointer-events-auto flex w-full animate-in items-center gap-2 rounded-xl border bg-popover py-2 pr-2 pl-4 text-popover-foreground shadow-lg duration-200 fade-in-0 slide-in-from-bottom-4 sm:w-auto"
-                    >
-                        <span className="mr-2 text-sm font-medium">
-                            Unsaved changes
-                        </span>
-                        <div className="ml-auto flex items-center gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={onDiscard}
-                                disabled={processing}
-                                focusableWhenDisabled
-                            >
-                                Discard
-                            </Button>
-                            {saveButton}
-                        </div>
-                    </div>
-                </div>
+                <SaveBar
+                    name={title}
+                    processing={processing}
+                    onDiscard={onDiscard}
+                    saveButton={saveButton}
+                />
             )}
             {guardUnsavedChanges && !readOnly && (
                 <UnsavedChangesDialog

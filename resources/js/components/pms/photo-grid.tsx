@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { FieldDescription, FieldError } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { uploadWithToast } from '@/lib/upload-with-toast';
+import { cn } from '@/lib/utils';
 
 type Photo = { id: number; name: string; thumbUrl: string };
 
@@ -120,6 +121,7 @@ export function PhotoGrid({
     uploadUrl,
     reorderUrl,
     removeForm,
+    headerClassName,
 }: {
     title: string;
     description: string;
@@ -130,6 +132,8 @@ export function PhotoGrid({
     uploadUrl: string;
     reorderUrl: string;
     removeForm: (photoId: number) => { action: string; method: 'post' };
+    /** Extra classes for the header, for example the heading inset inside a Workspace panel. */
+    headerClassName?: string;
 }) {
     const fileInput = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
@@ -226,7 +230,7 @@ export function PhotoGrid({
 
     return (
         <section className="flex flex-col gap-5">
-            <header className="flex flex-col gap-1">
+            <header className={cn('flex flex-col gap-1', headerClassName)}>
                 <h3 className="text-base font-medium">{title}</h3>
                 <p className="text-sm text-muted-foreground">
                     {description}

@@ -21,12 +21,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldTitle,
-} from '@/components/ui/field';
+import { Field, FieldDescription, FieldError } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Tooltip,
@@ -108,66 +103,73 @@ export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
     };
 
     return (
-        <Field className="md:col-span-2">
-            <FieldTitle>Logo</FieldTitle>
-            <input
-                ref={fileInput}
-                type="file"
-                accept={ACCEPTED_TYPES.join(',')}
-                className="hidden"
-                aria-label="Logo file"
-                onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = '';
+        <section className="flex flex-col gap-4">
+            <header className="flex flex-col gap-1 ps-3 pt-2">
+                <h2 className="text-base font-medium">Logo</h2>
+                <p className="text-sm text-muted-foreground">
+                    Shown in the app and printed at the top of PDFs. It is saved
+                    as soon as you crop it.
+                </p>
+            </header>
+            <Field>
+                <input
+                    ref={fileInput}
+                    type="file"
+                    accept={ACCEPTED_TYPES.join(',')}
+                    className="hidden"
+                    aria-label="Logo file"
+                    onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = '';
 
-                    if (file) {
-                        openCrop(file);
-                    }
-                }}
-            />
-            <div>
-                {logoUrl ? (
-                    <div className="group relative flex size-28 items-center justify-center overflow-hidden rounded-2xl border bg-muted">
-                        <img
-                            src={logoUrl}
-                            alt="Property logo"
-                            className="size-full object-contain"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center gap-1 bg-foreground/60 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
-                            <TileAction
-                                icon={Eye}
-                                label="View logo"
-                                onClick={() => setViewOpen(true)}
+                        if (file) {
+                            openCrop(file);
+                        }
+                    }}
+                />
+                <div>
+                    {logoUrl ? (
+                        <div className="group relative flex size-28 items-center justify-center overflow-hidden rounded-2xl border bg-muted">
+                            <img
+                                src={logoUrl}
+                                alt="Property logo"
+                                className="size-full object-contain"
                             />
-                            <TileAction
-                                icon={Pencil}
-                                label="Edit logo"
-                                loading={loadingCurrent}
-                                onClick={editCurrent}
-                            />
-                            <TileAction
-                                icon={Trash2}
-                                label="Delete logo"
-                                onClick={() => setRemoveOpen(true)}
-                            />
+                            <div className="absolute inset-0 flex items-center justify-center gap-1 bg-foreground/60 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
+                                <TileAction
+                                    icon={Eye}
+                                    label="View logo"
+                                    onClick={() => setViewOpen(true)}
+                                />
+                                <TileAction
+                                    icon={Pencil}
+                                    label="Edit logo"
+                                    loading={loadingCurrent}
+                                    onClick={editCurrent}
+                                />
+                                <TileAction
+                                    icon={Trash2}
+                                    label="Delete logo"
+                                    onClick={() => setRemoveOpen(true)}
+                                />
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    <button
-                        type="button"
-                        className="flex size-28 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted text-muted-foreground transition-colors outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
-                        onClick={pickFile}
-                    >
-                        <Upload className="size-5" />
-                        <span className="text-sm">Upload logo</span>
-                    </button>
-                )}
-            </div>
-            <FieldDescription>
-                PNG or JPEG, up to 10 MB. You crop it to a square. Printed at
-                the top of PDFs.
-            </FieldDescription>
-            <FieldError>{error}</FieldError>
+                    ) : (
+                        <button
+                            type="button"
+                            className="flex size-28 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted text-muted-foreground transition-colors outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+                            onClick={pickFile}
+                        >
+                            <Upload className="size-5" />
+                            <span className="text-sm">Upload logo</span>
+                        </button>
+                    )}
+                </div>
+                <FieldDescription>
+                    PNG or JPEG, up to 10 MB. You crop it to a square.
+                </FieldDescription>
+                <FieldError>{error}</FieldError>
+            </Field>
 
             <LogoCropDialog
                 source={source}
@@ -227,7 +229,7 @@ export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
                     </Form>
                 </AlertDialogContent>
             </AlertDialog>
-        </Field>
+        </section>
     );
 }
 

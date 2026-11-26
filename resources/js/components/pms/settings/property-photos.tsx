@@ -22,6 +22,7 @@ export function PropertyPhotos({
             photoLimit={photoLimit}
             photoMaxKb={photoMaxKb}
             readOnly={false}
+            headerClassName="ps-3 pt-2"
             uploadUrl={store.url()}
             reorderUrl={reorder.url()}
             removeForm={(photoId) => destroy.form({ photo: photoId })}

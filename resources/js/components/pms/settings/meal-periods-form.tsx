@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { SaveBar } from '@/components/pms/save-bar';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
@@ -96,8 +97,8 @@ export function MealPeriodsForm({
 
     return (
         <form onSubmit={submit} className="flex flex-col gap-5">
-            <header className="space-y-1">
-                <h3 className="text-base font-medium">Meal periods</h3>
+            <header className="flex flex-col gap-1 ps-3 pt-2">
+                <h2 className="text-base font-medium">Meal periods</h2>
                 <p className="text-sm text-muted-foreground">
                     When meals are served. Package inclusions and the kitchen
                     meal count use these periods. They are listed by start time
@@ -117,7 +118,7 @@ export function MealPeriodsForm({
                     }
                 />
             ) : (
-                <div className="overflow-auto rounded-lg border">
+                <div className="overflow-auto rounded-xl border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -267,16 +268,30 @@ export function MealPeriodsForm({
             )}
 
             <FieldError>{errors.meal_periods}</FieldError>
-            <footer className="flex justify-end">
-                <Button
-                    type="submit"
-                    disabled={form.processing || !form.isDirty}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Save meal periods
-                </Button>
-            </footer>
+            {form.isDirty && (
+                <SaveBar
+                    name="Meal periods"
+                    processing={form.processing}
+                    onDiscard={() => {
+                        form.reset();
+                        form.clearErrors();
+                    }}
+                    saveButton={
+                        <Button
+                            type="submit"
+                            disabled={form.processing}
+                            focusableWhenDisabled
+                        >
+                            {form.processing ? (
+                                <Spinner data-icon="inline-start" />
+                            ) : (
+                                <Save data-icon="inline-start" />
+                            )}
+                            Save
+                        </Button>
+                    }
+                />
+            )}
             <UnsavedChangesDialog
                 guard={guard}
                 name="Meal periods"

@@ -63,24 +63,24 @@ The admin suspension action stores the current status in `suspended_from_status`
 The property's identity, edited on the Details page, **Profile** tab (`/p/{code}/settings/profile`, `settings.manage`). It is the first tab, and the Details sidebar item opens it.
 
 ```
-┌ Profile ─────────────────────────────────────────────┐
-│ Logo        [img] [Replace] [Remove]   PNG/JPEG ≤1 MB│
-│ Name        [ Sandbay Resort                      ]  │
-│ Address     [ Lot 12, Jalan Pantai… ] [ line 2 ]     │
-│             [ Postcode ] [ City ] [ State ▾ ]        │
-│ Phone       [ +60 88 123 456 ]  Email [ stay@… ]     │
-│ About       [ A quiet beach resort in Pangkor…    ]  │
-│                                          [ Save ]    │
-└──────────────────────────────────────────────────────┘
+┌ Profile ────────────────────────────┬ Logo ─────────────┐
+│ Name   [ Sandbay Resort           ] │ ╭─────╮           │
+│ About  [ A quiet beach resort…    ] │ │ img │ hover:    │
+│ Type [ Resort ] Country [ Malaysia ]│ ╰─────╯ View Edit │
+│ Address [ Lot 12, Jalan Pantai… ]   │         Delete    │
+│         [ Postcode ] [ City ] [ ▾ ] │                   │
+│ Phone [ +60 88 123 456 ] Email […]  │ PNG/JPEG, square  │
+└─────────────────────────────────────┴───────────────────┘
+                 [ Discard ] [ Save ]   (floats while changed)
 ```
 
 - Fields: name, address, contact phone and email, and the About text (up to 3000 characters, empty clears it). The registered name, numbers and licences are on the [Business licence](#business-licence) tab. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
-- The logo sits above the form. Fields are grouped into Property, Address and Contact, with About last. On desktop, postcode, city and state share one row; phone and email share another. Fields stack on mobile. One **Save profile** button saves everything.
-- Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
+- The logo sits in the right rail. Fields are grouped into Property (name, About, then type and country in one row), Address and Contact. On desktop, postcode, city and state share one row; phone and email share another. Fields stack on mobile, and the logo comes after the form. One **Save** in the floating bar saves everything.
+- Type and country are shown as disabled fields and are not sent on save. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
 
-The seven Details form tabs disable Save until a field changes. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
+The Details page is a fixed-height `Workspace` like Settings › Concierge: each panel scrolls on its own, and only Profile has a right rail (28rem). The seven Details form tabs show **Discard** and **Save** in a floating bar only while a field has changed. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
 
 ### Business licence
 

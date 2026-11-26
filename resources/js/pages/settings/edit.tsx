@@ -6,12 +6,15 @@ import {
     Images,
     LifeBuoy,
     MoonStar,
+    Save,
     SlidersHorizontal,
     Utensils,
 } from 'lucide-react';
 import PropertySettingsController from '@/actions/App/Http/Controllers/Property/PropertySettingsController';
 import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { OptionalBadge } from '@/components/pms/optional-badge';
+import { PageHeader } from '@/components/pms/page-header';
 import { AgeGroupsForm } from '@/components/pms/settings/age-groups-form';
 import { BusinessLicenceForm } from '@/components/pms/settings/business-licence-form';
 import { MealPeriodsForm } from '@/components/pms/settings/meal-periods-form';
@@ -20,6 +23,7 @@ import { PropertyPhotos } from '@/components/pms/settings/property-photos';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
+import { Workspace } from '@/components/pms/workspace';
 import {
     SettingsSwitch,
     SettingsInput,
@@ -124,6 +128,10 @@ function settingsTabs(): TabLink[] {
     ];
 }
 
+/**
+ * Settings › Property. Each tab is its own URL and loads only its own data. The tab content sits in a fixed-height
+ * `Workspace` like Settings › Concierge: each panel scrolls on its own. Only Profile has a right rail, for the logo.
+ */
 export default function PropertySettings({
     settings,
     tab,
@@ -169,7 +177,7 @@ export default function PropertySettings({
         return (
             <>
                 <Head title="Property settings" />
-                <div className="flex flex-col gap-6 p-4">
+                <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
                     <Heading
                         title="Property settings"
                         description="Finish the property basics to set up operating settings."
@@ -199,43 +207,109 @@ export default function PropertySettings({
     const lockedDescription = settings.currencyAndTimeZoneLocked
         ? 'Fixed after the property goes live.'
         : undefined;
+    const showLogo = tab === 'profile' && profile !== undefined;
 
     return (
         <>
             <Head title="Property settings" />
-            <div className="flex flex-col gap-4 p-4">
-                <Heading
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 lg:overflow-hidden">
+                <PageHeader
                     title="Property settings"
-                    description="Review and save each section separately."
-                    className="mb-0"
+                    description="Name, address, rules and access for this property. Each tab is saved on its own."
                 />
                 <TabLinks
                     activeTab={tab}
-                    className="flex flex-col gap-4"
                     tabs={settingsTabs()}
+                    triggerClassName="md:min-w-0"
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
-                    {tab === 'profile' && profile && (
-                        <div className="flex flex-col gap-4">
-                            <PropertyLogoField logoUrl={profile.logoUrl} />
+                    <Workspace
+                        aside={
+                            showLogo ? (
+                                <PropertyLogoField logoUrl={profile.logoUrl} />
+                            ) : undefined
+                        }
+                        asideLabel="Logo"
+                        hideAside={!showLogo}
+                        asideWidth="wide"
+                    >
+                        {tab === 'profile' && profile && (
                             <SettingsSection
                                 key={tab}
                                 guardUnsavedChanges
+                                saveBar
                                 form={PropertySettingsController.updateProfile.form()}
                                 title="Profile"
-                                description={`The name, address and contact details printed on receipts, invoices and reports. ${[profile.typeLabel, profile.countryName].filter(Boolean).join(' · ')}`}
-                                submitLabel="Save profile"
+                                description="The name, address and contact details printed on receipts, invoices and reports."
+                                headerClassName="ps-3 pt-2"
+                                submitLabel="Save"
+                                submitIcon={Save}
                                 contentClassName="flex flex-col gap-6"
                             >
                                 {(errors) => (
                                     <>
                                         <FieldSet>
                                             <FieldLegend>Property</FieldLegend>
-                                            <SettingsInput
-                                                name="name"
-                                                label="Property name"
-                                                value={profile.name}
-                                                error={errors.name}
-                                            />
+                                            <FieldGroup>
+                                                <SettingsInput
+                                                    name="name"
+                                                    label="Property name"
+                                                    value={profile.name}
+                                                    error={errors.name}
+                                                />
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.about
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="about">
+                                                        About the property{' '}
+                                                        <OptionalBadge />
+                                                    </FieldLabel>
+                                                    <Textarea
+                                                        id="about"
+                                                        name="about"
+                                                        rows={5}
+                                                        maxLength={3000}
+                                                        defaultValue={
+                                                            profile.about ?? ''
+                                                        }
+                                                        placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
+                                                        aria-invalid={
+                                                            !!errors.about
+                                                        }
+                                                    />
+                                                    <FieldDescription>
+                                                        Guests read this on your
+                                                        booking website and in
+                                                        the Concierge guide. Up
+                                                        to 3000 characters.
+                                                    </FieldDescription>
+                                                    <FieldError>
+                                                        {errors.about}
+                                                    </FieldError>
+                                                </Field>
+                                                <FieldGroup className="grid md:grid-cols-2">
+                                                    <SettingsInput
+                                                        name="property_type"
+                                                        label="Property type"
+                                                        value={
+                                                            profile.typeLabel
+                                                        }
+                                                        disabled
+                                                    />
+                                                    <SettingsInput
+                                                        name="country"
+                                                        label="Country"
+                                                        value={
+                                                            profile.countryName
+                                                        }
+                                                        disabled
+                                                    />
+                                                </FieldGroup>
+                                            </FieldGroup>
                                         </FieldSet>
                                         <FieldSet>
                                             <FieldLegend>Address</FieldLegend>
@@ -248,14 +322,24 @@ export default function PropertySettings({
                                                 />
                                                 <SettingsInput
                                                     name="address_line2"
-                                                    label="Address line 2 (optional)"
+                                                    label={
+                                                        <>
+                                                            Address line 2{' '}
+                                                            <OptionalBadge />
+                                                        </>
+                                                    }
                                                     value={profile.addressLine2}
                                                     error={errors.address_line2}
                                                 />
                                                 <FieldGroup className="grid md:grid-cols-3">
                                                     <SettingsInput
                                                         name="postal_code"
-                                                        label="Postcode (optional)"
+                                                        label={
+                                                            <>
+                                                                Postcode{' '}
+                                                                <OptionalBadge />
+                                                            </>
+                                                        }
                                                         value={
                                                             profile.postalCode
                                                         }
@@ -271,7 +355,12 @@ export default function PropertySettings({
                                                     />
                                                     <SettingsInput
                                                         name="state_code"
-                                                        label="State (optional)"
+                                                        label={
+                                                            <>
+                                                                State{' '}
+                                                                <OptionalBadge />
+                                                            </>
+                                                        }
                                                         value={
                                                             profile.stateCode
                                                         }
@@ -287,273 +376,279 @@ export default function PropertySettings({
                                             <FieldGroup className="grid md:grid-cols-2">
                                                 <SettingsPhoneInput
                                                     name="contact_phone"
-                                                    label="Phone (optional)"
+                                                    label={
+                                                        <>
+                                                            Phone{' '}
+                                                            <OptionalBadge />
+                                                        </>
+                                                    }
                                                     value={profile.contactPhone}
                                                     error={errors.contact_phone}
                                                 />
                                                 <SettingsInput
                                                     name="contact_email"
-                                                    label="Email (optional)"
+                                                    label={
+                                                        <>
+                                                            Email{' '}
+                                                            <OptionalBadge />
+                                                        </>
+                                                    }
                                                     type="email"
                                                     value={profile.contactEmail}
                                                     error={errors.contact_email}
                                                 />
                                             </FieldGroup>
                                         </FieldSet>
-                                        <Field data-invalid={!!errors.about}>
-                                            <FieldLabel htmlFor="about">
-                                                About the property (optional)
-                                            </FieldLabel>
-                                            <Textarea
-                                                id="about"
-                                                name="about"
-                                                rows={5}
-                                                maxLength={3000}
-                                                defaultValue={
-                                                    profile.about ?? ''
-                                                }
-                                                placeholder="e.g. A 40-room boutique hotel in the old town, five minutes from the night market."
-                                                aria-invalid={!!errors.about}
-                                            />
-                                            <FieldDescription>
-                                                Guests read this on your booking
-                                                website and in the Concierge
-                                                guide. Up to 3000 characters.
-                                            </FieldDescription>
-                                            <FieldError>
-                                                {errors.about}
-                                            </FieldError>
-                                        </Field>
                                     </>
                                 )}
                             </SettingsSection>
-                        </div>
-                    )}
-                    {tab === 'business' && business && (
-                        <BusinessLicenceForm
-                            key={JSON.stringify(business)}
-                            business={business}
-                            maxLicences={maxLicences}
-                        />
-                    )}
-                    {tab === 'general' && (
-                        <SettingsSection
-                            key={tab}
-                            guardUnsavedChanges
-                            form={form('general')}
-                            title="General"
-                            description="Currency, local time, arrivals, and room assignment."
-                        >
-                            {(errors) => (
-                                <>
-                                    <SettingsSelect
-                                        name="currency"
-                                        label="Currency"
-                                        value={settings.currency.code}
-                                        options={currencies}
-                                        disabled={
-                                            settings.currencyAndTimeZoneLocked
-                                        }
-                                        description={lockedDescription}
-                                        error={errors.currency}
-                                    />
-                                    <SettingsInput
-                                        name="time_zone"
-                                        label="Time zone"
-                                        value={settings.timeZone}
-                                        disabled={
-                                            settings.currencyAndTimeZoneLocked
-                                        }
-                                        error={errors.time_zone}
-                                        description={
-                                            lockedDescription ??
-                                            'IANA time zone, for example Asia/Kuala_Lumpur.'
-                                        }
-                                    />
-                                    <SettingsSelect
-                                        name="default_locale"
-                                        label="Default language"
-                                        value={settings.defaultLocale}
-                                        options={locales}
-                                        error={errors.default_locale}
-                                    />
-                                    <SettingsInput
-                                        name="arrival_grace_minutes"
-                                        label="Arrival grace period (minutes)"
-                                        type="number"
-                                        min={0}
-                                        max={1440}
-                                        value={settings.arrivalGraceMinutes}
-                                        error={errors.arrival_grace_minutes}
-                                    />
-                                    <SettingsInput
-                                        name="check_in_time"
-                                        label="Check-in time"
-                                        type="time"
-                                        value={settings.checkInTime}
-                                        error={errors.check_in_time}
-                                    />
-                                    <SettingsInput
-                                        name="check_out_time"
-                                        label="Check-out time"
-                                        type="time"
-                                        value={settings.checkOutTime}
-                                        error={errors.check_out_time}
-                                    />
-                                    <SettingsSwitch
-                                        name="auto_assign_rooms"
-                                        label="Assign rooms automatically"
-                                        description="On: new bookings and OTA bookings get a free room. Check-in fills any still missing. Off: staff assign rooms by hand."
-                                        checked={settings.autoAssignRooms}
-                                        error={errors.auto_assign_rooms}
-                                    />
-                                </>
-                            )}
-                        </SettingsSection>
-                    )}
-                    {tab === 'operations' && (
-                        <SettingsSection
-                            key={tab}
-                            guardUnsavedChanges
-                            form={form('operations')}
-                            title="Operations"
-                            description="Night audit and reservation exception rules."
-                        >
-                            {(errors) => (
-                                <>
-                                    <SettingsInput
-                                        name="audit_time"
-                                        label="Night audit time"
-                                        type="time"
-                                        value={settings.auditTime}
-                                        error={errors.audit_time}
-                                    />
-                                    <SettingsSelect
-                                        name="missed_arrival_policy"
-                                        label="Missed arrival"
-                                        value={settings.missedArrivalPolicy}
-                                        options={missedArrivalPolicies}
-                                        error={errors.missed_arrival_policy}
-                                    />
-                                    <SettingsSelect
-                                        name="overdue_departure_policy"
-                                        label="Overdue departure"
-                                        value={settings.overdueDeparturePolicy}
-                                        options={overdueDeparturePolicies}
-                                        error={errors.overdue_departure_policy}
-                                    />
-                                    <SettingsSelect
-                                        name="weekend_nights"
-                                        label="Weekend nights"
-                                        value={settings.weekendNights}
-                                        options={weekendNightsOptions}
-                                        error={errors.weekend_nights}
-                                    />
-                                    <SettingsInput
-                                        name="migration_window_days"
-                                        label="Migration window (days)"
-                                        type="number"
-                                        min={0}
-                                        max={365}
-                                        step="1"
-                                        placeholder="e.g. 60"
-                                        value={settings.migrationWindowDays}
-                                        description="How long after go-live you can bring in stays, deposits and balances from your old system."
-                                        error={errors.migration_window_days}
-                                    />
-                                    <SettingsSwitch
-                                        name="auto_audit_enabled"
-                                        label="Run night audit automatically"
-                                        description="On: the night audit runs by itself after the audit time. Off: staff start it by hand."
-                                        checked={settings.autoAuditEnabled}
-                                        error={errors.auto_audit_enabled}
-                                    />
-                                    <SettingsSwitch
-                                        name="auto_clean_on_check_out"
-                                        label="Mark rooms clean at check-out"
-                                        description="On: a room turns Clean when its last guest checks out, so it can be sold at once. Off: it turns Dirty and housekeeping marks it clean."
-                                        checked={settings.autoCleanOnCheckOut}
-                                        error={errors.auto_clean_on_check_out}
-                                    />
-                                </>
-                            )}
-                        </SettingsSection>
-                    )}
-                    {tab === 'photos' && (
-                        <PropertyPhotos
-                            photos={photos}
-                            photoLimit={photoLimit}
-                            photoMaxKb={photoMaxKb}
-                        />
-                    )}
-                    {tab === 'age-groups' && (
-                        <AgeGroupsForm
-                            key={JSON.stringify(ageGroups)}
-                            ageGroups={ageGroups}
-                            maxAge={maxAge}
-                        />
-                    )}
-                    {tab === 'meal-periods' && (
-                        <MealPeriodsForm
-                            key={JSON.stringify(mealPeriods)}
-                            mealPeriods={mealPeriods}
-                            maxPeriods={maxMealPeriods}
-                        />
-                    )}
-                    {tab === 'support' &&
-                        (impersonating ? (
-                            <p className="text-sm text-muted-foreground">
-                                Not available during support access.
-                            </p>
-                        ) : (
+                        )}
+                        {tab === 'business' && business && (
+                            <BusinessLicenceForm
+                                key={JSON.stringify(business)}
+                                business={business}
+                                maxLicences={maxLicences}
+                            />
+                        )}
+                        {tab === 'general' && (
                             <SettingsSection
                                 key={tab}
                                 guardUnsavedChanges
-                                form={form('support')}
-                                title="Support access"
-                                description="estatell Support can always view this property as its staff to help you."
-                                contentClassName=""
+                                saveBar
+                                form={form('general')}
+                                title="General"
+                                description="Currency, local time, arrivals, and room assignment."
+                                headerClassName="ps-3 pt-2"
+                                submitLabel="Save"
+                                submitIcon={Save}
                             >
                                 {(errors) => (
                                     <>
-                                        {partnerName ? (
-                                            <SettingsSwitch
-                                                name="allow_support_access"
-                                                label={`Allow ${partnerName} to view the property as its staff`}
-                                                description="On: your partner can view this property as its staff to help you. Off: your partner cannot open this property."
-                                                checked={
-                                                    settings.allowSupportAccess
-                                                }
-                                                error={
-                                                    errors.allow_support_access
-                                                }
-                                            />
-                                        ) : (
-                                            <input
-                                                type="hidden"
-                                                name="allow_support_access"
-                                                value={
-                                                    settings.allowSupportAccess
-                                                        ? '1'
-                                                        : '0'
-                                                }
-                                            />
-                                        )}
+                                        <SettingsSelect
+                                            name="currency"
+                                            label="Currency"
+                                            value={settings.currency.code}
+                                            options={currencies}
+                                            disabled={
+                                                settings.currencyAndTimeZoneLocked
+                                            }
+                                            description={lockedDescription}
+                                            error={errors.currency}
+                                        />
+                                        <SettingsInput
+                                            name="time_zone"
+                                            label="Time zone"
+                                            value={settings.timeZone}
+                                            disabled={
+                                                settings.currencyAndTimeZoneLocked
+                                            }
+                                            error={errors.time_zone}
+                                            description={
+                                                lockedDescription ??
+                                                'IANA time zone, for example Asia/Kuala_Lumpur.'
+                                            }
+                                        />
+                                        <SettingsSelect
+                                            name="default_locale"
+                                            label="Default language"
+                                            value={settings.defaultLocale}
+                                            options={locales}
+                                            error={errors.default_locale}
+                                        />
+                                        <SettingsInput
+                                            name="arrival_grace_minutes"
+                                            label="Arrival grace period (minutes)"
+                                            type="number"
+                                            min={0}
+                                            max={1440}
+                                            value={settings.arrivalGraceMinutes}
+                                            error={errors.arrival_grace_minutes}
+                                        />
+                                        <SettingsInput
+                                            name="check_in_time"
+                                            label="Check-in time"
+                                            type="time"
+                                            value={settings.checkInTime}
+                                            error={errors.check_in_time}
+                                        />
+                                        <SettingsInput
+                                            name="check_out_time"
+                                            label="Check-out time"
+                                            type="time"
+                                            value={settings.checkOutTime}
+                                            error={errors.check_out_time}
+                                        />
                                         <SettingsSwitch
-                                            name="allow_support_money_corrections"
-                                            label="Allow support to refund, void and issue credit notes"
-                                            description="On: during a support session, platform support can refund, void and issue credit notes, and check out with a deposit refund. Off: those are blocked."
+                                            name="auto_assign_rooms"
+                                            label="Assign rooms automatically"
+                                            description="On: new bookings and OTA bookings get a free room. Check-in fills any still missing. Off: staff assign rooms by hand."
+                                            checked={settings.autoAssignRooms}
+                                            error={errors.auto_assign_rooms}
+                                        />
+                                    </>
+                                )}
+                            </SettingsSection>
+                        )}
+                        {tab === 'operations' && (
+                            <SettingsSection
+                                key={tab}
+                                guardUnsavedChanges
+                                saveBar
+                                form={form('operations')}
+                                title="Operations"
+                                description="Night audit and reservation exception rules."
+                                headerClassName="ps-3 pt-2"
+                                submitLabel="Save"
+                                submitIcon={Save}
+                            >
+                                {(errors) => (
+                                    <>
+                                        <SettingsInput
+                                            name="audit_time"
+                                            label="Night audit time"
+                                            type="time"
+                                            value={settings.auditTime}
+                                            error={errors.audit_time}
+                                        />
+                                        <SettingsSelect
+                                            name="missed_arrival_policy"
+                                            label="Missed arrival"
+                                            value={settings.missedArrivalPolicy}
+                                            options={missedArrivalPolicies}
+                                            error={errors.missed_arrival_policy}
+                                        />
+                                        <SettingsSelect
+                                            name="overdue_departure_policy"
+                                            label="Overdue departure"
+                                            value={
+                                                settings.overdueDeparturePolicy
+                                            }
+                                            options={overdueDeparturePolicies}
+                                            error={
+                                                errors.overdue_departure_policy
+                                            }
+                                        />
+                                        <SettingsSelect
+                                            name="weekend_nights"
+                                            label="Weekend nights"
+                                            value={settings.weekendNights}
+                                            options={weekendNightsOptions}
+                                            error={errors.weekend_nights}
+                                        />
+                                        <SettingsInput
+                                            name="migration_window_days"
+                                            label="Migration window (days)"
+                                            type="number"
+                                            min={0}
+                                            max={365}
+                                            step="1"
+                                            placeholder="e.g. 60"
+                                            value={settings.migrationWindowDays}
+                                            description="How long after go-live you can bring in stays, deposits and balances from your old system."
+                                            error={errors.migration_window_days}
+                                        />
+                                        <SettingsSwitch
+                                            name="auto_audit_enabled"
+                                            label="Run night audit automatically"
+                                            description="On: the night audit runs by itself after the audit time. Off: staff start it by hand."
+                                            checked={settings.autoAuditEnabled}
+                                            error={errors.auto_audit_enabled}
+                                        />
+                                        <SettingsSwitch
+                                            name="auto_clean_on_check_out"
+                                            label="Mark rooms clean at check-out"
+                                            description="On: a room turns Clean when its last guest checks out, so it can be sold at once. Off: it turns Dirty and housekeeping marks it clean."
                                             checked={
-                                                settings.allowSupportMoneyCorrections
+                                                settings.autoCleanOnCheckOut
                                             }
                                             error={
-                                                errors.allow_support_money_corrections
+                                                errors.auto_clean_on_check_out
                                             }
                                         />
                                     </>
                                 )}
                             </SettingsSection>
-                        ))}
+                        )}
+                        {tab === 'photos' && (
+                            <PropertyPhotos
+                                photos={photos}
+                                photoLimit={photoLimit}
+                                photoMaxKb={photoMaxKb}
+                            />
+                        )}
+                        {tab === 'age-groups' && (
+                            <AgeGroupsForm
+                                key={JSON.stringify(ageGroups)}
+                                ageGroups={ageGroups}
+                                maxAge={maxAge}
+                            />
+                        )}
+                        {tab === 'meal-periods' && (
+                            <MealPeriodsForm
+                                key={JSON.stringify(mealPeriods)}
+                                mealPeriods={mealPeriods}
+                                maxPeriods={maxMealPeriods}
+                            />
+                        )}
+                        {tab === 'support' &&
+                            (impersonating ? (
+                                <p className="ps-3 pt-2 text-sm text-muted-foreground">
+                                    Not available during support access.
+                                </p>
+                            ) : (
+                                <SettingsSection
+                                    key={tab}
+                                    guardUnsavedChanges
+                                    saveBar
+                                    form={form('support')}
+                                    title="Support access"
+                                    description="estatell Support can always view this property as its staff to help you."
+                                    headerClassName="ps-3 pt-2"
+                                    submitLabel="Save"
+                                    submitIcon={Save}
+                                    contentClassName="flex flex-col gap-5"
+                                >
+                                    {(errors) => (
+                                        <>
+                                            {partnerName ? (
+                                                <SettingsSwitch
+                                                    name="allow_support_access"
+                                                    label={`Allow ${partnerName} to view the property as its staff`}
+                                                    description="On: your partner can view this property as its staff to help you. Off: your partner cannot open this property."
+                                                    checked={
+                                                        settings.allowSupportAccess
+                                                    }
+                                                    error={
+                                                        errors.allow_support_access
+                                                    }
+                                                />
+                                            ) : (
+                                                <input
+                                                    type="hidden"
+                                                    name="allow_support_access"
+                                                    value={
+                                                        settings.allowSupportAccess
+                                                            ? '1'
+                                                            : '0'
+                                                    }
+                                                />
+                                            )}
+                                            <SettingsSwitch
+                                                name="allow_support_money_corrections"
+                                                label="Allow support to refund, void and issue credit notes"
+                                                description="On: during a support session, platform support can refund, void and issue credit notes, and check out with a deposit refund. Off: those are blocked."
+                                                checked={
+                                                    settings.allowSupportMoneyCorrections
+                                                }
+                                                error={
+                                                    errors.allow_support_money_corrections
+                                                }
+                                            />
+                                        </>
+                                    )}
+                                </SettingsSection>
+                            ))}
+                    </Workspace>
                 </TabLinks>
             </div>
         </>
@@ -561,6 +656,7 @@ export default function PropertySettings({
 }
 
 PropertySettings.layout = (props: { tab: Section }) => ({
+    variant: 'fixed',
     breadcrumbs: withTabCrumb(
         [{ title: 'Settings', href: profileTab() }],
         settingsTabs(),
