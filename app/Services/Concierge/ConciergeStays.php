@@ -83,15 +83,19 @@ class ConciergeStays
         return $stay === null || $kiosk->guest($stay)->documents()->exists() ? null : $stay;
     }
 
-    /**
-     * Whether a saved ID document of the guest has its photos: the front, and for a MyKad the back too. With a type, only
-     * a document of that type counts.
-     */
-    public function hasIdPhoto(Guest $guest, ?IdentityDocumentType $type = null): bool
+    /** Whether an ID document has its photos: the front, and for a MyKad the back too. */
+    public function hasPhotos(GuestIdentityDocument $document): bool
     {
-        return $guest->documents()->when($type !== null, fn ($query) => $query->where('type', $type))->get()
-            ->contains(fn (GuestIdentityDocument $document): bool => $document->hasMedia(GuestIdentityDocument::FRONT_SCAN)
-                && ($document->type !== IdentityDocumentType::MyKad || $document->hasMedia(GuestIdentityDocument::BACK_SCAN)));
+        return $document->hasMedia(GuestIdentityDocument::FRONT_SCAN)
+            && ($document->type !== IdentityDocumentType::MyKad || $document->hasMedia(GuestIdentityDocument::BACK_SCAN));
+    }
+
+    /** Whether the document a blank number keeps (the latest of that type, as `SaveConciergeIdentity` picks it) has its photos. */
+    public function keptDocumentHasPhoto(Guest $guest, IdentityDocumentType $type): bool
+    {
+        $document = $guest->documents()->where('type', $type)->latest('id')->first();
+
+        return $document !== null && $this->hasPhotos($document);
     }
 
     /** Whether the property requires an ID photo and the stay's guest has none yet. */
@@ -103,7 +107,7 @@ class ConciergeStays
 
         $guest = app(KioskStays::class)->guest($stay);
 
-        return $guest === null || ! $this->hasIdPhoto($guest);
+        return $guest === null || ! $guest->documents()->get()->contains(fn (GuestIdentityDocument $document): bool => $this->hasPhotos($document));
     }
 
     /**

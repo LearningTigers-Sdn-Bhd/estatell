@@ -338,3 +338,12 @@ it('asks for both sides of a MyKad while Check in by name is on', function () {
     $this->post("/c/{$token}/identity", conciergeIdentityBody(['kind' => 'my_kad', 'number' => '900101141234', 'scan' => UploadedFile::fake()->image('front.jpg')]))
         ->assertSessionHasErrors('scan_back')->assertSessionDoesntHaveErrors('scan');
 });
+
+it('counts a saved ID photo only while the guest keeps that document', function () {
+    ['property' => $property, 'token' => $token] = conciergeSetup();
+    $property->settings->forceFill(['concierge_name_check_in_enabled' => true])->save();
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['scan' => UploadedFile::fake()->image('passport.jpg')]))->assertSessionHasNoErrors();
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['number' => 'B7654321']))->assertSessionHasErrors('scan');
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['number' => '', 'keep_saved_document' => '1']))->assertSessionHasNoErrors();
+});

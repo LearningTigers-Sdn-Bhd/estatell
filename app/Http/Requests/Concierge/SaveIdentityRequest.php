@@ -32,8 +32,8 @@ class SaveIdentityRequest extends StoreStayIdentityRequest
         $property = $stay === null ? $this->route('property') : $stay->property;
         $photoRequired = $property instanceof Property && (bool) $property->settings?->concierge_name_check_in_enabled;
         $myKad = $this->input('kind') === 'my_kad';
-        // A photo already saved for this kind of document is not asked again.
-        $photoSaved = $photoRequired && $guest !== null && app(ConciergeStays::class)->hasIdPhoto($guest, $myKad ? IdentityDocumentType::MyKad : IdentityDocumentType::Passport);
+        // A saved photo counts only while the guest keeps that same document (a blank number). A typed number needs its own.
+        $photoSaved = $photoRequired && $guest !== null && blank($this->input('number')) && app(ConciergeStays::class)->keptDocumentHasPhoto($guest, $myKad ? IdentityDocumentType::MyKad : IdentityDocumentType::Passport);
         $needsPhoto = $photoRequired && ! $photoSaved;
 
         return [

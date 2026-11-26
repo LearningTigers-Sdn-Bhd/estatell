@@ -115,7 +115,7 @@ class ConciergePageBuilder
             hasName: filled($guest->full_name),
             hasPhone: filled($guest->phone),
             hasEmail: filled($guest->email),
-            hasDocumentPhoto: $document !== null && $this->concierge->hasIdPhoto($guest, $document->type),
+            hasDocumentPhoto: $document !== null && $this->concierge->hasPhotos($document),
         );
     }
 
