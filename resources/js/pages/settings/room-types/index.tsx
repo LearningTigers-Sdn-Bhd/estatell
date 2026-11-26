@@ -1,31 +1,22 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, BedDouble, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
+import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
-import { ArchiveRoomTypeButton } from '@/components/pms/rooms/archive-room-type-button';
+import { PaxCount } from '@/components/pms/pax-count';
+import { ArchiveRoomTypeDialog } from '@/components/pms/rooms/archive-room-type-button';
 import { GuestsIncludedLabel } from '@/components/pms/rooms/room-type-details-form';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Field,
-    FieldContent,
     FieldDescription,
     FieldError,
-    FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
-import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
     Table,
@@ -35,7 +26,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
 import {
     edit,
     index,
@@ -45,262 +35,365 @@ import {
 } from '@/routes/settings/room-types';
 
 type RoomType = App.Data.Rooms.RoomTypeData;
-type SellUnitOption = { value: string; label: string };
-
-type FormData = {
-    name: string;
-    description: string;
-    sell_unit: string;
-    max_adults: string;
-    max_children: string;
-    base_occupancy: string;
-    smoking_allowed: boolean;
-    pets_allowed: boolean;
-    terms_document_id: string;
-};
-
-const emptyForm: FormData = {
-    name: '',
-    description: '',
-    sell_unit: 'room',
-    max_adults: '2',
-    max_children: '0',
-    base_occupancy: '2',
-    smoking_allowed: false,
-    pets_allowed: false,
-    terms_document_id: '',
-};
 
 /**
- * Create form. A room type is edited on its own page.
+ * Asks for the name only (and Sold by while beds are on). The other fields send their defaults, and create opens the
+ * new room type's Details tab, where staff set the rest.
  */
-function RoomTypeForm({
+function NewRoomTypeDialog({
+    open,
+    onOpenChange,
     sellUnits,
     bedsOn,
-    termsDocuments,
 }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     sellUnits: EnumOption[];
-    /** The property can sell beds. While off, Sold by is hidden and the room type sells rooms. */
     bedsOn: boolean;
-    termsDocuments: SellUnitOption[];
 }) {
-    const form = useForm<FormData>(emptyForm);
+    const form = useForm({
+        name: '',
+        sell_unit: 'room',
+        max_adults: '2',
+        max_children: '0',
+        base_occupancy: '2',
+        smoking_allowed: false,
+        pets_allowed: false,
+        terms_document_id: '',
+    });
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
+    const changeOpen = (next: boolean) => {
+        if (!next) {
+            form.reset();
+            form.clearErrors();
+        }
 
-        form.post(store.url(), { preserveScroll: true });
+        onOpenChange(next);
     };
 
     return (
-        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-            <FieldGroup className="flex-1 overflow-y-auto px-4">
-                <Field>
-                    <FieldLabel htmlFor="room-type-name">Name</FieldLabel>
-                    <Input
-                        id="room-type-name"
-                        maxLength={100}
-                        value={form.data.name}
-                        onChange={(event) =>
-                            form.setData('name', event.target.value)
-                        }
-                        placeholder="e.g. Deluxe King"
-                        aria-invalid={!!form.errors.name}
-                        autoFocus
-                    />
-                    <FieldError>{form.errors.name}</FieldError>
-                </Field>
-                <Field>
-                    <FieldLabel htmlFor="room-type-description">
-                        Description
+        <FormOverlay
+            variant="dialog"
+            open={open}
+            onOpenChange={changeOpen}
+            title="New room type"
+            description="Name it here. You set guests and terms on the next page."
+            errors={form.errors}
+            processing={form.processing}
+            submitLabel="Create room type"
+            onSubmit={() => form.post(store.url())}
+        >
+            <Field data-invalid={!!form.errors.name}>
+                <FieldLabel htmlFor="new-room-type-name">Name</FieldLabel>
+                <Input
+                    id="new-room-type-name"
+                    placeholder="e.g. Deluxe King"
+                    maxLength={100}
+                    value={form.data.name}
+                    onChange={(event) =>
+                        form.setData('name', event.target.value)
+                    }
+                    aria-invalid={!!form.errors.name}
+                    autoFocus
+                />
+                <FieldError>{form.errors.name}</FieldError>
+            </Field>
+            {bedsOn && (
+                <Field data-invalid={!!form.errors.sell_unit}>
+                    <FieldLabel htmlFor="new-room-type-sell-unit">
+                        Sold by
                     </FieldLabel>
-                    <Textarea
-                        id="room-type-description"
-                        maxLength={2000}
-                        placeholder="e.g. Sea view with a king bed and a balcony"
-                        value={form.data.description}
-                        onChange={(event) =>
-                            form.setData('description', event.target.value)
+                    <EnumSelect
+                        id="new-room-type-sell-unit"
+                        name="sell_unit"
+                        options={sellUnits}
+                        value={form.data.sell_unit}
+                        onValueChange={(value) =>
+                            form.setData('sell_unit', value)
                         }
-                        aria-invalid={!!form.errors.description}
+                        aria-invalid={!!form.errors.sell_unit}
                     />
-                    <FieldError>{form.errors.description}</FieldError>
+                    <FieldDescription>
+                        A Bed room type sells one bed at a time, for dorms.
+                    </FieldDescription>
+                    <FieldError>{form.errors.sell_unit}</FieldError>
                 </Field>
-                {bedsOn && (
-                    <Field>
-                        <FieldLabel htmlFor="room-type-sell-unit">
-                            Sold by
-                        </FieldLabel>
-                        <EnumSelect
-                            id="room-type-sell-unit"
-                            options={sellUnits}
-                            value={form.data.sell_unit}
-                            onValueChange={(value) =>
-                                form.setData('sell_unit', value)
-                            }
-                            aria-invalid={!!form.errors.sell_unit}
-                        />
-                        <FieldDescription>
-                            A Bed room type sells one bed at a time, for dorms.
-                        </FieldDescription>
-                        <FieldError>{form.errors.sell_unit}</FieldError>
-                    </Field>
-                )}
-                <div className="grid grid-cols-3 gap-3">
-                    <Field>
-                        <FieldLabel htmlFor="room-type-adults">
-                            Max adults
-                        </FieldLabel>
-                        <Input
-                            id="room-type-adults"
-                            type="number"
-                            min={1}
-                            max={50}
-                            value={form.data.max_adults}
-                            onChange={(event) =>
-                                form.setData('max_adults', event.target.value)
-                            }
-                            placeholder="e.g. 2"
-                            aria-invalid={!!form.errors.max_adults}
-                        />
-                        <FieldError>{form.errors.max_adults}</FieldError>
-                    </Field>
-                    <Field>
-                        <FieldLabel htmlFor="room-type-children">
-                            Max children
-                        </FieldLabel>
-                        <Input
-                            id="room-type-children"
-                            type="number"
-                            min={0}
-                            max={50}
-                            value={form.data.max_children}
-                            onChange={(event) =>
-                                form.setData('max_children', event.target.value)
-                            }
-                            placeholder="e.g. 1"
-                            aria-invalid={!!form.errors.max_children}
-                        />
-                        <FieldError>{form.errors.max_children}</FieldError>
-                    </Field>
-                    <Field>
-                        <FieldLabel htmlFor="room-type-included">
-                            <GuestsIncludedLabel />
-                        </FieldLabel>
-                        <Input
-                            id="room-type-included"
-                            type="number"
-                            min={1}
-                            value={form.data.base_occupancy}
-                            onChange={(event) =>
-                                form.setData(
-                                    'base_occupancy',
-                                    event.target.value,
-                                )
-                            }
-                            placeholder="e.g. 2"
-                            aria-invalid={!!form.errors.base_occupancy}
-                        />
-                        <FieldError>{form.errors.base_occupancy}</FieldError>
-                    </Field>
-                </div>
-                {termsDocuments.length > 0 && (
-                    <Field>
-                        <FieldLabel htmlFor="room-type-terms">
-                            Terms document
-                        </FieldLabel>
-                        <EnumSelect
-                            id="room-type-terms"
-                            options={termsDocuments}
-                            allLabel="Default"
-                            value={form.data.terms_document_id}
-                            onValueChange={(value) =>
-                                form.setData('terms_document_id', value)
-                            }
-                            aria-invalid={!!form.errors.terms_document_id}
-                        />
-                        <FieldDescription>
-                            The registration terms guests in this room type
-                            sign.
-                        </FieldDescription>
-                        <FieldError>{form.errors.terms_document_id}</FieldError>
-                    </Field>
-                )}
-                <Field orientation="horizontal">
-                    <Switch
-                        id="room-type-smoking"
-                        checked={form.data.smoking_allowed}
-                        onCheckedChange={(checked) =>
-                            form.setData('smoking_allowed', checked)
-                        }
-                    />
-                    <FieldContent>
-                        <FieldLabel htmlFor="room-type-smoking">
-                            Smoking allowed
-                        </FieldLabel>
-                        <FieldDescription>
-                            Guests may smoke in rooms of this type.
-                        </FieldDescription>
-                    </FieldContent>
-                </Field>
-                <Field orientation="horizontal">
-                    <Switch
-                        id="room-type-pets"
-                        checked={form.data.pets_allowed}
-                        onCheckedChange={(checked) =>
-                            form.setData('pets_allowed', checked)
-                        }
-                    />
-                    <FieldContent>
-                        <FieldLabel htmlFor="room-type-pets">
-                            Pets allowed
-                        </FieldLabel>
-                        <FieldDescription>
-                            Guests may bring pets to rooms of this type.
-                        </FieldDescription>
-                    </FieldContent>
-                </Field>
-            </FieldGroup>
-            <SheetFooter>
-                <Button
-                    type="submit"
-                    disabled={form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Create room type
-                </Button>
-            </SheetFooter>
-        </form>
+            )}
+        </FormOverlay>
     );
 }
 
+function RoomTypeTable({
+    roomTypes,
+    showSoldBy,
+    sellUnitLabel,
+    canManage,
+    onMove,
+}: {
+    roomTypes: RoomType[];
+    showSoldBy: boolean;
+    sellUnitLabel: (value: string) => string;
+    canManage: boolean;
+    onMove: (from: number, to: number) => void;
+}) {
+    const [archiving, setArchiving] = useState<RoomType | null>(null);
+    const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
+    const available = roomTypes.filter((roomType) => !roomType.archived);
+    const positions = new Map(
+        available.map((roomType, position) => [roomType.id, position]),
+    );
+
+    const setSaving = (id: number, saving: boolean) => {
+        setSavingIds((current) => {
+            const next = new Set(current);
+
+            if (saving) {
+                next.add(id);
+            } else {
+                next.delete(id);
+            }
+
+            return next;
+        });
+    };
+
+    // Off asks first: archiving can queue a channel removal instead. On restores at once; a name clash shows a toast.
+    const changeAvailable = (roomType: RoomType, availableNow: boolean) => {
+        if (!availableNow) {
+            setArchiving(roomType);
+
+            return;
+        }
+
+        router.post(
+            restore.url({ roomType: roomType.id }),
+            {},
+            {
+                preserveScroll: true,
+                onStart: () => setSaving(roomType.id, true),
+                onFinish: () => setSaving(roomType.id, false),
+            },
+        );
+    };
+
+    return (
+        <div className="overflow-auto rounded-xl border">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Available</TableHead>
+                        <TableHead>Room type</TableHead>
+                        {showSoldBy && <TableHead>Sold by</TableHead>}
+                        <TableHead className="text-right">
+                            <GuestsIncludedLabel />
+                        </TableHead>
+                        <TableHead className="text-right">Capacity</TableHead>
+                        <TableHead>
+                            <span className="sr-only">Actions</span>
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {roomTypes.map((roomType) => {
+                        const position = positions.get(roomType.id);
+
+                        return (
+                            <TableRow key={roomType.id}>
+                                <TableCell>
+                                    <Switch
+                                        size="sm"
+                                        checked={!roomType.archived}
+                                        disabled={
+                                            !canManage ||
+                                            savingIds.has(roomType.id)
+                                        }
+                                        aria-label={`Make ${roomType.name} ${roomType.archived ? 'available' : 'unavailable'}`}
+                                        onCheckedChange={(checked) =>
+                                            changeAvailable(roomType, checked)
+                                        }
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                        <span className="flex items-center gap-2 font-medium">
+                                            {roomType.name}
+                                            {roomType.smokingAllowed && (
+                                                <Badge variant="outline">
+                                                    Smoking
+                                                </Badge>
+                                            )}
+                                            {roomType.petsAllowed && (
+                                                <Badge variant="outline">
+                                                    Pets
+                                                </Badge>
+                                            )}
+                                        </span>
+                                        {roomType.description && (
+                                            <span className="max-w-xs truncate text-xs text-muted-foreground">
+                                                {roomType.description}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                {showSoldBy && (
+                                    <TableCell>
+                                        {sellUnitLabel(roomType.sellUnit)}
+                                    </TableCell>
+                                )}
+                                <TableCell className="text-right tabular-nums">
+                                    {roomType.baseOccupancy}
+                                </TableCell>
+                                <TableCell>
+                                    <span className="flex justify-end">
+                                        <PaxCount
+                                            stay={{
+                                                adults: roomType.maxAdults,
+                                                children: roomType.maxChildren,
+                                            }}
+                                        />
+                                    </span>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex justify-end gap-1">
+                                        {canManage &&
+                                            position !== undefined && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label={`Move ${roomType.name} up`}
+                                                        disabled={
+                                                            position === 0
+                                                        }
+                                                        onClick={() =>
+                                                            onMove(
+                                                                position,
+                                                                position - 1,
+                                                            )
+                                                        }
+                                                    >
+                                                        <ArrowUp />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label={`Move ${roomType.name} down`}
+                                                        disabled={
+                                                            position ===
+                                                            available.length - 1
+                                                        }
+                                                        onClick={() =>
+                                                            onMove(
+                                                                position,
+                                                                position + 1,
+                                                            )
+                                                        }
+                                                    >
+                                                        <ArrowDown />
+                                                    </Button>
+                                                </>
+                                            )}
+                                        <Link
+                                            href={edit({
+                                                roomType: roomType.id,
+                                            })}
+                                            className={buttonVariants({
+                                                variant: 'ghost',
+                                                size: 'sm',
+                                            })}
+                                        >
+                                            {canManage ? 'Edit' : 'View'}
+                                        </Link>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+            {archiving && (
+                <ArchiveRoomTypeDialog
+                    roomType={archiving}
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setArchiving(null);
+                        }
+                    }}
+                    onProcessingChange={(saving) =>
+                        setSaving(archiving.id, saving)
+                    }
+                />
+            )}
+        </div>
+    );
+}
+
+/**
+ * Settings › Room types. One table like Charge items: the Available switch archives (after a confirm) or restores,
+ * archived room types sort last, and search filters in the browser. Staff with only `rooms.view` see the list with the
+ * switch disabled and no New or reorder buttons.
+ */
 export default function RoomTypesIndex({
     roomTypes,
     sellUnits,
     bedsOn,
-    termsDocuments,
+    canManage,
 }: {
     roomTypes: RoomType[];
     sellUnits: EnumOption[];
     bedsOn: boolean;
-    termsDocuments: { value: number; label: string }[];
+    canManage: boolean;
 }) {
     const [creating, setCreating] = useState(false);
-    const active = roomTypes.filter((roomType) => !roomType.archived);
-    const archived = roomTypes.filter((roomType) => roomType.archived);
+    const [query, setQuery] = useState('');
+    const filtered = useMemo(() => {
+        const normalized = query.trim().toLocaleLowerCase();
+
+        if (!normalized) {
+            return roomTypes;
+        }
+
+        return roomTypes.filter((roomType) =>
+            [roomType.name, roomType.description ?? ''].some((value) =>
+                value.toLocaleLowerCase().includes(normalized),
+            ),
+        );
+    }, [roomTypes, query]);
     // Sold by shows while beds are on, or while a room type still sells beds.
     const showSoldBy =
         bedsOn || roomTypes.some((roomType) => roomType.sellUnit === 'bed');
     const sellUnitLabel = (value: string) =>
         sellUnits.find((option) => option.value === value)?.label ?? value;
 
+    // Positions are among the shown available rows; the move is applied to the full order.
     const move = (from: number, to: number) => {
-        const order = active.map((roomType) => roomType.id);
-        order.splice(to, 0, ...order.splice(from, 1));
+        const shown = filtered.filter((roomType) => !roomType.archived);
+        const order = roomTypes
+            .filter((roomType) => !roomType.archived)
+            .map((roomType) => roomType.id);
+        const movingId = shown[from]?.id;
+        const targetId = shown[to]?.id;
+
+        if (movingId === undefined || targetId === undefined) {
+            return;
+        }
+
+        order.splice(
+            order.indexOf(targetId),
+            0,
+            ...order.splice(order.indexOf(movingId), 1),
+        );
 
         router.put(reorder.url(), { order }, { preserveScroll: true });
     };
+
+    const newButton = canManage ? (
+        <Button onClick={() => setCreating(true)}>
+            <Plus data-icon="inline-start" />
+            New room type
+        </Button>
+    ) : undefined;
 
     return (
         <>
@@ -310,198 +403,59 @@ export default function RoomTypesIndex({
                 <PageHeader
                     title="Room types"
                     description="What you sell: a room or a bed. Prices are set on rates, not here."
-                    actions={
-                        <Button onClick={() => setCreating(true)}>
-                            <Plus data-icon="inline-start" />
-                            New room type
-                        </Button>
-                    }
+                    actions={newButton}
                 />
 
-                {active.length === 0 ? (
+                {roomTypes.length === 0 ? (
                     <EmptyState
                         icon={BedDouble}
                         title="No room types yet"
                         description="Add the first room type to start setting up rooms and rates."
-                        action={
-                            <Button onClick={() => setCreating(true)}>
-                                <Plus data-icon="inline-start" />
-                                New room type
-                            </Button>
-                        }
+                        action={newButton}
                     />
                 ) : (
-                    <div className="overflow-auto rounded-lg border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    {showSoldBy && (
-                                        <TableHead>Sold by</TableHead>
-                                    )}
-                                    <TableHead className="text-right">
-                                        <GuestsIncludedLabel />
-                                    </TableHead>
-                                    <TableHead className="text-right">
-                                        Capacity
-                                    </TableHead>
-                                    <TableHead>
-                                        <span className="sr-only">Actions</span>
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {active.map((roomType, position) => (
-                                    <TableRow key={roomType.id}>
-                                        <TableCell className="font-medium">
-                                            <Link
-                                                href={edit.url({
-                                                    roomType: roomType.id,
-                                                })}
-                                                className="hover:underline"
-                                            >
-                                                {roomType.name}
-                                            </Link>
-                                        </TableCell>
-                                        {showSoldBy && (
-                                            <TableCell>
-                                                {sellUnitLabel(
-                                                    roomType.sellUnit,
-                                                )}
-                                            </TableCell>
-                                        )}
-                                        <TableCell className="text-right tabular-nums">
-                                            {roomType.baseOccupancy}
-                                        </TableCell>
-                                        <TableCell className="text-right tabular-nums">
-                                            {roomType.maxAdults} adults
-                                            {roomType.maxChildren > 0 &&
-                                                `, ${roomType.maxChildren} children`}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    aria-label={`Move ${roomType.name} up`}
-                                                    disabled={position === 0}
-                                                    onClick={() =>
-                                                        move(
-                                                            position,
-                                                            position - 1,
-                                                        )
-                                                    }
-                                                >
-                                                    <ArrowUp />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    aria-label={`Move ${roomType.name} down`}
-                                                    disabled={
-                                                        position ===
-                                                        active.length - 1
-                                                    }
-                                                    onClick={() =>
-                                                        move(
-                                                            position,
-                                                            position + 1,
-                                                        )
-                                                    }
-                                                >
-                                                    <ArrowDown />
-                                                </Button>
-                                                <ArchiveRoomTypeButton
-                                                    roomType={roomType}
-                                                />
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
+                    <>
+                        <Field>
+                            <FieldLabel htmlFor="room-type-search">
+                                Search room types
+                            </FieldLabel>
+                            <Input
+                                id="room-type-search"
+                                type="search"
+                                value={query}
+                                onChange={(event) =>
+                                    setQuery(event.target.value)
+                                }
+                                placeholder="Search by name or description"
+                            />
+                        </Field>
 
-                {archived.length > 0 && (
-                    <section className="flex flex-col gap-2">
-                        <h2 className="font-heading text-sm font-medium">
-                            Archived
-                        </h2>
-                        <div className="overflow-auto rounded-lg border">
-                            <Table>
-                                <TableBody>
-                                    {archived.map((roomType) => (
-                                        <TableRow key={roomType.id}>
-                                            <TableCell className="font-medium">
-                                                <Link
-                                                    href={edit.url({
-                                                        roomType: roomType.id,
-                                                    })}
-                                                    className="hover:underline"
-                                                >
-                                                    {roomType.name}
-                                                </Link>{' '}
-                                                <Badge variant="secondary">
-                                                    Archived
-                                                </Badge>
-                                            </TableCell>
-                                            {showSoldBy && (
-                                                <TableCell>
-                                                    {sellUnitLabel(
-                                                        roomType.sellUnit,
-                                                    )}
-                                                </TableCell>
-                                            )}
-                                            <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        router.post(
-                                                            restore.url({
-                                                                roomType:
-                                                                    roomType.id,
-                                                            }),
-                                                            {},
-                                                            {
-                                                                preserveScroll: true,
-                                                            },
-                                                        )
-                                                    }
-                                                >
-                                                    Restore
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </section>
+                        {filtered.length > 0 ? (
+                            <RoomTypeTable
+                                roomTypes={filtered}
+                                showSoldBy={showSoldBy}
+                                sellUnitLabel={sellUnitLabel}
+                                canManage={canManage}
+                                onMove={move}
+                            />
+                        ) : (
+                            <EmptyState
+                                title="No matching room types"
+                                description="Change the search or add a new room type."
+                            />
+                        )}
+                    </>
                 )}
             </div>
 
-            <Sheet open={creating} onOpenChange={setCreating}>
-                <SheetContent className="data-[side=right]:sm:max-w-xl">
-                    <SheetHeader>
-                        <SheetTitle>New room type</SheetTitle>
-                        <SheetDescription>
-                            Set what you sell and how many guests it fits.
-                        </SheetDescription>
-                    </SheetHeader>
-                    {creating && (
-                        <RoomTypeForm
-                            sellUnits={sellUnits}
-                            bedsOn={bedsOn}
-                            termsDocuments={termsDocuments.map((document) => ({
-                                value: String(document.value),
-                                label: document.label,
-                            }))}
-                        />
-                    )}
-                </SheetContent>
-            </Sheet>
+            {canManage && (
+                <NewRoomTypeDialog
+                    open={creating}
+                    onOpenChange={setCreating}
+                    sellUnits={sellUnits}
+                    bedsOn={bedsOn}
+                />
+            )}
         </>
     );
 }

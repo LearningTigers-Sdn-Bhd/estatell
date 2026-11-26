@@ -51,7 +51,14 @@ Neither is stored. The browser derives both from data the server sends.
 
 ## UI
 
-Settings > Room types (`settings.room-types.index`) lists active room types with sell unit, guests included and capacity, with archived ones below. Up and down buttons reorder. The name opens the room type page. **New room type** opens a right-side Sheet; after create, the new room type's Details tab opens. The list has no edit Sheet. The "N rate plans" link is not built yet; it needs the rate calendar. It has no price fields.
+Settings > Room types (`settings.room-types.index`) is one table in the Charge items design: an **Available** switch, the name with Smoking and Pets badges and a one-line description, sell unit, guests included and capacity (max adults and children as icons with counts, `PaxCount`), then **Edit**. Archived room types sort last with the switch off; there is no separate archived table. A search box filters by name and description in the browser.
+
+- Turning **Available** off opens the archive confirm. The switch moves only after the server answers, because archive can queue a channel removal instead, or be refused. Turning it on restores at once; a name clash shows an error toast and the switch stays off.
+- Up and down buttons reorder available room types only.
+- **New room type** opens a dialog with Name, and Sold by while beds are on. The other fields send their defaults (2 adults, 0 children, 2 included, smoking and pets off, default terms). After create, the new room type's Details tab opens.
+- The page gets `canManage`. Staff with only `rooms.view` see the switch disabled, no New or reorder buttons, and **View** in place of Edit.
+
+The list has no edit Sheet. The "N rate plans" link is not built yet; it needs the rate calendar. It has no price fields.
 
 ### Room type page
 

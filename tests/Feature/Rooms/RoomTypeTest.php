@@ -52,7 +52,8 @@ test('the list shows active room types in order, then archived ones', function (
             ->where('roomTypes.0.sellUnit', 'bed')
             ->where('roomTypes.2.archived', true)
             ->where('sellUnits', SellUnit::options())
-            ->where('bedsOn', false));
+            ->where('bedsOn', false)
+            ->where('canManage', true));
 });
 
 test('bed room types are refused and Sold by is hidden until the feature is on for the property', function () {
@@ -319,6 +320,10 @@ test('staff with rooms.view open both tabs read-only and cannot save', function 
     $roomType = RoomType::factory()->for($property)->create();
 
     $this->actingAs($viewer)
+        ->get(route('settings.room-types.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->component('settings/room-types/index')->where('canManage', false));
+    $this->post(route('settings.room-types.archive', [$property->code, $roomType]))->assertForbidden();
+    $this
         ->get(route('settings.room-types.edit', [$property->code, $roomType]))
         ->assertInertia(fn (Assert $page) => $page->component('settings/room-types/edit')->where('canManage', false));
     $this->get(route('settings.room-types.rooms.edit', [$property->code, $roomType]))
