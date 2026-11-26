@@ -58,12 +58,7 @@ class PosScheduleController extends Controller
             'combos' => $items->where('is_combo', true)->map(fn (PosItem $item): array => [
                 'id' => $item->id,
                 'name' => $item->name,
-                'slots' => $item->comboSlots->map(fn (PosComboSlot $slot): array => [
-                    'name' => $slot->name,
-                    'min' => $slot->min_select,
-                    'max' => $slot->max_select,
-                    'options' => $slot->options->map(fn (PosComboSlotOption $option): array => ['variantId' => $option->pos_item_variant_id, 'upcharge' => $option->upcharge])->all(),
-                ])->all(),
+                'slots' => $this->comboSlots($item),
             ])->values()->all(),
             'variants' => $items->flatMap(fn (PosItem $item) => $item->variants->map(fn (PosItemVariant $variant): array => [
                 'value' => (string) $variant->id,
@@ -102,6 +97,21 @@ class PosScheduleController extends Controller
         $this->toast($savePosComboSlots($request->user(), $property, $model, $slots)->refusal, __('Combo saved.'));
 
         return back();
+    }
+
+    /**
+     * The parts of a combo item, each with the variants a cashier can pick.
+     *
+     * @return array<int, array{name: string, min: int, max: int, options: array<int, array{variantId: int, upcharge: string}>}>
+     */
+    private function comboSlots(PosItem $item): array
+    {
+        return $item->comboSlots->map(fn (PosComboSlot $slot): array => [
+            'name' => $slot->name,
+            'min' => $slot->min_select,
+            'max' => $slot->max_select,
+            'options' => $slot->options->map(fn (PosComboSlotOption $option): array => ['variantId' => $option->pos_item_variant_id, 'upcharge' => $option->upcharge])->all(),
+        ])->all();
     }
 
     private function input(SavePosMenuScheduleRequest $request): PosMenuScheduleInputData

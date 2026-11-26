@@ -71,7 +71,7 @@ class PreviewBasicRateRequest extends FormRequest
     {
         $followers = array_filter(
             array_values((array) $this->validated('more_rates', [])),
-            fn (array $row): bool => $row['mode'] === 'follows' && ! empty($row['parent_basis']) && ! empty($row['direction']) && ! empty($row['unit']),
+            fn (mixed $row): bool => is_array($row) && $row['mode'] === 'follows' && ! empty($row['parent_basis']) && ! empty($row['direction']) && ! empty($row['unit']),
         );
 
         return array_values(array_map(fn (array $row): array => [
