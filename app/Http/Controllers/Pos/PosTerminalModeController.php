@@ -15,7 +15,7 @@ class PosTerminalModeController extends Controller
 {
     public function enter(Request $request, Property $property, EnterPosTerminalMode $enterPosTerminalMode): RedirectResponse
     {
-        $enterPosTerminalMode($request->session());
+        $enterPosTerminalMode($request->session(), $property);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Terminal Mode is on. Sign in with your PIN.')]);
 

@@ -1,10 +1,12 @@
 <?php
 
+use App\Features\Pos;
 use App\Models\PosStaffPin;
 use App\Models\PosTerminalDevice;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
+use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/PosTerminalSetup.php';
 
@@ -72,6 +74,35 @@ it('lets a signed-out registered till reach the sign-in page, and keeps the back
     $till()->actingAs($setup['manager'])->get(route('dashboard', $setup['property']->code))
         ->assertForbidden()
         ->assertInertia(fn ($page) => $page->component('errors')->where('leaveTerminalUrl', "/p/{$setup['property']->code}/pos"));
+});
+
+it('does not lock a registered till while the POS of its property is off', function () {
+    $setup = nativePosSetup();
+    Feature::for($setup['property'])->deactivate(Pos::class);
+
+    $this->actingAs($setup['manager'])->withCookie(PosTerminalDevice::COOKIE, $setup['token'])->get(route('dashboard', $setup['property']->code))->assertOk();
+});
+
+it('releases a Terminal Mode session when POS is turned off, and locks it again when POS is back on', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['manager'])->post(route('pos.terminal-mode.enter', $code));
+    Feature::for($setup['property'])->deactivate(Pos::class);
+    $this->get(route('dashboard', $code))->assertOk();
+    $this->get(route('account.profile.edit'))->assertOk();
+
+    Feature::for($setup['property'])->activate(Pos::class);
+    $this->get(route('dashboard', $code))->assertForbidden();
+});
+
+it('follows the property where Terminal Mode started, not the signed-in user', function () {
+    $setup = nativePosSetup();
+    $other = nativePosSetup();
+    Feature::for($other['property'])->deactivate(Pos::class);
+
+    $this->actingAs($setup['manager'])->withSession(posTerminalSession(['pos_terminal_property_id' => $other['property']->id]))
+        ->get(route('account.profile.edit'))->assertOk();
 });
 
 it('lets a user without pos.sell not enter Terminal Mode', function () {

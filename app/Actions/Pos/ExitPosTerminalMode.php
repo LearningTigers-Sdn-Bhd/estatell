@@ -18,7 +18,7 @@ class ExitPosTerminalMode
             return false;
         }
 
-        $session->forget(['pos_terminal_locked', 'pos_active_actor_id']);
+        $session->forget(['pos_terminal_locked', 'pos_terminal_property_id', 'pos_active_actor_id']);
         $session->put('pos_terminal_unlocked', true);
 
         return true;
