@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 enum NavigationContext: string
 {
     case FrontDesk = 'front-desk';
+    case Pos = 'pos';
     case Finance = 'finance';
     case Reports = 'reports';
     case Settings = 'settings';
@@ -18,6 +19,7 @@ enum NavigationContext: string
     {
         return match ($this) {
             self::FrontDesk => __('Front desk'),
+            self::Pos => __('POS'),
             self::Finance => __('Finance'),
             self::Reports => __('Reports'),
             self::Settings => __('Settings'),
@@ -31,6 +33,7 @@ enum NavigationContext: string
     {
         return match ($this) {
             self::FrontDesk => 'concierge-bell',
+            self::Pos => 'utensils',
             self::Finance => 'wallet',
             self::Reports => 'chart-column',
             self::Settings => 'settings',
@@ -56,6 +59,13 @@ enum NavigationContext: string
                 'rates.*',
                 'night-audit.*',
                 'reports.house-status',
+            ],
+            self::Pos => [
+                'pos.*',
+                'restaurant.meal-check-in.*',
+                'settings.pos-outlets.*',
+                'settings.pos-api-clients.*',
+                'settings.pos.*',
             ],
             self::Finance => ['finance.*'],
             self::Reports => ['reports.*'],

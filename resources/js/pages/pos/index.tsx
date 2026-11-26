@@ -85,7 +85,7 @@ export default function PosIndex({
         return (
             <>
                 <Head title="POS" />
-                <div className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-6 p-4">
+                <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 p-6">
                     <PageHeader
                         title="Who is selling?"
                         description="Tap your name, then key your PIN. Not listed? Set your POS PIN under Account first."
@@ -96,8 +96,8 @@ export default function PosIndex({
                                 This browser is not a registered terminal
                             </AlertTitle>
                             <AlertDescription>
-                                A manager registers it in Settings, POS, Staff
-                                PINs. Until then PIN sign-in is refused.
+                                A manager registers it in POS, Staff &amp;
+                                terminals. Until then PIN sign-in is refused.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -108,9 +108,13 @@ export default function PosIndex({
                             description="Staff set their own PIN under Account, POS PIN."
                         />
                     ) : (
-                        <PosPinPad staff={staff} />
+                        <Card>
+                            <CardContent className="pt-6">
+                                <PosPinPad staff={staff} />
+                            </CardContent>
+                        </Card>
                     )}
-                </div>
+                </main>
             </>
         );
     }
@@ -118,7 +122,7 @@ export default function PosIndex({
     return (
         <>
             <Head title="POS" />
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 sm:p-6">
                 <PageHeader
                     title="Point of sale"
                     description={
@@ -133,7 +137,10 @@ export default function PosIndex({
                                         className="min-h-11"
                                         onClick={clockOut}
                                     >
-                                        <Clock data-icon="inline-start" />
+                                        <Clock
+                                            data-icon="inline-start"
+                                            aria-hidden="true"
+                                        />
                                         Clock out
                                     </Button>
                                 )}
@@ -144,7 +151,10 @@ export default function PosIndex({
                                         className="min-h-11"
                                         onClick={() => setSwitching(true)}
                                     >
-                                        <UserRound data-icon="inline-start" />
+                                        <UserRound
+                                            data-icon="inline-start"
+                                            aria-hidden="true"
+                                        />
                                         Switch user
                                     </Button>
                                     <Button
@@ -152,16 +162,23 @@ export default function PosIndex({
                                         className="min-h-11"
                                         onClick={() => setLeaving(true)}
                                     >
-                                        <LogOut data-icon="inline-start" />
+                                        <LogOut
+                                            data-icon="inline-start"
+                                            aria-hidden="true"
+                                        />
                                         Leave Terminal Mode
                                     </Button>
                                 </>
                             ) : (
                                 <Button
+                                    variant="outline"
                                     className="min-h-11"
                                     onClick={() => router.post(enter.url())}
                                 >
-                                    <Lock data-icon="inline-start" />
+                                    <Lock
+                                        data-icon="inline-start"
+                                        aria-hidden="true"
+                                    />
                                     Enter Terminal Mode
                                 </Button>
                             )}
@@ -173,7 +190,7 @@ export default function PosIndex({
                     <EmptyState
                         icon={Store}
                         title="No outlet is ready to sell"
-                        description="A manager enables POS on an outlet and adds a register in Settings, POS."
+                        description="A manager enables POS on an outlet and adds a register in POS, Outlets."
                     />
                 ) : (
                     outlets.map((outlet) => {
@@ -184,9 +201,12 @@ export default function PosIndex({
                             <Card key={outlet.id}>
                                 <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
                                     <div className="flex flex-col gap-1">
-                                        <CardTitle>{outlet.name}</CardTitle>
+                                        <CardTitle className="font-heading text-xl">
+                                            {outlet.name}
+                                        </CardTitle>
                                         <CardDescription>
-                                            Pick a register to sell from.
+                                            Pick a register to open or resume a
+                                            shift.
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -205,7 +225,10 @@ export default function PosIndex({
                                                         clockIn(outlet.id)
                                                     }
                                                 >
-                                                    <Clock data-icon="inline-start" />
+                                                    <Clock
+                                                        data-icon="inline-start"
+                                                        aria-hidden="true"
+                                                    />
                                                     Clock in
                                                 </Button>
                                             )
@@ -218,85 +241,115 @@ export default function PosIndex({
                                             This outlet has no register yet.
                                         </p>
                                     )}
-                                    {outlet.registers.map((register) => (
-                                        <div
-                                            key={register.id}
-                                            className="flex flex-col gap-3 rounded-lg border p-4"
-                                        >
-                                            <div className="flex items-center justify-between gap-2">
-                                                <p className="font-medium">
-                                                    {register.name}
-                                                </p>
-                                                {register.shiftNumber && (
-                                                    <Badge variant="secondary">
-                                                        {register.shiftStatus}
-                                                    </Badge>
-                                                )}
+                                    {outlet.registers.map((register) => {
+                                        const isOpen =
+                                            register.shiftNumber !== null;
+
+                                        return (
+                                            <div
+                                                key={register.id}
+                                                className={
+                                                    isOpen
+                                                        ? 'flex flex-col justify-between gap-4 rounded-xl border border-primary/40 bg-primary/5 p-4'
+                                                        : 'flex flex-col justify-between gap-4 rounded-xl border bg-background p-4'
+                                                }
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <p className="font-heading font-semibold text-foreground">
+                                                            {register.name}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground tabular-nums">
+                                                            {isOpen
+                                                                ? `Shift ${register.shiftNumber}`
+                                                                : 'No active shift'}
+                                                        </p>
+                                                    </div>
+                                                    {isOpen ? (
+                                                        <Badge variant="secondary">
+                                                            {
+                                                                register.shiftStatus
+                                                            }
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline">
+                                                            Closed
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    {isOpen ? (
+                                                        <>
+                                                            <Link
+                                                                className={`${buttonVariants()} min-h-11 font-semibold`}
+                                                                href={terminal.url(
+                                                                    {
+                                                                        outlet: outlet.id,
+                                                                    },
+                                                                    {
+                                                                        query: {
+                                                                            register:
+                                                                                register.id,
+                                                                        },
+                                                                    },
+                                                                )}
+                                                            >
+                                                                Open register
+                                                            </Link>
+                                                            <Link
+                                                                className={`${buttonVariants(
+                                                                    {
+                                                                        variant:
+                                                                            'outline',
+                                                                    },
+                                                                )} min-h-11`}
+                                                                href={offlineShow.url(
+                                                                    undefined,
+                                                                    {
+                                                                        query: {
+                                                                            outlet: outlet.id,
+                                                                        },
+                                                                    },
+                                                                )}
+                                                            >
+                                                                Offline walk-in
+                                                            </Link>
+                                                        </>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline"
+                                                            className="min-h-11"
+                                                            disabled={!canShift}
+                                                            onClick={() => {
+                                                                openForm.setData(
+                                                                    {
+                                                                        register_id:
+                                                                            String(
+                                                                                register.id,
+                                                                            ),
+                                                                        opening_cash:
+                                                                            '',
+                                                                    },
+                                                                );
+                                                                setOpening({
+                                                                    outlet,
+                                                                    register,
+                                                                });
+                                                            }}
+                                                        >
+                                                            Open shift
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {register.shiftNumber ? (
-                                                <Link
-                                                    className={`${buttonVariants()} min-h-11`}
-                                                    href={terminal.url(
-                                                        { outlet: outlet.id },
-                                                        {
-                                                            query: {
-                                                                register:
-                                                                    register.id,
-                                                            },
-                                                        },
-                                                    )}
-                                                >
-                                                    Open register (
-                                                    {register.shiftNumber})
-                                                </Link>
-                                            ) : null}
-                                            {register.shiftNumber ? (
-                                                <Link
-                                                    className={`${buttonVariants(
-                                                        {
-                                                            variant: 'outline',
-                                                        },
-                                                    )} min-h-11`}
-                                                    href={offlineShow.url(
-                                                        undefined,
-                                                        {
-                                                            query: {
-                                                                outlet: outlet.id,
-                                                            },
-                                                        },
-                                                    )}
-                                                >
-                                                    Offline walk-in
-                                                </Link>
-                                            ) : (
-                                                <Button
-                                                    variant="outline"
-                                                    className="min-h-11"
-                                                    disabled={!canShift}
-                                                    onClick={() => {
-                                                        openForm.setData({
-                                                            register_id: String(
-                                                                register.id,
-                                                            ),
-                                                            opening_cash: '',
-                                                        });
-                                                        setOpening({
-                                                            outlet,
-                                                            register,
-                                                        });
-                                                    }}
-                                                >
-                                                    Open shift
-                                                </Button>
-                                            )}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </CardContent>
                             </Card>
                         );
                     })
                 )}
-            </div>
+            </main>
 
             <FormOverlay
                 variant="dialog"

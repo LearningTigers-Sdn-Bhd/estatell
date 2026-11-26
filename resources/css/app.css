@@ -279,6 +279,31 @@
     html {
         @apply font-sans;
     }
+
+    a[href],
+    button:not(:disabled):not([aria-disabled='true']),
+    summary,
+    select:not(:disabled),
+    label[for],
+    label:has(> input:is([type='checkbox'], [type='radio']):not(:disabled)),
+    input:is([type='checkbox'], [type='radio']):not(:disabled),
+    [role='button']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true']) {
+        cursor: pointer;
+    }
+
+    :is(
+        button,
+        select,
+        input,
+        textarea,
+        [role='button'],
+        [role='tab'],
+        [role='switch']
+    ):is(:disabled, [aria-disabled='true']) {
+        cursor: not-allowed;
+    }
 }
 
 @layer components {

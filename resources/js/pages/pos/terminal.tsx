@@ -1,14 +1,17 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    ArrowLeft,
     ArrowLeftRight,
     Banknote,
     BedDouble,
+    Clock,
     Monitor,
     Percent,
     Plus,
     Printer,
     Receipt,
     Send,
+    SlidersHorizontal,
     Store,
     Trash2,
     UserRound,
@@ -16,6 +19,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { MoneyText } from '@/components/pms/money-text';
 import {
     PosDiscountDialog,
     PosManagerOverrideDialog,
@@ -169,6 +173,7 @@ export default function PosTerminal(props: Props) {
     const [checkActions, setCheckActions] = useState(false);
     const [swapping, setSwapping] = useState(false);
     const [course, setCourse] = useState(1);
+    const [mobilePane, setMobilePane] = useState<'menu' | 'order'>('menu');
     const [overridePrompt, setOverridePrompt] = useState<{
         title: string;
         description: string;
@@ -242,10 +247,21 @@ export default function PosTerminal(props: Props) {
     useEffect(() => {
         cfdChannel.current?.postMessage({ signature: cfdSignature });
     }, [cfdSignature]);
-    const hasDraft =
-        order?.lines.some((row) => row.isDraft && !row.isVoided) ?? false;
+    const draftCount =
+        order?.lines.filter((row) => row.isDraft && !row.isVoided).length ?? 0;
+    const hasDraft = draftCount > 0;
     const hasSent =
         order?.lines.some((row) => !row.isDraft && !row.isVoided) ?? false;
+    const liveItemCount =
+        order?.lines
+            .filter(
+                (row) =>
+                    !row.isVoided && !row.isPackagingFee && !row.isComboPart,
+            )
+            .reduce(
+                (sum, row) => sum + (row.isWeighed ? 1 : Number(row.quantity)),
+                0,
+            ) ?? 0;
     const hasLines = order?.lines.some((row) => !row.isVoided) ?? false;
     const selectedDining = menu.diningOptions.find(
         (option) => option.id === (order?.diningOptionId ?? diningId),
@@ -453,20 +469,30 @@ export default function PosTerminal(props: Props) {
     }
 
     return (
-        <>
+        <div className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:overflow-hidden">
             <Head title={`${outlet.name} · ${register.name}`} />
-            <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-2">
-                <div className="flex flex-wrap items-center gap-3">
+            <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-card px-4 py-2">
+                <div className="flex flex-wrap items-center gap-2.5">
                     <Link
                         href={posIndex.url()}
-                        className="font-semibold hover:underline"
+                        className={buttonVariants({
+                            variant: 'ghost',
+                            size: 'sm',
+                            className: 'min-h-11 gap-2 px-2',
+                        })}
+                        aria-label={`Back to registers from ${outlet.name}`}
                     >
-                        {outlet.name}
+                        <ArrowLeft aria-hidden="true" />
+                        <h1 className="font-heading text-base font-semibold text-foreground">
+                            {outlet.name}
+                        </h1>
                     </Link>
-                    <span className="text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                         {register.name}
                     </span>
-                    <Badge variant="secondary">Shift {shift.shiftNumber}</Badge>
+                    <Badge variant="secondary" className="tabular-nums">
+                        Shift {shift.shiftNumber}
+                    </Badge>
                     {businessDate && (
                         <Badge variant="outline" className="tabular-nums">
                             {businessDate}
@@ -475,23 +501,23 @@ export default function PosTerminal(props: Props) {
                     {!trading && (
                         <Badge
                             variant="outline"
-                            className="border-warning text-warning"
+                            className="border-warning bg-warning/10 text-warning-text"
                         >
                             {shift.statusLabel}
                         </Badge>
                     )}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                     <Link
                         href={cfdShow.url({ register: register.id })}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={buttonVariants({
-                            variant: 'outline',
+                            variant: 'ghost',
                             className: 'min-h-11',
                         })}
                     >
-                        <Monitor data-icon="inline-start" />
+                        <Monitor data-icon="inline-start" aria-hidden="true" />
                         Customer display
                     </Link>
                     {clock.required && (
@@ -509,6 +535,10 @@ export default function PosTerminal(props: Props) {
                                 )
                             }
                         >
+                            <Clock
+                                data-icon="inline-start"
+                                aria-hidden="true"
+                            />
                             {clock.clockedIn ? 'Clock out' : 'Clock in'}
                         </Button>
                     )}
@@ -518,7 +548,10 @@ export default function PosTerminal(props: Props) {
                         onClick={() => setSwitching(true)}
                         disabled={!locked}
                     >
-                        <UserRound data-icon="inline-start" />
+                        <UserRound
+                            data-icon="inline-start"
+                            aria-hidden="true"
+                        />
                         {actor.name}
                     </Button>
                     {can.shift && (
@@ -528,7 +561,10 @@ export default function PosTerminal(props: Props) {
                                 className="min-h-11"
                                 onClick={() => setMoving(true)}
                             >
-                                <Banknote data-icon="inline-start" />
+                                <Banknote
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                                 Cash
                             </Button>
                             <Button
@@ -544,10 +580,13 @@ export default function PosTerminal(props: Props) {
             </header>
 
             {pendingQrOrders.length > 0 && (
-                <div className="bg-warning-bg/30 flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm">
+                <div
+                    role="status"
+                    className="flex shrink-0 flex-wrap items-center gap-2 border-b border-warning/40 bg-warning/10 px-4 py-2 text-sm"
+                >
                     <span className="font-medium text-warning-text">
-                        Incoming QR orders ({pendingQrOrders.length}) — review
-                        and send to kitchen:
+                        Incoming QR orders ({pendingQrOrders.length}): review
+                        and send to kitchen.
                     </span>
                     {pendingQrOrders.map((entry) => (
                         <Button
@@ -583,35 +622,78 @@ export default function PosTerminal(props: Props) {
                 </div>
             )}
 
+            <div
+                className="grid shrink-0 grid-cols-2 gap-2 border-b bg-muted/30 px-4 py-2 lg:hidden"
+                role="group"
+                aria-label="Register view"
+            >
+                <Button
+                    type="button"
+                    aria-pressed={mobilePane === 'menu'}
+                    variant={mobilePane === 'menu' ? 'default' : 'outline'}
+                    className="min-h-11"
+                    onClick={() => setMobilePane('menu')}
+                >
+                    {showFloorBoard ? 'Floor plan' : 'Menu'}
+                </Button>
+                <Button
+                    type="button"
+                    aria-pressed={mobilePane === 'order'}
+                    variant={mobilePane === 'order' ? 'default' : 'outline'}
+                    className="min-h-11 justify-between tabular-nums"
+                    onClick={() => setMobilePane('order')}
+                >
+                    <span>
+                        Order{liveItemCount > 0 ? ` (${liveItemCount})` : ''}
+                    </span>
+                    {order && (
+                        <MoneyText
+                            amount={order.grandTotal}
+                            currency={currency}
+                        />
+                    )}
+                </Button>
+            </div>
+
             <main className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)]">
-                <section className="flex min-h-0 flex-col gap-3">
+                <section
+                    className={
+                        mobilePane === 'menu'
+                            ? 'flex min-h-0 flex-col gap-3'
+                            : 'hidden min-h-0 flex-col gap-3 lg:flex'
+                    }
+                >
                     <div
-                        className="flex flex-wrap gap-2"
+                        className="flex snap-x gap-2 overflow-x-auto pb-0.5"
                         role="group"
                         aria-label="Dining option"
                     >
-                        {menu.diningOptions.map((option) => (
-                            <Button
-                                key={option.id}
-                                type="button"
-                                className="min-h-11"
-                                variant={
-                                    (order?.diningOptionId ?? diningId) ===
-                                    option.id
-                                        ? 'default'
-                                        : 'outline'
-                                }
-                                disabled={
-                                    order !== null &&
-                                    (!hasLines
-                                        ? false
-                                        : order.status !== 'open')
-                                }
-                                onClick={() => handleDiningOption(option.id)}
-                            >
-                                {option.name}
-                            </Button>
-                        ))}
+                        {menu.diningOptions.map((option) => {
+                            const selected =
+                                (order?.diningOptionId ?? diningId) ===
+                                option.id;
+
+                            return (
+                                <Button
+                                    key={option.id}
+                                    type="button"
+                                    aria-pressed={selected}
+                                    className="min-h-11 shrink-0 snap-start"
+                                    variant={selected ? 'default' : 'outline'}
+                                    disabled={
+                                        order !== null &&
+                                        (!hasLines
+                                            ? false
+                                            : order.status !== 'open')
+                                    }
+                                    onClick={() =>
+                                        handleDiningOption(option.id)
+                                    }
+                                >
+                                    {option.name}
+                                </Button>
+                            );
+                        })}
                     </div>
                     {showFloorBoard ? (
                         <PosFloorBoard
@@ -637,7 +719,7 @@ export default function PosTerminal(props: Props) {
                         <>
                             {outlet.payLater && (
                                 <div
-                                    className="flex flex-wrap items-center gap-2"
+                                    className="flex snap-x items-center gap-2 overflow-x-auto pb-0.5"
                                     role="group"
                                     aria-label="Course"
                                 >
@@ -652,18 +734,25 @@ export default function PosTerminal(props: Props) {
                                         )}
                                         className={buttonVariants({
                                             variant: 'outline',
-                                            className: 'min-h-11',
+                                            className:
+                                                'min-h-11 shrink-0 snap-start',
                                         })}
                                     >
+                                        <ArrowLeft
+                                            data-icon="inline-start"
+                                            aria-hidden="true"
+                                        />
                                         Tables
                                     </Link>
                                     {[1, 2, 3, 4].map((number) => (
                                         <Button
                                             key={number}
-                                            className="min-h-11"
+                                            type="button"
+                                            aria-pressed={course === number}
+                                            className="min-h-11 shrink-0 snap-start"
                                             variant={
                                                 course === number
-                                                    ? 'default'
+                                                    ? 'secondary'
                                                     : 'outline'
                                             }
                                             onClick={() => setCourse(number)}
@@ -683,10 +772,56 @@ export default function PosTerminal(props: Props) {
                     )}
                 </section>
 
-                <aside className="flex min-h-0 flex-col gap-3 rounded-xl border p-3">
+                <aside
+                    aria-label="Active order ticket"
+                    className={
+                        mobilePane === 'order'
+                            ? 'flex min-h-0 flex-col gap-3 rounded-xl border bg-card p-3.5'
+                            : 'hidden min-h-0 flex-col gap-3 rounded-xl border bg-card p-3.5 lg:flex'
+                    }
+                >
+                    {openOrders.length > 0 && (
+                        <nav
+                            aria-label="Open checks"
+                            className="flex snap-x items-center gap-1.5 overflow-x-auto border-b pb-2.5"
+                        >
+                            {openOrders.map((open) => {
+                                const isCurrent = order?.id === open.id;
+
+                                return (
+                                    <Link
+                                        key={open.id}
+                                        href={terminal.url(
+                                            { outlet: outlet.id },
+                                            {
+                                                query: {
+                                                    register: register.id,
+                                                    order: open.id,
+                                                },
+                                            },
+                                        )}
+                                        className={buttonVariants({
+                                            variant: isCurrent
+                                                ? 'secondary'
+                                                : 'ghost',
+                                            size: 'sm',
+                                            className:
+                                                'min-h-11 shrink-0 snap-start tabular-nums',
+                                        })}
+                                    >
+                                        {open.tableCode !== null
+                                            ? `${open.tableCode} · `
+                                            : ''}
+                                        {open.orderNumber ?? `#${open.id}`}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                    )}
+
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                            <h2 className="font-semibold">
+                            <h2 className="font-heading text-base font-semibold">
                                 {order
                                     ? `Order ${order.orderNumber ?? `#${order.id}`}`
                                     : 'New order'}
@@ -697,49 +832,25 @@ export default function PosTerminal(props: Props) {
                                 </Badge>
                             )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-1">
-                            {openOrders.map((open) => (
-                                <Link
-                                    key={open.id}
-                                    href={terminal.url(
-                                        { outlet: outlet.id },
-                                        {
-                                            query: {
-                                                register: register.id,
-                                                order: open.id,
-                                            },
-                                        },
-                                    )}
-                                    className={buttonVariants({
-                                        variant:
-                                            order?.id === open.id
-                                                ? 'secondary'
-                                                : 'ghost',
-                                        className: 'min-h-11',
-                                    })}
-                                >
-                                    {open.tableCode !== null
-                                        ? `${open.tableCode} · `
-                                        : ''}
-                                    {open.orderNumber ?? `#${open.id}`}
-                                </Link>
-                            ))}
-                            {order !== null && (
-                                <Link
-                                    href={terminal.url(
-                                        { outlet: outlet.id },
-                                        { query: { register: register.id } },
-                                    )}
-                                    className={buttonVariants({
-                                        variant: 'outline',
-                                        className: 'min-h-11',
-                                    })}
-                                >
-                                    <Plus data-icon="inline-start" />
-                                    New order
-                                </Link>
-                            )}
-                        </div>
+                        {order !== null && (
+                            <Link
+                                href={terminal.url(
+                                    { outlet: outlet.id },
+                                    { query: { register: register.id } },
+                                )}
+                                className={buttonVariants({
+                                    variant: 'outline',
+                                    size: 'sm',
+                                    className: 'min-h-11',
+                                })}
+                            >
+                                <Plus
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
+                                New order
+                            </Link>
+                        )}
                     </div>
 
                     {order && (
@@ -749,10 +860,14 @@ export default function PosTerminal(props: Props) {
                                 variant={
                                     order.roomLabel ? 'secondary' : 'outline'
                                 }
+                                size="sm"
                                 className="min-h-11"
                                 onClick={() => setLinkingRoom(true)}
                             >
-                                <BedDouble data-icon="inline-start" />
+                                <BedDouble
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                                 {order.roomLabel
                                     ? `Room: ${order.roomLabel}`
                                     : 'Link room / guest'}
@@ -761,10 +876,14 @@ export default function PosTerminal(props: Props) {
                                 <Button
                                     type="button"
                                     variant="outline"
+                                    size="sm"
                                     className="min-h-11"
                                     onClick={() => setTransferring(true)}
                                 >
-                                    <ArrowLeftRight data-icon="inline-start" />
+                                    <ArrowLeftRight
+                                        data-icon="inline-start"
+                                        aria-hidden="true"
+                                    />
                                     Transfer register
                                 </Button>
                             )}
@@ -804,15 +923,27 @@ export default function PosTerminal(props: Props) {
                             }}
                         />
                     ) : (
-                        <p className="flex-1 text-sm text-muted-foreground">
-                            Tap an item to open an order.
-                        </p>
+                        <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20 p-6 text-center">
+                            <Receipt
+                                className="size-8 text-muted-foreground"
+                                aria-hidden="true"
+                            />
+                            <p className="text-sm font-medium text-foreground">
+                                Ready for the next order
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {showFloorBoard
+                                    ? 'Select a table or start a counter check to open a bill.'
+                                    : 'Tap a menu item or scan a barcode to open a check.'}
+                            </p>
+                        </div>
                     )}
 
                     {order && (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-2 border-t pt-3">
                             <Button
-                                variant="outline"
+                                type="button"
+                                variant={hasDraft ? 'secondary' : 'outline'}
                                 className="min-h-11"
                                 disabled={!hasDraft}
                                 onClick={() =>
@@ -823,37 +954,54 @@ export default function PosTerminal(props: Props) {
                                     )
                                 }
                             >
-                                <Send data-icon="inline-start" />
-                                Send
+                                <Send
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
+                                {hasDraft ? `Send (${draftCount})` : 'Send'}
                             </Button>
                             {outlet.payLater && order.status === 'open' && (
                                 <Button
+                                    type="button"
                                     variant="outline"
                                     className="min-h-11"
                                     onClick={() => setCheckActions(true)}
                                 >
+                                    <SlidersHorizontal
+                                        data-icon="inline-start"
+                                        aria-hidden="true"
+                                    />
                                     Check actions
                                 </Button>
                             )}
                             <Button
+                                type="button"
                                 variant="outline"
                                 className="min-h-11"
                                 disabled={!hasLines}
                                 onClick={handlePrebill}
                             >
-                                <Receipt data-icon="inline-start" />
+                                <Receipt
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                                 Pre-bill
                             </Button>
                             <Button
+                                type="button"
                                 variant="outline"
                                 className="min-h-11"
                                 disabled={!hasLines}
                                 onClick={() => setDiscounting(true)}
                             >
-                                <Percent data-icon="inline-start" />
+                                <Percent
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                                 Discount
                             </Button>
                             <Button
+                                type="button"
                                 variant="outline"
                                 className="min-h-11"
                                 onClick={() =>
@@ -868,15 +1016,29 @@ export default function PosTerminal(props: Props) {
                                           )
                                 }
                             >
-                                <Trash2 data-icon="inline-start" />
+                                <Trash2
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                                 {hasLines ? 'Void order' : 'Discard check'}
                             </Button>
                             <Button
-                                className="col-span-2 h-14 text-base"
+                                type="button"
+                                className="col-span-2 h-14 text-base font-semibold tabular-nums"
                                 disabled={!hasLines || !trading}
                                 onClick={() => setPaying(true)}
                             >
-                                Pay
+                                {Number(order.grandTotal) === 0 ? (
+                                    'Settle check'
+                                ) : (
+                                    <>
+                                        Pay{' '}
+                                        <MoneyText
+                                            amount={order.grandTotal}
+                                            currency={currency}
+                                        />
+                                    </>
+                                )}
                             </Button>
                         </div>
                     )}
@@ -888,6 +1050,30 @@ export default function PosTerminal(props: Props) {
                     )}
                 </aside>
             </main>
+
+            {mobilePane === 'menu' && order !== null && hasLines && (
+                <div className="sticky bottom-0 flex shrink-0 items-center justify-between gap-3 border-t bg-card px-4 py-3 lg:hidden">
+                    <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                            {liveItemCount}{' '}
+                            {liveItemCount === 1 ? 'item' : 'items'}
+                        </span>
+                        <span className="font-heading text-lg font-semibold tabular-nums">
+                            <MoneyText
+                                amount={order.grandTotal}
+                                currency={currency}
+                            />
+                        </span>
+                    </div>
+                    <Button
+                        type="button"
+                        className="min-h-11 px-5"
+                        onClick={() => setMobilePane('order')}
+                    >
+                        Review &amp; pay
+                    </Button>
+                </div>
+            )}
 
             <PosLineDialog
                 item={line}
@@ -1190,6 +1376,6 @@ export default function PosTerminal(props: Props) {
                     />
                 </DialogContent>
             </Dialog>
-        </>
+        </div>
     );
 }

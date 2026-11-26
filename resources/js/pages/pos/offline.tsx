@@ -1,5 +1,5 @@
-import { Head } from '@inertiajs/react';
-import { Printer } from 'lucide-react';
+import { Head, Link } from '@inertiajs/react';
+import { ArrowLeft, Printer, Wifi, WifiOff } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { MoneyText } from '@/components/pms/money-text';
 import {
@@ -10,8 +10,9 @@ import type { ApprovalData } from '@/components/pms/pos/pos-approval-fields';
 import type { PosStaff } from '@/components/pms/pos/pos-types';
 import { QrMenu } from '@/components/pms/qr/qr-menu';
 import type { QrCategory, QrLine } from '@/components/pms/qr/qr-menu';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -38,6 +39,7 @@ import {
     saveSnapshot,
 } from '@/lib/pos-offline-store';
 import type { QueuedSale, StoredSnapshot } from '@/lib/pos-offline-store';
+import { index as posIndex } from '@/routes/pos';
 import {
     snapshot as offlineSnapshot,
     sync as offlineSync,
@@ -387,288 +389,320 @@ export default function PosOffline({
     return (
         <>
             <Head title={`Offline walk-in · ${outlet.name}`} />
-            <div className="flex flex-col gap-4 p-4">
-                <header className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-col">
-                        <h1 className="text-xl font-semibold">
-                            {outlet.name} · Walk-in
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {registerName ?? 'Register'} · cash and static
-                            DuitNow only
-                        </p>
+            <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 sm:p-6">
+                <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href={posIndex.url()}
+                            className={buttonVariants({
+                                variant: 'ghost',
+                                size: 'icon',
+                                className: 'size-11',
+                            })}
+                            aria-label="Back to registers"
+                        >
+                            <ArrowLeft aria-hidden="true" />
+                        </Link>
+                        <div className="flex flex-col">
+                            <h1 className="font-heading text-xl font-semibold">
+                                {outlet.name} · Walk-in
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                {registerName ?? 'Register'} · cash and static
+                                DuitNow only
+                            </p>
+                        </div>
                     </div>
-                    {!online && (
-                        <Badge variant="destructive">Offline mode</Badge>
+                    {online ? (
+                        <Badge variant="secondary" className="gap-1.5">
+                            <Wifi className="size-3.5" aria-hidden="true" />
+                            {payload !== undefined
+                                ? 'Online · menu cached'
+                                : 'Online'}
+                        </Badge>
+                    ) : (
+                        <Badge variant="destructive" className="gap-1.5">
+                            <WifiOff className="size-3.5" aria-hidden="true" />
+                            Offline mode
+                        </Badge>
                     )}
                 </header>
 
-                {message !== null && (
-                    <Card>
-                        <CardContent className="p-4 text-sm">
-                            {message}
-                        </CardContent>
-                    </Card>
-                )}
+                <main className="flex flex-col gap-4">
+                    {message !== null && (
+                        <Alert>
+                            <AlertDescription>{message}</AlertDescription>
+                        </Alert>
+                    )}
 
-                {payload === undefined ? (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>No menu on this device yet</CardTitle>
-                            <CardDescription>
-                                Connect once to load the menu. Then it works
-                                offline.
-                            </CardDescription>
-                        </CardHeader>
-                    </Card>
-                ) : pending === null ? (
-                    <QrMenu
-                        categories={menu}
-                        currency={currency}
-                        allowRemark={false}
-                        sending={false}
-                        onSend={(lines, clearCart) => {
-                            setPending(lines);
-                            clearCart();
-                        }}
-                    />
-                ) : (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Take payment</CardTitle>
-                            <CardDescription>
-                                Estimated item subtotal below. Taxes and service
-                                charge are finalised when the sale is synced.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-sm">
-                                {pendingDetails.map((row, index) => (
-                                    <div
-                                        key={`${row.name}-${row.variantName}-${index}`}
-                                        className="flex items-center justify-between gap-2"
-                                    >
-                                        <span>
-                                            {row.quantity} × {row.name}
-                                            {row.variantName !== 'Regular'
-                                                ? ` (${row.variantName})`
-                                                : ''}
-                                        </span>
+                    {payload === undefined ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
+                                    No menu on this device yet
+                                </CardTitle>
+                                <CardDescription>
+                                    Connect once to load the menu. Then it works
+                                    offline.
+                                </CardDescription>
+                            </CardHeader>
+                        </Card>
+                    ) : pending === null ? (
+                        <QrMenu
+                            categories={menu}
+                            currency={currency}
+                            allowRemark={false}
+                            sending={false}
+                            onSend={(lines, clearCart) => {
+                                setPending(lines);
+                                clearCart();
+                            }}
+                        />
+                    ) : (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Take payment</CardTitle>
+                                <CardDescription>
+                                    Estimated item subtotal below. Taxes and
+                                    service charge are finalised when the sale
+                                    is synced.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-sm">
+                                    {pendingDetails.map((row, index) => (
+                                        <div
+                                            key={`${row.name}-${row.variantName}-${index}`}
+                                            className="flex items-center justify-between gap-2"
+                                        >
+                                            <span>
+                                                {row.quantity} × {row.name}
+                                                {row.variantName !== 'Regular'
+                                                    ? ` (${row.variantName})`
+                                                    : ''}
+                                            </span>
+                                            <span className="tabular-nums">
+                                                <MoneyText
+                                                    amount={(
+                                                        Number(row.unitPrice) *
+                                                        row.quantity
+                                                    ).toFixed(2)}
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <div className="mt-2 flex items-center justify-between border-t pt-2 font-medium">
+                                        <span>Estimated subtotal</span>
                                         <span className="tabular-nums">
                                             <MoneyText
-                                                amount={(
-                                                    Number(row.unitPrice) *
-                                                    row.quantity
-                                                ).toFixed(2)}
+                                                amount={estimatedSubtotal}
                                                 currency={currency}
                                             />
                                         </span>
                                     </div>
-                                ))}
-                                <div className="mt-2 flex items-center justify-between border-t pt-2 font-medium">
-                                    <span>Estimated subtotal</span>
-                                    <span className="tabular-nums">
-                                        <MoneyText
-                                            amount={estimatedSubtotal}
-                                            currency={currency}
-                                        />
-                                    </span>
-                                </div>
-                                {serviceChargeRate > 0 && (
-                                    <>
-                                        <div className="flex items-center justify-between">
-                                            <span>
-                                                Estimated service charge (
-                                                {serviceChargeRate}%)
-                                            </span>
-                                            <span className="tabular-nums">
-                                                <MoneyText
-                                                    amount={
-                                                        estimatedServiceCharge
-                                                    }
-                                                    currency={currency}
-                                                />
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between font-medium">
-                                            <span>Estimated total</span>
-                                            <span className="tabular-nums">
-                                                <MoneyText
-                                                    amount={estimatedTotal}
-                                                    currency={currency}
-                                                />
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
-                                {estimatedChange !== null &&
-                                    estimatedChange > 0 && (
-                                        <div className="flex items-center justify-between">
-                                            <span>Estimated change</span>
-                                            <span className="tabular-nums">
-                                                <MoneyText
-                                                    amount={estimatedChange.toFixed(
-                                                        2,
-                                                    )}
-                                                    currency={currency}
-                                                />
-                                            </span>
-                                        </div>
-                                    )}
-                            </div>
-
-                            <div className="flex gap-2">
-                                <Button
-                                    variant={
-                                        tender === 'cash'
-                                            ? 'default'
-                                            : 'outline'
-                                    }
-                                    size="lg"
-                                    className="min-h-11"
-                                    onClick={() => setTender('cash')}
-                                >
-                                    Cash
-                                </Button>
-                                <Button
-                                    variant={
-                                        tender === 'duitnow_qr'
-                                            ? 'default'
-                                            : 'outline'
-                                    }
-                                    size="lg"
-                                    className="min-h-11"
-                                    onClick={() => setTender('duitnow_qr')}
-                                >
-                                    DuitNow QR
-                                </Button>
-                            </div>
-                            {tender === 'cash' && (
-                                <Field>
-                                    <FieldLabel htmlFor="offline-tendered">
-                                        Cash handed over ({currencyCode})
-                                    </FieldLabel>
-                                    <Input
-                                        id="offline-tendered"
-                                        inputMode="decimal"
-                                        value={tendered}
-                                        onChange={(event) =>
-                                            setTendered(event.target.value)
-                                        }
-                                    />
-                                </Field>
-                            )}
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="lg"
-                                    className="min-h-11"
-                                    onClick={() => setPending(null)}
-                                >
-                                    Back
-                                </Button>
-                                <Button
-                                    size="lg"
-                                    className="min-h-11"
-                                    onClick={takeSale}
-                                >
-                                    Save sale
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Waiting to sync</CardTitle>
-                        <CardDescription>
-                            {queue.length === 0
-                                ? 'Nothing waiting.'
-                                : `${queue.length} sale(s) on this device.`}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-3">
-                        <ul className="flex flex-col gap-2 text-sm">
-                            {queue.map((sale) => (
-                                <li
-                                    key={sale.clientUuid}
-                                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
-                                >
-                                    <div className="flex flex-col">
-                                        <span className="font-mono font-medium">
-                                            {sale.reference}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">
-                                            {sale.summary}
-                                            {sale.estimatedSubtotal !==
-                                                undefined && (
-                                                <>
-                                                    {' · est. '}
+                                    {serviceChargeRate > 0 && (
+                                        <>
+                                            <div className="flex items-center justify-between">
+                                                <span>
+                                                    Estimated service charge (
+                                                    {serviceChargeRate}%)
+                                                </span>
+                                                <span className="tabular-nums">
                                                     <MoneyText
                                                         amount={
-                                                            sale.estimatedSubtotal
+                                                            estimatedServiceCharge
                                                         }
                                                         currency={currency}
                                                     />
-                                                </>
-                                            )}
-                                        </span>
-                                    </div>
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between font-medium">
+                                                <span>Estimated total</span>
+                                                <span className="tabular-nums">
+                                                    <MoneyText
+                                                        amount={estimatedTotal}
+                                                        currency={currency}
+                                                    />
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {estimatedChange !== null &&
+                                        estimatedChange > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <span>Estimated change</span>
+                                                <span className="tabular-nums">
+                                                    <MoneyText
+                                                        amount={estimatedChange.toFixed(
+                                                            2,
+                                                        )}
+                                                        currency={currency}
+                                                    />
+                                                </span>
+                                            </div>
+                                        )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant={
+                                            tender === 'cash'
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        size="lg"
+                                        className="min-h-11"
+                                        onClick={() => setTender('cash')}
+                                    >
+                                        Cash
+                                    </Button>
+                                    <Button
+                                        variant={
+                                            tender === 'duitnow_qr'
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        size="lg"
+                                        className="min-h-11"
+                                        onClick={() => setTender('duitnow_qr')}
+                                    >
+                                        DuitNow QR
+                                    </Button>
+                                </div>
+                                {tender === 'cash' && (
+                                    <Field>
+                                        <FieldLabel htmlFor="offline-tendered">
+                                            Cash handed over ({currencyCode})
+                                        </FieldLabel>
+                                        <Input
+                                            id="offline-tendered"
+                                            inputMode="decimal"
+                                            value={tendered}
+                                            onChange={(event) =>
+                                                setTendered(event.target.value)
+                                            }
+                                        />
+                                    </Field>
+                                )}
+                                <div className="flex gap-2">
                                     <Button
                                         variant="outline"
-                                        size="sm"
+                                        size="lg"
                                         className="min-h-11"
-                                        onClick={() => setSlipSale(sale)}
+                                        onClick={() => setPending(null)}
                                     >
-                                        <Printer data-icon="inline-start" />
-                                        Print slip
+                                        Back
                                     </Button>
-                                </li>
-                            ))}
-                        </ul>
+                                    <Button
+                                        size="lg"
+                                        className="min-h-11"
+                                        onClick={takeSale}
+                                    >
+                                        Save sale
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                        {needsApproval && queue.length > 0 && (
-                            <div className="border-warning-border bg-warning-bg/20 flex flex-col gap-3 rounded-lg border p-3">
-                                <p className="text-sm font-medium text-warning-text">
-                                    Manager approval required to override price
-                                    drift or an expired snapshot.
-                                </p>
-                                <PosApprovalFields
-                                    staff={staff}
-                                    data={approval}
-                                    onChange={setApproval}
-                                    required
-                                />
-                                <Button
-                                    size="lg"
-                                    className="min-h-11"
-                                    disabled={
-                                        !online || queue.length === 0 || syncing
-                                    }
-                                    focusableWhenDisabled
-                                    onClick={() => void sync(true)}
-                                >
-                                    {syncing && (
-                                        <Spinner data-icon="inline-start" />
-                                    )}
-                                    Approve and sync
-                                </Button>
-                            </div>
-                        )}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Waiting to sync</CardTitle>
+                            <CardDescription>
+                                {queue.length === 0
+                                    ? 'Nothing waiting.'
+                                    : `${queue.length} sale(s) on this device.`}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-3">
+                            <ul className="flex flex-col gap-2 text-sm">
+                                {queue.map((sale) => (
+                                    <li
+                                        key={sale.clientUuid}
+                                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2"
+                                    >
+                                        <div className="flex flex-col">
+                                            <span className="font-mono font-medium">
+                                                {sale.reference}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {sale.summary}
+                                                {sale.estimatedSubtotal !==
+                                                    undefined && (
+                                                    <>
+                                                        {' · est. '}
+                                                        <MoneyText
+                                                            amount={
+                                                                sale.estimatedSubtotal
+                                                            }
+                                                            currency={currency}
+                                                        />
+                                                    </>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="min-h-11"
+                                            onClick={() => setSlipSale(sale)}
+                                        >
+                                            <Printer data-icon="inline-start" />
+                                            Print slip
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
 
-                        <Button
-                            size="lg"
-                            className="min-h-11"
-                            disabled={!online || queue.length === 0 || syncing}
-                            focusableWhenDisabled
-                            onClick={() => void sync(false)}
-                        >
-                            {syncing && <Spinner data-icon="inline-start" />}
-                            Sync now
-                        </Button>
-                    </CardContent>
-                </Card>
+                            {needsApproval && queue.length > 0 && (
+                                <div className="flex flex-col gap-3 rounded-lg border border-warning bg-warning/10 p-3">
+                                    <p className="text-sm font-medium text-warning-text">
+                                        Manager approval required to override
+                                        price drift or an expired snapshot.
+                                    </p>
+                                    <PosApprovalFields
+                                        staff={staff}
+                                        data={approval}
+                                        onChange={setApproval}
+                                        required
+                                    />
+                                    <Button
+                                        size="lg"
+                                        className="min-h-11"
+                                        disabled={
+                                            !online ||
+                                            queue.length === 0 ||
+                                            syncing
+                                        }
+                                        focusableWhenDisabled
+                                        onClick={() => void sync(true)}
+                                    >
+                                        {syncing && (
+                                            <Spinner data-icon="inline-start" />
+                                        )}
+                                        Approve and sync
+                                    </Button>
+                                </div>
+                            )}
+
+                            <Button
+                                size="lg"
+                                className="min-h-11"
+                                disabled={
+                                    !online || queue.length === 0 || syncing
+                                }
+                                focusableWhenDisabled
+                                onClick={() => void sync(false)}
+                            >
+                                {syncing && (
+                                    <Spinner data-icon="inline-start" />
+                                )}
+                                Sync now
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </main>
             </div>
 
             <Dialog

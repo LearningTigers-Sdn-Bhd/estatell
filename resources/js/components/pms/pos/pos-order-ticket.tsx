@@ -1,4 +1,4 @@
-import { Minus, Plus, X } from 'lucide-react';
+import { Minus, Plus, Receipt, X } from 'lucide-react';
 import { MoneyText } from '@/components/pms/money-text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ function formatQuantityPrefix(line: Line): string {
 
     const qty = Number(line.quantity);
 
-    return `${Number.isInteger(qty) ? qty : line.quantity} ×`;
+    return `${Number.isInteger(qty) ? qty : line.quantity}×`;
 }
 
 /**
@@ -45,48 +45,72 @@ export function PosOrderTicket({
 
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
-            <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+            <ul
+                role="list"
+                className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5"
+            >
                 {lines.length === 0 && (
-                    <li className="text-sm text-muted-foreground">
-                        Tap an item to start.
+                    <li className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/20 p-6 text-center">
+                        <Receipt
+                            className="size-7 text-muted-foreground"
+                            aria-hidden="true"
+                        />
+                        <p className="text-sm font-medium text-foreground">
+                            No items on this check
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Tap any menu item or scan a barcode to add it here.
+                        </p>
                     </li>
                 )}
                 {lines.map((line) => (
                     <li
                         key={line.id}
                         className={cn(
-                            'flex flex-col gap-1.5 rounded-lg border p-3',
-                            line.isComboPart && 'ml-4 border-dashed',
-                            line.isVoided && 'opacity-50',
+                            'flex flex-col gap-2 rounded-lg border bg-background p-3',
+                            line.isComboPart &&
+                                'ms-4 border-dashed bg-muted/20',
+                            line.isVoided && 'opacity-55',
                         )}
                     >
                         <div className="flex items-start justify-between gap-2">
-                            <div className="flex flex-col">
+                            <div className="flex min-w-0 items-start gap-2.5">
                                 <span
                                     className={cn(
-                                        'font-medium',
+                                        'inline-flex min-w-9 shrink-0 items-center justify-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-foreground tabular-nums',
                                         line.isVoided && 'line-through',
                                     )}
                                 >
-                                    <span className="tabular-nums">
-                                        {formatQuantityPrefix(line)}
-                                    </span>{' '}
-                                    {line.itemName}
-                                    {line.variantName !== 'Regular' &&
-                                        ` (${line.variantName})`}
+                                    {formatQuantityPrefix(line)}
                                 </span>
-                                {line.modifiers.length > 0 && (
-                                    <span className="text-xs text-muted-foreground">
-                                        {line.modifiers.join(', ')}
+                                <div className="flex min-w-0 flex-col gap-0.5">
+                                    <span
+                                        className={cn(
+                                            'text-sm leading-snug font-medium text-foreground',
+                                            line.isVoided && 'line-through',
+                                        )}
+                                    >
+                                        {line.itemName}
+                                        {line.variantName !== 'Regular' && (
+                                            <span className="font-normal text-muted-foreground">
+                                                {' '}
+                                                · {line.variantName}
+                                            </span>
+                                        )}
                                     </span>
-                                )}
-                                {line.note && (
-                                    <span className="text-xs text-muted-foreground">
-                                        {line.note}
-                                    </span>
-                                )}
+                                    {line.modifiers.length > 0 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {line.modifiers.join(', ')}
+                                        </span>
+                                    )}
+                                    {line.note && (
+                                        <span className="text-xs text-muted-foreground italic">
+                                            Note: {line.note}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            <span className="font-medium">
+                            <span className="shrink-0 text-sm font-semibold text-foreground tabular-nums">
                                 <MoneyText
                                     amount={line.lineGross}
                                     currency={currency}
@@ -102,7 +126,7 @@ export function PosOrderTicket({
                                     }
                                     className={
                                         line.isDraft
-                                            ? 'text-warning'
+                                            ? 'border-warning/60 bg-warning/10 text-warning-text'
                                             : undefined
                                     }
                                 >
@@ -128,7 +152,7 @@ export function PosOrderTicket({
                                 )}
                             </div>
                             {!line.isVoided && !line.isPackagingFee && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
                                     {line.isDraft &&
                                         !line.isWeighed &&
                                         !line.isComboPart && (
@@ -137,7 +161,7 @@ export function PosOrderTicket({
                                                     type="button"
                                                     variant="outline"
                                                     size="icon"
-                                                    className="min-h-11 min-w-11"
+                                                    className="size-11"
                                                     aria-label={`One less ${line.itemName}`}
                                                     disabled={
                                                         Number(line.quantity) <=
@@ -152,13 +176,13 @@ export function PosOrderTicket({
                                                         )
                                                     }
                                                 >
-                                                    <Minus />
+                                                    <Minus aria-hidden="true" />
                                                 </Button>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
                                                     size="icon"
-                                                    className="min-h-11 min-w-11"
+                                                    className="size-11"
                                                     aria-label={`One more ${line.itemName}`}
                                                     onClick={() =>
                                                         onQuantity(
@@ -169,7 +193,7 @@ export function PosOrderTicket({
                                                         )
                                                     }
                                                 >
-                                                    <Plus />
+                                                    <Plus aria-hidden="true" />
                                                 </Button>
                                             </>
                                         )}
@@ -178,11 +202,11 @@ export function PosOrderTicket({
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="min-h-11 min-w-11"
+                                            className="size-11 text-muted-foreground hover:text-destructive"
                                             aria-label={`Remove ${line.itemName}`}
                                             onClick={() => onRemove(line)}
                                         >
-                                            <X />
+                                            <X aria-hidden="true" />
                                         </Button>
                                     )}
                                 </div>
@@ -191,7 +215,7 @@ export function PosOrderTicket({
                     </li>
                 ))}
             </ul>
-            <dl className="flex flex-col gap-1 border-t pt-3 text-sm">
+            <dl className="flex flex-col gap-1.5 border-t pt-3 text-sm">
                 <Row
                     label="Subtotal"
                     amount={order.subtotal}
@@ -202,6 +226,7 @@ export function PosOrderTicket({
                         label="Discount"
                         amount={`-${order.discountTotal}`}
                         currency={currency}
+                        tone="discount"
                     />
                 )}
                 {Number(order.serviceChargeTotal) > 0 && (
@@ -218,9 +243,11 @@ export function PosOrderTicket({
                         currency={currency}
                     />
                 )}
-                <div className="flex items-center justify-between pt-1 text-lg font-semibold">
-                    <dt>Total</dt>
-                    <dd>
+                <div className="mt-1 flex items-baseline justify-between border-t pt-2.5">
+                    <dt className="font-heading text-base font-semibold text-foreground">
+                        Total
+                    </dt>
+                    <dd className="font-heading text-2xl font-semibold text-foreground tabular-nums">
                         <MoneyText
                             amount={order.grandTotal}
                             currency={currency}
@@ -236,15 +263,22 @@ function Row({
     label,
     amount,
     currency,
+    tone = 'default',
 }: {
     label: string;
     amount: string;
     currency: PosCurrency;
+    tone?: 'default' | 'discount';
 }) {
     return (
         <div className="flex items-center justify-between text-muted-foreground">
             <dt>{label}</dt>
-            <dd>
+            <dd
+                className={cn(
+                    'tabular-nums',
+                    tone === 'discount' && 'font-medium text-success',
+                )}
+            >
                 <MoneyText amount={amount} currency={currency} />
             </dd>
         </div>

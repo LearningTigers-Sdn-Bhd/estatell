@@ -174,8 +174,8 @@ function LineFields({
                                 <span className="flex-1">
                                     {row.name}
                                     {row.soldOut && (
-                                        <span className="ms-2 text-xs text-warning">
-                                            (0 left — override allowed)
+                                        <span className="ms-2 text-xs text-warning-text">
+                                            (0 left, override allowed)
                                         </span>
                                     )}
                                 </span>

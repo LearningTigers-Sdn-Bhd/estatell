@@ -17,6 +17,7 @@ class StaffNavigation
 {
     public function __construct(
         private FrontDeskNavigation $frontDesk,
+        private PosNavigation $pos,
         private FinanceNavigation $finance,
         private ReportsNavigation $reports,
         private SettingsNavigation $settings,
@@ -40,12 +41,31 @@ class StaffNavigation
                 key: $context,
                 label: $context->label(),
                 icon: $context->icon(),
-                href: $groups[0]->items[0]->href,
+                href: $this->landingHref($groups),
                 groups: $groups,
             );
         }
 
         return new StaffNavigationData(active: NavigationContext::forRoute($routeName), contexts: $contexts);
+    }
+
+    /**
+     * Prefer the first in-shell item so switching areas lands inside the sidebar; fall back to the first item when
+     * every item opens in a dedicated fullscreen tab (such as a cashier with POS register access only).
+     *
+     * @param  non-empty-list<NavGroupData>  $groups
+     */
+    private function landingHref(array $groups): string
+    {
+        foreach ($groups as $group) {
+            foreach ($group->items as $item) {
+                if (! $item->external) {
+                    return $item->href;
+                }
+            }
+        }
+
+        return $groups[0]->items[0]->href;
     }
 
     /**
@@ -57,6 +77,7 @@ class StaffNavigation
     {
         return match ($context) {
             NavigationContext::FrontDesk => $this->frontDesk->groups($property, $user),
+            NavigationContext::Pos => $this->pos->groups($property, $user),
             NavigationContext::Settings => $this->settings->groups($property, $user),
             NavigationContext::Finance => $this->finance->groups($property, $user),
             NavigationContext::Reports => $this->reports->groups($property, $user),

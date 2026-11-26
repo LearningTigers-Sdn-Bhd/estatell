@@ -1,7 +1,9 @@
 import { Link, router } from '@inertiajs/react';
-import { LayoutGrid, List, Users } from 'lucide-react';
+import { LayoutGrid, List, QrCode, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,8 +60,8 @@ function minutesSince(iso: string | null, nowMs: number): string {
 }
 
 /**
- * The pay-later landing: live floor plan with multi-tablet polling, 30s elapsed ticker, map/list toggle,
- * 1-tap cover presets, and detailed multi-bill picker.
+ * The pay-later landing: live floor plan with multi-tablet polling, 30s elapsed ticker, map/grid toggle,
+ * 1-tap cover presets, visible QR print mode, and detailed multi-bill picker.
  */
 export function PosFloorBoard({
     floors,
@@ -84,6 +86,7 @@ export function PosFloorBoard({
     const [covers, setCovers] = useState('2');
     const [choosing, setChoosing] = useState<FloorTable | null>(null);
     const [viewMode, setViewMode] = useState<'map' | 'grid'>('map');
+    const [qrMode, setQrMode] = useState(false);
     const [nowMs, setNowMs] = useState(() => Date.now());
     const latestVersion = useRef(floorVersion ?? null);
     const pressTimer = useRef<number | null>(null);
@@ -136,36 +139,42 @@ export function PosFloorBoard({
 
     if (floor === undefined) {
         return (
-            <div className="flex flex-col items-start gap-3">
-                <p className="text-sm text-muted-foreground">
-                    No floor plan yet. Add floors and tables under Settings,
-                    POS, Floor plan.
-                </p>
-                {onNewCounterOrder && (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="min-h-11"
-                        disabled={!trading}
-                        onClick={onNewCounterOrder}
-                    >
-                        New counter / takeaway check
-                    </Button>
-                )}
-            </div>
+            <EmptyState
+                icon={LayoutGrid}
+                title="No floor plan yet"
+                description="Add floors and tables under POS, Floor plan to seat dine-in guests."
+                action={
+                    onNewCounterOrder ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="min-h-11"
+                            disabled={!trading}
+                            onClick={onNewCounterOrder}
+                        >
+                            New counter / takeaway check
+                        </Button>
+                    ) : undefined
+                }
+            />
         );
     }
 
-    /** A long press on a table prints its ordering link, and the click that would open the table is skipped. */
+    const issueTableQr = (table: FloorTable) => {
+        setQrMode(false);
+        router.post(
+            tableQr.url({ table: table.id }),
+            {},
+            { preserveScroll: true },
+        );
+    };
+
+    /** Long press on a table still works as a shortcut alongside the visible QR mode toggle. */
     const startPress = (table: FloorTable) => {
         longPressed.current = false;
         pressTimer.current = window.setTimeout(() => {
             longPressed.current = true;
-            router.post(
-                tableQr.url({ table: table.id }),
-                {},
-                { preserveScroll: true },
-            );
+            issueTableQr(table);
         }, 600);
     };
 
@@ -179,6 +188,12 @@ export function PosFloorBoard({
     const open = (table: FloorTable) => {
         if (longPressed.current) {
             longPressed.current = false;
+
+            return;
+        }
+
+        if (qrMode) {
+            issueTableQr(table);
 
             return;
         }
@@ -212,12 +227,19 @@ export function PosFloorBoard({
         );
     };
 
+    const occupiedCount = floor.tables.filter((table) => table.occupied).length;
+    const preBilledCount = floor.tables.filter(
+        (table) => table.preBilled,
+    ).length;
+
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
                 {floors.map((row) => (
                     <Button
                         key={row.id}
+                        type="button"
+                        aria-pressed={row.id === floor.id}
                         className="min-h-11"
                         variant={row.id === floor.id ? 'default' : 'outline'}
                         onClick={() => setActive(row.id)}
@@ -233,15 +255,26 @@ export function PosFloorBoard({
                         disabled={!trading}
                         onClick={onNewCounterOrder}
                     >
-                        New counter / takeaway check
+                        Counter check
                     </Button>
                 )}
                 <div className="ms-auto flex flex-wrap items-center gap-2">
                     <Button
                         type="button"
+                        variant={qrMode ? 'default' : 'outline'}
+                        aria-pressed={qrMode}
+                        className="min-h-11"
+                        disabled={!trading}
+                        onClick={() => setQrMode((value) => !value)}
+                    >
+                        <QrCode data-icon="inline-start" aria-hidden="true" />
+                        Table QR
+                    </Button>
+                    <Button
+                        type="button"
                         variant="outline"
                         size="icon"
-                        className="min-h-11 min-w-11"
+                        className="size-11"
                         aria-label={
                             viewMode === 'map'
                                 ? 'Switch to compact grid'
@@ -253,10 +286,14 @@ export function PosFloorBoard({
                             )
                         }
                     >
-                        {viewMode === 'map' ? <List /> : <LayoutGrid />}
+                        {viewMode === 'map' ? (
+                            <List aria-hidden="true" />
+                        ) : (
+                            <LayoutGrid aria-hidden="true" />
+                        )}
                     </Button>
                     <div
-                        className="flex items-center gap-1"
+                        className="flex flex-wrap items-center gap-1"
                         role="group"
                         aria-label="Covers for a new check"
                     >
@@ -267,6 +304,7 @@ export function PosFloorBoard({
                             <Button
                                 key={preset}
                                 type="button"
+                                aria-pressed={Number(covers) === preset}
                                 variant={
                                     Number(covers) === preset
                                         ? 'secondary'
@@ -291,8 +329,60 @@ export function PosFloorBoard({
                 </div>
             </div>
 
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="tabular-nums">
+                    {occupiedCount} of {floor.tables.length} tables occupied
+                    {preBilledCount > 0
+                        ? ` · ${preBilledCount} pre-billed`
+                        : ''}
+                </span>
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                        <span
+                            aria-hidden="true"
+                            className="size-2.5 rounded-xs border-2 border-border bg-background"
+                        />
+                        Available
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <span
+                            aria-hidden="true"
+                            className="size-2.5 rounded-xs border-2 border-primary bg-primary/15"
+                        />
+                        Occupied
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <span
+                            aria-hidden="true"
+                            className="size-2.5 rounded-xs border-2 border-warning bg-warning/15"
+                        />
+                        Pre-billed
+                    </span>
+                </div>
+            </div>
+
+            {qrMode && (
+                <Alert>
+                    <QrCode className="size-4" aria-hidden="true" />
+                    <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                            Tap any table below to issue and print its guest
+                            ordering QR slip.
+                        </span>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setQrMode(false)}
+                        >
+                            Cancel
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
+
             {viewMode === 'map' ? (
-                <div className="relative min-h-96 flex-1 overflow-auto rounded-lg border bg-muted/30">
+                <div className="relative min-h-96 flex-1 overflow-auto rounded-xl border bg-muted/30">
                     {floor.tables.map((table) => (
                         <button
                             key={table.id}
@@ -310,33 +400,44 @@ export function PosFloorBoard({
                                 height: table.height,
                             }}
                             className={cn(
-                                'absolute flex flex-col items-center justify-center gap-0.5 border-2 p-1 text-sm transition-colors disabled:opacity-50',
+                                'absolute flex flex-col items-center justify-center gap-0.5 border-2 p-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:translate-y-px disabled:opacity-50',
                                 table.shape === 'round'
                                     ? 'rounded-full'
-                                    : 'rounded-lg',
-                                table.occupied
-                                    ? table.preBilled
-                                        ? 'border-warning bg-warning/10'
-                                        : 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:bg-accent',
+                                    : 'rounded-xl',
+                                qrMode
+                                    ? 'border-dashed border-primary bg-card hover:bg-muted/70'
+                                    : table.occupied
+                                      ? table.preBilled
+                                          ? 'border-warning bg-warning/10 hover:bg-warning/20'
+                                          : 'border-primary bg-primary/10 hover:bg-primary/15'
+                                      : 'border-border bg-card hover:border-foreground/30 hover:bg-muted/70',
                             )}
                         >
-                            <span className="font-semibold">{table.code}</span>
+                            <span className="font-heading font-semibold text-foreground">
+                                {table.code}
+                            </span>
                             {table.label && (
-                                <span className="max-w-full truncate text-[11px] text-muted-foreground">
+                                <span className="max-w-full truncate text-xs text-muted-foreground">
                                     {table.label}
                                 </span>
                             )}
-                            {table.occupied ? (
+                            {qrMode ? (
+                                <span className="text-xs font-medium text-primary">
+                                    Print QR
+                                </span>
+                            ) : table.occupied ? (
                                 <>
-                                    <span className="tabular-nums">
+                                    <span className="font-medium text-foreground tabular-nums">
                                         <MoneyText
                                             amount={table.total}
                                             currency={currency}
                                         />
                                     </span>
-                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <Users className="size-3" aria-hidden />
+                                    <span className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+                                        <Users
+                                            className="size-3"
+                                            aria-hidden="true"
+                                        />
                                         {table.covers} ·{' '}
                                         {minutesSince(table.openedAt, nowMs)}
                                     </span>
@@ -346,7 +447,10 @@ export function PosFloorBoard({
                                         </Badge>
                                     )}
                                     {table.preBilled && (
-                                        <Badge variant="outline">
+                                        <Badge
+                                            variant="outline"
+                                            className="border-warning bg-warning/10 text-warning-text"
+                                        >
                                             Pre-bill
                                         </Badge>
                                     )}
@@ -360,7 +464,7 @@ export function PosFloorBoard({
                     ))}
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-2.5 overflow-y-auto sm:grid-cols-3 md:grid-cols-4">
                     {floor.tables.map((table) => (
                         <button
                             key={table.id}
@@ -372,21 +476,32 @@ export function PosFloorBoard({
                             onPointerLeave={endPress}
                             onPointerCancel={endPress}
                             className={cn(
-                                'flex min-h-24 flex-col items-start justify-between gap-1 rounded-lg border-2 p-3 text-left text-sm transition-colors disabled:opacity-50',
-                                table.occupied
-                                    ? table.preBilled
-                                        ? 'border-warning bg-warning/10'
-                                        : 'border-primary bg-primary/10'
-                                    : 'border-border bg-background hover:bg-accent',
+                                'flex min-h-24 flex-col items-start justify-between gap-1.5 rounded-xl border-2 p-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:translate-y-px disabled:opacity-50',
+                                qrMode
+                                    ? 'border-dashed border-primary bg-card hover:bg-muted/70'
+                                    : table.occupied
+                                      ? table.preBilled
+                                          ? 'border-warning bg-warning/10 hover:bg-warning/20'
+                                          : 'border-primary bg-primary/10 hover:bg-primary/15'
+                                      : 'border-border bg-card hover:border-foreground/30 hover:bg-muted/70',
                             )}
                         >
                             <div className="flex w-full items-center justify-between gap-2">
-                                <span className="font-semibold">
+                                <span className="font-heading font-semibold text-foreground">
                                     {table.code}
                                 </span>
-                                {table.preBilled && (
-                                    <Badge variant="outline">Pre-bill</Badge>
-                                )}
+                                {qrMode ? (
+                                    <Badge variant="secondary">QR</Badge>
+                                ) : table.preBilled ? (
+                                    <Badge
+                                        variant="outline"
+                                        className="border-warning bg-warning/10 text-warning-text"
+                                    >
+                                        Pre-bill
+                                    </Badge>
+                                ) : table.occupied ? (
+                                    <Badge variant="secondary">Seated</Badge>
+                                ) : null}
                             </div>
                             {table.label && (
                                 <span className="max-w-full truncate text-xs text-muted-foreground">
@@ -394,11 +509,13 @@ export function PosFloorBoard({
                                 </span>
                             )}
                             {table.occupied ? (
-                                <div className="flex w-full items-center justify-between text-xs">
-                                    <MoneyText
-                                        amount={table.total}
-                                        currency={currency}
-                                    />
+                                <div className="flex w-full items-center justify-between text-xs tabular-nums">
+                                    <span className="font-semibold text-foreground">
+                                        <MoneyText
+                                            amount={table.total}
+                                            currency={currency}
+                                        />
+                                    </span>
                                     <span className="text-muted-foreground">
                                         {table.covers} ·{' '}
                                         {minutesSince(table.openedAt, nowMs)}
@@ -406,7 +523,7 @@ export function PosFloorBoard({
                                 </div>
                             ) : (
                                 <span className="text-xs text-muted-foreground">
-                                    {table.seats} seats
+                                    {table.seats} seats · Available
                                 </span>
                             )}
                         </button>
@@ -415,19 +532,35 @@ export function PosFloorBoard({
             )}
 
             {choosing !== null && (
-                <div className="flex flex-col gap-2 rounded-lg border p-3">
+                <div className="flex flex-col gap-2 rounded-xl border bg-card p-3.5">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium">
                             Table {choosing.code} has {choosing.orderIds.length}{' '}
                             open checks:
                         </span>
-                        <Button
-                            className="min-h-11"
-                            variant="ghost"
-                            onClick={() => setChoosing(null)}
-                        >
-                            Cancel
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="min-h-11"
+                                onClick={() => issueTableQr(choosing)}
+                            >
+                                <QrCode
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
+                                Table QR
+                            </Button>
+                            <Button
+                                type="button"
+                                className="min-h-11"
+                                variant="ghost"
+                                onClick={() => setChoosing(null)}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {(

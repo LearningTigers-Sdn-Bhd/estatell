@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { NightAuditSheet } from '@/components/pms/night-audit/night-audit-sheet';
 import {
@@ -68,6 +68,31 @@ export function NavMain({
                             open={auditOpen}
                             onOpenChange={setAuditOpen}
                         />
+                    </SidebarMenuItem>
+                ) : item.external ? (
+                    <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                            render={
+                                <a
+                                    href={
+                                        typeof item.href === 'string'
+                                            ? item.href
+                                            : item.href.url
+                                    }
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                />
+                            }
+                            isActive={item.isActive || isCurrentUrl(item.href)}
+                            tooltip={{ children: item.title }}
+                        >
+                            {item.icon && <item.icon />}
+                            <span>{item.title}</span>
+                            <ExternalLink
+                                aria-hidden
+                                className="ml-auto size-3.5 text-muted-foreground group-data-[collapsible=icon]:hidden"
+                            />
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                 ) : (
                     <SidebarMenuItem key={item.title}>

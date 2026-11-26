@@ -229,7 +229,7 @@ export function FloorCanvas({
                         >
                             <span className="font-medium">{table.code}</span>
                             {table.label && (
-                                <span className="max-w-full truncate text-[11px] text-muted-foreground">
+                                <span className="max-w-full truncate text-xs text-muted-foreground">
                                     {table.label}
                                 </span>
                             )}

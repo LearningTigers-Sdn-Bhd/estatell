@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import {
     ageLabel,
+    formatKitchenQuantity,
     KitchenTicketCard,
     patchKitchen,
     postKitchen,
@@ -274,73 +275,125 @@ export default function PosKds({
         }))
         .filter((ticket) => ticket.lines.length > 0);
 
+    const allDayTotal = allDay.reduce((sum, row) => sum + row.quantity, 0);
+
     return (
         <>
             <Head title={`KDS · ${station.name}`} />
-            <div className="flex min-h-svh flex-col gap-4 p-4">
-                <header className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-2xl font-semibold">{station.name}</h1>
-                    <nav className="flex flex-wrap gap-2">
-                        {stations.map((row) => (
-                            <Link
-                                key={row.id}
-                                href={kdsShow.url({ station: row.id })}
-                                className={cn(
-                                    buttonVariants({
-                                        variant:
-                                            row.id === station.id
-                                                ? 'default'
-                                                : 'outline',
-                                        size: 'lg',
-                                    }),
-                                    'min-h-11',
-                                )}
+            <div className="flex min-h-dvh flex-col bg-background">
+                <header className="flex flex-wrap items-center gap-3 border-b bg-card px-4 py-3">
+                    <div className="flex items-center gap-3">
+                        <h1 className="font-heading text-xl font-semibold">
+                            {station.name}
+                        </h1>
+                        {stations.length > 1 && (
+                            <nav
+                                aria-label="Kitchen stations"
+                                className="flex flex-wrap gap-1.5"
                             >
-                                {row.name}
-                            </Link>
-                        ))}
-                    </nav>
-                    <div className="ms-auto flex flex-wrap gap-2">
-                        {(['kitchen', 'window', 'all-day'] as const).map(
-                            (option) => (
-                                <Button
-                                    key={option}
-                                    size="lg"
-                                    className="min-h-11"
-                                    variant={
-                                        view === option ? 'default' : 'outline'
-                                    }
-                                    onClick={() => setView(option)}
-                                >
-                                    {option === 'kitchen'
-                                        ? 'Kitchen'
-                                        : option === 'window'
-                                          ? 'Window'
-                                          : 'All day'}
-                                </Button>
-                            ),
+                                {stations.map((row) => (
+                                    <Link
+                                        key={row.id}
+                                        href={kdsShow.url({ station: row.id })}
+                                        className={cn(
+                                            buttonVariants({
+                                                variant:
+                                                    row.id === station.id
+                                                        ? 'secondary'
+                                                        : 'ghost',
+                                            }),
+                                            'min-h-11',
+                                        )}
+                                    >
+                                        {row.name}
+                                    </Link>
+                                ))}
+                            </nav>
                         )}
+                    </div>
+                    <div className="ms-auto flex flex-wrap items-center gap-2">
+                        <div
+                            className="flex flex-wrap gap-1.5"
+                            role="group"
+                            aria-label="Kitchen view"
+                        >
+                            {(
+                                [
+                                    {
+                                        key: 'kitchen' as const,
+                                        label: 'Kitchen',
+                                        count: kitchenTickets.length,
+                                    },
+                                    {
+                                        key: 'window' as const,
+                                        label: 'Window',
+                                        count: windowTickets.length,
+                                    },
+                                    {
+                                        key: 'all-day' as const,
+                                        label: 'All day',
+                                        count: allDayTotal,
+                                    },
+                                ] as const
+                            ).map((option) => (
+                                <Button
+                                    key={option.key}
+                                    type="button"
+                                    aria-pressed={view === option.key}
+                                    className="min-h-11 gap-2 tabular-nums"
+                                    variant={
+                                        view === option.key
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    onClick={() => setView(option.key)}
+                                >
+                                    <span>{option.label}</span>
+                                    <span
+                                        className={cn(
+                                            'rounded-md px-1.5 py-0.5 text-xs font-semibold',
+                                            view === option.key
+                                                ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground',
+                                        )}
+                                    >
+                                        {option.count}
+                                    </span>
+                                </Button>
+                            ))}
+                        </div>
                         <Button
-                            size="lg"
+                            type="button"
                             className="min-h-11"
-                            variant="outline"
+                            variant={showRecall ? 'secondary' : 'outline'}
+                            aria-pressed={showRecall}
                             aria-label="Recall a ticket"
                             onClick={() => setShowRecall((open) => !open)}
                         >
-                            <History data-icon="inline-start" />
+                            <History
+                                data-icon="inline-start"
+                                aria-hidden="true"
+                            />
                             Recall
                         </Button>
                         <Button
-                            size="lg"
+                            type="button"
                             className="min-h-11"
                             variant="outline"
+                            aria-pressed={muted}
                             aria-label={muted ? 'Unmute alerts' : 'Mute alerts'}
                             onClick={() => setMuted((value) => !value)}
                         >
                             {muted ? (
-                                <VolumeX data-icon="inline-start" />
+                                <VolumeX
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                             ) : (
-                                <Volume2 data-icon="inline-start" />
+                                <Volume2
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                             )}
                             {muted ? 'Muted' : 'Chime'}
                         </Button>
@@ -352,180 +405,216 @@ export default function PosKds({
                                 className={cn(
                                     buttonVariants({
                                         variant: 'outline',
-                                        size: 'lg',
                                     }),
                                     'min-h-11',
                                 )}
                             >
-                                <Monitor data-icon="inline-start" />
+                                <Monitor
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                />
                                 Pickup board
                             </Link>
                         )}
                     </div>
                 </header>
 
-                {view === 'all-day' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Still to cook</CardTitle>
-                            <CardDescription>
-                                Every open dish at this station, added up.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                            {allDay.length === 0 && (
-                                <p className="text-muted-foreground">
-                                    Nothing to cook.
-                                </p>
-                            )}
-                            {allDay.map((row) => (
-                                <p
-                                    key={`${row.name}|${row.modifiers.join(',')}`}
-                                    className="text-lg font-medium tabular-nums"
-                                >
-                                    {row.quantity}× {row.name}
-                                    {row.modifiers.length > 0 && (
-                                        <span className="text-base text-muted-foreground">
-                                            {' '}
-                                            ({row.modifiers.join(', ')})
-                                        </span>
-                                    )}
-                                </p>
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {view === 'kitchen' && (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        {kitchenTickets.length === 0 && (
-                            <p className="text-muted-foreground">
-                                No tickets to cook.
-                            </p>
-                        )}
-                        {kitchenTickets.map((ticket) => (
-                            <KitchenTicketCard
-                                key={ticket.id}
-                                ticket={ticket}
-                                tone={slaFor(ticket)}
-                                age={ageLabel(ticket.firedAt, now)}
-                                onPrint={() => setPrintTicket(ticket)}
-                                actions={(line: KitchenLine) => (
-                                    <Button
-                                        size="lg"
-                                        className="min-h-11"
-                                        variant="outline"
-                                        onClick={() =>
-                                            patchKitchen(
-                                                kdsLineStatus.url({
-                                                    line: line.id,
-                                                }),
-                                                {
-                                                    status:
-                                                        line.status === 'fired'
-                                                            ? 'preparing'
-                                                            : 'ready',
-                                                },
-                                            )
-                                        }
+                <main className="flex flex-1 flex-col gap-4 p-4">
+                    {view === 'all-day' && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-heading">
+                                    Still to cook
+                                </CardTitle>
+                                <CardDescription>
+                                    Every open dish at this station, added up.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {allDay.length === 0 ? (
+                                    <EmptyState
+                                        icon={ChefHat}
+                                        title="All caught up"
+                                        description="No open dishes are waiting at this station right now."
+                                    />
+                                ) : (
+                                    <ul
+                                        role="list"
+                                        className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
                                     >
-                                        {line.status === 'fired'
-                                            ? 'Start'
-                                            : 'Ready'}
-                                    </Button>
+                                        {allDay.map((row) => (
+                                            <li
+                                                key={`${row.name}|${row.modifiers.join(',')}`}
+                                                className="flex items-center gap-3 rounded-xl border bg-background p-3.5"
+                                            >
+                                                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-heading text-xl font-semibold text-primary tabular-nums">
+                                                    {formatKitchenQuantity(
+                                                        row.quantity,
+                                                    )}
+                                                </span>
+                                                <div className="flex min-w-0 flex-col">
+                                                    <span className="font-medium text-foreground">
+                                                        {row.name}
+                                                    </span>
+                                                    {row.modifiers.length >
+                                                        0 && (
+                                                        <span className="text-sm text-muted-foreground">
+                                                            {row.modifiers.join(
+                                                                ', ',
+                                                            )}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 )}
-                                footer={
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {view === 'kitchen' &&
+                        (kitchenTickets.length === 0 ? (
+                            <EmptyState
+                                icon={ChefHat}
+                                title="No tickets to cook"
+                                description="New orders sent from the register or guest QR appear here automatically."
+                            />
+                        ) : (
+                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                {kitchenTickets.map((ticket) => (
+                                    <KitchenTicketCard
+                                        key={ticket.id}
+                                        ticket={ticket}
+                                        tone={slaFor(ticket)}
+                                        age={ageLabel(ticket.firedAt, now)}
+                                        onPrint={() => setPrintTicket(ticket)}
+                                        actions={(line: KitchenLine) => (
+                                            <Button
+                                                type="button"
+                                                className="min-h-11 shrink-0"
+                                                variant={
+                                                    line.status === 'fired'
+                                                        ? 'outline'
+                                                        : 'secondary'
+                                                }
+                                                onClick={() =>
+                                                    patchKitchen(
+                                                        kdsLineStatus.url({
+                                                            line: line.id,
+                                                        }),
+                                                        {
+                                                            status:
+                                                                line.status ===
+                                                                'fired'
+                                                                    ? 'preparing'
+                                                                    : 'ready',
+                                                        },
+                                                    )
+                                                }
+                                            >
+                                                {line.status === 'fired'
+                                                    ? 'Start'
+                                                    : 'Ready'}
+                                            </Button>
+                                        )}
+                                        footer={
+                                            <Button
+                                                type="button"
+                                                className="mt-1 min-h-11 w-full font-semibold"
+                                                onClick={() =>
+                                                    postKitchen(
+                                                        kdsBump.url({
+                                                            station: station.id,
+                                                            order: ticket.id,
+                                                        }),
+                                                    )
+                                                }
+                                            >
+                                                Bump ticket
+                                            </Button>
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        ))}
+
+                    {view === 'window' &&
+                        (windowTickets.length === 0 ? (
+                            <EmptyState
+                                icon={ChefHat}
+                                title="Nothing ready for runners"
+                                description="Dishes marked Ready or bumped from Kitchen move here for pickup."
+                            />
+                        ) : (
+                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                {windowTickets.map((ticket) => (
+                                    <KitchenTicketCard
+                                        key={ticket.id}
+                                        ticket={ticket}
+                                        tone={slaFor(ticket)}
+                                        age={ageLabel(ticket.firedAt, now)}
+                                        onPrint={() => setPrintTicket(ticket)}
+                                        actions={(line: KitchenLine) => (
+                                            <Button
+                                                type="button"
+                                                className="min-h-11 shrink-0"
+                                                onClick={() =>
+                                                    patchKitchen(
+                                                        kdsLineStatus.url({
+                                                            line: line.id,
+                                                        }),
+                                                        { status: 'served' },
+                                                    )
+                                                }
+                                            >
+                                                Served
+                                            </Button>
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                        ))}
+
+                    {showRecall && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-heading">
+                                    Recall
+                                </CardTitle>
+                                <CardDescription>
+                                    The last bumped tickets. A recall puts their
+                                    ready dishes back to Preparing.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-wrap gap-2">
+                                {recallable.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        No bumped tickets to recall.
+                                    </p>
+                                )}
+                                {recallable.map((row) => (
                                     <Button
-                                        size="lg"
-                                        className="mt-2 min-h-11 w-full"
+                                        key={row.id}
+                                        type="button"
+                                        variant="outline"
+                                        className="min-h-11"
                                         onClick={() =>
                                             postKitchen(
-                                                kdsBump.url({
+                                                kdsRecall.url({
                                                     station: station.id,
-                                                    order: ticket.id,
+                                                    order: row.id,
                                                 }),
                                             )
                                         }
                                     >
-                                        Bump
+                                        {row.label}
                                     </Button>
-                                }
-                            />
-                        ))}
-                    </div>
-                )}
-
-                {view === 'window' && (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        {windowTickets.length === 0 && (
-                            <p className="text-muted-foreground">
-                                Nothing ready for the runners.
-                            </p>
-                        )}
-                        {windowTickets.map((ticket) => (
-                            <KitchenTicketCard
-                                key={ticket.id}
-                                ticket={ticket}
-                                tone={slaFor(ticket)}
-                                age={ageLabel(ticket.firedAt, now)}
-                                onPrint={() => setPrintTicket(ticket)}
-                                actions={(line: KitchenLine) => (
-                                    <Button
-                                        size="lg"
-                                        className="min-h-11"
-                                        onClick={() =>
-                                            patchKitchen(
-                                                kdsLineStatus.url({
-                                                    line: line.id,
-                                                }),
-                                                { status: 'served' },
-                                            )
-                                        }
-                                    >
-                                        Served
-                                    </Button>
-                                )}
-                            />
-                        ))}
-                    </div>
-                )}
-
-                {showRecall && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Recall</CardTitle>
-                            <CardDescription>
-                                The last bumped tickets. A recall puts their
-                                ready dishes back to Preparing.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-2">
-                            {recallable.length === 0 && (
-                                <p className="text-muted-foreground">
-                                    No bumped tickets to recall.
-                                </p>
-                            )}
-                            {recallable.map((row) => (
-                                <Button
-                                    key={row.id}
-                                    variant="outline"
-                                    size="lg"
-                                    className="min-h-11"
-                                    onClick={() =>
-                                        postKitchen(
-                                            kdsRecall.url({
-                                                station: station.id,
-                                                order: row.id,
-                                            }),
-                                        )
-                                    }
-                                >
-                                    {row.label}
-                                </Button>
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+                </main>
             </div>
 
             <Dialog
@@ -556,7 +645,10 @@ export default function PosKds({
                                         className="flex flex-col"
                                     >
                                         <span className="font-semibold">
-                                            {line.quantity}× {line.name}
+                                            {formatKitchenQuantity(
+                                                line.quantity,
+                                            )}
+                                            × {line.name}
                                             {line.voided ? ' (VOID)' : ''}
                                         </span>
                                         {line.modifiers.length > 0 && (

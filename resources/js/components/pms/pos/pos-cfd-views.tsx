@@ -1,4 +1,4 @@
-import { CheckCircle2, QrCode, Receipt, Sparkles } from 'lucide-react';
+import { CheckCircle2, QrCode, Receipt, Utensils } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { MoneyText } from '@/components/pms/money-text';
 import { Badge } from '@/components/ui/badge';
@@ -103,12 +103,8 @@ export function CfdIdleView({ state }: { state: CfdState }) {
     const { time, date } = formatClock(now);
 
     return (
-        <div className="relative flex min-h-svh flex-col justify-between overflow-hidden bg-background p-8 lg:p-12">
-            <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--auth-accent),transparent_70%)]"
-            />
-            <header className="relative flex items-center justify-between gap-4">
+        <div className="flex min-h-dvh flex-col justify-between border-t-4 border-primary bg-background p-8 lg:p-12">
+            <header className="flex items-center justify-between gap-4">
                 <Badge
                     variant="secondary"
                     className="px-3 py-1 text-sm font-medium"
@@ -121,12 +117,15 @@ export function CfdIdleView({ state }: { state: CfdState }) {
                 </div>
             </header>
 
-            <main className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 py-10 text-center">
+            <main className="mx-auto flex max-w-3xl flex-col items-center gap-6 py-10 text-center">
                 {state.propertyLogoUrl !== null && (
                     <div className="flex h-28 items-center justify-center rounded-2xl border bg-card px-8 py-4 shadow-xs">
                         <img
                             src={state.propertyLogoUrl}
                             alt={state.propertyName}
+                            width={224}
+                            height={80}
+                            fetchPriority="high"
                             className="max-h-20 max-w-56 object-contain"
                         />
                     </div>
@@ -137,12 +136,12 @@ export function CfdIdleView({ state }: { state: CfdState }) {
                     </h1>
                     <p className="max-w-2xl text-xl text-muted-foreground lg:text-2xl">
                         {state.welcomeMessage ??
-                            'Welcome — we’re ready whenever you are.'}
+                            'Welcome. We are ready whenever you are.'}
                     </p>
                 </div>
             </main>
 
-            <footer className="relative flex items-center justify-between text-sm text-muted-foreground">
+            <footer className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>{state.registerName}</span>
                 <span>{state.outletName}</span>
             </footer>
@@ -189,7 +188,13 @@ export function CfdActiveOrderView({ state }: { state: CfdState }) {
         const list = listRef.current;
 
         if (list !== null) {
-            list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+            const reduced = window.matchMedia(
+                '(prefers-reduced-motion: reduce)',
+            ).matches;
+            list.scrollTo({
+                top: list.scrollHeight,
+                behavior: reduced ? 'auto' : 'smooth',
+            });
         }
     }, [lineCount]);
 
@@ -212,6 +217,8 @@ export function CfdActiveOrderView({ state }: { state: CfdState }) {
                         <img
                             src={state.propertyLogoUrl}
                             alt={state.propertyName}
+                            width={112}
+                            height={40}
                             className="max-h-10 max-w-28 object-contain"
                         />
                     )}
@@ -296,7 +303,10 @@ export function CfdActiveOrderView({ state }: { state: CfdState }) {
                                                 variant="secondary"
                                                 className="w-fit"
                                             >
-                                                <Sparkles data-icon="inline-start" />
+                                                <Utensils
+                                                    data-icon="inline-start"
+                                                    aria-hidden="true"
+                                                />
                                                 Included meal
                                             </Badge>
                                         )}
@@ -392,10 +402,12 @@ export function CfdActiveOrderView({ state }: { state: CfdState }) {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-col items-center gap-3">
-                                    <div className="rounded-xl border bg-white p-3 shadow-2xs">
+                                    <div className="rounded-xl border bg-primary-foreground p-3 shadow-2xs">
                                         <img
                                             src={state.duitnowQrUrl}
                                             alt="DuitNow QR code"
+                                            width={208}
+                                            height={208}
                                             className="size-52 object-contain"
                                         />
                                     </div>
@@ -413,8 +425,8 @@ export function CfdActiveOrderView({ state }: { state: CfdState }) {
 }
 
 /**
- * The thank-you screen: net paid amount (including BNM cash rounding), payment methods, change due, and — for eligible
- * walk-in sales — the LHDN e-Invoice self-claim QR. Automatically returns to idle after `seconds`.
+ * The thank-you screen: net paid amount (including BNM cash rounding), payment methods, change due, and (for eligible
+ * walk-in sales) the LHDN e-Invoice self-claim QR. Automatically returns to idle after `seconds`.
  */
 export function CfdSettledView({
     state,
@@ -472,6 +484,8 @@ export function CfdSettledView({
                         <img
                             src={state.propertyLogoUrl}
                             alt={state.propertyName}
+                            width={112}
+                            height={40}
                             className="max-h-10 max-w-28 object-contain"
                         />
                     )}
@@ -582,7 +596,7 @@ export function CfdSettledView({
                         </CardHeader>
                         <CardContent className="flex flex-col items-center gap-3">
                             <div
-                                className="size-56 rounded-2xl border bg-white p-4 shadow-xs [&>svg]:size-full"
+                                className="size-56 rounded-2xl border bg-primary-foreground p-4 shadow-xs [&>svg]:size-full"
                                 role="img"
                                 aria-label="QR code to claim an e-Invoice"
                                 dangerouslySetInnerHTML={{
@@ -597,7 +611,7 @@ export function CfdSettledView({
             <footer className="mx-auto flex w-full max-w-md flex-col items-center gap-2 text-center">
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                        className="h-full bg-primary transition-all duration-1000 ease-linear"
+                        className="h-full bg-primary motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear"
                         style={{ width: `${progressPercent}%` }}
                     />
                 </div>
