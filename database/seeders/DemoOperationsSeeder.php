@@ -68,7 +68,7 @@ use Laravel\Pennant\Feature;
 use RuntimeException;
 
 /**
- * The operations Tanini runs, on the two demo properties of the Demo group (Boreno Hotel and Kopi Lane Hostel), on top
+ * The operations Tanini runs, on the demo properties of the Demo group (Boreno Hotel, Kopi Lane Hostel and the three lodges of `DemoGroupLodgesSeeder`), on top
  * of the bookings `DemoYearSeeder` makes. Everything goes through the production Actions, as staff would do it:
  *
  * - **Transfers**: airport routes each way with a shared (per person) and a private (per van) price, two vans and three
@@ -109,6 +109,32 @@ class DemoOperationsSeeder extends Seeder
             'extras' => ['BREAKFAST' => 30, 'TOWEL' => 20, 'PADLOCK' => 15, 'LAUNDRY_LOAD' => 10],
             'boats' => true,
         ],
+        'Seri Pagi Hotel' => [
+            'short' => 'Seri Pagi',
+            'tours' => [
+                ['name' => 'Sepilok orangutan & sun bears', 'capacity' => 14, 'price' => '160.00', 'private' => '1500.00', 'sessions' => [['08:00', '13:00']]],
+                ['name' => 'Kinabatangan river safari', 'capacity' => 12, 'price' => '280.00', 'private' => '2800.00', 'sessions' => [['14:00', '19:30']]],
+            ],
+            'extras' => ['BREAKFAST' => 25, 'PARKING' => 12, 'LAUNDRY_PIECE' => 8, 'MINIBAR_DRINK' => 12],
+            'boats' => false,
+        ],
+        'Kinabalu Mist Homestay' => [
+            'short' => 'Kinabalu Mist',
+            'tours' => [
+                ['name' => 'Desa dairy farm visit', 'capacity' => 10, 'price' => '45.00', 'private' => null, 'sessions' => [['09:00', '11:30']]],
+                ['name' => 'Kinabalu Park guided walk', 'capacity' => 8, 'price' => '90.00', 'private' => '650.00', 'sessions' => [['07:30', '11:30']]],
+            ],
+            'extras' => ['BREAKFAST' => 45, 'TOWEL' => 15, 'LAUNDRY_LOAD' => 8],
+            'boats' => false,
+        ],
+        'Likas Bay Suites' => [
+            'short' => 'Likas Bay',
+            'tours' => [
+                ['name' => 'Sunset city tour', 'capacity' => 12, 'price' => '75.00', 'private' => '700.00', 'sessions' => [['16:30', '19:30']]],
+            ],
+            'extras' => ['PARKING' => 30, 'LAUNDRY_LOAD' => 15, 'CLEANING' => 10],
+            'boats' => false,
+        ],
     ];
 
     /** @var list<string> */
@@ -120,6 +146,21 @@ class DemoOperationsSeeder extends Seeder
     /** @var array<string, int> */
     private array $refused = [];
 
+    /** @var list<string> Only these properties, when set; otherwise every property listed here. */
+    private array $only = [];
+
+    /**
+     * Run for these properties only (`DemoGroupLodgesSeeder` uses it so Boreno and Kopi Lane are left alone).
+     *
+     * @param  list<string>  $names
+     */
+    public function only(array $names): static
+    {
+        $this->only = $names;
+
+        return $this;
+    }
+
     public function run(): void
     {
         if (app()->isProduction()) {
@@ -127,6 +168,10 @@ class DemoOperationsSeeder extends Seeder
         }
 
         foreach (self::PROPERTIES as $name => $setup) {
+            if ($this->only !== [] && ! in_array($name, $this->only, true)) {
+                continue;
+            }
+
             $property = Property::query()->where('name', $name)->with('settings')->first();
 
             if ($property === null) {

@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * A year of demo business for the two demo properties of the Demo group (Boreno Hotel and Kopi Lane Hostel), so the
+ * A year of demo business for the demo properties of the Demo group (Boreno Hotel, Kopi Lane Hostel and the three lodges of `DemoGroupLodgesSeeder`), so the
  * group dashboard, forecast and reports have something real to show.
  *
  * - **The next 12 months**: bookings made through `CreateBooking`, as staff would, with rooms assigned by
@@ -35,13 +35,13 @@ use RuntimeException;
  * - **The last 12 months**: night audit statistics (`daily_statistics`) on the same seasons, for the dates before the
  *   property's first closed date, so the forecast has a last year to compare against. No folios are written for them.
  *
- * Run it on a local or staging database only: `php artisan db:seed --class=DemoYearSeeder`. It touches only the two
+ * Run it on a local or staging database only: `php artisan db:seed --class=DemoYearSeeder`. It touches only the
  * properties named here, refuses anything else, and the same run gives the same data (a fixed random seed).
  */
 class DemoYearSeeder extends Seeder
 {
     /** @var list<string> */
-    private const array PROPERTIES = ['Boreno Hotel', 'Kopi Lane Hostel'];
+    private const array PROPERTIES = ['Boreno Hotel', 'Kopi Lane Hostel', 'Seri Pagi Hotel', 'Kinabalu Mist Homestay', 'Likas Bay Suites'];
 
     /** Base occupancy by month (1 = January), Kota Kinabalu leisure demand. */
     private const array SEASON = [1 => 0.72, 2 => 0.74, 3 => 0.60, 4 => 0.58, 5 => 0.62, 6 => 0.78, 7 => 0.82, 8 => 0.86, 9 => 0.66, 10 => 0.60, 11 => 0.64, 12 => 0.90];
@@ -64,6 +64,21 @@ class DemoYearSeeder extends Seeder
     /** @var array<string, int> */
     private array $refused = [];
 
+    /** @var list<string> Only these properties, when set; otherwise every property listed here. */
+    private array $only = [];
+
+    /**
+     * Run for these properties only (`DemoGroupLodgesSeeder` uses it so Boreno and Kopi Lane are left alone).
+     *
+     * @param  list<string>  $names
+     */
+    public function only(array $names): static
+    {
+        $this->only = $names;
+
+        return $this;
+    }
+
     public function run(): void
     {
         if (app()->isProduction()) {
@@ -71,6 +86,10 @@ class DemoYearSeeder extends Seeder
         }
 
         foreach (self::PROPERTIES as $name) {
+            if ($this->only !== [] && ! in_array($name, $this->only, true)) {
+                continue;
+            }
+
             $property = Property::query()->where('name', $name)->with('settings')->first();
 
             if ($property === null) {

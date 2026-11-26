@@ -46,7 +46,7 @@ use Illuminate\Support\Collection;
 use RuntimeException;
 
 /**
- * The day-to-day operations of the two demo lodges (Boreno Hotel and Kopi Lane Hostel) from the business date to
+ * The day-to-day operations of the demo lodges of the Demo group (Boreno Hotel, Kopi Lane Hostel and the three of `DemoGroupLodgesSeeder`) from the business date to
  * `DAYS` days ahead, on top of `DemoOperationsSeeder`. Every write goes through the production Actions, and a second
  * run changes nothing it already set:
  *
@@ -82,6 +82,24 @@ class DemoDailyOperationsSeeder extends Seeder
             'guides' => [['Rosli Ahmad', '+60 14 556 1200'], ['Melati Chong', '+60 17 820 4567'], ['Jason Wong', '+60 12 845 3321']],
             'boats' => [['Proboscis', 12], ['Otter', 8]],
         ],
+        'Seri Pagi Hotel' => [
+            'duty' => '+60 89 221 190',
+            'emergency' => '+60 13 880 1122',
+            'guides' => [['Awang Sabri', '+60 13 551 2090'], ['Cindy Lau', '+60 16 820 7781']],
+            'boats' => [['Sandpiper', 12]],
+        ],
+        'Kinabalu Mist Homestay' => [
+            'duty' => '+60 88 889 013',
+            'emergency' => '+60 19 830 2245',
+            'guides' => [['Johnny Lajinga', '+60 14 870 3312'], ['Esther Mojikon', '+60 11 2310 4456']],
+            'boats' => [],
+        ],
+        'Likas Bay Suites' => [
+            'duty' => '+60 88 265 540',
+            'emergency' => '+60 12 820 6677',
+            'guides' => [['Faizal Rahim', '+60 17 812 9930']],
+            'boats' => [],
+        ],
     ];
 
     /** @var list<string> */
@@ -104,6 +122,21 @@ class DemoDailyOperationsSeeder extends Seeder
     /** @var array<string, int> */
     private array $counts = [];
 
+    /** @var list<string> Only these properties, when set; otherwise every property listed here. */
+    private array $only = [];
+
+    /**
+     * Run for these properties only (`DemoGroupLodgesSeeder` uses it so Boreno and Kopi Lane are left alone).
+     *
+     * @param  list<string>  $names
+     */
+    public function only(array $names): static
+    {
+        $this->only = $names;
+
+        return $this;
+    }
+
     public function run(): void
     {
         if (app()->isProduction()) {
@@ -111,6 +144,10 @@ class DemoDailyOperationsSeeder extends Seeder
         }
 
         foreach (self::PROPERTIES as $name => $setup) {
+            if ($this->only !== [] && ! in_array($name, $this->only, true)) {
+                continue;
+            }
+
             $property = Property::query()->where('name', $name)->with('settings')->first();
 
             if ($property === null) {

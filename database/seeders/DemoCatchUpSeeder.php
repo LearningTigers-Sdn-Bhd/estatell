@@ -37,7 +37,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Makes the two demo lodges (Boreno Hotel and Kopi Lane Hostel) look like hotels that ran every day, on top of the
+ * Makes the demo lodges of the Demo group (Boreno Hotel, Kopi Lane Hostel and the three of `DemoGroupLodgesSeeder`) look like hotels that ran every day, on top of the
  * other demo seeders. Every stay change goes through the production Actions:
  *
  * - **Stray routes**: Kopi Lane's test route "Airport to hostel" (priced with the Mount Kinabalu shuttle) hands its open
@@ -59,7 +59,7 @@ use RuntimeException;
 class DemoCatchUpSeeder extends Seeder
 {
     /** @var list<string> */
-    private const array PROPERTIES = ['Boreno Hotel', 'Kopi Lane Hostel'];
+    private const array PROPERTIES = ['Boreno Hotel', 'Kopi Lane Hostel', 'Seri Pagi Hotel', 'Kinabalu Mist Homestay', 'Likas Bay Suites'];
 
     /** Test routes left on a lodge, and the seeded route that takes over their transfers. */
     private const array STRAY_ROUTES = ['Kopi Lane Hostel' => ['Airport to hostel' => 'Airport to Kopi Lane']];
@@ -80,6 +80,21 @@ class DemoCatchUpSeeder extends Seeder
     /** @var array<string, int> */
     private array $counts = [];
 
+    /** @var list<string> Only these properties, when set; otherwise every property listed here. */
+    private array $only = [];
+
+    /**
+     * Run for these properties only (`DemoGroupLodgesSeeder` uses it so Boreno and Kopi Lane are left alone).
+     *
+     * @param  list<string>  $names
+     */
+    public function only(array $names): static
+    {
+        $this->only = $names;
+
+        return $this;
+    }
+
     public function run(): void
     {
         if (app()->isProduction()) {
@@ -87,6 +102,10 @@ class DemoCatchUpSeeder extends Seeder
         }
 
         foreach (self::PROPERTIES as $name) {
+            if ($this->only !== [] && ! in_array($name, $this->only, true)) {
+                continue;
+            }
+
             $property = Property::query()->where('name', $name)->with('settings')->first();
 
             if ($property === null) {

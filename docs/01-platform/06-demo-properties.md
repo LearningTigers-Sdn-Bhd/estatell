@@ -54,6 +54,18 @@ Fixed names and amounts, no random Faker data (Faker is not in the production im
 | Housekeeping | Default statuses                                                                       | Dirty and inspected rooms, remarks, one room that needs maintenance                                                 | Dorm D2 and room 103 dirty, 104 inspected, a remark on D2                                                                                     |
 | Night audit  | No closed days. Room charges post at the first night audit.                            | Same                                                                                                                | Same                                                                                                                                          |
 
+### Demo group lodges
+
+`DemoGroupLodgesSeeder` (added 2026-11-26, so the group pages compare five properties) creates three fictional lodges in the **Demo group** beside Boreno and Kopi Lane. It is not part of `DemoSeeder`; run it by hand on a local or staging database: `php artisan db:seed --class=DemoGroupLodgesSeeder`.
+
+| Property               | Type                              | Rooms                                          | Taxes    |
+| ---------------------- | --------------------------------- | ---------------------------------------------- | -------- |
+| Seri Pagi Hotel        | Hotel, Sandakan                   | 24: superior queen, deluxe twin, harbour suite | SST, TTX |
+| Kinabalu Mist Homestay | Homestay, Kundasang               | 6: garden rooms, mountain view family rooms    | TTX      |
+| Likas Bay Suites       | Serviced apartment, Kota Kinabalu | 16: studios, one-bedroom, two-bedroom sea view | SST, TTX |
+
+Each gets staff (`seripagi@`, `kinabalumist@`, `likasbay@demo.estatell.com` and `.manager`, `.frontdesk`, `.housekeeping`), extras, Room Only priced for 200 days, and Manager access for the Kopi Lane owner and manager. Then it runs `DemoYearSeeder`, `DemoOperationsSeeder`, `DemoDailyOperationsSeeder` and `DemoCatchUpSeeder` for these three only (each has `only()`), so Boreno and Kopi Lane are left as they are. A lodge that exists is not created again.
+
 Later: 14 days of history with closed night audits, room charges, overdue AR invoices and real report numbers. See [Checklist](../checklist.md#demo).
 
 ## Logins
