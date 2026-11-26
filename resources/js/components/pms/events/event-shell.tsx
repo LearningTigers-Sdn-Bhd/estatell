@@ -90,7 +90,7 @@ export function eventTabs(eventId: number): TabLink[] {
 export function eventBreadcrumbs(props: { event: Event }, activeTab: EventTab) {
     return withTabCrumb(
         [
-            { title: 'Events', href: index() },
+            { title: 'Non-room reservations', href: index() },
             { title: props.event.name, href: show({ event: props.event.id }) },
         ],
         eventTabs(props.event.id),
@@ -309,7 +309,7 @@ export function EventShell({
             <PageHeader
                 title={event.name}
                 description={`${event.number} · ${eventDates(event.startsOn, event.endsOn)} · ${event.payerName}`}
-                back={{ href: index.url(), label: 'Events' }}
+                back={{ href: index.url(), label: 'Non-room reservations' }}
                 badge={<StatusBadge status={event.status} />}
                 actions={<EventActions {...props} />}
             />

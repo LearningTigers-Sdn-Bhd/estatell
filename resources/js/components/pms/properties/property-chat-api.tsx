@@ -76,7 +76,7 @@ const fields: [string, string, string][] = [
         "The channel's chat id. The same id within 24 hours continues the same chat.",
     ],
     ['message', 'Required', "The guest's text, up to 2,000 characters."],
-    ['guest_name', 'Optional', 'Shown to staff in AI chats.'],
+    ['guest_name', 'Optional', 'Shown to staff in Chat handovers.'],
 ];
 
 const errors: [string, string, string][] = [
@@ -490,8 +490,8 @@ export function PropertyChatApi({
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
                                             n8n can no longer send messages with
-                                            this token. Past chats stay in AI
-                                            chats.
+                                            this token. Past chats stay in Chat
+                                            handovers.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>

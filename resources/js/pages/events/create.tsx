@@ -319,7 +319,7 @@ export default function EventCreate({
                     <PageHeader
                         title="New event"
                         description="A bill for people who are not staying: a wedding dinner, a meeting or a walk-in lunch. It gets its own folio."
-                        back={{ href: index(), label: 'Events' }}
+                        back={{ href: index(), label: 'Non-room reservations' }}
                     />
 
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -695,7 +695,7 @@ EventCreate.layout = (props: {
     variant: 'fixed' as const,
     // The property code is passed in because this runs before AppLayout sets the URL defaults.
     breadcrumbs: [
-        { title: 'Events', href: index(props.property.code) },
+        { title: 'Non-room reservations', href: index(props.property.code) },
         { title: 'New event', href: create(props.property.code) },
     ],
 });
