@@ -1,11 +1,14 @@
 <?php
 
+use App\Data\Property\PropertyPhotoData;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\MediaLibrary\Conversions\Jobs\PerformConversionsJob;
 
 beforeEach(function () {
     Storage::fake('public');
@@ -112,4 +115,36 @@ test('photos need the settings manage permission and stay inside the property', 
     $this->actingAs($staff)->post(propertyPhotoUrl($property, 'store'), ['photos' => [UploadedFile::fake()->image('a.jpg')]])->assertForbidden();
 
     $this->actingAs($outsider)->get(propertyPhotoUrl($property))->assertNotFound();
+});
+
+test('an upload makes the thumb at once, queues the web copy, and shows the original until it is ready', function () {
+    Queue::fake();
+
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+
+    $this->actingAs($owner)
+        ->post(propertyPhotoUrl($property, 'store'), ['photos' => [UploadedFile::fake()->image('a.jpg', 2000, 1500)]])
+        ->assertSessionHasNoErrors();
+
+    $photo = $property->refresh()->getFirstMedia(Property::PHOTOS);
+
+    expect($photo->hasGeneratedConversion('thumb'))->toBeTrue()
+        ->and($photo->hasGeneratedConversion('web'))->toBeFalse()
+        ->and(PropertyPhotoData::fromModel($photo)->url)->toBe($photo->getUrl());
+
+    Queue::assertPushed(PerformConversionsJob::class);
+});
+
+test('photos sent one at a time still stop at the limit', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+
+    $files = fn (int $count): array => array_map(fn (int $i) => UploadedFile::fake()->image("p{$i}.jpg"), range(1, $count));
+
+    $this->actingAs($owner)->post(propertyPhotoUrl($property, 'store'), ['photos' => $files(Property::PHOTO_LIMIT - 1)])->assertSessionHasNoErrors();
+    $this->actingAs($owner)->post(propertyPhotoUrl($property, 'store'), ['photos' => $files(1)])->assertInertiaFlash('toast.type', 'success');
+    $this->actingAs($owner)->post(propertyPhotoUrl($property, 'store'), ['photos' => $files(1)])->assertInertiaFlash('toast.type', 'error');
+
+    expect($property->refresh()->getMedia(Property::PHOTOS))->toHaveCount(Property::PHOTO_LIMIT);
 });

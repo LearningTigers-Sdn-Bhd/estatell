@@ -48,6 +48,21 @@ Add `nativeButton={false}` only when a trigger renders an element that is not a 
 - Labels are a verb and object: "Check in", "Post charge", "Record payment".
 - Icons in buttons use `data-icon="inline-start"` or `"inline-end"`, with no sizing classes.
 
+## Progress toasts
+
+A task that takes more than a few seconds or sends many requests shows one progress toast, not one toast per request.
+
+| Use                       | How                                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| File uploads              | `uploadWithToast({ url, files, field, asArray, oneByOne, noun })` from `lib/upload-with-toast.ts`                     |
+| Other slow tasks          | `toastProgress(title)` from `lib/toast-progress.ts`: `progress(text, percent)`, `processing(text)`, `succeed`, `fail` |
+| Many requests in one task | `holdFlashToasts()` stops server flash toasts until released. `uploadWithToast` does this for you                     |
+
+- Text: "Uploading 3 of 8 · 45%", then "Processing…". The result uses the server's message ("Photos uploaded.").
+- On a refusal, the error toast names the reason and, below it, how many files were saved.
+- `oneByOne` needs an endpoint that accepts a single file. Album uploads use it, so each request carries one photo.
+- The button keeps its `Spinner` and `disabled` state while the toast runs.
+
 ## Select
 
 Base UI renders the **raw value** in the trigger unless the root has `items`. Without `items`, a selected `per_guest` shows as `per_guest` instead of "Per guest".

@@ -125,7 +125,7 @@ The property's own album, for both booking modes. It lives on the Details page, 
 
 ## Room photos
 
-The `photos` collection on room types has an upload UI: the Photos tab of the room type page (see [Room types](../05-rooms/01-room-types.md)). Images the guest sees use the public media disk, because the media library's default disk is private. `MEDIA_PUBLIC_DISK` is `public` locally and `r2-public` in production: a separate public R2 bucket (`R2_PUBLIC_BUCKET`) served on a custom domain (`R2_PUBLIC_URL`, for example `https://media.estatell.com`). It reuses the `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_ENDPOINT` of the private disk, and the endpoint must have no bucket name in it.
+The `photos` collection on room types has an upload UI: the Photos tab of the room type page (see [Room types](../05-rooms/01-room-types.md)). Images the guest sees use the public media disk, because the media library's default disk is private. `MEDIA_PUBLIC_DISK` is `public` locally and `r2-public` in production: a separate public R2 bucket (`R2_PUBLIC_BUCKET`) served on a custom domain (`R2_PUBLIC_URL`, for example `https://media.estatell.com`). It reuses the `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_ENDPOINT` of the private disk, and the endpoint must have no bucket name in it. The `web` copy is queued and the API gives the original file until it exists. Uploads go one photo per request with a progress toast. See [Property photos](../02-property/01-properties.md#photos).
 
 ## Admin routes
 

@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FieldDescription, FieldError } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
+import { uploadWithToast } from '@/lib/upload-with-toast';
 
 type Photo = { id: number; name: string; thumbUrl: string };
 
@@ -152,27 +153,26 @@ export function PhotoGrid({
         }),
     );
 
-    const upload = (files: File[]) => {
+    const upload = async (files: File[]) => {
         setError(undefined);
-        router.post(
-            uploadUrl,
-            { photos: files },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onStart: () => setUploading(true),
-                onSuccess: () => setOrder(null),
-                onError: (errors) =>
-                    setError(Object.values(errors)[0] ?? 'Upload failed.'),
-                onFinish: () => {
-                    setUploading(false);
+        setUploading(true);
 
-                    if (fileInput.current) {
-                        fileInput.current.value = '';
-                    }
-                },
-            },
-        );
+        const result = await uploadWithToast({
+            url: uploadUrl,
+            files,
+            field: 'photos',
+            asArray: true,
+            oneByOne: true,
+            noun: ['photo', 'photos'],
+        });
+
+        setOrder(null);
+        setError(result.error);
+        setUploading(false);
+
+        if (fileInput.current) {
+            fileInput.current.value = '';
+        }
     };
 
     const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -246,7 +246,7 @@ export function PhotoGrid({
                         const files = Array.from(event.target.files ?? []);
 
                         if (files.length > 0) {
-                            upload(files);
+                            void upload(files);
                         }
                     }}
                 />

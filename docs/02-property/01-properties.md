@@ -142,8 +142,10 @@ The property's own photo album, on the Details page, **Photos** tab (`/p/{code}/
 | 20      | The photos and "20 of 20 photos", with no upload card                             |
 
 - A `photos` media collection on Property, on the public media disk (`MEDIA_PUBLIC_DISK`), because guests see the photos. Up to 20 photos, each with a `thumb` (400 px) and a `web` (1600 px) conversion. Each is JPEG, PNG or WebP, up to 5 MB.
+- Conversions: `thumb` (400 px) is made during the upload, so the grid shows it at once. `web` (1600 px) is queued on Horizon. Until it exists, every `url` (Data classes, booking API, `Property::heroUrl`) gives the original file through `getAvailableUrl(['web'])`. The same applies to room type photos and website image slots. Restart Horizon after a deploy, or `web` copies are not made.
+- Upload: `PhotoGrid` sends one photo per request through `uploadWithToast` (`lib/upload-with-toast.ts`). One progress toast shows "Uploading 3 of 8 · 45%" and a bar. It stops at the first refused photo and says how many were saved. Each photo logs its own `property.updated`.
 - The tab shares `PhotoGrid` (`components/pms/photo-grid.tsx`) with the room type Photos tab.
-- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated`, with `photos` or `photo_order` as the change.
+- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated`, with `photos` or `photo_order` as the change. An upload of several photos logs once per photo, because each is its own request.
 - The album does not depend on the booking website. It has no feature flag and the tab shows in both booking modes.
 - Onboarding does not ask for photos, and they are not on the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist). The [Booking website checklist](../29-booking-engine/07-settings-and-permissions.md#general) asks for them before publishing.
 - The booking engine API returns these photos on `properties/{code}`.

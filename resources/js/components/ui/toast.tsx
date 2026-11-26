@@ -5,6 +5,7 @@ import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import { XIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
 const toast = ToastPrimitive.createToastManager()
@@ -189,6 +190,13 @@ function ToastList() {
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <ToastTitle />
           <ToastDescription />
+          {typeof toastItem.data?.progress === "number" && (
+            <Progress
+              value={toastItem.data.progress}
+              aria-label="Progress"
+              className="mt-1"
+            />
+          )}
         </div>
         <ToastAction />
         <ToastClose />

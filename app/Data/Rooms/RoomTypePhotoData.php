@@ -22,7 +22,7 @@ class RoomTypePhotoData extends Data
         return new self(
             id: $media->id,
             name: $media->file_name,
-            url: $media->getUrl('web'),
+            url: $media->getAvailableUrl(['web']),
             thumbUrl: $media->getUrl('thumb'),
         );
     }
