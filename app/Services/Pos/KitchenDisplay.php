@@ -165,11 +165,17 @@ class KitchenDisplay
             if ($group->contains(fn (PosOrderLine $line): bool => $line->kitchen_status !== PosKitchenStatus::Ready)) {
                 $preparing[] = $entry;
             } else {
-                $ready[] = $entry;
+                $readyAt = $group->max(fn (PosOrderLine $line): int => $line->ready_at?->getTimestamp() ?? 0);
+                $ready[] = ['entry' => $entry, 'readyAt' => $readyAt];
             }
         }
 
-        return ['preparing' => $preparing, 'ready' => $ready];
+        usort($ready, fn (array $a, array $b): int => $b['readyAt'] <=> $a['readyAt'] ?: $b['entry']['id'] <=> $a['entry']['id']);
+
+        return [
+            'preparing' => $preparing,
+            'ready' => array_column($ready, 'entry'),
+        ];
     }
 
     /**

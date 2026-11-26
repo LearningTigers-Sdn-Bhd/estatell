@@ -4,8 +4,11 @@ import {
     History,
     Monitor,
     Printer,
+    RefreshCw,
+    RotateCcw,
     Volume2,
     VolumeX,
+    WifiOff,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -21,14 +24,9 @@ import type {
     KitchenLine,
     KitchenTicket,
 } from '@/components/pms/pos/pos-kds-ticket';
+import { PosNavbar } from '@/components/pms/pos/pos-navbar';
 import { Button, buttonVariants } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -37,11 +35,22 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
-import { version as kdsVersion, show as kdsShow } from '@/routes/pos/kds';
+import { dashboard } from '@/routes';
+import { index as posIndex } from '@/routes/pos';
+import { show as kdsShow, version as kdsVersion } from '@/routes/pos/kds';
 import { status as kdsLineStatus } from '@/routes/pos/kds/lines';
 import { bump as kdsBump, recall as kdsRecall } from '@/routes/pos/kds/orders';
 import { show as odsShow } from '@/routes/pos/ods';
+import { index as kitchenSettingsIndex } from '@/routes/settings/pos/kitchen';
 
 type Station = {
     id: number;
@@ -55,6 +64,9 @@ type Station = {
 type Recallable = { id: number; label: string; bumpedAt: string };
 
 type Props = {
+    locked?: boolean;
+    canSell?: boolean;
+    canManageMenu?: boolean;
     stations: Station[];
     station: Station | null;
     version: string;
@@ -66,6 +78,23 @@ type View = 'kitchen' | 'window' | 'all-day';
 
 const POLL_MS = 4000;
 const CLOCK_MS = 1000;
+
+function formatClock(timestamp: number): string {
+    return new Date(timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function formatBumpedTime(iso: string): string {
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 function playAlertChime() {
     try {
@@ -97,17 +126,18 @@ function playAlertChime() {
             osc.stop(now + idx * 0.16 + 0.15);
         });
     } catch {
-        // Ignore audio playback failures when browser autoplay policy blocks sound.
+        // Browser autoplay policy may block audio until first user gesture.
     }
 }
 
 /**
- * The Web KDS of one station. The Kitchen view tickets cook (tap a dish to start, then to ready, Bump the ticket). The
- * Window view lists ready food for runners, and Served closes a line. All-Day adds up the dishes still to cook. The view
- * switch works on the loaded tickets, with no request. The screen polls the station's version and reloads its tickets only
- * when it changes. See docs/34-native-pos/06-kitchen-kds-and-qr.md.
+ * Web KDS for one kitchen station: Kitchen (cook), Window (runners), and All-day tally.
+ * Polls a short version hash and reloads tickets only when the version changes.
  */
 export default function PosKds({
+    locked = false,
+    canSell = false,
+    canManageMenu = false,
     stations,
     station,
     version,
@@ -118,8 +148,11 @@ export default function PosKds({
     const [showRecall, setShowRecall] = useState(false);
     const [muted, setMuted] = useState(false);
     const [printTicket, setPrintTicket] = useState<KitchenTicket | null>(null);
+    const [pendingKey, setPendingKey] = useState<string | null>(null);
+    const [pollError, setPollError] = useState(false);
     const [now, setNow] = useState(() => Date.now());
     const latestVersion = useRef(version);
+    const failedPolls = useRef(0);
     const alertedTickets = useRef<Set<number>>(new Set());
 
     useEffect(() => {
@@ -143,8 +176,17 @@ export default function PosKds({
                 );
 
                 if (!response.ok) {
+                    failedPolls.current += 1;
+
+                    if (failedPolls.current >= 2) {
+                        setPollError(true);
+                    }
+
                     return;
                 }
+
+                failedPolls.current = 0;
+                setPollError(false);
 
                 const { version: current } = (await response.json()) as {
                     version: string;
@@ -156,7 +198,11 @@ export default function PosKds({
                     });
                 }
             } catch {
-                // Keep polling quietly across transient network blips.
+                failedPolls.current += 1;
+
+                if (failedPolls.current >= 2) {
+                    setPollError(true);
+                }
             }
         }, POLL_MS);
 
@@ -230,20 +276,48 @@ export default function PosKds({
                 }),
         );
 
-        return [...totals.values()];
+        return [...totals.values()].sort((a, b) => b.quantity - a.quantity);
     }, [tickets]);
+
+    const backLink = canSell
+        ? { href: posIndex.url(), label: 'POS' }
+        : !locked
+          ? { href: dashboard.url(), label: 'Back office' }
+          : null;
 
     if (station === null) {
         return (
             <>
                 <Head title="Kitchen display" />
-                <div className="p-4">
-                    <EmptyState
-                        icon={ChefHat}
-                        title="No kitchen station"
-                        description="Add a kitchen station in POS settings, and route the menu to it."
-                    />
-                </div>
+                <PosNavbar
+                    title="Kitchen display"
+                    titleAs="h1"
+                    back={backLink}
+                    showUser={!locked}
+                />
+                <main className="flex flex-1 flex-col justify-center bg-muted/50 px-4 py-8 sm:px-6">
+                    <div className="mx-auto w-full max-w-2xl">
+                        <Card>
+                            <CardContent className="py-10">
+                                <EmptyState
+                                    icon={ChefHat}
+                                    title="No kitchen station configured"
+                                    description="Add a kitchen station with display mode enabled, then route menu categories or items to it."
+                                    action={
+                                        canManageMenu ? (
+                                            <Link
+                                                href={kitchenSettingsIndex.url()}
+                                                className={`${buttonVariants()} min-h-11`}
+                                            >
+                                                Open kitchen settings
+                                            </Link>
+                                        ) : undefined
+                                    }
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </main>
             </>
         );
     }
@@ -277,24 +351,63 @@ export default function PosKds({
 
     const allDayTotal = allDay.reduce((sum, row) => sum + row.quantity, 0);
 
+    const refreshNow = () => {
+        router.reload({
+            only: ['tickets', 'recallable', 'version'],
+            onStart: () => setPendingKey('refresh'),
+            onFinish: () => {
+                setPendingKey(null);
+                failedPolls.current = 0;
+                setPollError(false);
+            },
+        });
+    };
+
+    const views = [
+        {
+            key: 'kitchen' as const,
+            label: 'Kitchen',
+            count: kitchenTickets.length,
+        },
+        {
+            key: 'window' as const,
+            label: 'Window',
+            count: windowTickets.length,
+        },
+        { key: 'all-day' as const, label: 'All day', count: allDayTotal },
+    ];
+
     return (
         <>
             <Head title={`KDS · ${station.name}`} />
-            <div className="flex min-h-dvh flex-col bg-background">
-                <header className="flex flex-wrap items-center gap-3 border-b bg-card px-4 py-3">
-                    <div className="flex items-center gap-3">
-                        <h1 className="font-heading text-xl font-semibold">
-                            {station.name}
-                        </h1>
-                        {stations.length > 1 && (
+
+            <PosNavbar
+                title={station.name}
+                subtitle={station.outlet}
+                titleAs="h1"
+                back={backLink}
+                leftExtra={
+                    stations.length > 1 ? (
+                        <>
+                            <span
+                                aria-hidden="true"
+                                className="hidden h-5 w-px shrink-0 bg-sidebar-border sm:block"
+                            />
                             <nav
                                 aria-label="Kitchen stations"
-                                className="flex flex-wrap gap-1.5"
+                                className="flex items-center gap-0.5"
                             >
                                 {stations.map((row) => (
                                     <Link
                                         key={row.id}
-                                        href={kdsShow.url({ station: row.id })}
+                                        href={kdsShow.url({
+                                            station: row.id,
+                                        })}
+                                        aria-current={
+                                            row.id === station.id
+                                                ? 'page'
+                                                : undefined
+                                        }
                                         className={cn(
                                             buttonVariants({
                                                 variant:
@@ -302,203 +415,270 @@ export default function PosKds({
                                                         ? 'secondary'
                                                         : 'ghost',
                                             }),
-                                            'min-h-11',
+                                            'min-h-11 px-3',
                                         )}
                                     >
                                         {row.name}
                                     </Link>
                                 ))}
                             </nav>
-                        )}
-                    </div>
-                    <div className="ms-auto flex flex-wrap items-center gap-2">
-                        <div
-                            className="flex flex-wrap gap-1.5"
-                            role="group"
-                            aria-label="Kitchen view"
-                        >
-                            {(
-                                [
-                                    {
-                                        key: 'kitchen' as const,
-                                        label: 'Kitchen',
-                                        count: kitchenTickets.length,
-                                    },
-                                    {
-                                        key: 'window' as const,
-                                        label: 'Window',
-                                        count: windowTickets.length,
-                                    },
-                                    {
-                                        key: 'all-day' as const,
-                                        label: 'All day',
-                                        count: allDayTotal,
-                                    },
-                                ] as const
-                            ).map((option) => (
-                                <Button
+                        </>
+                    ) : undefined
+                }
+                center={
+                    <div
+                        className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-1"
+                        role="group"
+                        aria-label="Kitchen view"
+                    >
+                        {views.map((option) => {
+                            const active = view === option.key;
+
+                            return (
+                                <button
                                     key={option.key}
                                     type="button"
-                                    aria-pressed={view === option.key}
-                                    className="min-h-11 gap-2 tabular-nums"
-                                    variant={
-                                        view === option.key
-                                            ? 'default'
-                                            : 'outline'
-                                    }
+                                    aria-pressed={active}
                                     onClick={() => setView(option.key)}
+                                    className={cn(
+                                        'inline-flex min-h-11 items-center gap-1.5 rounded-md px-3.5 text-sm font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
+                                        active
+                                            ? 'bg-card font-semibold text-foreground shadow-xs'
+                                            : 'text-muted-foreground hover:text-foreground',
+                                    )}
                                 >
                                     <span>{option.label}</span>
                                     <span
                                         className={cn(
-                                            'rounded-md px-1.5 py-0.5 text-xs font-semibold',
-                                            view === option.key
-                                                ? 'bg-primary-foreground/20 text-primary-foreground'
-                                                : 'bg-muted text-muted-foreground',
+                                            'rounded px-1.5 py-0.5 text-xs font-semibold',
+                                            active
+                                                ? 'bg-muted text-foreground'
+                                                : 'text-muted-foreground',
                                         )}
                                     >
                                         {option.count}
                                     </span>
-                                </Button>
-                            ))}
-                        </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                }
+                right={
+                    <>
+                        <span
+                            className="hidden pr-1 font-mono text-sm font-medium text-muted-foreground tabular-nums xl:inline"
+                            aria-label="Current time"
+                        >
+                            {formatClock(now)}
+                        </span>
                         <Button
                             type="button"
-                            className="min-h-11"
-                            variant={showRecall ? 'secondary' : 'outline'}
-                            aria-pressed={showRecall}
-                            aria-label="Recall a ticket"
-                            onClick={() => setShowRecall((open) => !open)}
+                            variant="ghost"
+                            className="min-h-11 gap-1.5 px-3 tabular-nums"
+                            aria-expanded={showRecall}
+                            onClick={() => setShowRecall(true)}
                         >
                             <History
                                 data-icon="inline-start"
                                 aria-hidden="true"
                             />
-                            Recall
+                            <span>
+                                {recallable.length > 0
+                                    ? `Recall (${recallable.length})`
+                                    : 'Recall'}
+                            </span>
                         </Button>
                         <Button
                             type="button"
-                            className="min-h-11"
-                            variant="outline"
+                            variant="ghost"
+                            size="icon"
+                            className="size-11"
                             aria-pressed={muted}
-                            aria-label={muted ? 'Unmute alerts' : 'Mute alerts'}
+                            aria-label={
+                                muted
+                                    ? 'Unmute overdue chime'
+                                    : 'Mute overdue chime'
+                            }
                             onClick={() => setMuted((value) => !value)}
                         >
                             {muted ? (
-                                <VolumeX
-                                    data-icon="inline-start"
-                                    aria-hidden="true"
-                                />
+                                <VolumeX aria-hidden="true" />
                             ) : (
-                                <Volume2
-                                    data-icon="inline-start"
-                                    aria-hidden="true"
-                                />
+                                <Volume2 aria-hidden="true" />
                             )}
-                            {muted ? 'Muted' : 'Chime'}
                         </Button>
                         {station.outletId !== undefined && (
                             <Link
                                 href={odsShow.url({ outlet: station.outletId })}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={cn(
-                                    buttonVariants({
-                                        variant: 'outline',
-                                    }),
-                                    'min-h-11',
-                                )}
+                                className={buttonVariants({
+                                    variant: 'ghost',
+                                    className: 'min-h-11 px-3',
+                                })}
                             >
                                 <Monitor
                                     data-icon="inline-start"
                                     aria-hidden="true"
                                 />
-                                Pickup board
+                                <span className="hidden md:inline">
+                                    Pickup board
+                                </span>
+                                <span className="sr-only md:hidden">
+                                    Pickup board
+                                </span>
                             </Link>
                         )}
+                    </>
+                }
+            />
+
+            {pollError && (
+                <div
+                    role="status"
+                    className="flex flex-wrap items-center justify-between gap-3 border-b border-warning/40 bg-warning/10 px-4 py-2.5 text-sm sm:px-6"
+                >
+                    <div className="flex items-center gap-2 font-medium text-warning-text">
+                        <WifiOff
+                            className="size-4 shrink-0"
+                            aria-hidden="true"
+                        />
+                        <span>
+                            Live updates paused while reconnecting to the
+                            server.
+                        </span>
                     </div>
-                </header>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11 bg-card"
+                        disabled={pendingKey === 'refresh'}
+                        focusableWhenDisabled
+                        onClick={refreshNow}
+                    >
+                        {pendingKey === 'refresh' ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <RefreshCw
+                                data-icon="inline-start"
+                                aria-hidden="true"
+                            />
+                        )}
+                        Refresh now
+                    </Button>
+                </div>
+            )}
 
-                <main className="flex flex-1 flex-col gap-4 p-4">
-                    {view === 'all-day' && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-heading">
-                                    Still to cook
-                                </CardTitle>
-                                <CardDescription>
-                                    Every open dish at this station, added up.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {allDay.length === 0 ? (
-                                    <EmptyState
-                                        icon={ChefHat}
-                                        title="All caught up"
-                                        description="No open dishes are waiting at this station right now."
-                                    />
-                                ) : (
-                                    <ul
-                                        role="list"
-                                        className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+            <main className="flex flex-1 flex-col bg-muted/50 p-4 sm:p-6">
+                {view === 'all-day' && (
+                    <section
+                        aria-labelledby="all-day-heading"
+                        className="mx-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-lg border bg-card"
+                    >
+                        <div className="flex items-baseline justify-between gap-4 border-b px-6 py-4">
+                            <div>
+                                <h2
+                                    id="all-day-heading"
+                                    className="font-heading text-lg font-semibold text-foreground"
+                                >
+                                    All-day tally
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Total open dishes to cook at {station.name}.
+                                </p>
+                            </div>
+                            <span className="font-heading text-2xl font-bold text-foreground tabular-nums">
+                                {formatKitchenQuantity(allDayTotal)}
+                            </span>
+                        </div>
+                        {allDay.length === 0 ? (
+                            <div className="py-12">
+                                <EmptyState
+                                    icon={ChefHat}
+                                    title="All caught up"
+                                    description="No open dishes are waiting at this station right now."
+                                />
+                            </div>
+                        ) : (
+                            <ul
+                                role="list"
+                                className="grid grid-cols-1 divide-y md:grid-cols-2 md:divide-x"
+                            >
+                                {allDay.map((row) => (
+                                    <li
+                                        key={`${row.name}|${row.modifiers.join(',')}`}
+                                        className="flex items-center gap-4 px-6 py-4"
                                     >
-                                        {allDay.map((row) => (
-                                            <li
-                                                key={`${row.name}|${row.modifiers.join(',')}`}
-                                                className="flex items-center gap-3 rounded-xl border bg-background p-3.5"
-                                            >
-                                                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-heading text-xl font-semibold text-primary tabular-nums">
-                                                    {formatKitchenQuantity(
-                                                        row.quantity,
-                                                    )}
+                                        <span className="w-12 shrink-0 font-heading text-3xl font-bold text-foreground tabular-nums">
+                                            {formatKitchenQuantity(
+                                                row.quantity,
+                                            )}
+                                        </span>
+                                        <div className="flex min-w-0 flex-col">
+                                            <span className="text-base font-semibold text-foreground">
+                                                {row.name}
+                                            </span>
+                                            {row.modifiers.length > 0 && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {row.modifiers.join(', ')}
                                                 </span>
-                                                <div className="flex min-w-0 flex-col">
-                                                    <span className="font-medium text-foreground">
-                                                        {row.name}
-                                                    </span>
-                                                    {row.modifiers.length >
-                                                        0 && (
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {row.modifiers.join(
-                                                                ', ',
-                                                            )}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
+                                            )}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+                )}
 
-                    {view === 'kitchen' &&
-                        (kitchenTickets.length === 0 ? (
+                {view === 'kitchen' &&
+                    (kitchenTickets.length === 0 ? (
+                        <div className="flex flex-1 items-center justify-center py-12">
                             <EmptyState
                                 icon={ChefHat}
-                                title="No tickets to cook"
-                                description="New orders sent from the register or guest QR appear here automatically."
+                                title="Pass is clear"
+                                description={
+                                    windowTickets.length > 0
+                                        ? `No dishes cooking. ${windowTickets.length} ${windowTickets.length === 1 ? 'order is' : 'orders are'} waiting in Window.`
+                                        : 'Orders sent from the register or guest QR appear here automatically.'
+                                }
+                                action={
+                                    windowTickets.length > 0 ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="min-h-11 bg-card"
+                                            onClick={() => setView('window')}
+                                        >
+                                            Open Window ({windowTickets.length})
+                                        </Button>
+                                    ) : undefined
+                                }
                             />
-                        ) : (
-                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                                {kitchenTickets.map((ticket) => (
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                            {kitchenTickets.map((ticket) => {
+                                const bumpKey = `bump-${ticket.id}`;
+
+                                return (
                                     <KitchenTicketCard
                                         key={ticket.id}
                                         ticket={ticket}
                                         tone={slaFor(ticket)}
                                         age={ageLabel(ticket.firedAt, now)}
                                         onPrint={() => setPrintTicket(ticket)}
-                                        actions={(line: KitchenLine) => (
-                                            <Button
-                                                type="button"
-                                                className="min-h-11 shrink-0"
-                                                variant={
+                                        lineAction={(line: KitchenLine) => {
+                                            const lineKey = `line-${line.id}`;
+
+                                            return {
+                                                label:
                                                     line.status === 'fired'
-                                                        ? 'outline'
-                                                        : 'secondary'
-                                                }
-                                                onClick={() =>
+                                                        ? 'Start'
+                                                        : 'Ready',
+                                                busy: pendingKey === lineKey,
+                                                disabled: pendingKey !== null,
+                                                onClick: () =>
                                                     patchKitchen(
                                                         kdsLineStatus.url({
                                                             line: line.id,
@@ -510,112 +690,179 @@ export default function PosKds({
                                                                     ? 'preparing'
                                                                     : 'ready',
                                                         },
-                                                    )
-                                                }
-                                            >
-                                                {line.status === 'fired'
-                                                    ? 'Start'
-                                                    : 'Ready'}
-                                            </Button>
-                                        )}
+                                                        {
+                                                            onStart: () =>
+                                                                setPendingKey(
+                                                                    lineKey,
+                                                                ),
+                                                            onFinish: () =>
+                                                                setPendingKey(
+                                                                    null,
+                                                                ),
+                                                        },
+                                                    ),
+                                            };
+                                        }}
                                         footer={
                                             <Button
                                                 type="button"
-                                                className="mt-1 min-h-11 w-full font-semibold"
+                                                className="min-h-11 w-full bg-foreground font-semibold text-background hover:bg-foreground/90"
+                                                disabled={pendingKey !== null}
+                                                focusableWhenDisabled
                                                 onClick={() =>
                                                     postKitchen(
                                                         kdsBump.url({
                                                             station: station.id,
                                                             order: ticket.id,
                                                         }),
+                                                        {},
+                                                        {
+                                                            onStart: () =>
+                                                                setPendingKey(
+                                                                    bumpKey,
+                                                                ),
+                                                            onFinish: () =>
+                                                                setPendingKey(
+                                                                    null,
+                                                                ),
+                                                        },
                                                     )
                                                 }
                                             >
+                                                {pendingKey === bumpKey && (
+                                                    <Spinner data-icon="inline-start" />
+                                                )}
                                                 Bump ticket
                                             </Button>
                                         }
                                     />
-                                ))}
-                            </div>
-                        ))}
+                                );
+                            })}
+                        </div>
+                    ))}
 
-                    {view === 'window' &&
-                        (windowTickets.length === 0 ? (
+                {view === 'window' &&
+                    (windowTickets.length === 0 ? (
+                        <div className="flex flex-1 items-center justify-center py-12">
                             <EmptyState
                                 icon={ChefHat}
-                                title="Nothing ready for runners"
-                                description="Dishes marked Ready or bumped from Kitchen move here for pickup."
+                                title="Nothing waiting at the window"
+                                description="Dishes marked Ready or bumped from Kitchen move here for runners."
+                            />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                            {windowTickets.map((ticket) => (
+                                <KitchenTicketCard
+                                    key={ticket.id}
+                                    ticket={ticket}
+                                    tone={slaFor(ticket)}
+                                    age={ageLabel(ticket.firedAt, now)}
+                                    onPrint={() => setPrintTicket(ticket)}
+                                    lineAction={(line: KitchenLine) => {
+                                        const lineKey = `serve-${line.id}`;
+
+                                        return {
+                                            label: 'Served',
+                                            busy: pendingKey === lineKey,
+                                            disabled: pendingKey !== null,
+                                            onClick: () =>
+                                                patchKitchen(
+                                                    kdsLineStatus.url({
+                                                        line: line.id,
+                                                    }),
+                                                    { status: 'served' },
+                                                    {
+                                                        onStart: () =>
+                                                            setPendingKey(
+                                                                lineKey,
+                                                            ),
+                                                        onFinish: () =>
+                                                            setPendingKey(null),
+                                                    },
+                                                ),
+                                        };
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    ))}
+            </main>
+
+            <Sheet open={showRecall} onOpenChange={setShowRecall}>
+                <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>Recall ticket</SheetTitle>
+                        <SheetDescription>
+                            Recently bumped tickets at {station.name}. Recalling
+                            moves ready dishes back to Preparing.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6">
+                        {recallable.length === 0 ? (
+                            <EmptyState
+                                icon={History}
+                                title="No bumped tickets"
+                                description="Tickets bumped from Kitchen appear here while their dishes are still ready for pickup."
                             />
                         ) : (
-                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                                {windowTickets.map((ticket) => (
-                                    <KitchenTicketCard
-                                        key={ticket.id}
-                                        ticket={ticket}
-                                        tone={slaFor(ticket)}
-                                        age={ageLabel(ticket.firedAt, now)}
-                                        onPrint={() => setPrintTicket(ticket)}
-                                        actions={(line: KitchenLine) => (
-                                            <Button
-                                                type="button"
-                                                className="min-h-11 shrink-0"
-                                                onClick={() =>
-                                                    patchKitchen(
-                                                        kdsLineStatus.url({
-                                                            line: line.id,
-                                                        }),
-                                                        { status: 'served' },
-                                                    )
-                                                }
-                                            >
-                                                Served
-                                            </Button>
-                                        )}
-                                    />
-                                ))}
-                            </div>
-                        ))}
+                            recallable.map((row) => {
+                                const recallKey = `recall-${row.id}`;
+                                const bumpedTime = formatBumpedTime(
+                                    row.bumpedAt,
+                                );
 
-                    {showRecall && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-heading">
-                                    Recall
-                                </CardTitle>
-                                <CardDescription>
-                                    The last bumped tickets. A recall puts their
-                                    ready dishes back to Preparing.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex flex-wrap gap-2">
-                                {recallable.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">
-                                        No bumped tickets to recall.
-                                    </p>
-                                )}
-                                {recallable.map((row) => (
+                                return (
                                     <Button
                                         key={row.id}
                                         type="button"
                                         variant="outline"
-                                        className="min-h-11"
+                                        className="min-h-12 justify-between px-4"
+                                        disabled={pendingKey !== null}
+                                        focusableWhenDisabled
                                         onClick={() =>
                                             postKitchen(
                                                 kdsRecall.url({
                                                     station: station.id,
                                                     order: row.id,
                                                 }),
+                                                {},
+                                                {
+                                                    onStart: () =>
+                                                        setPendingKey(
+                                                            recallKey,
+                                                        ),
+                                                    onFinish: () => {
+                                                        setPendingKey(null);
+                                                        setShowRecall(false);
+                                                    },
+                                                },
                                             )
                                         }
                                     >
-                                        {row.label}
+                                        <span className="flex items-center gap-2 font-medium">
+                                            {pendingKey === recallKey ? (
+                                                <Spinner data-icon="inline-start" />
+                                            ) : (
+                                                <RotateCcw
+                                                    className="size-4"
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                            {row.label}
+                                        </span>
+                                        {bumpedTime !== '' && (
+                                            <span className="text-xs text-muted-foreground tabular-nums">
+                                                {bumpedTime}
+                                            </span>
+                                        )}
                                     </Button>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    )}
-                </main>
-            </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </SheetContent>
+            </Sheet>
 
             <Dialog
                 open={printTicket !== null}
@@ -666,13 +913,22 @@ export default function PosKds({
                     )}
                     <DialogFooter>
                         <Button
+                            type="button"
                             variant="outline"
+                            className="min-h-11"
                             onClick={() => setPrintTicket(null)}
                         >
                             Close
                         </Button>
-                        <Button onClick={() => window.print()}>
-                            <Printer data-icon="inline-start" />
+                        <Button
+                            type="button"
+                            className="min-h-11"
+                            onClick={() => window.print()}
+                        >
+                            <Printer
+                                data-icon="inline-start"
+                                aria-hidden="true"
+                            />
                             Print docket
                         </Button>
                     </DialogFooter>

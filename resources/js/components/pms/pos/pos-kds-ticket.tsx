@@ -1,9 +1,9 @@
 import { router } from '@inertiajs/react';
-import { BookOpen, Clock, Printer } from 'lucide-react';
+import { AlertTriangle, BookOpen, Check, Clock, Printer } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Popover,
     PopoverContent,
@@ -11,6 +11,7 @@ import {
     PopoverTitle,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 export type KitchenLine = {
@@ -41,6 +42,19 @@ export type KitchenTicket = {
 
 export type SlaTone = 'success' | 'warning' | 'destructive';
 
+export type KitchenLineAction = {
+    label: string;
+    busy: boolean;
+    disabled: boolean;
+    onClick: () => void;
+};
+
+const COOKING_BADGE: App.Data.Shared.BadgeData = {
+    value: 'preparing',
+    label: 'Cooking',
+    tone: 'info',
+};
+
 export function formatKitchenQuantity(quantity: string | number): string {
     const num = Number(quantity);
 
@@ -53,7 +67,7 @@ export function formatKitchenQuantity(quantity: string | number): string {
         : num.toFixed(2).replace(/\.?0+$/, '');
 }
 
-/** The colour of a ticket by its age: success until the warn time, warning until the alert time, then destructive. */
+/** SLA urgency by ticket age: success before warn, warning before alert, then destructive. */
 export function slaTone(
     firedAt: string | null,
     now: number,
@@ -78,81 +92,120 @@ export function ageLabel(firedAt: string | null, now: number): string {
         return '';
     }
 
-    const seconds = Math.max(
+    const totalSeconds = Math.max(
         0,
         Math.floor((now - new Date(firedAt).getTime()) / 1000),
     );
+    const totalMinutes = Math.floor(totalSeconds / 60);
 
-    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+    if (totalMinutes >= 60) {
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+
+        return `${hours}h ${String(mins).padStart(2, '0')}m`;
+    }
+
+    return `${totalMinutes}:${String(totalSeconds % 60).padStart(2, '0')}`;
 }
-
-const cardBorderClass: Record<SlaTone, string> = {
-    success: 'border-success/70',
-    warning: 'border-warning',
-    destructive: 'border-destructive',
-};
-
-const headerToneClass: Record<SlaTone, string> = {
-    success: 'border-b border-success/30 bg-success/10',
-    warning: 'border-b border-warning/40 bg-warning/15',
-    destructive: 'border-b border-destructive/40 bg-destructive/10',
-};
-
-const ageBadgeClass: Record<SlaTone, string> = {
-    success: 'bg-success text-success-foreground',
-    warning: 'bg-warning text-warning-foreground',
-    destructive:
-        'border border-destructive/50 bg-destructive/15 text-destructive',
-};
 
 export function KitchenTicketCard({
     ticket,
     tone,
     age,
-    actions,
+    lineAction,
     footer,
     onPrint,
 }: {
     ticket: KitchenTicket;
     tone: SlaTone;
     age: string;
-    actions: (line: KitchenLine) => ReactNode;
+    lineAction: (line: KitchenLine) => KitchenLineAction;
     footer?: ReactNode;
     onPrint?: () => void;
 }) {
+    const isOverdue = tone === 'destructive';
+    const isLate = tone === 'warning';
+
     return (
-        <Card
+        <article
             className={cn(
-                'flex flex-col overflow-hidden border-2 bg-card text-card-foreground',
-                cardBorderClass[tone],
+                'flex flex-col overflow-hidden rounded-lg border bg-card text-card-foreground',
+                isOverdue && 'border-destructive',
+                isLate && 'border-warning',
             )}
         >
-            <CardHeader
+            {isOverdue && (
+                <div
+                    className="h-1.5 w-full bg-destructive"
+                    aria-hidden="true"
+                />
+            )}
+
+            <div
                 className={cn(
-                    'flex flex-row items-center justify-between gap-2 px-4 py-3',
-                    headerToneClass[tone],
+                    'flex items-center justify-between gap-2 px-4 py-3',
+                    tone === 'success' &&
+                        'bg-brand-forest text-primary-foreground',
+                    isLate && 'bg-warning text-warning-foreground',
+                    isOverdue &&
+                        'border-b border-destructive/30 bg-card text-foreground',
                 )}
             >
-                <div className="flex min-w-0 flex-col gap-0.5">
-                    <CardTitle className="truncate font-heading text-lg text-foreground tabular-nums">
+                <div className="flex min-w-0 flex-col">
+                    <h2 className="truncate font-heading text-lg leading-tight font-bold tracking-tight tabular-nums">
                         {ticket.label}
-                    </CardTitle>
+                    </h2>
                     {ticket.diningKind !== null && (
-                        <span className="text-xs text-muted-foreground">
+                        <span
+                            className={cn(
+                                'text-xs font-medium',
+                                tone === 'success' &&
+                                    'text-primary-foreground/80',
+                                isLate && 'text-warning-foreground/85',
+                                isOverdue && 'text-muted-foreground',
+                            )}
+                        >
                             {ticket.diningKind}
                         </span>
                     )}
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
+
+                <div className="flex shrink-0 items-center gap-1">
                     {age !== '' && (
                         <span
                             className={cn(
                                 'inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs font-semibold tabular-nums',
-                                ageBadgeClass[tone],
+                                tone === 'success' &&
+                                    'bg-primary-foreground/15 text-primary-foreground',
+                                isLate &&
+                                    'bg-warning-foreground/15 text-warning-foreground',
+                                isOverdue &&
+                                    'border border-destructive bg-card text-destructive',
                             )}
+                            aria-label={
+                                isOverdue
+                                    ? `Overdue, ${age} elapsed`
+                                    : isLate
+                                      ? `Late, ${age} elapsed`
+                                      : `${age} elapsed`
+                            }
                         >
-                            <Clock className="size-3" aria-hidden="true" />
-                            {age}
+                            {isOverdue ? (
+                                <AlertTriangle
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                />
+                            ) : (
+                                <Clock
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                />
+                            )}
+                            <span>{age}</span>
+                            {isLate && <span className="font-sans">Late</span>}
+                            {isOverdue && (
+                                <span className="font-sans">Overdue</span>
+                            )}
                         </span>
                     )}
                     {onPrint !== undefined && (
@@ -160,7 +213,13 @@ export function KitchenTicketCard({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="size-11"
+                            className={cn(
+                                'size-11',
+                                tone === 'success' &&
+                                    'text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground',
+                                isLate &&
+                                    'text-warning-foreground hover:bg-warning-foreground/15 hover:text-warning-foreground',
+                            )}
                             aria-label={`Print docket for ${ticket.label}`}
                             onClick={onPrint}
                         >
@@ -168,56 +227,131 @@ export function KitchenTicketCard({
                         </Button>
                     )}
                 </div>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-3 p-4">
-                <ul role="list" className="flex flex-1 flex-col gap-3">
-                    {ticket.lines.map((line) => (
-                        <li
-                            key={line.id}
-                            className="flex items-start justify-between gap-2 border-b pb-3 last:border-b-0 last:pb-0"
-                        >
+            </div>
+
+            <ul role="list" className="flex flex-1 flex-col divide-y">
+                {ticket.lines.map((line) => {
+                    const action = lineAction(line);
+                    const metaParts: string[] = [];
+
+                    if (line.course > 1) {
+                        metaParts.push(`Course ${line.course}`);
+                    }
+
+                    if (line.seat !== null) {
+                        metaParts.push(`Seat ${line.seat}`);
+                    }
+
+                    const isCooking = line.status === 'preparing';
+
+                    const content = (
+                        <div className="flex w-full items-start gap-3">
+                            <span
+                                className={cn(
+                                    'w-8 shrink-0 font-heading text-lg leading-snug font-bold tabular-nums',
+                                    line.voided
+                                        ? 'text-muted-foreground'
+                                        : 'text-foreground',
+                                )}
+                            >
+                                {formatKitchenQuantity(line.quantity)}×
+                            </span>
                             <div
                                 className={cn(
-                                    'flex min-w-0 flex-col gap-1',
+                                    'flex min-w-0 flex-1 flex-col gap-1',
                                     line.voided &&
                                         'text-muted-foreground line-through',
                                 )}
                             >
-                                <div className="flex items-start gap-2">
-                                    <span className="inline-flex min-w-8 shrink-0 items-center justify-center rounded-md bg-muted px-1.5 py-0.5 text-sm font-semibold text-foreground tabular-nums">
-                                        {formatKitchenQuantity(line.quantity)}×
-                                    </span>
-                                    <span className="text-base leading-snug font-medium text-foreground">
-                                        {line.name}
-                                        {line.variant !== '' &&
-                                            line.variant !== 'Regular' && (
-                                                <span className="font-normal text-muted-foreground">
-                                                    {' '}
-                                                    · {line.variant}
-                                                </span>
-                                            )}
-                                        {line.voided && ' (VOID)'}
-                                    </span>
-                                </div>
+                                <span className="text-base leading-snug font-semibold text-foreground">
+                                    {line.name}
+                                    {line.variant !== '' &&
+                                        line.variant !== 'Regular' && (
+                                            <span className="font-normal text-muted-foreground">
+                                                {' '}
+                                                · {line.variant}
+                                            </span>
+                                        )}
+                                    {line.voided && ' (VOID)'}
+                                </span>
+                                {(isCooking ||
+                                    metaParts.length > 0 ||
+                                    line.combo !== null) && (
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        {isCooking && !line.voided && (
+                                            <StatusBadge
+                                                status={COOKING_BADGE}
+                                            />
+                                        )}
+                                        {metaParts.length > 0 && (
+                                            <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                                                {metaParts.join(' · ')}
+                                            </span>
+                                        )}
+                                        {line.combo !== null && (
+                                            <Badge variant="secondary">
+                                                Combo: {line.combo}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                )}
                                 {line.modifiers.length > 0 && (
                                     <span className="text-sm text-muted-foreground">
                                         {line.modifiers.join(', ')}
                                     </span>
                                 )}
-                                {line.combo !== null && (
-                                    <Badge
-                                        variant="secondary"
-                                        className="w-fit"
-                                    >
-                                        Combo: {line.combo}
-                                    </Badge>
-                                )}
                                 {line.note !== null && (
-                                    <span className="rounded-md border border-warning/50 bg-warning/10 px-2 py-1 text-sm font-medium text-warning-text">
+                                    <span className="mt-0.5 rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-sm font-medium text-warning-text">
                                         Note: {line.note}
                                     </span>
                                 )}
-                                {line.cookingGuide !== null && !line.voided && (
+                            </div>
+                            {!line.voided && (
+                                <span
+                                    className={cn(
+                                        'inline-flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold',
+                                        isCooking
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-foreground',
+                                    )}
+                                >
+                                    {action.busy ? (
+                                        <Spinner className="size-3.5" />
+                                    ) : isCooking ? (
+                                        <Check
+                                            className="size-3.5"
+                                            aria-hidden="true"
+                                        />
+                                    ) : null}
+                                    {action.label}
+                                </span>
+                            )}
+                        </div>
+                    );
+
+                    return (
+                        <li
+                            key={line.id}
+                            className={cn(
+                                'flex flex-col',
+                                isCooking && !line.voided && 'bg-primary/5',
+                            )}
+                        >
+                            {line.voided ? (
+                                <div className="px-4 py-3.5">{content}</div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled={action.disabled}
+                                    onClick={action.onClick}
+                                    className="min-h-14 w-full px-4 py-3.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground disabled:opacity-60"
+                                >
+                                    {content}
+                                </button>
+                            )}
+
+                            {line.cookingGuide !== null && !line.voided && (
+                                <div className="px-4 pb-2.5 pl-15">
                                     <Popover>
                                         <PopoverTrigger
                                             render={
@@ -225,7 +359,7 @@ export function KitchenTicketCard({
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="mt-0.5 min-h-11 w-fit px-2.5"
+                                                    className="min-h-11 px-2 text-muted-foreground hover:text-foreground"
                                                 />
                                             }
                                         >
@@ -233,7 +367,7 @@ export function KitchenTicketCard({
                                                 data-icon="inline-start"
                                                 aria-hidden="true"
                                             />
-                                            Guide
+                                            Cooking guide
                                         </PopoverTrigger>
                                         <PopoverContent align="start">
                                             <PopoverHeader>
@@ -246,15 +380,15 @@ export function KitchenTicketCard({
                                             </p>
                                         </PopoverContent>
                                     </Popover>
-                                )}
-                            </div>
-                            {!line.voided && actions(line)}
+                                </div>
+                            )}
                         </li>
-                    ))}
-                </ul>
-                {footer}
-            </CardContent>
-        </Card>
+                    );
+                })}
+            </ul>
+
+            {footer && <div className="border-t bg-muted/30 p-3">{footer}</div>}
+        </article>
     );
 }
 
@@ -268,11 +402,32 @@ export function lineStatusLabel(status: KitchenLine['status']): string {
     }[status];
 }
 
-/** Post to a kitchen route, keeping the scroll, and let the server's redirect reload the screen. */
-export function postKitchen(url: string, data: Record<string, string> = {}) {
-    router.post(url, data, { preserveScroll: true });
+type KitchenRequestCallbacks = {
+    onStart?: () => void;
+    onFinish?: () => void;
+};
+
+/** Post to a kitchen route while keeping scroll position; the server redirect reloads tickets. */
+export function postKitchen(
+    url: string,
+    data: Record<string, string> = {},
+    callbacks?: KitchenRequestCallbacks,
+) {
+    router.post(url, data, {
+        preserveScroll: true,
+        onStart: callbacks?.onStart,
+        onFinish: callbacks?.onFinish,
+    });
 }
 
-export function patchKitchen(url: string, data: Record<string, string>) {
-    router.patch(url, data, { preserveScroll: true });
+export function patchKitchen(
+    url: string,
+    data: Record<string, string>,
+    callbacks?: KitchenRequestCallbacks,
+) {
+    router.patch(url, data, {
+        preserveScroll: true,
+        onStart: callbacks?.onStart,
+        onFinish: callbacks?.onFinish,
+    });
 }
