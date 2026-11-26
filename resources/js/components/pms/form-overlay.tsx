@@ -174,7 +174,7 @@ export function FormOverlay(props: Props) {
                             onSubmit={submit}
                             className="flex min-h-0 flex-1 flex-col"
                         >
-                            <div className="flex-1 overflow-y-auto px-4">
+                            <div className="flex-1 overflow-y-auto px-4 pb-6">
                                 {fields}
                             </div>
                             <SheetFooter className="flex-row justify-end border-t bg-muted/50">
