@@ -193,7 +193,7 @@ export function PosDiscountDialog({
             footerStart={
                 <Button
                     type="button"
-                    variant="link"
+                    variant="ghost"
                     disabled={form.processing}
                     onClick={() => submit(true)}
                 >

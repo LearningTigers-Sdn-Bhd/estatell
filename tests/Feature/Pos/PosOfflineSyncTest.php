@@ -65,9 +65,12 @@ function posOfflineSetup(): array
 
 it('quotes each variant with the service charge and tax the sale is settled at', function () {
     $s = posOfflineSetup();
-    $quote = collect($s['snapshot']['categories'])->flatMap(fn (array $category): array => $category['items'])->flatMap(fn (array $item): array => $item['variants'])->firstWhere('id', $s['steak']->id)['quote'];
+    $quotes = collect($s['snapshot']['categories'])->flatMap(fn (array $category): array => $category['items'])->flatMap(fn (array $item): array => $item['variants'])->firstWhere('id', $s['steak']->id)['quotes'];
 
-    expect($quote['total'])->toBe(posOfflineTotal($s, $s['steak']))
+    expect($quotes)->toHaveCount(20)
+        ->and($quotes[0]['total'])->toBe(posOfflineTotal($s, $s['steak']))
+        ->and($quotes[2]['total'])->toBe(posOfflineTotal($s, $s['steak'], 3))
+        ->and($quotes[6]['total'])->toBe(posOfflineTotal($s, $s['steak'], 7))
         ->and($s['snapshot']['cashRounding'])->toBe($s['outlet']->refresh()->rounding_mode->value);
 });
 

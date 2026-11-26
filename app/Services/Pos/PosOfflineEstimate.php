@@ -13,18 +13,22 @@ use App\Services\Pos\Calculation\PosCalculatorResult;
 use Brick\Math\BigDecimal;
 
 /**
- * Prices one unit of every variant in an offline menu with `PosOrderCalculator`, under the default dining option for a
- * walk-in guest, so the offline till can show service charge and tax without doing tax maths itself. The tablet only
- * multiplies and adds, so a larger sale can differ by a sen or so. The server still prices the sale when it syncs. A
- * variant the calculator refuses gets no quote. Reads only. See docs/34-native-pos/06-kitchen-kds-and-qr.md.
+ * Prices each variant of an offline menu at quantities 1 to 20 with `PosOrderCalculator`, under the default dining option
+ * for a walk-in guest, so the offline till can show service charge and tax without doing tax maths itself. The tablet only
+ * adds lines together. A larger quantity is estimated from the single unit and may differ by a sen or so. The server still
+ * prices the sale when it syncs. A variant the calculator refuses gets no quote. Reads only.
+ * See docs/34-native-pos/06-kitchen-kds-and-qr.md.
  */
 class PosOfflineEstimate
 {
+    /** Line totals are quoted up to this quantity. The calculator rounds each line on its own, so these are exact. */
+    public const QUOTED_QUANTITIES = 20;
+
     public function __construct(private PosOrderCalculator $calculator, private PosTaxResolver $taxResolver) {}
 
     /**
      * @param  array<string, mixed>  $menu  An `OutletMenuSnapshot` payload.
-     * @return array<string, mixed> The same menu with `quote` on each variant, plus `packagingQuote` and `cashRounding`.
+     * @return array<string, mixed> The same menu with `quotes` on each variant, plus `packagingQuote` and `cashRounding`.
      */
     public function __invoke(Property $property, PosOutlet $outlet, array $menu): array
     {
@@ -41,26 +45,35 @@ class PosOfflineEstimate
                 $codeId = (int) (($item === null ? null : $item->transaction_code_id) ?? $categoryCodes->get($category['id']));
 
                 foreach ($row['variants'] as $v => $variant) {
-                    $quote = null;
+                    $quotes = [];
 
                     if ($dining !== null && $codeId > 0) {
-                        $line = new PosCalculatorLine(
+                        $lineTaxes = $taxes[$codeId] ??= $this->taxResolver->forTransactionCode($property, $codeId);
+                        $line = fn (int $quantity): PosCalculatorLine => new PosCalculatorLine(
                             key: 1,
                             unitPrice: (string) $variant['price'],
-                            quantity: '1',
+                            quantity: (string) $quantity,
                             priceIncludesTax: (bool) $row['priceIncludesTax'],
-                            taxes: $taxes[$codeId] ??= $this->taxResolver->forTransactionCode($property, $codeId),
+                            taxes: $lineTaxes,
                             serviceChargeExempt: (bool) $row['serviceChargeExempt'],
                         );
-                        $result = $this->price($line, $dining, $sstRegistered, '0');
 
-                        if (! $result->isRefused()) {
-                            $quote = ['serviceCharge' => $result->serviceChargeTotal, 'tax' => $result->taxTotal, 'total' => $result->grandTotal];
-                            $packaging ??= $this->packaging($property, $outlet, $line, $dining, $sstRegistered, $result->grandTotal);
+                        for ($quantity = 1; $quantity <= self::QUOTED_QUANTITIES; $quantity++) {
+                            $result = $this->price($line($quantity), $dining, $sstRegistered, '0');
+
+                            if ($result->isRefused()) {
+                                break;
+                            }
+
+                            $quotes[] = ['serviceCharge' => $result->serviceChargeTotal, 'tax' => $result->taxTotal, 'total' => $result->grandTotal];
+                        }
+
+                        if ($quotes !== []) {
+                            $packaging ??= $this->packaging($property, $outlet, $line(1), $dining, $sstRegistered, $quotes[0]['total']);
                         }
                     }
 
-                    $menu['categories'][$c]['items'][$i]['variants'][$v]['quote'] = $quote;
+                    $menu['categories'][$c]['items'][$i]['variants'][$v]['quotes'] = $quotes;
                 }
             }
         }

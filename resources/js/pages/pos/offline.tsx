@@ -71,7 +71,7 @@ type Snapshot = {
 };
 
 type SnapshotVariant = {
-    quote?: OfflineQuote | null;
+    quotes?: OfflineQuote[];
     id: number;
     name: string;
     price: string;
@@ -203,7 +203,7 @@ export default function PosOffline({
                 itemName: string;
                 variantName: string;
                 price: string;
-                quote?: OfflineQuote | null;
+                quotes?: OfflineQuote[];
             }
         >();
 
@@ -214,7 +214,7 @@ export default function PosOffline({
                         itemName: item.name,
                         variantName: variant.name,
                         price: variant.price,
-                        quote: variant.quote,
+                        quotes: variant.quotes,
                     });
                 }
             }
@@ -233,7 +233,7 @@ export default function PosOffline({
                     variantName: info?.variantName ?? 'Regular',
                     quantity: line.quantity,
                     unitPrice: info?.price ?? '0.00',
-                    quote: info?.quote,
+                    quotes: info?.quotes,
                 };
             }),
         [pending, variantLookup],
@@ -250,14 +250,22 @@ export default function PosOffline({
         [pendingDetails],
     );
 
-    // The server priced one unit of each variant with service charge and tax; the till only adds them up.
+    // The server priced each variant per quantity with service charge and tax; the till only adds the lines up.
     const quoted =
-        pendingDetails.length > 0 && pendingDetails.every((row) => row.quote);
+        pendingDetails.length > 0 &&
+        pendingDetails.every((row) => row.quotes?.length);
     const sumQuotes = (key: keyof OfflineQuote) =>
-        pendingDetails.reduce(
-            (sum, row) => sum + Number(row.quote?.[key] ?? 0) * row.quantity,
-            0,
-        );
+        pendingDetails.reduce((sum, row) => {
+            const exact = row.quotes?.[row.quantity - 1];
+
+            // Beyond the quoted quantities, multiply the single unit.
+            return (
+                sum +
+                (exact
+                    ? Number(exact[key])
+                    : Number(row.quotes?.[0]?.[key] ?? 0) * row.quantity)
+            );
+        }, 0);
     // A menu saved before quotes existed only knows the default dining option's service charge.
     const defaultOption = payload?.diningOptions?.[0];
     const serviceChargeRate = defaultOption?.applyServiceCharge
@@ -287,6 +295,12 @@ export default function PosOffline({
         tender === 'cash' && tendered.trim() !== ''
             ? Number(tendered) - Number(estimatedTotal)
             : null;
+
+    // Less cash than the bill would be refused when the sale syncs, so it cannot be saved.
+    const cashShort =
+        tender === 'cash' &&
+        tendered.trim() !== '' &&
+        !(Number(tendered) >= Number(estimatedTotal));
 
     const takeSale = () => {
         if (pending === null || payload === undefined || shiftId === null) {
@@ -649,6 +663,15 @@ export default function PosOffline({
                                         />
                                     </Field>
                                 )}
+                                {cashShort && (
+                                    <p
+                                        role="alert"
+                                        className="text-sm text-destructive"
+                                    >
+                                        The cash handed over is less than the
+                                        total.
+                                    </p>
+                                )}
                                 <div className="flex gap-2">
                                     <Button
                                         variant="outline"
@@ -662,6 +685,7 @@ export default function PosOffline({
                                         size="lg"
                                         className="min-h-11"
                                         onClick={takeSale}
+                                        disabled={cashShort}
                                     >
                                         Save sale
                                     </Button>

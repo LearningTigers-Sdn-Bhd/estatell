@@ -15,7 +15,7 @@ export type OfflineTender = {
     tendered_amount: string | null;
 };
 
-/** One unit priced by the server with service charge and tax, for the offline estimate. */
+/** One line priced by the server with service charge and tax, for the offline estimate. */
 export type OfflineQuote = {
     serviceCharge: string;
     tax: string;
@@ -33,7 +33,7 @@ export type QueuedSale = {
         variantName: string;
         quantity: number;
         unitPrice: string;
-        quote?: OfflineQuote | null;
+        quotes?: OfflineQuote[];
     }[];
     estimatedSubtotal?: string;
     /** What the cashier was told to collect, and the cash taken, for the slip. Display only. */

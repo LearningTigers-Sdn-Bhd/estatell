@@ -244,6 +244,15 @@ export default function PosTerminal(props: Props) {
     }
 
     const openingOrder = useRef<LineChoice[] | null>(null);
+    const menuPane = useRef<HTMLElement>(null);
+    const openOrderId = order?.id;
+
+    // Opening a check removes the button that had focus. Move focus to the menu, not back to the top of the page.
+    useEffect(() => {
+        if (openOrderId && document.activeElement === document.body) {
+            menuPane.current?.focus({ preventScroll: true });
+        }
+    }, [openOrderId]);
     const activeOrderId = order?.id ?? null;
     const cfdSignature = `${order?.id ?? 'none'}|${order?.lines.length ?? 0}|${order?.grandTotal ?? ''}|${order?.discountTotal ?? ''}|${order?.diningOptionId ?? ''}|${receipt?.id ?? ''}`;
 
@@ -760,8 +769,11 @@ export default function PosTerminal(props: Props) {
 
             <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
                 <section
+                    ref={menuPane}
+                    tabIndex={-1}
+                    aria-label="Menu and floor"
                     className={cn(
-                        'min-h-0 flex-col gap-3 bg-muted/40 p-4 sm:p-5',
+                        'min-h-0 flex-col gap-3 bg-muted/40 p-4 outline-none sm:p-5',
                         mobilePane === 'menu' ? 'flex' : 'hidden lg:flex',
                     )}
                 >
