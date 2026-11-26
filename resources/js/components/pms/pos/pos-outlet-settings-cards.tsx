@@ -684,7 +684,7 @@ export function OutletSettingsForm({
                     </header>
                     <div className="p-6">
                         <div className="flex flex-col items-center gap-5 rounded-2xl border-2 border-border bg-muted/30 p-6 text-center">
-                            <span className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+                            <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                                 {outlet.name}
                             </span>
                             <p className="max-w-sm font-heading text-xl font-semibold tracking-tight text-foreground">
@@ -703,7 +703,7 @@ export function OutletSettingsForm({
                                             aria-hidden="true"
                                             className="size-8 opacity-60"
                                         />
-                                        <span className="text-[11px]">
+                                        <span className="text-xs">
                                             No QR uploaded
                                         </span>
                                     </div>

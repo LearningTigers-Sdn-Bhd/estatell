@@ -533,7 +533,10 @@ export default function PosTerminal(props: Props) {
         ) : undefined;
 
     return (
-        <div className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:overflow-hidden">
+        <div
+            data-pos-register
+            className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:overflow-hidden"
+        >
             <Head title={`${outlet.name} · ${register.name}`} />
 
             <PosNavbar
@@ -1512,6 +1515,7 @@ export default function PosTerminal(props: Props) {
                     errors={{}}
                     processing={false}
                     submitLabel="New order"
+                    cancelLabel="Close"
                     onSubmit={() =>
                         router.get(
                             terminal.url(

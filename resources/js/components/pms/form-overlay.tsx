@@ -47,6 +47,8 @@ type Props = Shape & {
     submitDisabled?: boolean;
     /** `destructive` for a form that undoes something, such as reversing an allocation. */
     submitVariant?: 'default' | 'destructive';
+    /** The label of the dismiss button, for example "Close" when nothing is left to cancel. */
+    cancelLabel?: string;
     /** Replaces Cancel and the primary button, for a form with more than one step. */
     footer?: ReactNode;
     /** A secondary action at the start of the footer, away from Cancel and the primary button (for example Remove). */
@@ -103,6 +105,7 @@ export function FormOverlay(props: Props) {
         submitDisabled = false,
         submitVariant = 'default',
         loading = false,
+        cancelLabel = 'Cancel',
         footer,
         footerStart,
         children,
@@ -190,7 +193,7 @@ export function FormOverlay(props: Props) {
                                             variant="outline"
                                             onClick={() => requestClose(false)}
                                         >
-                                            Cancel
+                                            {cancelLabel}
                                         </Button>
                                         {primary}
                                     </>
@@ -242,7 +245,7 @@ export function FormOverlay(props: Props) {
                                 <DialogClose
                                     render={<Button variant="outline" />}
                                 >
-                                    Cancel
+                                    {cancelLabel}
                                 </DialogClose>
                                 {primary}
                             </>

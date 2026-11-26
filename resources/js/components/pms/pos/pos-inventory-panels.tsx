@@ -207,7 +207,7 @@ export function PosRecipeRow({
                             <span className="font-heading text-sm font-semibold text-foreground">
                                 {currencyCode} {estimatedCost.toFixed(2)}
                             </span>
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                                 est. cost / portion
                             </span>
                         </span>

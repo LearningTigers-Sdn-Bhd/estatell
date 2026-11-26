@@ -40,3 +40,13 @@ it('has no average order and no daily rows without sales', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('summary.averageOrder', null)->where('summary.total', '0.00')->where('daily', []));
 });
+
+it('rejects a date that is not a date and falls back to the defaults for an empty one', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['manager'])->get(route('reports.pos-sales', [$code, 'from' => 'nope']))->assertSessionHasErrors('from');
+    $this->actingAs($setup['manager'])->get(route('reports.pos-sales', [$code]).'?from=&to=')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('filters', ['from' => '2026-10-01', 'to' => '2026-10-14']));
+});

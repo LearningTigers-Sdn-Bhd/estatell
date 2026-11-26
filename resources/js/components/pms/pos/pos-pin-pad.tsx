@@ -49,7 +49,16 @@ export function PosPinPad({
                         setProcessing(false);
                         setPin('');
                     },
-                    onSuccess: () => onDone?.(),
+                    // A wrong PIN comes back as a normal redirect with an error toast, so it is not "done".
+                    onSuccess: (page) => {
+                        const flash = page.flash as
+                            | { toast?: { type?: string } }
+                            | undefined;
+
+                        if (flash?.toast?.type === 'success') {
+                            onDone?.();
+                        }
+                    },
                 },
             );
         },

@@ -272,6 +272,18 @@ export default function PosOffline({
             })),
             lineDetails: pendingDetails,
             estimatedSubtotal,
+            slipTotals: {
+                serviceCharge: estimatedServiceCharge,
+                total: estimatedTotal,
+                handedOver:
+                    tender === 'cash' && tendered.trim() !== ''
+                        ? tendered.trim()
+                        : null,
+                change:
+                    estimatedChange !== null && estimatedChange > 0
+                        ? estimatedChange.toFixed(2)
+                        : null,
+            },
             tenders: [
                 {
                     tender_type: tender,
@@ -772,6 +784,46 @@ export default function PosOffline({
                                             currency={currency}
                                         />
                                     </span>
+                                </div>
+                            )}
+                            {slipSale.slipTotals && (
+                                <div className="flex flex-col gap-1">
+                                    {[
+                                        {
+                                            label: 'Est. service charge',
+                                            amount: slipSale.slipTotals
+                                                .serviceCharge,
+                                        },
+                                        {
+                                            label: 'Est. total',
+                                            amount: slipSale.slipTotals.total,
+                                        },
+                                        {
+                                            label: 'Cash handed over',
+                                            amount: slipSale.slipTotals
+                                                .handedOver,
+                                        },
+                                        {
+                                            label: 'Est. change',
+                                            amount: slipSale.slipTotals.change,
+                                        },
+                                    ].map(
+                                        (row) =>
+                                            row.amount !== null && (
+                                                <div
+                                                    key={row.label}
+                                                    className="flex justify-between"
+                                                >
+                                                    <span>{row.label}</span>
+                                                    <span className="tabular-nums">
+                                                        <MoneyText
+                                                            amount={row.amount}
+                                                            currency={currency}
+                                                        />
+                                                    </span>
+                                                </div>
+                                            ),
+                                    )}
                                 </div>
                             )}
                             <p className="border-t pt-2 text-center text-muted-foreground">

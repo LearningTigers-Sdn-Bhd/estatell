@@ -119,7 +119,7 @@ function StockHealthRing({
                 <span className="font-heading text-lg leading-none font-bold text-foreground tabular-nums">
                     {totalActive === 0 ? '0%' : `${percent}%`}
                 </span>
-                <span className="mt-0.5 text-[11px] text-muted-foreground">
+                <span className="mt-0.5 text-xs text-muted-foreground">
                     in stock
                 </span>
             </div>

@@ -28,6 +28,13 @@ export type QueuedSale = {
         unitPrice: string;
     }[];
     estimatedSubtotal?: string;
+    /** What the cashier was told to collect, and the cash taken, for the slip. Display only. */
+    slipTotals?: {
+        serviceCharge: string;
+        total: string;
+        handedOver: string | null;
+        change: string | null;
+    };
     tenders: OfflineTender[];
     summary: string;
     createdAt: string;
