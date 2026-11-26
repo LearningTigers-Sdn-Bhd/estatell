@@ -14,10 +14,10 @@ use App\Enums\PermissionEnum;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Reports\BookingChangesReport;
-use App\Services\Reports\HistoryForecastReport;
 use App\Services\Reports\ReportFigures;
 use App\Services\Staff\GroupProperties;
 use Brick\Math\BigDecimal;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -32,7 +32,7 @@ class GroupReports
 {
     public function __construct(
         private GroupProperties $groupProperties,
-        private HistoryForecastReport $historyForecast,
+        private ForecastMonthCache $monthCache,
         private BookingChangesReport $bookingChanges,
     ) {}
 
@@ -57,7 +57,7 @@ class GroupReports
         $rowsByProperty = [];
 
         foreach ($visible as $property) {
-            $rowsByProperty[$property->id] = $this->historyForecast->rows($property, $filters);
+            $rowsByProperty[$property->id] = $this->monthCache->between($property, CarbonImmutable::parse($filters->from), CarbonImmutable::parse($filters->to));
         }
 
         $rows = $tab === GroupReportTab::ByProperty

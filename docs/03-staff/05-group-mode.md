@@ -102,6 +102,7 @@ Each property counts on its own business date, as its own dashboard does. Querie
     - `ForecastMonthCache` keeps each property's rows month by month for 30 minutes under a data version (business date, stays, add-ons, night prices, folio lines, taxes; one short query). Only months not in the cache are worked out, in one call. Any change makes a new version.
     - Last year asks only for closed dates (it used to price a year of future nights and drop them).
     - The page prefetches the 24-month view in the background once it is up, so the next pick comes from the cache.
+    - **Performance** (Group reports) reads its dates through the same cache (`ForecastMonthCache::between()`), so a range inside months already seen opens at once.
     - Measured on the demo group: 6 months cold 3.9 s (the dashboard's next six months warm the same months), then 12 months 1.9 s, 24 months 0.6 s, any range already seen 0.1–0.3 s.
 
 A single property gets the same look-ahead in Reports › History & forecast: the quick dates now include **Next 3 months**, **Next 6 months** and **Next 12 months** (today to the end of the last whole month).

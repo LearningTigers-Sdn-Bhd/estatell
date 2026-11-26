@@ -15,6 +15,7 @@ use App\Models\TransactionCode;
 use App\Services\Group\GroupReports;
 use App\Services\Staff\GroupProperties;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -106,6 +107,7 @@ test('group reports cost the same queries however many bookings the properties h
     $setup = liveGroupSetup();
     grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
     $count = function (GroupReportTab $tab) use ($setup): int {
+        Cache::flush();
         DB::flushQueryLog();
         DB::enableQueryLog();
         app(GroupReports::class)->for($setup['manager'], app(GroupProperties::class)->propertiesFor($setup['manager'], $setup['sepilok']->group), $tab, new ReportFilters('2026-10-14', '2026-10-20'));

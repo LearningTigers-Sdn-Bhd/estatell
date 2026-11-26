@@ -73,6 +73,22 @@ class ForecastMonthCache
     }
 
     /**
+     * The rows of the dates from `$from` to `$to`, read through the months that cover them.
+     *
+     * @return list<HistoryForecastRow>
+     */
+    public function between(Property $property, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $first = $from->toDateString();
+        $last = $to->toDateString();
+
+        return array_values(array_filter(
+            $this->rows($property, $from->startOfMonth(), $to->endOfMonth()),
+            fn (HistoryForecastRow $row): bool => $row->date >= $first && $row->date <= $last,
+        ));
+    }
+
+    /**
      * What the forecast of a property is worked out from, in one short read: when any of it changes, every cached
      * month of the property is left behind.
      */
