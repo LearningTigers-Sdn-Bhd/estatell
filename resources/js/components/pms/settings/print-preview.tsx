@@ -74,10 +74,10 @@ export function PrintPreview({
     ].filter((line): line is string => !!line);
 
     return (
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-4">
+        <div className="flex flex-col gap-3">
             <div
                 className={cn(
-                    'flex flex-col gap-4 rounded-lg border bg-card p-4 text-card-foreground',
+                    'flex flex-col gap-4 rounded-xl border bg-card p-4 text-card-foreground',
                     size.body,
                 )}
                 style={{ fontFamily: font?.bodyFamily }}
@@ -177,6 +177,6 @@ export function PrintPreview({
                 <ExternalLink data-icon="inline-start" />
                 Open sample PDF
             </a>
-        </aside>
+        </div>
     );
 }

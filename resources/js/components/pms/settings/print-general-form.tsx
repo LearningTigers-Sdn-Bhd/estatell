@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { AArrowDown, AArrowUp, Type } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { OptionalBadge } from '@/components/pms/optional-badge';
 import { PrintSampleTable } from '@/components/pms/settings/print-sample-table';
 import {
     Field,
@@ -211,12 +212,14 @@ export function PrintGeneralForm({
                 </RadioGroup>
             </FieldSet>
             <Field>
-                <FieldLabel htmlFor="footer_text">Footer text</FieldLabel>
+                <FieldLabel htmlFor="footer_text">
+                    Footer text <OptionalBadge />
+                </FieldLabel>
                 <Input
                     id="footer_text"
                     maxLength={500}
                     value={value.footerText ?? ''}
-                    placeholder="Thank you for staying with us."
+                    placeholder="e.g. Thank you for staying with us."
                     onChange={(event) =>
                         onDraft({ ...value, footerText: event.target.value })
                     }
